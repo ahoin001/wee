@@ -1,0 +1,30 @@
+[
+  {
+    "id": "google",
+    "title": "Google",
+    "type": "url",
+    "path": "https://www.google.com",
+    "icon": "/public/icons/google.png"
+  },
+  {
+    "id": "notepad",
+    "title": "Notepad",
+    "type": "exe",
+    "path": "C:/Windows/System32/notepad.exe",
+    "icon": "/public/icons/notepad.png"
+  },
+  {
+    "id": "github",
+    "title": "GitHub",
+    "type": "url",
+    "path": "https://github.com",
+    "icon": "/public/icons/github.png"
+  },
+  {
+    "id": "calc",
+    "title": "Calculator",
+    "type": "exe",
+    "path": "C:/Windows/System32/calc.exe",
+    "icon": "/public/icons/calc.png"
+  }
+]
