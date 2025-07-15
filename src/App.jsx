@@ -4,6 +4,7 @@ import './App.css';
 
 function App() {
   const [channels, setChannels] = useState([]);
+  const [mediaMap, setMediaMap] = useState({});
 
   useEffect(() => {
     fetch('src/config.json')
@@ -18,11 +19,24 @@ function App() {
     filledChannels.push({ id: `empty-${filledChannels.length}`, empty: true });
   }
 
+  const handleMediaChange = (id, file) => {
+    const url = URL.createObjectURL(file);
+    setMediaMap((prev) => ({
+      ...prev,
+      [id]: { url, type: file.type },
+    }));
+  };
+
   return (
     <div className="app-container">
       <div className="channels-grid">
         {filledChannels.map((channel, idx) => (
-          <Channel key={channel.id || idx} {...channel} />
+          <Channel
+            key={channel.id || idx}
+            {...channel}
+            media={mediaMap[channel.id]}
+            onMediaChange={channel.empty ? undefined : handleMediaChange}
+          />
         ))}
       </div>
       <div className="ui-bar">

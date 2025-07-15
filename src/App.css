@@ -77,6 +77,7 @@ body, #root {
 }
 
 .channel {
+  position: relative; /* <-- ADD THIS LINE */
   background: #fff;
   border-radius: 32px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
@@ -84,13 +85,13 @@ body, #root {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   min-width: 180px;
   min-height: 110px;
-  aspect-ratio: 2.5 / 1;
+  aspect-ratio: 2 / 1;
   max-width: 100%;
+  overflow: hidden; /* <-- This is important, keep it! */
 }
 .channel:hover, .channel:focus {
   transform: scale(1.06);
@@ -100,16 +101,21 @@ body, #root {
   transform: none;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
-.channel-icon {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 1rem;
+
+.channel-media {
+  position: absolute; /* <-- ADD THIS LINE */
+  top: 0;             /* <-- ADD THIS LINE */
+  left: 0;            /* <-- ADD THIS LINE */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 32px;
+  display: block;
+  z-index: 1; /* Keep it in the back */
 }
-.channel-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #222;
-  text-align: center;
+
+.channel-icon, .channel-title {
+  display: none;
 }
 
 .channel.empty {
