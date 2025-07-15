@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import * as ContextMenu from '@radix-ui/react-context-menu';
 
-function SettingsButton({ icon: CustomIcon, onClick, isActive }) {
+function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor }) {
+  const [showMenu, setShowMenu] = useState(false);
+  
   const defaultIcon = (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="#666" strokeWidth="2" fill="none"/>
@@ -9,13 +12,69 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive }) {
     </svg>
   );
 
+  const handleButtonClick = () => {
+    setShowMenu(!showMenu);
+  };
+
+  const handleMenuClose = () => {
+    setShowMenu(false);
+  };
+
   return (
-    <button 
-      className={`circular-button settings-button ${isActive ? 'active' : ''}`} 
-      onClick={onClick}
-    >
-      {CustomIcon || defaultIcon}
-    </button>
+    <div style={{ position: 'relative' }}>
+      <button 
+        className={`circular-button settings-button ${isActive ? 'active' : ''}`} 
+        onClick={handleButtonClick}
+      >
+        {CustomIcon || defaultIcon}
+      </button>
+      
+      {showMenu && (
+        <div className="settings-menu">
+          <div className="context-menu-content" style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}>
+            <div 
+              className="context-menu-item"
+              onClick={() => {
+                onToggleDarkMode();
+                handleMenuClose();
+              }}
+            >
+              Toggle Dark Mode
+            </div>
+            <div 
+              className="context-menu-item"
+              onClick={() => {
+                onToggleCursor();
+                handleMenuClose();
+              }}
+            >
+              {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
+            </div>
+            <div className="context-menu-item">
+              Settings
+            </div>
+            <div className="context-menu-item">
+              About
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Click outside to close */}
+      {showMenu && (
+        <div 
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            zIndex: 999 
+          }} 
+          onClick={handleMenuClose}
+        />
+      )}
+    </div>
   );
 }
 
@@ -23,6 +82,9 @@ SettingsButton.propTypes = {
   icon: PropTypes.element,
   onClick: PropTypes.func.isRequired,
   isActive: PropTypes.bool,
+  onToggleDarkMode: PropTypes.func,
+  onToggleCursor: PropTypes.func,
+  useCustomCursor: PropTypes.bool,
 };
 
 export default SettingsButton; 

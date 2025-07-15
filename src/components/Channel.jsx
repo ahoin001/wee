@@ -7,84 +7,10 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
   const fileInputRef = useRef();
   const exeInputRef = useRef();
 
-  // If channel has media, treat it as a regular channel with hover effects
-  if (empty && !media) {
-    return (
-      <ContextMenu.Root>
-        <ContextMenu.Trigger asChild>
-          <div className="channel empty" tabIndex={-1}></div>
-        </ContextMenu.Trigger>
-        <ContextMenu.Portal>
-          <ContextMenu.Content className="context-menu-content" sideOffset={5} align="center">
-            <ContextMenu.Item 
-              className="context-menu-item"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Add Image
-            </ContextMenu.Item>
-            <ContextMenu.Item 
-              className="context-menu-item"
-              onClick={() => exeInputRef.current?.click()}
-            >
-              Set App Path
-            </ContextMenu.Item>
-            <ContextMenu.Item className="context-menu-item">
-              Add Channel
-            </ContextMenu.Item>
-            <ContextMenu.Item className="context-menu-item">
-              Configure
-            </ContextMenu.Item>
-          </ContextMenu.Content>
-        </ContextMenu.Portal>
-        <input
-          type="file"
-          accept="image/*,video/mp4"
-          style={{ display: 'none' }}
-          ref={fileInputRef}
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (file && onMediaChange) {
-              onMediaChange(id, file);
-            }
-            e.target.value = '';
-          }}
-        />
-        <input
-          type="file"
-          accept=".exe"
-          style={{ display: 'none' }}
-          ref={exeInputRef}
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (file && onAppPathChange) {
-              onAppPathChange(id, file.path);
-            }
-            e.target.value = '';
-          }}
-        />
-      </ContextMenu.Root>
-    );
-  }
-
   const handleClick = () => {
     if (path) {
       window.api.launchApp({ type: 'exe', path });
     }
-  };
-
-  const handleContextMenu = (e) => {
-    e.preventDefault();
-    if (onMediaChange) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file && onMediaChange) {
-      onMediaChange(id, file);
-    }
-    e.target.value = '';
   };
 
   let mediaPreview = null;
@@ -96,23 +22,71 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
     }
   }
 
-  return (
+  const channelContent = (
     <div
-      className="channel"
+      className={empty && !media ? "channel empty" : "channel"}
       onClick={handleClick}
-      onContextMenu={handleContextMenu}
       tabIndex={0}
       role="button"
     >
+      {mediaPreview || <img src={icon} alt={title} className="channel-media" />}
+    </div>
+  );
+
+  return (
+    <ContextMenu.Root>
+      <ContextMenu.Trigger asChild>
+        {channelContent}
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Content className="context-menu-content" sideOffset={5} align="center">
+          <ContextMenu.Item 
+            className="context-menu-item"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {media ? 'Change Image' : 'Add Image'}
+          </ContextMenu.Item>
+          <ContextMenu.Item 
+            className="context-menu-item"
+            onClick={() => exeInputRef.current?.click()}
+          >
+            {path ? 'Change App Path' : 'Set App Path'}
+          </ContextMenu.Item>
+          <ContextMenu.Item className="context-menu-item">
+            Add Channel
+          </ContextMenu.Item>
+          <ContextMenu.Item className="context-menu-item">
+            Configure
+          </ContextMenu.Item>
+        </ContextMenu.Content>
+      </ContextMenu.Portal>
       <input
         type="file"
         accept="image/*,video/mp4"
         style={{ display: 'none' }}
         ref={fileInputRef}
-        onChange={handleFileChange}
+        onChange={(e) => {
+          const file = e.target.files[0];
+          if (file && onMediaChange) {
+            onMediaChange(id, file);
+          }
+          e.target.value = '';
+        }}
       />
-      {mediaPreview || <img src={icon} alt={title} className="channel-media" />}
-    </div>
+      <input
+        type="file"
+        accept=".exe"
+        style={{ display: 'none' }}
+        ref={exeInputRef}
+        onChange={(e) => {
+          const file = e.target.files[0];
+          if (file && onAppPathChange) {
+            onAppPathChange(id, file.path);
+          }
+          e.target.value = '';
+        }}
+      />
+    </ContextMenu.Root>
   );
 }
 

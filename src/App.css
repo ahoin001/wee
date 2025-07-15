@@ -119,9 +119,9 @@ body, #root {
 }
 
 .channel.empty {
-  background: rgba(255,255,255,0.5);
-  border: 2px dashed #d0d0d7;
-  box-shadow: none;
+  background: rgba(255,255,255,0.5) !important;
+  border: 2px dashed #d0d0d7 !important;
+  box-shadow: none !important;
   cursor: default;
 }
 
@@ -263,4 +263,114 @@ body, #root {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Dark Mode Styles */
+.dark-mode body, .dark-mode #root {
+  background-color: #1a1a1a;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #1a1a1a 0px,
+    #1a1a1a 1px,
+    #2a2a2a 1px,
+    #2a2a2a 2px
+  );
+  background-size: 100% 24px;
+}
+
+.dark-mode .channel {
+  background: #2d2d2d;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.dark-mode .channel:hover, .dark-mode .channel:focus {
+  box-shadow: 0 8px 32px 0 rgba(0,153,255,0.25), 0 0 0 4px rgba(0,153,255,0.15);
+}
+
+.dark-mode .channel.empty {
+  background: rgba(45,45,45,0.5) !important;
+  border: 2px dashed #555 !important;
+}
+
+.dark-mode .ui-bar {
+  background: #2d2d2d;
+  border-top: 1px solid #444;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+}
+
+.dark-mode .circular-button {
+  background: #2d2d2d;
+  border: 2px solid #555;
+  color: #ccc;
+}
+
+.dark-mode .circular-button:hover {
+  border-color: #777;
+  background: #3d3d3d;
+}
+
+.dark-mode .circular-button svg path {
+  stroke: #ccc;
+}
+
+.dark-mode .settings-button.active {
+  background: #0099ff;
+  border-color: #0099ff;
+}
+
+.dark-mode .settings-button.active svg path {
+  stroke: #fff;
+}
+
+.dark-mode .context-menu-content {
+  background: #2d2d2d;
+  border: 1px solid #555;
+  box-shadow: 0 10px 38px -10px rgba(0, 0, 0, 0.5), 0 10px 20px -15px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .context-menu-item {
+  color: #ccc;
+}
+
+.dark-mode .context-menu-item:hover,
+.dark-mode .context-menu-item:focus {
+  background: #3d3d3d;
+  color: #fff;
+}
+
+/* Wii-style cursor */
+.wii-cursor {
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid #0099ff;
+  border-radius: 50%;
+  position: fixed;
+  pointer-events: none;
+  z-index: 10000;
+  transform: translate(-50%, -50%);
+  transition: all 0.1s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.wii-cursor.hover {
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border-width: 3px;
+  box-shadow: 0 4px 12px rgba(0, 153, 255, 0.4);
+}
+
+/* Hide default cursor completely when custom cursor is enabled */
+.custom-cursor {
+  cursor: none !important;
+}
+
+.custom-cursor * {
+  cursor: none !important;
+}
+
+/* Show default cursor when custom cursor is disabled */
+body:not(.custom-cursor) {
+  cursor: auto;
 }
