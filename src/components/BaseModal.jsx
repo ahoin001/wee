@@ -8,7 +8,7 @@ function BaseModal({
   children, 
   footerContent,
   className = '',
-  maxWidth = '500px'
+  maxWidth = '800px'
 }) {
   const [isClosing, setIsClosing] = useState(false);
 
