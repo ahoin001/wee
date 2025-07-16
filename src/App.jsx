@@ -69,6 +69,7 @@ function App() {
   const [soundSettings, setSoundSettings] = useState(null);
   const [backgroundAudio, setBackgroundAudio] = useState(null);
   const backgroundAudioRef = useRef(null);
+  const [showDragRegion, setShowDragRegion] = useState(false);
 
   // Create 12 empty channels for user configuration
   const channels = Array.from({ length: 12 }, (_, index) => ({
@@ -263,6 +264,20 @@ function App() {
     }
   }, [useCustomCursor]);
 
+  useEffect(() => {
+    if (window.api && window.api.onUpdateDragRegion) {
+      window.api.onUpdateDragRegion((shouldShow) => {
+        setShowDragRegion(shouldShow);
+      });
+    } else if (window.require) {
+      // Fallback for Electron context
+      const { ipcRenderer } = window.require('electron');
+      ipcRenderer.on('update-drag-region', (event, shouldShow) => {
+        setShowDragRegion(shouldShow);
+      });
+    }
+  }, []);
+
   const handleMediaChange = (id, file) => {
     const url = URL.createObjectURL(file);
     setMediaMap((prev) => ({
@@ -342,6 +357,9 @@ function App() {
 
   return (
     <div className="app-container">
+      {showDragRegion && (
+        <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
+      )}
       {useCustomCursor && <WiiCursor />}
       <div className="channels-grid">
         {channels.map((channel) => {

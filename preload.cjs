@@ -8,4 +8,11 @@ contextBridge.exposeInMainWorld('api', {
   saveChannelConfigs: (configs) => ipcRenderer.invoke('save-channel-configs', configs),
   getSavedSounds: () => ipcRenderer.invoke('get-saved-sounds'),
   saveSavedSounds: (sounds) => ipcRenderer.invoke('save-saved-sounds', sounds),
+  toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
+  toggleFrame: () => ipcRenderer.send('toggle-frame'),
+  minimize: () => ipcRenderer.send('minimize-window'),
+  close: () => ipcRenderer.send('close-window'),
+  onUpdateDragRegion: (callback) => ipcRenderer.on('update-drag-region', (event, shouldShow) => callback(shouldShow)),
+  onFullscreenState: (callback) => ipcRenderer.on('fullscreen-state', (event, val) => callback(val)),
+  onFrameState: (callback) => ipcRenderer.on('frame-state', (event, val) => callback(val)),
 });

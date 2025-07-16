@@ -12,24 +12,16 @@ const api = window.api || {
 // Default sounds configuration
 const DEFAULT_SOUNDS = {
   channelClick: [
-    { name: 'Wii Click 1', url: '/sounds/wii-click-1.mp3', volume: 0.5 },
-    { name: 'Wii Click 2', url: '/sounds/wii-click-2.mp3', volume: 0.5 },
-    { name: 'Wii Click 3', url: '/sounds/wii-click-3.mp3', volume: 0.5 }
+    { name: 'Wii Click 1', url: '/sounds/wii-click-1.mp3', volume: 0.5 }
   ],
   channelHover: [
-    { name: 'Wii Hover 1', url: '/sounds/wii-hover-1.mp3', volume: 0.3 },
-    { name: 'Wii Hover 2', url: '/sounds/wii-hover-2.mp3', volume: 0.3 },
-    { name: 'Wii Hover 3', url: '/sounds/wii-hover-3.mp3', volume: 0.3 }
+    { name: 'Wii Hover 1', url: '/sounds/wii-hover-1.mp3', volume: 0.3 }
   ],
   backgroundMusic: [
-    { name: 'Wii Menu Music', url: '/sounds/wii-menu-music.mp3', volume: 0.4 },
-    { name: 'Wii Channel Music', url: '/sounds/wii-channel-music.mp3', volume: 0.4 },
-    { name: 'Wii Ambient Music', url: '/sounds/wii-ambient-music.mp3', volume: 0.4 }
+    { name: 'Wii Menu Music', url: '/sounds/wii-menu-music.mp3', volume: 0.4 }
   ],
   startup: [
-    { name: 'Wii Startup 1', url: '/sounds/wii-startup-1.mp3', volume: 0.6 },
-    { name: 'Wii Startup 2', url: '/sounds/wii-startup-2.mp3', volume: 0.6 },
-    { name: 'Wii Startup 3', url: '/sounds/wii-startup-3.mp3', volume: 0.6 }
+    { name: 'Wii Startup 1', url: '/sounds/wii-startup-1.mp3', volume: 0.6 }
   ]
 };
 
@@ -71,7 +63,8 @@ function SoundModal({ onClose, onSettingsChange }) {
         name: sound.name,
         url: sound.url,
         volume: sound.volume,
-        isDefault: true
+        isDefault: true,
+        enabled: true // Ensure enabled is true for default sounds
       }));
     });
     

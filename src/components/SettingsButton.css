@@ -1,0 +1,7 @@
+.settings-menu-fade {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.settings-menu-fade.in {
+  opacity: 1;
+} 

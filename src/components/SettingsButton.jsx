@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import SoundModal from './SoundModal';
+import './SettingsButton.css';
 
 function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showMenuFade, setShowMenuFade] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(true);
+  const [isFrameless, setIsFrameless] = useState(true);
   
   const defaultIcon = (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -15,12 +19,33 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
   );
 
   const handleButtonClick = () => {
-    setShowMenu(!showMenu);
+    setShowMenu(true);
+    setTimeout(() => setShowMenuFade(true), 10); // trigger fade-in
   };
 
   const handleMenuClose = () => {
-    setShowMenu(false);
+    setShowMenuFade(false);
+    setTimeout(() => setShowMenu(false), 200); // match fade-out duration
   };
+
+  // Guard for window.api to prevent errors in browser
+  const api = window.api || {
+    toggleFullscreen: () => {},
+    toggleFrame: () => {},
+    minimize: () => {},
+    close: () => {},
+    onFullscreenState: () => {},
+    onFrameState: () => {},
+  };
+
+  useEffect(() => {
+    if (api.onFullscreenState) {
+      api.onFullscreenState((val) => setIsFullscreen(val));
+    }
+    if (api.onFrameState) {
+      api.onFrameState((val) => setIsFrameless(!val));
+    }
+  }, []);
 
   return (
     <>
@@ -34,7 +59,10 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
         
         {showMenu && (
           <div className="settings-menu">
-            <div className="context-menu-content" style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}>
+            <div
+              className={`context-menu-content settings-menu-fade${showMenuFade ? ' in' : ''}`}
+              style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+            >
               <div 
                 className="context-menu-item"
                 onClick={() => {
@@ -61,6 +89,33 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
                 }}
               >
                 Change Sounds
+              </div>
+              <div 
+                className="context-menu-item"
+                onClick={() => {
+                  api.toggleFullscreen();
+                  handleMenuClose();
+                }}
+              >
+                {isFullscreen ? 'Window Mode' : 'Fullscreen Mode'}
+              </div>
+              <div 
+                className="context-menu-item"
+                onClick={() => {
+                  api.minimize();
+                  handleMenuClose();
+                }}
+              >
+                Minimize Window
+              </div>
+              <div 
+                className="context-menu-item"
+                onClick={() => {
+                  api.close();
+                  handleMenuClose();
+                }}
+              >
+                Close App
               </div>
             </div>
           </div>

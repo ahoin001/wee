@@ -9,25 +9,61 @@ const settingsPath = path.join(userDataPath, 'settings.json');
 const channelConfigsPath = path.join(userDataPath, 'channelConfigs.json');
 const savedSoundsPath = path.join(userDataPath, 'savedSounds.json');
 
-function createWindow() {
-  const win = new BrowserWindow({
+let mainWindow = null;
+let isCurrentlyFullscreen = true;
+let isFrameless = true;
+
+function sendWindowState() {
+  if (mainWindow) {
+    mainWindow.webContents.send('fullscreen-state', isCurrentlyFullscreen);
+    mainWindow.webContents.send('frame-state', !isFrameless);
+  }
+}
+
+function createWindow({ frame = false, fullscreen = true, bounds = null } = {}) {
+  // If bounds are provided, use them; otherwise, use defaults
+  const options = {
     width: 1280,
     height: 720,
+    frame: frame,
+    fullscreen: fullscreen,
     webPreferences: {
+      autoHideMenuBar: true, // press alt to show,
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
-  });
+  };
+  if (bounds) {
+    options.x = bounds.x;
+    options.y = bounds.y;
+    options.width = bounds.width;
+    options.height = bounds.height;
+  }
+
+  if (mainWindow) {
+    mainWindow.destroy();
+  }
+  mainWindow = new BrowserWindow(options);
+  mainWindow.setMenu(null);
 
   if (process.env.NODE_ENV === 'development') {
-    win.loadURL('http://localhost:5173');
+    mainWindow.loadURL('http://localhost:5173');
   } else {
-    win.loadFile(path.join(__dirname, 'dist', 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
+
+  isCurrentlyFullscreen = fullscreen;
+  isFrameless = !frame;
+
+  // Send drag-region state to renderer
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.send('update-drag-region', isFrameless && !isCurrentlyFullscreen);
+    sendWindowState();
+  });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => createWindow({ frame: false, fullscreen: true }));
 
 // --- Persistent Storage IPC Handlers ---
 
@@ -108,6 +144,47 @@ ipcMain.on('launch-app', (event, { type, path: appPath }) => {
       console.error('Failed to open path:', err);
     });
   }
+});
+
+// IPC handler for toggling fullscreen/windowed mode
+ipcMain.on('toggle-fullscreen', () => {
+  if (!mainWindow) return;
+  if (isCurrentlyFullscreen) {
+    mainWindow.setFullScreen(false);
+    mainWindow.setSize(1920, 1080);
+    mainWindow.center();
+    isCurrentlyFullscreen = false;
+  } else {
+    mainWindow.setFullScreen(true);
+    isCurrentlyFullscreen = true;
+  }
+  // Update drag region
+  mainWindow.webContents.send('update-drag-region', isFrameless && !isCurrentlyFullscreen);
+  sendWindowState();
+});
+
+// IPC handler for toggling window frame
+ipcMain.on('toggle-frame', () => {
+  if (!mainWindow) return;
+  const bounds = mainWindow.getBounds();
+  const wasFullScreen = mainWindow.isFullScreen();
+  // Only recreate if needed
+  createWindow({
+    frame: isFrameless, // toggle
+    fullscreen: wasFullScreen,
+    bounds,
+  });
+  // sendWindowState will be called after load
+});
+
+// IPC handler for minimizing window
+ipcMain.on('minimize-window', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+// IPC handler for closing window
+ipcMain.on('close-window', () => {
+  if (mainWindow) mainWindow.close();
 });
 
 app.on('window-all-closed', () => {
