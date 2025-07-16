@@ -5,6 +5,17 @@ import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
 import './App.css';
 
+// Guard for window.api to prevent errors in browser
+const api = window.api || {
+  getSettings: async () => null,
+  saveSettings: async () => {},
+  getChannelConfigs: async () => null,
+  saveChannelConfigs: async () => {},
+  getSavedSounds: async () => null,
+  saveSavedSounds: async () => {},
+  launchApp: () => {},
+};
+
 function WiiCursor() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
@@ -67,12 +78,20 @@ function App() {
 
   // Load sound settings and play startup sound
   useEffect(() => {
-    const savedSoundSettings = localStorage.getItem('wiiDesktopSoundSettings');
-    if (savedSoundSettings) {
-      try {
-        const settings = JSON.parse(savedSoundSettings);
+    async function loadSettings() {
+      let settings = await api.getSettings();
+      if (!settings) {
+        // fallback to localStorage for migration (optional)
+        const legacy = localStorage.getItem('wiiDesktopSoundSettings');
+        if (legacy) {
+          try {
+            settings = JSON.parse(legacy);
+            await api.saveSettings(settings);
+          } catch {}
+        }
+      }
+      if (settings) {
         setSoundSettings(settings);
-        
         // Play startup sound if enabled and configured
         if (settings.startup?.enabled && settings.startup?.file?.url) {
           const startupAudio = new Audio(settings.startup.file.url);
@@ -81,15 +100,13 @@ function App() {
             console.log('Startup sound playback failed:', error);
           });
         }
-
         // Setup background music if enabled
         if (settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
           setupBackgroundMusic(settings.backgroundMusic);
         }
-      } catch (error) {
-        console.error('Error loading sound settings:', error);
       }
     }
+    loadSettings();
   }, []);
 
   // Setup background music
@@ -175,7 +192,11 @@ function App() {
         }
       }
     }
-  }, [soundSettings?.backgroundMusic]);
+    // Persist sound settings
+    if (soundSettings) {
+      api.saveSettings(soundSettings);
+    }
+  }, [soundSettings?.backgroundMusic, soundSettings]);
 
   // Cleanup background audio on unmount
   useEffect(() => {
@@ -187,34 +208,42 @@ function App() {
     };
   }, []);
 
-  // Load channel configurations from localStorage
+  // Load channel configurations from persistent storage
   useEffect(() => {
-    const savedConfigs = localStorage.getItem('wiiDesktopChannelConfigs');
-    if (savedConfigs) {
-      try {
-        const configs = JSON.parse(savedConfigs);
+    async function loadChannelConfigs() {
+      let configs = await api.getChannelConfigs();
+      if (!configs) {
+        // fallback to localStorage for migration (optional)
+        const legacy = localStorage.getItem('wiiDesktopChannelConfigs');
+        if (legacy) {
+          try {
+            configs = JSON.parse(legacy);
+            await api.saveChannelConfigs(configs);
+          } catch {}
+        }
+      }
+      if (configs) {
         setChannelConfigs(configs);
-        
         // Update mediaMap and appPathMap from saved configs
         const newMediaMap = {};
         const newAppPathMap = {};
-        
         Object.entries(configs).forEach(([channelId, config]) => {
-          if (config.media) {
-            newMediaMap[channelId] = config.media;
-          }
-          if (config.path) {
-            newAppPathMap[channelId] = config.path;
-          }
+          if (config.media) newMediaMap[channelId] = config.media;
+          if (config.path) newAppPathMap[channelId] = config.path;
         });
-        
         setMediaMap(newMediaMap);
         setAppPathMap(newAppPathMap);
-      } catch (error) {
-        console.error('Error loading channel configurations:', error);
       }
     }
+    loadChannelConfigs();
   }, []);
+
+  // Persist channel configs whenever they change
+  useEffect(() => {
+    if (channelConfigs) {
+      api.saveChannelConfigs(channelConfigs);
+    }
+  }, [channelConfigs]);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -255,7 +284,6 @@ function App() {
       setChannelConfigs(prev => {
         const updated = { ...prev };
         delete updated[channelId];
-        localStorage.setItem('wiiDesktopChannelConfigs', JSON.stringify(updated));
         return updated;
       });
 
@@ -281,7 +309,6 @@ function App() {
         ...prev,
         [channelId]: channelData
       };
-      localStorage.setItem('wiiDesktopChannelConfigs', JSON.stringify(updated));
       return updated;
     });
 

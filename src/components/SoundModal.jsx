@@ -3,6 +3,36 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './SoundModal.css';
 
+// Guard for window.api to prevent errors in browser
+const api = window.api || {
+  getSavedSounds: async () => null,
+  saveSavedSounds: async () => {},
+};
+
+// Default sounds configuration
+const DEFAULT_SOUNDS = {
+  channelClick: [
+    { name: 'Wii Click 1', url: '/sounds/wii-click-1.mp3', volume: 0.5 },
+    { name: 'Wii Click 2', url: '/sounds/wii-click-2.mp3', volume: 0.5 },
+    { name: 'Wii Click 3', url: '/sounds/wii-click-3.mp3', volume: 0.5 }
+  ],
+  channelHover: [
+    { name: 'Wii Hover 1', url: '/sounds/wii-hover-1.mp3', volume: 0.3 },
+    { name: 'Wii Hover 2', url: '/sounds/wii-hover-2.mp3', volume: 0.3 },
+    { name: 'Wii Hover 3', url: '/sounds/wii-hover-3.mp3', volume: 0.3 }
+  ],
+  backgroundMusic: [
+    { name: 'Wii Menu Music', url: '/sounds/wii-menu-music.mp3', volume: 0.4 },
+    { name: 'Wii Channel Music', url: '/sounds/wii-channel-music.mp3', volume: 0.4 },
+    { name: 'Wii Ambient Music', url: '/sounds/wii-ambient-music.mp3', volume: 0.4 }
+  ],
+  startup: [
+    { name: 'Wii Startup 1', url: '/sounds/wii-startup-1.mp3', volume: 0.6 },
+    { name: 'Wii Startup 2', url: '/sounds/wii-startup-2.mp3', volume: 0.6 },
+    { name: 'Wii Startup 3', url: '/sounds/wii-startup-3.mp3', volume: 0.6 }
+  ]
+};
+
 function SoundModal({ onClose, onSettingsChange }) {
   const [sounds, setSounds] = useState({
     channelClick: { file: null, volume: 0.5, enabled: true },
@@ -31,16 +61,47 @@ function SoundModal({ onClose, onSettingsChange }) {
     startup: useRef()
   };
 
-  // Load saved sounds from localStorage on component mount
+  // Function to load default sounds
+  const loadDefaultSounds = () => {
+    const defaultSoundsWithIds = {};
+    
+    Object.entries(DEFAULT_SOUNDS).forEach(([soundType, soundList]) => {
+      defaultSoundsWithIds[soundType] = soundList.map((sound, index) => ({
+        id: `default-${soundType}-${index}`,
+        name: sound.name,
+        url: sound.url,
+        volume: sound.volume,
+        isDefault: true
+      }));
+    });
+    
+    return defaultSoundsWithIds;
+  };
+
+  // Load saved sounds from persistent storage on component mount
   useEffect(() => {
-    const saved = localStorage.getItem('wiiDesktopSounds');
-    if (saved) {
-      try {
-        setSavedSounds(JSON.parse(saved));
-      } catch (error) {
-        console.error('Error loading saved sounds:', error);
+    async function loadSavedSounds() {
+      let saved = await api.getSavedSounds();
+      if (!saved) {
+        // fallback to localStorage for migration (optional)
+        const legacy = localStorage.getItem('wiiDesktopSounds');
+        if (legacy) {
+          try {
+            saved = JSON.parse(legacy);
+            await api.saveSavedSounds(saved);
+          } catch {}
+        }
+      }
+      if (saved) {
+        setSavedSounds(saved);
+      } else {
+        // If no saved sounds exist, load default sounds
+        const defaultSounds = loadDefaultSounds();
+        setSavedSounds(defaultSounds);
+        api.saveSavedSounds(defaultSounds);
       }
     }
+    loadSavedSounds();
 
     // Load current sound settings
     const savedSettings = localStorage.getItem('wiiDesktopSoundSettings');
@@ -58,6 +119,13 @@ function SoundModal({ onClose, onSettingsChange }) {
       }
     }
   }, []);
+
+  // Whenever savedSounds changes, persist to Electron
+  useEffect(() => {
+    if (savedSounds) {
+      api.saveSavedSounds(savedSounds);
+    }
+  }, [savedSounds]);
 
   const handleFileSelect = (soundType, file) => {
     if (file) {
@@ -146,8 +214,6 @@ function SoundModal({ onClose, onSettingsChange }) {
           ...prev,
           [soundType]: [...prev[soundType], newSound]
         };
-        // Save to localStorage
-        localStorage.setItem('wiiDesktopSounds', JSON.stringify(updated));
         return updated;
       });
     }
@@ -176,8 +242,6 @@ function SoundModal({ onClose, onSettingsChange }) {
         ...prev,
         [soundType]: prev[soundType].filter(sound => sound.id !== soundId)
       };
-      // Save to localStorage
-      localStorage.setItem('wiiDesktopSounds', JSON.stringify(updated));
       return updated;
     });
   };
@@ -268,7 +332,12 @@ function SoundModal({ onClose, onSettingsChange }) {
                   className={`sound-item ${sound.file?.url === savedSound.url ? 'active' : ''}`}
                   onClick={() => handleSelectSavedSound(soundType, savedSound)}
                 >
-                  <div className="sound-item-name">{savedSound.name}</div>
+                  <div className="sound-item-info">
+                    <div className="sound-item-name">{savedSound.name}</div>
+                    {savedSound.isDefault && (
+                      <span className="default-badge">Default</span>
+                    )}
+                  </div>
                   <div className="sound-item-actions">
                     <button 
                       className="sound-item-button"
@@ -279,15 +348,17 @@ function SoundModal({ onClose, onSettingsChange }) {
                     >
                       Test
                     </button>
-                    <button 
-                      className="sound-item-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSavedSound(soundType, savedSound.id);
-                      }}
-                    >
-                      Delete
-                    </button>
+                    {!savedSound.isDefault && (
+                      <button 
+                        className="sound-item-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSavedSound(soundType, savedSound.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -438,7 +509,12 @@ function SoundModal({ onClose, onSettingsChange }) {
                     }
                   }}
                 >
-                  <div className="sound-item-name">{savedSound.name}</div>
+                  <div className="sound-item-info">
+                    <div className="sound-item-name">{savedSound.name}</div>
+                    {savedSound.isDefault && (
+                      <span className="default-badge">Default</span>
+                    )}
+                  </div>
                   <div className="sound-item-actions">
                     <button 
                       className="sound-item-button"
@@ -460,15 +536,17 @@ function SoundModal({ onClose, onSettingsChange }) {
                         Add to Playlist
                       </button>
                     )}
-                    <button 
-                      className="sound-item-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSavedSound('backgroundMusic', savedSound.id);
-                      }}
-                    >
-                      Delete
-                    </button>
+                    {!savedSound.isDefault && (
+                      <button 
+                        className="sound-item-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSavedSound('backgroundMusic', savedSound.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

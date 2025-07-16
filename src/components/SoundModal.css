@@ -177,9 +177,26 @@ input:checked + .slider:before {
   border-color: #0099ff;
 }
 
-.sound-item-name {
+.sound-item-info {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sound-item-name {
   font-size: 0.9rem;
+}
+
+.default-badge {
+  background: #0099ff;
+  color: white;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .sound-item-actions {
@@ -472,6 +489,11 @@ input:checked + .slider:before {
   background: #0099ff;
   color: white;
   border-color: #0099ff;
+}
+
+.dark-mode .default-badge {
+  background: #0099ff;
+  color: white;
 }
 
 .dark-mode .volume-control label {
