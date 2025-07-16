@@ -4,7 +4,7 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import SoundModal from './SoundModal';
 import './SettingsButton.css';
 
-function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange }) {
+function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
@@ -93,6 +93,15 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div 
                 className="context-menu-item"
                 onClick={() => {
+                  onBarTypeChange(barType === 'flat' ? 'wii' : 'flat');
+                  handleMenuClose();
+                }}
+              >
+                {barType === 'flat' ? 'Switch to Wii Bar' : 'Switch to Flat Bar'}
+              </div>
+              <div 
+                className="context-menu-item"
+                onClick={() => {
                   api.toggleFullscreen();
                   handleMenuClose();
                 }}
@@ -155,6 +164,8 @@ SettingsButton.propTypes = {
   onToggleCursor: PropTypes.func,
   useCustomCursor: PropTypes.bool,
   onSettingsChange: PropTypes.func,
+  barType: PropTypes.string,
+  onBarTypeChange: PropTypes.func,
 };
 
 export default SettingsButton; 

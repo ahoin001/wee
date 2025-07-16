@@ -265,6 +265,7 @@ function SoundModal({ onClose, onSettingsChange }) {
               type="checkbox"
               checked={sound.enabled}
               onChange={() => handleToggleSound(soundType)}
+              disabled={saved.some(s => s.isDefault)} // Always enabled if default exists
             />
             <span className="slider"></span>
           </label>

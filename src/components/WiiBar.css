@@ -1,0 +1,101 @@
+.wii-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 80px;
+  width: 100vw;
+  z-index: 200;
+  pointer-events: auto;
+  background: transparent;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+.wii-bar-bg {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 80px;
+  z-index: 0;
+  pointer-events: none;
+}
+.wii-bar-content {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 80px;
+  width: 100vw;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+.wii-bar-btn {
+  position: absolute;
+  bottom: 18px;
+  background: #fff;
+  border-radius: 50%;
+  border: 2px solid #e0e0e6;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.wii-bar-btn:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  border-color: #b0c4d8;
+}
+.wii-btn {
+  left: 32px;
+}
+.mail-btn {
+  right: 32px;
+}
+.sd-btn {
+  left: 100px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #f3f6fa;
+  border: 1.5px solid #b0c4d8;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wii-bar-clock {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+}
+.wii-bar-time {
+  font-family: 'Digital-7', 'Arial Black', Arial, Helvetica, sans-serif;
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: rgba(60,60,60,0.75);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.wii-bar-date {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  color: rgba(60,60,60,0.75);
+  margin-top: 2px;
+  font-weight: 500;
+} 

@@ -3,6 +3,8 @@ import Channel from './components/Channel';
 import HomeButton from './components/HomeButton';
 import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
+import FlatBar from './components/FlatBar';
+import WiiBar from './components/WiiBar';
 import './App.css';
 
 // Guard for window.api to prevent errors in browser
@@ -70,6 +72,7 @@ function App() {
   const [backgroundAudio, setBackgroundAudio] = useState(null);
   const backgroundAudioRef = useRef(null);
   const [showDragRegion, setShowDragRegion] = useState(false);
+  const [barType, setBarType] = useState('flat');
 
   // Create 12 empty channels for user configuration
   const channels = Array.from({ length: 12 }, (_, index) => ({
@@ -81,34 +84,66 @@ function App() {
   useEffect(() => {
     async function loadSettings() {
       let settings = await api.getSettings();
-      if (!settings) {
-        // fallback to localStorage for migration (optional)
-        const legacy = localStorage.getItem('wiiDesktopSoundSettings');
-        if (legacy) {
-          try {
-            settings = JSON.parse(legacy);
-            await api.saveSettings(settings);
-          } catch {}
-        }
+      let savedSounds = await api.getSavedSounds();
+      let updated = false;
+      // If no startup sound selected, set default
+      if (!settings?.startup?.file && savedSounds?.startup?.length > 0) {
+        settings = settings || {};
+        settings.startup = settings.startup || {};
+        const defaultStartup = savedSounds.startup.find(s => s.isDefault) || savedSounds.startup[0];
+        settings.startup.file = { url: defaultStartup.url, name: defaultStartup.name };
+        settings.startup.enabled = true;
+        updated = true;
+      }
+      // If no background music selected, set default
+      if (!settings?.backgroundMusic?.file && savedSounds?.backgroundMusic?.length > 0) {
+        settings = settings || {};
+        settings.backgroundMusic = settings.backgroundMusic || {};
+        const defaultMusic = savedSounds.backgroundMusic.find(s => s.isDefault) || savedSounds.backgroundMusic[0];
+        settings.backgroundMusic.file = { url: defaultMusic.url, name: defaultMusic.name };
+        settings.backgroundMusic.enabled = true;
+        settings.backgroundMusic.loopMode = settings.backgroundMusic.loopMode || 'single';
+        updated = true;
+      }
+      if (updated) {
+        await api.saveSettings(settings);
       }
       if (settings) {
         setSoundSettings(settings);
         // Play startup sound if enabled and configured
+        let playedStartup = false;
         if (settings.startup?.enabled && settings.startup?.file?.url) {
+          playedStartup = true;
           const startupAudio = new Audio(settings.startup.file.url);
           startupAudio.volume = settings.startup.volume || 0.6;
           startupAudio.play().catch(error => {
             console.log('Startup sound playback failed:', error);
+            // If playback fails, start background music immediately
+            if (settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
+              setupBackgroundMusic(settings.backgroundMusic);
+            }
+          });
+          startupAudio.addEventListener('ended', () => {
+            if (settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
+              setupBackgroundMusic(settings.backgroundMusic);
+            }
           });
         }
-        // Setup background music if enabled
-        if (settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
+        // If no startup sound, start background music immediately
+        if (!playedStartup && settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
           setupBackgroundMusic(settings.backgroundMusic);
         }
       }
     }
     loadSettings();
   }, []);
+
+  // Persist sound settings whenever they change
+  useEffect(() => {
+    if (soundSettings) {
+      api.saveSettings(soundSettings);
+    }
+  }, [soundSettings]);
 
   // Setup background music
   const setupBackgroundMusic = (backgroundMusicSettings) => {
@@ -193,10 +228,6 @@ function App() {
         }
       }
     }
-    // Persist sound settings
-    if (soundSettings) {
-      api.saveSettings(soundSettings);
-    }
   }, [soundSettings?.backgroundMusic, soundSettings]);
 
   // Cleanup background audio on unmount
@@ -213,16 +244,6 @@ function App() {
   useEffect(() => {
     async function loadChannelConfigs() {
       let configs = await api.getChannelConfigs();
-      if (!configs) {
-        // fallback to localStorage for migration (optional)
-        const legacy = localStorage.getItem('wiiDesktopChannelConfigs');
-        if (legacy) {
-          try {
-            configs = JSON.parse(legacy);
-            await api.saveChannelConfigs(configs);
-          } catch {}
-        }
-      }
       if (configs) {
         setChannelConfigs(configs);
         // Update mediaMap and appPathMap from saved configs
@@ -245,6 +266,27 @@ function App() {
       api.saveChannelConfigs(channelConfigs);
     }
   }, [channelConfigs]);
+
+  // Load settings (including barType) from persistent storage
+  useEffect(() => {
+    async function loadSettings() {
+      let settings = await api.getSettings();
+      if (settings) {
+        setIsDarkMode(settings.isDarkMode ?? false);
+        setUseCustomCursor(settings.useCustomCursor ?? true);
+        setBarType(settings.barType ?? 'flat');
+      }
+    }
+    loadSettings();
+  }, []);
+  // Persist barType and other settings when changed
+  useEffect(() => {
+    api.saveSettings({
+      isDarkMode,
+      useCustomCursor,
+      barType,
+    });
+  }, [isDarkMode, useCustomCursor, barType]);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -299,6 +341,7 @@ function App() {
       setChannelConfigs(prev => {
         const updated = { ...prev };
         delete updated[channelId];
+        api.saveChannelConfigs(updated);
         return updated;
       });
 
@@ -324,6 +367,7 @@ function App() {
         ...prev,
         [channelId]: channelData
       };
+      api.saveChannelConfigs(updated);
       return updated;
     });
 
@@ -355,6 +399,10 @@ function App() {
     setUseCustomCursor(!useCustomCursor);
   };
 
+  const handleBarTypeChange = (type) => {
+    setBarType(type);
+  };
+
   return (
     <div className="app-container">
       {showDragRegion && (
@@ -365,7 +413,6 @@ function App() {
         {channels.map((channel) => {
           const config = channelConfigs[channel.id];
           const isConfigured = config && (config.media || config.path);
-          
           return (
             <Channel
               key={channel.id}
@@ -382,18 +429,24 @@ function App() {
           );
         })}
       </div>
-      <div className="ui-bar">
-        <HomeButton />
-        <SettingsButton 
-          onClick={handleSettingsClick} 
-          isActive={isEditMode} 
+      {barType === 'flat' ? (
+        <FlatBar
+          onSettingsClick={handleSettingsClick}
+          isEditMode={isEditMode}
           onToggleDarkMode={handleToggleDarkMode}
           onToggleCursor={handleToggleCursor}
           useCustomCursor={useCustomCursor}
           onSettingsChange={setSoundSettings}
+          barType={barType}
+          onBarTypeChange={handleBarTypeChange}
         />
-        <NotificationsButton />
-      </div>
+      ) : (
+        <WiiBar
+          onSettingsClick={handleSettingsClick}
+          barType={barType}
+          onBarTypeChange={handleBarTypeChange}
+        />
+      )}
     </div>
   );
 }
