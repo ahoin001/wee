@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './ChannelModal.css';
+import ImageSearchModal from './ImageSearchModal';
 
 function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType }) {
   const [media, setMedia] = useState(currentMedia);
@@ -9,8 +10,10 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [type, setType] = useState(currentType || 'exe');
   const [title, setTitle] = useState('');
   const [pathError, setPathError] = useState('');
+  const [asAdmin, setAsAdmin] = useState(false);
   const fileInputRef = useRef();
   const exeFileInputRef = useRef();
+  const [showImageSearch, setShowImageSearch] = useState(false);
 
   const handleFileSelect = (file) => {
     if (file) {
@@ -31,6 +34,16 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         setPathError('');
       }
     }
+  };
+
+  const handleImageSelect = (img) => {
+    setMedia({ url: img.url, type: img.format === 'image' ? 'image/png' : img.format === 'gif' ? 'image/gif' : img.format === 'mp4' ? 'video/mp4' : '', name: img.name, isBuiltin: true });
+    setShowImageSearch(false);
+  };
+
+  const handleUploadClick = () => {
+    setShowImageSearch(false);
+    setTimeout(() => fileInputRef.current?.click(), 100); // slight delay to allow modal to close
   };
 
   const validatePath = () => {
@@ -95,6 +108,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         media,
         path: path.trim(),
         type,
+        asAdmin, // <-- add this
         title: title.trim() || `Channel ${channelId}`
       });
       onClose();
@@ -132,17 +146,18 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         <div className="image-section">
           {media ? (
             <div className="image-preview">
-              <img src={media.url} alt="Channel preview" />
+              {media.type.startsWith('image/') ? (
+                <img src={media.url} alt="Channel preview" />
+              ) : media.type.startsWith('video/') ? (
+                <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
+              ) : null}
               <button className="remove-image-button" onClick={handleRemoveImage}>
                 Remove
               </button>
             </div>
           ) : (
-            <button 
-              className="file-button"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Select Image
+            <button className="file-button" style={{ background: '#f7fafd', color: '#222', border: '2px solid #b0c4d8', fontWeight: 500 }} onClick={() => setShowImageSearch(true)}>
+              Add Channel Image
             </button>
           )}
           <input
@@ -154,6 +169,13 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           />
         </div>
       </div>
+      {showImageSearch && (
+        <ImageSearchModal
+          onClose={() => setShowImageSearch(false)}
+          onSelect={handleImageSelect}
+          onUploadClick={handleUploadClick}
+        />
+      )}
 
       <div className="form-section">
         <h3>Channel Title (Optional)</h3>
@@ -192,28 +214,52 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         <h3>{type === 'exe' ? 'Application Path' : 'Website URL'}</h3>
         
         {type === 'exe' ? (
-          <div className="path-input-group">
-            <input
-              type="text"
-              placeholder="C:\Path\To\Application.exe or paste path here"
-              value={path}
-              onChange={handlePathChange}
-              className={`text-input ${pathError ? 'error' : ''}`}
-            />
-            <button 
-              className="file-picker-button"
-              onClick={() => exeFileInputRef.current?.click()}
-            >
-              Browse Files
-            </button>
-            <input
-              type="file"
-              accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
-              ref={exeFileInputRef}
-              onChange={(e) => handleExeFileSelect(e.target.files[0])}
-              style={{ display: 'none' }}
-            />
-          </div>
+          <>
+            <div className="path-input-group">
+              <input
+                type="text"
+                placeholder="C:\Path\To\Application.exe or paste path here"
+                value={path}
+                onChange={handlePathChange}
+                className={`text-input ${pathError ? 'error' : ''}`}
+              />
+              <button 
+                className="file-picker-button"
+                onClick={() => exeFileInputRef.current?.click()}
+              >
+                Browse Files
+              </button>
+              <input
+                type="file"
+                accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
+                ref={exeFileInputRef}
+                onChange={(e) => handleExeFileSelect(e.target.files[0])}
+                style={{ display: 'none' }}
+              />
+            </div>
+            <div style={{ marginTop: '12px' }}>
+              <div style={{ display: 'flex', gap: '1.5em', alignItems: 'center', fontSize: '1em' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name={`admin-mode-${channelId}`}
+                    checked={!asAdmin}
+                    onChange={() => setAsAdmin(false)}
+                  />
+                  Normal Launch
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name={`admin-mode-${channelId}`}
+                    checked={asAdmin}
+                    onChange={() => setAsAdmin(true)}
+                  />
+                  Run as Administrator
+                </label>
+              </div>
+            </div>
+          </>
         ) : (
           <input
             type="text"

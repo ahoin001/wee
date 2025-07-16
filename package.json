@@ -30,6 +30,7 @@
   "dependencies": {
     "@radix-ui/react-context-menu": "^2.1.5",
     "electron-squirrel-startup": "^1.0.1",
+    "fuse.js": "^7.1.0",
     "prop-types": "^15.8.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

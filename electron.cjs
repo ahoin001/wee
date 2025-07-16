@@ -107,39 +107,49 @@ ipcMain.handle('save-saved-sounds', async (event, sounds) => {
 });
 
 // --- App Launching Logic ---
-ipcMain.on('launch-app', (event, { type, path: appPath }) => {
-  console.log(`Launching app: type=${type}, path=${appPath}`);
+ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
+  console.log(`Launching app: type=${type}, path=${appPath}, asAdmin=${asAdmin}`);
 
   if (type === 'url') {
-    // Open URL in default browser
     shell.openExternal(appPath).catch(err => {
       console.error('Failed to open URL:', err);
     });
   } else if (type === 'exe') {
-    // Launch executable on Windows
     try {
-      // Use spawn for better Windows compatibility
-      const child = spawn(appPath, [], {
-        detached: true,
-        stdio: 'ignore',
-        shell: true // This helps with Windows path resolution
-      });
-
-      child.on('error', (err) => {
-        console.error('Failed to launch executable:', err);
-      });
-
-      child.on('spawn', () => {
-        console.log('Executable launched successfully');
-        // Unref to prevent the child process from keeping the parent alive
-        child.unref();
-      });
-
+      if (asAdmin) {
+        // Launch as admin using PowerShell
+        const command = `Start-Process -FilePath \"${appPath.replace(/"/g, '\"')}\" -Verb RunAs`;
+        const child = spawn('powershell', ['-Command', command], {
+          detached: true,
+          stdio: 'ignore',
+          shell: true
+        });
+        child.on('error', (err) => {
+          console.error('Failed to launch executable as admin:', err);
+        });
+        child.on('spawn', () => {
+          console.log('Executable launched as admin successfully');
+          child.unref();
+        });
+      } else {
+        // Normal launch
+        const child = spawn(appPath, [], {
+          detached: true,
+          stdio: 'ignore',
+          shell: true
+        });
+        child.on('error', (err) => {
+          console.error('Failed to launch executable:', err);
+        });
+        child.on('spawn', () => {
+          console.log('Executable launched successfully');
+          child.unref();
+        });
+      }
     } catch (err) {
       console.error('Failed to launch executable:', err);
     }
   } else {
-    // Fallback: try to open as file or URL
     shell.openPath(appPath).catch(err => {
       console.error('Failed to open path:', err);
     });

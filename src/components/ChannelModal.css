@@ -193,6 +193,14 @@
   background: #ccc;
 }
 
+label {
+  color: #666;
+}
+
+.dark-mode label {
+  color: #ccc;
+}
+
 /* Dark mode styles */
 .dark-mode .form-section h3 {
   color: #fff;

@@ -2,12 +2,14 @@ import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import ChannelModal from './ChannelModal';
+import ImageSearchModal from './ImageSearchModal';
 // import './Channel.css';
 
-function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave }) {
+function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin }) {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showChannelModal, setShowChannelModal] = useState(false);
+  const [showImageSearch, setShowImageSearch] = useState(false);
 
   const handleClick = () => {
     if (empty) {
@@ -24,7 +26,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
         });
       }
       
-      window.api.launchApp({ type, path });
+      window.api.launchApp({ type, path, asAdmin });
     }
   };
 
@@ -66,6 +68,22 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
     }
   };
 
+  const handleImageSelect = (img) => {
+    if (onMediaChange) {
+      onMediaChange(id, {
+        url: img.url,
+        type: img.format === 'image' ? 'image/png' : img.format === 'gif' ? 'image/gif' : img.format === 'mp4' ? 'video/mp4' : '',
+        name: img.name,
+        isBuiltin: true
+      });
+    }
+    setShowImageSearch(false);
+  };
+  const handleUploadClick = () => {
+    setShowImageSearch(false);
+    setTimeout(() => fileInputRef.current?.click(), 100);
+  };
+
   let mediaPreview = null;
   if (media) {
     if (media.type.startsWith('image/')) {
@@ -100,7 +118,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
               <>
                 <ContextMenu.Item 
                   className="context-menu-item"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => setShowImageSearch(true)}
                 >
                   Add Image
                 </ContextMenu.Item>
@@ -122,7 +140,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
               <>
                 <ContextMenu.Item 
                   className="context-menu-item"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => setShowImageSearch(true)}
                 >
                   Change Image
                 </ContextMenu.Item>
@@ -176,7 +194,13 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
           }}
         />
       </ContextMenu.Root>
-
+      {showImageSearch && (
+        <ImageSearchModal
+          onClose={() => setShowImageSearch(false)}
+          onSelect={handleImageSelect}
+          onUploadClick={handleUploadClick}
+        />
+      )}
       {showChannelModal && (
         <ChannelModal
           channelId={id}
@@ -185,6 +209,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
           currentMedia={media}
           currentPath={path}
           currentType={type}
+          currentAsAdmin={asAdmin}
         />
       )}
     </>
@@ -205,6 +230,7 @@ Channel.propTypes = {
   onMediaChange: PropTypes.func,
   onAppPathChange: PropTypes.func,
   onChannelSave: PropTypes.func,
+  asAdmin: PropTypes.bool,
 };
 
 export default Channel;
