@@ -9,6 +9,7 @@ import ImageSearchModal from './ImageSearchModal';
 const api = window.api || {
   launchApp: () => {},
   getSettings: async () => null,
+  getSoundLibrary: async () => ({}),
 };
 
 function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound }) {
@@ -40,26 +41,23 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
     } else if (path) {
       // Play channel click sound if enabled
       try {
-        const settings = await api.getSettings();
+        const [settings, soundLibrary] = await Promise.all([
+          api.getSettings(),
+          api.getSoundLibrary()
+        ]);
         const soundSettings = settings?.sounds || {};
-        if (soundSettings.channelClick?.enabled && soundSettings.channelClick?.file?.url) {
-          const audio = new Audio(soundSettings.channelClick.file.url);
-          audio.volume = soundSettings.channelClick.volume || 0.5;
-          audio.play().catch(error => {
-            console.log('Channel click sound playback failed:', error);
-          });
+        if (soundSettings.channelClick?.enabled && soundSettings.channelClick?.soundId) {
+          const clickSound = soundLibrary.channelClick?.find(s => s.id === soundSettings.channelClick.soundId);
+          if (clickSound && clickSound.enabled) {
+            const audio = new Audio(clickSound.url);
+            audio.volume = soundSettings.channelClick.volume || clickSound.volume || 0.5;
+            audio.play().catch(error => {
+              console.log('Channel click sound playback failed:', error);
+            });
+          }
         }
       } catch (error) {
         console.log('Failed to load sound settings:', error);
-        // Fallback to localStorage for development
-        const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
-        if (soundSettings.channelClick?.enabled && soundSettings.channelClick?.file?.url) {
-          const audio = new Audio(soundSettings.channelClick.file.url);
-          audio.volume = soundSettings.channelClick.volume || 0.5;
-          audio.play().catch(error => {
-            console.log('Channel click sound playback failed:', error);
-          });
-        }
       }
       api.launchApp({ type, path, asAdmin });
     }
@@ -89,12 +87,16 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
         }
       } else {
         try {
-          const settings = await api.getSettings();
+          const [settings, soundLibrary] = await Promise.all([
+            api.getSettings(),
+            api.getSoundLibrary()
+          ]);
           const soundSettings = settings?.sounds || {};
-          if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.file?.url) {
-            if (!hoverAudioRef.current) { // Only play if not already playing
-              const audio = new Audio(soundSettings.channelHover.file.url);
-              audio.volume = soundSettings.channelHover.volume || 0.3;
+          if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.soundId) {
+            const hoverSound = soundLibrary.channelHover?.find(s => s.id === soundSettings.channelHover.soundId);
+            if (hoverSound && hoverSound.enabled && !hoverAudioRef.current) {
+              const audio = new Audio(hoverSound.url);
+              audio.volume = soundSettings.channelHover.volume || hoverSound.volume || 0.3;
               audio.play().catch(error => {
                 console.log('Channel hover sound playback failed:', error);
               });
@@ -103,18 +105,6 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
           }
         } catch (error) {
           console.log('Failed to load sound settings:', error);
-          // Fallback to localStorage for development
-          const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
-          if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.file?.url) {
-            if (!hoverAudioRef.current) { // Only play if not already playing
-              const audio = new Audio(soundSettings.channelHover.file.url);
-              audio.volume = soundSettings.channelHover.volume || 0.3;
-              audio.play().catch(error => {
-                console.log('Channel hover sound playback failed:', error);
-              });
-              hoverAudioRef.current = audio;
-            }
-          }
         }
       }
     }

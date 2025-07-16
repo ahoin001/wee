@@ -117,12 +117,11 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
         )}
       </div>
 
-      {showSoundModal && (
-        <SoundModal 
-          onClose={() => setShowSoundModal(false)}
-          onSettingsChange={onSettingsChange}
-        />
-      )}
+      <SoundModal 
+        isOpen={showSoundModal}
+        onClose={() => setShowSoundModal(false)}
+        onSettingsChange={onSettingsChange}
+      />
       {/* Wallpaper Modal */}
       {showWallpaperModal && (
         <WallpaperModal

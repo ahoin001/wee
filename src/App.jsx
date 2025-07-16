@@ -133,32 +133,25 @@ function App() {
   useEffect(() => {
     async function loadSettings() {
       let settings = await api.getSettings();
-      let savedSounds = await api.getSavedSounds();
+      let soundLibrary = await api.getSoundLibrary();
       let updated = false;
       
       // Extract sound settings from the new structure
       const soundSettings = settings?.sounds || {};
       
-      // If no startup sound selected, set default
-      if (!soundSettings?.startup?.file && savedSounds?.startup?.length > 0) {
-        const defaultStartup = savedSounds.startup.find(s => s.isDefault) || savedSounds.startup[0];
-        soundSettings.startup = {
-          file: { url: defaultStartup.url, name: defaultStartup.name },
-          enabled: true,
-          volume: defaultStartup.volume || 0.6
-        };
-        updated = true;
-      }
-      // If no background music selected, set default
-      if (!soundSettings?.backgroundMusic?.file && savedSounds?.backgroundMusic?.length > 0) {
-        const defaultMusic = savedSounds.backgroundMusic.find(s => s.isDefault) || savedSounds.backgroundMusic[0];
-        soundSettings.backgroundMusic = {
-          file: { url: defaultMusic.url, name: defaultMusic.name },
-          enabled: true,
-          volume: defaultMusic.volume || 0.4,
-          loopMode: 'single'
-        };
-        updated = true;
+      // Initialize sound settings with enabled default sounds if not set
+      for (const soundType of ['startup', 'backgroundMusic', 'channelClick', 'channelHover']) {
+        if (!soundSettings[soundType]) {
+          const defaultSound = soundLibrary[soundType]?.find(s => s.isDefault && s.enabled);
+          if (defaultSound) {
+            soundSettings[soundType] = {
+              soundId: defaultSound.id,
+              enabled: true,
+              volume: defaultSound.volume || 0.5
+            };
+            updated = true;
+          }
+        }
       }
       
       if (updated) {
@@ -169,28 +162,33 @@ function App() {
       
       if (soundSettings) {
         setSoundSettings(soundSettings);
+        
         // Play startup sound if enabled and configured
         let playedStartup = false;
-        if (soundSettings.startup?.enabled && soundSettings.startup?.file?.url) {
-          playedStartup = true;
-          const startupAudio = new Audio(soundSettings.startup.file.url);
-          startupAudio.volume = soundSettings.startup.volume || 0.6;
-          startupAudio.play().catch(error => {
-            console.log('Startup sound playback failed:', error);
-            // If playback fails, start background music immediately
-            if (soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.file?.url) {
-              setupBackgroundMusic(soundSettings.backgroundMusic);
-            }
-          });
-          startupAudio.addEventListener('ended', () => {
-            if (soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.file?.url) {
-              setupBackgroundMusic(soundSettings.backgroundMusic);
-            }
-          });
+        if (soundSettings.startup?.enabled && soundSettings.startup?.soundId) {
+          const startupSound = soundLibrary.startup?.find(s => s.id === soundSettings.startup.soundId);
+          if (startupSound && startupSound.enabled) {
+            playedStartup = true;
+            const startupAudio = new Audio(startupSound.url);
+            startupAudio.volume = soundSettings.startup.volume || startupSound.volume || 0.6;
+            startupAudio.play().catch(error => {
+              console.log('Startup sound playback failed:', error);
+              // If playback fails, start background music immediately
+              if (soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.soundId) {
+                setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
+              }
+            });
+            startupAudio.addEventListener('ended', () => {
+              if (soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.soundId) {
+                setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
+              }
+            });
+          }
         }
+        
         // If no startup sound, start background music immediately
-        if (!playedStartup && soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.file?.url) {
-          setupBackgroundMusic(soundSettings.backgroundMusic);
+        if (!playedStartup && soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.soundId) {
+          setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
         }
       }
     }
@@ -206,17 +204,17 @@ function App() {
   }, [soundSettings]);
 
   // Setup background music
-  const setupBackgroundMusic = (backgroundMusicSettings) => {
+  const setupBackgroundMusic = async (backgroundMusicSettings, soundLibrary) => {
     if (backgroundAudioRef.current) {
       backgroundAudioRef.current.pause();
       backgroundAudioRef.current = null;
     }
 
-    if (backgroundMusicSettings?.enabled) {
-      if (backgroundMusicSettings.loopMode === 'single' && backgroundMusicSettings.file?.url) {
-        // Single song loop mode
-        const audio = new Audio(backgroundMusicSettings.file.url);
-        audio.volume = backgroundMusicSettings.volume || 0.4;
+    if (backgroundMusicSettings?.enabled && backgroundMusicSettings?.soundId) {
+      const musicSound = soundLibrary?.backgroundMusic?.find(s => s.id === backgroundMusicSettings.soundId);
+      if (musicSound && musicSound.enabled) {
+        const audio = new Audio(musicSound.url);
+        audio.volume = backgroundMusicSettings.volume || musicSound.volume || 0.4;
         audio.loop = true;
         
         // Start playing background music
@@ -226,59 +224,18 @@ function App() {
 
         backgroundAudioRef.current = audio;
         setBackgroundAudio(audio);
-      } else if (backgroundMusicSettings.loopMode === 'playlist' && backgroundMusicSettings.playlist?.length > 0) {
-        // Playlist mode
-        setupPlaylistMode(backgroundMusicSettings);
       }
     }
-  };
-
-  // Setup playlist mode
-  const setupPlaylistMode = (backgroundMusicSettings) => {
-    const playlist = backgroundMusicSettings.playlist;
-    let currentIndex = 0;
-
-    const playNextSong = () => {
-      if (playlist.length === 0) return;
-
-      const song = playlist[currentIndex];
-      const audio = new Audio(song.url);
-      audio.volume = backgroundMusicSettings.volume || 0.4;
-      
-      audio.addEventListener('ended', () => {
-        // Move to next song when current song ends
-        currentIndex = (currentIndex + 1) % playlist.length;
-        playNextSong();
-      });
-
-      audio.addEventListener('error', (error) => {
-        console.log('Playlist song playback failed:', error);
-        // Skip to next song on error
-        currentIndex = (currentIndex + 1) % playlist.length;
-        playNextSong();
-      });
-
-      // Start playing
-      audio.play().catch(error => {
-        console.log('Playlist song playback failed:', error);
-        // Skip to next song on error
-        currentIndex = (currentIndex + 1) % playlist.length;
-        playNextSong();
-      });
-
-      backgroundAudioRef.current = audio;
-      setBackgroundAudio(audio);
-    };
-
-    // Start playing the first song
-    playNextSong();
   };
 
   // Update background music when sound settings change
   useEffect(() => {
     if (soundSettings?.backgroundMusic) {
-      if (soundSettings.backgroundMusic.enabled && soundSettings.backgroundMusic.file?.url) {
-        setupBackgroundMusic(soundSettings.backgroundMusic);
+      if (soundSettings.backgroundMusic.enabled && soundSettings.backgroundMusic.soundId) {
+        // Load sound library to get the current sound
+        api.getSoundLibrary().then(soundLibrary => {
+          setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
+        });
       } else {
         // Stop background music if disabled
         if (backgroundAudioRef.current) {

@@ -7,6 +7,28 @@ module.exports = {
     extraResource: [
       'public/sounds'
     ],
+    ignore: [
+      /^\/public\/sounds\/.*\.md$/  // Ignore README files
+    ],
+    afterCopy: [
+      (buildPath, electronVersion, platform, arch) => {
+        console.log('Copying sounds to build directory...');
+        const fs = require('fs-extra');
+        const path = require('path');
+        
+        // Copy sounds to the resources directory
+        const sourceSoundsPath = path.join(__dirname, 'public', 'sounds');
+        const targetSoundsPath = path.join(buildPath, 'resources', 'public', 'sounds');
+        
+        try {
+          fs.ensureDirSync(path.dirname(targetSoundsPath));
+          fs.copySync(sourceSoundsPath, targetSoundsPath);
+          console.log(`Sounds copied to: ${targetSoundsPath}`);
+        } catch (error) {
+          console.error('Failed to copy sounds:', error);
+        }
+      }
+    ],
   },
   rebuildConfig: {},
   makers: [

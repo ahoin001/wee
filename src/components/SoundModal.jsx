@@ -1,600 +1,402 @@
-import React, { useState, useRef, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import { useState, useEffect, useRef } from 'react';
 import './SoundModal.css';
 
 // Guard for window.api to prevent errors in browser
 const api = window.api || {
-  getSavedSounds: async () => null,
-  saveSavedSounds: async () => {},
-  copySoundFile: async () => ({ success: false }),
-  getUserFiles: async () => ({ sounds: [], wallpapers: [] }),
+  getSoundLibrary: async () => ({}),
+  saveSoundLibrary: async () => ({ success: true }),
+  addSound: async () => ({ success: false }),
+  removeSound: async () => ({ success: false }),
+  updateSound: async () => ({ success: false }),
+  getSettings: async () => null,
+  saveSettings: async () => {},
+  debugSounds: async () => null,
 };
 
-function SoundModal({ onClose, onSettingsChange }) {
-  const [sounds, setSounds] = useState({
-    channelClick: { file: null, volume: 0.5, enabled: true },
-    channelHover: { file: null, volume: 0.3, enabled: true },
-    backgroundMusic: { 
-      file: null, 
-      volume: 0.4, 
-      enabled: false, 
-      loopMode: 'single', // 'single' or 'playlist'
-      playlist: []
-    },
-    startup: { file: null, volume: 0.6, enabled: true }
-  });
+const SOUND_TYPES = {
+  channelClick: 'Channel Click',
+  channelHover: 'Channel Hover', 
+  backgroundMusic: 'Background Music',
+  startup: 'Startup Sound'
+};
 
-  const [savedSounds, setSavedSounds] = useState({
-    channelClick: [],
-    channelHover: [],
-    backgroundMusic: [],
-    startup: []
-  });
+function SoundModal({ isOpen, onClose, onSettingsChange }) {
+  const [soundLibrary, setSoundLibrary] = useState({});
+  const [soundSettings, setSoundSettings] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState({});
+  const [testing, setTesting] = useState({});
+  const [audioRefs, setAudioRefs] = useState({});
 
-  const fileInputs = {
-    channelClick: useRef(),
-    channelHover: useRef(),
-    backgroundMusic: useRef(),
-    startup: useRef()
-  };
-
-  // Function to load default sounds - now handled by main process
-  const loadDefaultSounds = () => {
-    return {
-      channelClick: [],
-      channelHover: [],
-      backgroundMusic: [],
-      startup: []
-    };
-  };
-
-  // Load saved sounds from persistent storage on component mount
+  // Load sound library and settings on mount
   useEffect(() => {
-    async function loadSavedSounds() {
-      let saved = await api.getSavedSounds();
-      if (!saved) {
-        // fallback to localStorage for migration (optional)
-        const legacy = localStorage.getItem('wiiDesktopSounds');
-        if (legacy) {
-          try {
-            saved = JSON.parse(legacy);
-            await api.saveSavedSounds(saved);
-          } catch {}
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen]);
+
+  // Cleanup audio when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Stop all playing sounds
+      Object.values(audioRefs).forEach(audio => {
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
         }
+      });
+      setAudioRefs({});
+      setTesting({});
+    }
+  }, [isOpen, audioRefs]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load sound library
+      const library = await api.getSoundLibrary();
+      setSoundLibrary(library);
+      
+      // Load sound settings
+      const settings = await api.getSettings();
+      const sounds = settings?.sounds || {};
+      setSoundSettings(sounds);
+      
+      console.log('Loaded sound library:', library);
+      console.log('Loaded sound settings:', sounds);
+    } catch (error) {
+      console.error('Failed to load sound data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddSound = async (soundType) => {
+    try {
+      setUploading(prev => ({ ...prev, [soundType]: true }));
+
+      // Use file dialog to select file
+      const fileResult = await api.selectSoundFile();
+      
+      if (!fileResult.success) {
+        if (fileResult.error !== 'No file selected') {
+          alert(`Failed to select file: ${fileResult.error}`);
+        }
+        return;
       }
-      if (saved) {
-        setSavedSounds(saved);
+
+      const file = fileResult.file;
+
+      // Prompt for custom name
+      const defaultName = file.name.replace(/\.[^/.]+$/, '');
+      const customName = prompt('Enter a name for this sound:', defaultName);
+      
+      if (!customName) return;
+
+      const result = await api.addSound({
+        soundType,
+        file: {
+          name: file.name,
+          path: file.path
+        },
+        name: customName
+      });
+
+      if (result.success) {
+        // Reload sound library
+        await loadData();
+        console.log(`Added sound: ${customName} to ${soundType}`);
       } else {
-        // If no saved sounds exist, load default sounds
-        const defaultSounds = loadDefaultSounds();
-        setSavedSounds(defaultSounds);
-        api.saveSavedSounds(defaultSounds);
+        alert(`Failed to add sound: ${result.error}`);
       }
+    } catch (error) {
+      console.error('Error adding sound:', error);
+      alert('Failed to add sound');
+    } finally {
+      setUploading(prev => ({ ...prev, [soundType]: false }));
     }
-    loadSavedSounds();
+  };
 
-    // Load current sound settings
-    const savedSettings = localStorage.getItem('wiiDesktopSoundSettings');
-    if (savedSettings) {
-      try {
-        const settings = JSON.parse(savedSettings);
-        // Ensure backgroundMusic has the new properties
-        if (settings.backgroundMusic && !settings.backgroundMusic.loopMode) {
-          settings.backgroundMusic.loopMode = 'single';
-          settings.backgroundMusic.playlist = [];
-        }
-        setSounds(settings);
-      } catch (error) {
-        console.error('Error loading sound settings:', error);
+  const handleRemoveSound = async (soundType, soundId) => {
+    if (!confirm('Are you sure you want to remove this sound?')) return;
+
+    try {
+      const result = await api.removeSound({ soundType, soundId });
+      
+      if (result.success) {
+        // Reload sound library
+        await loadData();
+        console.log(`Removed sound from ${soundType}`);
+      } else {
+        alert(`Failed to remove sound: ${result.error}`);
       }
+    } catch (error) {
+      console.error('Error removing sound:', error);
+      alert('Failed to remove sound');
     }
-  }, []);
+  };
 
-  // Whenever savedSounds changes, persist to Electron
-  useEffect(() => {
-    if (savedSounds) {
-      api.saveSavedSounds(savedSounds);
-    }
-  }, [savedSounds]);
+  const handleSoundToggle = async (soundType, soundId, enabled) => {
+    try {
+      const result = await api.updateSound({
+        soundType,
+        soundId,
+        updates: { enabled }
+      });
 
-  const handleFileSelect = async (soundType, file) => {
-    if (file) {
-      try {
-        // Copy file to user directory via main process
-        const result = await api.copySoundFile({
-          sourcePath: file.path || file.name,
-          filename: `${Date.now()}-${file.name}`
-        });
-        
-        if (result.success) {
-          setSounds(prev => ({
-            ...prev,
-            [soundType]: {
-              ...prev[soundType],
-              file: { url: result.path, name: file.name }
-            }
-          }));
-        } else {
-          console.error('Failed to copy sound file:', result.error);
-          // Fallback to blob URL for development
-          const url = URL.createObjectURL(file);
-          setSounds(prev => ({
-            ...prev,
-            [soundType]: {
-              ...prev[soundType],
-              file: { url, name: file.name }
-            }
-          }));
-        }
-      } catch (error) {
-        console.error('Error handling sound file:', error);
-        // Fallback to blob URL
-        const url = URL.createObjectURL(file);
-        setSounds(prev => ({
+      if (result.success) {
+        // Update local state
+        setSoundLibrary(prev => ({
           ...prev,
-          [soundType]: {
-            ...prev[soundType],
-            file: { url, name: file.name }
-          }
+          [soundType]: prev[soundType].map(sound =>
+            sound.id === soundId ? { ...sound, enabled } : sound
+          )
         }));
+        console.log(`Toggled sound ${soundId} in ${soundType}: ${enabled}`);
+      } else {
+        alert(`Failed to update sound: ${result.error}`);
       }
+    } catch (error) {
+      console.error('Error updating sound:', error);
+      alert('Failed to update sound');
     }
   };
 
-  const handleVolumeChange = (soundType, volume) => {
-    setSounds(prev => ({
-      ...prev,
-      [soundType]: {
-        ...prev[soundType],
-        volume: parseFloat(volume)
-      }
-    }));
-  };
+  const handleVolumeChange = async (soundType, soundId, volume) => {
+    try {
+      const result = await api.updateSound({
+        soundType,
+        soundId,
+        updates: { volume: parseFloat(volume) }
+      });
 
-  const handleToggleSound = (soundType) => {
-    setSounds(prev => ({
-      ...prev,
-      [soundType]: {
-        ...prev[soundType],
-        enabled: !prev[soundType].enabled
-      }
-    }));
-  };
-
-  const handleBackgroundMusicModeChange = (mode) => {
-    setSounds(prev => ({
-      ...prev,
-      backgroundMusic: {
-        ...prev.backgroundMusic,
-        loopMode: mode
-      }
-    }));
-  };
-
-  const handleAddToPlaylist = (savedSound) => {
-    setSounds(prev => ({
-      ...prev,
-      backgroundMusic: {
-        ...prev.backgroundMusic,
-        playlist: [...prev.backgroundMusic.playlist, savedSound]
-      }
-    }));
-  };
-
-  const handleRemoveFromPlaylist = (index) => {
-    setSounds(prev => ({
-      ...prev,
-      backgroundMusic: {
-        ...prev.backgroundMusic,
-        playlist: prev.backgroundMusic.playlist.filter((_, i) => i !== index)
-      }
-    }));
-  };
-
-  const handleTestSound = (soundType) => {
-    const sound = sounds[soundType];
-    if (sound.file && sound.enabled) {
-      const audio = new Audio(sound.file.url);
-      audio.volume = sound.volume;
-      audio.play();
-    }
-  };
-
-  const handleSaveSound = (soundType) => {
-    const sound = sounds[soundType];
-    if (sound.file) {
-      const newSound = {
-        id: Date.now(),
-        name: sound.file.name,
-        url: sound.file.url,
-        volume: sound.volume
-      };
-
-      setSavedSounds(prev => {
-        const updated = {
+      if (result.success) {
+        // Update local state
+        setSoundLibrary(prev => ({
           ...prev,
-          [soundType]: [...prev[soundType], newSound]
-        };
-        return updated;
+          [soundType]: prev[soundType].map(sound =>
+            sound.id === soundId ? { ...sound, volume: parseFloat(volume) } : sound
+          )
+        }));
+      } else {
+        alert(`Failed to update volume: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating volume:', error);
+    }
+  };
+
+  const handleTestSound = async (soundType, soundId) => {
+    const sound = soundLibrary[soundType]?.find(s => s.id === soundId);
+    if (!sound || !sound.enabled) return;
+
+    try {
+      setTesting(prev => ({ ...prev, [soundId]: true }));
+      
+      console.log(`[SOUND TEST] Playing sound: ${sound.name} with URL: ${sound.url}`);
+      const audio = new Audio(sound.url);
+      audio.volume = sound.volume || 0.5;
+      
+      // Store audio reference for stopping
+      setAudioRefs(prev => ({ ...prev, [soundId]: audio }));
+      
+      audio.addEventListener('ended', () => {
+        setTesting(prev => ({ ...prev, [soundId]: false }));
+        setAudioRefs(prev => {
+          const newRefs = { ...prev };
+          delete newRefs[soundId];
+          return newRefs;
+        });
+      });
+      
+      audio.addEventListener('error', (error) => {
+        console.error('Audio playback error:', error);
+        setTesting(prev => ({ ...prev, [soundId]: false }));
+        setAudioRefs(prev => {
+          const newRefs = { ...prev };
+          delete newRefs[soundId];
+          return newRefs;
+        });
+        alert(`Failed to play sound: ${sound.url}`);
+      });
+      
+      await audio.play();
+    } catch (error) {
+      console.error('Error testing sound:', error);
+      setTesting(prev => ({ ...prev, [soundId]: false }));
+      setAudioRefs(prev => {
+        const newRefs = { ...prev };
+        delete newRefs[soundId];
+        return newRefs;
+      });
+      alert('Failed to play sound');
+    }
+  };
+
+  const handleStopTest = (soundId) => {
+    const audio = audioRefs[soundId];
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      setTesting(prev => ({ ...prev, [soundId]: false }));
+      setAudioRefs(prev => {
+        const newRefs = { ...prev };
+        delete newRefs[soundId];
+        return newRefs;
       });
     }
   };
 
-  const handleSelectSavedSound = (soundType, savedSound) => {
-    setSounds(prev => ({
-      ...prev,
-      [soundType]: {
-        ...prev[soundType],
-        file: { url: savedSound.url, name: savedSound.name },
-        volume: savedSound.volume
-      }
-    }));
-  };
-
-  const handleTestSavedSound = (savedSound) => {
-    const audio = new Audio(savedSound.url);
-    audio.volume = savedSound.volume;
-    audio.play();
-  };
-
-  const handleDeleteSavedSound = (soundType, soundId) => {
-    setSavedSounds(prev => {
-      const updated = {
-        ...prev,
-        [soundType]: prev[soundType].filter(sound => sound.id !== soundId)
-      };
-      return updated;
-    });
-  };
-
   const handleSave = async () => {
     try {
-      // Save current sound settings to main process
-      await api.saveSettings({ sounds });
-      console.log('Sound settings saved:', sounds);
+      // Save sound settings
+      await api.saveSettings({ sounds: soundSettings });
+      console.log('Sound settings saved:', soundSettings);
       
-      // Notify parent component about settings change
+      // Notify parent component
       if (onSettingsChange) {
-        onSettingsChange(sounds);
+        onSettingsChange(soundSettings);
       }
       
       onClose();
     } catch (error) {
       console.error('Failed to save sound settings:', error);
-      // Fallback to localStorage for development
-      localStorage.setItem('wiiDesktopSoundSettings', JSON.stringify(sounds));
-      if (onSettingsChange) {
-        onSettingsChange(sounds);
-      }
-      onClose();
+      alert('Failed to save settings');
     }
   };
 
-  const renderSoundSection = (soundType, title) => {
-    const sound = sounds[soundType];
-    const saved = savedSounds[soundType];
-
-    return (
-      <div className="sound-section">
-        <h3>{title}</h3>
-        <div className="sound-controls">
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={sound.enabled}
-              onChange={() => handleToggleSound(soundType)}
-              disabled={saved.some(s => s.isDefault)} // Always enabled if default exists
-            />
-            <span className="slider"></span>
-          </label>
-          <span className="toggle-label">Enable</span>
-        </div>
-        
-        <div className="file-input-group">
-          <button 
-            className="file-button"
-            onClick={() => fileInputs[soundType].current?.click()}
-          >
-            {sound.file ? sound.file.name : 'Select Audio File'}
-          </button>
-          <input
-            type="file"
-            accept="audio/*"
-            ref={fileInputs[soundType]}
-            onChange={(e) => handleFileSelect(soundType, e.target.files[0])}
-            style={{ display: 'none' }}
-          />
-          {sound.file && (
-            <>
-              <button 
-                className="test-button"
-                onClick={() => handleTestSound(soundType)}
-              >
-                Test
-              </button>
-              <button 
-                className="save-sound-button"
-                onClick={() => handleSaveSound(soundType)}
-              >
-                Save
-              </button>
-            </>
-          )}
-        </div>
-        
-        <div className="volume-control">
-          <label>Volume: {Math.round(sound.volume * 100)}%</label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={sound.volume}
-            onChange={(e) => handleVolumeChange(soundType, e.target.value)}
-          />
-        </div>
-
-        {saved.length > 0 && (
-          <div className="saved-sounds">
-            <h4>Saved Sounds</h4>
-            <div className="sound-playlist">
-              {saved.map((savedSound) => (
-                <div 
-                  key={savedSound.id}
-                  className={`sound-item ${sound.file?.url === savedSound.url ? 'active' : ''}`}
-                  onClick={() => handleSelectSavedSound(soundType, savedSound)}
-                >
-                  <div className="sound-item-info">
-                    <div className="sound-item-name">{savedSound.name}</div>
-                    {savedSound.isDefault && (
-                      <span className="default-badge">Default</span>
-                    )}
-                  </div>
-                  <div className="sound-item-actions">
-                    <button 
-                      className="sound-item-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTestSavedSound(savedSound);
-                      }}
-                    >
-                      Test
-                    </button>
-                    {!savedSound.isDefault && (
-                      <button 
-                        className="sound-item-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSavedSound(soundType, savedSound.id);
-                        }}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  const handleDebugSounds = async () => {
+    try {
+      const debugInfo = await api.debugSounds();
+      console.log('Sound debug info:', debugInfo);
+      alert(`Sound Debug Info:\n${JSON.stringify(debugInfo, null, 2)}`);
+    } catch (error) {
+      console.error('Failed to get sound debug info:', error);
+      alert('Failed to get sound debug info: ' + error.message);
+    }
   };
 
-  const renderBackgroundMusicSection = () => {
-    const sound = sounds.backgroundMusic;
-    const saved = savedSounds.backgroundMusic;
+  const renderSoundList = (soundType) => {
+    const sounds = soundLibrary[soundType] || [];
+    
+    if (sounds.length === 0) {
+      return <div className="no-sounds">No sounds available</div>;
+    }
 
     return (
-      <div className="sound-section">
-        <h3>Background Music</h3>
-        <div className="sound-controls">
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={sound.enabled}
-              onChange={() => handleToggleSound('backgroundMusic')}
-            />
-            <span className="slider"></span>
-          </label>
-          <span className="toggle-label">Enable</span>
-        </div>
-
-        <div className="loop-mode-selector">
-          <h4>Playback Mode</h4>
-          <div className="mode-options">
-            <label className="mode-option">
-              <input
-                type="radio"
-                name="loopMode"
-                value="single"
-                checked={sound.loopMode === 'single'}
-                onChange={(e) => handleBackgroundMusicModeChange(e.target.value)}
-              />
-              <span className="radio-custom"></span>
-              Loop Single Song
-            </label>
-            <label className="mode-option">
-              <input
-                type="radio"
-                name="loopMode"
-                value="playlist"
-                checked={sound.loopMode === 'playlist'}
-                onChange={(e) => handleBackgroundMusicModeChange(e.target.value)}
-              />
-              <span className="radio-custom"></span>
-              Playlist Mode
-            </label>
-          </div>
-        </div>
-
-        {sound.loopMode === 'single' ? (
-          <>
-            <div className="file-input-group">
-              <button 
-                className="file-button"
-                onClick={() => fileInputs.backgroundMusic.current?.click()}
-              >
-                {sound.file ? sound.file.name : 'Select Audio File'}
-              </button>
-              <input
-                type="file"
-                accept="audio/*"
-                ref={fileInputs.backgroundMusic}
-                onChange={(e) => handleFileSelect('backgroundMusic', e.target.files[0])}
-                style={{ display: 'none' }}
-              />
-              {sound.file && (
-                <>
-                  <button 
-                    className="test-button"
-                    onClick={() => handleTestSound('backgroundMusic')}
-                  >
-                    Test
-                  </button>
-                  <button 
-                    className="save-sound-button"
-                    onClick={() => handleSaveSound('backgroundMusic')}
-                  >
-                    Save
-                  </button>
-                </>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="playlist-section">
-            <h4>Playlist ({sound.playlist.length} songs)</h4>
-            {sound.playlist.length > 0 ? (
-              <div className="playlist-items">
-                {sound.playlist.map((item, index) => (
-                  <div key={index} className="playlist-item">
-                    <div className="playlist-item-name">{item.name}</div>
-                    <div className="playlist-item-actions">
-                      <button 
-                        className="playlist-item-button"
-                        onClick={() => handleTestSavedSound(item)}
-                      >
-                        Test
-                      </button>
-                      <button 
-                        className="playlist-item-button remove"
-                        onClick={() => handleRemoveFromPlaylist(index)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
+      <div className="sound-list">
+        {sounds.map((sound) => (
+          <div key={sound.id} className={`sound-item ${sound.isDefault ? 'default' : 'user'}`}>
+            <div className="sound-info">
+              <div className="sound-name">
+                {sound.name}
+                {sound.isDefault && <span className="default-badge">Default</span>}
               </div>
-            ) : (
-              <p className="playlist-empty">No songs in playlist. Add songs from below.</p>
-            )}
-          </div>
-        )}
-        
-        <div className="volume-control">
-          <label>Volume: {Math.round(sound.volume * 100)}%</label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={sound.volume}
-            onChange={(e) => handleVolumeChange('backgroundMusic', e.target.value)}
-          />
-        </div>
-
-        {saved.length > 0 && (
-          <div className="saved-sounds">
-            <h4>Saved Sounds</h4>
-            <div className="sound-playlist">
-              {saved.map((savedSound) => (
-                <div 
-                  key={savedSound.id}
-                  className={`sound-item ${sound.file?.url === savedSound.url ? 'active' : ''}`}
-                  onClick={() => {
-                    if (sound.loopMode === 'single') {
-                      handleSelectSavedSound('backgroundMusic', savedSound);
-                    } else {
-                      handleAddToPlaylist(savedSound);
-                    }
-                  }}
-                >
-                  <div className="sound-item-info">
-                    <div className="sound-item-name">{savedSound.name}</div>
-                    {savedSound.isDefault && (
-                      <span className="default-badge">Default</span>
-                    )}
-                  </div>
-                  <div className="sound-item-actions">
-                    <button 
-                      className="sound-item-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTestSavedSound(savedSound);
-                      }}
-                    >
-                      Test
-                    </button>
-                    {sound.loopMode === 'playlist' && (
-                      <button 
-                        className="sound-item-button add"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddToPlaylist(savedSound);
-                        }}
-                      >
-                        Add to Playlist
-                      </button>
-                    )}
-                    {!savedSound.isDefault && (
-                      <button 
-                        className="sound-item-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSavedSound('backgroundMusic', savedSound.id);
-                        }}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
+              <div className="sound-controls">
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={sound.enabled}
+                    onChange={(e) => handleSoundToggle(soundType, sound.id, e.target.checked)}
+                  />
+                  <span className="slider"></span>
+                </label>
+                
+                <div className="volume-control">
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={sound.volume || 0.5}
+                    onChange={(e) => handleVolumeChange(soundType, sound.id, e.target.value)}
+                    disabled={!sound.enabled}
+                  />
+                  <span className="volume-value">{Math.round((sound.volume || 0.5) * 100)}%</span>
                 </div>
-              ))}
+                
+                <button
+                  className="test-button"
+                  onClick={() => testing[sound.id] ? handleStopTest(sound.id) : handleTestSound(soundType, sound.id)}
+                  disabled={!sound.enabled}
+                >
+                  {testing[sound.id] ? 'Stop Test' : 'Test'}
+                </button>
+                
+                {!sound.isDefault && (
+                  <button
+                    className="remove-button"
+                    onClick={() => handleRemoveSound(soundType, sound.id)}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        )}
+        ))}
       </div>
     );
   };
 
-  const footerContent = (
-    <>
-      <button className="cancel-button" onClick={onClose}>Cancel</button>
-      <button className="save-button" onClick={handleSave}>Save Settings</button>
-    </>
-  );
+  const renderSoundSection = (soundType, title) => {
+    const isUploading = uploading[soundType];
+    
+    return (
+      <div key={soundType} className="sound-section">
+        <div className="section-header">
+          <h3>{title}</h3>
+          <button
+            className="add-sound-button"
+            onClick={() => handleAddSound(soundType)}
+            disabled={isUploading}
+          >
+            {isUploading ? 'Adding...' : 'Add Sound'}
+          </button>
+
+        </div>
+        {renderSoundList(soundType)}
+      </div>
+    );
+  };
+
+  if (!isOpen) return null;
+
+  if (loading) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content">
+          <div className="loading">Loading sounds...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <BaseModal
-      title="Sound Settings"
-      onClose={onClose}
-      footerContent={footerContent}
-      className="sound-modal"
-    >
-      {renderSoundSection('channelClick', 'Channel Click Sound')}
-      {renderSoundSection('channelHover', 'Channel Hover Sound')}
-      {renderBackgroundMusicSection()}
-      {renderSoundSection('startup', 'Startup Sound')}
-    </BaseModal>
+    <div className="modal-overlay">
+      <div className="modal-content sound-modal">
+        <div className="modal-header">
+          <h2>Sound Settings</h2>
+          <button className="close-button" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="modal-body">
+          <div className="sound-sections">
+            {Object.entries(SOUND_TYPES).map(([soundType, title]) =>
+              renderSoundSection(soundType, title)
+            )}
+          </div>
+        </div>
+        
+        <div className="modal-footer">
+          <button className="cancel-button" onClick={onClose}>Cancel</button>
+          <button className="debug-button" onClick={handleDebugSounds} style={{ marginLeft: 8, background: '#ff6b6b', color: 'white' }}>Debug Sounds</button>
+          <button className="save-button" onClick={handleSave}>Save Settings</button>
+        </div>
+      </div>
+    </div>
   );
 }
-
-SoundModal.propTypes = {
-  onClose: PropTypes.func.isRequired,
-  onSettingsChange: PropTypes.func,
-};
 
 export default SoundModal; 
