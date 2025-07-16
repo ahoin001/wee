@@ -21,7 +21,7 @@ const DEFAULT_SOUNDS = {
     { name: 'Wii Menu Music', url: '/sounds/wii-menu-music.mp3', volume: 0.4 }
   ],
   startup: [
-    { name: 'Wii Startup 1', url: '/sounds/wii-startup-1.mp3', volume: 0.6 }
+    // No default startup sound
   ]
 };
 

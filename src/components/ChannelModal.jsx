@@ -157,13 +157,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
       <div className="form-section">
         <h3>Channel Title (Optional)</h3>
-        <input
-          type="text"
-          placeholder="Enter channel title..."
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="text-input"
-        />
+        {/* Remove the channel title input */}
       </div>
 
       <div className="form-section">
@@ -201,7 +195,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           <div className="path-input-group">
             <input
               type="text"
-              placeholder="C:\\Path\\To\\Application.exe or paste path here"
+              placeholder="C:\Path\To\Application.exe or paste path here"
               value={path}
               onChange={handlePathChange}
               className={`text-input ${pathError ? 'error' : ''}`}
@@ -236,7 +230,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         
         <p className="help-text">
           {type === 'exe' 
-            ? 'Enter the full path to the executable file or use "Browse Files" to select it'
+            ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field </span><br /><span style={{fontSize:'0.95em',color:'#888'}}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
             : 'Enter the complete URL including https://'
           }
         </p>
