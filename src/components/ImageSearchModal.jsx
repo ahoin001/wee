@@ -154,25 +154,31 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
             <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#888' }}>No images found.</div>
           ) : (
             filteredImages.map(img => (
-              <div
-                key={img.url}
-                style={{
-                  border: '1.5px solid #b0c4d8',
-                  borderRadius: 10,
-                  background: '#f7fafd',
-                  padding: 10,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  transition: 'box-shadow 0.2s',
-                  color: '#222',
-                }}
-                onClick={() => onSelect(img)}
-                tabIndex={0}
-                title={img.name}
-              >
-                <div style={{ width: 200, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e9eff3', borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
+              <div key={img.url} style={{ padding: 12, boxSizing: 'border-box' }}>
+                <div
+                  onClick={() => onSelect(img)}
+                  style={{
+                    width: 200,
+                    height: 120,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    transition: 'transform 0.18s cubic-bezier(.4,1.3,.5,1), box-shadow 0.18s cubic-bezier(.4,1.3,.5,1)',
+                    // boxShadow: '0 0 0 0 rgba(0,153,255,0)',
+                    cursor: 'pointer',
+                    // background: '#e9eff3',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 0 24px 4px #0099ff33';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,153,255,0)';
+                  }}
+                >
                   {img.format === 'image' ? (
                     <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : img.format === 'gif' ? (
@@ -181,8 +187,6 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
                     <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} autoPlay loop muted />
                   ) : null}
                 </div>
-                <div style={{ fontWeight: 500, fontSize: '1em', marginBottom: 2 }}>{img.name}</div>
-                <div style={{ fontSize: '0.9em', color: '#555', textAlign: 'center' }}>{img.tags?.slice(0, 3).join(', ')}</div>
               </div>
             ))
           )}
