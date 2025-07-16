@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import SoundModal from './SoundModal';
+import WallpaperModal from './WallpaperModal';
 import './SettingsButton.css';
 
 function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
+  const [showWallpaperModal, setShowWallpaperModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(true);
   const [isFrameless, setIsFrameless] = useState(true);
   
@@ -63,67 +65,36 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               className={`context-menu-content settings-menu-fade${showMenuFade ? ' in' : ''}`}
               style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
             >
-              <div 
-                className="context-menu-item"
-                onClick={() => {
-                  onToggleDarkMode();
-                  handleMenuClose();
-                }}
-              >
+              {/* Appearance Group */}
+              <div className="settings-menu-group-label">Appearance</div>
+              <div className="context-menu-item" onClick={() => { setShowWallpaperModal(true); handleMenuClose(); }}>
+                Change Wallpaper
+              </div>
+              <div className="context-menu-item" onClick={() => { onToggleDarkMode(); handleMenuClose(); }}>
                 Toggle Dark Mode
               </div>
-              <div 
-                className="context-menu-item"
-                onClick={() => {
-                  onToggleCursor();
-                  handleMenuClose();
-                }}
-              >
+              <div className="context-menu-item" onClick={() => { onToggleCursor(); handleMenuClose(); }}>
                 {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
               </div>
-              <div 
-                className="context-menu-item"
-                onClick={() => {
-                  setShowSoundModal(true);
-                  handleMenuClose();
-                }}
-              >
-                Change Sounds
-              </div>
-              <div 
-                className="context-menu-item"
-                onClick={() => {
-                  onBarTypeChange(barType === 'flat' ? 'wii' : 'flat');
-                  handleMenuClose();
-                }}
-              >
+              <div className="context-menu-item" onClick={() => { onBarTypeChange(barType === 'flat' ? 'wii' : 'flat'); handleMenuClose(); }}>
                 {barType === 'flat' ? 'Switch to Wii Bar' : 'Switch to Flat Bar'}
               </div>
-              <div 
-                className="context-menu-item"
-                onClick={() => {
-                  api.toggleFullscreen();
-                  handleMenuClose();
-                }}
-              >
+              <div className="settings-menu-separator" />
+              {/* Window Group */}
+              <div className="settings-menu-group-label">Window</div>
+              <div className="context-menu-item" onClick={() => { api.toggleFullscreen(); handleMenuClose(); }}>
                 {isFullscreen ? 'Window Mode' : 'Fullscreen Mode'}
               </div>
-              <div 
-                className="context-menu-item"
-                onClick={() => {
-                  api.minimize();
-                  handleMenuClose();
-                }}
-              >
+              <div className="context-menu-item" onClick={() => { api.minimize(); handleMenuClose(); }}>
                 Minimize Window
               </div>
-              <div 
-                className="context-menu-item"
-                onClick={() => {
-                  api.close();
-                  handleMenuClose();
-                }}
-              >
+              <div className="settings-menu-separator" />
+              {/* System Group */}
+              <div className="settings-menu-group-label">System</div>
+              <div className="context-menu-item" onClick={() => { setShowSoundModal(true); handleMenuClose(); }}>
+                Change Sounds
+              </div>
+              <div className="context-menu-item" onClick={() => { api.close(); handleMenuClose(); }}>
                 Close App
               </div>
             </div>
@@ -150,6 +121,20 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
         <SoundModal 
           onClose={() => setShowSoundModal(false)}
           onSettingsChange={onSettingsChange}
+        />
+      )}
+      {/* Wallpaper Modal */}
+      {showWallpaperModal && (
+        <WallpaperModal
+          onClose={() => setShowWallpaperModal(false)}
+          onSettingsChange={onSettingsChange}
+          currentWallpaper={window.settings?.wallpaper}
+          currentOpacity={window.settings?.wallpaperOpacity}
+          savedWallpapers={window.settings?.savedWallpapers || []}
+          likedWallpapers={window.settings?.likedWallpapers || []}
+          cycleWallpapers={window.settings?.cycleWallpapers}
+          cycleInterval={window.settings?.cycleInterval}
+          cycleAnimation={window.settings?.cycleAnimation}
         />
       )}
     </>

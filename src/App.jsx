@@ -73,6 +73,19 @@ function App() {
   const backgroundAudioRef = useRef(null);
   const [showDragRegion, setShowDragRegion] = useState(false);
   const [barType, setBarType] = useState('flat');
+  const [wallpaper, setWallpaper] = useState(null);
+  const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
+  const [savedWallpapers, setSavedWallpapers] = useState([]);
+  const [likedWallpapers, setLikedWallpapers] = useState([]);
+  const [cycleWallpapers, setCycleWallpapers] = useState(false);
+  const [cycleInterval, setCycleInterval] = useState(30);
+  const [cycleAnimation, setCycleAnimation] = useState('fade');
+  const [wallpaperIndex, setWallpaperIndex] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const [showWallpaperModal, setShowWallpaperModal] = useState(false); // track modal open
+  const cycleTimeoutRef = useRef();
+  // Track previous wallpaper for fade animation
+  const [prevWallpaper, setPrevWallpaper] = useState(null);
 
   // Create 12 empty channels for user configuration
   const channels = Array.from({ length: 12 }, (_, index) => ({
@@ -275,6 +288,13 @@ function App() {
         setIsDarkMode(settings.isDarkMode ?? false);
         setUseCustomCursor(settings.useCustomCursor ?? true);
         setBarType(settings.barType ?? 'flat');
+        setWallpaper(settings.wallpaper || null);
+        setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
+        setSavedWallpapers(settings.savedWallpapers || []);
+        setLikedWallpapers(settings.likedWallpapers || []);
+        setCycleWallpapers(settings.cycleWallpapers ?? false);
+        setCycleInterval(settings.cycleInterval ?? 30);
+        setCycleAnimation(settings.cycleAnimation || 'fade');
       }
     }
     loadSettings();
@@ -285,8 +305,15 @@ function App() {
       isDarkMode,
       useCustomCursor,
       barType,
+      wallpaper,
+      wallpaperOpacity,
+      savedWallpapers,
+      likedWallpapers,
+      cycleWallpapers,
+      cycleInterval,
+      cycleAnimation,
     });
-  }, [isDarkMode, useCustomCursor, barType]);
+  }, [isDarkMode, useCustomCursor, barType, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation]);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -403,8 +430,106 @@ function App() {
     setBarType(type);
   };
 
+  // Handler for settings changes from WallpaperModal
+  const handleSettingsChange = (newSettings) => {
+    if (newSettings.wallpaper !== undefined) setWallpaper(newSettings.wallpaper);
+    if (newSettings.wallpaperOpacity !== undefined) setWallpaperOpacity(newSettings.wallpaperOpacity);
+    if (newSettings.savedWallpapers !== undefined) setSavedWallpapers(newSettings.savedWallpapers);
+    if (newSettings.likedWallpapers !== undefined) setLikedWallpapers(newSettings.likedWallpapers);
+    if (newSettings.cycleWallpapers !== undefined) setCycleWallpapers(newSettings.cycleWallpapers);
+    if (newSettings.cycleInterval !== undefined) setCycleInterval(newSettings.cycleInterval);
+    if (newSettings.cycleAnimation !== undefined) setCycleAnimation(newSettings.cycleAnimation);
+    if (typeof setSoundSettings === 'function' && newSettings.sounds) setSoundSettings(newSettings.sounds);
+  };
+
+  // Pass settings to SettingsButton via window.settings for now (could use context for better solution)
+  window.settings = {
+    wallpaper,
+    wallpaperOpacity,
+    savedWallpapers,
+    likedWallpapers,
+    cycleWallpapers,
+    cycleInterval,
+    cycleAnimation,
+  };
+
+  // Compute the list of wallpapers to cycle through
+  const cycleList = savedWallpapers.filter(w => likedWallpapers.includes(w.url));
+  // Improved cycling logic: use a single timer for fade+interval, always use latest cycleInterval
+  useEffect(() => {
+    if (!cycleWallpapers || cycleList.length < 2 || showWallpaperModal) {
+      if (cycleTimeoutRef.current) clearTimeout(cycleTimeoutRef.current);
+      setPrevWallpaper(null);
+      return;
+    }
+    let idx = cycleList.findIndex(w => w.url === (wallpaper?.url));
+    if (idx === -1) idx = 0;
+    setWallpaperIndex(idx);
+    cycleTimeoutRef.current && clearTimeout(cycleTimeoutRef.current);
+    // Show fade for fade animation
+    const doCycle = () => {
+      if (cycleAnimation === 'fade') setPrevWallpaper(wallpaper);
+      setAnimating(true);
+      setTimeout(() => {
+        setAnimating(false);
+        setWallpaperIndex(prev => (prev + 1) % cycleList.length);
+        setWallpaper(cycleList[(idx + 1) % cycleList.length]);
+        if (cycleAnimation === 'fade') setTimeout(() => setPrevWallpaper(null), 800);
+        // Wait for fade, then wait for interval before next cycle
+        cycleTimeoutRef.current = setTimeout(doCycle, Math.max(2, cycleInterval) * 1000);
+      }, cycleAnimation === 'fade' ? 800 : cycleAnimation === 'slide' ? 600 : 0);
+    };
+    // Start the first cycle after the interval
+    cycleTimeoutRef.current = setTimeout(doCycle, Math.max(2, cycleInterval) * 1000);
+    return () => cycleTimeoutRef.current && clearTimeout(cycleTimeoutRef.current);
+  }, [cycleWallpapers, cycleList, cycleAnimation, wallpaper, showWallpaperModal, likedWallpapers, cycleInterval]);
+  // When wallpaperIndex changes, update wallpaper
+  useEffect(() => {
+    if (cycleWallpapers && cycleList.length > 1) {
+      setWallpaper(cycleList[wallpaperIndex % cycleList.length]);
+    }
+  }, [wallpaperIndex, cycleWallpapers, cycleList]);
+
   return (
     <div className="app-container">
+      {/* Wallpaper background layer with fade crossfade */}
+      {cycleAnimation === 'fade' && prevWallpaper && animating ? (
+        <div className="wallpaper-fade-stack">
+          <div
+            className="wallpaper-bg fade animating"
+            style={{
+              background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
+              opacity: wallpaperOpacity,
+            }}
+          />
+          <div
+            className="wallpaper-bg fade"
+            style={{
+              background: `url('${wallpaper.url}') center center / cover no-repeat`,
+              opacity: wallpaperOpacity,
+            }}
+          />
+        </div>
+      ) : (
+        wallpaper && wallpaper.url && (
+          <div
+            className={`wallpaper-bg${animating ? ' animating' : ''} ${cycleAnimation}`}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 0,
+              pointerEvents: 'none',
+              background: `url('${wallpaper.url}') center center / cover no-repeat`,
+              opacity: wallpaperOpacity,
+              transition: cycleAnimation === 'fade' ? 'opacity 0.8s' : cycleAnimation === 'slide' ? 'transform 0.6s' : 'none',
+              transform: animating && cycleAnimation === 'slide' ? 'translateX(-100vw)' : 'none',
+            }}
+          />
+        )
+      )}
       {showDragRegion && (
         <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
       )}
@@ -436,7 +561,7 @@ function App() {
           onToggleDarkMode={handleToggleDarkMode}
           onToggleCursor={handleToggleCursor}
           useCustomCursor={useCustomCursor}
-          onSettingsChange={setSoundSettings}
+          onSettingsChange={handleSettingsChange}
           barType={barType}
           onBarTypeChange={handleBarTypeChange}
         />
@@ -445,6 +570,7 @@ function App() {
           onSettingsClick={handleSettingsClick}
           barType={barType}
           onBarTypeChange={handleBarTypeChange}
+          onSettingsChange={handleSettingsChange}
         />
       )}
     </div>

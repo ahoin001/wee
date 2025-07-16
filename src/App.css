@@ -384,3 +384,31 @@ body, #root {
 body:not(.custom-cursor) {
   cursor: auto;
 }
+
+.wallpaper-fade-stack {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+}
+.wallpaper-bg.fade,
+.wallpaper-bg.fade.animating {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  /* Remove z-index here */
+}
+.wallpaper-bg.fade {
+  opacity: 1;
+  transition: opacity 0.8s;
+}
+.wallpaper-bg.fade.animating {
+  opacity: 0;
+  transition: opacity 0.8s;
+}

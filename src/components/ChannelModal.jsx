@@ -119,18 +119,18 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setMedia(null);
   };
 
+  const handleClearChannel = () => {
+    onSave(channelId, null); // This will fully reset the channel in the parent
+    onClose();
+  };
+
   const canSave = (media || path.trim()) && !pathError;
 
   const footerContent = (
     <>
       <button className="cancel-button" onClick={onClose}>Cancel</button>
-      <button 
-        className="save-button" 
-        onClick={handleSave}
-        disabled={!canSave}
-      >
-        Save Channel
-      </button>
+      <button className="clear-button" style={{ marginLeft: 8, border: '1.5px solid #dc3545', color: '#dc3545', background: '#fff', fontWeight: 600 }} onClick={handleClearChannel} onMouseOver={e => e.currentTarget.style.background='#ffeaea'} onMouseOut={e => e.currentTarget.style.background='#fff'}>Clear Channel</button>
+      <button className="save-button" onClick={handleSave} disabled={!canSave}>Save Channel</button>
     </>
   );
 
