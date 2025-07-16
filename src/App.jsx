@@ -135,52 +135,62 @@ function App() {
       let settings = await api.getSettings();
       let savedSounds = await api.getSavedSounds();
       let updated = false;
+      
+      // Extract sound settings from the new structure
+      const soundSettings = settings?.sounds || {};
+      
       // If no startup sound selected, set default
-      if (!settings?.startup?.file && savedSounds?.startup?.length > 0) {
-        settings = settings || {};
-        settings.startup = settings.startup || {};
+      if (!soundSettings?.startup?.file && savedSounds?.startup?.length > 0) {
         const defaultStartup = savedSounds.startup.find(s => s.isDefault) || savedSounds.startup[0];
-        settings.startup.file = { url: defaultStartup.url, name: defaultStartup.name };
-        settings.startup.enabled = true;
+        soundSettings.startup = {
+          file: { url: defaultStartup.url, name: defaultStartup.name },
+          enabled: true,
+          volume: defaultStartup.volume || 0.6
+        };
         updated = true;
       }
       // If no background music selected, set default
-      if (!settings?.backgroundMusic?.file && savedSounds?.backgroundMusic?.length > 0) {
-        settings = settings || {};
-        settings.backgroundMusic = settings.backgroundMusic || {};
+      if (!soundSettings?.backgroundMusic?.file && savedSounds?.backgroundMusic?.length > 0) {
         const defaultMusic = savedSounds.backgroundMusic.find(s => s.isDefault) || savedSounds.backgroundMusic[0];
-        settings.backgroundMusic.file = { url: defaultMusic.url, name: defaultMusic.name };
-        settings.backgroundMusic.enabled = true;
-        settings.backgroundMusic.loopMode = settings.backgroundMusic.loopMode || 'single';
+        soundSettings.backgroundMusic = {
+          file: { url: defaultMusic.url, name: defaultMusic.name },
+          enabled: true,
+          volume: defaultMusic.volume || 0.4,
+          loopMode: 'single'
+        };
         updated = true;
       }
+      
       if (updated) {
+        settings = settings || {};
+        settings.sounds = soundSettings;
         await api.saveSettings(settings);
       }
-      if (settings) {
-        setSoundSettings(settings);
+      
+      if (soundSettings) {
+        setSoundSettings(soundSettings);
         // Play startup sound if enabled and configured
         let playedStartup = false;
-        if (settings.startup?.enabled && settings.startup?.file?.url) {
+        if (soundSettings.startup?.enabled && soundSettings.startup?.file?.url) {
           playedStartup = true;
-          const startupAudio = new Audio(settings.startup.file.url);
-          startupAudio.volume = settings.startup.volume || 0.6;
+          const startupAudio = new Audio(soundSettings.startup.file.url);
+          startupAudio.volume = soundSettings.startup.volume || 0.6;
           startupAudio.play().catch(error => {
             console.log('Startup sound playback failed:', error);
             // If playback fails, start background music immediately
-            if (settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
-              setupBackgroundMusic(settings.backgroundMusic);
+            if (soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.file?.url) {
+              setupBackgroundMusic(soundSettings.backgroundMusic);
             }
           });
           startupAudio.addEventListener('ended', () => {
-            if (settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
-              setupBackgroundMusic(settings.backgroundMusic);
+            if (soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.file?.url) {
+              setupBackgroundMusic(soundSettings.backgroundMusic);
             }
           });
         }
         // If no startup sound, start background music immediately
-        if (!playedStartup && settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
-          setupBackgroundMusic(settings.backgroundMusic);
+        if (!playedStartup && soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.file?.url) {
+          setupBackgroundMusic(soundSettings.backgroundMusic);
         }
       }
     }
@@ -190,7 +200,8 @@ function App() {
   // Persist sound settings whenever they change
   useEffect(() => {
     if (soundSettings) {
-      api.saveSettings(soundSettings);
+      // Save sound settings as part of the main settings object
+      api.saveSettings({ sounds: soundSettings });
     }
   }, [soundSettings]);
 
@@ -466,7 +477,7 @@ function App() {
     if (newSettings.cycleWallpapers !== undefined) setCycleWallpapers(newSettings.cycleWallpapers);
     if (newSettings.cycleInterval !== undefined) setCycleInterval(newSettings.cycleInterval);
     if (newSettings.cycleAnimation !== undefined) setCycleAnimation(newSettings.cycleAnimation);
-    if (typeof setSoundSettings === 'function' && newSettings.sounds) setSoundSettings(newSettings.sounds);
+    if (newSettings.sounds) setSoundSettings(newSettings.sounds);
   };
 
   // Pass settings to SettingsButton via window.settings for now (could use context for better solution)
@@ -609,7 +620,6 @@ function App() {
               type={config?.type}
               title={config?.title}
               hoverSound={config?.hoverSound}
-              soundSettings={soundSettings}
               onMediaChange={handleMediaChange}
               onAppPathChange={handleAppPathChange}
               onChannelSave={handleChannelSave}

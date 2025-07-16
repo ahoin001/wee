@@ -5,7 +5,13 @@ import ChannelModal from './ChannelModal';
 import ImageSearchModal from './ImageSearchModal';
 // import './Channel.css';
 
-function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, soundSettings }) {
+// Guard for window.api to prevent errors in browser
+const api = window.api || {
+  launchApp: () => {},
+  getSettings: async () => null,
+};
+
+function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound }) {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showChannelModal, setShowChannelModal] = useState(false);
@@ -13,7 +19,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
   const hoverAudioRef = useRef(null);
   const fadeIntervalRef = useRef(null);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (hoverAudioRef.current) {
       // Fade out and stop hover sound on click
       let v = hoverAudioRef.current.volume;
@@ -33,18 +39,33 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
       setShowChannelModal(true);
     } else if (path) {
       // Play channel click sound if enabled
-      if (soundSettings?.channelClick?.enabled && soundSettings?.channelClick?.file?.url) {
-        const audio = new Audio(soundSettings.channelClick.file.url);
-        audio.volume = soundSettings.channelClick.volume || 0.5;
-        audio.play().catch(error => {
-          console.log('Channel click sound playback failed:', error);
-        });
+      try {
+        const settings = await api.getSettings();
+        const soundSettings = settings?.sounds || {};
+        if (soundSettings.channelClick?.enabled && soundSettings.channelClick?.file?.url) {
+          const audio = new Audio(soundSettings.channelClick.file.url);
+          audio.volume = soundSettings.channelClick.volume || 0.5;
+          audio.play().catch(error => {
+            console.log('Channel click sound playback failed:', error);
+          });
+        }
+      } catch (error) {
+        console.log('Failed to load sound settings:', error);
+        // Fallback to localStorage for development
+        const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
+        if (soundSettings.channelClick?.enabled && soundSettings.channelClick?.file?.url) {
+          const audio = new Audio(soundSettings.channelClick.file.url);
+          audio.volume = soundSettings.channelClick.volume || 0.5;
+          audio.play().catch(error => {
+            console.log('Channel click sound playback failed:', error);
+          });
+        }
       }
-      window.api.launchApp({ type, path, asAdmin });
+      api.launchApp({ type, path, asAdmin });
     }
   };
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = async () => {
     // Play per-channel hover sound if set, else global
     if (!empty && path) {
       if (hoverSound && hoverSound.url) {
@@ -67,14 +88,32 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
           }, 40);
         }
       } else {
-        if (soundSettings?.channelHover?.enabled && soundSettings?.channelHover?.file?.url) {
-          if (!hoverAudioRef.current) { // Only play if not already playing
-            const audio = new Audio(soundSettings.channelHover.file.url);
-            audio.volume = soundSettings.channelHover.volume || 0.3;
-            audio.play().catch(error => {
-              console.log('Channel hover sound playback failed:', error);
-            });
-            hoverAudioRef.current = audio;
+        try {
+          const settings = await api.getSettings();
+          const soundSettings = settings?.sounds || {};
+          if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.file?.url) {
+            if (!hoverAudioRef.current) { // Only play if not already playing
+              const audio = new Audio(soundSettings.channelHover.file.url);
+              audio.volume = soundSettings.channelHover.volume || 0.3;
+              audio.play().catch(error => {
+                console.log('Channel hover sound playback failed:', error);
+              });
+              hoverAudioRef.current = audio;
+            }
+          }
+        } catch (error) {
+          console.log('Failed to load sound settings:', error);
+          // Fallback to localStorage for development
+          const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
+          if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.file?.url) {
+            if (!hoverAudioRef.current) { // Only play if not already playing
+              const audio = new Audio(soundSettings.channelHover.file.url);
+              audio.volume = soundSettings.channelHover.volume || 0.3;
+              audio.play().catch(error => {
+                console.log('Channel hover sound playback failed:', error);
+              });
+              hoverAudioRef.current = audio;
+            }
           }
         }
       }
@@ -291,7 +330,6 @@ Channel.propTypes = {
     url: PropTypes.string,
     volume: PropTypes.number,
   }),
-  soundSettings: PropTypes.object,
 };
 
 export default Channel;

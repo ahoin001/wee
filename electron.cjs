@@ -9,9 +9,23 @@ const settingsPath = path.join(userDataPath, 'settings.json');
 const channelConfigsPath = path.join(userDataPath, 'channelConfigs.json');
 const savedSoundsPath = path.join(userDataPath, 'savedSounds.json');
 
+// User file directories
+const userSoundsPath = path.join(userDataPath, 'sounds');
+const userWallpapersPath = path.join(userDataPath, 'wallpapers');
+
 let mainWindow = null;
 let isCurrentlyFullscreen = true;
 let isFrameless = true;
+
+// Ensure user directories exist
+async function ensureUserDirectories() {
+  try {
+    await fs.mkdir(userSoundsPath, { recursive: true });
+    await fs.mkdir(userWallpapersPath, { recursive: true });
+  } catch (err) {
+    console.error('Failed to create user directories:', err);
+  }
+}
 
 function sendWindowState() {
   if (mainWindow) {
@@ -63,8 +77,9 @@ function createWindow({ frame = false, fullscreen = true, bounds = null } = {}) 
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   console.log('User data is stored at:', app.getPath('userData'));
+  await ensureUserDirectories();
   createWindow({ frame: false, fullscreen: true });
 });
 
@@ -73,6 +88,8 @@ console.log('Electron userDataPath:', userDataPath);
 console.log('Settings path:', settingsPath);
 console.log('Channel configs path:', channelConfigsPath);
 console.log('Saved sounds path:', savedSoundsPath);
+console.log('User sounds path:', userSoundsPath);
+console.log('User wallpapers path:', userWallpapersPath);
 
 // --- Persistent Storage IPC Handlers ---
 
@@ -110,12 +127,79 @@ async function writeJson(filePath, data) {
   }
 }
 
+// Helper: Copy file to user directory and return new path
+async function copyFileToUserDirectory(sourcePath, targetDirectory, filename) {
+  try {
+    const targetPath = path.join(targetDirectory, filename);
+    await fs.copyFile(sourcePath, targetPath);
+    console.log(`[COPY] Copied file to: ${targetPath}`);
+    return targetPath;
+  } catch (err) {
+    console.error(`[COPY] Failed to copy file:`, err);
+    throw err;
+  }
+}
+
+// Helper: Get default sounds from app resources
+function getDefaultSounds() {
+  const isDev = process.env.NODE_ENV === 'development';
+  let basePath;
+  
+  if (isDev) {
+    basePath = path.join(__dirname, 'public');
+  } else {
+    // In production, sounds are in the extraResource folder
+    basePath = path.join(process.resourcesPath, 'public', 'sounds');
+  }
+  
+  return {
+    channelClick: [
+      { 
+        id: 'default-click-1',
+        name: 'Wii Click 1', 
+        url: isDev ? '/sounds/wii-click-1.mp3' : `file://${path.join(basePath, 'wii-click-1.mp3')}`,
+        volume: 0.5,
+        isDefault: true
+      }
+    ],
+    channelHover: [
+      { 
+        id: 'default-hover-1',
+        name: 'Wii Hover 1', 
+        url: isDev ? '/sounds/wii-hover-1.mp3' : `file://${path.join(basePath, 'wii-hover-1.mp3')}`,
+        volume: 0.3,
+        isDefault: true
+      }
+    ],
+    backgroundMusic: [
+      { 
+        id: 'default-music-1',
+        name: 'Wii Menu Music', 
+        url: isDev ? '/sounds/wii-menu-music.mp3' : `file://${path.join(basePath, 'wii-menu-music.mp3')}`,
+        volume: 0.4,
+        isDefault: true
+      }
+    ],
+    startup: [
+      { 
+        id: 'default-startup-1',
+        name: 'Wii Startup 1', 
+        url: isDev ? '/sounds/wii-startup-1.mp3' : `file://${path.join(basePath, 'wii-startup-1.mp3')}`,
+        volume: 0.6,
+        isDefault: true
+      }
+    ]
+  };
+}
+
 ipcMain.handle('get-settings', async () => {
   return await readJson(settingsPath, null);
 });
+
 ipcMain.handle('save-settings', async (event, settings) => {
   return await writeJson(settingsPath, settings);
 });
+
 ipcMain.handle('get-channel-configs', async () => {
   try {
     await fs.access(channelConfigsPath);
@@ -140,6 +224,7 @@ ipcMain.handle('get-channel-configs', async () => {
     return {};
   }
 });
+
 ipcMain.handle('save-channel-configs', async (event, configs) => {
   try {
     await fs.writeFile(channelConfigsPath, JSON.stringify(configs, null, 2));
@@ -154,17 +239,62 @@ ipcMain.handle('save-channel-configs', async (event, configs) => {
     return { success: false, error: error.message };
   }
 });
+
 ipcMain.handle('get-saved-sounds', async () => {
-  return await readJson(savedSoundsPath, null);
+  try {
+    const saved = await readJson(savedSoundsPath, null);
+    if (!saved) {
+      // Return default sounds if no saved sounds exist
+      const defaultSounds = getDefaultSounds();
+      await writeJson(savedSoundsPath, defaultSounds);
+      return defaultSounds;
+    }
+    return saved;
+  } catch (error) {
+    console.error('Error loading saved sounds:', error);
+    // Return default sounds as fallback
+    return getDefaultSounds();
+  }
 });
+
 ipcMain.handle('save-saved-sounds', async (event, sounds) => {
   return await writeJson(savedSoundsPath, sounds);
 });
 
-// IPC handler to get correct sound URL for production
-ipcMain.handle('get-sound-url', async (event, filename) => {
-  const soundPath = path.join(__dirname, 'dist', 'sounds', filename);
-  return `file://${soundPath}`;
+// New IPC handlers for file management
+ipcMain.handle('copy-sound-file', async (event, { sourcePath, filename }) => {
+  try {
+    const targetPath = await copyFileToUserDirectory(sourcePath, userSoundsPath, filename);
+    return { success: true, path: targetPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('copy-wallpaper-file', async (event, { sourcePath, filename }) => {
+  try {
+    const targetPath = await copyFileToUserDirectory(sourcePath, userWallpapersPath, filename);
+    return { success: true, path: targetPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-user-files', async () => {
+  try {
+    const [soundFiles, wallpaperFiles] = await Promise.all([
+      fs.readdir(userSoundsPath).catch(() => []),
+      fs.readdir(userWallpapersPath).catch(() => [])
+    ]);
+    
+    return {
+      sounds: soundFiles.map(file => path.join(userSoundsPath, file)),
+      wallpapers: wallpaperFiles.map(file => path.join(userWallpapersPath, file))
+    };
+  } catch (error) {
+    console.error('Error reading user files:', error);
+    return { sounds: [], wallpapers: [] };
+  }
 });
 
 // --- App Launching Logic ---

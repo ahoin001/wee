@@ -5,38 +5,10 @@ import './SoundModal.css';
 
 // Guard for window.api to prevent errors in browser
 const api = window.api || {
-  getSettings: async () => null,
-  saveSettings: async () => {},
   getSavedSounds: async () => null,
   saveSavedSounds: async () => {},
-  getSoundUrl: async (filename) => `/sounds/${filename}`,
-};
-
-// Utility function to get correct sound URL for both dev and production
-const getSoundUrl = async (filename) => {
-  // Check if we're in Electron context
-  if (window.api && window.api.getSoundUrl) {
-    // In Electron app, use the API to get the correct URL
-    return await api.getSoundUrl(filename);
-  }
-  // In development or browser, use absolute path
-  return `/sounds/${filename}`;
-};
-
-// Default sounds configuration
-const DEFAULT_SOUNDS = {
-  channelClick: [
-    { name: 'Wii Click 1', url: getSoundUrl('wii-click-1.mp3'), volume: 0.5 }
-  ],
-  channelHover: [
-    { name: 'Wii Hover 1', url: getSoundUrl('wii-hover-1.mp3'), volume: 0.3 }
-  ],
-  backgroundMusic: [
-    { name: 'Wii Menu Music', url: getSoundUrl('wii-menu-music.mp3'), volume: 0.4 }
-  ],
-  startup: [
-    // No default startup sound
-  ]
+  copySoundFile: async () => ({ success: false }),
+  getUserFiles: async () => ({ sounds: [], wallpapers: [] }),
 };
 
 function SoundModal({ onClose, onSettingsChange }) {
@@ -67,27 +39,14 @@ function SoundModal({ onClose, onSettingsChange }) {
     startup: useRef()
   };
 
-  // Function to load default sounds
-  const loadDefaultSounds = async () => {
-    const defaultSoundsWithIds = {};
-    
-    for (const [soundType, soundList] of Object.entries(DEFAULT_SOUNDS)) {
-      defaultSoundsWithIds[soundType] = [];
-      for (let index = 0; index < soundList.length; index++) {
-        const sound = soundList[index];
-        const url = await getSoundUrl(sound.url.split('/').pop()); // Extract filename from URL
-        defaultSoundsWithIds[soundType].push({
-          id: `default-${soundType}-${index}`,
-          name: sound.name,
-          url: url,
-          volume: sound.volume,
-          isDefault: true,
-          enabled: true // Ensure enabled is true for default sounds
-        });
-      }
-    }
-    
-    return defaultSoundsWithIds;
+  // Function to load default sounds - now handled by main process
+  const loadDefaultSounds = () => {
+    return {
+      channelClick: [],
+      channelHover: [],
+      backgroundMusic: [],
+      startup: []
+    };
   };
 
   // Load saved sounds from persistent storage on component mount
@@ -108,30 +67,28 @@ function SoundModal({ onClose, onSettingsChange }) {
         setSavedSounds(saved);
       } else {
         // If no saved sounds exist, load default sounds
-        const defaultSounds = await loadDefaultSounds();
+        const defaultSounds = loadDefaultSounds();
         setSavedSounds(defaultSounds);
         api.saveSavedSounds(defaultSounds);
       }
     }
     loadSavedSounds();
 
-    // Load current sound settings from Electron API
-    async function loadSoundSettings() {
+    // Load current sound settings
+    const savedSettings = localStorage.getItem('wiiDesktopSoundSettings');
+    if (savedSettings) {
       try {
-        const settings = await api.getSettings();
-        if (settings) {
-          // Ensure backgroundMusic has the new properties
-          if (settings.backgroundMusic && !settings.backgroundMusic.loopMode) {
-            settings.backgroundMusic.loopMode = 'single';
-            settings.backgroundMusic.playlist = [];
-          }
-          setSounds(settings);
+        const settings = JSON.parse(savedSettings);
+        // Ensure backgroundMusic has the new properties
+        if (settings.backgroundMusic && !settings.backgroundMusic.loopMode) {
+          settings.backgroundMusic.loopMode = 'single';
+          settings.backgroundMusic.playlist = [];
         }
+        setSounds(settings);
       } catch (error) {
         console.error('Error loading sound settings:', error);
       }
     }
-    loadSoundSettings();
   }, []);
 
   // Whenever savedSounds changes, persist to Electron
@@ -141,16 +98,47 @@ function SoundModal({ onClose, onSettingsChange }) {
     }
   }, [savedSounds]);
 
-  const handleFileSelect = (soundType, file) => {
+  const handleFileSelect = async (soundType, file) => {
     if (file) {
-      const url = URL.createObjectURL(file);
-      setSounds(prev => ({
-        ...prev,
-        [soundType]: {
-          ...prev[soundType],
-          file: { url, name: file.name }
+      try {
+        // Copy file to user directory via main process
+        const result = await api.copySoundFile({
+          sourcePath: file.path || file.name,
+          filename: `${Date.now()}-${file.name}`
+        });
+        
+        if (result.success) {
+          setSounds(prev => ({
+            ...prev,
+            [soundType]: {
+              ...prev[soundType],
+              file: { url: result.path, name: file.name }
+            }
+          }));
+        } else {
+          console.error('Failed to copy sound file:', result.error);
+          // Fallback to blob URL for development
+          const url = URL.createObjectURL(file);
+          setSounds(prev => ({
+            ...prev,
+            [soundType]: {
+              ...prev[soundType],
+              file: { url, name: file.name }
+            }
+          }));
         }
-      }));
+      } catch (error) {
+        console.error('Error handling sound file:', error);
+        // Fallback to blob URL
+        const url = URL.createObjectURL(file);
+        setSounds(prev => ({
+          ...prev,
+          [soundType]: {
+            ...prev[soundType],
+            file: { url, name: file.name }
+          }
+        }));
+      }
     }
   };
 
@@ -260,17 +248,27 @@ function SoundModal({ onClose, onSettingsChange }) {
     });
   };
 
-  const handleSave = () => {
-    // Save current sound settings to Electron API
-    api.saveSettings(sounds);
-    console.log('Sound settings saved:', sounds);
-    
-    // Notify parent component about settings change
-    if (onSettingsChange) {
-      onSettingsChange(sounds);
+  const handleSave = async () => {
+    try {
+      // Save current sound settings to main process
+      await api.saveSettings({ sounds });
+      console.log('Sound settings saved:', sounds);
+      
+      // Notify parent component about settings change
+      if (onSettingsChange) {
+        onSettingsChange(sounds);
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error('Failed to save sound settings:', error);
+      // Fallback to localStorage for development
+      localStorage.setItem('wiiDesktopSoundSettings', JSON.stringify(sounds));
+      if (onSettingsChange) {
+        onSettingsChange(sounds);
+      }
+      onClose();
     }
-    
-    onClose();
   };
 
   const renderSoundSection = (soundType, title) => {
