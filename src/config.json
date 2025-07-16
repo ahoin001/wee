@@ -26,5 +26,5 @@
     "type": "exe",
     "path": "C:/Windows/System32/calc.exe",
     "icon": "/public/icons/calc.png"
-  },
+  }
 ]

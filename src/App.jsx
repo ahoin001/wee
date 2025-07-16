@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Channel from './components/Channel';
 import HomeButton from './components/HomeButton';
 import SettingsButton from './components/SettingsButton';
@@ -51,15 +51,170 @@ function WiiCursor() {
 function App() {
   const [mediaMap, setMediaMap] = useState({});
   const [appPathMap, setAppPathMap] = useState({});
+  const [channelConfigs, setChannelConfigs] = useState({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [useCustomCursor, setUseCustomCursor] = useState(true);
+  const [soundSettings, setSoundSettings] = useState(null);
+  const [backgroundAudio, setBackgroundAudio] = useState(null);
+  const backgroundAudioRef = useRef(null);
 
   // Create 12 empty channels for user configuration
   const channels = Array.from({ length: 12 }, (_, index) => ({
     id: `channel-${index}`,
     empty: true
   }));
+
+  // Load sound settings and play startup sound
+  useEffect(() => {
+    const savedSoundSettings = localStorage.getItem('wiiDesktopSoundSettings');
+    if (savedSoundSettings) {
+      try {
+        const settings = JSON.parse(savedSoundSettings);
+        setSoundSettings(settings);
+        
+        // Play startup sound if enabled and configured
+        if (settings.startup?.enabled && settings.startup?.file?.url) {
+          const startupAudio = new Audio(settings.startup.file.url);
+          startupAudio.volume = settings.startup.volume || 0.6;
+          startupAudio.play().catch(error => {
+            console.log('Startup sound playback failed:', error);
+          });
+        }
+
+        // Setup background music if enabled
+        if (settings.backgroundMusic?.enabled && settings.backgroundMusic?.file?.url) {
+          setupBackgroundMusic(settings.backgroundMusic);
+        }
+      } catch (error) {
+        console.error('Error loading sound settings:', error);
+      }
+    }
+  }, []);
+
+  // Setup background music
+  const setupBackgroundMusic = (backgroundMusicSettings) => {
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.pause();
+      backgroundAudioRef.current = null;
+    }
+
+    if (backgroundMusicSettings?.enabled) {
+      if (backgroundMusicSettings.loopMode === 'single' && backgroundMusicSettings.file?.url) {
+        // Single song loop mode
+        const audio = new Audio(backgroundMusicSettings.file.url);
+        audio.volume = backgroundMusicSettings.volume || 0.4;
+        audio.loop = true;
+        
+        // Start playing background music
+        audio.play().catch(error => {
+          console.log('Background music playback failed:', error);
+        });
+
+        backgroundAudioRef.current = audio;
+        setBackgroundAudio(audio);
+      } else if (backgroundMusicSettings.loopMode === 'playlist' && backgroundMusicSettings.playlist?.length > 0) {
+        // Playlist mode
+        setupPlaylistMode(backgroundMusicSettings);
+      }
+    }
+  };
+
+  // Setup playlist mode
+  const setupPlaylistMode = (backgroundMusicSettings) => {
+    const playlist = backgroundMusicSettings.playlist;
+    let currentIndex = 0;
+
+    const playNextSong = () => {
+      if (playlist.length === 0) return;
+
+      const song = playlist[currentIndex];
+      const audio = new Audio(song.url);
+      audio.volume = backgroundMusicSettings.volume || 0.4;
+      
+      audio.addEventListener('ended', () => {
+        // Move to next song when current song ends
+        currentIndex = (currentIndex + 1) % playlist.length;
+        playNextSong();
+      });
+
+      audio.addEventListener('error', (error) => {
+        console.log('Playlist song playback failed:', error);
+        // Skip to next song on error
+        currentIndex = (currentIndex + 1) % playlist.length;
+        playNextSong();
+      });
+
+      // Start playing
+      audio.play().catch(error => {
+        console.log('Playlist song playback failed:', error);
+        // Skip to next song on error
+        currentIndex = (currentIndex + 1) % playlist.length;
+        playNextSong();
+      });
+
+      backgroundAudioRef.current = audio;
+      setBackgroundAudio(audio);
+    };
+
+    // Start playing the first song
+    playNextSong();
+  };
+
+  // Update background music when sound settings change
+  useEffect(() => {
+    if (soundSettings?.backgroundMusic) {
+      if (soundSettings.backgroundMusic.enabled && soundSettings.backgroundMusic.file?.url) {
+        setupBackgroundMusic(soundSettings.backgroundMusic);
+      } else {
+        // Stop background music if disabled
+        if (backgroundAudioRef.current) {
+          backgroundAudioRef.current.pause();
+          backgroundAudioRef.current = null;
+          setBackgroundAudio(null);
+        }
+      }
+    }
+  }, [soundSettings?.backgroundMusic]);
+
+  // Cleanup background audio on unmount
+  useEffect(() => {
+    return () => {
+      if (backgroundAudioRef.current) {
+        backgroundAudioRef.current.pause();
+        backgroundAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Load channel configurations from localStorage
+  useEffect(() => {
+    const savedConfigs = localStorage.getItem('wiiDesktopChannelConfigs');
+    if (savedConfigs) {
+      try {
+        const configs = JSON.parse(savedConfigs);
+        setChannelConfigs(configs);
+        
+        // Update mediaMap and appPathMap from saved configs
+        const newMediaMap = {};
+        const newAppPathMap = {};
+        
+        Object.entries(configs).forEach(([channelId, config]) => {
+          if (config.media) {
+            newMediaMap[channelId] = config.media;
+          }
+          if (config.path) {
+            newAppPathMap[channelId] = config.path;
+          }
+        });
+        
+        setMediaMap(newMediaMap);
+        setAppPathMap(newAppPathMap);
+      } catch (error) {
+        console.error('Error loading channel configurations:', error);
+      }
+    }
+  }, []);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -94,6 +249,58 @@ function App() {
     }));
   };
 
+  const handleChannelSave = (channelId, channelData) => {
+    // If channelData is null, clear the channel completely
+    if (channelData === null) {
+      setChannelConfigs(prev => {
+        const updated = { ...prev };
+        delete updated[channelId];
+        localStorage.setItem('wiiDesktopChannelConfigs', JSON.stringify(updated));
+        return updated;
+      });
+
+      // Clear media and path maps for this channel
+      setMediaMap(prev => {
+        const updated = { ...prev };
+        delete updated[channelId];
+        return updated;
+      });
+      
+      setAppPathMap(prev => {
+        const updated = { ...prev };
+        delete updated[channelId];
+        return updated;
+      });
+      
+      return;
+    }
+
+    // Update channel configurations
+    setChannelConfigs(prev => {
+      const updated = {
+        ...prev,
+        [channelId]: channelData
+      };
+      localStorage.setItem('wiiDesktopChannelConfigs', JSON.stringify(updated));
+      return updated;
+    });
+
+    // Update media and path maps
+    if (channelData.media) {
+      setMediaMap(prev => ({
+        ...prev,
+        [channelId]: channelData.media
+      }));
+    }
+    
+    if (channelData.path) {
+      setAppPathMap(prev => ({
+        ...prev,
+        [channelId]: channelData.path
+      }));
+    }
+  };
+
   const handleSettingsClick = () => {
     setIsEditMode(!isEditMode);
   };
@@ -110,16 +317,25 @@ function App() {
     <div className="app-container">
       {useCustomCursor && <WiiCursor />}
       <div className="channels-grid">
-        {channels.map((channel) => (
-          <Channel
-            key={channel.id}
-            {...channel}
-            media={mediaMap[channel.id]}
-            path={appPathMap[channel.id]}
-            onMediaChange={handleMediaChange}
-            onAppPathChange={handleAppPathChange}
-          />
-        ))}
+        {channels.map((channel) => {
+          const config = channelConfigs[channel.id];
+          const isConfigured = config && (config.media || config.path);
+          
+          return (
+            <Channel
+              key={channel.id}
+              {...channel}
+              empty={!isConfigured}
+              media={mediaMap[channel.id]}
+              path={appPathMap[channel.id]}
+              type={config?.type}
+              title={config?.title}
+              onMediaChange={handleMediaChange}
+              onAppPathChange={handleAppPathChange}
+              onChannelSave={handleChannelSave}
+            />
+          );
+        })}
       </div>
       <div className="ui-bar">
         <HomeButton />
@@ -129,6 +345,7 @@ function App() {
           onToggleDarkMode={handleToggleDarkMode}
           onToggleCursor={handleToggleCursor}
           useCustomCursor={useCustomCursor}
+          onSettingsChange={setSoundSettings}
         />
         <NotificationsButton />
       </div>

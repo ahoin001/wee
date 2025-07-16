@@ -207,9 +207,9 @@ body, #root {
     height: 40px;
   }
   .circular-button svg {
-    width: 20px;
-    height: 20px;
-  }
+  width: 28px;
+  height: 28px;
+}
 }
 
 .context-menu-content {
@@ -252,6 +252,16 @@ body, #root {
 .context-menu-item:focus {
   background: #f3f4f6;
   color: #111827;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: #e0e0e6;
+  margin: 0.25rem 0;
+}
+
+.dark-mode .context-menu-separator {
+  background-color: #444;
 }
 
 @keyframes slideDownAndFade {
@@ -347,7 +357,7 @@ body, #root {
   border-radius: 50%;
   position: fixed;
   pointer-events: none;
-  z-index: 10000;
+  z-index: 10001;
   transform: translate(-50%, -50%);
   transition: all 0.1s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);

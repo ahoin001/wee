@@ -1,0 +1,279 @@
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
+.form-section h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.image-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.image-preview {
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview img {
+  width: 100%;
+  max-width: 200px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #e0e0e6;
+}
+
+.remove-image-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-image-button:hover {
+  background: rgba(220, 53, 69, 1);
+}
+
+.file-button {
+  padding: 0.75rem;
+  border: 2px dashed #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.file-button:hover {
+  border-color: #0099ff;
+  color: #0099ff;
+}
+
+.text-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e6;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  background: #fff;
+  color: #333;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #0099ff;
+  box-shadow: 0 0 0 2px rgba(0, 153, 255, 0.1);
+}
+
+.text-input.error {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+}
+
+.text-input::placeholder {
+  color: #999;
+}
+
+.path-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.path-input-group .text-input {
+  flex: 1;
+}
+
+.file-picker-button {
+  padding: 0.75rem 1rem;
+  background: #0099ff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.file-picker-button:hover {
+  background: #007acc;
+}
+
+.help-text {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.8rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.error-text {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.8rem;
+  color: #dc3545;
+  line-height: 1.4;
+}
+
+.type-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.type-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  color: #333;
+}
+
+.type-option:hover {
+  background: #f8f9fa;
+}
+
+.type-option input[type="radio"] {
+  display: none;
+}
+
+.radio-custom {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  margin-right: 0.75rem;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.type-option input[type="radio"]:checked + .radio-custom {
+  border-color: #0099ff;
+  background: #0099ff;
+}
+
+.type-option input[type="radio"]:checked + .radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+}
+
+.save-button:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  cursor: not-allowed;
+}
+
+.save-button:disabled:hover {
+  background: #ccc;
+}
+
+/* Dark mode styles */
+.dark-mode .form-section h3 {
+  color: #fff;
+}
+
+.dark-mode .text-input {
+  background: #3d3d3d;
+  border-color: #555;
+  color: #fff;
+}
+
+.dark-mode .text-input:focus {
+  border-color: #0099ff;
+}
+
+.dark-mode .text-input.error {
+  border-color: #dc3545;
+}
+
+.dark-mode .text-input::placeholder {
+  color: #aaa;
+}
+
+.dark-mode .help-text {
+  color: #ccc;
+}
+
+.dark-mode .error-text {
+  color: #ff6b6b;
+}
+
+.dark-mode .type-option {
+  color: #fff;
+}
+
+.dark-mode .type-option:hover {
+  background: #3d3d3d;
+}
+
+.dark-mode .radio-custom {
+  border-color: #666;
+}
+
+.dark-mode .file-button {
+  background: #2d2d2d;
+  border-color: #555;
+  color: #ccc;
+}
+
+.dark-mode .file-button:hover {
+  border-color: #0099ff;
+  color: #0099ff;
+}
+
+.dark-mode .image-preview img {
+  border-color: #555;
+}
+
+.dark-mode .file-picker-button {
+  background: #0099ff;
+}
+
+.dark-mode .file-picker-button:hover {
+  background: #007acc;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .type-selector {
+    gap: 0.5rem;
+  }
+  
+  .image-preview img {
+    max-width: 100%;
+  }
+  
+  .path-input-group {
+    flex-direction: column;
+  }
+  
+  .file-picker-button {
+    width: 100%;
+  }
+} 
