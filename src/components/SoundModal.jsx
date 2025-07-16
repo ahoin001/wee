@@ -5,6 +5,8 @@ import './SoundModal.css';
 
 // Guard for window.api to prevent errors in browser
 const api = window.api || {
+  getSettings: async () => null,
+  saveSettings: async () => {},
   getSavedSounds: async () => null,
   saveSavedSounds: async () => {},
 };
@@ -96,21 +98,23 @@ function SoundModal({ onClose, onSettingsChange }) {
     }
     loadSavedSounds();
 
-    // Load current sound settings
-    const savedSettings = localStorage.getItem('wiiDesktopSoundSettings');
-    if (savedSettings) {
+    // Load current sound settings from Electron API
+    async function loadSoundSettings() {
       try {
-        const settings = JSON.parse(savedSettings);
-        // Ensure backgroundMusic has the new properties
-        if (settings.backgroundMusic && !settings.backgroundMusic.loopMode) {
-          settings.backgroundMusic.loopMode = 'single';
-          settings.backgroundMusic.playlist = [];
+        const settings = await api.getSettings();
+        if (settings) {
+          // Ensure backgroundMusic has the new properties
+          if (settings.backgroundMusic && !settings.backgroundMusic.loopMode) {
+            settings.backgroundMusic.loopMode = 'single';
+            settings.backgroundMusic.playlist = [];
+          }
+          setSounds(settings);
         }
-        setSounds(settings);
       } catch (error) {
         console.error('Error loading sound settings:', error);
       }
     }
+    loadSoundSettings();
   }, []);
 
   // Whenever savedSounds changes, persist to Electron
@@ -240,8 +244,8 @@ function SoundModal({ onClose, onSettingsChange }) {
   };
 
   const handleSave = () => {
-    // Save current sound settings
-    localStorage.setItem('wiiDesktopSoundSettings', JSON.stringify(sounds));
+    // Save current sound settings to Electron API
+    api.saveSettings(sounds);
     console.log('Sound settings saved:', sounds);
     
     // Notify parent component about settings change

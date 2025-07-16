@@ -63,7 +63,16 @@ function createWindow({ frame = false, fullscreen = true, bounds = null } = {}) 
   });
 }
 
-app.whenReady().then(() => createWindow({ frame: false, fullscreen: true }));
+app.whenReady().then(() => {
+  console.log('User data is stored at:', app.getPath('userData'));
+  createWindow({ frame: false, fullscreen: true });
+});
+
+// Log user data paths on startup
+console.log('Electron userDataPath:', userDataPath);
+console.log('Settings path:', settingsPath);
+console.log('Channel configs path:', channelConfigsPath);
+console.log('Saved sounds path:', savedSoundsPath);
 
 // --- Persistent Storage IPC Handlers ---
 
@@ -71,8 +80,16 @@ app.whenReady().then(() => createWindow({ frame: false, fullscreen: true }));
 async function readJson(filePath, defaultValue) {
   try {
     const data = await fs.readFile(filePath, 'utf-8');
+    console.log(`[READ] Successfully read file: ${filePath}`);
     return JSON.parse(data);
   } catch (err) {
+    if (err.code === 'ENOENT') {
+      console.warn(`[READ] File not found: ${filePath}`);
+    } else if (err.code === 'EACCES') {
+      console.error(`[READ] Permission denied: ${filePath}`);
+    } else {
+      console.error(`[READ] Error reading file ${filePath}:`, err);
+    }
     return defaultValue;
   }
 }
@@ -81,8 +98,14 @@ async function readJson(filePath, defaultValue) {
 async function writeJson(filePath, data) {
   try {
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    console.log(`[WRITE] Successfully wrote file: ${filePath}`);
     return true;
   } catch (err) {
+    if (err.code === 'EACCES') {
+      console.error(`[WRITE] Permission denied: ${filePath}`);
+    } else {
+      console.error(`[WRITE] Error writing file ${filePath}:`, err);
+    }
     return false;
   }
 }
@@ -94,10 +117,42 @@ ipcMain.handle('save-settings', async (event, settings) => {
   return await writeJson(settingsPath, settings);
 });
 ipcMain.handle('get-channel-configs', async () => {
-  return await readJson(channelConfigsPath, null);
+  try {
+    await fs.access(channelConfigsPath);
+    const data = await fs.readFile(channelConfigsPath, 'utf-8');
+    console.log(`[READ] Successfully read file: ${channelConfigsPath}`);
+    const parsed = JSON.parse(data);
+    // Return empty object if file is empty or contains invalid data
+    if (!parsed || typeof parsed !== 'object') {
+      console.warn(`[READ] Channel configs file is empty or invalid, returning empty object`);
+      return {};
+    }
+    return parsed;
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.warn(`[READ] Channel configs file not found: ${channelConfigsPath}`);
+    } else if (error.code === 'EACCES') {
+      console.error(`[READ] Permission denied: ${channelConfigsPath}`);
+    } else {
+      console.error(`[READ] Error reading channel configs:`, error);
+    }
+    // Don't create default file if it doesn't exist - let the app handle empty state
+    return {};
+  }
 });
 ipcMain.handle('save-channel-configs', async (event, configs) => {
-  return await writeJson(channelConfigsPath, configs);
+  try {
+    await fs.writeFile(channelConfigsPath, JSON.stringify(configs, null, 2));
+    console.log(`[WRITE] Successfully wrote file: ${channelConfigsPath}`);
+    return { success: true };
+  } catch (error) {
+    if (error.code === 'EACCES') {
+      console.error(`[WRITE] Permission denied: ${channelConfigsPath}`);
+    } else {
+      console.error('Failed to save channel configs:', error);
+    }
+    return { success: false, error: error.message };
+  }
 });
 ipcMain.handle('get-saved-sounds', async () => {
   return await readJson(savedSoundsPath, null);

@@ -87,11 +87,47 @@ function App() {
   // Track previous wallpaper for fade animation
   const [prevWallpaper, setPrevWallpaper] = useState(null);
 
-  // Create 12 empty channels for user configuration
-  const channels = Array.from({ length: 12 }, (_, index) => ({
-    id: `channel-${index}`,
-    empty: true
-  }));
+  const [channels, setChannels] = useState([]);
+
+  // On mount, load channels from storage or create default
+  useEffect(() => {
+    async function loadChannels() {
+      let configs = await api.getChannelConfigs();
+      
+      // Create a fixed grid of 12 channels
+      const gridChannels = [];
+      const existingIds = new Set();
+      
+      // First, create all 12 channel positions with default IDs
+      for (let i = 0; i < 12; i++) {
+        const defaultId = `channel-${i}`;
+        gridChannels.push({ id: defaultId, empty: true });
+        existingIds.add(defaultId);
+      }
+      
+      // Then, load saved channels and place them in their correct positions
+      if (configs && Object.keys(configs).length > 0) {
+        Object.entries(configs).forEach(([channelId, config]) => {
+          // Extract position from channel ID (e.g., "channel-5" -> position 5)
+          const positionMatch = channelId.match(/^channel-(\d+)$/);
+          if (positionMatch) {
+            const position = parseInt(positionMatch[1]);
+            if (position >= 0 && position < 12) {
+              // Place the saved channel in its correct position
+              gridChannels[position] = {
+                id: channelId,
+                ...config,
+                empty: !(config.media || config.path)
+              };
+            }
+          }
+        });
+      }
+      
+      setChannels(gridChannels);
+    }
+    loadChannels();
+  }, []);
 
   // Load sound settings and play startup sound
   useEffect(() => {
@@ -257,28 +293,23 @@ function App() {
   useEffect(() => {
     async function loadChannelConfigs() {
       let configs = await api.getChannelConfigs();
-      if (configs) {
-        setChannelConfigs(configs);
-        // Update mediaMap and appPathMap from saved configs
-        const newMediaMap = {};
-        const newAppPathMap = {};
-        Object.entries(configs).forEach(([channelId, config]) => {
-          if (config.media) newMediaMap[channelId] = config.media;
-          if (config.path) newAppPathMap[channelId] = config.path;
-        });
-        setMediaMap(newMediaMap);
-        setAppPathMap(newAppPathMap);
-      }
+      if (!configs) configs = {};
+      setChannelConfigs(configs);
+      // Update mediaMap and appPathMap from saved configs
+      const newMediaMap = {};
+      const newAppPathMap = {};
+      Object.entries(configs).forEach(([channelId, config]) => {
+        if (config.media) newMediaMap[channelId] = config.media;
+        if (config.path) newAppPathMap[channelId] = config.path;
+      });
+      setMediaMap(newMediaMap);
+      setAppPathMap(newAppPathMap);
     }
     loadChannelConfigs();
   }, []);
 
-  // Persist channel configs whenever they change
-  useEffect(() => {
-    if (channelConfigs) {
-      api.saveChannelConfigs(channelConfigs);
-    }
-  }, [channelConfigs]);
+  // Note: Channel configs are saved directly in handleChannelSave, not here
+  // to avoid overwriting data on app startup
 
   // Load settings (including barType) from persistent storage
   useEffect(() => {
@@ -368,36 +399,33 @@ function App() {
       setChannelConfigs(prev => {
         const updated = { ...prev };
         delete updated[channelId];
+        // Save the updated configs
         api.saveChannelConfigs(updated);
         return updated;
       });
-
       // Clear media and path maps for this channel
       setMediaMap(prev => {
         const updated = { ...prev };
         delete updated[channelId];
         return updated;
       });
-      
       setAppPathMap(prev => {
         const updated = { ...prev };
         delete updated[channelId];
         return updated;
       });
-      
       return;
     }
-
     // Update channel configurations
     setChannelConfigs(prev => {
       const updated = {
         ...prev,
         [channelId]: channelData
       };
+      // Save the updated configs
       api.saveChannelConfigs(updated);
       return updated;
     });
-
     // Update media and path maps
     if (channelData.media) {
       setMediaMap(prev => ({
@@ -405,7 +433,6 @@ function App() {
         [channelId]: channelData.media
       }));
     }
-    
     if (channelData.path) {
       setAppPathMap(prev => ({
         ...prev,
@@ -549,12 +576,18 @@ function App() {
             height: '100vh',
             background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
             opacity: wallpaperOpacity,
+            margin: 0,
+            padding: 0,
+            border: 'none',
           }} />
           <div className="wallpaper-bg carousel" style={{
             width: '100vw',
             height: '100vh',
             background: `url('${wallpaper.url}') center center / cover no-repeat`,
             opacity: wallpaperOpacity,
+            margin: 0,
+            padding: 0,
+            border: 'none',
           }} />
         </div>
       ) : null}
@@ -576,6 +609,7 @@ function App() {
               type={config?.type}
               title={config?.title}
               hoverSound={config?.hoverSound}
+              soundSettings={soundSettings}
               onMediaChange={handleMediaChange}
               onAppPathChange={handleAppPathChange}
               onChannelSave={handleChannelSave}

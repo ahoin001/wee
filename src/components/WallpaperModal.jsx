@@ -168,14 +168,14 @@ function WallpaperModal({ onClose, onSettingsChange, currentWallpaper, currentOp
           <label style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Saved Wallpapers</label>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
-            gap: 14,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: 20,
             alignItems: 'center',
             justifyItems: 'center',
-            minHeight: 60,
+            minHeight: 80,
             background: '#f8f9fa',
             borderRadius: 8,
-            padding: 8
+            padding: 12
           }}>
             {saved.length === 0 && <span style={{ color: '#888' }}>No saved wallpapers yet.</span>}
             {saved.map(w => (
@@ -183,76 +183,79 @@ function WallpaperModal({ onClose, onSettingsChange, currentWallpaper, currentOp
                 key={w.url}
                 style={{
                   position: 'relative',
-                  width: 80,
-                  height: 50,
-                  borderRadius: 8,
+                  width: 120,
+                  height: 80,
+                  borderRadius: 10,
                   overflow: 'hidden',
                   border: wallpaper && wallpaper.url === w.url ? '2.5px solid #0099ff' : '1.5px solid #ccc',
                   background: '#fff',
                   cursor: 'pointer',
-                  boxShadow: wallpaper && wallpaper.url === w.url ? '0 0 0 2px #b0e0ff' : 'none',
-                  transition: 'border 0.2s, box-shadow 0.2s',
+                  boxShadow: wallpaper && wallpaper.url === w.url ? '0 0 0 2px #b0e0ff' : '0 2px 8px #0001',
+                  transition: 'border 0.2s, box-shadow 0.2s, transform 0.18s cubic-bezier(.4,1.3,.5,1)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 2,
                 }}
                 tabIndex={0}
                 aria-label={`Select wallpaper ${w.name}`}
                 onClick={() => handleSelectSaved(w)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSelectSaved(w); }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
               >
-                <img src={w.url} alt={w.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                <img src={w.url} alt={w.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} />
                 {/* Like button */}
                 <button
                   style={{
                     position: 'absolute',
-                    top: 2,
-                    left: 2,
-                    background: 'rgba(255,255,255,0.85)',
+                    top: 7,
+                    left: 7,
+                    background: 'rgba(255,255,255,0.92)',
                     border: 'none',
                     borderRadius: '50%',
-                    width: 26,
-                    height: 26,
+                    width: 32,
+                    height: 32,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 16,
-                    color: liked.includes(w.url) ? '#e74c3c' : '#bbb',
+                    fontSize: 20,
+                    color: liked.includes(w.url) ? '#e74c3c' : '#333',
                     zIndex: 2,
                     cursor: 'pointer',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                    boxShadow: '0 1px 6px rgba(0,0,0,0.10)',
                     transition: 'color 0.2s, background 0.2s',
                   }}
                   title={liked.includes(w.url) ? 'Unlike' : 'Like'}
                   aria-label={liked.includes(w.url) ? 'Unlike wallpaper' : 'Like wallpaper'}
                   onClick={e => { e.stopPropagation(); handleToggleLike(w.url); }}
                 >
-                  {liked.includes(w.url) ? <FaHeart /> : <FaRegHeart />}
+                  {liked.includes(w.url) ? <FaHeart style={{ fill: '#e74c3c', color: '#e74c3c' }} /> : <FaRegHeart style={{ color: '#333', fill: 'none' }} />}
                 </button>
                 {/* Remove button */}
                 <button
                   style={{
                     position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    background: 'rgba(255,255,255,0.85)',
+                    top: 7,
+                    right: 7,
+                    background: 'rgba(255,255,255,0.92)',
                     border: 'none',
                     borderRadius: '50%',
-                    width: 22,
-                    height: 22,
+                    width: 28,
+                    height: 28,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 13,
-                    color: '#888',
+                    fontSize: 16,
+                    color: '#222',
                     zIndex: 2,
                     cursor: 'pointer',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                    boxShadow: '0 1px 6px rgba(0,0,0,0.10)',
                     transition: 'color 0.2s, background 0.2s',
                   }}
                   title="Remove wallpaper"
                   aria-label="Remove wallpaper"
                   onClick={e => { e.stopPropagation(); handleRemoveSaved(w.url); }}
                 >
-                  <FaTrash />
+                  <FaTrash style={{ color: '#222' }} />
                 </button>
               </div>
             ))}

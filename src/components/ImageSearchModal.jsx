@@ -18,25 +18,36 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mode, setMode] = useState(null); // null | 'browse' | 'upload'
+  const [propertiesImg, setPropertiesImg] = useState(null);
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, img: null });
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch images function
+  const fetchImages = () => {
+    setRefreshing(true);
+    setLoading(true);
+    fetch(THUMBNAILS_URL)
+      .then(res => {
+        console.log('Fetched thumbnails.json response:', res);
+        return res.json();
+      })
+      .then(data => {
+        console.log('Fetched thumbnails.json data:', data);
+        setImages(data);
+        setLoading(false);
+        setRefreshing(false);
+      })
+      .catch(err => {
+        console.error('Failed to load images:', err);
+        setError('Failed to load images');
+        setLoading(false);
+        setRefreshing(false);
+      });
+  };
 
   useEffect(() => {
     if (mode === 'browse') {
-      setLoading(true);
-      fetch(THUMBNAILS_URL)
-        .then(res => {
-          console.log('Fetched thumbnails.json response:', res);
-          return res.json();
-        })
-        .then(data => {
-          console.log('Fetched thumbnails.json data:', data);
-          setImages(data);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error('Failed to load images:', err);
-          setError('Failed to load images');
-          setLoading(false);
-        });
+      fetchImages();
     }
   }, [mode]);
 
@@ -115,14 +126,87 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
   // Browse mode UI
   return (
     <BaseModal title="Browse Built-in Images" onClose={onClose} maxWidth="900px">
+      {/* Properties Modal */}
+      {propertiesImg && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.35)',
+          zIndex: 10001,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setPropertiesImg(null)}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 24, minWidth: 320, boxShadow: '0 8px 32px #0002', position: 'relative', color: '#222' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, color: '#222' }}>Image Properties</h3>
+            <div style={{ marginBottom: 10, color: '#222' }}><b>Name:</b> {propertiesImg.name}</div>
+            <div style={{ marginBottom: 10, color: '#222' }}><b>URL:</b> <span style={{ wordBreak: 'break-all', color: '#222' }}>{propertiesImg.url}</span></div>
+            <button style={{ marginTop: 10 }} onClick={() => setPropertiesImg(null)}>Close</button>
+          </div>
+        </div>
+      )}
+      {/* Custom Context Menu */}
+      {contextMenu.visible && (
+        <div style={{
+          position: 'fixed',
+          top: contextMenu.y,
+          left: contextMenu.x,
+          background: '#fff',
+          border: '1.5px solid #b0c4d8',
+          borderRadius: 8,
+          boxShadow: '0 4px 16px #0002',
+          zIndex: 10002,
+          minWidth: 120,
+        }}
+          onClick={() => setContextMenu({ ...contextMenu, visible: false })}
+        >
+          <div
+            style={{ padding: '10px 18px', cursor: 'pointer', fontWeight: 500, color: '#222' }}
+            onClick={() => {
+              setPropertiesImg(contextMenu.img);
+              setContextMenu({ ...contextMenu, visible: false });
+            }}
+          >
+            Properties
+          </div>
+        </div>
+      )}
       <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <input
-          type="text"
-          placeholder="Search by name or tag..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ padding: 8, fontSize: '1em', borderRadius: 6, border: '1px solid #ccc', color: '#222', background: '#fff', marginBottom: 0 }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="text"
+            placeholder="Search by name or tag..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ padding: 8, fontSize: '1em', borderRadius: 6, border: '1px solid #ccc', color: '#222', background: '#fff', marginBottom: 0, flex: 1 }}
+          />
+          <button
+            onClick={fetchImages}
+            title="Refresh images"
+            aria-label="Refresh images"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 4,
+              marginLeft: 2,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 6,
+              transition: 'background 0.2s',
+              outline: 'none',
+              boxShadow: refreshing ? '0 0 0 2px #0099ff55' : 'none',
+            }}
+            disabled={refreshing}
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fetchImages(); }}
+            onMouseDown={e => e.preventDefault()}
+          >
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: refreshing ? 0.5 : 1, transition: 'opacity 0.2s', transform: refreshing ? 'rotate(360deg)' : 'none', transitionProperty: 'opacity, transform', transitionDuration: '0.2s, 0.7s' }}>
+              <path d="M11 3a8 8 0 1 1-7.95 8.7" stroke="#0099ff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M3 3v5h5" stroke="#0099ff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 4, marginBottom: 0 }}>
           {FILETYPE_OPTIONS.map(opt => (
             <button
@@ -162,6 +246,10 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
               <div key={img.url} style={{ padding: 12, boxSizing: 'border-box' }}>
                 <div
                   onClick={() => onSelect(img)}
+                  onContextMenu={e => {
+                    e.preventDefault();
+                    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, img });
+                  }}
                   style={{
                     width: 200,
                     height: 120,

@@ -5,7 +5,7 @@ import ChannelModal from './ChannelModal';
 import ImageSearchModal from './ImageSearchModal';
 // import './Channel.css';
 
-function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound }) {
+function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, soundSettings }) {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showChannelModal, setShowChannelModal] = useState(false);
@@ -33,8 +33,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
       setShowChannelModal(true);
     } else if (path) {
       // Play channel click sound if enabled
-      const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
-      if (soundSettings.channelClick?.enabled && soundSettings.channelClick?.file?.url) {
+      if (soundSettings?.channelClick?.enabled && soundSettings?.channelClick?.file?.url) {
         const audio = new Audio(soundSettings.channelClick.file.url);
         audio.volume = soundSettings.channelClick.volume || 0.5;
         audio.play().catch(error => {
@@ -68,8 +67,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
           }, 40);
         }
       } else {
-        const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
-        if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.file?.url) {
+        if (soundSettings?.channelHover?.enabled && soundSettings?.channelHover?.file?.url) {
           if (!hoverAudioRef.current) { // Only play if not already playing
             const audio = new Audio(soundSettings.channelHover.file.url);
             audio.volume = soundSettings.channelHover.volume || 0.3;
@@ -293,6 +291,7 @@ Channel.propTypes = {
     url: PropTypes.string,
     volume: PropTypes.number,
   }),
+  soundSettings: PropTypes.object,
 };
 
 export default Channel;
