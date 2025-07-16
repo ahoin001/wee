@@ -46,21 +46,23 @@ Open your terminal or command prompt and run the following command to clone the 
 git clone [https://github.com/YOUR_USERNAME/WiiDesktopLauncher.git](https://github.com/YOUR_USERNAME/WiiDesktopLauncher.git)
 ```
 ### 2. Navigate to the Project Directory
-Bash
-
+```bash
 cd WiiDesktopLauncher
+```
+
 ### 3. Install Dependencies
 Install all the necessary project dependencies using npm:
-
-Bash
-
+```bash
 npm install
+```
+
 ### 4. Run the App in Development Mode
 This command will launch the application in a live development environment with hot-reloading enabled.
 
-Bash
-
+```bash
 npm run dev
+```
+
 The application window will appear, and any changes you make to the source code (e.g., in the src folder) will cause the app to update automatically.
 
 ### 5. Building the Application (Creating the Installer)
@@ -68,12 +70,15 @@ If you want to create the distributable .exe installer for your application, fol
 
 First, build the React frontend code into a static bundle:
 
-Bash
-
+```bash
 npm run build
+```
+
 Then, use Electron Forge to package your application and create the installer:
 
-Bash
-
+```bash
 npm run make
+```
+
+
 After the process is complete, you will find the finished installer and other packaged files inside the out folder in your project directory.
