@@ -5,15 +5,31 @@ import ChannelModal from './ChannelModal';
 import ImageSearchModal from './ImageSearchModal';
 // import './Channel.css';
 
-function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin }) {
+function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound }) {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [showImageSearch, setShowImageSearch] = useState(false);
+  const hoverAudioRef = useRef(null);
+  const fadeIntervalRef = useRef(null);
 
   const handleClick = () => {
+    if (hoverAudioRef.current) {
+      // Fade out and stop hover sound on click
+      let v = hoverAudioRef.current.volume;
+      clearInterval(fadeIntervalRef.current);
+      fadeIntervalRef.current = setInterval(() => {
+        v -= 0.07;
+        if (v > 0) {
+          hoverAudioRef.current.volume = Math.max(v, 0);
+        } else {
+          clearInterval(fadeIntervalRef.current);
+          hoverAudioRef.current.pause();
+          hoverAudioRef.current = null;
+        }
+      }, 40);
+    }
     if (empty) {
-      // Only open configuration modal for empty channels
       setShowChannelModal(true);
     } else if (path) {
       // Play channel click sound if enabled
@@ -25,22 +41,63 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
           console.log('Channel click sound playback failed:', error);
         });
       }
-      
       window.api.launchApp({ type, path, asAdmin });
     }
   };
 
   const handleMouseEnter = () => {
-    // Play channel hover sound if enabled and channel is configured
+    // Play per-channel hover sound if set, else global
     if (!empty && path) {
-      const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
-      if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.file?.url) {
-        const audio = new Audio(soundSettings.channelHover.file.url);
-        audio.volume = soundSettings.channelHover.volume || 0.3;
-        audio.play().catch(error => {
-          console.log('Channel hover sound playback failed:', error);
-        });
+      if (hoverSound && hoverSound.url) {
+        if (!hoverAudioRef.current) { // Only play if not already playing
+          const audio = new Audio(hoverSound.url);
+          audio.volume = 0;
+          audio.loop = true;
+          audio.play();
+          hoverAudioRef.current = audio;
+          // Fade in
+          let v = 0;
+          clearInterval(fadeIntervalRef.current);
+          fadeIntervalRef.current = setInterval(() => {
+            v += 0.07;
+            if (audio.volume < (hoverSound.volume || 0.7)) {
+              audio.volume = Math.min(v, hoverSound.volume || 0.7);
+            } else {
+              clearInterval(fadeIntervalRef.current);
+            }
+          }, 40);
+        }
+      } else {
+        const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
+        if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.file?.url) {
+          if (!hoverAudioRef.current) { // Only play if not already playing
+            const audio = new Audio(soundSettings.channelHover.file.url);
+            audio.volume = soundSettings.channelHover.volume || 0.3;
+            audio.play().catch(error => {
+              console.log('Channel hover sound playback failed:', error);
+            });
+            hoverAudioRef.current = audio;
+          }
+        }
       }
+    }
+  };
+
+  const handleMouseLeave = () => {
+    // Fade out and stop per-channel hover sound
+    if (hoverAudioRef.current) {
+      let v = hoverAudioRef.current.volume;
+      clearInterval(fadeIntervalRef.current);
+      fadeIntervalRef.current = setInterval(() => {
+        v -= 0.07;
+        if (v > 0) {
+          hoverAudioRef.current.volume = Math.max(v, 0);
+        } else {
+          clearInterval(fadeIntervalRef.current);
+          hoverAudioRef.current.pause();
+          hoverAudioRef.current = null;
+        }
+      }, 40);
     }
   };
 
@@ -98,6 +155,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
       className={empty && !media ? "channel empty" : "channel"}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       tabIndex={0}
       role="button"
     >
@@ -231,6 +289,10 @@ Channel.propTypes = {
   onAppPathChange: PropTypes.func,
   onChannelSave: PropTypes.func,
   asAdmin: PropTypes.bool,
+  hoverSound: PropTypes.shape({
+    url: PropTypes.string,
+    volume: PropTypes.number,
+  }),
 };
 
 export default Channel;

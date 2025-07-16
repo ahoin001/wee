@@ -4,7 +4,7 @@ import BaseModal from './BaseModal';
 import './ChannelModal.css';
 import ImageSearchModal from './ImageSearchModal';
 
-function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType }) {
+function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound }) {
   const [media, setMedia] = useState(currentMedia);
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
@@ -14,6 +14,62 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const fileInputRef = useRef();
   const exeFileInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
+  // Hover sound state
+  const [hoverSound, setHoverSound] = useState(currentHoverSound || null);
+  const hoverSoundInputRef = useRef();
+  const [hoverSoundName, setHoverSoundName] = useState(hoverSound ? hoverSound.name : '');
+  const [hoverSoundUrl, setHoverSoundUrl] = useState(hoverSound ? hoverSound.url : '');
+  const [hoverSoundVolume, setHoverSoundVolume] = useState(hoverSound ? hoverSound.volume : 0.7);
+  const [hoverSoundEnabled, setHoverSoundEnabled] = useState(!!hoverSound);
+  const [hoverSoundAudio, setHoverSoundAudio] = useState(null);
+
+  // Handle hover sound file select
+  const handleHoverSoundFile = (file) => {
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setHoverSound({ url, name: file.name, volume: hoverSoundVolume });
+      setHoverSoundName(file.name);
+      setHoverSoundUrl(url);
+      setHoverSoundEnabled(true);
+    }
+  };
+  // Play hover sound (fade in)
+  const handleTestHoverSound = () => {
+    if (hoverSoundUrl) {
+      const audio = new Audio(hoverSoundUrl);
+      audio.volume = 0;
+      audio.loop = true;
+      audio.play();
+      setHoverSoundAudio(audio);
+      // Fade in
+      let v = 0;
+      const fade = setInterval(() => {
+        v += 0.07;
+        if (audio.volume < hoverSoundVolume) {
+          audio.volume = Math.min(v, hoverSoundVolume);
+        } else {
+          clearInterval(fade);
+        }
+      }, 40);
+    }
+  };
+  // Stop hover sound (fade out)
+  const handleStopHoverSound = () => {
+    if (hoverSoundAudio) {
+      const audio = hoverSoundAudio;
+      let v = audio.volume;
+      const fade = setInterval(() => {
+        v -= 0.07;
+        if (v > 0) {
+          audio.volume = Math.max(v, 0);
+        } else {
+          clearInterval(fade);
+          audio.pause();
+          setHoverSoundAudio(null);
+        }
+      }, 40);
+    }
+  };
 
   const handleFileSelect = (file) => {
     if (file) {
@@ -101,15 +157,15 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     if (!validatePath()) {
       return;
     }
-
     // Allow saving if either media or path is provided
     if (media || path.trim()) {
       onSave(channelId, {
         media,
         path: path.trim(),
         type,
-        asAdmin, // <-- add this
-        title: title.trim() || `Channel ${channelId}`
+        asAdmin,
+        title: title.trim() || `Channel ${channelId}`,
+        hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
       });
       onClose();
     }
@@ -141,6 +197,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       footerContent={footerContent}
       className="channel-modal"
     >
+      {/* Channel Image Section */}
       <div className="form-section">
         <h3>Channel Image</h3>
         <div className="image-section">
@@ -176,12 +233,22 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           onUploadClick={handleUploadClick}
         />
       )}
-
+      {/* Divider */}
+      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
+      {/* Channel Title Section */}
       <div className="form-section">
         <h3>Channel Title (Optional)</h3>
-        {/* Remove the channel title input */}
+        <input
+          type="text"
+          placeholder="Channel title"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          className="text-input"
+        />
       </div>
-
+      {/* Divider */}
+      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
+      {/* Launch Type Section */}
       <div className="form-section">
         <h3>Launch Type</h3>
         <div className="type-selector">
@@ -209,10 +276,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           </label>
         </div>
       </div>
-
+      {/* Divider */}
+      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
+      {/* Path/URL Section */}
       <div className="form-section">
         <h3>{type === 'exe' ? 'Application Path' : 'Website URL'}</h3>
-        
         {type === 'exe' ? (
           <>
             <div className="path-input-group">
@@ -223,7 +291,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 onChange={handlePathChange}
                 className={`text-input ${pathError ? 'error' : ''}`}
               />
-              <button 
+              <button
                 className="file-picker-button"
                 onClick={() => exeFileInputRef.current?.click()}
               >
@@ -269,17 +337,72 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             className={`text-input ${pathError ? 'error' : ''}`}
           />
         )}
-        
-        {pathError && (
-          <p className="error-text">{pathError}</p>
-        )}
-        
+        {pathError && <p className="error-text">{pathError}</p>}
         <p className="help-text">
-          {type === 'exe' 
-            ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field </span><br /><span style={{fontSize:'0.95em',color:'#888'}}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
-            : 'Enter the complete URL including https://'
-          }
+          {type === 'exe'
+            ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field </span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
+            : 'Enter the complete URL including https://'}
         </p>
+      </div>
+      {/* Divider */}
+      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
+      {/* Hover Sound Section */}
+      <div className="form-section">
+        <h3>Channel Hover Sound</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={hoverSoundEnabled}
+              onChange={e => setHoverSoundEnabled(e.target.checked)}
+            />
+            Enable custom hover sound
+          </label>
+          {hoverSoundEnabled && (
+            <>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  className="file-button"
+                  style={{ minWidth: 120 }}
+                  onClick={() => hoverSoundInputRef.current?.click()}
+                >
+                  {hoverSoundName || 'Select Audio File'}
+                </button>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  ref={hoverSoundInputRef}
+                  onChange={e => handleHoverSoundFile(e.target.files[0])}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  className="test-button"
+                  style={{ minWidth: 60 }}
+                  onMouseDown={handleTestHoverSound}
+                  onMouseUp={handleStopHoverSound}
+                  onMouseLeave={handleStopHoverSound}
+                  disabled={!hoverSoundUrl}
+                >
+                  Test
+                </button>
+                <label style={{ fontWeight: 500, marginLeft: 10 }}>
+                  Volume:
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={hoverSoundVolume}
+                    onChange={e => setHoverSoundVolume(parseFloat(e.target.value))}
+                    style={{ marginLeft: 8, verticalAlign: 'middle' }}
+                  />
+                  {` ${Math.round(hoverSoundVolume * 100)}%`}
+                </label>
+              </div>
+              <span style={{ color: '#888', fontSize: 13 }}>Sound will fade in on hover, and fade out on leave or click.</span>
+            </>
+          )}
+        </div>
       </div>
     </BaseModal>
   );

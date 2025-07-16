@@ -477,7 +477,7 @@ function App() {
         if (cycleAnimation === 'fade') setTimeout(() => setPrevWallpaper(null), 800);
         // Wait for fade, then wait for interval before next cycle
         cycleTimeoutRef.current = setTimeout(doCycle, Math.max(2, cycleInterval) * 1000);
-      }, cycleAnimation === 'fade' ? 800 : cycleAnimation === 'slide' ? 600 : 0);
+      }, cycleAnimation === 'fade' ? 800 : cycleAnimation === 'carousel' ? 600 : 0);
     };
     // Start the first cycle after the interval
     cycleTimeoutRef.current = setTimeout(doCycle, Math.max(2, cycleInterval) * 1000);
@@ -524,12 +524,40 @@ function App() {
               pointerEvents: 'none',
               background: `url('${wallpaper.url}') center center / cover no-repeat`,
               opacity: wallpaperOpacity,
-              transition: cycleAnimation === 'fade' ? 'opacity 0.8s' : cycleAnimation === 'slide' ? 'transform 0.6s' : 'none',
-              transform: animating && cycleAnimation === 'slide' ? 'translateX(-100vw)' : 'none',
+              transition: cycleAnimation === 'fade' ? 'opacity 0.8s' : cycleAnimation === 'carousel' ? 'none' : 'none',
+              transform: animating && cycleAnimation === 'carousel' ? 'none' : 'none',
             }}
           />
         )
       )}
+      {cycleAnimation === 'carousel' && animating && prevWallpaper && wallpaper ? (
+        <div className="wallpaper-carousel-stack" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '200vw',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'row',
+          zIndex: 0,
+          pointerEvents: 'none',
+          transform: animating ? 'translateX(0)' : 'translateX(-100vw)',
+          transition: 'transform 0.6s cubic-bezier(.4,1.3,.5,1)',
+        }}>
+          <div className="wallpaper-bg carousel" style={{
+            width: '100vw',
+            height: '100vh',
+            background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
+            opacity: wallpaperOpacity,
+          }} />
+          <div className="wallpaper-bg carousel" style={{
+            width: '100vw',
+            height: '100vh',
+            background: `url('${wallpaper.url}') center center / cover no-repeat`,
+            opacity: wallpaperOpacity,
+          }} />
+        </div>
+      ) : null}
       {showDragRegion && (
         <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
       )}
@@ -547,6 +575,7 @@ function App() {
               path={appPathMap[channel.id]}
               type={config?.type}
               title={config?.title}
+              hoverSound={config?.hoverSound}
               onMediaChange={handleMediaChange}
               onAppPathChange={handleAppPathChange}
               onChannelSave={handleChannelSave}

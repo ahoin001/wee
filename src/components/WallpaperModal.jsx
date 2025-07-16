@@ -5,7 +5,7 @@ import { FaHeart, FaRegHeart, FaTrash } from 'react-icons/fa';
 
 const DEFAULT_ANIMATIONS = [
   { label: 'Fade', value: 'fade' },
-  { label: 'Slide', value: 'slide' },
+  { label: 'Carousel', value: 'carousel' },
   { label: 'None', value: 'none' },
 ];
 

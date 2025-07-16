@@ -23,12 +23,17 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     if (mode === 'browse') {
       setLoading(true);
       fetch(THUMBNAILS_URL)
-        .then(res => res.json())
+        .then(res => {
+          console.log('Fetched thumbnails.json response:', res);
+          return res.json();
+        })
         .then(data => {
+          console.log('Fetched thumbnails.json data:', data);
           setImages(data);
           setLoading(false);
         })
         .catch(err => {
+          console.error('Failed to load images:', err);
           setError('Failed to load images');
           setLoading(false);
         });
