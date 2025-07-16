@@ -10,6 +10,51 @@
   justify-content: center;
   z-index: 10000;
   backdrop-filter: blur(4px);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modalSlideIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(-20px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.05) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.8) translateY(-20px);
+  }
 }
 
 .base-modal {
@@ -21,6 +66,15 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.base-modal.closing {
+  animation: modalSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-overlay.closing {
+  animation: modalFadeOut 0.3s ease-out;
 }
 
 .modal-header {

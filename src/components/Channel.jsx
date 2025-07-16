@@ -28,6 +28,20 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
     }
   };
 
+  const handleMouseEnter = () => {
+    // Play channel hover sound if enabled and channel is configured
+    if (!empty && path) {
+      const soundSettings = JSON.parse(localStorage.getItem('wiiDesktopSoundSettings') || '{}');
+      if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.file?.url) {
+        const audio = new Audio(soundSettings.channelHover.file.url);
+        audio.volume = soundSettings.channelHover.volume || 0.3;
+        audio.play().catch(error => {
+          console.log('Channel hover sound playback failed:', error);
+        });
+      }
+    }
+  };
+
   const handleChannelSave = (channelId, channelData) => {
     if (onChannelSave) {
       onChannelSave(channelId, channelData);
@@ -65,6 +79,7 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
     <div
       className={empty && !media ? "channel empty" : "channel"}
       onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
       tabIndex={0}
       role="button"
     >
