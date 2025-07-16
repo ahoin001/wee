@@ -9,18 +9,30 @@ const api = window.api || {
   saveSettings: async () => {},
   getSavedSounds: async () => null,
   saveSavedSounds: async () => {},
+  getSoundUrl: async (filename) => `/sounds/${filename}`,
+};
+
+// Utility function to get correct sound URL for both dev and production
+const getSoundUrl = async (filename) => {
+  // Check if we're in Electron context
+  if (window.api && window.api.getSoundUrl) {
+    // In Electron app, use the API to get the correct URL
+    return await api.getSoundUrl(filename);
+  }
+  // In development or browser, use absolute path
+  return `/sounds/${filename}`;
 };
 
 // Default sounds configuration
 const DEFAULT_SOUNDS = {
   channelClick: [
-    { name: 'Wii Click 1', url: '/sounds/wii-click-1.mp3', volume: 0.5 }
+    { name: 'Wii Click 1', url: getSoundUrl('wii-click-1.mp3'), volume: 0.5 }
   ],
   channelHover: [
-    { name: 'Wii Hover 1', url: '/sounds/wii-hover-1.mp3', volume: 0.3 }
+    { name: 'Wii Hover 1', url: getSoundUrl('wii-hover-1.mp3'), volume: 0.3 }
   ],
   backgroundMusic: [
-    { name: 'Wii Menu Music', url: '/sounds/wii-menu-music.mp3', volume: 0.4 }
+    { name: 'Wii Menu Music', url: getSoundUrl('wii-menu-music.mp3'), volume: 0.4 }
   ],
   startup: [
     // No default startup sound
@@ -56,19 +68,24 @@ function SoundModal({ onClose, onSettingsChange }) {
   };
 
   // Function to load default sounds
-  const loadDefaultSounds = () => {
+  const loadDefaultSounds = async () => {
     const defaultSoundsWithIds = {};
     
-    Object.entries(DEFAULT_SOUNDS).forEach(([soundType, soundList]) => {
-      defaultSoundsWithIds[soundType] = soundList.map((sound, index) => ({
-        id: `default-${soundType}-${index}`,
-        name: sound.name,
-        url: sound.url,
-        volume: sound.volume,
-        isDefault: true,
-        enabled: true // Ensure enabled is true for default sounds
-      }));
-    });
+    for (const [soundType, soundList] of Object.entries(DEFAULT_SOUNDS)) {
+      defaultSoundsWithIds[soundType] = [];
+      for (let index = 0; index < soundList.length; index++) {
+        const sound = soundList[index];
+        const url = await getSoundUrl(sound.url.split('/').pop()); // Extract filename from URL
+        defaultSoundsWithIds[soundType].push({
+          id: `default-${soundType}-${index}`,
+          name: sound.name,
+          url: url,
+          volume: sound.volume,
+          isDefault: true,
+          enabled: true // Ensure enabled is true for default sounds
+        });
+      }
+    }
     
     return defaultSoundsWithIds;
   };
@@ -91,7 +108,7 @@ function SoundModal({ onClose, onSettingsChange }) {
         setSavedSounds(saved);
       } else {
         // If no saved sounds exist, load default sounds
-        const defaultSounds = loadDefaultSounds();
+        const defaultSounds = await loadDefaultSounds();
         setSavedSounds(defaultSounds);
         api.saveSavedSounds(defaultSounds);
       }

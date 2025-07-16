@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   saveChannelConfigs: (configs) => ipcRenderer.invoke('save-channel-configs', configs),
   getSavedSounds: () => ipcRenderer.invoke('get-saved-sounds'),
   saveSavedSounds: (sounds) => ipcRenderer.invoke('save-saved-sounds', sounds),
+  getSoundUrl: (filename) => ipcRenderer.invoke('get-sound-url', filename),
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
   toggleFrame: () => ipcRenderer.send('toggle-frame'),
   minimize: () => ipcRenderer.send('minimize-window'),

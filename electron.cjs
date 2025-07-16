@@ -161,6 +161,12 @@ ipcMain.handle('save-saved-sounds', async (event, sounds) => {
   return await writeJson(savedSoundsPath, sounds);
 });
 
+// IPC handler to get correct sound URL for production
+ipcMain.handle('get-sound-url', async (event, filename) => {
+  const soundPath = path.join(__dirname, 'dist', 'sounds', filename);
+  return `file://${soundPath}`;
+});
+
 // --- App Launching Logic ---
 ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
   console.log(`Launching app: type=${type}, path=${appPath}, asAdmin=${asAdmin}`);
