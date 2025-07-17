@@ -131,7 +131,7 @@ async function readJson(filePath, defaultValue) {
       return {};
     }
     try {
-      return JSON.parse(data);
+    return JSON.parse(data);
     } catch (parseErr) {
       console.warn(`[READ] File is invalid JSON: ${filePath}`);
       return {};
@@ -410,6 +410,34 @@ async function loadSoundLibrary() {
     }
     return fallbackLibrary;
   }
+}
+
+// --- Default Settings Helper ---
+function getDefaultSettings() {
+  return {
+    isDarkMode: false,
+    useCustomCursor: true,
+    barType: 'flat',
+    wallpaper: null,
+    wallpaperOpacity: 1,
+    savedWallpapers: [],
+    likedWallpapers: [],
+    cycleWallpapers: false,
+    cycleInterval: 30,
+    cycleAnimation: 'fade',
+    sounds: {
+      // Will be set up by the sound library loader
+    },
+  };
+}
+
+function getDefaultChannels() {
+  // 12 empty channels
+  const channels = {};
+  for (let i = 0; i < 12; i++) {
+    channels[`channel-${i}`] = {};
+  }
+  return channels;
 }
 
 ipcMain.handle('get-settings', async () => {
@@ -960,6 +988,57 @@ ipcMain.handle('select-wallpaper-file', async () => {
   }
 });
 
+// --- IPC: Reset to Default ---
+ipcMain.handle('reset-to-default', async () => {
+  try {
+    // Remove all user sounds and wallpapers
+    const deleteFilesInDir = async (dir) => {
+      try {
+        const files = await fs.readdir(dir);
+        for (const file of files) {
+          await fs.unlink(path.join(dir, file));
+        }
+      } catch {}
+    };
+    await deleteFilesInDir(userSoundsPath);
+    await deleteFilesInDir(userWallpapersPath);
+
+    // Reset sound library to defaults
+    const initialSoundLibrary = {};
+    for (const soundType of SOUND_TYPES) {
+      initialSoundLibrary[soundType] = DEFAULT_SOUNDS[soundType].map(sound => ({
+        ...sound,
+        url: process.env.NODE_ENV === 'development'
+          ? getDevServerUrl(sound.filename)
+          : `userdata://sounds/${sound.filename}`,
+        enabled: true
+      }));
+    }
+    await writeJson(savedSoundsPath, initialSoundLibrary);
+
+    // Reset settings
+    const defaultSettings = getDefaultSettings();
+    // Set up default sound settings (enable first default sound for each type)
+    for (const soundType of SOUND_TYPES) {
+      const defaultSound = initialSoundLibrary[soundType][0];
+      defaultSettings.sounds[soundType] = {
+        soundId: defaultSound.id,
+        enabled: true,
+        volume: defaultSound.volume || 0.5
+      };
+    }
+    await writeJson(settingsPath, defaultSettings);
+
+    // Reset channels
+    await writeJson(channelConfigsPath, getDefaultChannels());
+
+    return { success: true };
+  } catch (error) {
+    console.error('[RESET] Failed to reset to default:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // --- App Launching Logic ---
 ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
   console.log(`Launching app: type=${type}, path=${appPath}, asAdmin=${asAdmin}`);
@@ -987,18 +1066,18 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
         });
       } else {
         // Normal launch
-        const child = spawn(appPath, [], {
-          detached: true,
-          stdio: 'ignore',
+      const child = spawn(appPath, [], {
+        detached: true,
+        stdio: 'ignore',
           shell: true
-        });
-        child.on('error', (err) => {
-          console.error('Failed to launch executable:', err);
-        });
-        child.on('spawn', () => {
-          console.log('Executable launched successfully');
-          child.unref();
-        });
+      });
+      child.on('error', (err) => {
+        console.error('Failed to launch executable:', err);
+      });
+      child.on('spawn', () => {
+        console.log('Executable launched successfully');
+        child.unref();
+      });
       }
     } catch (err) {
       console.error('Failed to launch executable:', err);

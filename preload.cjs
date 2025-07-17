@@ -33,4 +33,5 @@ contextBridge.exposeInMainWorld('api', {
   onUpdateDragRegion: (callback) => ipcRenderer.on('update-drag-region', (event, shouldShow) => callback(shouldShow)),
   onFullscreenState: (callback) => ipcRenderer.on('fullscreen-state', (event, val) => callback(val)),
   onFrameState: (callback) => ipcRenderer.on('frame-state', (event, val) => callback(val)),
+  resetToDefault: () => ipcRenderer.invoke('reset-to-default'),
 });

@@ -51,10 +51,10 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
           if (clickSound && clickSound.enabled) {
             const audio = new Audio(clickSound.url);
             audio.volume = soundSettings.channelClick.volume || clickSound.volume || 0.5;
-            audio.play().catch(error => {
-              console.log('Channel click sound playback failed:', error);
-            });
-          }
+        audio.play().catch(error => {
+          console.log('Channel click sound playback failed:', error);
+        });
+      }
         }
       } catch (error) {
         console.log('Failed to load sound settings:', error);
@@ -97,9 +97,9 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
             if (hoverSound && hoverSound.enabled && !hoverAudioRef.current) {
               const audio = new Audio(hoverSound.url);
               audio.volume = soundSettings.channelHover.volume || hoverSound.volume || 0.3;
-              audio.play().catch(error => {
-                console.log('Channel hover sound playback failed:', error);
-              });
+        audio.play().catch(error => {
+          console.log('Channel hover sound playback failed:', error);
+        });
               hoverAudioRef.current = audio;
             }
           }

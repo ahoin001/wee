@@ -94,6 +94,23 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div className="context-menu-item" onClick={() => { setShowSoundModal(true); handleMenuClose(); }}>
                 Change Sounds
               </div>
+              <div className="context-menu-item" style={{ color: '#dc3545', fontWeight: 600 }}
+                onClick={async () => {
+                  handleMenuClose();
+                  if (window.confirm('Are you sure you want to reset all settings, channels, sounds, and wallpapers to default? This cannot be undone.')) {
+                    if (window.api && window.api.resetToDefault) {
+                      const result = await window.api.resetToDefault();
+                      if (result && result.success) {
+                        window.location.reload();
+                      } else {
+                        alert('Failed to reset to default: ' + (result?.error || 'Unknown error'));
+                      }
+                    }
+                  }
+                }}
+              >
+                Reset to Default
+              </div>
               <div className="context-menu-item" onClick={() => { api.close(); handleMenuClose(); }}>
                 Close App
               </div>
@@ -117,9 +134,9 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
         )}
       </div>
 
-      <SoundModal 
+        <SoundModal 
         isOpen={showSoundModal}
-        onClose={() => setShowSoundModal(false)}
+          onClose={() => setShowSoundModal(false)}
         onSettingsChange={onSettingsChange}
       />
       {/* Wallpaper Modal */}

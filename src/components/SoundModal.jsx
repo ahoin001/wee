@@ -265,7 +265,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
       if (result.success) {
         // Update local state - disable all other sounds in this section if enabling this one
         setSoundLibrary(prev => ({
-          ...prev,
+      ...prev,
           [soundType]: prev[soundType].map(sound => {
             if (sound.id === soundId) {
               return { ...sound, enabled };
@@ -305,7 +305,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
       if (result.success) {
         // Update local state
         setSoundLibrary(prev => ({
-          ...prev,
+      ...prev,
           [soundType]: prev[soundType].map(sound =>
             sound.id === soundId ? { ...sound, volume: parseFloat(volume) } : sound
           )
@@ -545,50 +545,50 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                   marginLeft: '8px' 
                 }}>ACTIVE</span>}
               </div>
-              <div className="sound-controls">
+        <div className="sound-controls">
                 <label className="toggle-switch" title={sound.enabled ? 'Disable this sound' : 'Enable this sound (will disable others in this section)'}>
-                  <input
-                    type="checkbox"
-                    checked={sound.enabled}
+            <input
+              type="checkbox"
+              checked={sound.enabled}
                     onChange={(e) => handleSoundToggle(soundType, sound.id, e.target.checked)}
-                  />
-                  <span className="slider"></span>
-                </label>
-                
-                <div className="volume-control">
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
+            />
+            <span className="slider"></span>
+          </label>
+        
+        <div className="volume-control">
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
                     value={sound.volume || 0.5}
                     onChange={(e) => handleVolumeChange(soundType, sound.id, e.target.value)}
                     disabled={!sound.enabled}
-                  />
+          />
                   <span className="volume-value">{Math.round((sound.volume || 0.5) * 100)}%</span>
-                </div>
-                
+        </div>
+
                 <button
                   className="test-button"
                   onClick={() => testing[sound.id] ? handleStopTest(sound.id) : handleTestSound(soundType, sound.id)}
                   disabled={!sound.enabled}
                 >
                   {testing[sound.id] ? 'Stop Test' : 'Test'}
-                </button>
+                    </button>
                 
                 {!sound.isDefault && (
-                  <button
+                      <button 
                     className="remove-button"
                     onClick={() => handleRemoveSound(soundType, sound.id)}
                   >
                     Remove
-                  </button>
-                )}
+                      </button>
+                    )}
               </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
-      </div>
     );
   };
 
@@ -654,7 +654,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
             <button className="close-button" onClick={handleClose}>×</button>
           </div>
         </div>
-        
+
         {message.text && (
           <div className={`message ${message.type}`}>
             {message.text}
@@ -668,7 +668,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
             )}
           </div>
         </div>
-        
+
         <div className="modal-footer">
           <button className="cancel-button" onClick={handleClose}>Cancel</button>
           <button className="debug-button" onClick={handleDebugSounds} style={{ marginLeft: 8, background: '#ff6b6b', color: 'white' }}>Debug Sounds</button>
@@ -713,21 +713,21 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
               <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
                 {customName.length}/50 characters
               </div>
-            </div>
+                  </div>
             <div className="modal-footer">
               <button className="cancel-button" onClick={handleCancelAddSound}>Cancel</button>
-              <button 
+                    <button 
                 className="save-button" 
                 onClick={handleConfirmAddSound}
                 disabled={!customName.trim()}
               >
                 Add Sound
-              </button>
+                      </button>
+                </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
   );
 }
 
