@@ -412,11 +412,9 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
     try {
       // Convert sound library to the format expected by the app
       const appSoundSettings = {};
-      
       for (const soundType of Object.keys(SOUND_TYPES)) {
         const sounds = soundLibrary[soundType] || [];
         const enabledSound = sounds.find(s => s.enabled);
-        
         if (enabledSound) {
           appSoundSettings[soundType] = {
             soundId: enabledSound.id,
@@ -424,7 +422,6 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
             volume: enabledSound.volume || 0.5
           };
         } else {
-          // If no sound is enabled, disable this sound type
           appSoundSettings[soundType] = {
             soundId: null,
             enabled: false,
@@ -432,19 +429,17 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
           };
         }
       }
-      
-      console.log('Converting sound library to app settings:', appSoundSettings);
-      
-      // Save sound settings
-      await api.saveSettings({ sounds: appSoundSettings });
-      console.log('Sound settings saved:', appSoundSettings);
-      
+      // Merge with current settings to avoid overwriting other settings
+      let currentSettings = {};
+      if (window.api && window.api.getSettings) {
+        currentSettings = await window.api.getSettings() || {};
+      }
+      const mergedSettings = { ...currentSettings, sounds: appSoundSettings };
+      await api.saveSettings(mergedSettings);
       // Notify parent component with the properly formatted settings
       if (onSettingsChange) {
         onSettingsChange({ sounds: appSoundSettings });
       }
-      
-      // Close modal with fade animation
       handleClose();
     } catch (error) {
       console.error('Failed to save sound settings:', error);

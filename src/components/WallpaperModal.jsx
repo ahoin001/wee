@@ -123,15 +123,12 @@ function WallpaperModal({ onClose, onSettingsChange, currentWallpaper, currentOp
   // Save all settings
   const handleSave = async () => {
     let finalWallpaper = wallpaper;
-    // If wallpaper is a blob: URL, try to persist it
     if (wallpaper && wallpaper.url && wallpaper.url.startsWith('blob:') && window.api && window.api.copyWallpaperToUserDirectory) {
-      // Try to fetch the blob and save it
       try {
         const response = await fetch(wallpaper.url);
         const blob = await response.blob();
         const ext = wallpaper.name ? wallpaper.name.split('.').pop() : 'jpg';
         const filename = `wallpaper-${Date.now()}.${ext}`;
-        // Save blob to temp file
         const arrayBuffer = await blob.arrayBuffer();
         const tempPath = window.api.saveTempFile ? await window.api.saveTempFile(arrayBuffer, filename) : null;
         if (tempPath) {
@@ -151,12 +148,18 @@ function WallpaperModal({ onClose, onSettingsChange, currentWallpaper, currentOp
       cycleInterval: interval,
       cycleAnimation: animation,
     };
+    // Merge with current settings to avoid overwriting other settings
+    let currentSettings = {};
+    if (window.api && window.api.getSettings) {
+      currentSettings = await window.api.getSettings() || {};
+    }
+    const mergedSettings = { ...currentSettings, ...newSettings };
     onSettingsChange(newSettings);
     if (window.api && window.api.saveSettings) {
-      await window.api.saveSettings(newSettings);
+      await window.api.saveSettings(mergedSettings);
     }
     setMessage({ type: 'success', text: 'Wallpaper settings saved!' });
-    setTimeout(() => onClose(), 400); // Give user feedback before closing
+    setTimeout(() => onClose(), 400);
   };
 
   // Get wallpapers to cycle through

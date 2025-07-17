@@ -92,15 +92,35 @@ app.whenReady().then(async () => {
   // Register protocol for serving user files (sounds and wallpapers)
   console.log('[PROTOCOL] Registering userdata:// protocol for sounds and wallpapers');
   protocol.registerFileProtocol('userdata', (request, callback) => {
-    const url = request.url.substr(11); // Remove 'userdata://'
+    const urlPath = request.url.substr(11); // Remove 'userdata://'
     let filePath;
-    if (url.startsWith('sounds/')) {
-      filePath = path.join(userSoundsPath, url.replace('sounds/', ''));
-    } else if (url.startsWith('wallpapers/')) {
-      filePath = path.join(userWallpapersPath, url.replace('wallpapers/', ''));
+    let mimeType;
+    if (urlPath.startsWith('sounds/')) {
+      filePath = path.join(userSoundsPath, urlPath.replace('sounds/', ''));
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.mp3') mimeType = 'audio/mpeg';
+      else if (ext === '.wav') mimeType = 'audio/wav';
+      else if (ext === '.ogg') mimeType = 'audio/ogg';
+      else if (ext === '.m4a') mimeType = 'audio/mp4';
+      else if (ext === '.aac') mimeType = 'audio/aac';
+      else mimeType = 'application/octet-stream';
+    } else if (urlPath.startsWith('wallpapers/')) {
+      filePath = path.join(userWallpapersPath, urlPath.replace('wallpapers/', ''));
+      const ext = path.extname(filePath).toLowerCase();
+      if (['.jpg', '.jpeg'].includes(ext)) mimeType = 'image/jpeg';
+      else if (ext === '.png') mimeType = 'image/png';
+      else if (ext === '.gif') mimeType = 'image/gif';
+      else if (ext === '.bmp') mimeType = 'image/bmp';
+      else if (ext === '.webp') mimeType = 'image/webp';
+      else if (ext === '.mp4') mimeType = 'video/mp4';
+      else if (ext === '.webm') mimeType = 'video/webm';
+      else if (ext === '.mov') mimeType = 'video/quicktime';
+      else if (ext === '.avi') mimeType = 'video/x-msvideo';
+      else if (ext === '.mkv') mimeType = 'video/x-matroska';
+      else mimeType = 'application/octet-stream';
     }
-    console.log(`[PROTOCOL] userdata://${url} -> ${filePath}`);
-    callback({ path: filePath });
+    console.log(`[PROTOCOL] userdata://${urlPath} -> ${filePath} (mime: ${mimeType})`);
+    callback({ path: filePath, mimeType });
   });
   console.log('[PROTOCOL] userdata:// protocol registered successfully for sounds and wallpapers');
   
@@ -1023,7 +1043,7 @@ ipcMain.handle('reset-to-default', async () => {
       const defaultSound = initialSoundLibrary[soundType][0];
       defaultSettings.sounds[soundType] = {
         soundId: defaultSound.id,
-        enabled: true,
+        enabled: soundType === 'startup' ? false : true, // Startup sound disabled by default
         volume: defaultSound.volume || 0.5
       };
     }
