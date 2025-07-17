@@ -5,6 +5,11 @@ contextBridge.exposeInMainWorld('api', {
     get: () => ipcRenderer.invoke('sounds:get'),
     set: (data) => ipcRenderer.invoke('sounds:set', data),
     reset: () => ipcRenderer.invoke('sounds:reset'),
+    add: (args) => ipcRenderer.invoke('add-sound', args),
+    remove: (args) => ipcRenderer.invoke('remove-sound', args),
+    update: (args) => ipcRenderer.invoke('update-sound', args),
+    getLibrary: () => ipcRenderer.invoke('get-sound-library'),
+    selectFile: () => ipcRenderer.invoke('select-sound-file'),
   },
   wallpapers: {
     get: () => ipcRenderer.invoke('wallpapers:get'),

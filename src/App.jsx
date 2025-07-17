@@ -140,63 +140,33 @@ function App() {
   // Load sound settings and play startup sound
   useEffect(() => {
     async function loadSettings() {
-      let settings = await soundsApi?.get();
       let soundLibrary = await soundsApi?.getSoundLibrary();
-      let updated = false;
+      console.log('Loading sound library:', soundLibrary);
       
-      // Extract sound settings from the new structure
-      const soundSettings = settings?.sounds || {};
-      
-      // Initialize sound settings with enabled default sounds if not set
-      for (const soundType of ['startup', 'backgroundMusic', 'channelClick', 'channelHover']) {
-        if (!soundSettings[soundType]) {
-          const defaultSound = soundLibrary[soundType]?.find(s => s.isDefault && s.enabled);
-          if (defaultSound) {
-            soundSettings[soundType] = {
-              soundId: defaultSound.id,
-              enabled: true,
-              volume: defaultSound.volume || 0.5
-            };
-            updated = true;
-          }
-        }
-      }
-      
-      if (updated) {
-        settings = settings || {};
-        settings.sounds = soundSettings;
-        await soundsApi?.set(settings);
-      }
-      
-      if (soundSettings) {
-        setSoundSettings(soundSettings);
-        
-        // Play startup sound if enabled and configured
+      if (soundLibrary) {
+        // Play startup sound if enabled
         let playedStartup = false;
-        if (soundSettings.startup?.enabled && soundSettings.startup?.soundId) {
-          const startupSound = soundLibrary.startup?.find(s => s.id === soundSettings.startup.soundId);
-          if (startupSound && startupSound.enabled) {
-            playedStartup = true;
-            const startupAudio = new Audio(startupSound.url);
-            startupAudio.volume = startupSound.volume ?? 0.6;
-            startupAudio.play().catch(error => {
-              console.log('Startup sound playback failed:', error);
-              // If playback fails, start background music immediately
-              if (soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.soundId) {
-                setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
-              }
-            });
-            startupAudio.addEventListener('ended', () => {
-              if (soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.soundId) {
-                setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
-              }
-            });
-          }
+        const enabledStartupSound = soundLibrary.startup?.find(s => s.enabled);
+        console.log('Enabled startup sound:', enabledStartupSound);
+        if (enabledStartupSound) {
+          playedStartup = true;
+          const startupAudio = new Audio(enabledStartupSound.url);
+          startupAudio.volume = enabledStartupSound.volume ?? 0.6;
+          startupAudio.play().catch(error => {
+            console.log('Startup sound playback failed:', error);
+            // If playback fails, start background music immediately
+            setupBackgroundMusic(soundLibrary);
+          });
+          startupAudio.addEventListener('ended', () => {
+            console.log('Startup sound ended, starting background music');
+            setupBackgroundMusic(soundLibrary);
+          });
         }
         
         // If no startup sound, start background music immediately
-        if (!playedStartup && soundSettings.backgroundMusic?.enabled && soundSettings.backgroundMusic?.soundId) {
-          setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
+        if (!playedStartup) {
+          console.log('No startup sound, starting background music immediately');
+          setupBackgroundMusic(soundLibrary);
         }
       }
     }
@@ -212,48 +182,48 @@ function App() {
   }, [soundSettings]);
 
   // Setup background music
-  const setupBackgroundMusic = async (backgroundMusicSettings, soundLibrary) => {
+  const setupBackgroundMusic = async (soundLibrary) => {
+    console.log('Setting up background music with library:', soundLibrary);
     if (backgroundAudioRef.current) {
       backgroundAudioRef.current.pause();
       backgroundAudioRef.current = null;
     }
 
-    if (backgroundMusicSettings?.enabled && backgroundMusicSettings?.soundId) {
-      const musicSound = soundLibrary?.backgroundMusic?.find(s => s.id === backgroundMusicSettings.soundId);
-      if (musicSound && musicSound.enabled) {
-        const audio = new Audio(musicSound.url);
-        audio.volume = musicSound.volume ?? 0.4;
-        audio.loop = true;
-        
-        // Start playing background music
-        audio.play().catch(error => {
-          console.log('Background music playback failed:', error);
-        });
+    const enabledMusicSound = soundLibrary?.backgroundMusic?.find(s => s.enabled);
+    console.log('Enabled background music sound:', enabledMusicSound);
+    if (enabledMusicSound) {
+      const audio = new Audio(enabledMusicSound.url);
+      audio.volume = enabledMusicSound.volume ?? 0.4;
+      audio.loop = true;
+      
+      // Start playing background music
+      audio.play().catch(error => {
+        console.log('Background music playback failed:', error);
+      });
 
-        backgroundAudioRef.current = audio;
-        setBackgroundAudio(audio);
-      }
+      backgroundAudioRef.current = audio;
+      setBackgroundAudio(audio);
+      console.log('Background music started playing');
+    } else {
+      console.log('No enabled background music sound found');
     }
   };
 
-  // Update background music when sound settings change
+  // Listen for sound library updates from SoundModal (polling mechanism)
   useEffect(() => {
-    if (soundSettings?.backgroundMusic) {
-      if (soundSettings.backgroundMusic.enabled && soundSettings.backgroundMusic.soundId) {
-        // Load sound library to get the current sound
-        soundsApi?.getSoundLibrary().then(soundLibrary => {
-          setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
-        });
-      } else {
-        // Stop background music if disabled
-        if (backgroundAudioRef.current) {
-          backgroundAudioRef.current.pause();
-          backgroundAudioRef.current = null;
-          setBackgroundAudio(null);
-        }
+    const handleSoundLibraryUpdate = async () => {
+      console.log('Sound library updated, refreshing background music');
+      const soundLibrary = await soundsApi?.getSoundLibrary();
+      if (soundLibrary) {
+        setupBackgroundMusic(soundLibrary);
       }
-    }
-  }, [soundSettings?.backgroundMusic, soundSettings]);
+    };
+
+    // Set up a polling mechanism to check for sound library changes
+    const interval = setInterval(handleSoundLibraryUpdate, 2000); // Check every 2 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Cleanup background audio on unmount
   useEffect(() => {
@@ -566,6 +536,40 @@ function App() {
     const channelData = await channelsApi?.get();
     setChannelConfigs(channelData || {});
   };
+
+  // Pause/resume background music on window blur/focus
+  useEffect(() => {
+    const handleBlur = () => {
+      if (backgroundAudioRef.current && !backgroundAudioRef.current.paused) {
+        backgroundAudioRef.current.pause();
+      }
+    };
+    const handleFocus = () => {
+      if (backgroundAudioRef.current) {
+        const audio = backgroundAudioRef.current;
+        const targetVolume = audio.volume;
+        audio.volume = 0;
+        audio.play().catch(() => {});
+        // Fade in over 1.5 seconds
+        let v = 0;
+        const fade = setInterval(() => {
+          v += targetVolume / 15; // 100ms steps
+          if (v < targetVolume) {
+            audio.volume = Math.min(v, targetVolume);
+          } else {
+            audio.volume = targetVolume;
+            clearInterval(fade);
+          }
+        }, 100);
+      }
+    };
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [backgroundAudioRef]);
 
   return (
     <div className="app-container">

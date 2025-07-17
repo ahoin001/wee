@@ -4,15 +4,21 @@ import BaseModal from './BaseModal';
 import './SoundModal.css';
 
 const SOUND_CATEGORIES = [
+  { key: 'backgroundMusic', label: 'Background Music' },
   { key: 'channelClick', label: 'Channel Click Sound' },
   { key: 'channelHover', label: 'Channel Hover Sound' },
-  { key: 'backgroundMusic', label: 'Background Music' },
+  { key: 'startup', label: 'Startup Sound' },
 ];
 
 const soundsApi = window.api?.sounds || {
   get: async () => ({}),
   set: async () => {},
   reset: async () => {},
+  add: async () => {},
+  remove: async () => {},
+  update: async () => {},
+  getLibrary: async () => ({}),
+  selectFile: async () => ({}),
 };
 
 function SoundModal({ isOpen, onClose, onSettingsChange }) {
@@ -23,14 +29,12 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
   const [uploading, setUploading] = useState({});
   const [testing, setTesting] = useState({});
   const [audioRefs, setAudioRefs] = useState({});
-  const [fadeState, setFadeState] = useState('fade-in');
   const fileInputRefs = useRef({});
   const [pendingUploadType, setPendingUploadType] = useState(null);
 
   // Load sound library and settings on open
   useEffect(() => {
     if (isOpen) {
-      setFadeState('fade-in');
       loadData();
     }
   }, [isOpen]);
@@ -61,13 +65,12 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
   const loadData = async () => {
     try {
       setMessage({ type: 'info', text: 'Loading sounds...' });
-      const data = await soundsApi.get();
-      setSoundLibrary(data?.library || {});
-      setSoundSettings(data?.settings || {});
+      const library = await soundsApi.getLibrary();
+      setSoundLibrary(library || {});
       // Build local state for editing
       const local = {};
       SOUND_CATEGORIES.forEach(cat => {
-        local[cat.key] = (data?.library?.[cat.key] || []).map(sound => ({ ...sound }));
+        local[cat.key] = (library?.[cat.key] || []).map(sound => ({ ...sound }));
       });
       setLocalState(local);
       setMessage({ type: '', text: '' });
@@ -77,86 +80,71 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
   };
 
   // Handle file upload
-  const handleUploadClick = (catKey) => {
+  const handleUploadClick = async (catKey) => {
     setPendingUploadType(catKey);
-    fileInputRefs.current[catKey]?.click();
-  };
-
-  const handleFileChange = async (catKey, e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    // Use IPC file picker
+    const fileResult = await soundsApi.selectFile();
+    if (!fileResult.success) {
+      setMessage({ type: 'error', text: fileResult.error || 'File selection cancelled.' });
+      return;
+    }
+    const { file } = fileResult;
+    // Prompt for name (optional: could use a modal or prompt)
+    let name = file.name.replace(/\.[^/.]+$/, '');
+    // Add sound via IPC
     setUploading(u => ({ ...u, [catKey]: true }));
     setMessage({ type: '', text: '' });
-    try {
-      // Validate file type
-      const validExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
-      const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-      if (!validExtensions.includes(ext)) {
-        setMessage({ type: 'error', text: `Invalid file type: ${ext}. Supported: ${validExtensions.join(', ')}` });
-        setUploading(u => ({ ...u, [catKey]: false }));
-        return;
-      }
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setMessage({ type: 'error', text: 'File is too large. Max 10MB.' });
-        setUploading(u => ({ ...u, [catKey]: false }));
-        return;
-      }
-      // Create a local URL for preview
-      const url = URL.createObjectURL(file);
-      const newSound = {
-        id: `user-${catKey}-${Date.now()}`,
-        name: file.name.replace(/\.[^/.]+$/, ''),
-        filename: file.name,
-        url,
-        volume: 0.5,
-        enabled: true,
-        isDefault: false,
-        file,
-      };
-      setLocalState(prev => ({
-        ...prev,
-        [catKey]: [...prev[catKey], newSound],
-      }));
-      setMessage({ type: 'success', text: 'Sound added (not saved yet).' });
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Upload failed: ' + err.message });
-    } finally {
+    const addResult = await soundsApi.add({ soundType: catKey, file, name });
+    if (!addResult.success) {
+      setMessage({ type: 'error', text: addResult.error || 'Failed to add sound.' });
       setUploading(u => ({ ...u, [catKey]: false }));
-      e.target.value = '';
+      return;
     }
+    setMessage({ type: 'success', text: 'Sound uploaded!' });
+    await loadData();
+    setUploading(u => ({ ...u, [catKey]: false }));
   };
+
+  // (File input is no longer needed)
 
   // Enable/disable all sounds in a category
-  const handleDisableAll = (catKey) => {
-    setLocalState(prev => ({
-      ...prev,
-      [catKey]: prev[catKey].map(s => ({ ...s, enabled: false })),
-    }));
+  const handleDisableAll = async (catKey) => {
+    setMessage({ type: '', text: '' });
+    for (const s of localState[catKey]) {
+      await soundsApi.update({ soundType: catKey, soundId: s.id, updates: { enabled: false } });
+    }
+    await loadData();
   };
 
-  // Select a sound as active (enables it, disables others)
-  const handleSelectSound = (catKey, soundId) => {
-    setLocalState(prev => ({
-      ...prev,
-      [catKey]: prev[catKey].map(s => ({ ...s, enabled: s.id === soundId })),
-    }));
-  };
 
-  // Toggle enable/disable for a sound
-  const handleToggleEnable = (catKey, soundId) => {
-    setLocalState(prev => ({
-      ...prev,
-      [catKey]: prev[catKey].map(s => s.id === soundId ? { ...s, enabled: !s.enabled } : s),
-    }));
+
+  // Toggle enable/disable for a sound (ensures only one sound per section is enabled)
+  const handleToggleEnable = async (catKey, soundId) => {
+    setMessage({ type: '', text: '' });
+    const sound = localState[catKey].find(s => s.id === soundId);
+    if (!sound) return;
+    
+    // If enabling this sound, disable all others in the same category
+    if (!sound.enabled) {
+      const updates = localState[catKey].map(s => ({
+        soundId: s.id,
+        updates: { enabled: s.id === soundId }
+      }));
+      for (const u of updates) {
+        await soundsApi.update({ soundType: catKey, soundId: u.soundId, updates: u.updates });
+      }
+    } else {
+      // If disabling this sound, just disable it
+      await soundsApi.update({ soundType: catKey, soundId, updates: { enabled: false } });
+    }
+    await loadData();
   };
 
   // Set volume for a sound
-  const handleVolumeChange = (catKey, soundId, value) => {
-    setLocalState(prev => ({
-      ...prev,
-      [catKey]: prev[catKey].map(s => s.id === soundId ? { ...s, volume: value } : s),
-    }));
+  const handleVolumeChange = async (catKey, soundId, value) => {
+    setMessage({ type: '', text: '' });
+    await soundsApi.update({ soundType: catKey, soundId, updates: { volume: value } });
+    await loadData();
     // Live update test audio volume if this sound is being tested
     if (audioRefs[soundId]) {
       audioRefs[soundId].volume = value;
@@ -164,11 +152,15 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
   };
 
   // Delete a user sound
-  const handleDeleteSound = (catKey, soundId) => {
-    setLocalState(prev => ({
-      ...prev,
-      [catKey]: prev[catKey].filter(s => s.id !== soundId),
-    }));
+  const handleDeleteSound = async (catKey, soundId) => {
+    setMessage({ type: '', text: '' });
+    const result = await soundsApi.remove({ soundType: catKey, soundId });
+    if (!result.success) {
+      setMessage({ type: 'error', text: result.error || 'Failed to delete sound.' });
+      return;
+    }
+    setMessage({ type: 'success', text: 'Sound deleted.' });
+    await loadData();
   };
 
   // Test/stop sound playback
@@ -203,32 +195,17 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
     }
   };
 
-  // Save all changes
+  // Save all changes (now only updates settings, not files)
   const handleSave = async () => {
-    try {
-      // Build new library
-      const newLibrary = {};
-      SOUND_CATEGORIES.forEach(cat => {
-        newLibrary[cat.key] = localState[cat.key].map(s => {
-          const { file, ...rest } = s;
-          return rest;
-        });
-      });
-      await soundsApi.set({ library: newLibrary });
-      setMessage({ type: 'success', text: 'Sounds saved.' });
-      if (onSettingsChange) onSettingsChange();
-      setTimeout(() => handleClose(), 400);
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Save failed: ' + err.message });
-    }
+    setMessage({ type: 'success', text: 'Sound settings saved.' });
+    if (onSettingsChange) onSettingsChange();
+    onClose();
   };
-
   const handleClose = () => {
-    setFadeState('fade-out');
-    setTimeout(() => onClose(), 280);
+    onClose();
   };
 
-  if (!isOpen && fadeState !== 'fade-out') return null;
+  if (!isOpen) return null;
 
   return (
     <BaseModal
@@ -260,13 +237,6 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
               >
                 {uploading[cat.key] ? 'Uploading...' : 'Add Sound'}
               </button>
-              <input
-                type="file"
-                accept="audio/*"
-                ref={el => (fileInputRefs.current[cat.key] = el)}
-                style={{ display: 'none' }}
-                onChange={e => handleFileChange(cat.key, e)}
-              />
             </div>
             <div className="sound-list">
               {localState[cat.key]?.length === 0 && (
@@ -283,15 +253,6 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                       {sound.isDefault && <span className="default-badge">Default</span>}
                     </div>
                     <div className="sound-controls">
-                      <label className="toggle-switch" title="Enable/Disable">
-                        <input
-                          type="checkbox"
-                          checked={!!sound.enabled}
-                          onChange={() => handleToggleEnable(cat.key, sound.id)}
-                          disabled={sound.isDefault && !sound.enabled}
-                        />
-                        <span className="slider" />
-                      </label>
                       <div className="volume-control">
                         <input
                           type="range"
@@ -311,14 +272,13 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                       {!sound.isDefault && (
                         <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
                       )}
-                      <label style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>
+                      <label className="toggle-switch" title="Enable/Disable">
                         <input
-                          type="radio"
-                          name={`active-${cat.key}`}
+                          type="checkbox"
                           checked={!!sound.enabled}
-                          onChange={() => handleSelectSound(cat.key, sound.id)}
+                          onChange={() => handleToggleEnable(cat.key, sound.id)}
                         />
-                        Active
+                        <span className="slider" />
                       </label>
                     </div>
                   </div>

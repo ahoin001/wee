@@ -9,12 +9,16 @@ const fsExtra = require('fs-extra');
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
 const soundsFile = path.join(dataDir, 'sounds.json');
+const savedSoundsPath = path.join(dataDir, 'savedSounds.json');
 const wallpapersFile = path.join(dataDir, 'wallpapers.json');
 const channelsFile = path.join(dataDir, 'channels.json');
 const userWallpapersPath = path.join(dataDir, 'wallpapers');
+const userSoundsPath = path.join(dataDir, 'sounds');
 
 async function ensureDataDir() {
   await fs.mkdir(dataDir, { recursive: true });
+  await fs.mkdir(userWallpapersPath, { recursive: true });
+  await fs.mkdir(userSoundsPath, { recursive: true });
 }
 
 // --- Sounds Data Module ---
@@ -289,7 +293,7 @@ async function loadSoundLibrary() {
           url: process.env.NODE_ENV === 'development' 
             ? getDevServerUrl(sound.filename)
             : `userdata://sounds/${sound.filename}`,
-          enabled: true
+          enabled: soundType === 'startup' ? false : true
         }));
       }
       
@@ -318,8 +322,16 @@ async function loadSoundLibrary() {
             url: process.env.NODE_ENV === 'development' 
               ? getDevServerUrl(defaultSound.filename)
               : `userdata://sounds/${defaultSound.filename}`,
-            enabled: true
+            enabled: soundType === 'startup' ? false : true
           });
+        }
+      }
+      
+      // Ensure default sounds are enabled by default (if they don't have enabled property)
+      for (const sound of mergedLibrary[soundType]) {
+        if (sound.isDefault && sound.enabled === undefined) {
+          sound.enabled = soundType === 'startup' ? false : true;
+          needsUpdate = true;
         }
       }
     }
@@ -368,7 +380,7 @@ async function loadSoundLibrary() {
         url: process.env.NODE_ENV === 'development' 
           ? getDevServerUrl(sound.filename)
           : `userdata://sounds/${sound.filename}`,
-        enabled: true
+        enabled: soundType === 'startup' ? false : true
       }));
     }
     return fallbackLibrary;
@@ -641,7 +653,7 @@ ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
       filename: filename,
       url: `userdata://sounds/${filename}`,
       volume: 0.5,
-      enabled: true,
+      enabled: false,
       isDefault: false
     };
     

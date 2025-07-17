@@ -8,10 +8,13 @@ import ImageSearchModal from './ImageSearchModal';
 // Guard for window.api to prevent errors in browser
 const api = window.api || {
   launchApp: () => {},
-  getSettings: async () => null,
-  getSoundLibrary: async () => ({}),
   openExternal: (url) => window.open(url, '_blank'), // fallback for browser
   openPipWindow: (url) => {},
+};
+
+const soundsApi = window.api?.sounds || {
+  get: async () => ({}),
+  getLibrary: async () => ({}),
 };
 
 function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound }) {
@@ -43,23 +46,17 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     } else if (path) {
       // Play channel click sound if enabled
       try {
-        const [settings, soundLibrary] = await Promise.all([
-          api.getSettings(),
-          api.getSoundLibrary()
-        ]);
-        const soundSettings = settings?.sounds || {};
-        if (soundSettings.channelClick?.enabled && soundSettings.channelClick?.soundId) {
-          const clickSound = soundLibrary.channelClick?.find(s => s.id === soundSettings.channelClick.soundId);
-          if (clickSound && clickSound.enabled) {
-            const audio = new Audio(clickSound.url);
-            audio.volume = clickSound.volume ?? 0.5;
-            audio.play().catch(error => {
-              console.log('Channel click sound playback failed:', error);
-            });
-          }
+        const soundLibrary = await soundsApi.getLibrary();
+        const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
+        if (enabledClickSound) {
+          const audio = new Audio(enabledClickSound.url);
+          audio.volume = enabledClickSound.volume ?? 0.5;
+          audio.play().catch(error => {
+            console.log('Channel click sound playback failed:', error);
+          });
         }
       } catch (error) {
-        console.log('Failed to load sound settings:', error);
+        console.log('Failed to load sound library:', error);
       }
       // Launch app or URL
       if (type === 'url' && path.startsWith('http')) {
@@ -101,24 +98,18 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
         }
       } else {
         try {
-          const [settings, soundLibrary] = await Promise.all([
-            api.getSettings(),
-            api.getSoundLibrary()
-          ]);
-          const soundSettings = settings?.sounds || {};
-          if (soundSettings.channelHover?.enabled && soundSettings.channelHover?.soundId) {
-            const hoverSound = soundLibrary.channelHover?.find(s => s.id === soundSettings.channelHover.soundId);
-            if (hoverSound && hoverSound.enabled && !hoverAudioRef.current) {
-              const audio = new Audio(hoverSound.url);
-              audio.volume = hoverSound.volume ?? 0.3;
-              audio.play().catch(error => {
-                console.log('Channel hover sound playback failed:', error);
-              });
-              hoverAudioRef.current = audio;
-            }
+          const soundLibrary = await soundsApi.getLibrary();
+          const enabledHoverSound = soundLibrary.channelHover?.find(s => s.enabled);
+          if (enabledHoverSound && !hoverAudioRef.current) {
+            const audio = new Audio(enabledHoverSound.url);
+            audio.volume = enabledHoverSound.volume ?? 0.3;
+            audio.play().catch(error => {
+              console.log('Channel hover sound playback failed:', error);
+            });
+            hoverAudioRef.current = audio;
           }
         } catch (error) {
-          console.log('Failed to load sound settings:', error);
+          console.log('Failed to load sound library:', error);
         }
       }
     }

@@ -172,7 +172,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
       )}
       {/* General Settings Modal */}
       {showGeneralModal && (
-        <GeneralSettingsModalFade isOpen={showGeneralModal} onClose={() => setShowGeneralModal(false)} immersivePip={immersivePip} setImmersivePip={val => {
+        <GeneralSettingsModal isOpen={showGeneralModal} onClose={() => setShowGeneralModal(false)} immersivePip={immersivePip} setImmersivePip={val => {
             setImmersivePip(val);
             localStorage.setItem('immersivePip', JSON.stringify(val));
           }} />
