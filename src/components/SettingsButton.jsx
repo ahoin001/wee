@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import SoundModal from './SoundModal';
 import WallpaperModal from './WallpaperModal';
+import GeneralSettingsModal from './GeneralSettingsModal';
 import './SettingsButton.css';
 
 function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange }) {
@@ -12,6 +13,15 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
   const [showWallpaperModal, setShowWallpaperModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(true);
   const [isFrameless, setIsFrameless] = useState(true);
+  const [showGeneralModal, setShowGeneralModal] = useState(false);
+  const [immersivePip, setImmersivePip] = useState(() => {
+    // Try to load from localStorage or default to false
+    try {
+      return JSON.parse(localStorage.getItem('immersivePip')) || false;
+    } catch {
+      return false;
+    }
+  });
   
   const defaultIcon = (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -114,6 +124,12 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div className="context-menu-item" onClick={() => { api.close(); handleMenuClose(); }}>
                 Close App
               </div>
+              <div className="settings-menu-separator" />
+              {/* General Group */}
+              <div className="settings-menu-group-label">General</div>
+              <div className="context-menu-item" onClick={() => { setShowGeneralModal(true); handleMenuClose(); }}>
+                General Settings
+              </div>
             </div>
           </div>
         )}
@@ -142,6 +158,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
       {/* Wallpaper Modal */}
       {showWallpaperModal && (
         <WallpaperModal
+          isOpen={showWallpaperModal}
           onClose={() => setShowWallpaperModal(false)}
           onSettingsChange={onSettingsChange}
           currentWallpaper={window.settings?.wallpaper}
@@ -152,6 +169,13 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
           cycleInterval={window.settings?.cycleInterval}
           cycleAnimation={window.settings?.cycleAnimation}
         />
+      )}
+      {/* General Settings Modal */}
+      {showGeneralModal && (
+        <GeneralSettingsModalFade isOpen={showGeneralModal} onClose={() => setShowGeneralModal(false)} immersivePip={immersivePip} setImmersivePip={val => {
+            setImmersivePip(val);
+            localStorage.setItem('immersivePip', JSON.stringify(val));
+          }} />
       )}
     </>
   );

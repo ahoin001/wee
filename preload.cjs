@@ -1,37 +1,36 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
-  launchApp: (data) => ipcRenderer.send('launch-app', data),
-  getSettings: () => ipcRenderer.invoke('get-settings'),
-  saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
-  getChannelConfigs: () => ipcRenderer.invoke('get-channel-configs'),
-  saveChannelConfigs: (configs) => ipcRenderer.invoke('save-channel-configs', configs),
-  
-  // Sound management
-  getSoundLibrary: () => ipcRenderer.invoke('get-sound-library'),
-  saveSoundLibrary: (library) => ipcRenderer.invoke('save-sound-library', library),
-  addSound: (data) => ipcRenderer.invoke('add-sound', data),
-  removeSound: (data) => ipcRenderer.invoke('remove-sound', data),
-  updateSound: (data) => ipcRenderer.invoke('update-sound', data),
-  selectSoundFile: () => ipcRenderer.invoke('select-sound-file'),
-  selectWallpaperFile: () => ipcRenderer.invoke('select-wallpaper-file'),
-  
-  // Legacy sound handlers for backward compatibility
-  getSavedSounds: () => ipcRenderer.invoke('get-saved-sounds'),
-  saveSavedSounds: (sounds) => ipcRenderer.invoke('save-saved-sounds', sounds),
-  copySoundFile: (data) => ipcRenderer.invoke('copy-sound-file', data),
-  
-  copyWallpaperFile: (data) => ipcRenderer.invoke('copy-wallpaper-file', data),
-  copyWallpaperToUserDirectory: async ({ filePath, filename }) => ipcRenderer.invoke('copy-wallpaper-to-user-directory', { filePath, filename }),
-  getUserFiles: () => ipcRenderer.invoke('get-user-files'),
-  debugSounds: () => ipcRenderer.invoke('debug-sounds'),
-  refreshSoundUrls: () => ipcRenderer.invoke('refresh-sound-urls'),
+  sounds: {
+    get: () => ipcRenderer.invoke('sounds:get'),
+    set: (data) => ipcRenderer.invoke('sounds:set', data),
+    reset: () => ipcRenderer.invoke('sounds:reset'),
+  },
+  wallpapers: {
+    get: () => ipcRenderer.invoke('wallpapers:get'),
+    set: (data) => ipcRenderer.invoke('wallpapers:set', data),
+    add: (args) => ipcRenderer.invoke('wallpapers:add', args),
+    delete: (args) => ipcRenderer.invoke('wallpapers:delete', args),
+    setActive: (args) => ipcRenderer.invoke('wallpapers:setActive', args),
+    toggleLike: (args) => ipcRenderer.invoke('wallpapers:toggleLike', args),
+    setCyclingSettings: (args) => ipcRenderer.invoke('wallpapers:setCyclingSettings', args),
+  },
+  selectWallpaperFile: () => ipcRenderer.invoke('wallpaper:selectFile'),
+  onWallpapersUpdated: (cb) => ipcRenderer.on('wallpapers:updated', cb),
+  offWallpapersUpdated: (cb) => ipcRenderer.removeListener('wallpapers:updated', cb),
+  channels: {
+    get: () => ipcRenderer.invoke('channels:get'),
+    set: (data) => ipcRenderer.invoke('channels:set', data),
+    reset: () => ipcRenderer.invoke('channels:reset'),
+  },
+  resetAll: () => ipcRenderer.invoke('settings:resetAll'),
+  // Window management APIs
+  close: () => ipcRenderer.send('close-window'),
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
   toggleFrame: () => ipcRenderer.send('toggle-frame'),
   minimize: () => ipcRenderer.send('minimize-window'),
-  close: () => ipcRenderer.send('close-window'),
-  onUpdateDragRegion: (callback) => ipcRenderer.on('update-drag-region', (event, shouldShow) => callback(shouldShow)),
-  onFullscreenState: (callback) => ipcRenderer.on('fullscreen-state', (event, val) => callback(val)),
-  onFrameState: (callback) => ipcRenderer.on('frame-state', (event, val) => callback(val)),
-  resetToDefault: () => ipcRenderer.invoke('reset-to-default'),
+  onFullscreenState: (cb) => ipcRenderer.on('fullscreen-state', (e, val) => cb(val)),
+  onFrameState: (cb) => ipcRenderer.on('frame-state', (e, val) => cb(val)),
+  openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
+  openExternal: (url) => ipcRenderer.send('open-external-url', url),
 });

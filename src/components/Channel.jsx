@@ -10,9 +10,11 @@ const api = window.api || {
   launchApp: () => {},
   getSettings: async () => null,
   getSoundLibrary: async () => ({}),
+  openExternal: (url) => window.open(url, '_blank'), // fallback for browser
+  openPipWindow: (url) => {},
 };
 
-function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound }) {
+function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound }) {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showChannelModal, setShowChannelModal] = useState(false);
@@ -50,16 +52,28 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
           const clickSound = soundLibrary.channelClick?.find(s => s.id === soundSettings.channelClick.soundId);
           if (clickSound && clickSound.enabled) {
             const audio = new Audio(clickSound.url);
-            audio.volume = soundSettings.channelClick.volume || clickSound.volume || 0.5;
-        audio.play().catch(error => {
-          console.log('Channel click sound playback failed:', error);
-        });
-      }
+            audio.volume = clickSound.volume ?? 0.5;
+            audio.play().catch(error => {
+              console.log('Channel click sound playback failed:', error);
+            });
+          }
         }
       } catch (error) {
         console.log('Failed to load sound settings:', error);
       }
-      api.launchApp({ type, path, asAdmin });
+      // Launch app or URL
+      if (type === 'url' && path.startsWith('http')) {
+        const immersivePip = (() => { try { return JSON.parse(localStorage.getItem('immersivePip')) || false; } catch { return false; } })();
+        if (immersivePip && api.openPipWindow) {
+          api.openPipWindow(path);
+        } else if (api.openExternal) {
+          api.openExternal(path);
+        } else {
+          window.open(path, '_blank'); // fallback for browser only
+        }
+      } else {
+        api.launchApp({ type, path, asAdmin });
+      }
     }
   };
 
@@ -96,10 +110,10 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
             const hoverSound = soundLibrary.channelHover?.find(s => s.id === soundSettings.channelHover.soundId);
             if (hoverSound && hoverSound.enabled && !hoverAudioRef.current) {
               const audio = new Audio(hoverSound.url);
-              audio.volume = soundSettings.channelHover.volume || hoverSound.volume || 0.3;
-        audio.play().catch(error => {
-          console.log('Channel hover sound playback failed:', error);
-        });
+              audio.volume = hoverSound.volume ?? 0.3;
+              audio.play().catch(error => {
+                console.log('Channel hover sound playback failed:', error);
+              });
               hoverAudioRef.current = audio;
             }
           }
@@ -168,10 +182,15 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
     setTimeout(() => fileInputRef.current?.click(), 100);
   };
 
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    setShowChannelModal(true);
+  };
+
   let mediaPreview = null;
   if (media) {
     if (media.type.startsWith('image/')) {
-      mediaPreview = <img src={media.url} alt={title || "Channel media"} className="channel-media" />;
+      mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;
     } else if (media.type.startsWith('video/')) {
       mediaPreview = <video src={media.url} className="channel-media" autoPlay loop muted />;
     }
@@ -185,100 +204,41 @@ function Channel({ id, title, type, path, icon, empty, media, onMediaChange, onA
       onMouseLeave={handleMouseLeave}
       tabIndex={0}
       role="button"
+      onContextMenu={handleRightClick}
     >
-      {mediaPreview || <img src={icon} alt={title} className="channel-media" />}
+      {mediaPreview || <img src={icon} alt="" className="channel-media" />}
     </div>
   );
 
   return (
     <>
-      <ContextMenu.Root>
-        <ContextMenu.Trigger asChild>
-          {channelContent}
-        </ContextMenu.Trigger>
-        <ContextMenu.Portal>
-          <ContextMenu.Content className="context-menu-content" sideOffset={5} align="center">
-            {empty ? (
-              // Context menu for empty channels
-              <>
-                <ContextMenu.Item 
-                  className="context-menu-item"
-                  onClick={() => setShowImageSearch(true)}
-                >
-                  Add Image
-                </ContextMenu.Item>
-                <ContextMenu.Item 
-                  className="context-menu-item"
-                  onClick={() => exeInputRef.current?.click()}
-                >
-                  Set App Path
-                </ContextMenu.Item>
-                <ContextMenu.Item 
-                  className="context-menu-item"
-                  onClick={handleConfigure}
-                >
-                  Configure Channel
-                </ContextMenu.Item>
-              </>
-            ) : (
-              // Context menu for configured channels
-              <>
-                <ContextMenu.Item 
-                  className="context-menu-item"
-                  onClick={() => setShowImageSearch(true)}
-                >
-                  Change Image
-                </ContextMenu.Item>
-                <ContextMenu.Item 
-                  className="context-menu-item"
-                  onClick={() => exeInputRef.current?.click()}
-                >
-                  Change App Path
-                </ContextMenu.Item>
-                <ContextMenu.Item 
-                  className="context-menu-item"
-                  onClick={handleConfigure}
-                >
-                  Configure
-                </ContextMenu.Item>
-                <ContextMenu.Separator className="context-menu-separator" />
-                <ContextMenu.Item 
-                  className="context-menu-item"
-                  onClick={handleClearChannel}
-                >
-                  Clear Channel
-                </ContextMenu.Item>
-              </>
-            )}
-          </ContextMenu.Content>
-        </ContextMenu.Portal>
-        <input
-          type="file"
-          accept="image/*,video/mp4"
-          style={{ display: 'none' }}
-          ref={fileInputRef}
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (file && onMediaChange) {
-              onMediaChange(id, file);
-            }
-            e.target.value = '';
-          }}
-        />
-        <input
-          type="file"
-          accept=".exe"
-          style={{ display: 'none' }}
-          ref={exeInputRef}
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (file && onAppPathChange) {
-              onAppPathChange(id, file.path);
-            }
-            e.target.value = '';
-          }}
-        />
-      </ContextMenu.Root>
+      {channelContent}
+      <input
+        type="file"
+        accept="image/*,video/mp4"
+        style={{ display: 'none' }}
+        ref={fileInputRef}
+        onChange={(e) => {
+          const file = e.target.files[0];
+          if (file && onMediaChange) {
+            onMediaChange(id, file);
+          }
+          e.target.value = '';
+        }}
+      />
+      <input
+        type="file"
+        accept=".exe"
+        style={{ display: 'none' }}
+        ref={exeInputRef}
+        onChange={(e) => {
+          const file = e.target.files[0];
+          if (file && onAppPathChange) {
+            onAppPathChange(id, file.path);
+          }
+          e.target.value = '';
+        }}
+      />
       {showImageSearch && (
         <ImageSearchModal
           onClose={() => setShowImageSearch(false)}

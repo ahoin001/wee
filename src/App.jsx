@@ -7,16 +7,23 @@ import FlatBar from './components/FlatBar';
 import WiiBar from './components/WiiBar';
 import './App.css';
 
-// Guard for window.api to prevent errors in browser
-const api = window.api || {
-  getSettings: async () => null,
-  saveSettings: async () => {},
-  getChannelConfigs: async () => null,
-  saveChannelConfigs: async () => {},
-  getSavedSounds: async () => null,
-  saveSavedSounds: async () => {},
-  launchApp: () => {},
+// Safe fallback for modular APIs
+const soundsApi = window.api?.sounds || {
+  get: async () => ({}),
+  set: async () => {},
+  reset: async () => {},
 };
+const wallpapersApi = window.api?.wallpapers || {
+  get: async () => ({}),
+  set: async () => {},
+  reset: async () => {},
+};
+const channelsApi = window.api?.channels || {
+  get: async () => ({}),
+  set: async () => {},
+  reset: async () => {},
+};
+const resetAllApi = window.api?.resetAll || (async () => {});
 
 function WiiCursor() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -87,53 +94,54 @@ function App() {
   // Track previous wallpaper for fade animation
   const [prevWallpaper, setPrevWallpaper] = useState(null);
 
-  const [channels, setChannels] = useState([]);
+  const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
 
-  // On mount, load channels from storage or create default
+  // On mount, load all modular data
   useEffect(() => {
-    async function loadChannels() {
-      let configs = await api.getChannelConfigs();
-      
-      // Create a fixed grid of 12 channels
+    async function loadAll() {
+      // Load sounds
+      const soundData = await soundsApi.get();
+      setSoundSettings(soundData || {});
+      // Load wallpapers
+      const wallpaperData = await wallpapersApi.get();
+      setWallpaper(wallpaperData?.wallpaper || null);
+      setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
+      setSavedWallpapers(wallpaperData?.savedWallpapers || []);
+      setLikedWallpapers(wallpaperData?.likedWallpapers || []);
+      setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
+      setCycleInterval(wallpaperData?.cycleInterval ?? 30);
+      setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+      // Load channels
+      const channelData = await channelsApi.get();
+      // Always show 12 channels
       const gridChannels = [];
-      const existingIds = new Set();
-      
-      // First, create all 12 channel positions with default IDs
       for (let i = 0; i < 12; i++) {
-        const defaultId = `channel-${i}`;
-        gridChannels.push({ id: defaultId, empty: true });
-        existingIds.add(defaultId);
+        const id = `channel-${i}`;
+        if (channelData && channelData[id]) {
+          gridChannels.push({ id, ...channelData[id], empty: !(channelData[id].media || channelData[id].path) });
+        } else {
+          gridChannels.push({ id, empty: true });
+        }
       }
-      
-      // Then, load saved channels and place them in their correct positions
-      if (configs && Object.keys(configs).length > 0) {
-        Object.entries(configs).forEach(([channelId, config]) => {
-          // Extract position from channel ID (e.g., "channel-5" -> position 5)
-          const positionMatch = channelId.match(/^channel-(\d+)$/);
-          if (positionMatch) {
-            const position = parseInt(positionMatch[1]);
-            if (position >= 0 && position < 12) {
-              // Place the saved channel in its correct position
-              gridChannels[position] = {
-                id: channelId,
-                ...config,
-                empty: !(config.media || config.path)
-              };
-            }
-          }
-        });
-      }
-      
       setChannels(gridChannels);
+      // Update mediaMap and appPathMap from saved configs
+      const newMediaMap = {};
+      const newAppPathMap = {};
+      Object.entries(channelData || {}).forEach(([channelId, config]) => {
+        if (config.media) newMediaMap[channelId] = config.media;
+        if (config.path) newAppPathMap[channelId] = config.path;
+      });
+      setMediaMap(newMediaMap);
+      setAppPathMap(newAppPathMap);
     }
-    loadChannels();
+    loadAll();
   }, []);
 
   // Load sound settings and play startup sound
   useEffect(() => {
     async function loadSettings() {
-      let settings = await api.getSettings();
-      let soundLibrary = await api.getSoundLibrary();
+      let settings = await soundsApi?.get();
+      let soundLibrary = await soundsApi?.getSoundLibrary();
       let updated = false;
       
       // Extract sound settings from the new structure
@@ -157,7 +165,7 @@ function App() {
       if (updated) {
         settings = settings || {};
         settings.sounds = soundSettings;
-        await api.saveSettings(settings);
+        await soundsApi?.set(settings);
       }
       
       if (soundSettings) {
@@ -170,7 +178,7 @@ function App() {
           if (startupSound && startupSound.enabled) {
             playedStartup = true;
             const startupAudio = new Audio(startupSound.url);
-            startupAudio.volume = soundSettings.startup.volume || startupSound.volume || 0.6;
+            startupAudio.volume = startupSound.volume ?? 0.6;
             startupAudio.play().catch(error => {
               console.log('Startup sound playback failed:', error);
               // If playback fails, start background music immediately
@@ -199,7 +207,7 @@ function App() {
   useEffect(() => {
     if (soundSettings) {
       // Save sound settings as part of the main settings object
-      api.saveSettings({ sounds: soundSettings });
+      soundsApi?.set({ sounds: soundSettings });
     }
   }, [soundSettings]);
 
@@ -214,7 +222,7 @@ function App() {
       const musicSound = soundLibrary?.backgroundMusic?.find(s => s.id === backgroundMusicSettings.soundId);
       if (musicSound && musicSound.enabled) {
         const audio = new Audio(musicSound.url);
-        audio.volume = backgroundMusicSettings.volume || musicSound.volume || 0.4;
+        audio.volume = musicSound.volume ?? 0.4;
         audio.loop = true;
         
         // Start playing background music
@@ -233,7 +241,7 @@ function App() {
     if (soundSettings?.backgroundMusic) {
       if (soundSettings.backgroundMusic.enabled && soundSettings.backgroundMusic.soundId) {
         // Load sound library to get the current sound
-        api.getSoundLibrary().then(soundLibrary => {
+        soundsApi?.getSoundLibrary().then(soundLibrary => {
           setupBackgroundMusic(soundSettings.backgroundMusic, soundLibrary);
         });
       } else {
@@ -260,7 +268,7 @@ function App() {
   // Load channel configurations from persistent storage
   useEffect(() => {
     async function loadChannelConfigs() {
-      let configs = await api.getChannelConfigs();
+      let configs = await channelsApi?.get();
       if (!configs) configs = {};
       setChannelConfigs(configs);
       // Update mediaMap and appPathMap from saved configs
@@ -282,7 +290,7 @@ function App() {
   // Load settings (including barType) from persistent storage
   useEffect(() => {
     async function loadSettings() {
-      let settings = await api.getSettings();
+      let settings = await soundsApi?.get();
       if (settings) {
         setIsDarkMode(settings.isDarkMode ?? false);
         setUseCustomCursor(settings.useCustomCursor ?? true);
@@ -300,7 +308,7 @@ function App() {
   }, []);
   // Persist barType and other settings when changed
   useEffect(() => {
-    api.saveSettings({
+    soundsApi?.set({
       isDarkMode,
       useCustomCursor,
       barType,
@@ -346,6 +354,24 @@ function App() {
     }
   }, []);
 
+  // Listen for wallpaper updates from backend (IPC event)
+  useEffect(() => {
+    if (window.api && window.api.onWallpapersUpdated) {
+      const reloadWallpapers = async () => {
+        const wallpaperData = await wallpapersApi.get();
+        setWallpaper(wallpaperData?.wallpaper || null);
+        setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
+        setSavedWallpapers(wallpaperData?.savedWallpapers || []);
+        setLikedWallpapers(wallpaperData?.likedWallpapers || []);
+        setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
+        setCycleInterval(wallpaperData?.cycleInterval ?? 30);
+        setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+      };
+      window.api.onWallpapersUpdated(reloadWallpapers);
+      return () => window.api.offWallpapersUpdated(reloadWallpapers);
+    }
+  }, []);
+
   const handleMediaChange = (id, file) => {
     const url = URL.createObjectURL(file);
     setMediaMap((prev) => ({
@@ -368,7 +394,7 @@ function App() {
         const updated = { ...prev };
         delete updated[channelId];
         // Save the updated configs
-        api.saveChannelConfigs(updated);
+        channelsApi?.set(updated);
         return updated;
       });
       // Clear media and path maps for this channel
@@ -391,7 +417,7 @@ function App() {
         [channelId]: channelData
       };
       // Save the updated configs
-      api.saveChannelConfigs(updated);
+      channelsApi?.set(updated);
       return updated;
     });
     // Update media and path maps
@@ -425,16 +451,27 @@ function App() {
     setBarType(type);
   };
 
-  // Handler for settings changes from WallpaperModal
-  const handleSettingsChange = (newSettings) => {
-    if (newSettings.wallpaper !== undefined) setWallpaper(newSettings.wallpaper);
-    if (newSettings.wallpaperOpacity !== undefined) setWallpaperOpacity(newSettings.wallpaperOpacity);
-    if (newSettings.savedWallpapers !== undefined) setSavedWallpapers(newSettings.savedWallpapers);
-    if (newSettings.likedWallpapers !== undefined) setLikedWallpapers(newSettings.likedWallpapers);
-    if (newSettings.cycleWallpapers !== undefined) setCycleWallpapers(newSettings.cycleWallpapers);
-    if (newSettings.cycleInterval !== undefined) setCycleInterval(newSettings.cycleInterval);
-    if (newSettings.cycleAnimation !== undefined) setCycleAnimation(newSettings.cycleAnimation);
-    if (newSettings.sounds) setSoundSettings(newSettings.sounds);
+  // Handler for settings changes from WallpaperModal or SoundModal
+  const handleSettingsChange = async (newSettings) => {
+    // Save the new settings (already merged in modal)
+    if (window.api && window.api.saveSettings) {
+      await window.api.saveSettings(newSettings);
+    }
+    // Reload the full settings from disk to update all state
+    if (window.api && window.api.getSettings) {
+      const settings = await window.api.getSettings();
+      setIsDarkMode(settings.isDarkMode ?? false);
+      setUseCustomCursor(settings.useCustomCursor ?? true);
+      setBarType(settings.barType ?? 'flat');
+      setWallpaper(settings.wallpaper || null);
+      setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
+      setSavedWallpapers(settings.savedWallpapers || []);
+      setLikedWallpapers(settings.likedWallpapers || []);
+      setCycleWallpapers(settings.cycleWallpapers ?? false);
+      setCycleInterval(settings.cycleInterval ?? 30);
+      setCycleAnimation(settings.cycleAnimation || 'fade');
+      setSoundSettings(settings.sounds || {});
+    }
   };
 
   // Pass settings to SettingsButton via window.settings for now (could use context for better solution)
@@ -484,6 +521,51 @@ function App() {
       setWallpaper(cycleList[wallpaperIndex % cycleList.length]);
     }
   }, [wallpaperIndex, cycleWallpapers, cycleList]);
+
+  // On save for sounds
+  const handleSaveSounds = async (newSounds) => {
+    await soundsApi?.set(newSounds);
+    const soundData = await soundsApi?.get();
+    setSoundSettings(soundData || {});
+  };
+
+  // On save for wallpapers
+  const handleSaveWallpapers = async (newWallpapers) => {
+    await wallpapersApi?.set(newWallpapers);
+    const wallpaperData = await wallpapersApi?.get();
+    setWallpaper(wallpaperData?.wallpaper || null);
+    setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
+    setSavedWallpapers(wallpaperData?.savedWallpapers || []);
+    setLikedWallpapers(wallpaperData?.likedWallpapers || []);
+    setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
+    setCycleInterval(wallpaperData?.cycleInterval ?? 30);
+    setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+  };
+
+  // On save for channels
+  const handleSaveChannels = async (newChannels) => {
+    await channelsApi?.set(newChannels);
+    const channelData = await channelsApi?.get();
+    setChannelConfigs(channelData || {});
+  };
+
+  // On reset all
+  const handleResetAll = async () => {
+    await resetAllApi?.();
+    // Reload all state
+    const soundData = await soundsApi?.get();
+    setSoundSettings(soundData || {});
+    const wallpaperData = await wallpapersApi?.get();
+    setWallpaper(wallpaperData?.wallpaper || null);
+    setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
+    setSavedWallpapers(wallpaperData?.savedWallpapers || []);
+    setLikedWallpapers(wallpaperData?.likedWallpapers || []);
+    setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
+    setCycleInterval(wallpaperData?.cycleInterval ?? 30);
+    setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+    const channelData = await channelsApi?.get();
+    setChannelConfigs(channelData || {});
+  };
 
   return (
     <div className="app-container">

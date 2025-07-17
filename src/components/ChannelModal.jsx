@@ -1,14 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './ChannelModal.css';
 import ImageSearchModal from './ImageSearchModal';
 
+const channelsApi = window.api?.channels;
+
 function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound }) {
   const [media, setMedia] = useState(currentMedia);
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
-  const [title, setTitle] = useState('');
   const [pathError, setPathError] = useState('');
   const [asAdmin, setAsAdmin] = useState(false);
   const fileInputRef = useRef();
@@ -22,6 +23,27 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [hoverSoundVolume, setHoverSoundVolume] = useState(hoverSound ? hoverSound.volume : 0.7);
   const [hoverSoundEnabled, setHoverSoundEnabled] = useState(!!hoverSound);
   const [hoverSoundAudio, setHoverSoundAudio] = useState(null);
+  const [showError, setShowError] = useState(false);
+
+  // When type changes, clear the path
+  useEffect(() => {
+    setPath('');
+  }, [type]);
+
+  // Load channel data on mount
+  useEffect(() => {
+    async function loadChannel() {
+      const data = await channelsApi?.get();
+      if (data && data[channelId]) {
+        setMedia(data[channelId].media);
+        setPath(data[channelId].path);
+        setType(data[channelId].type);
+        setAsAdmin(data[channelId].asAdmin);
+        setHoverSound(data[channelId].hoverSound);
+      }
+    }
+    loadChannel();
+  }, [channelId]);
 
   // Handle hover sound file select
   const handleHoverSoundFile = (file) => {
@@ -152,41 +174,64 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setPathError(''); // Clear error when user types
   };
 
-  const handleSave = () => {
+  // On save, use channelsApi.set and reload state
+  const handleSave = async () => {
     // Validate path before saving
-    if (!validatePath()) {
+    if (!validatePath() || !media || !path.trim()) {
+      setShowError(true);
       return;
     }
-    // Allow saving if either media or path is provided
-    if (media || path.trim()) {
-      onSave(channelId, {
-        media,
-        path: path.trim(),
-        type,
-        asAdmin,
-        title: title.trim() || `Channel ${channelId}`,
-        hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
-      });
-      onClose();
-    }
+    setShowError(false);
+    // Only save if both media and path are provided
+    const newChannel = {
+      media,
+      path: path.trim(),
+      type,
+      asAdmin,
+      hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
+    };
+    // Save to channels API
+    const allChannels = await window.api?.channels?.get();
+    const updatedChannels = { ...allChannels, [channelId]: newChannel };
+    await window.api?.channels?.set(updatedChannels);
+    if (onSave) onSave(channelId, newChannel);
+    onClose();
   };
 
   const handleRemoveImage = () => {
     setMedia(null);
   };
 
-  const handleClearChannel = () => {
-    onSave(channelId, null); // This will fully reset the channel in the parent
+  const handleClearChannel = async () => {
+    const allChannels = await channelsApi?.get();
+    const updatedChannels = { ...allChannels };
+    delete updatedChannels[channelId];
+    await channelsApi?.set(updatedChannels);
     onClose();
   };
 
-  const canSave = (media || path.trim()) && !pathError;
+  const canSave = media && path.trim() && !pathError;
+  let saveTooltip = '';
+  if (!media && !path.trim()) {
+    saveTooltip = 'Please select a channel image and provide a launch path or URL.';
+  } else if (!media) {
+    saveTooltip = 'Please select a channel image.';
+  } else if (!path.trim()) {
+    saveTooltip = 'Please provide a launch path or URL.';
+  } else if (pathError) {
+    saveTooltip = pathError;
+  }
 
   const footerContent = (
     <>
-      <button className="cancel-button" onClick={onClose}>Cancel</button>
-      <button className="clear-button" style={{ marginLeft: 8, border: '1.5px solid #dc3545', color: '#dc3545', background: '#fff', fontWeight: 600 }} onClick={handleClearChannel} onMouseOver={e => e.currentTarget.style.background='#ffeaea'} onMouseOut={e => e.currentTarget.style.background='#fff'}>Clear Channel</button>
-      <button className="save-button" onClick={handleSave} disabled={!canSave}>Save Channel</button>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
+        <button className="cancel-button" onClick={onClose}>Cancel</button>
+        <button className="clear-button" style={{ border: '1.5px solid #dc3545', color: '#dc3545', background: '#fff', fontWeight: 600 }} onClick={handleClearChannel} onMouseOver={e => e.currentTarget.style.background='#ffeaea'} onMouseOut={e => e.currentTarget.style.background='#fff'}>Clear Channel</button>
+        <button className="save-button" onClick={handleSave} title={saveTooltip}>Save Channel</button>
+      </div>
+      {showError && saveTooltip && (
+        <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8, fontWeight: 500 }}>{saveTooltip}</div>
+      )}
     </>
   );
 
@@ -233,19 +278,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           onUploadClick={handleUploadClick}
         />
       )}
-      {/* Divider */}
-      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
-      {/* Channel Title Section */}
-      <div className="form-section">
-        <h3>Channel Title (Optional)</h3>
-        <input
-          type="text"
-          placeholder="Channel title"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          className="text-input"
-        />
-      </div>
       {/* Divider */}
       <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
       {/* Launch Type Section */}
@@ -415,6 +447,7 @@ ChannelModal.propTypes = {
   currentMedia: PropTypes.object,
   currentPath: PropTypes.string,
   currentType: PropTypes.string,
+  currentHoverSound: PropTypes.object,
 };
 
 export default ChannelModal; 

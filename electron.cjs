@@ -4,141 +4,84 @@ const { execFile, spawn } = require('child_process');
 const fs = require('fs/promises');
 const fsSync = require('fs');
 const url = require('url');
+const fsExtra = require('fs-extra');
 
-// Paths for persistent storage
-const userDataPath = app.getPath('userData');
-const settingsPath = path.join(userDataPath, 'settings.json');
-const channelConfigsPath = path.join(userDataPath, 'channelConfigs.json');
-const savedSoundsPath = path.join(userDataPath, 'savedSounds.json');
+// --- Data module helpers ---
+const dataDir = path.join(app.getPath('userData'), 'data');
+const soundsFile = path.join(dataDir, 'sounds.json');
+const wallpapersFile = path.join(dataDir, 'wallpapers.json');
+const channelsFile = path.join(dataDir, 'channels.json');
+const userWallpapersPath = path.join(dataDir, 'wallpapers');
 
-// User file directories
-const userSoundsPath = path.join(userDataPath, 'sounds');
-const userWallpapersPath = path.join(userDataPath, 'wallpapers');
-
-let mainWindow = null;
-let isCurrentlyFullscreen = true;
-let isFrameless = true;
-
-// Ensure user directories exist
-async function ensureUserDirectories() {
-  try {
-    await fs.mkdir(userSoundsPath, { recursive: true });
-    await fs.mkdir(userWallpapersPath, { recursive: true });
-  } catch (err) {
-    console.error('Failed to create user directories:', err);
-  }
+async function ensureDataDir() {
+  await fs.mkdir(dataDir, { recursive: true });
 }
 
-function sendWindowState() {
-  if (mainWindow) {
-    mainWindow.webContents.send('fullscreen-state', isCurrentlyFullscreen);
-    mainWindow.webContents.send('frame-state', !isFrameless);
+// --- Sounds Data Module ---
+const soundsData = {
+  async get() {
+    await ensureDataDir();
+    try { return JSON.parse(await fs.readFile(soundsFile, 'utf-8')); } catch { return { sounds: [], settings: {} }; }
+  },
+  async set(data) {
+    await ensureDataDir();
+    await fs.writeFile(soundsFile, JSON.stringify(data, null, 2), 'utf-8');
+  },
+  async reset() {
+    await this.set({ sounds: [], settings: {} });
   }
-}
+};
 
-function createWindow({ frame = false, fullscreen = true, bounds = null } = {}) {
-  // If bounds are provided, use them; otherwise, use defaults
-  const options = {
-    width: 1280,
-    height: 720,
-    frame: frame,
-    fullscreen: fullscreen,
-    webPreferences: {
-      autoHideMenuBar: true, // press alt to show,
-      preload: path.join(__dirname, 'preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  };
-  if (bounds) {
-    options.x = bounds.x;
-    options.y = bounds.y;
-    options.width = bounds.width;
-    options.height = bounds.height;
+// --- Wallpapers Data Module ---
+const wallpapersData = {
+  async get() {
+    await ensureDataDir();
+    try { return JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { return { wallpapers: [], settings: {} }; }
+  },
+  async set(data) {
+    await ensureDataDir();
+    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+  },
+  async reset() {
+    await this.set({ wallpapers: [], settings: {} });
   }
+};
 
-  if (mainWindow) {
-    mainWindow.destroy();
+// --- Channels Data Module ---
+const channelsData = {
+  async get() {
+    await ensureDataDir();
+    try { return JSON.parse(await fs.readFile(channelsFile, 'utf-8')); } catch { return { channels: [] }; }
+  },
+  async set(data) {
+    await ensureDataDir();
+    await fs.writeFile(channelsFile, JSON.stringify(data, null, 2), 'utf-8');
+  },
+  async reset() {
+    await this.set({ channels: [] });
   }
-  mainWindow = new BrowserWindow(options);
-  mainWindow.setMenu(null);
+};
 
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5173');
-  } else {
-    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
-  }
+// --- IPC Handlers ---
+ipcMain.handle('sounds:get', async () => await soundsData.get());
+ipcMain.handle('sounds:set', async (e, data) => { await soundsData.set(data); return true; });
+ipcMain.handle('sounds:reset', async () => { await soundsData.reset(); return true; });
 
-  isCurrentlyFullscreen = fullscreen;
-  isFrameless = !frame;
+ipcMain.handle('wallpapers:get', async () => await wallpapersData.get());
+ipcMain.handle('wallpapers:set', async (e, data) => { await wallpapersData.set(data); return true; });
+ipcMain.handle('wallpapers:reset', async () => { await wallpapersData.reset(); return true; });
 
-  // Send drag-region state to renderer
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.send('update-drag-region', isFrameless && !isCurrentlyFullscreen);
-    sendWindowState();
-    
-    // Refresh sound library URLs after window is loaded (for development)
-    if (process.env.NODE_ENV === 'development') {
-      setTimeout(async () => {
-        await refreshSoundLibraryUrls();
-      }, 1000); // Small delay to ensure window is fully loaded
-    }
-  });
-}
+ipcMain.handle('channels:get', async () => await channelsData.get());
+ipcMain.handle('channels:set', async (e, data) => { await channelsData.set(data); return true; });
+ipcMain.handle('channels:reset', async () => { await channelsData.reset(); return true; });
 
-app.whenReady().then(async () => {
-  console.log('User data is stored at:', app.getPath('userData'));
-  
-  // Register protocol for serving user files (sounds and wallpapers)
-  console.log('[PROTOCOL] Registering userdata:// protocol for sounds and wallpapers');
-  protocol.registerFileProtocol('userdata', (request, callback) => {
-    const urlPath = request.url.substr(11); // Remove 'userdata://'
-    let filePath;
-    let mimeType;
-    if (urlPath.startsWith('sounds/')) {
-      filePath = path.join(userSoundsPath, urlPath.replace('sounds/', ''));
-      const ext = path.extname(filePath).toLowerCase();
-      if (ext === '.mp3') mimeType = 'audio/mpeg';
-      else if (ext === '.wav') mimeType = 'audio/wav';
-      else if (ext === '.ogg') mimeType = 'audio/ogg';
-      else if (ext === '.m4a') mimeType = 'audio/mp4';
-      else if (ext === '.aac') mimeType = 'audio/aac';
-      else mimeType = 'application/octet-stream';
-    } else if (urlPath.startsWith('wallpapers/')) {
-      filePath = path.join(userWallpapersPath, urlPath.replace('wallpapers/', ''));
-      const ext = path.extname(filePath).toLowerCase();
-      if (['.jpg', '.jpeg'].includes(ext)) mimeType = 'image/jpeg';
-      else if (ext === '.png') mimeType = 'image/png';
-      else if (ext === '.gif') mimeType = 'image/gif';
-      else if (ext === '.bmp') mimeType = 'image/bmp';
-      else if (ext === '.webp') mimeType = 'image/webp';
-      else if (ext === '.mp4') mimeType = 'video/mp4';
-      else if (ext === '.webm') mimeType = 'video/webm';
-      else if (ext === '.mov') mimeType = 'video/quicktime';
-      else if (ext === '.avi') mimeType = 'video/x-msvideo';
-      else if (ext === '.mkv') mimeType = 'video/x-matroska';
-      else mimeType = 'application/octet-stream';
-    }
-    console.log(`[PROTOCOL] userdata://${urlPath} -> ${filePath} (mime: ${mimeType})`);
-    callback({ path: filePath, mimeType });
-  });
-  console.log('[PROTOCOL] userdata:// protocol registered successfully for sounds and wallpapers');
-  
-  await ensureUserDirectories();
-  
-  // Refresh sound library URLs in development mode
-  await refreshSoundLibraryUrls();
-  
-  createWindow({ frame: false, fullscreen: true });
+// --- Reset All ---
+ipcMain.handle('settings:resetAll', async () => {
+  await soundsData.reset();
+  await wallpapersData.reset();
+  // Do NOT reset channels unless explicitly requested
+  return true;
 });
-
-// Log user data paths on startup
-console.log('Electron userDataPath:', userDataPath);
-console.log('Settings path:', settingsPath);
-console.log('Channel configs path:', channelConfigsPath);
-console.log('Saved sounds path:', savedSoundsPath);
-console.log('User sounds path:', userSoundsPath);
-console.log('User wallpapers path:', userWallpapersPath);
 
 // --- Persistent Storage IPC Handlers ---
 
@@ -1008,6 +951,125 @@ ipcMain.handle('select-wallpaper-file', async () => {
   }
 });
 
+// --- Wallpaper IPC Handlers ---
+// Add a new wallpaper (copy file, update metadata)
+ipcMain.handle('wallpapers:add', async (event, { filePath, filename }) => {
+  try {
+    await ensureDataDir();
+    if (!fsSync.existsSync(userWallpapersPath)) {
+      fsSync.mkdirSync(userWallpapersPath, { recursive: true });
+    }
+    // Generate unique filename if needed
+    let base = path.basename(filename, path.extname(filename));
+    let ext = path.extname(filename);
+    let uniqueName = base + ext;
+    let counter = 1;
+    while (fsSync.existsSync(path.join(userWallpapersPath, uniqueName))) {
+      uniqueName = `${base}_${counter}${ext}`;
+      counter++;
+    }
+    const destPath = path.join(userWallpapersPath, uniqueName);
+    await fsExtra.copy(filePath, destPath);
+    // Update wallpapers.json
+    let data;
+    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    if (!data.savedWallpapers) data.savedWallpapers = [];
+    const url = `userdata://wallpapers/${uniqueName}`;
+    const newWallpaper = { url, name: filename, type: ext.replace('.', ''), added: Date.now() };
+    data.savedWallpapers.push(newWallpaper);
+    data.wallpaper = newWallpaper;
+    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    emitWallpapersUpdated();
+    return { success: true, url };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Delete a wallpaper (remove file, update metadata)
+ipcMain.handle('wallpapers:delete', async (event, { url }) => {
+  try {
+    if (!url || !url.startsWith('userdata://wallpapers/')) return { success: false, error: 'Invalid wallpaper URL' };
+    const filename = url.replace('userdata://wallpapers/', '');
+    const filePath = path.join(userWallpapersPath, filename);
+    await fsExtra.remove(filePath);
+    // Update wallpapers.json
+    let data;
+    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    data.savedWallpapers = (data.savedWallpapers || []).filter(w => w.url !== url);
+    data.likedWallpapers = (data.likedWallpapers || []).filter(u => u !== url);
+    if (data.wallpaper && data.wallpaper.url === url) data.wallpaper = null;
+    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    emitWallpapersUpdated();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Set active wallpaper
+ipcMain.handle('wallpapers:setActive', async (event, { url }) => {
+  try {
+    let data;
+    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    const found = (data.savedWallpapers || []).find(w => w.url === url);
+    if (!found) return { success: false, error: 'Wallpaper not found' };
+    data.wallpaper = found;
+    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    emitWallpapersUpdated();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Toggle like/unlike wallpaper
+ipcMain.handle('wallpapers:toggleLike', async (event, { url }) => {
+  try {
+    let data;
+    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    if (!data.likedWallpapers) data.likedWallpapers = [];
+    let liked;
+    if (data.likedWallpapers.includes(url)) {
+      data.likedWallpapers = data.likedWallpapers.filter(u => u !== url);
+      liked = false;
+    } else {
+      data.likedWallpapers.push(url);
+      liked = true;
+    }
+    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    emitWallpapersUpdated();
+    return { success: true, liked, likedWallpapers: data.likedWallpapers };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Set cycling settings
+ipcMain.handle('wallpapers:setCyclingSettings', async (event, settings) => {
+  try {
+    let data;
+    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    data.cyclingSettings = {
+      enabled: !!settings.enabled,
+      interval: Math.max(2, Math.min(600, Number(settings.interval) || 30)),
+      animation: settings.animation || 'fade',
+    };
+    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    emitWallpapersUpdated();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Emit wallpapers:updated to all renderer processes
+function emitWallpapersUpdated() {
+  BrowserWindow.getAllWindows().forEach(win => {
+    win.webContents.send('wallpapers:updated');
+  });
+}
+
 // --- IPC: Reset to Default ---
 ipcMain.handle('reset-to-default', async () => {
   try {
@@ -1109,47 +1171,176 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
   }
 });
 
-// IPC handler for toggling fullscreen/windowed mode
+// --- Electron Main Window Creation ---
+let mainWindow;
+let isCurrentlyFullscreen = false;
+let isFrameless = true; // Start borderless by default
+
+function sendWindowState() {
+  if (mainWindow) {
+    mainWindow.webContents.send('fullscreen-state', mainWindow.isFullScreen());
+    mainWindow.webContents.send('frame-state', isFrameless);
+  }
+}
+
+function createWindow(opts = {}) {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    show: true,
+    frame: opts.frame === undefined ? !isFrameless : opts.frame, // borderless by default
+    fullscreen: opts.fullscreen || false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
+  } else {
+    mainWindow.loadFile('index.html');
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  mainWindow.on('enter-full-screen', () => {
+    isCurrentlyFullscreen = true;
+    sendWindowState();
+  });
+  mainWindow.on('leave-full-screen', () => {
+    isCurrentlyFullscreen = false;
+    sendWindowState();
+  });
+  sendWindowState();
+}
+
+app.whenReady().then(() => {
+  // Register userdata:// protocol for wallpapers and sounds
+  protocol.registerFileProtocol('userdata', (request, callback) => {
+    const url = request.url.replace('userdata://', '');
+    let filePath;
+    if (url.startsWith('wallpapers/')) {
+      filePath = path.join(userWallpapersPath, url.replace(/^wallpapers[\\\/]/, ''));
+    } else if (url.startsWith('sounds/')) {
+      filePath = path.join(dataDir, 'sounds', url.replace(/^sounds[\\\/]/, ''));
+    } else {
+      // Block access to other paths
+      return callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
+    }
+    callback({ path: filePath });
+  });
+  createWindow();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+// --- Window Management IPC Handlers ---
+ipcMain.on('close-window', () => {
+  if (mainWindow) mainWindow.close();
+});
 ipcMain.on('toggle-fullscreen', () => {
   if (!mainWindow) return;
-  if (isCurrentlyFullscreen) {
+  if (mainWindow.isFullScreen()) {
     mainWindow.setFullScreen(false);
-    mainWindow.setSize(1920, 1080);
-    mainWindow.center();
     isCurrentlyFullscreen = false;
   } else {
     mainWindow.setFullScreen(true);
     isCurrentlyFullscreen = true;
   }
-  // Update drag region
-  mainWindow.webContents.send('update-drag-region', isFrameless && !isCurrentlyFullscreen);
   sendWindowState();
 });
-
-// IPC handler for toggling window frame
 ipcMain.on('toggle-frame', () => {
   if (!mainWindow) return;
   const bounds = mainWindow.getBounds();
   const wasFullScreen = mainWindow.isFullScreen();
+  isFrameless = !isFrameless;
   // Only recreate if needed
   createWindow({
-    frame: isFrameless, // toggle
+    frame: !isFrameless,
     fullscreen: wasFullScreen,
     bounds,
   });
   // sendWindowState will be called after load
 });
-
-// IPC handler for minimizing window
 ipcMain.on('minimize-window', () => {
   if (mainWindow) mainWindow.minimize();
 });
 
-// IPC handler for closing window
-ipcMain.on('close-window', () => {
-  if (mainWindow) mainWindow.close();
-});
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+ipcMain.on('open-pip-window', (event, urlToOpen) => {
+  const pipWindow = new BrowserWindow({
+    width: 900,
+    height: 600,
+    minWidth: 400,
+    minHeight: 300,
+    frame: false,
+    alwaysOnTop: false,
+    resizable: true,
+    movable: true,
+    show: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  pipWindow.loadURL(urlToOpen);
+  pipWindow.setMenuBarVisibility(false);
+});
+
+ipcMain.on('open-external-url', (event, urlToOpen) => {
+  shell.openExternal(urlToOpen);
+});
+
+ipcMain.handle('wallpaper:selectFile', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      title: 'Select Wallpaper Image'
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0];
+      const filename = path.basename(filePath);
+      // Validate file exists
+      try { await fs.access(filePath); } catch { return { success: false, error: 'Selected file no longer exists. Please try again.' }; }
+      // Validate file extension
+      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+      const fileExtension = path.extname(filename).toLowerCase();
+      if (!validExtensions.includes(fileExtension)) {
+        return { success: false, error: `Invalid file type: ${fileExtension}\n\nSupported formats: ${validExtensions.join(', ')}` };
+      }
+      // Check file size (max 20MB)
+      let fileSize = null;
+      try {
+        const stats = await fs.stat(filePath);
+        fileSize = stats.size;
+        if (stats.size > 20 * 1024 * 1024) {
+          return { success: false, error: 'File is too large.\n\nMaximum file size is 20MB. Please select a smaller file.' };
+        }
+        if (stats.size === 0) {
+          return { success: false, error: 'File is empty.\n\nPlease select a valid image file.' };
+        }
+      } catch {}
+      return { success: true, file: { path: filePath, name: filename, size: fileSize } };
+    } else {
+      return { success: false, error: 'No file selected' };
+    }
+  } catch (error) {
+    return { success: false, error: `Failed to open file dialog: ${error.message}` };
+  }
 });
