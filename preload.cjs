@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('api', {
   copyWallpaperFile: (data) => ipcRenderer.invoke('copy-wallpaper-file', data),
   getUserFiles: () => ipcRenderer.invoke('get-user-files'),
   debugSounds: () => ipcRenderer.invoke('debug-sounds'),
+  refreshSoundUrls: () => ipcRenderer.invoke('refresh-sound-urls'),
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
   toggleFrame: () => ipcRenderer.send('toggle-frame'),
   minimize: () => ipcRenderer.send('minimize-window'),

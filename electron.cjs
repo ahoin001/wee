@@ -75,27 +75,34 @@ function createWindow({ frame = false, fullscreen = true, bounds = null } = {}) 
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.send('update-drag-region', isFrameless && !isCurrentlyFullscreen);
     sendWindowState();
+    
+    // Refresh sound library URLs after window is loaded (for development)
+    if (process.env.NODE_ENV === 'development') {
+      setTimeout(async () => {
+        await refreshSoundLibraryUrls();
+      }, 1000); // Small delay to ensure window is fully loaded
+    }
   });
 }
 
 app.whenReady().then(async () => {
   console.log('User data is stored at:', app.getPath('userData'));
   
-  // Register protocol for serving user files in production
-  if (process.env.NODE_ENV !== 'development') {
-    console.log('[PROTOCOL] Registering userdata:// protocol for production');
-    protocol.registerFileProtocol('userdata', (request, callback) => {
-      const url = request.url.substr(11); // Remove 'userdata://'
-      const filePath = path.join(userDataPath, url);
-      console.log(`[PROTOCOL] userdata://${url} -> ${filePath}`);
-      callback({ path: filePath });
-    });
-    console.log('[PROTOCOL] userdata:// protocol registered successfully');
-  } else {
-    console.log('[PROTOCOL] Running in development mode, skipping protocol registration');
-  }
+  // Register protocol for serving user files in BOTH dev and prod
+  console.log('[PROTOCOL] Registering userdata:// protocol');
+  protocol.registerFileProtocol('userdata', (request, callback) => {
+    const url = request.url.substr(11); // Remove 'userdata://'
+    const filePath = path.join(userDataPath, url);
+    console.log(`[PROTOCOL] userdata://${url} -> ${filePath}`);
+    callback({ path: filePath });
+  });
+  console.log('[PROTOCOL] userdata:// protocol registered successfully');
   
   await ensureUserDirectories();
+  
+  // Refresh sound library URLs in development mode
+  await refreshSoundLibraryUrls();
+  
   createWindow({ frame: false, fullscreen: true });
 });
 
@@ -234,6 +241,54 @@ async function ensureDefaultSoundsExist() {
   }
 }
 
+// Helper: Force refresh sound library URLs for development
+async function refreshSoundLibraryUrls() {
+  if (process.env.NODE_ENV !== 'development') return;
+  
+  try {
+    const library = await readJson(savedSoundsPath, null);
+    if (!library) return;
+    
+    let needsUpdate = false;
+    for (const soundType of SOUND_TYPES) {
+      for (const sound of library[soundType] || []) {
+        if (sound.isDefault && sound.url) {
+          const filename = path.basename(sound.url);
+          const newUrl = getDevServerUrl(filename);
+          if (sound.url !== newUrl) {
+            console.log(`[SOUNDS] Refreshing URL: ${sound.url} -> ${newUrl}`);
+            sound.url = newUrl;
+            needsUpdate = true;
+          }
+        }
+      }
+    }
+    
+    if (needsUpdate) {
+      await writeJson(savedSoundsPath, library);
+      console.log('[SOUNDS] Refreshed sound library URLs for development');
+    }
+  } catch (error) {
+    console.error('[SOUNDS] Error refreshing sound library URLs:', error);
+  }
+}
+
+// Helper: Get the correct dev server URL for sounds
+function getDevServerUrl(filename) {
+  // Try to get the actual dev server port from the main window URL
+  if (mainWindow && mainWindow.webContents) {
+    const url = mainWindow.webContents.getURL();
+    if (url && url.includes('localhost:')) {
+      const portMatch = url.match(/localhost:(\d+)/);
+      if (portMatch) {
+        return `http://localhost:${portMatch[1]}/sounds/${filename}`;
+      }
+    }
+  }
+  // Fallback to common dev server ports
+  return `http://localhost:5173/sounds/${filename}`;
+}
+
 // Helper: Load sound library (defaults + user sounds)
 async function loadSoundLibrary() {
   try {
@@ -251,7 +306,7 @@ async function loadSoundLibrary() {
         initialLibrary[soundType] = DEFAULT_SOUNDS[soundType].map(sound => ({
           ...sound,
           url: process.env.NODE_ENV === 'development' 
-            ? `/sounds/${sound.filename}` 
+            ? getDevServerUrl(sound.filename)
             : `userdata://sounds/${sound.filename}`,
           enabled: true
         }));
@@ -280,7 +335,7 @@ async function loadSoundLibrary() {
           mergedLibrary[soundType].push({
             ...defaultSound,
             url: process.env.NODE_ENV === 'development' 
-              ? `/sounds/${defaultSound.filename}` 
+              ? getDevServerUrl(defaultSound.filename)
               : `userdata://sounds/${defaultSound.filename}`,
             enabled: true
           });
@@ -288,25 +343,31 @@ async function loadSoundLibrary() {
       }
     }
     
-    // Fix URLs for production (convert file paths to userdata:// protocol)
-    if (process.env.NODE_ENV !== 'development') {
-      let needsUpdate = false;
-      for (const soundType of SOUND_TYPES) {
-        for (const sound of mergedLibrary[soundType]) {
-          // Check for both file paths and old /sounds/ URLs
-          if (sound.url && (sound.url.startsWith(userSoundsPath) || sound.url.startsWith('/sounds/'))) {
-            const filename = path.basename(sound.url);
+    // Fix URLs for ALL user sounds (dev and prod): always use userdata:// protocol
+    let needsUpdate = false;
+    for (const soundType of SOUND_TYPES) {
+      for (const sound of mergedLibrary[soundType]) {
+        if (sound.isDefault && sound.url && process.env.NODE_ENV === 'development' && !sound.url.includes('localhost:')) {
+          // Only update default sounds in dev to use dev server URL
+          const filename = path.basename(sound.url);
+          const oldUrl = sound.url;
+          sound.url = getDevServerUrl(filename);
+          console.log(`[SOUNDS] Converting dev URL: ${oldUrl} -> ${sound.url}`);
+          needsUpdate = true;
+        } else if (!sound.isDefault && sound.filename) {
+          const correctUrl = `userdata://sounds/${sound.filename}`;
+          if (sound.url !== correctUrl) {
             const oldUrl = sound.url;
-            sound.url = `userdata://sounds/${filename}`;
-            console.log(`[SOUNDS] Converting URL: ${oldUrl} -> ${sound.url}`);
+            sound.url = correctUrl;
+            console.log(`[SOUNDS] Converting user sound URL: ${oldUrl} -> ${sound.url}`);
             needsUpdate = true;
           }
         }
       }
-      if (needsUpdate) {
-        await writeJson(savedSoundsPath, mergedLibrary);
-        console.log('[SOUNDS] Updated sound library URLs for production');
-      }
+    }
+    if (needsUpdate) {
+      await writeJson(savedSoundsPath, mergedLibrary);
+      console.log('[SOUNDS] Updated sound library URLs for all user sounds');
     }
     
     // Save merged library if it changed
@@ -323,9 +384,9 @@ async function loadSoundLibrary() {
     for (const soundType of SOUND_TYPES) {
       fallbackLibrary[soundType] = DEFAULT_SOUNDS[soundType].map(sound => ({
         ...sound,
-                    url: process.env.NODE_ENV === 'development' 
-              ? `/sounds/${sound.filename}` 
-              : `userdata://sounds/${sound.filename}`,
+        url: process.env.NODE_ENV === 'development' 
+          ? getDevServerUrl(sound.filename)
+          : `userdata://sounds/${sound.filename}`,
         enabled: true
       }));
     }
@@ -415,36 +476,151 @@ ipcMain.handle('save-saved-sounds', async (event, sounds) => {
 // File dialog handler for sound selection
 ipcMain.handle('select-sound-file', async () => {
   try {
+    console.log('[SOUNDS] Opening file dialog for sound selection');
+    
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openFile'],
       filters: [
-        { name: 'Audio Files', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'aac'] }
-      ]
+        { name: 'Audio Files', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'aac'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      title: 'Select Audio File'
     });
     
     if (!result.canceled && result.filePaths.length > 0) {
       const filePath = result.filePaths[0];
       const filename = path.basename(filePath);
-      return { success: true, file: { path: filePath, name: filename } };
+      
+      // Validate file exists
+      try {
+        await fs.access(filePath);
+      } catch (error) {
+        console.error(`[SOUNDS] Selected file does not exist: ${filePath}`);
+        return { success: false, error: 'Selected file no longer exists. Please try again.' };
+      }
+      
+      // Validate file extension
+      const validExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
+      const fileExtension = path.extname(filename).toLowerCase();
+      if (!validExtensions.includes(fileExtension)) {
+        return { 
+          success: false, 
+          error: `Invalid file type: ${fileExtension}\n\nSupported formats: ${validExtensions.join(', ')}` 
+        };
+      }
+      
+      // Check file size (max 10MB)
+      let fileSize = null;
+      try {
+        const stats = await fs.stat(filePath);
+        fileSize = stats.size;
+        if (stats.size > 10 * 1024 * 1024) {
+          return { 
+            success: false, 
+            error: 'File is too large.\n\nMaximum file size is 10MB. Please select a smaller file.' 
+          };
+        }
+        
+        if (stats.size === 0) {
+          return { 
+            success: false, 
+            error: 'File is empty.\n\nPlease select a valid audio file.' 
+          };
+        }
+      } catch (error) {
+        console.warn(`[SOUNDS] Could not check file stats: ${error.message}`);
+      }
+      
+      console.log(`[SOUNDS] Successfully selected file: ${filename} (${filePath})`);
+      return { 
+        success: true, 
+        file: { 
+          path: filePath, 
+          name: filename,
+          size: fileSize
+        } 
+      };
     } else {
+      console.log('[SOUNDS] File selection cancelled by user');
       return { success: false, error: 'No file selected' };
     }
   } catch (error) {
     console.error('[SOUNDS] Error selecting file:', error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: `Failed to open file dialog: ${error.message}\n\nPlease try again or restart the application.` 
+    };
   }
 });
 
 // Sound management IPC handlers
 ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
   try {
+    console.log(`[SOUNDS] Adding sound: ${name} (${file.name}) to ${soundType}`);
+    
+    // Validate sound type
+    if (!SOUND_TYPES.includes(soundType)) {
+      return { success: false, error: `Invalid sound type: ${soundType}. Valid types: ${SOUND_TYPES.join(', ')}` };
+    }
+    
+    // Validate file object
+    if (!file || !file.path || !file.name) {
+      return { success: false, error: 'Invalid file object provided' };
+    }
+    
+    // Check if source file exists
+    try {
+      await fs.access(file.path);
+    } catch (error) {
+      return { success: false, error: `Source file not found: ${file.path}` };
+    }
+    
+    // Validate file extension
+    const validExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
+    const fileExtension = path.extname(file.name).toLowerCase();
+    if (!validExtensions.includes(fileExtension)) {
+      return { success: false, error: `Invalid file type: ${fileExtension}. Supported formats: ${validExtensions.join(', ')}` };
+    }
+    
+    // Check file size (max 10MB)
+    try {
+      const stats = await fs.stat(file.path);
+      if (stats.size > 10 * 1024 * 1024) {
+        return { success: false, error: 'File is too large. Maximum size is 10MB.' };
+      }
+    } catch (error) {
+      console.warn(`[SOUNDS] Could not check file size: ${error.message}`);
+    }
+    
+    // Validate name
+    if (!name || name.trim().length === 0) {
+      return { success: false, error: 'Sound name cannot be empty' };
+    }
+    
+    if (name.length > 50) {
+      return { success: false, error: 'Sound name is too long. Maximum length is 50 characters.' };
+    }
+    
     // Generate unique filename
     const timestamp = Date.now();
-    const extension = path.extname(file.name);
-    const filename = `user-${soundType}-${timestamp}${extension}`;
+    const filename = `user-${soundType}-${timestamp}${fileExtension}`;
+    
+    // Ensure user sounds directory exists
+    try {
+      await fs.mkdir(userSoundsPath, { recursive: true });
+    } catch (error) {
+      console.error(`[SOUNDS] Failed to create user sounds directory: ${error.message}`);
+      return { success: false, error: 'Failed to create sounds directory. Please check permissions.' };
+    }
     
     // Copy file to user sounds directory
-    const targetPath = await copyFileToUserDirectory(file.path, userSoundsPath, filename);
+    let targetPath;
+    try {
+      targetPath = await copyFileToUserDirectory(file.path, userSoundsPath, filename);
+    } catch (error) {
+      console.error(`[SOUNDS] Failed to copy file: ${error.message}`);
+      return { success: false, error: `Failed to copy file: ${error.message}` };
+    }
     
     // Generate unique ID
     const soundId = `user-${soundType}-${timestamp}`;
@@ -452,31 +628,53 @@ ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
     // Create sound object
     const newSound = {
       id: soundId,
-      name: name || file.name.replace(extension, ''),
+      name: name.trim(),
       filename: filename,
-      url: process.env.NODE_ENV === 'development' 
-        ? targetPath 
-        : `userdata://sounds/${filename}`,
+      url: `userdata://sounds/${filename}`,
       volume: 0.5,
       enabled: true,
       isDefault: false
     };
     
     // Load current library and add new sound
-    const library = await loadSoundLibrary();
+    let library;
+    try {
+      library = await loadSoundLibrary();
+    } catch (error) {
+      console.error(`[SOUNDS] Failed to load sound library: ${error.message}`);
+      return { success: false, error: 'Failed to load sound library. Please try again.' };
+    }
+    
     if (!library[soundType]) {
       library[soundType] = [];
     }
+    
+    // Check for duplicate names in the same sound type
+    const existingSound = library[soundType].find(s => s.name.toLowerCase() === name.toLowerCase());
+    if (existingSound) {
+      return { success: false, error: `A sound with the name "${name}" already exists in ${SOUND_TYPES.find(t => t === soundType)}` };
+    }
+    
     library[soundType].push(newSound);
     
     // Save updated library
-    await writeJson(savedSoundsPath, library);
-    console.log(`[SOUNDS] Added new sound: ${name} to ${soundType}`);
-    
-    return { success: true, sound: newSound };
+    try {
+      await writeJson(savedSoundsPath, library);
+      console.log(`[SOUNDS] Successfully added new sound: ${name} to ${soundType}`);
+      return { success: true, sound: newSound };
+    } catch (error) {
+      console.error(`[SOUNDS] Failed to save sound library: ${error.message}`);
+      // Try to clean up the copied file
+      try {
+        await fs.unlink(targetPath);
+      } catch (cleanupError) {
+        console.warn(`[SOUNDS] Could not clean up file after save failure: ${cleanupError.message}`);
+      }
+      return { success: false, error: 'Failed to save sound library. Please try again.' };
+    }
   } catch (error) {
     console.error('[SOUNDS] Error adding sound:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: `Unexpected error: ${error.message}` };
   }
 });
 
@@ -608,7 +806,8 @@ ipcMain.handle('debug-sounds', async () => {
     extraResourceFiles: [],
     defaultSounds: null,
     soundLibrary: null,
-    protocolRegistered: false
+    protocolRegistered: false,
+    devServerUrl: null
   };
   
   try {
@@ -626,13 +825,31 @@ ipcMain.handle('debug-sounds', async () => {
     debugInfo.soundLibrary = await loadSoundLibrary();
     
     // Check if protocol is registered
-    debugInfo.protocolRegistered = !isDev;
+    debugInfo.protocolRegistered = true; // Always true now
+    
+    // Get dev server URL if in development
+    if (isDev && mainWindow) {
+      const url = mainWindow.webContents.getURL();
+      debugInfo.devServerUrl = url;
+    }
     
     console.log('[DEBUG] Sound debug info:', debugInfo);
     return debugInfo;
   } catch (error) {
     console.error('[DEBUG] Error getting sound debug info:', error);
     return { error: error.message, ...debugInfo };
+  }
+});
+
+// Debug handler to manually refresh sound URLs
+ipcMain.handle('refresh-sound-urls', async () => {
+  try {
+    await refreshSoundLibraryUrls();
+    const library = await loadSoundLibrary();
+    return { success: true, library };
+  } catch (error) {
+    console.error('[DEBUG] Error refreshing sound URLs:', error);
+    return { success: false, error: error.message };
   }
 });
 
