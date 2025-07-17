@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, shell, protocol, dialog } = require('electr
 const path = require('path');
 const { execFile, spawn } = require('child_process');
 const fs = require('fs/promises');
+const fsSync = require('fs');
 const url = require('url');
 
 // Paths for persistent storage
@@ -88,15 +89,20 @@ function createWindow({ frame = false, fullscreen = true, bounds = null } = {}) 
 app.whenReady().then(async () => {
   console.log('User data is stored at:', app.getPath('userData'));
   
-  // Register protocol for serving user files in BOTH dev and prod
-  console.log('[PROTOCOL] Registering userdata:// protocol');
+  // Register protocol for serving user files (sounds and wallpapers)
+  console.log('[PROTOCOL] Registering userdata:// protocol for sounds and wallpapers');
   protocol.registerFileProtocol('userdata', (request, callback) => {
     const url = request.url.substr(11); // Remove 'userdata://'
-    const filePath = path.join(userDataPath, url);
+    let filePath;
+    if (url.startsWith('sounds/')) {
+      filePath = path.join(userSoundsPath, url.replace('sounds/', ''));
+    } else if (url.startsWith('wallpapers/')) {
+      filePath = path.join(userWallpapersPath, url.replace('wallpapers/', ''));
+    }
     console.log(`[PROTOCOL] userdata://${url} -> ${filePath}`);
     callback({ path: filePath });
   });
-  console.log('[PROTOCOL] userdata:// protocol registered successfully');
+  console.log('[PROTOCOL] userdata:// protocol registered successfully for sounds and wallpapers');
   
   await ensureUserDirectories();
   
@@ -120,8 +126,16 @@ console.log('User wallpapers path:', userWallpapersPath);
 async function readJson(filePath, defaultValue) {
   try {
     const data = await fs.readFile(filePath, 'utf-8');
-    console.log(`[READ] Successfully read file: ${filePath}`);
-    return JSON.parse(data);
+    if (!data.trim()) {
+      console.warn(`[READ] File is empty: ${filePath}`);
+      return {};
+    }
+    try {
+      return JSON.parse(data);
+    } catch (parseErr) {
+      console.warn(`[READ] File is invalid JSON: ${filePath}`);
+      return {};
+    }
   } catch (err) {
     if (err.code === 'ENOENT') {
       console.warn(`[READ] File not found: ${filePath}`);
@@ -134,11 +148,13 @@ async function readJson(filePath, defaultValue) {
   }
 }
 
-// Helper: Write JSON file
+// Helper: Write JSON file atomically
 async function writeJson(filePath, data) {
+  const tempPath = filePath + '.tmp';
   try {
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    console.log(`[WRITE] Successfully wrote file: ${filePath}`);
+    await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    await fs.rename(tempPath, filePath);
+    console.log(`[WRITE] Atomically wrote file: ${filePath}`);
     return true;
   } catch (err) {
     if (err.code === 'EACCES') {
@@ -146,6 +162,8 @@ async function writeJson(filePath, data) {
     } else {
       console.error(`[WRITE] Error writing file ${filePath}:`, err);
     }
+    // Clean up temp file if exists
+    try { await fs.unlink(tempPath); } catch {}
     return false;
   }
 }
@@ -850,6 +868,95 @@ ipcMain.handle('refresh-sound-urls', async () => {
   } catch (error) {
     console.error('[DEBUG] Error refreshing sound URLs:', error);
     return { success: false, error: error.message };
+  }
+});
+
+// IPC handler to copy wallpaper to user directory
+ipcMain.handle('copy-wallpaper-to-user-directory', async (event, { filePath, filename }) => {
+  try {
+    if (!fsSync.existsSync(userWallpapersPath)) {
+      fsSync.mkdirSync(userWallpapersPath, { recursive: true });
+    }
+    const destPath = path.join(userWallpapersPath, filename);
+    await fs.copyFile(filePath, destPath);
+    return { success: true, url: `userdata://wallpapers/${filename}` };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// File dialog handler for wallpaper selection
+ipcMain.handle('select-wallpaper-file', async () => {
+  try {
+    console.log('[WALLPAPER] Opening file dialog for wallpaper selection');
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Images & Videos', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'mp4', 'webm', 'mov', 'avi', 'mkv'] },
+        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
+        { name: 'Videos', extensions: ['mp4', 'webm', 'mov', 'avi', 'mkv'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      title: 'Select Wallpaper Image or Video'
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0];
+      const filename = path.basename(filePath);
+      // Validate file exists
+      try {
+        await fs.access(filePath);
+      } catch (error) {
+        console.error(`[WALLPAPER] Selected file does not exist: ${filePath}`);
+        return { success: false, error: 'Selected file no longer exists. Please try again.' };
+      }
+      // Validate file extension
+      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.mp4', '.webm', '.mov', '.avi', '.mkv'];
+      const fileExtension = path.extname(filename).toLowerCase();
+      if (!validExtensions.includes(fileExtension)) {
+        return {
+          success: false,
+          error: `Invalid file type: ${fileExtension}\n\nSupported formats: ${validExtensions.join(', ')}`
+        };
+      }
+      // Check file size (max 20MB)
+      let fileSize = null;
+      try {
+        const stats = await fs.stat(filePath);
+        fileSize = stats.size;
+        if (stats.size > 20 * 1024 * 1024) {
+          return {
+            success: false,
+            error: 'File is too large.\n\nMaximum file size is 20MB. Please select a smaller file.'
+          };
+        }
+        if (stats.size === 0) {
+          return {
+            success: false,
+            error: 'File is empty.\n\nPlease select a valid image or video file.'
+          };
+        }
+      } catch (error) {
+        console.warn(`[WALLPAPER] Could not check file stats: ${error.message}`);
+      }
+      console.log(`[WALLPAPER] Successfully selected file: ${filename} (${filePath})`);
+      return {
+        success: true,
+        file: {
+          path: filePath,
+          name: filename,
+          size: fileSize
+        }
+      };
+    } else {
+      console.log('[WALLPAPER] File selection cancelled by user');
+      return { success: false, error: 'No file selected' };
+    }
+  } catch (error) {
+    console.error('[WALLPAPER] Error selecting file:', error);
+    return {
+      success: false,
+      error: `Failed to open file dialog: ${error.message}\n\nPlease try again or restart the application.`
+    };
   }
 });
 

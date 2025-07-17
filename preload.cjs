@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   removeSound: (data) => ipcRenderer.invoke('remove-sound', data),
   updateSound: (data) => ipcRenderer.invoke('update-sound', data),
   selectSoundFile: () => ipcRenderer.invoke('select-sound-file'),
+  selectWallpaperFile: () => ipcRenderer.invoke('select-wallpaper-file'),
   
   // Legacy sound handlers for backward compatibility
   getSavedSounds: () => ipcRenderer.invoke('get-saved-sounds'),
@@ -21,6 +22,7 @@ contextBridge.exposeInMainWorld('api', {
   copySoundFile: (data) => ipcRenderer.invoke('copy-sound-file', data),
   
   copyWallpaperFile: (data) => ipcRenderer.invoke('copy-wallpaper-file', data),
+  copyWallpaperToUserDirectory: async ({ filePath, filename }) => ipcRenderer.invoke('copy-wallpaper-to-user-directory', { filePath, filename }),
   getUserFiles: () => ipcRenderer.invoke('get-user-files'),
   debugSounds: () => ipcRenderer.invoke('debug-sounds'),
   refreshSoundUrls: () => ipcRenderer.invoke('refresh-sound-urls'),
