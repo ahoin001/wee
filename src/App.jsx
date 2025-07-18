@@ -26,6 +26,12 @@ const channelsApi = window.api?.channels || {
 };
 const resetAllApi = window.api?.resetAll || (async () => {});
 
+// Replace all soundsApi.get/set for general settings with settingsApi.get/set
+const settingsApi = window.api?.settings || {
+  get: async () => ({}),
+  set: async () => {},
+};
+
 function WiiCursor() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
@@ -263,7 +269,7 @@ function App() {
   // Load settings (including barType) from persistent storage
   useEffect(() => {
     async function loadSettings() {
-      let settings = await soundsApi?.get();
+      let settings = await settingsApi?.get();
       if (settings) {
         setIsDarkMode(settings.isDarkMode ?? false);
         setUseCustomCursor(settings.useCustomCursor ?? true);
@@ -284,7 +290,7 @@ function App() {
   // Persist barType and other settings when changed
   useEffect(() => {
     async function persistSettings() {
-      let current = await soundsApi?.get();
+      let current = await settingsApi?.get();
       if (!current) current = {};
       // Merge new state with current
       const merged = {
@@ -302,7 +308,7 @@ function App() {
         cycleInterval,
         cycleAnimation,
       };
-      await soundsApi?.set(merged);
+      await settingsApi?.set(merged);
     }
     persistSettings();
   }, [isDarkMode, useCustomCursor, barType, defaultBarType, glassWiiRibbon, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation]);

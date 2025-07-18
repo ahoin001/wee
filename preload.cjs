@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  settings: {
+    get: () => ipcRenderer.invoke('settings:get'),
+    set: (data) => ipcRenderer.invoke('settings:set', data),
+  },
   sounds: {
     get: () => ipcRenderer.invoke('sounds:get'),
     set: (data) => ipcRenderer.invoke('sounds:set', data),

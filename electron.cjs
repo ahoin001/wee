@@ -14,6 +14,7 @@ const wallpapersFile = path.join(dataDir, 'wallpapers.json');
 const channelsFile = path.join(dataDir, 'channels.json');
 const userWallpapersPath = path.join(dataDir, 'wallpapers');
 const userSoundsPath = path.join(dataDir, 'sounds');
+const settingsFile = path.join(dataDir, 'settings.json');
 
 async function ensureDataDir() {
   await fs.mkdir(dataDir, { recursive: true });
@@ -66,6 +67,18 @@ const channelsData = {
   }
 };
 
+// --- Settings Data Module ---
+const settingsData = {
+  async get() {
+    await ensureDataDir();
+    try { return JSON.parse(await fs.readFile(settingsFile, 'utf-8')); } catch { return {}; }
+  },
+  async set(data) {
+    await ensureDataDir();
+    await fs.writeFile(settingsFile, JSON.stringify(data, null, 2), 'utf-8');
+  },
+};
+
 // --- IPC Handlers ---
 ipcMain.handle('sounds:get', async () => await soundsData.get());
 ipcMain.handle('sounds:set', async (e, data) => { await soundsData.set(data); return true; });
@@ -78,6 +91,9 @@ ipcMain.handle('wallpapers:reset', async () => { await wallpapersData.reset(); r
 ipcMain.handle('channels:get', async () => await channelsData.get());
 ipcMain.handle('channels:set', async (e, data) => { await channelsData.set(data); return true; });
 ipcMain.handle('channels:reset', async () => { await channelsData.reset(); return true; });
+
+ipcMain.handle('settings:get', async () => await settingsData.get());
+ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data); return true; });
 
 // --- Reset All ---
 ipcMain.handle('settings:resetAll', async () => {
@@ -415,12 +431,31 @@ function getDefaultChannels() {
   return channels;
 }
 
+// --- Default Settings Helper ---
+function getDefaultSettings() {
+  return {
+    isDarkMode: false,
+    useCustomCursor: true,
+    barType: 'flat',
+    wallpaper: null,
+    wallpaperOpacity: 1,
+    savedWallpapers: [],
+    likedWallpapers: [],
+    cycleWallpapers: false,
+    cycleInterval: 30,
+    cycleAnimation: 'fade',
+    sounds: {
+      // Will be set up by the sound library loader
+    },
+  };
+}
+
 ipcMain.handle('get-settings', async () => {
-  return await readJson(settingsPath, null);
+  return await readJson(settingsFile, null);
 });
 
 ipcMain.handle('save-settings', async (event, settings) => {
-  return await writeJson(settingsPath, settings);
+  return await writeJson(settingsFile, settings);
 });
 
 ipcMain.handle('get-channel-configs', async () => {
@@ -1121,7 +1156,7 @@ ipcMain.handle('reset-to-default', async () => {
         volume: defaultSound.volume || 0.5
       };
     }
-    await writeJson(settingsPath, defaultSettings);
+    await writeJson(settingsFile, defaultSettings);
 
     // Reset channels
     await writeJson(channelConfigsPath, getDefaultChannels());
