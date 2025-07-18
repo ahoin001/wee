@@ -21,6 +21,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
   const [propertiesImg, setPropertiesImg] = useState(null);
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, img: null });
   const [refreshing, setRefreshing] = useState(false);
+  const [itemLoading, setItemLoading] = useState({});
 
   // Fetch images function
   const fetchImages = () => {
@@ -124,6 +125,25 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
   }
 
   // Browse mode UI
+  // Helper spinner
+  const Spinner = () => (
+    <div style={{
+      position: 'absolute',
+      top: 0, left: 0, right: 0, bottom: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(245,247,250,0.85)',
+      zIndex: 2,
+    }}>
+      <div style={{ width: 32, height: 32, display: 'inline-block' }}>
+        <svg viewBox="0 0 50 50" style={{ width: 32, height: 32 }}>
+          <circle cx="25" cy="25" r="20" fill="none" stroke="#0099ff" strokeWidth="5" strokeDasharray="31.4 31.4" strokeLinecap="round">
+            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+      </div>
+    </div>
+  );
+
   return (
     <BaseModal title="Browse Built-in Images" onClose={onClose} maxWidth="900px">
       {/* Properties Modal */}
@@ -243,7 +263,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
             <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#888' }}>No images found.</div>
           ) : (
             filteredImages.map(img => (
-              <div key={img.url} style={{ padding: 12, boxSizing: 'border-box' }}>
+              <div key={img.url} style={{ padding: 12, boxSizing: 'border-box', position: 'relative' }}>
                 <div
                   onClick={() => onSelect(img)}
                   onContextMenu={e => {
@@ -259,9 +279,9 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
                     borderRadius: 8,
                     overflow: 'hidden',
                     transition: 'transform 0.18s cubic-bezier(.4,1.3,.5,1), box-shadow 0.18s cubic-bezier(.4,1.3,.5,1)',
-                    // boxShadow: '0 0 0 0 rgba(0,153,255,0)',
                     cursor: 'pointer',
-                    // background: '#e9eff3',
+                    background: '#e9eff3',
+                    position: 'relative',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'scale(1.1)';
@@ -272,12 +292,25 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
                     e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,153,255,0)';
                   }}
                 >
-                  {img.format === 'image' ? (
-                    <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                  ) : img.format === 'gif' ? (
-                    <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  {itemLoading[img.url] && <Spinner />}
+                  {img.format === 'image' || img.format === 'gif' ? (
+                    <img
+                      src={img.url}
+                      alt={img.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: itemLoading[img.url] ? 0 : 1, transition: 'opacity 0.2s' }}
+                      onLoad={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
+                      onError={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
+                      onLoadStart={() => setItemLoading(l => ({ ...l, [img.url]: true }))}
+                    />
                   ) : img.format === 'mp4' ? (
-                    <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} autoPlay loop muted />
+                    <video
+                      src={img.url}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: itemLoading[img.url] ? 0 : 1, transition: 'opacity 0.2s' }}
+                      autoPlay loop muted
+                      onLoadedData={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
+                      onLoadStart={() => setItemLoading(l => ({ ...l, [img.url]: true }))}
+                      onError={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
+                    />
                   ) : null}
                 </div>
               </div>
