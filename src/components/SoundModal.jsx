@@ -54,7 +54,9 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
       setTesting({});
       setMessage({ type: '', text: '' });
     }
-  }, [isOpen, audioRefs]);
+    // Only depend on isOpen!
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Clear message after 3s
   useEffect(() => {
