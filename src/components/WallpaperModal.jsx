@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import BaseModal from './BaseModal';
 import './BaseModal.css';
 
 const WALLPAPER_ANIMATIONS = [
@@ -336,20 +337,20 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           </label>
         </div>
       </div>
-      {/* Wallpaper Opacity Slider */}
+      {/* Wallpaper Transparency Slider */}
       <div style={{ borderTop: '1.5px solid #e0e0e6', margin: '18px 0 12px 0', paddingTop: 10 }}>
-        <h3 style={{ color: '#555', fontWeight: 600 }}>Wallpaper Opacity</h3>
+        <h3 style={{ color: '#555', fontWeight: 600 }}>Wallpaper Transparency</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <input
             type="range"
-            min={0.1}
+            min={0}
             max={1}
             step={0.01}
-            value={wallpaperOpacity}
-            onChange={e => setWallpaperOpacity(Number(e.target.value))}
+            value={1 - wallpaperOpacity}
+            onChange={e => setWallpaperOpacity(1 - Number(e.target.value))}
             style={{ flex: 1 }}
           />
-          <span style={{ minWidth: 38, fontWeight: 500, color: '#666' }}>{Math.round(wallpaperOpacity * 100)}%</span>
+          <span style={{ minWidth: 38, fontWeight: 500, color: '#666' }}>{Math.round((1 - wallpaperOpacity) * 100)}%</span>
         </div>
       </div>
     </BaseModal>
