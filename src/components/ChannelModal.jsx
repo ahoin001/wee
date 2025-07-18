@@ -202,9 +202,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setShowError(false);
     // Only save if both media and path are provided
     const newChannel = {
-      media,
-      path: path.trim(),
-      type,
+        media,
+        path: path.trim(),
+        type,
       asAdmin,
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
     };
@@ -213,7 +213,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     const updatedChannels = { ...allChannels, [channelId]: newChannel };
     await window.api?.channels?.set(updatedChannels);
     if (onSave) onSave(channelId, newChannel);
-    onClose();
+      onClose();
   };
 
   const handleRemoveImage = () => {
@@ -243,7 +243,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const footerContent = (
     <>
       <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
-        <button className="cancel-button" onClick={onClose}>Cancel</button>
+      <button className="cancel-button" onClick={onClose}>Cancel</button>
         <button className="clear-button" style={{ border: '1.5px solid #dc3545', color: '#dc3545', background: '#fff', fontWeight: 600 }} onClick={handleClearChannel} onMouseOver={e => e.currentTarget.style.background='#ffeaea'} onMouseOut={e => e.currentTarget.style.background='#fff'}>Clear Channel</button>
         <button className="save-button" onClick={handleSave} title={saveTooltip}>Save Channel</button>
       </div>
@@ -267,7 +267,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           {media ? (
             <div className="image-preview">
               {media.type.startsWith('image/') ? (
-                <img src={media.url} alt="Channel preview" />
+              <img src={media.url} alt="Channel preview" />
               ) : media.type.startsWith('video/') ? (
                 <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
               ) : null}
@@ -333,28 +333,28 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         <h3>{type === 'exe' ? 'Application Path' : 'Website URL'}</h3>
         {type === 'exe' ? (
           <>
-            <div className="path-input-group">
-              <input
-                type="text"
+          <div className="path-input-group">
+            <input
+              type="text"
                 placeholder="C:\Path\To\Application.exe or paste path here"
-                value={path}
-                onChange={handlePathChange}
-                className={`text-input ${pathError ? 'error' : ''}`}
-              />
-              <button
-                className="file-picker-button"
-                onClick={() => exeFileInputRef.current?.click()}
-              >
-                Browse Files
-              </button>
-              <input
-                type="file"
-                accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
-                ref={exeFileInputRef}
-                onChange={(e) => handleExeFileSelect(e.target.files[0])}
-                style={{ display: 'none' }}
-              />
-            </div>
+              value={path}
+              onChange={handlePathChange}
+              className={`text-input ${pathError ? 'error' : ''}`}
+            />
+            <button 
+              className="file-picker-button"
+              onClick={() => exeFileInputRef.current?.click()}
+            >
+              Browse Files
+            </button>
+            <input
+              type="file"
+              accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
+              ref={exeFileInputRef}
+              onChange={(e) => handleExeFileSelect(e.target.files[0])}
+              style={{ display: 'none' }}
+            />
+          </div>
             <div style={{ marginTop: '12px' }}>
               <div style={{ display: 'flex', gap: '1.5em', alignItems: 'center', fontSize: '1em' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
@@ -389,7 +389,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         )}
         {pathError && <p className="error-text">{pathError}</p>}
         <p className="help-text">
-          {type === 'exe'
+          {type === 'exe' 
             ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field </span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
             : 'Enter the complete URL including https://'}
         </p>

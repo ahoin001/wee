@@ -145,7 +145,7 @@
 }
 
 .glass-effect.settings-cog-button {
-  background-color: rgba(224, 228, 232, 0.8);
+  background-color: rgba(232, 228, 224, 0.8);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);

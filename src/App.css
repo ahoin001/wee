@@ -114,15 +114,9 @@ body, #root {
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  background-color: #f7f7fa;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    #f7f7fa 0px,
-    #f7f7fa 1px,
-    #ececf0 1px,
-    #ececf0 2px
-  );
-  background-size: 100% 24px;
+  /* background-color: #f7f7fa; */
+  /* background-image: none; */
+  background: transparent !important;
   box-sizing: border-box;
 }
 

@@ -51,10 +51,10 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
         if (enabledClickSound) {
           const audio = new Audio(enabledClickSound.url);
           audio.volume = enabledClickSound.volume ?? 0.5;
-          audio.play().catch(error => {
-            console.log('Channel click sound playback failed:', error);
-          });
-        }
+        audio.play().catch(error => {
+          console.log('Channel click sound playback failed:', error);
+        });
+      }
       } catch (error) {
         console.log('Failed to load sound library:', error);
       }
@@ -103,9 +103,9 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
           if (enabledHoverSound && !hoverAudioRef.current) {
             const audio = new Audio(enabledHoverSound.url);
             audio.volume = enabledHoverSound.volume ?? 0.3;
-            audio.play().catch(error => {
-              console.log('Channel hover sound playback failed:', error);
-            });
+        audio.play().catch(error => {
+          console.log('Channel hover sound playback failed:', error);
+        });
             hoverAudioRef.current = audio;
           }
         } catch (error) {
@@ -203,33 +203,33 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
 
   return (
     <>
-      {channelContent}
-      <input
-        type="file"
-        accept="image/*,video/mp4"
-        style={{ display: 'none' }}
-        ref={fileInputRef}
-        onChange={(e) => {
-          const file = e.target.files[0];
-          if (file && onMediaChange) {
-            onMediaChange(id, file);
-          }
-          e.target.value = '';
-        }}
-      />
-      <input
-        type="file"
-        accept=".exe"
-        style={{ display: 'none' }}
-        ref={exeInputRef}
-        onChange={(e) => {
-          const file = e.target.files[0];
-          if (file && onAppPathChange) {
-            onAppPathChange(id, file.path);
-          }
-          e.target.value = '';
-        }}
-      />
+          {channelContent}
+        <input
+          type="file"
+          accept="image/*,video/mp4"
+          style={{ display: 'none' }}
+          ref={fileInputRef}
+          onChange={(e) => {
+            const file = e.target.files[0];
+            if (file && onMediaChange) {
+              onMediaChange(id, file);
+            }
+            e.target.value = '';
+          }}
+        />
+        <input
+          type="file"
+          accept=".exe"
+          style={{ display: 'none' }}
+          ref={exeInputRef}
+          onChange={(e) => {
+            const file = e.target.files[0];
+            if (file && onAppPathChange) {
+              onAppPathChange(id, file.path);
+            }
+            e.target.value = '';
+          }}
+        />
       {showImageSearch && (
         <ImageSearchModal
           onClose={() => setShowImageSearch(false)}

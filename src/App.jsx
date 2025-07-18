@@ -7,6 +7,7 @@ import FlatBar from './components/FlatBar';
 import WiiBar from './components/WiiBar';
 import WiiRibbon from './components/WiiRibbon';
 import './App.css';
+import SplashScreen from './components/SplashScreen';
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -107,6 +108,8 @@ function App() {
   const lastMusicEnabledRef = useRef(false);
   // Remove toast state and logic
   // const [toast, setToast] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [splashFading, setSplashFading] = useState(false);
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
 
@@ -147,6 +150,11 @@ function App() {
       });
       setMediaMap(newMediaMap);
       setAppPathMap(newAppPathMap);
+      // --- SplashScreen logic ---
+      setSplashFading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 800); // match fade-out duration
     }
     loadAll();
   }, []);
@@ -216,7 +224,7 @@ function App() {
         testAudio.volume = 0;
         await testAudio.play().catch(err => {
           console.error('Test play failed for background music:', err);
-        });
+      });
         testAudio.pause();
         testAudio.currentTime = 0;
       } catch (err) {
@@ -232,15 +240,15 @@ function App() {
       backgroundAudioRef.current = audio;
       setBackgroundAudio(audio);
       console.log('Background music started playing');
-    } else {
-      if (backgroundAudioRef.current) {
-        backgroundAudioRef.current.pause();
-        backgroundAudioRef.current = null;
-        setBackgroundAudio(null);
+      } else {
+        if (backgroundAudioRef.current) {
+          backgroundAudioRef.current.pause();
+          backgroundAudioRef.current = null;
+          setBackgroundAudio(null);
         console.log('Background music stopped');
       }
       console.warn('No enabled background music sound found. Available:', bgMusicArr);
-    }
+      }
   };
 
   // Listen for sound library updates from SoundModal (polling mechanism)
@@ -285,16 +293,16 @@ function App() {
     async function loadChannelConfigs() {
       let configs = await channelsApi?.get();
       if (!configs) configs = {};
-      setChannelConfigs(configs);
-      // Update mediaMap and appPathMap from saved configs
-      const newMediaMap = {};
-      const newAppPathMap = {};
-      Object.entries(configs).forEach(([channelId, config]) => {
-        if (config.media) newMediaMap[channelId] = config.media;
-        if (config.path) newAppPathMap[channelId] = config.path;
-      });
-      setMediaMap(newMediaMap);
-      setAppPathMap(newAppPathMap);
+        setChannelConfigs(configs);
+        // Update mediaMap and appPathMap from saved configs
+        const newMediaMap = {};
+        const newAppPathMap = {};
+        Object.entries(configs).forEach(([channelId, config]) => {
+          if (config.media) newMediaMap[channelId] = config.media;
+          if (config.path) newAppPathMap[channelId] = config.path;
+        });
+        setMediaMap(newMediaMap);
+        setAppPathMap(newAppPathMap);
     }
     loadChannelConfigs();
   }, []);
@@ -643,150 +651,154 @@ function App() {
 
   // Toast UI
   return (
-    <div className="app-container">
-      {/* Wallpaper background layer with fade crossfade */}
-      {cycleAnimation === 'fade' && prevWallpaper && animating ? (
-        <div className="wallpaper-fade-stack">
-          <div
-            className="wallpaper-bg fade animating"
-            style={{
-              background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
-              opacity: wallpaperOpacity,
-            }}
-          />
-          <div
-            className="wallpaper-bg fade"
-            style={{
-              background: `url('${wallpaper.url}') center center / cover no-repeat`,
-              opacity: wallpaperOpacity,
-            }}
-          />
-        </div>
-      ) : (
-        wallpaper && wallpaper.url && (
-          <div
-            className={`wallpaper-bg${animating ? ' animating' : ''} ${cycleAnimation}`}
-            style={{
+    <>
+      {/* Always render the main UI, but overlay the splash screen while loading */}
+      <div className="app-container" style={{ filter: isLoading ? 'blur(2px)' : 'none', pointerEvents: isLoading ? 'none' : 'auto' }}>
+        {/* Wallpaper background layer with fade crossfade */}
+          {cycleAnimation === 'fade' && prevWallpaper && animating ? (
+            <div className="wallpaper-fade-stack">
+              <div
+                className="wallpaper-bg fade animating"
+                style={{
+                  background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
+                  opacity: wallpaperOpacity,
+                }}
+              />
+              <div
+                className="wallpaper-bg fade"
+                style={{
+                  background: `url('${wallpaper.url}') center center / cover no-repeat`,
+                  opacity: wallpaperOpacity,
+                }}
+              />
+            </div>
+          ) : (
+            wallpaper && wallpaper.url && (
+              <div
+                className={`wallpaper-bg${animating ? ' animating' : ''} ${cycleAnimation}`}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                  background: `url('${wallpaper.url}') center center / cover no-repeat`,
+                  opacity: wallpaperOpacity,
+                  transition: cycleAnimation === 'fade' ? 'opacity 0.8s' : cycleAnimation === 'carousel' ? 'none' : 'none',
+                  transform: animating && cycleAnimation === 'carousel' ? 'none' : 'none',
+                }}
+              />
+            )
+          )}
+          {cycleAnimation === 'carousel' && animating && prevWallpaper && wallpaper ? (
+            <div className="wallpaper-carousel-stack" style={{
               position: 'fixed',
               top: 0,
               left: 0,
-              width: '100vw',
+              width: '200vw',
               height: '100vh',
+              display: 'flex',
+              flexDirection: 'row',
               zIndex: 0,
               pointerEvents: 'none',
-              background: `url('${wallpaper.url}') center center / cover no-repeat`,
-              opacity: wallpaperOpacity,
-              transition: cycleAnimation === 'fade' ? 'opacity 0.8s' : cycleAnimation === 'carousel' ? 'none' : 'none',
-              transform: animating && cycleAnimation === 'carousel' ? 'none' : 'none',
-            }}
-          />
-        )
-      )}
-      {cycleAnimation === 'carousel' && animating && prevWallpaper && wallpaper ? (
-        <div className="wallpaper-carousel-stack" style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '200vw',
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'row',
-          zIndex: 0,
-          pointerEvents: 'none',
-          transform: animating ? 'translateX(0)' : 'translateX(-100vw)',
-          transition: 'transform 0.6s cubic-bezier(.4,1.3,.5,1)',
-        }}>
-          <div className="wallpaper-bg carousel" style={{
-            width: '100vw',
-            height: '100vh',
-            background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
-            opacity: wallpaperOpacity,
-            margin: 0,
-            padding: 0,
-            border: 'none',
-          }} />
-          <div className="wallpaper-bg carousel" style={{
-            width: '100vw',
-            height: '100vh',
-            background: `url('${wallpaper.url}') center center / cover no-repeat`,
-            opacity: wallpaperOpacity,
-            margin: 0,
-            padding: 0,
-            border: 'none',
-          }} />
-        </div>
-      ) : null}
-      {/* Drag region for windowed mode only */}
-      {!isFullscreen && (
-        <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
-      )}
-      {showDragRegion && (
-        <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
-      )}
-      {useCustomCursor && <WiiCursor />}
-      <div className="channels-grid">
-        {channels.map((channel) => {
-          const config = channelConfigs[channel.id];
-          const isConfigured = config && (config.media || config.path);
-          return (
-            <Channel
-              key={channel.id}
-              {...channel}
-              empty={!isConfigured}
-              media={mediaMap[channel.id]}
-              path={appPathMap[channel.id]}
-              type={config?.type}
-              title={config?.title}
-              hoverSound={config?.hoverSound}
-              onMediaChange={handleMediaChange}
-              onAppPathChange={handleAppPathChange}
-              onChannelSave={handleChannelSave}
+              transform: animating ? 'translateX(0)' : 'translateX(-100vw)',
+              transition: 'transform 0.6s cubic-bezier(.4,1.3,.5,1)',
+            }}>
+              <div className="wallpaper-bg carousel" style={{
+                width: '100vw',
+                height: '100vh',
+                background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
+                opacity: wallpaperOpacity,
+                margin: 0,
+                padding: 0,
+                border: 'none',
+              }} />
+              <div className="wallpaper-bg carousel" style={{
+                width: '100vw',
+                height: '100vh',
+                background: `url('${wallpaper.url}') center center / cover no-repeat`,
+                opacity: wallpaperOpacity,
+                margin: 0,
+                padding: 0,
+                border: 'none',
+              }} />
+            </div>
+          ) : null}
+          {/* Drag region for windowed mode only */}
+          {!isFullscreen && (
+            <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
+          )}
+          {showDragRegion && (
+            <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
+          )}
+          {useCustomCursor && <WiiCursor />}
+          <div className="channels-grid">
+            {channels.map((channel) => {
+              const config = channelConfigs[channel.id];
+              const isConfigured = config && (config.media || config.path);
+              return (
+                <Channel
+                  key={channel.id}
+                  {...channel}
+                  empty={!isConfigured}
+                  media={mediaMap[channel.id]}
+                  path={appPathMap[channel.id]}
+                  type={config?.type}
+                  title={config?.title}
+                  hoverSound={config?.hoverSound}
+                  onMediaChange={handleMediaChange}
+                  onAppPathChange={handleAppPathChange}
+                  onChannelSave={handleChannelSave}
+                />
+              );
+            })}
+          </div>
+          {barType === 'flat' ? (
+            <FlatBar
+              onSettingsClick={handleSettingsClick}
+              isEditMode={isEditMode}
+              onToggleDarkMode={handleToggleDarkMode}
+              onToggleCursor={handleToggleCursor}
+              useCustomCursor={useCustomCursor}
+              onSettingsChange={handleSettingsChange}
+              barType={barType}
+              onBarTypeChange={handleBarTypeChange}
+              defaultBarType={defaultBarType}
+              onDefaultBarTypeChange={handleDefaultBarTypeChange}
+              glassWiiRibbon={glassWiiRibbon}
+              onGlassWiiRibbonChange={setGlassWiiRibbon}
             />
-          );
-        })}
-      </div>
-      {barType === 'flat' ? (
-        <FlatBar
-          onSettingsClick={handleSettingsClick}
-          isEditMode={isEditMode}
-          onToggleDarkMode={handleToggleDarkMode}
-          onToggleCursor={handleToggleCursor}
-          useCustomCursor={useCustomCursor}
-          onSettingsChange={handleSettingsChange}
-          barType={barType}
-          onBarTypeChange={handleBarTypeChange}
-          defaultBarType={defaultBarType}
-          onDefaultBarTypeChange={handleDefaultBarTypeChange}
-          glassWiiRibbon={glassWiiRibbon}
-          onGlassWiiRibbonChange={setGlassWiiRibbon}
-        />
-      ) : barType === 'wii-ribbon' ? (
-        <WiiRibbon
-          onSettingsClick={handleSettingsClick}
-          onSettingsChange={handleSettingsChange}
-          onToggleDarkMode={handleToggleDarkMode}
-          onToggleCursor={handleToggleCursor}
-          useCustomCursor={useCustomCursor}
-          barType={barType}
-          onBarTypeChange={handleBarTypeChange}
-          defaultBarType={defaultBarType}
-          onDefaultBarTypeChange={handleDefaultBarTypeChange}
-          glassWiiRibbon={glassWiiRibbon}
-          onGlassWiiRibbonChange={setGlassWiiRibbon}
-        />
-      ) : (
-        <WiiBar
-          onSettingsClick={handleSettingsClick}
-          barType={barType}
-          onBarTypeChange={handleBarTypeChange}
-          onSettingsChange={handleSettingsChange}
-          defaultBarType={defaultBarType}
-          onDefaultBarTypeChange={handleDefaultBarTypeChange}
-          glassWiiRibbon={glassWiiRibbon}
-          onGlassWiiRibbonChange={setGlassWiiRibbon}
-        />
-      )}
-    </div>
+          ) : barType === 'wii-ribbon' ? (
+            <WiiRibbon
+              onSettingsClick={handleSettingsClick}
+              onSettingsChange={handleSettingsChange}
+              onToggleDarkMode={handleToggleDarkMode}
+              onToggleCursor={handleToggleCursor}
+              useCustomCursor={useCustomCursor}
+              barType={barType}
+              onBarTypeChange={handleBarTypeChange}
+              defaultBarType={defaultBarType}
+              onDefaultBarTypeChange={handleDefaultBarTypeChange}
+              glassWiiRibbon={glassWiiRibbon}
+              onGlassWiiRibbonChange={setGlassWiiRibbon}
+            />
+          ) : (
+            <WiiBar
+              onSettingsClick={handleSettingsClick}
+              barType={barType}
+              onBarTypeChange={handleBarTypeChange}
+              onSettingsChange={handleSettingsChange}
+              defaultBarType={defaultBarType}
+              onDefaultBarTypeChange={handleDefaultBarTypeChange}
+              glassWiiRibbon={glassWiiRibbon}
+              onGlassWiiRibbonChange={setGlassWiiRibbon}
+            />
+          )}
+        </div>
+      {isLoading && <SplashScreen fadingOut={splashFading} />}
+    </>
   );
 }
 

@@ -349,28 +349,38 @@ async function loadSoundLibrary() {
       for (const sound of mergedLibrary[soundType]) {
         if (sound.isDefault && sound.enabled === undefined) {
           sound.enabled = soundType === 'startup' ? false : true;
-          needsUpdate = true;
         }
       }
     }
     
-    // Fix URLs for ALL user sounds (dev and prod): always use userdata:// protocol
+    // --- FIX: Always correct default sound URLs in production ---
     let needsUpdate = false;
     for (const soundType of SOUND_TYPES) {
       for (const sound of mergedLibrary[soundType]) {
-        if (sound.isDefault && sound.url && process.env.NODE_ENV === 'development' && !sound.url.includes('localhost:')) {
-          // Only update default sounds in dev to use dev server URL
-          const filename = path.basename(sound.url);
-          const oldUrl = sound.url;
-          sound.url = getDevServerUrl(filename);
-          console.log(`[SOUNDS] Converting dev URL: ${oldUrl} -> ${sound.url}`);
-          needsUpdate = true;
-        } else if (!sound.isDefault && sound.filename) {
+        if (sound.isDefault) {
+          if (process.env.NODE_ENV !== 'development') {
+            // In production, always use userdata:// URL
+            const prodUrl = `userdata://sounds/${sound.filename}`;
+            if (sound.url !== prodUrl) {
+              console.log(`[SOUNDS] Correcting default sound URL for production: ${sound.url} -> ${prodUrl}`);
+              sound.url = prodUrl;
+              needsUpdate = true;
+            }
+          } else {
+            // In dev, always use dev server URL
+            const devUrl = getDevServerUrl(sound.filename);
+            if (sound.url !== devUrl) {
+              console.log(`[SOUNDS] Correcting default sound URL for dev: ${sound.url} -> ${devUrl}`);
+              sound.url = devUrl;
+              needsUpdate = true;
+            }
+          }
+        } else if (sound.filename) {
+          // User sounds: always use userdata:// protocol
           const correctUrl = `userdata://sounds/${sound.filename}`;
           if (sound.url !== correctUrl) {
-            const oldUrl = sound.url;
+            console.log(`[SOUNDS] Correcting user sound URL: ${sound.url} -> ${correctUrl}`);
             sound.url = correctUrl;
-            console.log(`[SOUNDS] Converting user sound URL: ${oldUrl} -> ${sound.url}`);
             needsUpdate = true;
           }
         }
@@ -378,7 +388,7 @@ async function loadSoundLibrary() {
     }
     if (needsUpdate) {
       await writeJson(savedSoundsPath, mergedLibrary);
-      console.log('[SOUNDS] Updated sound library URLs for all user sounds');
+      console.log('[SOUNDS] Updated sound library URLs for all sounds');
     }
     
     // Save merged library if it changed
@@ -1268,7 +1278,7 @@ function createWindow(opts = {}) {
 
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools(); // Commented out to prevent auto-opening console in dev
   } else {
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
