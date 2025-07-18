@@ -77,21 +77,56 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   return (
     <>
       <footer className="interactive-footer">
-          <div className={`absolute inset-0 z-0 svg-container-glow ${glassWiiRibbon ? 'glass-effect' : ''}`}>
+          <div className="absolute inset-0 z-0 svg-container-glow">
               <svg width="100%" height="100%" viewBox="0 0 1440 240" preserveAspectRatio="none">
-                  <path 
-                      d="M 0 40 
-                         L 250 40 
-                         C 450 40, 500 140, 670 140 
-                         L 770 140 
-                         C 940 140, 990 40, 1190 40 
-                         L 1440 40 
-                         L 1440 240 
-                         L 0 240 Z" 
-                      fill={glassWiiRibbon ? "rgba(255, 255, 255, 0.15)" : "hsl(var(--ribbon-bg))"} 
-                      stroke="hsl(var(--wii-gray))" 
-                      strokeWidth="1.5"
+                {glassWiiRibbon && (
+                  <defs>
+                    <filter id="glass-blur" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="2.5" result="blur" />
+                      <feComponentTransfer>
+                        <feFuncA type="linear" slope="1.2" />
+                      </feComponentTransfer>
+                      <feMerge>
+                        <feMergeNode />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                    <linearGradient id="glass-shine" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="rgba(255,255,255,0.7)" />
+                      <stop offset="60%" stop-color="rgba(255,255,255,0.05)" />
+                      <stop offset="100%" stop-color="rgba(255,255,255,0.0)" />
+                    </linearGradient>
+                  </defs>
+                )}
+                <path
+                  d="M 0 40 
+                     L 250 40 
+                     C 450 40, 500 140, 670 140 
+                     L 770 140 
+                     C 940 140, 990 40, 1190 40 
+                     L 1440 40 
+                     L 1440 240 
+                     L 0 240 Z"
+                  fill={glassWiiRibbon ? "rgba(255,255,255,0.18)" : "hsl(var(--ribbon-bg))"}
+                  stroke="rgba(255,255,255,0.5)"
+                  strokeWidth="2"
+                  filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
+                  style={glassWiiRibbon ? { transition: 'fill 0.3s' } : {}}
+                />
+                {glassWiiRibbon && (
+                  <path
+                    d="M 0 40 
+                       L 250 40 
+                       C 450 40, 500 140, 670 140 
+                       L 770 140 
+                       C 940 140, 990 40, 1190 40 
+                       L 1440 40 
+                       L 1440 120 
+                       L 0 120 Z"
+                    fill="url(#glass-shine)"
+                    style={{ opacity: 0.7, pointerEvents: 'none' }}
                   />
+                )}
               </svg>
           </div>
 
