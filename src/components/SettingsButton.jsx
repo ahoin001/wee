@@ -6,7 +6,7 @@ import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
 import './SettingsButton.css';
 
-function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange }) {
+function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange, glassWiiRibbon, onGlassWiiRibbonChange }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
@@ -193,6 +193,8 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
           }}
           defaultBarType={defaultBarType}
           setDefaultBarType={onDefaultBarTypeChange}
+          glassWiiRibbon={glassWiiRibbon}
+          setGlassWiiRibbon={onGlassWiiRibbonChange}
         />
       )}
     </>
@@ -211,6 +213,8 @@ SettingsButton.propTypes = {
   onBarTypeChange: PropTypes.func,
   defaultBarType: PropTypes.string,
   onDefaultBarTypeChange: PropTypes.func,
+  glassWiiRibbon: PropTypes.bool,
+  onGlassWiiRibbonChange: PropTypes.func,
 };
 
 export default SettingsButton; 

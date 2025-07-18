@@ -4,7 +4,7 @@ import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
 import './WiiBar.css';
 
-function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange }) {
+function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange, glassWiiRibbon, onGlassWiiRibbonChange }) {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
   const [showMenu, setShowMenu] = useState(false);
@@ -234,6 +234,8 @@ function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleC
           }}
           defaultBarType={defaultBarType}
           setDefaultBarType={onDefaultBarTypeChange}
+          glassWiiRibbon={glassWiiRibbon}
+          setGlassWiiRibbon={onGlassWiiRibbonChange}
         />
       )}
     </>

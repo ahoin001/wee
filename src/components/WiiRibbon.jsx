@@ -4,7 +4,7 @@ import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
 import './WiiRibbon.css';
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange, glassWiiRibbon, onGlassWiiRibbonChange }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -77,7 +77,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   return (
     <>
       <footer className="interactive-footer">
-          <div className="absolute inset-0 z-0 svg-container-glow">
+          <div className={`absolute inset-0 z-0 svg-container-glow ${glassWiiRibbon ? 'glass-effect' : ''}`}>
               <svg width="100%" height="100%" viewBox="0 0 1440 240" preserveAspectRatio="none">
                   <path 
                       d="M 0 40 
@@ -88,7 +88,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                          L 1440 40 
                          L 1440 240 
                          L 0 240 Z" 
-                      fill="hsl(var(--ribbon-bg))" 
+                      fill={glassWiiRibbon ? "rgba(255, 255, 255, 0.15)" : "hsl(var(--ribbon-bg))"} 
                       stroke="hsl(var(--wii-gray))" 
                       strokeWidth="1.5"
                   />
@@ -111,7 +111,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           </div>
           
           <div 
-            className="sd-card-button absolute z-10 settings-cog-button" 
+            className={`sd-card-button absolute z-10 settings-cog-button ${glassWiiRibbon ? 'glass-effect' : ''}`}
             style={{ left: '220px', top: '158px' }}
             onClick={handleSettingsClick}
           >
@@ -256,6 +256,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           }}
           defaultBarType={defaultBarType}
           setDefaultBarType={onDefaultBarTypeChange}
+          glassWiiRibbon={glassWiiRibbon}
+          setGlassWiiRibbon={onGlassWiiRibbonChange}
         />
       )}
     </>

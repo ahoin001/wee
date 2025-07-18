@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 
-function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, defaultBarType, setDefaultBarType }) {
+function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, defaultBarType, setDefaultBarType, glassWiiRibbon, setGlassWiiRibbon }) {
   const [pip, setPip] = useState(immersivePip);
   const [barType, setBarType] = useState(defaultBarType);
+  const [glassRibbon, setGlassRibbon] = useState(glassWiiRibbon);
 
   const handleSave = () => {
     setImmersivePip(pip);
     setDefaultBarType(barType);
+    setGlassWiiRibbon(glassRibbon);
     onClose();
   };
 
@@ -26,6 +28,20 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           </label>
           <div style={{ color: '#666', fontSize: 14, marginLeft: 28 }}>
             When enabled, opening a URL from a channel will open it in a window inside the app. When disabled, URLs open in your default browser.
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <input
+              type="checkbox"
+              checked={glassRibbon}
+              onChange={e => setGlassRibbon(e.target.checked)}
+            />
+            Glass Wii Ribbon
+          </label>
+          <div style={{ color: '#666', fontSize: 14, marginLeft: 28 }}>
+            When enabled, the Wii Ribbon will have a frosted glass effect, allowing you to see the wallpaper behind it while maintaining button visibility.
           </div>
         </div>
 
@@ -71,6 +87,8 @@ GeneralSettingsModal.propTypes = {
   setImmersivePip: PropTypes.func.isRequired,
   defaultBarType: PropTypes.string.isRequired,
   setDefaultBarType: PropTypes.func.isRequired,
+  glassWiiRibbon: PropTypes.bool.isRequired,
+  setGlassWiiRibbon: PropTypes.func.isRequired,
 };
 
 export default GeneralSettingsModal; 

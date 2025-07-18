@@ -82,6 +82,7 @@ function App() {
   const [showDragRegion, setShowDragRegion] = useState(false);
   const [barType, setBarType] = useState('wii-ribbon');
   const [defaultBarType, setDefaultBarType] = useState('wii-ribbon');
+  const [glassWiiRibbon, setGlassWiiRibbon] = useState(false);
   const [wallpaper, setWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
   const [savedWallpapers, setSavedWallpapers] = useState([]);
@@ -268,6 +269,7 @@ function App() {
         setUseCustomCursor(settings.useCustomCursor ?? true);
         setBarType(settings.barType ?? 'wii-ribbon');
         setDefaultBarType(settings.defaultBarType ?? 'wii-ribbon');
+        setGlassWiiRibbon(settings.glassWiiRibbon ?? false);
         setWallpaper(settings.wallpaper || null);
         setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
         setSavedWallpapers(settings.savedWallpapers || []);
@@ -281,20 +283,29 @@ function App() {
   }, []);
   // Persist barType and other settings when changed
   useEffect(() => {
-    soundsApi?.set({
-      isDarkMode,
-      useCustomCursor,
-      barType,
-      defaultBarType,
-      wallpaper,
-      wallpaperOpacity,
-      savedWallpapers,
-      likedWallpapers,
-      cycleWallpapers,
-      cycleInterval,
-      cycleAnimation,
-    });
-  }, [isDarkMode, useCustomCursor, barType, defaultBarType, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation]);
+    async function persistSettings() {
+      let current = await soundsApi?.get();
+      if (!current) current = {};
+      // Merge new state with current
+      const merged = {
+        ...current,
+        isDarkMode,
+        useCustomCursor,
+        barType,
+        defaultBarType,
+        glassWiiRibbon,
+        wallpaper,
+        wallpaperOpacity,
+        savedWallpapers,
+        likedWallpapers,
+        cycleWallpapers,
+        cycleInterval,
+        cycleAnimation,
+      };
+      await soundsApi?.set(merged);
+    }
+    persistSettings();
+  }, [isDarkMode, useCustomCursor, barType, defaultBarType, glassWiiRibbon, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation]);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -691,6 +702,8 @@ function App() {
           onBarTypeChange={handleBarTypeChange}
           defaultBarType={defaultBarType}
           onDefaultBarTypeChange={handleDefaultBarTypeChange}
+          glassWiiRibbon={glassWiiRibbon}
+          onGlassWiiRibbonChange={setGlassWiiRibbon}
         />
       ) : barType === 'wii-ribbon' ? (
         <WiiRibbon
@@ -703,6 +716,8 @@ function App() {
           onBarTypeChange={handleBarTypeChange}
           defaultBarType={defaultBarType}
           onDefaultBarTypeChange={handleDefaultBarTypeChange}
+          glassWiiRibbon={glassWiiRibbon}
+          onGlassWiiRibbonChange={setGlassWiiRibbon}
         />
       ) : (
         <WiiBar
@@ -712,6 +727,8 @@ function App() {
           onSettingsChange={handleSettingsChange}
           defaultBarType={defaultBarType}
           onDefaultBarTypeChange={handleDefaultBarTypeChange}
+          glassWiiRibbon={glassWiiRibbon}
+          onGlassWiiRibbonChange={setGlassWiiRibbon}
         />
       )}
     </div>

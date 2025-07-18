@@ -19,6 +19,8 @@ function FlatBar(props) {
         onBarTypeChange={props.onBarTypeChange}
         defaultBarType={props.defaultBarType}
         onDefaultBarTypeChange={props.onDefaultBarTypeChange}
+        glassWiiRibbon={props.glassWiiRibbon}
+        onGlassWiiRibbonChange={props.onGlassWiiRibbonChange}
       />
       <NotificationsButton />
     </div>
