@@ -6,12 +6,12 @@ import ImageSearchModal from './ImageSearchModal';
 
 const channelsApi = window.api?.channels;
 
-function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound }) {
+function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover }) {
   const [media, setMedia] = useState(currentMedia);
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
   const [pathError, setPathError] = useState('');
-  const [asAdmin, setAsAdmin] = useState(false);
+  const [asAdmin, setAsAdmin] = useState(currentAsAdmin);
   const fileInputRef = useRef();
   const exeFileInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -24,6 +24,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [hoverSoundEnabled, setHoverSoundEnabled] = useState(!!hoverSound);
   const [hoverSoundAudio, setHoverSoundAudio] = useState(null);
   const [showError, setShowError] = useState(false);
+  const [animatedOnHover, setAnimatedOnHover] = useState(currentAnimatedOnHover);
 
   // When type changes, clear the path
   useEffect(() => {
@@ -40,6 +41,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         setType(data[channelId].type);
         setAsAdmin(data[channelId].asAdmin);
         setHoverSound(data[channelId].hoverSound);
+        setAnimatedOnHover(data[channelId].animatedOnHover);
       }
     }
     loadChannel();
@@ -207,6 +209,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         type,
       asAdmin,
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
+      animatedOnHover: animatedOnHover !== 'global' ? animatedOnHover : undefined,
     };
     // Save to channels API
     const allChannels = await window.api?.channels?.get();
@@ -454,6 +457,47 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           )}
         </div>
       </div>
+      {/* Divider */}
+      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
+      {/* Animation Playback Section */}
+      <div className="form-section">
+        <h3>Animation Playback</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="radio"
+              name="animatedOnHover"
+              value="global"
+              checked={animatedOnHover === undefined || animatedOnHover === 'global'}
+              onChange={() => setAnimatedOnHover('global')}
+            />
+            Use global setting
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="radio"
+              name="animatedOnHover"
+              value="true"
+              checked={animatedOnHover === true}
+              onChange={() => setAnimatedOnHover(true)}
+            />
+            Only play animation on hover (override)
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="radio"
+              name="animatedOnHover"
+              value="false"
+              checked={animatedOnHover === false}
+              onChange={() => setAnimatedOnHover(false)}
+            />
+            Always play animation (override)
+          </label>
+        </div>
+        <div style={{ color: '#666', fontSize: 13, marginTop: 4, marginLeft: 2 }}>
+          If set, this overrides the global animation playback setting for this channel only.
+        </div>
+      </div>
     </BaseModal>
   );
 }
@@ -466,6 +510,8 @@ ChannelModal.propTypes = {
   currentPath: PropTypes.string,
   currentType: PropTypes.string,
   currentHoverSound: PropTypes.object,
+  currentAsAdmin: PropTypes.bool,
+  currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global']),
 };
 
 export default ChannelModal; 

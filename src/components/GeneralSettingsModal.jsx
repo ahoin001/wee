@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 
-function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon }) {
+function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover }) {
   const [pip, setPip] = useState(immersivePip);
   const [glassRibbon, setGlassRibbon] = useState(glassWiiRibbon);
+  const [hoverAnim, setHoverAnim] = useState(animatedOnHover);
 
   const handleSave = () => {
     setImmersivePip(pip);
     setGlassWiiRibbon(glassRibbon);
+    setAnimatedOnHover(hoverAnim);
     onClose();
   };
 
@@ -49,6 +51,23 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           </div>
         </div>
 
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <span>Only play animated channels on hover</span>
+            <span className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={hoverAnim}
+                onChange={e => setHoverAnim(e.target.checked)}
+              />
+              <span className="slider" />
+            </span>
+          </label>
+          <div style={{ color: '#666', fontSize: 14, marginLeft: 28 }}>
+            When enabled, channels using GIFs or MP4s will only animate when hovered. Otherwise, they always animate.
+          </div>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
           <button className="cancel-button" onClick={onClose}>Cancel</button>
           <button className="save-button" onClick={handleSave}>Save</button>
@@ -65,6 +84,8 @@ GeneralSettingsModal.propTypes = {
   setImmersivePip: PropTypes.func.isRequired,
   glassWiiRibbon: PropTypes.bool.isRequired,
   setGlassWiiRibbon: PropTypes.func.isRequired,
+  animatedOnHover: PropTypes.bool.isRequired,
+  setAnimatedOnHover: PropTypes.func.isRequired,
 };
 
 export default GeneralSettingsModal; 

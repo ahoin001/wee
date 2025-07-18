@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import ChannelModal from './ChannelModal';
@@ -17,13 +17,48 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound }) {
+function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig }) {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [showImageSearch, setShowImageSearch] = useState(false);
   const hoverAudioRef = useRef(null);
   const fadeIntervalRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [mp4Preview, setMp4Preview] = useState(null);
+  const videoRef = useRef(null);
+  const previewVideoRef = useRef(null);
+  const previewCanvasRef = useRef(null);
+
+  // Generate static preview for MP4s on mount or when media changes
+  useEffect(() => {
+    if (media && media.type && media.type.startsWith('video/') && globalAnimatedOnHover && !mp4Preview) {
+      // Create a static preview from the first frame
+      const video = document.createElement('video');
+      video.src = media.url;
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.addEventListener('loadeddata', () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        try {
+          const dataUrl = canvas.toDataURL('image/png');
+          setMp4Preview(dataUrl);
+        } catch (e) {
+          setMp4Preview(null);
+        }
+      }, { once: true });
+      // Seek to 0 to ensure first frame
+      video.currentTime = 0;
+    } else if (!media || !media.type.startsWith('video/')) {
+      setMp4Preview(null);
+    }
+  }, [media, globalAnimatedOnHover]);
 
   const handleClick = async () => {
     if (hoverAudioRef.current) {
@@ -179,11 +214,91 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   };
 
   let mediaPreview = null;
+  // Determine which animatedOnHover setting to use
+  const effectiveAnimatedOnHover = (channelConfig && channelConfig.animatedOnHover !== undefined)
+    ? channelConfig.animatedOnHover
+    : globalAnimatedOnHover;
   if (media) {
     if (media.type.startsWith('image/')) {
       mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;
     } else if (media.type.startsWith('video/')) {
-      mediaPreview = <video src={media.url} className="channel-media" autoPlay loop muted />;
+      if (effectiveAnimatedOnHover) {
+        if (!isHovered && mp4Preview) {
+          // Show static preview image
+          mediaPreview = (
+            <img
+              src={mp4Preview}
+              alt="Channel preview"
+              className="channel-media"
+              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+              onMouseEnter={() => setIsHovered(true)}
+              onFocus={() => setIsHovered(true)}
+              tabIndex={0}
+            />
+          );
+        } else {
+          // Show video on hover
+          mediaPreview = (
+            <video
+              ref={videoRef}
+              src={media.url}
+              className="channel-media"
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+              onMouseLeave={() => {
+                setIsHovered(false);
+                if (videoRef.current) {
+                  videoRef.current.pause();
+                  videoRef.current.currentTime = 0;
+                }
+              }}
+              onBlur={() => {
+                setIsHovered(false);
+                if (videoRef.current) {
+                  videoRef.current.pause();
+                  videoRef.current.currentTime = 0;
+                }
+              }}
+            />
+          );
+        }
+      } else {
+        mediaPreview = <video src={media.url} className="channel-media" autoPlay loop muted playsInline style={{ objectFit: 'cover', width: '100%', height: '100%' }} />;
+      }
+    } else if (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) {
+      if (effectiveAnimatedOnHover && media.staticPreview && !isHovered) {
+        // Show static preview for GIF if available
+        mediaPreview = (
+          <img
+            src={media.staticPreview}
+            alt="Channel preview"
+            className="channel-media"
+            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+            onMouseEnter={() => setIsHovered(true)}
+            onFocus={() => setIsHovered(true)}
+            tabIndex={0}
+          />
+        );
+      } else {
+        // Show animated GIF (always, or on hover)
+        mediaPreview = (
+          <img
+            src={media.url}
+            alt="Channel media"
+            className="channel-media"
+            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+            onMouseLeave={effectiveAnimatedOnHover ? () => setIsHovered(false) : undefined}
+            onBlur={effectiveAnimatedOnHover ? () => setIsHovered(false) : undefined}
+            onMouseEnter={effectiveAnimatedOnHover ? () => setIsHovered(true) : undefined}
+            onFocus={effectiveAnimatedOnHover ? () => setIsHovered(true) : undefined}
+            tabIndex={effectiveAnimatedOnHover ? 0 : undefined}
+          />
+        );
+      }
     }
   }
 
@@ -191,8 +306,8 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     <div
       className={empty && !media ? "channel empty" : "channel"}
       onClick={handleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={e => { handleMouseEnter(e); setIsHovered(true); }}
+      onMouseLeave={e => { handleMouseLeave(e); setIsHovered(false); }}
       tabIndex={0}
       role="button"
       onContextMenu={handleRightClick}
@@ -246,6 +361,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
           currentPath={path}
           currentType={type}
           currentAsAdmin={asAdmin}
+          currentAnimatedOnHover={channelConfig?.animatedOnHover}
         />
       )}
     </>
@@ -271,6 +387,7 @@ Channel.propTypes = {
     url: PropTypes.string,
     volume: PropTypes.number,
   }),
+  animatedOnHover: PropTypes.bool,
 };
 
 export default Channel;

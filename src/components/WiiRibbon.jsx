@@ -7,7 +7,7 @@ import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 // import more icons as needed
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange, glassWiiRibbon, onGlassWiiRibbonChange }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -378,10 +378,10 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
             setImmersivePip(val);
             localStorage.setItem('immersivePip', JSON.stringify(val));
           }}
-          defaultBarType={defaultBarType}
-          setDefaultBarType={onDefaultBarTypeChange}
           glassWiiRibbon={glassWiiRibbon}
           setGlassWiiRibbon={onGlassWiiRibbonChange}
+          animatedOnHover={!!animatedOnHover}
+          setAnimatedOnHover={setAnimatedOnHover}
         />
       )}
       {showPrimaryActionsModal && (
