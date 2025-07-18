@@ -26,6 +26,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [fadeState, setFadeState] = useState('fade-in');
   const [selectedWallpaper, setSelectedWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
+  const [timeColor, setTimeColor] = useState('#ffffff'); // Default white
+  const [timeFormat24hr, setTimeFormat24hr] = useState(true); // Default 24hr format
+  const [enableTimePill, setEnableTimePill] = useState(true); // Default enabled
+  const [timePillBlur, setTimePillBlur] = useState(8); // Default blur amount
+  const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Default background opacity
 
   // Load wallpapers from backend
   const loadWallpapers = async () => {
@@ -40,6 +45,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setCycleInterval(data.cyclingSettings?.interval ?? 30);
       setCycleAnimation(data.cyclingSettings?.animation ?? 'fade');
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
+      setTimeColor(data.timeColor || '#ffffff'); // Load time color setting
+      setTimeFormat24hr(data.timeFormat24hr ?? true); // Load time format setting
+      setEnableTimePill(data.enableTimePill ?? true); // Load time pill enabled setting
+      setTimePillBlur(data.timePillBlur ?? 8); // Load time pill blur setting
+      setTimePillOpacity(data.timePillOpacity ?? 0.05); // Load time pill opacity setting
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load wallpapers: ' + err.message });
     } finally {
@@ -184,6 +194,17 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   // Save both selected wallpaper and cycling settings
   const handleSaveAll = async () => {
     try {
+      // First, save all the settings to prevent race conditions
+      let data = await api.get();
+      data.wallpaperOpacity = wallpaperOpacity;
+      data.timeColor = timeColor; // Save time color setting
+      data.timeFormat24hr = timeFormat24hr; // Save time format setting
+      data.enableTimePill = enableTimePill; // Save time pill enabled setting
+      data.timePillBlur = timePillBlur; // Save time pill blur setting
+      data.timePillOpacity = timePillOpacity; // Save time pill opacity setting
+      await api.set(data);
+      
+      // Then handle wallpaper and cycling settings
       if (selectedWallpaper) {
         await api.setActive({ url: selectedWallpaper.url });
       }
@@ -192,14 +213,27 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         interval: cycleInterval,
         animation: cycleAnimation,
       });
-      // Save opacity
-      let data = await api.get();
-      data.wallpaperOpacity = wallpaperOpacity;
-      await api.set(data);
+      
       setMessage({ type: 'success', text: 'Wallpaper and settings saved.' });
-      await loadWallpapers();
-      // Immediately update app background
-      if (onSettingsChange) onSettingsChange();
+      
+      // Immediately update app background and time color
+      if (window.settings) {
+        window.settings.timeColor = timeColor; // Update window.settings immediately
+        window.settings.timeFormat24hr = timeFormat24hr; // Update time format immediately
+        window.settings.enableTimePill = enableTimePill; // Update time pill enabled immediately
+        window.settings.timePillBlur = timePillBlur; // Update time pill blur immediately
+        window.settings.timePillOpacity = timePillOpacity; // Update time pill opacity immediately
+      }
+      
+      // Update local state to match what we just saved
+      setTimeColor(timeColor);
+      setTimeFormat24hr(timeFormat24hr);
+      setEnableTimePill(enableTimePill);
+      setTimePillBlur(timePillBlur);
+      setTimePillOpacity(timePillOpacity);
+      
+      // Don't call loadWallpapers() as it overwrites our settings
+      // Don't call onSettingsChange since we're updating window.settings directly
       handleClose(); // Use fade-out close
     } catch (err) {
       setMessage({ type: 'error', text: 'Save failed: ' + err.message });
@@ -366,6 +400,140 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round((1 - wallpaperOpacity) * 100)}%</span>
         </div>
         <div className="wee-card-desc">Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
+      </div>
+      {/* Time Format Toggle Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Time Format</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Choose how the time is displayed on the homescreen.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="timeFormat"
+                checked={timeFormat24hr}
+                onChange={() => setTimeFormat24hr(true)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span style={{ fontWeight: 500 }}>24-Hour (14:30)</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="timeFormat"
+                checked={!timeFormat24hr}
+                onChange={() => setTimeFormat24hr(false)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span style={{ fontWeight: 500 }}>12-Hour (2:30 PM)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      {/* Time Display Color Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Time Display Color</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Choose the color for the time and date display on the homescreen. This helps ensure the time is visible against different wallpapers.
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
+            {[
+              { color: '#ffffff', name: 'White', label: 'White' },
+              { color: '#000000', name: 'Black', label: 'Black' },
+              { color: '#808080', name: 'Gray', label: 'Gray' },
+              { color: '#ffd700', name: 'Gold', label: 'Gold' }
+            ].map((option) => (
+              <button
+                key={option.color}
+                onClick={() => setTimeColor(option.color)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  border: timeColor === option.color ? '2px solid #0099ff' : '2px solid #e0e0e0',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.2s, transform 0.1s',
+                  minWidth: 80,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    backgroundColor: option.color,
+                    border: option.color === '#ffffff' ? '1px solid #ccc' : 'none',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                />
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#333' }}>{option.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Time Pill Configuration Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Time Pill</span>
+          <label className="toggle-switch" style={{ margin: 0 }}>
+            <input
+              type="checkbox"
+              checked={enableTimePill}
+              onChange={e => setEnableTimePill(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Control the appearance of the time display pill on the homescreen. The pill provides a glass-like container around the time for better visibility.
+          {enableTimePill && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
+                <span style={{ fontWeight: 500, minWidth: 120 }}>Backdrop Blur</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={20}
+                  step={1}
+                  value={timePillBlur}
+                  onChange={e => setTimePillBlur(Number(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ minWidth: 30, fontWeight: 600, color: '#555' }}>{timePillBlur}px</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                <span style={{ fontWeight: 500, minWidth: 120 }}>Background Opacity</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={0.3}
+                  step={0.01}
+                  value={timePillOpacity}
+                  onChange={e => setTimePillOpacity(Number(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{Math.round(timePillOpacity * 100)}%</span>
+              </div>
+              <div style={{ fontSize: 14, color: '#666', marginTop: 12 }}>
+                <strong>Backdrop Blur:</strong> Controls how much the background is blurred behind the pill. Lower values make it more see-through.<br/>
+                <strong>Background Opacity:</strong> Controls the transparency of the pill's background. Lower values make it more transparent.
+              </div>
+            </>
+          )}
+        </div>
       </div>
       {/* Enable Cycling Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>

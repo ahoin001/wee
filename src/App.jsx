@@ -108,6 +108,13 @@ function App() {
   // const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
+  const [timeColor, setTimeColor] = useState('#ffffff'); // Time display color
+  const [timeFormat24hr, setTimeFormat24hr] = useState(true); // Time format (24hr/12hr)
+  const [enableTimePill, setEnableTimePill] = useState(true); // Time pill enabled
+  const [timePillBlur, setTimePillBlur] = useState(8); // Time pill backdrop blur
+  const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
+  const currentTimeColorRef = useRef('#ffffff');
+  const currentTimeFormatRef = useRef(true);
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
 
@@ -126,6 +133,11 @@ function App() {
       setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
       setCycleInterval(wallpaperData?.cycleInterval ?? 30);
       setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+      setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Load timeColor
+      setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Load timeFormat24hr
+      setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Load enableTimePill
+      setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Load timePillBlur
+      setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Load timePillOpacity
       // Load channels
       const channelData = await channelsApi.get();
       // Always show 12 channels
@@ -324,6 +336,13 @@ function App() {
         setCycleWallpapers(settings.cycleWallpapers ?? false);
         setCycleInterval(settings.cycleInterval ?? 30);
         setCycleAnimation(settings.cycleAnimation || 'fade');
+        setTimeColor(settings.timeColor || '#ffffff'); // Load timeColor
+        setTimeFormat24hr(settings.timeFormat24hr ?? true); // Load timeFormat24hr
+        setEnableTimePill(settings.enableTimePill ?? true); // Load enableTimePill
+        setTimePillBlur(settings.timePillBlur ?? 8); // Load timePillBlur
+        setTimePillOpacity(settings.timePillOpacity ?? 0.05); // Load timePillOpacity
+        currentTimeColorRef.current = settings.timeColor || '#ffffff';
+        currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
       }
     }
     loadSettings();
@@ -347,11 +366,25 @@ function App() {
         cycleWallpapers,
         cycleInterval,
         cycleAnimation,
+        timeColor, // Persist timeColor
+        timeFormat24hr, // Persist timeFormat24hr
+        enableTimePill, // Persist enableTimePill
+        timePillBlur, // Persist timePillBlur
+        timePillOpacity, // Persist timePillOpacity
       };
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation]);
+  }, [isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity]);
+
+  // Update refs when time settings change
+  useEffect(() => {
+    currentTimeColorRef.current = timeColor;
+  }, [timeColor]);
+
+  useEffect(() => {
+    currentTimeFormatRef.current = timeFormat24hr;
+  }, [timeFormat24hr]);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -397,6 +430,12 @@ function App() {
         setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
         setCycleInterval(wallpaperData?.cycleInterval ?? 30);
         setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+        // Preserve current time settings if they exist, otherwise use saved values
+        setTimeColor(wallpaperData?.timeColor || currentTimeColorRef.current || '#ffffff');
+        setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? currentTimeFormatRef.current ?? true);
+        setEnableTimePill(wallpaperData?.enableTimePill ?? true);
+        setTimePillBlur(wallpaperData?.timePillBlur ?? 8);
+        setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05);
       };
       window.api.onWallpapersUpdated(reloadWallpapers);
       return () => window.api.offWallpapersUpdated(reloadWallpapers);
@@ -496,6 +535,13 @@ function App() {
       setCycleWallpapers(settings.cycleWallpapers ?? false);
       setCycleInterval(settings.cycleInterval ?? 30);
       setCycleAnimation(settings.cycleAnimation || 'fade');
+      setTimeColor(settings.timeColor || '#ffffff'); // Update timeColor
+      setTimeFormat24hr(settings.timeFormat24hr ?? true); // Update timeFormat24hr
+      setEnableTimePill(settings.enableTimePill ?? true); // Update enableTimePill
+      setTimePillBlur(settings.timePillBlur ?? 8); // Update timePillBlur
+      setTimePillOpacity(settings.timePillOpacity ?? 0.05); // Update timePillOpacity
+      currentTimeColorRef.current = settings.timeColor || '#ffffff';
+      currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
       setSoundSettings(settings.sounds || {});
     }
   };
@@ -509,6 +555,11 @@ function App() {
     cycleWallpapers,
     cycleInterval,
     cycleAnimation,
+    timeColor,
+    timeFormat24hr,
+    enableTimePill,
+    timePillBlur,
+    timePillOpacity,
   };
 
   // Compute the list of wallpapers to cycle through
@@ -566,6 +617,11 @@ function App() {
     setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
     setCycleInterval(wallpaperData?.cycleInterval ?? 30);
     setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+    setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Update timeColor
+    setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Update timeFormat24hr
+    setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Update enableTimePill
+    setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
+    setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
   };
 
   // On save for channels
@@ -589,6 +645,11 @@ function App() {
     setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
     setCycleInterval(wallpaperData?.cycleInterval ?? 30);
     setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+    setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Update timeColor
+    setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Update timeFormat24hr
+    setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Update enableTimePill
+    setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
+    setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
     const channelData = await channelsApi?.get();
     setChannelConfigs(channelData || {});
   };
@@ -734,6 +795,7 @@ function App() {
                 type={config?.type}
                 title={config?.title}
                 hoverSound={config?.hoverSound}
+                asAdmin={config?.asAdmin}
                 onMediaChange={handleMediaChange}
                 onAppPathChange={handleAppPathChange}
                 onChannelSave={handleChannelSave}
@@ -753,6 +815,9 @@ function App() {
           onGlassWiiRibbonChange={setGlassWiiRibbon}
           animatedOnHover={animatedOnHover}
           setAnimatedOnHover={setAnimatedOnHover}
+          enableTimePill={enableTimePill}
+          timePillBlur={timePillBlur}
+          timePillOpacity={timePillOpacity}
         />
         {isLoading && <SplashScreen fadingOut={splashFading} />}
       </div>

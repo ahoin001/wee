@@ -7,7 +7,7 @@ import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 // import more icons as needed
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -24,12 +24,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       return false;
     }
   });
-  const [buttonConfigs, setButtonConfigs] = useState([
-    { type: 'text', text: 'Wii', actionType: 'none', action: '' }, // left button
-    { type: 'icon', icon: null, text: '', actionType: 'none', action: '' }, // right button
-  ]);
+  const [buttonConfigs, setButtonConfigs] = useState([{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]);
   const [activeButtonIndex, setActiveButtonIndex] = useState(null);
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
+  const [timeColor, setTimeColor] = useState(window.settings?.timeColor || '#ffffff'); // Add timeColor state
+  const [timeFormat24hr, setTimeFormat24hr] = useState(window.settings?.timeFormat24hr ?? true); // Add time format state
 
   // Load configs from settings on mount
   useEffect(() => {
@@ -70,6 +69,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     setShowPrimaryActionsModal(false);
   };
 
+  // Update time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -77,9 +77,45 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     return () => clearInterval(timer);
   }, []);
 
+  // Watch for time color changes
+  useEffect(() => {
+    const checkTimeColor = () => {
+      const newTimeColor = window.settings?.timeColor || '#ffffff';
+      if (newTimeColor !== timeColor) {
+        setTimeColor(newTimeColor);
+      }
+    };
+    
+    // Check immediately
+    checkTimeColor();
+    
+    // Set up an interval to check for changes
+    const interval = setInterval(checkTimeColor, 100);
+    
+    return () => clearInterval(interval);
+  }, [timeColor]);
+
+  // Watch for time format changes
+  useEffect(() => {
+    const checkTimeFormat = () => {
+      const newTimeFormat = window.settings?.timeFormat24hr ?? true;
+      if (newTimeFormat !== timeFormat24hr) {
+        setTimeFormat24hr(newTimeFormat);
+      }
+    };
+    
+    // Check immediately
+    checkTimeFormat();
+    
+    // Set up an interval to check for changes
+    const interval = setInterval(checkTimeFormat, 100);
+    
+    return () => clearInterval(interval);
+  }, [timeFormat24hr]);
+
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
-      hour12: false,
+      hour12: !timeFormat24hr,
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -201,13 +237,123 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               </svg>
           </div>
 
-          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[250px] z-20 text-center pointer-events-none">
-              <div id="time" className="text-4xl font-bold text-foreground" style={{ fontFamily: "'Orbitron', sans-serif", color: "hsl(var(--muted-foreground))" }}>
-                  {formatTime(currentTime)}
-              </div>
-              <div id="date" className="text-lg font-bold text-muted-foreground mt-10" style={{ color: "hsl(var(--muted-foreground))" }}>
-                  {formatDate(currentTime)}
-              </div>
+          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[300px] z-20 text-center pointer-events-none">
+              {/* Apple Liquid Glass Pill Container */}
+              {enableTimePill ? (
+                <div 
+                  className="liquid-glass"
+                  style={{
+                    width: '280px',
+                    height: '120px',
+                    borderRadius: '56px',
+                    position: 'relative',
+                    isolation: 'isolate',
+                    boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.15)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 'none',
+                    background: 'none',
+                    padding: '0',
+                    margin: '0',
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {/* ::before pseudo-element equivalent - subtle inner shadow */}
+                  <div 
+                    style={{
+                      content: '',
+                      position: 'absolute',
+                      inset: '0',
+                      zIndex: '0',
+                      borderRadius: '56px',
+                      boxShadow: 'inset 0 1px 3px rgba(255, 255, 255, 0.3), inset 0 -1px 2px rgba(0, 0, 0, 0.1)',
+                      backgroundColor: 'rgba(255, 255, 255, 0)',
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  
+                  {/* ::after pseudo-element equivalent - very subtle backdrop blur */}
+                  <div 
+                    style={{
+                      content: '',
+                      position: 'absolute',
+                      inset: '0',
+                      zIndex: '-1',
+                      borderRadius: '56px',
+                      backdropFilter: `blur(${timePillBlur}px)`,
+                      WebkitBackdropFilter: `blur(${timePillBlur}px)`,
+                      backgroundColor: `rgba(255, 255, 255, ${timePillOpacity})`,
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  
+                  {/* Time Display */}
+                  <div 
+                    className="glass-text"
+                    style={{
+                      position: 'relative',
+                      color: timeColor,
+                      fontSize: '32px',
+                      fontWeight: 'bold',
+                      textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
+                      opacity: '1',
+                      transform: 'translate(0px, 0px)',
+                      fontFamily: "'Orbitron', sans-serif",
+                      zIndex: '1',
+                      marginBottom: '8px'
+                    }}
+                  >
+                      {formatTime(currentTime)}
+                  </div>
+                  
+                  {/* Date Display */}
+                  <div 
+                    className="glass-text"
+                    style={{
+                      position: 'relative',
+                      color: timeColor,
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
+                      opacity: '1',
+                      transform: 'translate(0px, 0px)',
+                      fontFamily: "'Orbitron', sans-serif",
+                      zIndex: '1'
+                    }}
+                  >
+                      {formatDate(currentTime)}
+                  </div>
+                </div>
+              ) : (
+                /* Simple time display without pill when disabled */
+                <div>
+                  <div 
+                    id="time" 
+                    className="text-4xl font-bold" 
+                    style={{ 
+                      fontFamily: "'Orbitron', sans-serif", 
+                      color: timeColor,
+                      textShadow: '0px 2px 4px rgba(0, 0, 0, 0.3)'
+                    }}
+                  >
+                      {formatTime(currentTime)}
+                  </div>
+                  <div 
+                    id="date" 
+                    className="text-lg font-bold mt-8" 
+                    style={{ 
+                      color: timeColor,
+                      textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)'
+                    }}
+                  >
+                      {formatDate(currentTime)}
+                  </div>
+                </div>
+              )}
           </div>
 
           <div className="button-container left absolute w-[120px] left-0 z-10 ml-[-30px] pl-[120px] py-4 bg-white/20 rounded-r-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>

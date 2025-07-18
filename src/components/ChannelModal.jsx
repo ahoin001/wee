@@ -216,10 +216,30 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   };
 
   const handleClearChannel = async () => {
+    // Reset all local state to empty/default values
+    setMedia(null);
+    setPath('');
+    setType('exe');
+    setPathError('');
+    setAsAdmin(false);
+    setHoverSound(null);
+    setHoverSoundName('');
+    setHoverSoundUrl('');
+    setHoverSoundVolume(0.7);
+    setHoverSoundEnabled(false);
+    setAnimatedOnHover(undefined);
+    
+    // Save the cleared channel state (passing null to indicate complete reset)
+    if (onSave) {
+      onSave(channelId, null);
+    }
+    
+    // Also clear from channels API
     const allChannels = await channelsApi?.get();
     const updatedChannels = { ...allChannels };
     delete updatedChannels[channelId];
     await channelsApi?.set(updatedChannels);
+    
     onClose();
   };
 
@@ -497,11 +517,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         {/* Display Options Card */}
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
-            <span className="wee-card-title">Display Options</span>
+            <span className="wee-card-title">Launch Options</span>
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">
-            Choose how this channel appears on the home screen.
+            Choose how this application should be launched when the channel is clicked.
             <div style={{ marginTop: 14 }}>
               {renderDisplayOptionsSection && renderDisplayOptionsSection()}
             </div>
