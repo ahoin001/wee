@@ -256,42 +256,246 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </>
   );
 
-  return (
-    <BaseModal
-      title="Configure Channel"
-      onClose={onClose}
-      footerContent={footerContent}
-      className="channel-modal"
-    >
-      {/* Channel Image Section */}
-      <div className="form-section">
-        <h3>Channel Image</h3>
-        <div className="image-section">
-          {media ? (
-            <div className="image-preview">
-              {media.type.startsWith('image/') ? (
-              <img src={media.url} alt="Channel preview" />
-              ) : media.type.startsWith('video/') ? (
-                <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
-              ) : null}
-              <button className="remove-image-button" onClick={handleRemoveImage}>
-                Remove
-              </button>
-            </div>
-          ) : (
-            <button className="file-button" style={{ background: '#f7fafd', color: '#222', border: '2px solid #b0c4d8', fontWeight: 500 }} onClick={() => setShowImageSearch(true)}>
-              Add Channel Image
-            </button>
-          )}
-          <input
-            type="file"
-            accept="image/*,video/mp4"
-            ref={fileInputRef}
-            onChange={(e) => handleFileSelect(e.target.files[0])}
-            style={{ display: 'none' }}
-          />
+  const renderImageSection = () => (
+    <div className="image-section">
+      {media ? (
+        <div className="image-preview">
+          {media.type.startsWith('image/') ? (
+          <img src={media.url} alt="Channel preview" />
+          ) : media.type.startsWith('video/') ? (
+            <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
+          ) : null}
+          <button className="remove-image-button" onClick={handleRemoveImage}>
+            Remove
+          </button>
         </div>
+      ) : (
+        <button className="file-button" style={{ background: '#f7fafd', color: '#222', border: '2px solid #b0c4d8', fontWeight: 500 }} onClick={() => setShowImageSearch(true)}>
+          Add Channel Image
+        </button>
+      )}
+      <input
+        type="file"
+        accept="image/*,video/mp4"
+        ref={fileInputRef}
+        onChange={(e) => handleFileSelect(e.target.files[0])}
+        style={{ display: 'none' }}
+      />
+    </div>
+  );
+
+  const renderAppPathSection = () => (
+    <div className="path-input-group">
+      <input
+        type="text"
+        placeholder="C:\Path\To\Application.exe or paste path here"
+        value={path}
+        onChange={handlePathChange}
+        className={`text-input ${pathError ? 'error' : ''}`}
+      />
+      <button 
+        className="file-picker-button"
+        onClick={() => exeFileInputRef.current?.click()}
+      >
+        Browse Files
+      </button>
+      <input
+        type="file"
+        accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
+        ref={exeFileInputRef}
+        onChange={(e) => handleExeFileSelect(e.target.files[0])}
+        style={{ display: 'none' }}
+      />
+    </div>
+  );
+
+  const renderDisplayOptionsSection = () => (
+    <div style={{ display: 'flex', gap: '1.5em', alignItems: 'center', fontSize: '1em' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+        <input
+          type="radio"
+          name={`admin-mode-${channelId}`}
+          checked={!asAdmin}
+          onChange={() => setAsAdmin(false)}
+        />
+        Normal Launch
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+        <input
+          type="radio"
+          name={`admin-mode-${channelId}`}
+          checked={asAdmin}
+          onChange={() => setAsAdmin(true)}
+        />
+        Run as Administrator
+      </label>
+    </div>
+  );
+
+  const renderHoverSoundSection = () => (
+    <>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <button
+          className="file-button"
+          style={{ minWidth: 120 }}
+          onClick={() => hoverSoundInputRef.current?.click()}
+        >
+          {hoverSoundName || 'Select Audio File'}
+        </button>
+        <input
+          type="file"
+          accept="audio/*"
+          ref={hoverSoundInputRef}
+          onChange={e => handleHoverSoundFile(e.target.files[0])}
+          style={{ display: 'none' }}
+        />
+        <button
+          className="test-button"
+          style={{ minWidth: 60 }}
+          onMouseDown={handleTestHoverSound}
+          onMouseUp={handleStopHoverSound}
+          onMouseLeave={handleStopHoverSound}
+          disabled={!hoverSoundUrl}
+        >
+          Test
+        </button>
+        <label style={{ fontWeight: 500, marginLeft: 10 }}>
+          Volume:
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={hoverSoundVolume}
+            onChange={e => setHoverSoundVolume(parseFloat(e.target.value))}
+            style={{ marginLeft: 8, verticalAlign: 'middle' }}
+          />
+          {` ${Math.round(hoverSoundVolume * 100)}%`}
+        </label>
       </div>
+      <span style={{ color: '#888', fontSize: 13 }}>Sound will fade in on hover, and fade out on leave or click.</span>
+    </>
+  );
+
+  const renderAnimationToggleSection = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input
+          type="radio"
+          name="animatedOnHover"
+          value="global"
+          checked={animatedOnHover === undefined || animatedOnHover === 'global'}
+          onChange={() => setAnimatedOnHover('global')}
+        />
+        Use global setting
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input
+          type="radio"
+          name="animatedOnHover"
+          value="true"
+          checked={animatedOnHover === true}
+          onChange={() => setAnimatedOnHover(true)}
+        />
+        Only play animation on hover (override)
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input
+          type="radio"
+          name="animatedOnHover"
+          value="false"
+          checked={animatedOnHover === false}
+          onChange={() => setAnimatedOnHover(false)}
+        />
+        Always play animation (override)
+      </label>
+    </div>
+  );
+
+  return (
+    <>
+      <BaseModal
+        title="Configure Channel"
+        onClose={onClose}
+        maxWidth="700px"
+        footerContent={footerContent}
+      >
+        {/* Channel Image Selection/Upload Card */}
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">Channel Image</span>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            Choose or upload an image, GIF, or MP4 for this channel.
+            <div style={{ marginTop: 14 }}>
+              {renderImageSection && renderImageSection()}
+            </div>
+          </div>
+        </div>
+        {/* App Path/URL Card */}
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">App Path or URL</span>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            Set the path to an app or a URL to launch when this channel is clicked.
+            <div style={{ marginTop: 14 }}>
+              {renderAppPathSection && renderAppPathSection()}
+            </div>
+          </div>
+        </div>
+        {/* Display Options Card */}
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">Display Options</span>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            Choose how this channel appears on the home screen.
+            <div style={{ marginTop: 14 }}>
+              {renderDisplayOptionsSection && renderDisplayOptionsSection()}
+            </div>
+          </div>
+        </div>
+        {/* Hover Sound Card */}
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="wee-card-title">Custom Hover Sound</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={hoverSoundEnabled}
+                onChange={e => setHoverSoundEnabled(e.target.checked)}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            {hoverSoundEnabled && (
+              <div style={{ marginTop: 0 }}>
+                {renderHoverSoundSection && renderHoverSoundSection()}
+              </div>
+            )}
+            {!hoverSoundEnabled && <span style={{ color: '#888' }}>Set a custom sound to play when hovering over this channel.</span>}
+          </div>
+        </div>
+        {/* Per-Channel Animation Toggle Card */}
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">Animation on Hover</span>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.
+            <div style={{ marginTop: 14 }}>
+              {renderAnimationToggleSection && renderAnimationToggleSection()}
+            </div>
+          </div>
+        </div>
+      </BaseModal>
       {showImageSearch && (
         <ImageSearchModal
           onClose={() => setShowImageSearch(false)}
@@ -299,206 +503,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           onUploadClick={handleUploadClick}
         />
       )}
-      {/* Divider */}
-      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
-      {/* Launch Type Section */}
-      <div className="form-section">
-        <h3>Launch Type</h3>
-        <div className="type-selector">
-          <label className="type-option">
-            <input
-              type="radio"
-              name="type"
-              value="exe"
-              checked={type === 'exe'}
-              onChange={(e) => setType(e.target.value)}
-            />
-            <span className="radio-custom"></span>
-            Application (.exe)
-          </label>
-          <label className="type-option">
-            <input
-              type="radio"
-              name="type"
-              value="url"
-              checked={type === 'url'}
-              onChange={(e) => setType(e.target.value)}
-            />
-            <span className="radio-custom"></span>
-            Website (URL)
-          </label>
-        </div>
-      </div>
-      {/* Divider */}
-      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
-      {/* Path/URL Section */}
-      <div className="form-section">
-        <h3>{type === 'exe' ? 'Application Path' : 'Website URL'}</h3>
-        {type === 'exe' ? (
-          <>
-          <div className="path-input-group">
-            <input
-              type="text"
-                placeholder="C:\Path\To\Application.exe or paste path here"
-              value={path}
-              onChange={handlePathChange}
-              className={`text-input ${pathError ? 'error' : ''}`}
-            />
-            <button 
-              className="file-picker-button"
-              onClick={() => exeFileInputRef.current?.click()}
-            >
-              Browse Files
-            </button>
-            <input
-              type="file"
-              accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
-              ref={exeFileInputRef}
-              onChange={(e) => handleExeFileSelect(e.target.files[0])}
-              style={{ display: 'none' }}
-            />
-          </div>
-            <div style={{ marginTop: '12px' }}>
-              <div style={{ display: 'flex', gap: '1.5em', alignItems: 'center', fontSize: '1em' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name={`admin-mode-${channelId}`}
-                    checked={!asAdmin}
-                    onChange={() => setAsAdmin(false)}
-                  />
-                  Normal Launch
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name={`admin-mode-${channelId}`}
-                    checked={asAdmin}
-                    onChange={() => setAsAdmin(true)}
-                  />
-                  Run as Administrator
-                </label>
-              </div>
-            </div>
-          </>
-        ) : (
-          <input
-            type="text"
-            placeholder="https://example.com"
-            value={path}
-            onChange={handlePathChange}
-            className={`text-input ${pathError ? 'error' : ''}`}
-          />
-        )}
-        {pathError && <p className="error-text">{pathError}</p>}
-        <p className="help-text">
-          {type === 'exe' 
-            ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field </span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
-            : 'Enter the complete URL including https://'}
-        </p>
-      </div>
-      {/* Divider */}
-      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
-      {/* Hover Sound Section */}
-      <div className="form-section">
-        <h3>Channel Hover Sound</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              type="checkbox"
-              checked={hoverSoundEnabled}
-              onChange={e => setHoverSoundEnabled(e.target.checked)}
-            />
-            Enable custom hover sound
-          </label>
-          {hoverSoundEnabled && (
-            <>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <button
-                  className="file-button"
-                  style={{ minWidth: 120 }}
-                  onClick={() => hoverSoundInputRef.current?.click()}
-                >
-                  {hoverSoundName || 'Select Audio File'}
-                </button>
-                <input
-                  type="file"
-                  accept="audio/*"
-                  ref={hoverSoundInputRef}
-                  onChange={e => handleHoverSoundFile(e.target.files[0])}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  className="test-button"
-                  style={{ minWidth: 60 }}
-                  onMouseDown={handleTestHoverSound}
-                  onMouseUp={handleStopHoverSound}
-                  onMouseLeave={handleStopHoverSound}
-                  disabled={!hoverSoundUrl}
-                >
-                  Test
-                </button>
-                <label style={{ fontWeight: 500, marginLeft: 10 }}>
-                  Volume:
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={hoverSoundVolume}
-                    onChange={e => setHoverSoundVolume(parseFloat(e.target.value))}
-                    style={{ marginLeft: 8, verticalAlign: 'middle' }}
-                  />
-                  {` ${Math.round(hoverSoundVolume * 100)}%`}
-                </label>
-              </div>
-              <span style={{ color: '#888', fontSize: 13 }}>Sound will fade in on hover, and fade out on leave or click.</span>
-            </>
-          )}
-        </div>
-      </div>
-      {/* Divider */}
-      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
-      {/* Animation Playback Section */}
-      <div className="form-section">
-        <h3>Animation Playback</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input
-              type="radio"
-              name="animatedOnHover"
-              value="global"
-              checked={animatedOnHover === undefined || animatedOnHover === 'global'}
-              onChange={() => setAnimatedOnHover('global')}
-            />
-            Use global setting
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input
-              type="radio"
-              name="animatedOnHover"
-              value="true"
-              checked={animatedOnHover === true}
-              onChange={() => setAnimatedOnHover(true)}
-            />
-            Only play animation on hover (override)
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input
-              type="radio"
-              name="animatedOnHover"
-              value="false"
-              checked={animatedOnHover === false}
-              onChange={() => setAnimatedOnHover(false)}
-            />
-            Always play animation (override)
-          </label>
-        </div>
-        <div style={{ color: '#666', fontSize: 13, marginTop: 4, marginLeft: 2 }}>
-          If set, this overrides the global animation playback setting for this channel only.
-        </div>
-      </div>
-    </BaseModal>
+    </>
   );
 }
 

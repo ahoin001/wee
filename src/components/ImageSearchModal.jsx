@@ -145,179 +145,173 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
   );
 
   return (
-    <BaseModal title="Browse Built-in Images" onClose={onClose} maxWidth="900px">
-      {/* Properties Modal */}
-      {propertiesImg && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.35)',
-          zIndex: 10001,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }} onClick={() => setPropertiesImg(null)}>
-          <div style={{ background: '#fff', borderRadius: 10, padding: 24, minWidth: 320, boxShadow: '0 8px 32px #0002', position: 'relative', color: '#222' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0, color: '#222' }}>Image Properties</h3>
-            <div style={{ marginBottom: 10, color: '#222' }}><b>Name:</b> {propertiesImg.name}</div>
-            <div style={{ marginBottom: 10, color: '#222' }}><b>URL:</b> <span style={{ wordBreak: 'break-all', color: '#222' }}>{propertiesImg.url}</span></div>
-            <button style={{ marginTop: 10 }} onClick={() => setPropertiesImg(null)}>Close</button>
+    <BaseModal title="Search for Channel Image" onClose={onClose} maxWidth="900px">
+      {/* Search Bar Card */}
+      <div className="wee-card" style={{ marginTop: 0, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Search Images & Videos</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Search for images, GIFs, or MP4s to use as your channel art.
+          <div style={{ marginTop: 14 }}>
+            {/* Search bar UI here */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Search by name or tag..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ padding: 8, fontSize: '1em', borderRadius: 6, border: '1px solid #ccc', color: '#222', background: '#fff', marginBottom: 0, flex: 1 }}
+              />
+              <button
+                onClick={fetchImages}
+                title="Refresh images"
+                aria-label="Refresh images"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 4,
+                  marginLeft: 2,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 6,
+                  transition: 'background 0.2s',
+                  outline: 'none',
+                  boxShadow: refreshing ? '0 0 0 2px #0099ff55' : 'none',
+                }}
+                disabled={refreshing}
+                tabIndex={0}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fetchImages(); }}
+                onMouseDown={e => e.preventDefault()}
+              >
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: refreshing ? 0.5 : 1, transition: 'opacity 0.2s', transform: refreshing ? 'rotate(360deg)' : 'none', transitionProperty: 'opacity, transform', transitionDuration: '0.2s, 0.7s' }}>
+                  <path d="M11 3a8 8 0 1 1-7.95 8.7" stroke="#0099ff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 3v5h5" stroke="#0099ff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-      {/* Custom Context Menu */}
-      {contextMenu.visible && (
-        <div style={{
-          position: 'fixed',
-          top: contextMenu.y,
-          left: contextMenu.x,
-          background: '#fff',
-          border: '1.5px solid #b0c4d8',
-          borderRadius: 8,
-          boxShadow: '0 4px 16px #0002',
-          zIndex: 10002,
-          minWidth: 120,
-        }}
-          onClick={() => setContextMenu({ ...contextMenu, visible: false })}
-        >
-          <div
-            style={{ padding: '10px 18px', cursor: 'pointer', fontWeight: 500, color: '#222' }}
-            onClick={() => {
-              setPropertiesImg(contextMenu.img);
-              setContextMenu({ ...contextMenu, visible: false });
-            }}
-          >
-            Properties
-          </div>
-        </div>
-      )}
-      <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="text"
-            placeholder="Search by name or tag..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ padding: 8, fontSize: '1em', borderRadius: 6, border: '1px solid #ccc', color: '#222', background: '#fff', marginBottom: 0, flex: 1 }}
-          />
-          <button
-            onClick={fetchImages}
-            title="Refresh images"
-            aria-label="Refresh images"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 4,
-              marginLeft: 2,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 6,
-              transition: 'background 0.2s',
-              outline: 'none',
-              boxShadow: refreshing ? '0 0 0 2px #0099ff55' : 'none',
-            }}
-            disabled={refreshing}
-            tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fetchImages(); }}
-            onMouseDown={e => e.preventDefault()}
-          >
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: refreshing ? 0.5 : 1, transition: 'opacity 0.2s', transform: refreshing ? 'rotate(360deg)' : 'none', transitionProperty: 'opacity, transform', transitionDuration: '0.2s, 0.7s' }}>
-              <path d="M11 3a8 8 0 1 1-7.95 8.7" stroke="#0099ff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M3 3v5h5" stroke="#0099ff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 4, marginBottom: 0 }}>
-          {FILETYPE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setFilter(opt.value)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 6,
-                border: filter === opt.value ? '2px solid #646cff' : '1px solid #ccc',
-                background: filter === opt.value ? '#e6eaff' : '#f9f9f9',
-                fontWeight: filter === opt.value ? 'bold' : 'normal',
-                color: '#222',
-                cursor: 'pointer',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
         </div>
       </div>
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 32, color: '#333' }}>Loading...</div>
-      ) : error ? (
-        <div style={{ color: 'red', textAlign: 'center', padding: 32 }}>{error}</div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 18,
-          maxHeight: 480,
-          overflowY: 'auto',
-        }}>
-          {filteredImages.length === 0 ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#888' }}>No images found.</div>
-          ) : (
-            filteredImages.map(img => (
-              <div key={img.url} style={{ padding: 12, boxSizing: 'border-box', position: 'relative' }}>
-                <div
-                  onClick={() => onSelect(img)}
-                  onContextMenu={e => {
-                    e.preventDefault();
-                    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, img });
-                  }}
+      {/* Results Grid Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Results</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Browse and select an image or video below.
+          <div style={{ marginTop: 14 }}>
+            {/* Results grid UI here */}
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: 32, color: '#333' }}>Loading...</div>
+            ) : error ? (
+              <div style={{ color: 'red', textAlign: 'center', padding: 32 }}>{error}</div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 18,
+                maxHeight: 480,
+                overflowY: 'auto',
+              }}>
+                {filteredImages.length === 0 ? (
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#888' }}>No images found.</div>
+                ) : (
+                  filteredImages.map(img => (
+                    <div key={img.url} style={{ padding: 12, boxSizing: 'border-box', position: 'relative' }}>
+                      <div
+                        onClick={() => onSelect(img)}
+                        onContextMenu={e => {
+                          e.preventDefault();
+                          setContextMenu({ visible: true, x: e.clientX, y: e.clientY, img });
+                        }}
+                        style={{
+                          width: 200,
+                          height: 120,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 8,
+                          overflow: 'hidden',
+                          transition: 'transform 0.18s cubic-bezier(.4,1.3,.5,1), box-shadow 0.18s cubic-bezier(.4,1.3,.5,1)',
+                          cursor: 'pointer',
+                          background: '#e9eff3',
+                          position: 'relative',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.transform = 'scale(1.1)';
+                          e.currentTarget.style.boxShadow = '0 0 24px 4px #0099ff33';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,153,255,0)';
+                        }}
+                      >
+                        {itemLoading[img.url] && <Spinner />}
+                        {img.format === 'image' || img.format === 'gif' ? (
+                          <img
+                            src={img.url}
+                            alt={img.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: itemLoading[img.url] ? 0 : 1, transition: 'opacity 0.2s' }}
+                            onLoad={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
+                            onError={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
+                            onLoadStart={() => setItemLoading(l => ({ ...l, [img.url]: true }))}
+                          />
+                        ) : img.format === 'mp4' ? (
+                          <video
+                            src={img.url}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: itemLoading[img.url] ? 0 : 1, transition: 'opacity 0.2s' }}
+                            autoPlay loop muted
+                            onLoadedData={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
+                            onLoadStart={() => setItemLoading(l => ({ ...l, [img.url]: true }))}
+                            onError={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Upload Button/Section Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Upload Your Own</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Upload an image, GIF, or MP4 from your computer.
+          <div style={{ marginTop: 14 }}>
+            {/* Upload button/section UI here */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 4, marginBottom: 0 }}>
+              {FILETYPE_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFilter(opt.value)}
                   style={{
-                    width: 200,
-                    height: 120,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 8,
-                    overflow: 'hidden',
-                    transition: 'transform 0.18s cubic-bezier(.4,1.3,.5,1), box-shadow 0.18s cubic-bezier(.4,1.3,.5,1)',
+                    padding: '6px 14px',
+                    borderRadius: 6,
+                    border: filter === opt.value ? '2px solid #646cff' : '1px solid #ccc',
+                    background: filter === opt.value ? '#e6eaff' : '#f9f9f9',
+                    fontWeight: filter === opt.value ? 'bold' : 'normal',
+                    color: '#222',
                     cursor: 'pointer',
-                    background: '#e9eff3',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                    e.currentTarget.style.boxShadow = '0 0 24px 4px #0099ff33';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,153,255,0)';
                   }}
                 >
-                  {itemLoading[img.url] && <Spinner />}
-                  {img.format === 'image' || img.format === 'gif' ? (
-                    <img
-                      src={img.url}
-                      alt={img.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: itemLoading[img.url] ? 0 : 1, transition: 'opacity 0.2s' }}
-                      onLoad={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
-                      onError={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
-                      onLoadStart={() => setItemLoading(l => ({ ...l, [img.url]: true }))}
-                    />
-                  ) : img.format === 'mp4' ? (
-                    <video
-                      src={img.url}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: itemLoading[img.url] ? 0 : 1, transition: 'opacity 0.2s' }}
-                      autoPlay loop muted
-                      onLoadedData={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
-                      onLoadStart={() => setItemLoading(l => ({ ...l, [img.url]: true }))}
-                      onError={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            ))
-          )}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </BaseModal>
   );
 }

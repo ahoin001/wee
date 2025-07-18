@@ -132,22 +132,10 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     });
   };
 
-  if (!isOpen) return null;
-
-  return (
-    <BaseModal
-      title="Primary Actions"
-      onClose={onClose}
-      maxWidth="480px"
-      footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={() => { if (validatePath()) { onSave({ type, text: type === 'text' ? text : '', icon: type === 'icon' ? icon : null, actionType, action }); handleClose(); } }} style={{ minWidth: 90 }}>Save</button>
-        </div>
-      )}
-    >
-      <div className="form-section">
-        <h3>Button Appearance</h3>
+  // --- Section Renderers ---
+  function renderIconSection() {
+    return (
+      <>
         <div style={{ display: 'flex', gap: 18, marginBottom: 16 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <input type="radio" name="type" value="text" checked={type === 'text'} onChange={() => setType('text')} />
@@ -257,10 +245,13 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             </div>
           </>
         )}
-      </div>
-      <hr style={{ margin: '1.5em 0', border: 0, borderTop: '1.5px solid #e0e0e6' }} />
-      <div className="form-section">
-        <h3>Button Action</h3>
+      </>
+    );
+  }
+
+  function renderAppPathSection() {
+    return (
+      <>
         <div style={{ display: 'flex', gap: 18, marginBottom: 12 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <input type="radio" name="actionType" value="none" checked={actionType === 'none'} onChange={() => setActionType('none')} />
@@ -305,6 +296,82 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         )}
         {pathError && <div style={{ color: '#dc3545', fontSize: 13, marginTop: 6, fontWeight: 500 }}>{pathError}</div>}
+      </>
+    );
+  }
+
+  function renderDisplayOptionsSection() {
+    return (
+      <>
+        <div style={{ display: 'flex', gap: 18, marginBottom: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={type === 'text'} onChange={() => setType('text')} />
+            Show Text
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={type === 'icon'} onChange={() => setType('icon')} />
+            Show Icon
+          </label>
+        </div>
+      </>
+    );
+  }
+
+  if (!isOpen) return null;
+
+  return (
+    <BaseModal
+      title="Primary Actions"
+      onClose={onClose}
+      maxWidth="480px"
+      footerContent={({ handleClose }) => (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button className="cancel-button" onClick={handleClose}>Cancel</button>
+          <button className="save-button" onClick={() => { if (validatePath()) { onSave({ type, text: type === 'text' ? text : '', icon: type === 'icon' ? icon : null, actionType, action }); handleClose(); } }} style={{ minWidth: 90 }}>Save</button>
+        </div>
+      )}
+    >
+      {/* Icon Selection/Upload Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Channel Icon</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Choose or upload a custom icon for this channel. PNG recommended for best results.
+          <div style={{ marginTop: 14 }}>
+            {/* Icon selection/upload UI here */}
+            {renderIconSection && renderIconSection()}
+          </div>
+        </div>
+      </div>
+      {/* App Path/URL Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">App Path or URL</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Set the path to an app or a URL to launch when this channel is clicked.
+          <div style={{ marginTop: 14 }}>
+            {/* App path/URL input UI here */}
+            {renderAppPathSection && renderAppPathSection()}
+          </div>
+        </div>
+      </div>
+      {/* Text/Icon Display Options Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Display Options</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Choose whether to display text, an icon, or both on the channel button.
+          <div style={{ marginTop: 14 }}>
+            {/* Text/icon display options UI here */}
+            {renderDisplayOptionsSection && renderDisplayOptionsSection()}
+          </div>
+        </div>
       </div>
     </BaseModal>
   );

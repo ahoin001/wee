@@ -8,7 +8,7 @@ function BaseModal({
   children, 
   footerContent,
   className = '',
-  maxWidth = '800px'
+  maxWidth = '900px'
 }) {
   const [isClosing, setIsClosing] = useState(false);
 
@@ -49,20 +49,17 @@ function BaseModal({
       <div 
         className={`base-modal ${className} ${isClosing ? 'closing' : ''}`} 
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth }}
+        style={{ maxWidth, minWidth: 700 }}
       >
         <div className="modal-header">
           <h2>{title}</h2>
           <button className="close-button" onClick={handleClose}>×</button>
         </div>
-        
-        <div className="modal-content">
+        <div className="modal-content" style={{ paddingBottom: 80 }}>
           {children}
         </div>
-        
         {footerContent && (
-          <div className="modal-footer">
-            {/* Patch: If footerContent is a function, call it with handleClose */}
+          <div className="modal-footer sticky-footer">
             {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
           </div>
         )}

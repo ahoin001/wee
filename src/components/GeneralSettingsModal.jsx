@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
+import './BaseModal.css';
 
 function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover }) {
   const [pip, setPip] = useState(immersivePip);
@@ -15,62 +16,58 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   };
 
   return (
-    <BaseModal title="General Settings" onClose={onClose} maxWidth="400px">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <span>Immersive Picture in Picture mode</span>
-            <span className="toggle-switch">
+    <BaseModal title="General Settings" onClose={onClose} maxWidth="900px">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+        {/* Immersive PiP */}
+        <div className="wee-card">
+          <div className="wee-card-header">
+            <span className="wee-card-title">Immersive Picture in Picture mode</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
               <input
                 type="checkbox"
                 checked={pip}
                 onChange={e => setPip(e.target.checked)}
               />
               <span className="slider" />
-            </span>
-          </label>
-          <div style={{ color: '#666', fontSize: 14, marginLeft: 28 }}>
-            When enabled, opening a URL from a channel will open it in a window inside the app. When disabled, URLs open in your default browser.
+            </label>
           </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">When enabled, video overlays will use immersive PiP mode for a more cinematic experience.</div>
         </div>
-
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <span>Glass Wii Ribbon</span>
-            <span className="toggle-switch">
+        {/* Glass Wii Ribbon */}
+        <div className="wee-card">
+          <div className="wee-card-header">
+            <span className="wee-card-title">Glass Wii Ribbon</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
               <input
                 type="checkbox"
                 checked={glassRibbon}
                 onChange={e => setGlassRibbon(e.target.checked)}
               />
               <span className="slider" />
-            </span>
-          </label>
-          <div style={{ color: '#666', fontSize: 14, marginLeft: 28 }}>
-            When enabled, the Wii Ribbon will have a frosted glass effect, allowing you to see the wallpaper behind it while maintaining button visibility.
+            </label>
           </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">Adds a frosted glass effect to the Wii Ribbon for a more modern look.</div>
         </div>
-
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <span>Only play animated channels on hover</span>
-            <span className="toggle-switch">
+        {/* Only play channel animations on hover */}
+        <div className="wee-card">
+          <div className="wee-card-header">
+            <span className="wee-card-title">Only play channel animations on hover</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
               <input
                 type="checkbox"
                 checked={hoverAnim}
                 onChange={e => setHoverAnim(e.target.checked)}
               />
               <span className="slider" />
-            </span>
-          </label>
-          <div style={{ color: '#666', fontSize: 14, marginLeft: 28 }}>
-            When enabled, channels using GIFs or MP4s will only animate when hovered. Otherwise, they always animate.
+            </label>
           </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel.</div>
         </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
-          <button className="cancel-button" onClick={onClose}>Cancel</button>
-          <button className="save-button" onClick={handleSave}>Save</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+          <button className="primary" onClick={handleSave} style={{ minWidth: 120, fontWeight: 600, fontSize: 16 }}>Save</button>
         </div>
       </div>
     </BaseModal>
@@ -78,14 +75,14 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
 }
 
 GeneralSettingsModal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
+  isOpen: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
-  immersivePip: PropTypes.bool.isRequired,
-  setImmersivePip: PropTypes.func.isRequired,
-  glassWiiRibbon: PropTypes.bool.isRequired,
-  setGlassWiiRibbon: PropTypes.func.isRequired,
-  animatedOnHover: PropTypes.bool.isRequired,
-  setAnimatedOnHover: PropTypes.func.isRequired,
+  immersivePip: PropTypes.bool,
+  setImmersivePip: PropTypes.func,
+  glassWiiRibbon: PropTypes.bool,
+  setGlassWiiRibbon: PropTypes.func,
+  animatedOnHover: PropTypes.bool,
+  setAnimatedOnHover: PropTypes.func,
 };
 
 export default GeneralSettingsModal; 

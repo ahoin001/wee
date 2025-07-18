@@ -76,6 +76,7 @@
   display: flex;
   flex-direction: column;
   animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 700px;
 }
 
 .base-modal.closing {
@@ -154,10 +155,34 @@
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-top: 1px solid #e0e0e6;
+  align-items: center;
+  padding: 18px 32px 18px 32px;
+  gap: 16px;
+  min-height: 64px;
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  /* Glass effect */
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border-top: 1.5px solid rgba(180, 180, 200, 0.18);
+  box-shadow: 0 -2px 16px 0 rgba(80, 80, 120, 0.07);
+  /* Add space above footer */
+  margin-top: 32px;
+}
+
+/* Sticky footer for modals */
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
   background: #fafafa;
+  border-top: 1px solid #e0e0e6;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
 }
 
 .cancel-button, .save-button {
@@ -253,4 +278,43 @@
   .modal-footer {
     padding: 1rem;
   }
+} 
+
+.wee-card {
+  background: rgba(245,247,250,0.92);
+  border: 1px solid #e0e0e6;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(80,80,120,0.04);
+  padding: 18px 24px 14px 24px;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.wee-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 36px;
+}
+
+.wee-card-title {
+  font-weight: 700;
+  font-size: 17px;
+  color: #222;
+}
+
+.wee-card-separator {
+  border-bottom: 1.5px solid #e0e0e6;
+  margin: 10px 0 8px 0;
+  width: 100%;
+}
+
+.wee-card-desc {
+  color: #444;
+  font-size: 15px;
+  margin-left: 2px;
+  margin-top: 2px;
+  line-height: 1.6;
 } 
