@@ -1143,9 +1143,25 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
     });
   } else if (type === 'exe') {
     try {
+      // Parse the path to extract executable and arguments
+      let executablePath = appPath;
+      let args = [];
+      
+      // Check if the path contains arguments (space followed by dash or other characters)
+      const spaceIndex = appPath.indexOf(' ');
+      if (spaceIndex !== -1) {
+        executablePath = appPath.substring(0, spaceIndex);
+        const argsString = appPath.substring(spaceIndex + 1);
+        // Parse arguments (simple space-based splitting, can be improved)
+        args = argsString.split(' ').filter(arg => arg.trim());
+      }
+
+      console.log(`Parsed executable: ${executablePath}, args: ${JSON.stringify(args)}`);
+
       if (asAdmin) {
         // Launch as admin using PowerShell
-        const command = `Start-Process -FilePath \"${appPath.replace(/"/g, '\"')}\" -Verb RunAs`;
+        const argsString = args.length > 0 ? ` -ArgumentList "${args.join('", "')}"` : '';
+        const command = `Start-Process -FilePath "${executablePath.replace(/"/g, '\"')}"${argsString} -Verb RunAs`;
         const child = spawn('powershell', ['-Command', command], {
           detached: true,
           stdio: 'ignore',
@@ -1160,18 +1176,18 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
         });
       } else {
         // Normal launch
-      const child = spawn(appPath, [], {
-        detached: true,
-        stdio: 'ignore',
+        const child = spawn(executablePath, args, {
+          detached: true,
+          stdio: 'ignore',
           shell: true
-      });
-      child.on('error', (err) => {
-        console.error('Failed to launch executable:', err);
-      });
-      child.on('spawn', () => {
-        console.log('Executable launched successfully');
-        child.unref();
-      });
+        });
+        child.on('error', (err) => {
+          console.error('Failed to launch executable:', err);
+        });
+        child.on('spawn', () => {
+          console.log('Executable launched successfully');
+          child.unref();
+        });
       }
     } catch (err) {
       console.error('Failed to launch executable:', err);

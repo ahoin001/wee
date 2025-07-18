@@ -17,6 +17,8 @@ function FlatBar(props) {
         onSettingsChange={props.onSettingsChange}
         barType={props.barType}
         onBarTypeChange={props.onBarTypeChange}
+        defaultBarType={props.defaultBarType}
+        onDefaultBarTypeChange={props.onDefaultBarTypeChange}
       />
       <NotificationsButton />
     </div>

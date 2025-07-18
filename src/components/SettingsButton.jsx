@@ -6,7 +6,7 @@ import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
 import './SettingsButton.css';
 
-function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange }) {
+function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
@@ -86,8 +86,19 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div className="context-menu-item" onClick={() => { onToggleCursor(); handleMenuClose(); }}>
                 {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
               </div>
-              <div className="context-menu-item" onClick={() => { onBarTypeChange(barType === 'flat' ? 'wii' : 'flat'); handleMenuClose(); }}>
-                {barType === 'flat' ? 'Switch to Wii Bar' : 'Switch to Flat Bar'}
+              <div className="context-menu-item" onClick={() => { 
+                if (barType === 'flat') {
+                  onBarTypeChange('wii-ribbon');
+                } else if (barType === 'wii-ribbon') {
+                  onBarTypeChange('wii');
+                } else {
+                  onBarTypeChange('flat');
+                }
+                handleMenuClose(); 
+              }}>
+                {barType === 'flat' ? 'Switch to Wii Ribbon' : 
+                 barType === 'wii-ribbon' ? 'Switch to Wii Bar' : 
+                 'Switch to Flat Bar'}
               </div>
               <div className="settings-menu-separator" />
               {/* Window Group */}
@@ -172,10 +183,17 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
       )}
       {/* General Settings Modal */}
       {showGeneralModal && (
-        <GeneralSettingsModal isOpen={showGeneralModal} onClose={() => setShowGeneralModal(false)} immersivePip={immersivePip} setImmersivePip={val => {
+        <GeneralSettingsModal 
+          isOpen={showGeneralModal} 
+          onClose={() => setShowGeneralModal(false)} 
+          immersivePip={immersivePip} 
+          setImmersivePip={val => {
             setImmersivePip(val);
             localStorage.setItem('immersivePip', JSON.stringify(val));
-          }} />
+          }}
+          defaultBarType={defaultBarType}
+          setDefaultBarType={onDefaultBarTypeChange}
+        />
       )}
     </>
   );
@@ -191,6 +209,8 @@ SettingsButton.propTypes = {
   onSettingsChange: PropTypes.func,
   barType: PropTypes.string,
   onBarTypeChange: PropTypes.func,
+  defaultBarType: PropTypes.string,
+  onDefaultBarTypeChange: PropTypes.func,
 };
 
 export default SettingsButton; 

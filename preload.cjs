@@ -38,4 +38,5 @@ contextBridge.exposeInMainWorld('api', {
   onFrameState: (cb) => ipcRenderer.on('frame-state', (e, val) => cb(val)),
   openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
   openExternal: (url) => ipcRenderer.send('open-external-url', url),
+  launchApp: (data) => ipcRenderer.send('launch-app', data),
 });

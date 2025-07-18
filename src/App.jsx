@@ -5,6 +5,7 @@ import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
 import FlatBar from './components/FlatBar';
 import WiiBar from './components/WiiBar';
+import WiiRibbon from './components/WiiRibbon';
 import './App.css';
 
 // Safe fallback for modular APIs
@@ -79,7 +80,8 @@ function App() {
   const [backgroundAudio, setBackgroundAudio] = useState(null);
   const backgroundAudioRef = useRef(null);
   const [showDragRegion, setShowDragRegion] = useState(false);
-  const [barType, setBarType] = useState('flat');
+  const [barType, setBarType] = useState('wii-ribbon');
+  const [defaultBarType, setDefaultBarType] = useState('wii-ribbon');
   const [wallpaper, setWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
   const [savedWallpapers, setSavedWallpapers] = useState([]);
@@ -264,7 +266,8 @@ function App() {
       if (settings) {
         setIsDarkMode(settings.isDarkMode ?? false);
         setUseCustomCursor(settings.useCustomCursor ?? true);
-        setBarType(settings.barType ?? 'flat');
+        setBarType(settings.barType ?? 'wii-ribbon');
+        setDefaultBarType(settings.defaultBarType ?? 'wii-ribbon');
         setWallpaper(settings.wallpaper || null);
         setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
         setSavedWallpapers(settings.savedWallpapers || []);
@@ -282,6 +285,7 @@ function App() {
       isDarkMode,
       useCustomCursor,
       barType,
+      defaultBarType,
       wallpaper,
       wallpaperOpacity,
       savedWallpapers,
@@ -290,7 +294,7 @@ function App() {
       cycleInterval,
       cycleAnimation,
     });
-  }, [isDarkMode, useCustomCursor, barType, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation]);
+  }, [isDarkMode, useCustomCursor, barType, defaultBarType, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation]);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -421,6 +425,10 @@ function App() {
     setBarType(type);
   };
 
+  const handleDefaultBarTypeChange = (type) => {
+    setDefaultBarType(type);
+  };
+
   // Handler for settings changes from WallpaperModal or SoundModal
   const handleSettingsChange = async (newSettings) => {
     // Save the new settings (already merged in modal)
@@ -432,7 +440,8 @@ function App() {
       const settings = await window.api.getSettings();
       setIsDarkMode(settings.isDarkMode ?? false);
       setUseCustomCursor(settings.useCustomCursor ?? true);
-      setBarType(settings.barType ?? 'flat');
+      setBarType(settings.barType ?? 'wii-ribbon');
+      setDefaultBarType(settings.defaultBarType ?? 'wii-ribbon');
       setWallpaper(settings.wallpaper || null);
       setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
       setSavedWallpapers(settings.savedWallpapers || []);
@@ -680,6 +689,20 @@ function App() {
           onSettingsChange={handleSettingsChange}
           barType={barType}
           onBarTypeChange={handleBarTypeChange}
+          defaultBarType={defaultBarType}
+          onDefaultBarTypeChange={handleDefaultBarTypeChange}
+        />
+      ) : barType === 'wii-ribbon' ? (
+        <WiiRibbon
+          onSettingsClick={handleSettingsClick}
+          onSettingsChange={handleSettingsChange}
+          onToggleDarkMode={handleToggleDarkMode}
+          onToggleCursor={handleToggleCursor}
+          useCustomCursor={useCustomCursor}
+          barType={barType}
+          onBarTypeChange={handleBarTypeChange}
+          defaultBarType={defaultBarType}
+          onDefaultBarTypeChange={handleDefaultBarTypeChange}
         />
       ) : (
         <WiiBar
@@ -687,6 +710,8 @@ function App() {
           barType={barType}
           onBarTypeChange={handleBarTypeChange}
           onSettingsChange={handleSettingsChange}
+          defaultBarType={defaultBarType}
+          onDefaultBarTypeChange={handleDefaultBarTypeChange}
         />
       )}
     </div>

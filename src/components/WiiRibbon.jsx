@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import SoundModal from './SoundModal';
 import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
-import './WiiBar.css';
+import './WiiRibbon.css';
 
-function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange }) {
-  const [time, setTime] = useState('');
-  const [date, setDate] = useState('');
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange }) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
@@ -24,15 +23,27 @@ function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleC
   });
 
   useEffect(() => {
-    function updateTime() {
-      const now = new Date();
-      setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      setDate(now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'numeric' }));
-    }
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(',', '');
+  };
 
   const handleSettingsClick = () => {
     setShowMenu(true);
@@ -65,48 +76,60 @@ function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleC
 
   return (
     <>
-      <footer className="wii-bar" style={{ WebkitAppRegion: 'drag' }}>
-        <svg className="wii-bar-bg" viewBox="0 0 1920 120" width="100%" height="120" preserveAspectRatio="none">
-          <path d="M0,0 H1920 V80 Q960,140 0,80 Z" fill="#E9EFF3" stroke="#b0c4d8" strokeWidth="2" />
-        </svg>
-        <div className="wii-bar-content" style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          padding: '0 20px',
-          height: '120px',
-          position: 'relative'
-        }}>
-                     {/* Left button */}
-           <div style={{ WebkitAppRegion: 'no-drag', zIndex: 10 }}>
-             <div 
-               className="wii-style-button min-w-[80px] h-[70px] rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer"
-               onClick={handleSettingsClick}
-             >
-               <span className="text-wii-gray-dark font-bold text-base">Wii</span>
-             </div>
-           </div>
-          
-          {/* Center clock */}
-          <div className="wii-bar-clock" style={{ 
-            textAlign: 'center',
-            zIndex: 5
-          }}>
-            <div className="wii-bar-time" style={{ fontSize: '24px', fontWeight: 'bold', color: '#666' }}>{time}</div>
-            <div className="wii-bar-date" style={{ fontSize: '14px', color: '#888', marginTop: '2px' }}>{date}</div>
+      <footer className="interactive-footer">
+          <div className="absolute inset-0 z-0 svg-container-glow">
+              <svg width="100%" height="100%" viewBox="0 0 1440 240" preserveAspectRatio="none">
+                  <path 
+                      d="M 0 40 
+                         L 250 40 
+                         C 450 40, 500 140, 670 140 
+                         L 770 140 
+                         C 940 140, 990 40, 1190 40 
+                         L 1440 40 
+                         L 1440 240 
+                         L 0 240 Z" 
+                      fill="hsl(var(--ribbon-bg))" 
+                      stroke="hsl(var(--wii-gray))" 
+                      strokeWidth="1.5"
+                  />
+              </svg>
           </div>
 
-                     {/* Right button */}
-           <div style={{ WebkitAppRegion: 'no-drag', zIndex: 10 }}>
-             <div 
-               className="wii-style-button min-w-[80px] h-[70px] rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer"
-               onClick={handleSettingsClick}
-             >
-               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-wii-gray-dark">
-                 <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
-               </svg>
-             </div>
-           </div>
+          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[250px] z-20 text-center pointer-events-none">
+              <div id="time" className="text-4xl font-bold text-foreground" style={{ fontFamily: "'Orbitron', sans-serif", color: "hsl(var(--muted-foreground))" }}>
+                  {formatTime(currentTime)}
+              </div>
+              <div id="date" className="text-lg font-bold text-muted-foreground mt-10" style={{ color: "hsl(var(--muted-foreground))" }}>
+                  {formatDate(currentTime)}
+              </div>
+          </div>
+
+          <div className="button-container left absolute w-[120px] left-0 z-10 ml-[-30px] pl-[120px] py-4 bg-white/20 rounded-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
+              <div className="wii-style-button min-w-[80px] h-[70px] ml-[-60px] rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer">
+                  <span className="text-wii-gray-dark font-bold text-sm">Wii</span>
+              </div>
+          </div>
+          
+          <div 
+            className="sd-card-button absolute z-10 settings-cog-button" 
+            style={{ left: '220px', top: '158px' }}
+            onClick={handleSettingsClick}
+          >
+              <svg width="28" height="28" viewBox="0 0 24 24" className="text-wii-gray-dark">
+                <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+              </svg>
+          </div>
+
+          <div className="button-container right absolute w-[120px] right-0 z-10 mr-[-30px] pr-[120px] py-4 bg-white/20 rounded-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
+              <div className="relative ml-4">
+                  <div 
+                    className="wii-style-button min-w-[80px] h-[70px] rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer"
+                    onClick={handleSettingsClick}
+                  >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-wii-gray-dark"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  </div>
+              </div>
+          </div>
 
           {/* Settings Menu */}
           {showMenu && (
@@ -199,7 +222,6 @@ function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleC
               onClick={handleMenuClose}
             />
           )}
-        </div>
       </footer>
 
       <SoundModal 
@@ -238,6 +260,6 @@ function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleC
       )}
     </>
   );
-}
+};
 
-export default WiiBar; 
+export default WiiRibbon; 

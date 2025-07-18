@@ -41,6 +41,75 @@
   color: #888;
 }
 
+:root {
+  --wii-blue: 195 75% 60%;
+  --ribbon-bg: 220 20% 95%;
+  --wii-gray-light: 220 15% 97%;
+  --wii-gray: 220 10% 80%;
+  --wii-gray-dark: 220 10% 40%;
+  --foreground: 220 10% 20%;
+  --muted-foreground: 220 10% 45%;
+}
+
+/* Wii Ribbon Utility Classes */
+.fixed { position: fixed; }
+.bottom-0 { bottom: 0; }
+.left-0 { left: 0; }
+.right-0 { right: 0; }
+.top-0 { top: 0; }
+.absolute { position: absolute; }
+.relative { position: relative; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.z-0 { z-index: 0; }
+.z-10 { z-index: 10; }
+.z-20 { z-index: 20; }
+.text-center { text-align: center; }
+.pointer-events-none { pointer-events: none; }
+.cursor-pointer { cursor: pointer; }
+.bg-white { background-color: white; }
+.border-4 { border-width: 4px; }
+.border-wii-gray { border-color: hsl(var(--wii-gray)); }
+.rounded-full { border-radius: 50%; }
+.rounded-\[6rem\] { border-radius: 6rem; }
+.rounded-\[10px\] { border-radius: 10px; }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+.text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.font-bold { font-weight: 700; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-foreground { color: hsl(var(--foreground)); }
+.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+.text-wii-gray-dark { color: hsl(var(--wii-gray-dark)); }
+.mt-10 { margin-top: 2.5rem; }
+.ml-\[-30px\] { margin-left: -30px; }
+.ml-\[-50px\] { margin-left: -50px; }
+.ml-\[-60px\] { margin-left: -60px; }
+.ml-\[-100px\] { margin-left: -100px; }
+.mr-\[-30px\] { margin-right: -30px; }
+.mr-\[-40px\] { margin-right: -40px; }
+.ml-4 { margin-left: 1rem; }
+.pl-\[120px\] { padding-left: 120px; }
+.pl-\[200px\] { padding-left: 200px; }
+.pr-\[120px\] { padding-right: 120px; }
+.pr-\[200px\] { padding-right: 200px; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.min-w-\[80px\] { min-width: 80px; }
+.min-w-\[250px\] { min-width: 250px; }
+.h-\[70px\] { height: 70px; }
+.w-\[120px\] { width: 120px; }
+.w-\[200px\] { width: 200px; }
+.w-\[250px\] { width: 250px; }
+.left-1\/2 { left: 50%; }
+.transform { transform: translateX(-50%); }
+.-translate-x-1\/2 { transform: translateX(-50%); }
+.bg-white\/20 { background-color: rgba(255, 255, 255, 0.2); }
+.top-20 { top: 5rem; }
+
 body, #root {
   min-height: 100vh;
   margin: 0;
