@@ -198,23 +198,26 @@ function App() {
       backgroundAudioRef.current = null;
     }
 
-    const enabledMusicSound = soundLibrary?.backgroundMusic?.find(s => s.enabled);
+    const bgMusicArr = soundLibrary?.backgroundMusic;
+    console.log('All background music tracks:', bgMusicArr);
+    const enabledMusicSound = bgMusicArr?.find(s => s.enabled);
     console.log('Enabled background music sound:', enabledMusicSound);
     if (enabledMusicSound) {
+      if (!enabledMusicSound.url) {
+        console.error('Enabled background music has no URL:', enabledMusicSound);
+        return;
+      }
       const audio = new Audio(enabledMusicSound.url);
       audio.volume = enabledMusicSound.volume ?? 0.4;
       audio.loop = true;
-      
-      // Start playing background music
       audio.play().catch(error => {
         console.log('Background music playback failed:', error);
       });
-
       backgroundAudioRef.current = audio;
       setBackgroundAudio(audio);
       console.log('Background music started playing');
     } else {
-      console.log('No enabled background music sound found');
+      console.warn('No enabled background music sound found. Available:', bgMusicArr);
     }
   };
 
@@ -225,6 +228,7 @@ function App() {
       const soundLibrary = await soundsApi?.getSoundLibrary();
       if (soundLibrary) {
         setupBackgroundMusic(soundLibrary);
+        setSoundSettings(soundLibrary); // ensure state is in sync
       }
     };
 

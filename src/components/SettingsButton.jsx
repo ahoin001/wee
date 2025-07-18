@@ -86,7 +86,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div className="context-menu-item" onClick={() => { onToggleCursor(); handleMenuClose(); }}>
                 {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
               </div>
-              <div className="context-menu-item" onClick={() => { 
+              <div className="context-menu-item" style={{ display: barType === 'wii' ? 'none' : undefined }} onClick={() => { 
                 if (barType === 'flat') {
                   onBarTypeChange('wii-ribbon');
                 } else if (barType === 'wii-ribbon') {

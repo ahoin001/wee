@@ -65,7 +65,7 @@ function WiiBar({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleC
 
   return (
     <>
-      <footer className="wii-bar" style={{ WebkitAppRegion: 'drag' }}>
+      <footer className="wii-bar" style={{ WebkitAppRegion: 'drag' }} onClick={() => { if (!showMenu) handleSettingsClick(); }}>
         <svg className="wii-bar-bg" viewBox="0 0 1920 120" width="100%" height="120" preserveAspectRatio="none">
           <path d="M0,0 H1920 V80 Q960,140 0,80 Z" fill="#E9EFF3" stroke="#b0c4d8" strokeWidth="2" />
         </svg>
