@@ -102,6 +102,11 @@ function App() {
   const cycleTimeoutRef = useRef();
   // Track previous wallpaper for fade animation
   const [prevWallpaper, setPrevWallpaper] = useState(null);
+  const lastMusicIdRef = useRef(null);
+  const lastMusicUrlRef = useRef(null);
+  const lastMusicEnabledRef = useRef(false);
+  // Remove toast state and logic
+  // const [toast, setToast] = useState(null);
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
 
@@ -149,7 +154,7 @@ function App() {
   // Load sound settings and play startup sound
   useEffect(() => {
     async function loadSettings() {
-      let soundLibrary = await soundsApi?.getSoundLibrary();
+      let soundLibrary = await soundsApi?.getLibrary();
       console.log('Loading sound library:', soundLibrary);
       
       if (soundLibrary) {
@@ -163,20 +168,14 @@ function App() {
           startupAudio.volume = enabledStartupSound.volume ?? 0.6;
           startupAudio.play().catch(error => {
             console.log('Startup sound playback failed:', error);
-            // If playback fails, start background music immediately
-            setupBackgroundMusic(soundLibrary);
+            // Do not start background music here
           });
           startupAudio.addEventListener('ended', () => {
-            console.log('Startup sound ended, starting background music');
-            setupBackgroundMusic(soundLibrary);
+            console.log('Startup sound ended');
+            // Do not start background music here
           });
         }
-        
-        // If no startup sound, start background music immediately
-        if (!playedStartup) {
-          console.log('No startup sound, starting background music immediately');
-          setupBackgroundMusic(soundLibrary);
-        }
+        // If no startup sound, do not start background music here
       }
     }
     loadSettings();
@@ -190,21 +189,38 @@ function App() {
     }
   }, [soundSettings]);
 
-  // Setup background music
-  const setupBackgroundMusic = async (soundLibrary) => {
+  // In setupBackgroundMusic, stop playback if no enabled track, and show toast on change
+  const setupBackgroundMusic = async (soundLibrary, enabledMusicSoundArg) => {
     console.log('Setting up background music with library:', soundLibrary);
     if (backgroundAudioRef.current) {
       backgroundAudioRef.current.pause();
       backgroundAudioRef.current = null;
+      setBackgroundAudio(null);
     }
 
     const bgMusicArr = soundLibrary?.backgroundMusic;
     console.log('All background music tracks:', bgMusicArr);
-    const enabledMusicSound = bgMusicArr?.find(s => s.enabled);
+    const enabledMusicSound = enabledMusicSoundArg !== undefined ? enabledMusicSoundArg : bgMusicArr?.find(s => s.enabled);
     console.log('Enabled background music sound:', enabledMusicSound);
     if (enabledMusicSound) {
       if (!enabledMusicSound.url) {
         console.error('Enabled background music has no URL:', enabledMusicSound);
+        return;
+      }
+      // Try to fetch the file to check if it exists
+      try {
+        const testAudio = new Audio(enabledMusicSound.url);
+        testAudio.addEventListener('error', (e) => {
+          console.error('Audio file could not be loaded:', enabledMusicSound.url, e);
+        });
+        testAudio.volume = 0;
+        await testAudio.play().catch(err => {
+          console.error('Test play failed for background music:', err);
+        });
+        testAudio.pause();
+        testAudio.currentTime = 0;
+      } catch (err) {
+        console.error('Error testing background music file:', enabledMusicSound.url, err);
         return;
       }
       const audio = new Audio(enabledMusicSound.url);
@@ -217,6 +233,12 @@ function App() {
       setBackgroundAudio(audio);
       console.log('Background music started playing');
     } else {
+      if (backgroundAudioRef.current) {
+        backgroundAudioRef.current.pause();
+        backgroundAudioRef.current = null;
+        setBackgroundAudio(null);
+        console.log('Background music stopped');
+      }
       console.warn('No enabled background music sound found. Available:', bgMusicArr);
     }
   };
@@ -225,16 +247,26 @@ function App() {
   useEffect(() => {
     const handleSoundLibraryUpdate = async () => {
       console.log('Sound library updated, refreshing background music');
-      const soundLibrary = await soundsApi?.getSoundLibrary();
+      const soundLibrary = await soundsApi?.getLibrary();
       if (soundLibrary) {
-        setupBackgroundMusic(soundLibrary);
+        const enabledMusicSound = soundLibrary?.backgroundMusic?.find(s => s.enabled);
+        const isEnabled = !!enabledMusicSound;
+        if (
+          (isEnabled !== lastMusicEnabledRef.current) ||
+          (enabledMusicSound &&
+            (enabledMusicSound.id !== lastMusicIdRef.current ||
+             enabledMusicSound.url !== lastMusicUrlRef.current)
+          )
+        ) {
+          lastMusicIdRef.current = enabledMusicSound ? enabledMusicSound.id : null;
+          lastMusicUrlRef.current = enabledMusicSound ? enabledMusicSound.url : null;
+          lastMusicEnabledRef.current = isEnabled;
+          setupBackgroundMusic(soundLibrary, enabledMusicSound);
+        }
         setSoundSettings(soundLibrary); // ensure state is in sync
       }
     };
-
-    // Set up a polling mechanism to check for sound library changes
     const interval = setInterval(handleSoundLibraryUpdate, 2000); // Check every 2 seconds
-    
     return () => clearInterval(interval);
   }, []);
 
@@ -601,6 +633,7 @@ function App() {
     };
   }, [backgroundAudioRef]);
 
+  // Toast UI
   return (
     <div className="app-container">
       {/* Wallpaper background layer with fade crossfade */}

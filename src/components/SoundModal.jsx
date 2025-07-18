@@ -37,6 +37,8 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
     if (isOpen) {
       loadData();
     }
+    // Only run when isOpen changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Stop all audio on close
@@ -107,44 +109,37 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
 
   // (File input is no longer needed)
 
-  // Enable/disable all sounds in a category
-  const handleDisableAll = async (catKey) => {
-    setMessage({ type: '', text: '' });
-    for (const s of localState[catKey]) {
-      await soundsApi.update({ soundType: catKey, soundId: s.id, updates: { enabled: false } });
-    }
-    await loadData();
+  // Enable/disable all sounds in a category (local only)
+  const handleDisableAll = (catKey) => {
+    setLocalState(prev => {
+      const updated = { ...prev };
+      updated[catKey] = updated[catKey].map(s => ({ ...s, enabled: false }));
+      return updated;
+    });
   };
 
-
-
-  // Toggle enable/disable for a sound (ensures only one sound per section is enabled)
-  const handleToggleEnable = async (catKey, soundId) => {
-    setMessage({ type: '', text: '' });
-    const sound = localState[catKey].find(s => s.id === soundId);
-    if (!sound) return;
-    
-    // If enabling this sound, disable all others in the same category
-    if (!sound.enabled) {
-      const updates = localState[catKey].map(s => ({
-        soundId: s.id,
-        updates: { enabled: s.id === soundId }
-      }));
-      for (const u of updates) {
-        await soundsApi.update({ soundType: catKey, soundId: u.soundId, updates: u.updates });
-      }
-    } else {
-      // If disabling this sound, just disable it
-      await soundsApi.update({ soundType: catKey, soundId, updates: { enabled: false } });
-    }
-    await loadData();
+  // Toggle enable/disable for a sound (local only)
+  const handleToggleEnable = (catKey, soundId) => {
+    setLocalState(prev => {
+      const updated = { ...prev };
+      updated[catKey] = updated[catKey].map(s =>
+        s.id === soundId
+          ? { ...s, enabled: !s.enabled }
+          : { ...s, enabled: false }
+      );
+      return updated;
+    });
   };
 
-  // Set volume for a sound
-  const handleVolumeChange = async (catKey, soundId, value) => {
-    setMessage({ type: '', text: '' });
-    await soundsApi.update({ soundType: catKey, soundId, updates: { volume: value } });
-    await loadData();
+  // Set volume for a sound (local only)
+  const handleVolumeChange = (catKey, soundId, value) => {
+    setLocalState(prev => {
+      const updated = { ...prev };
+      updated[catKey] = updated[catKey].map(s =>
+        s.id === soundId ? { ...s, volume: value } : s
+      );
+      return updated;
+    });
     // Live update test audio volume if this sound is being tested
     if (audioRefs[soundId]) {
       audioRefs[soundId].volume = value;
@@ -197,9 +192,32 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
 
   // Save all changes (now only updates settings, not files)
   const handleSave = async () => {
+    // Compare localState to soundLibrary and persist only changes
+    for (const cat of SOUND_CATEGORIES) {
+      const orig = soundLibrary[cat.key] || [];
+      const curr = localState[cat.key] || [];
+      for (let i = 0; i < curr.length; i++) {
+        const origSound = orig[i];
+        const currSound = curr[i];
+        if (!origSound) continue;
+        if (
+          origSound.enabled !== currSound.enabled ||
+          origSound.volume !== currSound.volume
+        ) {
+          await soundsApi.update({
+            soundType: cat.key,
+            soundId: currSound.id,
+            updates: {
+              enabled: currSound.enabled,
+              volume: currSound.volume,
+            },
+          });
+        }
+      }
+    }
     setMessage({ type: 'success', text: 'Sound settings saved.' });
-    if (onSettingsChange) onSettingsChange();
     onClose();
+    if (onSettingsChange) setTimeout(onSettingsChange, 100);
   };
   const handleClose = () => {
     onClose();
