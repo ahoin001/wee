@@ -15,11 +15,13 @@ const channelsFile = path.join(dataDir, 'channels.json');
 const userWallpapersPath = path.join(dataDir, 'wallpapers');
 const userSoundsPath = path.join(dataDir, 'sounds');
 const settingsFile = path.join(dataDir, 'settings.json');
+const userChannelHoverSoundsPath = path.join(dataDir, 'channel-hover-sounds');
 
 async function ensureDataDir() {
   await fs.mkdir(dataDir, { recursive: true });
   await fs.mkdir(userWallpapersPath, { recursive: true });
   await fs.mkdir(userSoundsPath, { recursive: true });
+  await fs.mkdir(userChannelHoverSoundsPath, { recursive: true });
 }
 
 // --- Sounds Data Module ---
@@ -1286,15 +1288,19 @@ function createWindow(opts = {}) {
   sendWindowState();
 }
 
-app.whenReady().then(() => {
-  // Register userdata:// protocol for wallpapers and sounds
+app.whenReady().then(async () => {
+  // Ensure default sounds exist in production
+  await ensureDefaultSoundsExist();
+  // Register userdata:// protocol for wallpapers, sounds, and channel hover sounds
   protocol.registerFileProtocol('userdata', (request, callback) => {
     const url = request.url.replace('userdata://', '');
     let filePath;
     if (url.startsWith('wallpapers/')) {
       filePath = path.join(userWallpapersPath, url.replace(/^wallpapers[\\\/]/, ''));
     } else if (url.startsWith('sounds/')) {
-      filePath = path.join(dataDir, 'sounds', url.replace(/^sounds[\\\/]/, ''));
+      filePath = path.join(userSoundsPath, url.replace(/^sounds[\\\/]/, ''));
+    } else if (url.startsWith('channel-hover-sounds/')) {
+      filePath = path.join(userChannelHoverSoundsPath, url.replace(/^channel-hover-sounds[\\\/]/, ''));
     } else {
       // Block access to other paths
       return callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
@@ -1407,5 +1413,29 @@ ipcMain.handle('wallpaper:selectFile', async () => {
     }
   } catch (error) {
     return { success: false, error: `Failed to open file dialog: ${error.message}` };
+  }
+});
+
+ipcMain.handle('channels:copyHoverSound', async (event, { filePath, filename }) => {
+  try {
+    await ensureDataDir();
+    if (!fsSync.existsSync(userChannelHoverSoundsPath)) {
+      fsSync.mkdirSync(userChannelHoverSoundsPath, { recursive: true });
+    }
+    // Generate unique filename if needed
+    let base = path.basename(filename, path.extname(filename));
+    let ext = path.extname(filename);
+    let uniqueName = base + ext;
+    let counter = 1;
+    while (fsSync.existsSync(path.join(userChannelHoverSoundsPath, uniqueName))) {
+      uniqueName = `${base}_${counter}${ext}`;
+      counter++;
+    }
+    const destPath = path.join(userChannelHoverSoundsPath, uniqueName);
+    await fsExtra.copy(filePath, destPath);
+    const url = `userdata://channel-hover-sounds/${uniqueName}`;
+    return { success: true, url };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });

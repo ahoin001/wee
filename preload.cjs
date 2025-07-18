@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('api', {
     get: () => ipcRenderer.invoke('channels:get'),
     set: (data) => ipcRenderer.invoke('channels:set', data),
     reset: () => ipcRenderer.invoke('channels:reset'),
+    copyHoverSound: ({ filePath, filename }) => ipcRenderer.invoke('channels:copyHoverSound', { filePath, filename }),
   },
   resetAll: () => ipcRenderer.invoke('settings:resetAll'),
   // Window management APIs

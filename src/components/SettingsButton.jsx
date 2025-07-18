@@ -86,25 +86,11 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div className="context-menu-item" onClick={() => { onToggleCursor(); handleMenuClose(); }}>
                 {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
               </div>
-              <div className="context-menu-item" style={{ display: barType === 'wii' ? 'none' : undefined }} onClick={() => { 
-                if (barType === 'flat') {
-                  onBarTypeChange('wii-ribbon');
-                } else if (barType === 'wii-ribbon') {
-                  onBarTypeChange('wii');
-                } else {
-                  onBarTypeChange('flat');
-                }
-                handleMenuClose(); 
-              }}>
-                {barType === 'flat' ? 'Switch to Wii Ribbon' : 
-                 barType === 'wii-ribbon' ? 'Switch to Wii Bar' : 
-                 'Switch to Flat Bar'}
-              </div>
               <div className="settings-menu-separator" />
               {/* Window Group */}
               <div className="settings-menu-group-label">Window</div>
               <div className="context-menu-item" onClick={() => { api.toggleFullscreen(); handleMenuClose(); }}>
-                {isFullscreen ? 'Window Mode' : 'Fullscreen Mode'}
+                {isFullscreen ? 'Windowed Mode' : 'Fullscreen Mode'}
               </div>
               <div className="context-menu-item" onClick={() => { api.minimize(); handleMenuClose(); }}>
                 Minimize Window

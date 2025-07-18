@@ -633,6 +633,14 @@ function App() {
     };
   }, [backgroundAudioRef]);
 
+  // Add a drag region at the top of the window only when not in fullscreen
+  const [isFullscreen, setIsFullscreen] = useState(true);
+  useEffect(() => {
+    if (window.api && window.api.onFullscreenState) {
+      window.api.onFullscreenState((val) => setIsFullscreen(val));
+    }
+  }, []);
+
   // Toast UI
   return (
     <div className="app-container">
@@ -708,6 +716,10 @@ function App() {
           }} />
         </div>
       ) : null}
+      {/* Drag region for windowed mode only */}
+      {!isFullscreen && (
+        <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
+      )}
       {showDragRegion && (
         <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
       )}

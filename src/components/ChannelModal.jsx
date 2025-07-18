@@ -46,13 +46,27 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   }, [channelId]);
 
   // Handle hover sound file select
-  const handleHoverSoundFile = (file) => {
+  const handleHoverSoundFile = async (file) => {
     if (file) {
-      const url = URL.createObjectURL(file);
-      setHoverSound({ url, name: file.name, volume: hoverSoundVolume });
-      setHoverSoundName(file.name);
-      setHoverSoundUrl(url);
-      setHoverSoundEnabled(true);
+      // Persistently store the file using the new API
+      if (file.path) {
+        const result = await window.api.channels.copyHoverSound({ filePath: file.path, filename: file.name });
+        if (result.success) {
+          setHoverSound({ url: result.url, name: file.name, volume: hoverSoundVolume });
+          setHoverSoundName(file.name);
+          setHoverSoundUrl(result.url);
+          setHoverSoundEnabled(true);
+        } else {
+          alert('Failed to save hover sound: ' + result.error);
+        }
+      } else {
+        // Fallback for browsers: use session URL (not persistent)
+        const url = URL.createObjectURL(file);
+        setHoverSound({ url, name: file.name, volume: hoverSoundVolume });
+        setHoverSoundName(file.name);
+        setHoverSoundUrl(url);
+        setHoverSoundEnabled(true);
+      }
     }
   };
   // Play hover sound (fade in)
