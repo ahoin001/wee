@@ -733,28 +733,28 @@ function App() {
           {showDragRegion && (
             <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
           )}
-          {useCustomCursor && <WiiCursor />}
-          <div className="channels-grid">
-            {channels.map((channel) => {
-              const config = channelConfigs[channel.id];
-              const isConfigured = config && (config.media || config.path);
-              return (
-                <Channel
-                  key={channel.id}
-                  {...channel}
-                  empty={!isConfigured}
-                  media={mediaMap[channel.id]}
-                  path={appPathMap[channel.id]}
-                  type={config?.type}
-                  title={config?.title}
+      {useCustomCursor && <WiiCursor />}
+      <div className="channels-grid">
+        {channels.map((channel) => {
+          const config = channelConfigs[channel.id];
+          const isConfigured = config && (config.media || config.path);
+          return (
+            <Channel
+              key={channel.id}
+              {...channel}
+              empty={!isConfigured}
+              media={mediaMap[channel.id]}
+              path={appPathMap[channel.id]}
+              type={config?.type}
+              title={config?.title}
                   hoverSound={config?.hoverSound}
-                  onMediaChange={handleMediaChange}
-                  onAppPathChange={handleAppPathChange}
-                  onChannelSave={handleChannelSave}
-                />
-              );
-            })}
-          </div>
+              onMediaChange={handleMediaChange}
+              onAppPathChange={handleAppPathChange}
+              onChannelSave={handleChannelSave}
+            />
+          );
+        })}
+      </div>
           {barType === 'flat' ? (
             <FlatBar
               onSettingsClick={handleSettingsClick}
@@ -774,16 +774,16 @@ function App() {
             <WiiRibbon
               onSettingsClick={handleSettingsClick}
               onSettingsChange={handleSettingsChange}
-              onToggleDarkMode={handleToggleDarkMode}
-              onToggleCursor={handleToggleCursor}
-              useCustomCursor={useCustomCursor}
+          onToggleDarkMode={handleToggleDarkMode}
+          onToggleCursor={handleToggleCursor}
+          useCustomCursor={useCustomCursor}
               barType={barType}
               onBarTypeChange={handleBarTypeChange}
               defaultBarType={defaultBarType}
               onDefaultBarTypeChange={handleDefaultBarTypeChange}
               glassWiiRibbon={glassWiiRibbon}
               onGlassWiiRibbonChange={setGlassWiiRibbon}
-            />
+        />
           ) : (
             <WiiBar
               onSettingsClick={handleSettingsClick}
@@ -796,7 +796,7 @@ function App() {
               onGlassWiiRibbonChange={setGlassWiiRibbon}
             />
           )}
-        </div>
+      </div>
       {isLoading && <SplashScreen fadingOut={splashFading} />}
     </>
   );

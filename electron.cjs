@@ -16,12 +16,14 @@ const userWallpapersPath = path.join(dataDir, 'wallpapers');
 const userSoundsPath = path.join(dataDir, 'sounds');
 const settingsFile = path.join(dataDir, 'settings.json');
 const userChannelHoverSoundsPath = path.join(dataDir, 'channel-hover-sounds');
+const userIconsPath = path.join(dataDir, 'icons');
 
 async function ensureDataDir() {
   await fs.mkdir(dataDir, { recursive: true });
   await fs.mkdir(userWallpapersPath, { recursive: true });
   await fs.mkdir(userSoundsPath, { recursive: true });
   await fs.mkdir(userChannelHoverSoundsPath, { recursive: true });
+  await fs.mkdir(userIconsPath, { recursive: true });
 }
 
 // --- Sounds Data Module ---
@@ -1131,6 +1133,65 @@ function emitWallpapersUpdated() {
   });
 }
 
+// --- IPC: User Icons ---
+ipcMain.handle('icons:add', async (event, { filePath, filename }) => {
+  try {
+    await ensureDataDir();
+    if (!fsSync.existsSync(userIconsPath)) {
+      fsSync.mkdirSync(userIconsPath, { recursive: true });
+    }
+    // Generate unique filename if needed
+    let base = path.basename(filename, path.extname(filename));
+    let ext = path.extname(filename);
+    let uniqueName = base + ext;
+    let counter = 1;
+    while (fsSync.existsSync(path.join(userIconsPath, uniqueName))) {
+      uniqueName = `${base}_${counter}${ext}`;
+      counter++;
+    }
+    const destPath = path.join(userIconsPath, uniqueName);
+    await fsExtra.copy(filePath, destPath);
+    // Save metadata in settings.json
+    let settings = {};
+    try { settings = JSON.parse(await fs.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
+    if (!settings.savedIcons) settings.savedIcons = [];
+    const url = `userdata://icons/${uniqueName}`;
+    const newIcon = { url, name: filename, added: Date.now() };
+    settings.savedIcons.push(newIcon);
+    await fs.writeFile(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
+    return { success: true, icon: newIcon };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('icons:list', async () => {
+  try {
+    let settings = {};
+    try { settings = JSON.parse(await fs.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
+    return { success: true, icons: settings.savedIcons || [] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('icons:delete', async (event, { url }) => {
+  try {
+    if (!url || !url.startsWith('userdata://icons/')) return { success: false, error: 'Invalid icon URL' };
+    const filename = url.replace('userdata://icons/', '');
+    const filePath = path.join(userIconsPath, filename);
+    await fsExtra.remove(filePath);
+    // Remove from settings
+    let settings = {};
+    try { settings = JSON.parse(await fs.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
+    settings.savedIcons = (settings.savedIcons || []).filter(i => i.url !== url);
+    await fs.writeFile(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 // --- IPC: Reset to Default ---
 ipcMain.handle('reset-to-default', async () => {
   try {
@@ -1226,17 +1287,17 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
       } else {
         // Normal launch
         const child = spawn(executablePath, args, {
-          detached: true,
-          stdio: 'ignore',
+        detached: true,
+        stdio: 'ignore',
           shell: true
-        });
-        child.on('error', (err) => {
-          console.error('Failed to launch executable:', err);
-        });
-        child.on('spawn', () => {
-          console.log('Executable launched successfully');
-          child.unref();
-        });
+      });
+      child.on('error', (err) => {
+        console.error('Failed to launch executable:', err);
+      });
+      child.on('spawn', () => {
+        console.log('Executable launched successfully');
+        child.unref();
+      });
       }
     } catch (err) {
       console.error('Failed to launch executable:', err);
@@ -1301,7 +1362,7 @@ function createWindow(opts = {}) {
 app.whenReady().then(async () => {
   // Ensure default sounds exist in production
   await ensureDefaultSoundsExist();
-  // Register userdata:// protocol for wallpapers, sounds, and channel hover sounds
+  // Register userdata:// protocol for wallpapers, sounds, channel-hover-sounds, and icons
   protocol.registerFileProtocol('userdata', (request, callback) => {
     const url = request.url.replace('userdata://', '');
     let filePath;
@@ -1311,6 +1372,8 @@ app.whenReady().then(async () => {
       filePath = path.join(userSoundsPath, url.replace(/^sounds[\\\/]/, ''));
     } else if (url.startsWith('channel-hover-sounds/')) {
       filePath = path.join(userChannelHoverSoundsPath, url.replace(/^channel-hover-sounds[\\\/]/, ''));
+    } else if (url.startsWith('icons/')) {
+      filePath = path.join(userIconsPath, url.replace(/^icons[\\\/]/, ''));
     } else {
       // Block access to other paths
       return callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
@@ -1461,10 +1524,54 @@ ipcMain.handle('resolve-userdata-url', (event, url) => {
       filePath = path.join(userChannelHoverSoundsPath, rel.replace(/^channel-hover-sounds[\\\/]/, ''));
     } else if (rel.startsWith('wallpapers/')) {
       filePath = path.join(userWallpapersPath, rel.replace(/^wallpapers[\\\/]/, ''));
+    } else if (rel.startsWith('icons/')) {
+      filePath = path.join(userIconsPath, rel.replace(/^icons[\\\/]/, ''));
     }
     if (filePath) {
       return 'file://' + filePath;
     }
   }
   return url;
+});
+
+ipcMain.handle('icon:selectFile', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'PNG Images', extensions: ['png'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      title: 'Select Icon (PNG)'
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0];
+      const filename = path.basename(filePath);
+      // Validate file exists
+      try { await fs.access(filePath); } catch { return { success: false, error: 'Selected file no longer exists. Please try again.' }; }
+      // Validate file extension
+      const validExtensions = ['.png'];
+      const fileExtension = path.extname(filename).toLowerCase();
+      if (!validExtensions.includes(fileExtension)) {
+        return { success: false, error: `Invalid file type: ${fileExtension}\n\nOnly PNG images are supported.` };
+      }
+      // Check file size (max 2MB)
+      let fileSize = null;
+      try {
+        const stats = await fs.stat(filePath);
+        fileSize = stats.size;
+        if (stats.size > 2 * 1024 * 1024) {
+          return { success: false, error: 'File is too large. Maximum file size is 2MB.' };
+        }
+        if (stats.size === 0) {
+          return { success: false, error: 'File is empty. Please select a valid PNG file.' };
+        }
+      } catch {}
+      return { success: true, file: { path: filePath, name: filename, size: fileSize } };
+    } else {
+      return { success: false, error: 'No file selected' };
+    }
+  } catch (error) {
+    return { success: false, error: `Failed to open file dialog: ${error.message}` };
+  }
 });

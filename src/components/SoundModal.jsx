@@ -31,6 +31,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
   const [audioRefs, setAudioRefs] = useState({});
   const fileInputRefs = useRef({});
   const [pendingUploadType, setPendingUploadType] = useState(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   // Load sound library and settings on open
   useEffect(() => {
@@ -218,27 +219,31 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
       }
     }
     setMessage({ type: 'success', text: 'Sound settings saved.' });
-    onClose();
+    handleClose(); // Use fade-out close
     if (onSettingsChange) setTimeout(onSettingsChange, 100);
   };
   const handleClose = () => {
-    onClose();
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 300); // Match BaseModal animation duration
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isClosing) return null;
 
   return (
     <BaseModal
       title="Manage App Sounds"
       onClose={handleClose}
-      className="sound-modal"
+      className={`sound-modal${isClosing ? ' closing' : ''}`}
       maxWidth="900px"
-      footerContent={
+      footerContent={({ handleClose: baseHandleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button className="cancel-button" onClick={handleClose}>Cancel</button>
           <button className="save-button" onClick={handleSave} style={{ minWidth: 90 }}>Save</button>
         </div>
-      }
+      )}
     >
       {message.text && (
         <div className={`message ${message.type}`} style={{ marginBottom: 10, fontWeight: 500 }}>

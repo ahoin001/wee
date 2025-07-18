@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import SoundModal from './SoundModal';
 import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
+import PrimaryActionsModal from './PrimaryActionsModal';
 import './WiiRibbon.css';
+import reactIcon from '../assets/react.svg';
+// import more icons as needed
 
 const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange, glassWiiRibbon, onGlassWiiRibbonChange }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -21,6 +24,51 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       return false;
     }
   });
+  const [buttonConfigs, setButtonConfigs] = useState([
+    { type: 'text', text: 'Wii', actionType: 'none', action: '' }, // left button
+    { type: 'icon', icon: null, text: '', actionType: 'none', action: '' }, // right button
+  ]);
+  const [activeButtonIndex, setActiveButtonIndex] = useState(null);
+  const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
+
+  // Load configs from settings on mount
+  useEffect(() => {
+    async function loadButtonConfigs() {
+      if (window.api?.settings?.get) {
+        const settings = await window.api.settings.get();
+        if (settings && settings.ribbonButtonConfigs) {
+          setButtonConfigs(settings.ribbonButtonConfigs);
+        }
+      }
+    }
+    loadButtonConfigs();
+  }, []);
+
+  // Save configs to settings
+  const saveButtonConfigs = async (configs) => {
+    setButtonConfigs(configs);
+    if (window.api?.settings?.get && window.api?.settings?.set) {
+      const settings = await window.api.settings.get();
+      await window.api.settings.set({ ...settings, ribbonButtonConfigs: configs });
+    }
+  };
+
+  const handleButtonContextMenu = (index, e) => {
+    e.preventDefault();
+    setActiveButtonIndex(index);
+    setShowPrimaryActionsModal(true);
+  };
+
+  const handlePrimaryActionsSave = (newConfig) => {
+    const newConfigs = [...buttonConfigs];
+    newConfigs[activeButtonIndex] = newConfig;
+    saveButtonConfigs(newConfigs);
+    setShowPrimaryActionsModal(false);
+  };
+
+  const handlePrimaryActionsCancel = () => {
+    setShowPrimaryActionsModal(false);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -73,6 +121,29 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       api.onFrameState((val) => setIsFrameless(!val));
     }
   }, []);
+
+  // Preavailable icons (add more as needed)
+  const preavailableIcons = [
+    reactIcon,
+    // add more imported icons here
+  ];
+
+  const handleButtonClick = (index) => {
+    const config = buttonConfigs[index];
+    if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
+    if (window.api && window.api.launchApp) {
+      if (config.actionType === 'exe') {
+        window.api.launchApp({ type: 'exe', path: config.action });
+      } else if (config.actionType === 'url') {
+        window.api.launchApp({ type: 'url', path: config.action });
+      }
+    } else {
+      // Fallback: try window.open for URLs
+      if (config.actionType === 'url') {
+        window.open(config.action, '_blank');
+      }
+    }
+  };
 
   return (
     <>
@@ -140,8 +211,18 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           </div>
 
           <div className="button-container left absolute w-[120px] left-0 z-10 ml-[-30px] pl-[120px] py-4 bg-white/20 rounded-r-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
-              <div className="wii-style-button min-w-[80px] h-[70px] ml-4 rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer">
+              <div
+                className="wii-style-button min-w-[80px] h-[70px] ml-4 rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer"
+                onContextMenu={e => handleButtonContextMenu(0, e)}
+                onClick={() => handleButtonClick(0)}
+              >
+                {buttonConfigs[0].type === 'text' ? (
+                  <span className="text-wii-gray-dark font-bold text-sm">{buttonConfigs[0].text || 'Wii'}</span>
+                ) : buttonConfigs[0].icon ? (
+                  <img src={buttonConfigs[0].icon} alt="icon" style={{ maxHeight: 40, maxWidth: 40 }} />
+                ) : (
                   <span className="text-wii-gray-dark font-bold text-sm">Wii</span>
+                )}
               </div>
           </div>
           
@@ -157,11 +238,18 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
           <div className="button-container right absolute w-[120px] right-0 z-10 mr-[-30px] pr-[120px] py-4 bg-white/20 rounded-l-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
               <div className="relative ml-4">
-                  <div 
+                  <div
                     className="wii-style-button min-w-[80px] h-[70px] rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer"
-                    onClick={handleSettingsClick}
+                    onContextMenu={e => handleButtonContextMenu(1, e)}
+                    onClick={() => handleButtonClick(1)}
                   >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-wii-gray-dark"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                      {buttonConfigs[1].type === 'text' ? (
+                        <span className="text-wii-gray-dark font-bold text-sm">{buttonConfigs[1].text || ''}</span>
+                      ) : buttonConfigs[1].icon ? (
+                        <img src={buttonConfigs[1].icon} alt="icon" style={{ maxHeight: 40, maxWidth: 40 }} />
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-wii-gray-dark"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                      )}
                   </div>
               </div>
           </div>
@@ -184,7 +272,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <div className="context-menu-item" onClick={() => { onToggleCursor(); handleMenuClose(); }}>
                   {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
                 </div>
-                <div className="context-menu-item" onClick={() => { 
+                {/* <div className="context-menu-item" onClick={() => { 
                   if (barType === 'flat') {
                     onBarTypeChange('wii-ribbon');
                   } else if (barType === 'wii-ribbon') {
@@ -197,7 +285,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                   {barType === 'flat' ? 'Switch to Wii Ribbon' : 
                    barType === 'wii-ribbon' ? 'Switch to Wii Bar' : 
                    'Switch to Flat Bar'}
-                </div>
+                </div> */}
                 <div className="settings-menu-separator" />
                 {/* Window Group */}
                 <div className="settings-menu-group-label">Window</div>
@@ -210,9 +298,19 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <div className="settings-menu-separator" />
                 {/* System Group */}
                 <div className="settings-menu-group-label">System</div>
+                
+                <div className="context-menu-item" onClick={() => { setShowGeneralModal(true); handleMenuClose(); }}>
+                  General Settings
+                </div>
                 <div className="context-menu-item" onClick={() => { setShowSoundModal(true); handleMenuClose(); }}>
                   Change Sounds
                 </div>
+                <div className="context-menu-item" onClick={() => { api.close(); handleMenuClose(); }}>
+                  Close App
+                </div>
+                <div className="settings-menu-separator" />
+                {/* General Group */}
+                {/* <div className="settings-menu-group-label">General</div> */}
                 <div className="context-menu-item" style={{ color: '#dc3545', fontWeight: 600 }}
                   onClick={async () => {
                     handleMenuClose();
@@ -229,15 +327,6 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                   }}
                 >
                   Reset to Default
-                </div>
-                <div className="context-menu-item" onClick={() => { api.close(); handleMenuClose(); }}>
-                  Close App
-                </div>
-                <div className="settings-menu-separator" />
-                {/* General Group */}
-                <div className="settings-menu-group-label">General</div>
-                <div className="context-menu-item" onClick={() => { setShowGeneralModal(true); handleMenuClose(); }}>
-                  General Settings
                 </div>
               </div>
             </div>
@@ -293,6 +382,16 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           setDefaultBarType={onDefaultBarTypeChange}
           glassWiiRibbon={glassWiiRibbon}
           setGlassWiiRibbon={onGlassWiiRibbonChange}
+        />
+      )}
+      {showPrimaryActionsModal && (
+        <PrimaryActionsModal
+          isOpen={showPrimaryActionsModal}
+          onClose={handlePrimaryActionsCancel}
+          onSave={handlePrimaryActionsSave}
+          config={buttonConfigs[activeButtonIndex]}
+          buttonIndex={activeButtonIndex}
+          preavailableIcons={preavailableIcons}
         />
       )}
     </>

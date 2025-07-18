@@ -37,14 +37,12 @@ function BaseModal({
     }, 300); // Match animation duration
   };
 
-  const handleOpen = () => {
-    // Could add opening sound effect here in the future
-    // if (soundSettings?.modalOpen?.enabled && soundSettings?.modalOpen?.file?.url) {
-    //   const audio = new Audio(soundSettings.modalOpen.file.url);
-    //   audio.volume = soundSettings.modalOpen.volume || 0.3;
-    //   audio.play().catch(error => console.log('Modal open sound failed:', error));
-    // }
-  };
+  // Expose handleClose to children via context or prop
+  // Instead, recommend: pass handleClose to footerContent and use it for Cancel/Save
+
+  if (isClosing) {
+    // Optionally, block interaction while closing
+  }
 
   return (
     <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
@@ -64,7 +62,8 @@ function BaseModal({
         
         {footerContent && (
           <div className="modal-footer">
-            {footerContent}
+            {/* Patch: If footerContent is a function, call it with handleClose */}
+            {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
           </div>
         )}
       </div>

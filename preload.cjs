@@ -18,13 +18,20 @@ contextBridge.exposeInMainWorld('api', {
   wallpapers: {
     get: () => ipcRenderer.invoke('wallpapers:get'),
     set: (data) => ipcRenderer.invoke('wallpapers:set', data),
+    reset: () => ipcRenderer.invoke('wallpapers:reset'),
     add: (args) => ipcRenderer.invoke('wallpapers:add', args),
     delete: (args) => ipcRenderer.invoke('wallpapers:delete', args),
     setActive: (args) => ipcRenderer.invoke('wallpapers:setActive', args),
     toggleLike: (args) => ipcRenderer.invoke('wallpapers:toggleLike', args),
     setCyclingSettings: (args) => ipcRenderer.invoke('wallpapers:setCyclingSettings', args),
   },
+  icons: {
+    add: ({ filePath, filename }) => ipcRenderer.invoke('icons:add', { filePath, filename }),
+    list: () => ipcRenderer.invoke('icons:list'),
+    delete: (url) => ipcRenderer.invoke('icons:delete', { url }),
+  },
   selectWallpaperFile: () => ipcRenderer.invoke('wallpaper:selectFile'),
+  selectIconFile: () => ipcRenderer.invoke('icon:selectFile'),
   onWallpapersUpdated: (cb) => ipcRenderer.on('wallpapers:updated', cb),
   offWallpapersUpdated: (cb) => ipcRenderer.removeListener('wallpapers:updated', cb),
   channels: {
