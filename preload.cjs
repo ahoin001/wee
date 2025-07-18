@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   selectWallpaperFile: () => ipcRenderer.invoke('wallpaper:selectFile'),
   selectIconFile: () => ipcRenderer.invoke('icon:selectFile'),
+  selectExeOrShortcutFile: () => ipcRenderer.invoke('select-exe-or-shortcut-file'),
   onWallpapersUpdated: (cb) => ipcRenderer.on('wallpapers:updated', cb),
   offWallpapersUpdated: (cb) => ipcRenderer.removeListener('wallpapers:updated', cb),
   channels: {

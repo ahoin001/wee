@@ -5,6 +5,7 @@ const fs = require('fs/promises');
 const fsSync = require('fs');
 const url = require('url');
 const fsExtra = require('fs-extra');
+const ws = require('windows-shortcuts');
 
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
@@ -1573,5 +1574,66 @@ ipcMain.handle('icon:selectFile', async () => {
     }
   } catch (error) {
     return { success: false, error: `Failed to open file dialog: ${error.message}` };
+  }
+});
+
+ipcMain.handle('select-exe-or-shortcut-file', async () => {
+  try {
+    console.log('[IPC] Opening file dialog for exe/shortcut selection');
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Executables and Shortcuts', extensions: ['exe', 'lnk'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      title: 'Select Application (.exe) or Shortcut (.lnk)'
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0];
+      const ext = path.extname(filePath).toLowerCase();
+      console.log(`[IPC] Selected file: ${filePath}, extension: ${ext}`);
+      
+      if (ext === '.lnk') {
+        // Resolve shortcut
+        console.log('[IPC] Resolving shortcut...');
+        return new Promise((resolve) => {
+          ws.query(filePath, (err, options) => {
+            if (err) {
+              console.error('[IPC] Failed to resolve shortcut:', err);
+              resolve({ success: false, error: 'Failed to resolve shortcut: ' + err.message });
+            } else {
+              console.log('[IPC] Shortcut resolved:', options);
+              resolve({
+                success: true,
+                file: {
+                  path: options.target,
+                  name: path.basename(options.target),
+                  args: options.args || '',
+                  shortcut: filePath
+                }
+              });
+            }
+          });
+        });
+      } else {
+        // Return .exe or other file
+        console.log('[IPC] Returning executable file');
+        return {
+          success: true,
+          file: {
+            path: filePath,
+            name: path.basename(filePath),
+            args: '',
+            shortcut: ''
+          }
+        };
+      }
+    } else {
+      console.log('[IPC] No file selected');
+      return { success: false, error: 'No file selected' };
+    }
+  } catch (error) {
+    console.error('[IPC] Error in select-exe-or-shortcut-file:', error);
+    return { success: false, error: 'Failed to open file dialog: ' + error.message };
   }
 });

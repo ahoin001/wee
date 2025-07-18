@@ -166,20 +166,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         return false;
       }
     } else {
-      // Validate executable path for Windows
+      // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
       const trimmedPath = path.trim();
-      
-      // Check if it's a valid Windows path
-      if (trimmedPath.match(/^[A-Za-z]:\\/)) {
-        // Absolute path
+      if (/\.exe(\s+.*)?$/i.test(trimmedPath) || /\.exe/i.test(trimmedPath)) {
         setPathError('');
         return true;
-      } else if (trimmedPath.startsWith('\\\\')) {
-        // Network path
-        setPathError('');
-        return true;
-      } else if (trimmedPath.includes('\\') || trimmedPath.includes('/')) {
-        // Relative path
+      } else if (trimmedPath.startsWith('\\')) {
         setPathError('');
         return true;
       } else {
@@ -320,13 +312,35 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           <>
             <button
               className="file-picker-button"
-              onClick={() => exeFileInputRef.current?.click()}
+              onClick={async () => {
+                console.log('Browse Files clicked');
+                if (window.api && window.api.selectExeOrShortcutFile) {
+                  console.log('Using IPC handler for file selection');
+                  const result = await window.api.selectExeOrShortcutFile();
+                  console.log('IPC result:', result);
+                  if (result && result.success && result.file) {
+                    let newPath = result.file.path;
+                    if (result.file.args && result.file.args.trim()) {
+                      newPath += ' ' + result.file.args.trim();
+                    }
+                    console.log('Setting path to:', newPath);
+                    setPath(newPath);
+                    setPathError('');
+                  } else if (result && result.error) {
+                    console.log('IPC error:', result.error);
+                    setPathError(result.error);
+                  }
+                } else {
+                  console.log('Falling back to file input');
+                  exeFileInputRef.current?.click();
+                }
+              }}
             >
               Browse Files
             </button>
             <input
               type="file"
-              accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
+              accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi,.lnk"
               ref={exeFileInputRef}
               onChange={(e) => handleExeFileSelect(e.target.files[0])}
               style={{ display: 'none' }}
