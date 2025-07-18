@@ -285,28 +285,62 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   );
 
   const renderAppPathSection = () => (
-    <div className="path-input-group">
-      <input
-        type="text"
-        placeholder="C:\Path\To\Application.exe or paste path here"
-        value={path}
-        onChange={handlePathChange}
-        className={`text-input ${pathError ? 'error' : ''}`}
-      />
-      <button 
-        className="file-picker-button"
-        onClick={() => exeFileInputRef.current?.click()}
-      >
-        Browse Files
-      </button>
-      <input
-        type="file"
-        accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
-        ref={exeFileInputRef}
-        onChange={(e) => handleExeFileSelect(e.target.files[0])}
-        style={{ display: 'none' }}
-      />
-    </div>
+    <>
+      <div style={{ display: 'flex', gap: 18, marginBottom: 12 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="radio"
+            name={`launch-type-${channelId}`}
+            value="exe"
+            checked={type === 'exe'}
+            onChange={() => setType('exe')}
+          />
+          Application (.exe)
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="radio"
+            name={`launch-type-${channelId}`}
+            value="url"
+            checked={type === 'url'}
+            onChange={() => setType('url')}
+          />
+          Website (URL)
+        </label>
+      </div>
+      <div className="path-input-group">
+        <input
+          type="text"
+          placeholder={type === 'exe' ? 'C:\\Path\\To\\Application.exe or paste path here' : 'https://example.com'}
+          value={path}
+          onChange={handlePathChange}
+          className={`text-input ${pathError ? 'error' : ''}`}
+        />
+        {type === 'exe' && (
+          <>
+            <button
+              className="file-picker-button"
+              onClick={() => exeFileInputRef.current?.click()}
+            >
+              Browse Files
+            </button>
+            <input
+              type="file"
+              accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi"
+              ref={exeFileInputRef}
+              onChange={(e) => handleExeFileSelect(e.target.files[0])}
+              style={{ display: 'none' }}
+            />
+          </>
+        )}
+      </div>
+      {pathError && <p className="error-text">{pathError}</p>}
+      <p className="help-text" style={{ marginTop: 6, color: '#888', fontSize: 14 }}>
+        {type === 'exe'
+          ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field.</span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
+          : 'Enter the complete URL including https://'}
+      </p>
+    </>
   );
 
   const renderDisplayOptionsSection = () => (
