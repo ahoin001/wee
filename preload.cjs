@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('api', {
     copyHoverSound: ({ filePath, filename }) => ipcRenderer.invoke('channels:copyHoverSound', { filePath, filename }),
   },
   resetAll: () => ipcRenderer.invoke('settings:resetAll'),
+  resolveUserdataUrl: (url) => ipcRenderer.invoke('resolve-userdata-url', url),
   // Window management APIs
   close: () => ipcRenderer.send('close-window'),
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),

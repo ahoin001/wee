@@ -1439,3 +1439,22 @@ ipcMain.handle('channels:copyHoverSound', async (event, { filePath, filename }) 
     return { success: false, error: error.message };
   }
 });
+
+ipcMain.handle('resolve-userdata-url', (event, url) => {
+  if (typeof url !== 'string') return url;
+  if (url.startsWith('userdata://')) {
+    const rel = url.replace('userdata://', '');
+    let filePath;
+    if (rel.startsWith('sounds/')) {
+      filePath = path.join(userSoundsPath, rel.replace(/^sounds[\\\/]/, ''));
+    } else if (rel.startsWith('channel-hover-sounds/')) {
+      filePath = path.join(userChannelHoverSoundsPath, rel.replace(/^channel-hover-sounds[\\\/]/, ''));
+    } else if (rel.startsWith('wallpapers/')) {
+      filePath = path.join(userWallpapersPath, rel.replace(/^wallpapers[\\\/]/, ''));
+    }
+    if (filePath) {
+      return 'file://' + filePath;
+    }
+  }
+  return url;
+});

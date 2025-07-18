@@ -22,6 +22,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
       return false;
     }
   });
+  const [isHovered, setIsHovered] = useState(false);
   
   const defaultIcon = (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -63,9 +64,43 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
     <>
       <div style={{ position: 'relative' }}>
         <button 
-          className={`circular-button settings-button ${isActive ? 'active' : ''}`} 
+          className={`circular-button settings-button ${isActive ? 'active' : ''}${glassWiiRibbon ? ' glass' : ''}`}
           onClick={handleButtonClick}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          style={glassWiiRibbon ? {
+            position: 'relative',
+            overflow: 'hidden',
+            background: 'rgba(255,255,255,0.18)',
+            boxShadow: isHovered ? '0 8px 32px 0 rgba(31, 38, 135, 0.25)' : '0 4px 16px 0 rgba(31, 38, 135, 0.18)',
+            border: '1.5px solid rgba(255,255,255,0.35)',
+            backdropFilter: isHovered ? 'blur(10px) saturate(1.5)' : 'blur(7px) saturate(1.2)',
+            WebkitBackdropFilter: isHovered ? 'blur(10px) saturate(1.5)' : 'blur(7px) saturate(1.2)',
+            transition: 'box-shadow 0.18s, backdrop-filter 0.18s, background 0.18s',
+          } : {}}
         >
+          {/* Glass shine pseudo-element */}
+          {glassWiiRibbon && (
+            <span
+              style={{
+                pointerEvents: 'none',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                background: isHovered
+                  ? 'linear-gradient(120deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.18) 60%, rgba(255,255,255,0.08) 100%)'
+                  : 'linear-gradient(120deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 60%, rgba(255,255,255,0.04) 100%)',
+                boxShadow: isHovered
+                  ? '0 0 32px 8px rgba(255,255,255,0.18)'
+                  : '0 0 16px 4px rgba(255,255,255,0.10)',
+                transition: 'background 0.18s, box-shadow 0.18s',
+                zIndex: 1,
+              }}
+            />
+          )}
           {CustomIcon || defaultIcon}
         </button>
         

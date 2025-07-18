@@ -70,9 +70,13 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
   // Play hover sound (fade in)
-  const handleTestHoverSound = () => {
+  const handleTestHoverSound = async () => {
     if (hoverSoundUrl) {
-      const audio = new Audio(hoverSoundUrl);
+      let realUrl = hoverSoundUrl;
+      if (realUrl.startsWith('userdata://') && window.api?.resolveUserdataUrl) {
+        realUrl = await window.api.resolveUserdataUrl(realUrl);
+      }
+      const audio = new Audio(realUrl);
       audio.volume = 0;
       audio.loop = true;
       audio.play();
