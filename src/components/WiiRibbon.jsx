@@ -139,8 +139,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               </div>
           </div>
 
-          <div className="button-container left absolute w-[120px] left-0 z-10 ml-[-30px] pl-[120px] py-4 bg-white/20 rounded-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
-              <div className="wii-style-button min-w-[80px] h-[70px] ml-[-60px] rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer">
+          <div className="button-container left absolute w-[120px] left-0 z-10 ml-[-30px] pl-[120px] py-4 bg-white/20 rounded-r-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
+              <div className="wii-style-button min-w-[80px] h-[70px] ml-4 rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer">
                   <span className="text-wii-gray-dark font-bold text-sm">Wii</span>
               </div>
           </div>
@@ -155,7 +155,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               </svg>
           </div>
 
-          <div className="button-container right absolute w-[120px] right-0 z-10 mr-[-30px] pr-[120px] py-4 bg-white/20 rounded-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
+          <div className="button-container right absolute w-[120px] right-0 z-10 mr-[-30px] pr-[120px] py-4 bg-white/20 rounded-l-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
               <div className="relative ml-4">
                   <div 
                     className="wii-style-button min-w-[80px] h-[70px] rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer"
