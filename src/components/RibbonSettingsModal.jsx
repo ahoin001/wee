@@ -15,6 +15,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
   const [recentRibbonGlowColors, setRecentRibbonGlowColors] = useState([]); // Last 3 used glow colors
   const [ribbonGlowStrength, setRibbonGlowStrength] = useState(32); // Default normal glow
   const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(48); // Default hover glow
+  const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
 
   // Load current ribbon settings on mount
   useEffect(() => {
@@ -32,6 +33,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
         setRecentRibbonGlowColors(window.settings.recentRibbonGlowColors ?? []);
         setRibbonGlowStrength(window.settings.ribbonGlowStrength ?? 32);
         setRibbonGlowStrengthHover(window.settings.ribbonGlowStrengthHover ?? 48);
+        setRibbonDockOpacity(window.settings.ribbonDockOpacity ?? 1);
       }
     }
   }, [isOpen, glassWiiRibbon]);
@@ -60,7 +62,8 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
           ribbonGlowColor: ribbonGlowColor,
           recentRibbonGlowColors: newRecentGlow,
           ribbonGlowStrength: ribbonGlowStrength,
-          ribbonGlowStrengthHover: ribbonGlowStrengthHover
+          ribbonGlowStrengthHover: ribbonGlowStrengthHover,
+          ribbonDockOpacity: ribbonDockOpacity
         });
       }
       handleClose();
@@ -188,6 +191,25 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
             />
             <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{ribbonGlowStrengthHover}px</span>
           </div>
+          {!glassEnabled && (
+            <>
+              <div style={{ fontSize: 14, color: '#666', marginTop: 18 }}>
+                Adjust the transparency of the dock (ribbon background) when glass effect is off.
+              </div>
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step="0.01"
+                  value={ribbonDockOpacity}
+                  onChange={e => setRibbonDockOpacity(Number(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round(ribbonDockOpacity * 100)}%</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

@@ -174,6 +174,8 @@ function App() {
   // Add ribbonGlowStrength and ribbonGlowStrengthHover state
   const [ribbonGlowStrength, setRibbonGlowStrength] = useState(32);
   const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(48);
+  const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
+  const [wallpaperBlur, setWallpaperBlur] = useState(0);
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   const [showPresetsModal, setShowPresetsModal] = useState(false);
@@ -231,6 +233,7 @@ function App() {
     setSlideRandomDirection(d.slideRandomDirection);
     setSlideDuration(d.slideDuration);
     setSlideEasing(d.slideEasing);
+    setWallpaperBlur(d.wallpaperBlur !== undefined ? d.wallpaperBlur : 0);
     // Primary Action Buttons
     setRibbonButtonConfigs(d.ribbonButtonConfigs || []);
     setShowPresetsModal(false);
@@ -488,8 +491,10 @@ function App() {
         // Load ribbonGlowStrength and ribbonGlowStrengthHover from settings
         setRibbonGlowStrength(settings.ribbonGlowStrength || 32);
         setRibbonGlowStrengthHover(settings.ribbonGlowStrengthHover || 48);
+        setRibbonDockOpacity(settings.ribbonDockOpacity ?? 1);
         // Load presets from settings
         setPresets(settings.presets || []);
+        setWallpaperBlur(settings.wallpaperBlur ?? 0);
       }
       // Mark as initialized after loading settings
       setHasInitialized(true);
@@ -545,7 +550,9 @@ function App() {
         recentRibbonGlowColors, // Persist recentRibbonGlowColors
         ribbonGlowStrength, // Persist ribbonGlowStrength
         ribbonGlowStrengthHover, // Persist ribbonGlowStrengthHover
+        ribbonDockOpacity, // Persist ribbonDockOpacity
         presets, // Persist presets
+        wallpaperBlur,
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -559,7 +566,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, presets]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, wallpaperBlur]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -773,8 +780,14 @@ function App() {
     if (newSettings.ribbonGlowStrengthHover !== undefined) {
       setRibbonGlowStrengthHover(newSettings.ribbonGlowStrengthHover);
     }
+    if (newSettings.ribbonDockOpacity !== undefined) {
+      setRibbonDockOpacity(newSettings.ribbonDockOpacity);
+    }
     if (newSettings.presets !== undefined) {
       setPresets(newSettings.presets);
+    }
+    if (newSettings.wallpaperBlur !== undefined) {
+      setWallpaperBlur(newSettings.wallpaperBlur);
     }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
@@ -815,6 +828,8 @@ function App() {
     recentRibbonGlowColors,
     ribbonGlowStrength,
     ribbonGlowStrengthHover,
+    ribbonDockOpacity,
+    wallpaperBlur,
   };
 
   // Compute the list of wallpapers to cycle through
@@ -1305,6 +1320,21 @@ function App() {
   }, []);
 
   // Toast UI
+  const handleUpdatePreset = (name) => {
+    setPresets(prev => prev.map(p => p.name === name ? {
+      name,
+      data: {
+        // WiiRibbon & Glow
+        ribbonColor, ribbonGlowColor, ribbonGlowStrength, ribbonGlowStrengthHover, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, recentRibbonColors, recentRibbonGlowColors,
+        // Time & Pill
+        timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity,
+        // Wallpaper & Effects
+        wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, wallpaperBlur,
+        // Primary Action Buttons
+        ribbonButtonConfigs,
+      }
+    } : p));
+  };
   return (
     <>
       {/* Always render the main UI, but overlay the splash screen while loading */}
@@ -1327,6 +1357,7 @@ function App() {
               opacity: getTransitionType() === 'crossfade' ? 1 - crossfadeProgress : wallpaperOpacity,
               transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, false) : 'none',
               transition: 'none', // Remove CSS transitions to prevent conflicts
+              filter: `blur(${wallpaperBlur}px)`,
             }}
           />
         )}
@@ -1408,6 +1439,8 @@ function App() {
           ribbonGlowStrength={ribbonGlowStrength}
           ribbonGlowStrengthHover={ribbonGlowStrengthHover}
           setShowPresetsModal={setShowPresetsModal}
+          ribbonDockOpacity={ribbonDockOpacity}
+          onRibbonDockOpacityChange={setRibbonDockOpacity}
         />
         {/* Channel Modal - rendered at top level for proper z-index */}
         {openChannelModal && (
@@ -1430,6 +1463,7 @@ function App() {
           onSavePreset={handleSavePreset}
           onDeletePreset={handleDeletePreset}
           onApplyPreset={handleApplyPreset}
+          onUpdatePreset={handleUpdatePreset}
         />
       </div>
     </>

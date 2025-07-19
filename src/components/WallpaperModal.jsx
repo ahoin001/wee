@@ -33,6 +33,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [selectedWallpaper, setSelectedWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Default 5 seconds
+  const [wallpaperBlur, setWallpaperBlur] = useState(0);
 
   // Load wallpapers from backend
   const loadWallpapers = async () => {
@@ -54,6 +55,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setSlideEasing(data.cyclingSettings?.slideEasing ?? 'ease-out');
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
       setChannelAutoFadeTimeout(data.channelAutoFadeTimeout ?? 5); // Load channel auto-fade timeout setting
+      setWallpaperBlur(data.wallpaperBlur ?? 0);
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load wallpapers: ' + err.message });
     } finally {
@@ -191,6 +193,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   useEffect(() => {
     if (isOpen) {
       setSelectedWallpaper(activeWallpaper);
+      setWallpaperBlur(window.settings.wallpaperBlur ?? 0);
     }
   }, [isOpen, activeWallpaper]);
 
@@ -200,6 +203,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       // Save wallpaper-specific settings only
       let wallpaperData = await api.get();
       wallpaperData.wallpaperOpacity = wallpaperOpacity;
+      wallpaperData.wallpaperBlur = wallpaperBlur;
       await api.set(wallpaperData);
       
       // Handle wallpaper and cycling settings
@@ -225,7 +229,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       if (onSettingsChange) {
         onSettingsChange({
           channelAutoFadeTimeout: channelAutoFadeTimeout,
-          wallpaperOpacity: wallpaperOpacity
+          wallpaperOpacity: wallpaperOpacity,
+          wallpaperBlur: wallpaperBlur,
         });
       }
       handleClose();
@@ -509,25 +514,45 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           )}
         </div>
       </div>
-      {/* Wallpaper Transparency Slider */}
+      {/* Wallpaper Effects Card (merged opacity and blur) */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
-          <span className="wee-card-title">Wallpaper Transparency</span>
+          <span className="wee-card-title">Wallpaper Effects</span>
         </div>
         <div className="wee-card-separator" />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '8px 0 0 0' }}>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={1 - wallpaperOpacity}
-            onChange={e => setWallpaperOpacity(1 - Number(e.target.value))}
-            style={{ flex: 1 }}
-          />
-          <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round((1 - wallpaperOpacity) * 100)}%</span>
+        <div className="wee-card-desc">
+          <div style={{ fontSize: 14, color: '#666', marginTop: 0 }}>
+            Adjust the transparency and blur of the wallpaper background.
+          </div>
+          {/* Wallpaper Opacity Slider */}
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={wallpaperOpacity}
+              onChange={e => setWallpaperOpacity(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round(wallpaperOpacity * 100)}%</span>
+          </div>
+          <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
+          {/* Wallpaper Blur Slider */}
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <input
+              type="range"
+              min="0"
+              max="24"
+              step="0.5"
+              value={wallpaperBlur}
+              onChange={e => setWallpaperBlur(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{wallpaperBlur}px</span>
+          </div>
+          <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
         </div>
-        <div className="wee-card-desc">Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
       </div>
       {/* Channel Auto-Fade Configuration Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>

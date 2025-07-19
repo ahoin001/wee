@@ -3,9 +3,10 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './BaseModal.css';
 
-function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset }) {
+function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset }) {
   const [newPresetName, setNewPresetName] = useState('');
   const [error, setError] = useState('');
+  const [justUpdated, setJustUpdated] = useState(null); // name of last updated preset
 
   const handleSave = () => {
     if (!newPresetName.trim()) {
@@ -21,6 +22,12 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     setError('');
   };
 
+  const handleUpdate = (name) => {
+    onUpdatePreset(name);
+    setJustUpdated(name);
+    setTimeout(() => setJustUpdated(null), 1500);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -30,32 +37,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       maxWidth="540px"
       footerContent={null}
     >
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Saved Presets</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          {presets.length === 0 && <div style={{ color: '#888', fontStyle: 'italic' }}>No presets saved yet.</div>}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 10 }}>
-            {presets.map((preset, idx) => (
-              <div key={preset.name} style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1.5px solid #e0e0e6', borderRadius: 8, padding: 12, background: '#f9fafd' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 16 }}>{preset.name}</div>
-                  <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Ribbon: <span style={{ color: preset.data.ribbonColor }}>{preset.data.ribbonColor}</span>, Wallpaper: <span style={{ color: '#0099ff' }}>{preset.data.wallpaper?.name || 'None'}</span></div>
-                </div>
-                <button className="save-button" style={{ minWidth: 70 }} onClick={() => onApplyPreset(preset)}>
-                  Apply
-                </button>
-                <button className="cancel-button" style={{ minWidth: 70 }} onClick={() => onDeletePreset(preset.name)}>
-                  Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
           <span className="wee-card-title">Save Current as Preset</span>
         </div>
@@ -84,6 +66,41 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           {presets.length >= 6 && <div style={{ color: '#888', fontSize: 13, marginTop: 6 }}>You can save up to 6 presets.</div>}
         </div>
       </div>
+      
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Saved Presets</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          {presets.length === 0 && <div style={{ color: '#888', fontStyle: 'italic' }}>No presets saved yet.</div>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 10 }}>
+            {presets.map((preset, idx) => (
+              <div key={preset.name} style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1.5px solid #e0e0e6', borderRadius: 8, padding: 12, background: '#f9fafd' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 16 }}>{preset.name}</div>
+                  <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Ribbon: <span style={{ color: preset.data.ribbonColor }}>{preset.data.ribbonColor}</span>, Wallpaper: <span style={{ color: '#0099ff' }}>{preset.data.wallpaper?.name || 'None'}</span></div>
+                </div>
+                <button className="save-button" style={{ minWidth: 70 }} onClick={() => onApplyPreset(preset)}>
+                  Apply
+                </button>
+                <button
+                  className="save-button"
+                  style={{ minWidth: 70, background: justUpdated === preset.name ? '#4CAF50' : undefined }}
+                  onClick={() => handleUpdate(preset.name)}
+                  disabled={justUpdated === preset.name}
+                >
+                  {justUpdated === preset.name ? 'Updated!' : 'Update'}
+                </button>
+                <button className="cancel-button" style={{ minWidth: 70 }} onClick={() => onDeletePreset(preset.name)}>
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+     
     </BaseModal>
   );
 }
@@ -98,6 +115,7 @@ PresetsModal.propTypes = {
   onSavePreset: PropTypes.func.isRequired,
   onDeletePreset: PropTypes.func.isRequired,
   onApplyPreset: PropTypes.func.isRequired,
+  onUpdatePreset: PropTypes.func.isRequired,
 };
 
 export default PresetsModal; 
