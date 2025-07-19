@@ -553,31 +553,33 @@ function App() {
 
   // Handler for settings changes from WallpaperModal or SoundModal
   const handleSettingsChange = async (newSettings) => {
-    // Save the new settings (already merged in modal)
+    // Update state directly with the new settings passed from the modal
+    if (newSettings.channelAutoFadeTimeout !== undefined) {
+      setChannelAutoFadeTimeout(newSettings.channelAutoFadeTimeout);
+      // Reset the last hover time when the timeout changes to prevent immediate fade
+      setLastChannelHoverTime(Date.now());
+    }
+    if (newSettings.timeColor !== undefined) {
+      setTimeColor(newSettings.timeColor);
+      currentTimeColorRef.current = newSettings.timeColor;
+    }
+    if (newSettings.timeFormat24hr !== undefined) {
+      setTimeFormat24hr(newSettings.timeFormat24hr);
+      currentTimeFormatRef.current = newSettings.timeFormat24hr;
+    }
+    if (newSettings.enableTimePill !== undefined) {
+      setEnableTimePill(newSettings.enableTimePill);
+    }
+    if (newSettings.timePillBlur !== undefined) {
+      setTimePillBlur(newSettings.timePillBlur);
+    }
+    if (newSettings.timePillOpacity !== undefined) {
+      setTimePillOpacity(newSettings.timePillOpacity);
+    }
+    
+    // For other settings that need to be saved to disk, use the existing logic
     if (window.api && window.api.saveSettings) {
       await window.api.saveSettings(newSettings);
-    }
-    // Reload the full settings from disk to update all state
-    if (window.api && window.api.getSettings) {
-      const settings = await window.api.getSettings();
-      setIsDarkMode(settings.isDarkMode ?? false);
-      setUseCustomCursor(settings.useCustomCursor ?? true);
-      setWallpaper(settings.wallpaper || null);
-      setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
-      setSavedWallpapers(settings.savedWallpapers || []);
-      setLikedWallpapers(settings.likedWallpapers || []);
-      setCycleWallpapers(settings.cycleWallpapers ?? false);
-      setCycleInterval(settings.cycleInterval ?? 30);
-      setCycleAnimation(settings.cycleAnimation || 'fade');
-      setSlideDirection(settings.slideDirection || 'right');
-      setTimeColor(settings.timeColor || '#ffffff'); // Update timeColor
-      setTimeFormat24hr(settings.timeFormat24hr ?? true); // Update timeFormat24hr
-      setEnableTimePill(settings.enableTimePill ?? true); // Update enableTimePill
-      setTimePillBlur(settings.timePillBlur ?? 8); // Update timePillBlur
-      setTimePillOpacity(settings.timePillOpacity ?? 0.05); // Update timePillOpacity
-      currentTimeColorRef.current = settings.timeColor || '#ffffff';
-      currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
-      setSoundSettings(settings.sounds || {});
     }
   };
 
@@ -601,6 +603,7 @@ function App() {
     enableTimePill,
     timePillBlur,
     timePillOpacity,
+    channelAutoFadeTimeout,
   };
 
   // Compute the list of wallpapers to cycle through
@@ -978,6 +981,8 @@ function App() {
     setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
     setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
     setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Update channelAutoFadeTimeout
+    // Reset the last hover time when the timeout changes to prevent immediate fade
+    setLastChannelHoverTime(Date.now());
   };
 
   // On save for channels

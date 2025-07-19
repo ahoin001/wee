@@ -262,7 +262,17 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setChannelAutoFadeTimeout(channelAutoFadeTimeout);
       
       // Don't call loadWallpapers() as it overwrites our settings
-      // Don't call onSettingsChange since we're updating window.settings directly
+      // Call onSettingsChange to notify parent component of the new settings
+      if (onSettingsChange) {
+        onSettingsChange({
+          channelAutoFadeTimeout: channelAutoFadeTimeout,
+          timeColor: timeColor,
+          timeFormat24hr: timeFormat24hr,
+          enableTimePill: enableTimePill,
+          timePillBlur: timePillBlur,
+          timePillOpacity: timePillOpacity
+        });
+      }
       handleClose(); // Use fade-out close
     } catch (err) {
       setMessage({ type: 'error', text: 'Save failed: ' + err.message });
