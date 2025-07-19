@@ -26,6 +26,11 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
 
   const handleSave = async (handleClose) => {
     try {
+      // Update the glass enabled state in parent first
+      if (setGlassWiiRibbon) {
+        setGlassWiiRibbon(glassEnabled);
+      }
+      
       // Call onSettingsChange to notify parent component of the new settings
       if (onSettingsChange) {
         onSettingsChange({
@@ -36,10 +41,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
           glassShineOpacity: glassShineOpacity
         });
       }
-      // Update the glass enabled state in parent
-      if (setGlassWiiRibbon) {
-        setGlassWiiRibbon(glassEnabled);
-      }
+      
       handleClose();
     } catch (err) {
       console.error('Failed to save ribbon settings:', err);

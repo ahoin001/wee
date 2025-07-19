@@ -385,6 +385,11 @@ function App() {
     async function persistSettings() {
       let current = await settingsApi?.get();
       if (!current) current = {};
+      
+      // Ensure we never overwrite ribbonButtonConfigs if they exist
+      // This prevents race conditions where button configs get reset
+      const preservedButtonConfigs = current.ribbonButtonConfigs;
+      
       // Merge new state with current, preserving ribbonButtonConfigs and other existing data
       const merged = {
         ...current, // This preserves ribbonButtonConfigs and any other existing settings
@@ -416,8 +421,15 @@ function App() {
         timePillOpacity, // Persist timePillOpacity
         channelAutoFadeTimeout, // Persist channelAutoFadeTimeout
       };
+      
+      // Double-check: if we had button configs before, make sure they're still there
+      if (preservedButtonConfigs && !merged.ribbonButtonConfigs) {
+        merged.ribbonButtonConfigs = preservedButtonConfigs;
+        console.log('App: Restored ribbonButtonConfigs that were about to be lost');
+      }
+      
       console.log('App: Persisting settings:', merged);
-      console.log('App: Preserved ribbonButtonConfigs:', current.ribbonButtonConfigs);
+      console.log('App: Preserved ribbonButtonConfigs:', merged.ribbonButtonConfigs);
       await settingsApi?.set(merged);
     }
     persistSettings();
@@ -613,21 +625,9 @@ function App() {
       setGlassShineOpacity(newSettings.glassShineOpacity);
     }
     
-    // For other settings that need to be saved to disk, use the existing logic
-    if (window.api && window.api.settings?.set) {
-      // Get current settings first to preserve existing data like ribbonButtonConfigs
-      let currentSettings = {};
-      if (window.api && window.api.settings?.get) {
-        try {
-          currentSettings = await window.api.settings.get();
-        } catch (error) {
-          console.warn('Failed to get current settings:', error);
-        }
-      }
-      // Merge new settings with existing settings to preserve ribbonButtonConfigs and other data
-      const mergedSettings = { ...currentSettings, ...newSettings };
-      await window.api.settings.set(mergedSettings);
-    }
+    // Note: Settings are automatically persisted by the main persistSettings useEffect
+    // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
+    // are preserved and not overwritten by direct settings saves.
   };
 
   // Pass settings to SettingsButton via window.settings for now (could use context for better solution)

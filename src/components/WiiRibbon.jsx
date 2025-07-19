@@ -57,14 +57,20 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     if (window.api?.settings?.get && window.api?.settings?.set) {
       const settings = await window.api.settings.get();
       console.log('WiiRibbon: Saving button configs:', configs);
-      console.log('WiiRibbon: Current settings:', settings);
+      console.log('WiiRibbon: Current settings before save:', settings);
       await window.api.settings.set({ ...settings, ribbonButtonConfigs: configs });
       console.log('WiiRibbon: Button configs saved successfully');
+      
+      // Verify the save worked
+      const verifySettings = await window.api.settings.get();
+      console.log('WiiRibbon: Settings after save:', verifySettings);
+      console.log('WiiRibbon: Button configs after save:', verifySettings.ribbonButtonConfigs);
     }
   };
 
   const handleButtonContextMenu = (index, e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event from bubbling up to the footer
     setActiveButtonIndex(index);
     setShowPrimaryActionsModal(true);
   };
