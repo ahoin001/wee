@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
+import ReactFreezeframe from 'react-freezeframe-vite';
 import ImageSearchModal from './ImageSearchModal';
 // import './Channel.css';
 
@@ -27,8 +28,6 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   const videoRef = useRef(null);
   const previewVideoRef = useRef(null);
   const previewCanvasRef = useRef(null);
-  const gifRef = useRef(null);
-  const [gifPaused, setGifPaused] = useState(false);
 
   // Determine which animatedOnHover setting to use
   const effectiveAnimatedOnHover = (channelConfig && channelConfig.animatedOnHover !== undefined)
@@ -65,15 +64,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     }
   }, [media, effectiveAnimatedOnHover]);
 
-  // Simple GIF pause/play on hover
-  useEffect(() => {
-    if (media && (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) && effectiveAnimatedOnHover) {
-      // Pause GIF on load when hover animation is enabled
-      setGifPaused(true);
-    } else {
-      setGifPaused(false);
-    }
-  }, [media, effectiveAnimatedOnHover]);
+
 
   const handleClick = async () => {
     if (hoverAudioRef.current) {
@@ -175,11 +166,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       }
     }
     
-    // Start GIF animation if applicable
-    if (media && (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) && effectiveAnimatedOnHover) {
-      // Resume GIF animation on hover
-      setGifPaused(false);
-    }
+
   };
 
   const handleMouseLeave = () => {
@@ -199,11 +186,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       }, 40);
     }
     
-    // Stop GIF animation and reset to first frame
-    if (media && (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) && effectiveAnimatedOnHover) {
-      // Pause GIF animation
-      setGifPaused(true);
-    }
+
   };
 
   const handleChannelSave = (channelId, channelData) => {
@@ -307,26 +290,31 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       }
     } else if (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) {
       if (effectiveAnimatedOnHover) {
-        // Use simple GIF pause/play on hover
+        // Use ReactFreezeframe for better GIF control when hover animation is enabled
         mediaPreview = (
-          <img
-            ref={gifRef}
-            src={media.url}
-            alt="Channel media"
-            className="channel-media"
+          <ReactFreezeframe
+            options={{
+              trigger: 'hover',
+              overlay: false,
+              responsive: true
+            }}
             style={{ 
               objectFit: 'cover', 
               width: '100%', 
-              height: '100%',
-              animationPlayState: gifPaused ? 'paused' : 'running'
+              height: '100%' 
             }}
-            onLoad={() => {
-              // Pause GIF immediately on load when hover animation is enabled
-              if (effectiveAnimatedOnHover) {
-                setGifPaused(true);
-              }
-            }}
-          />
+          >
+            <img
+              src={media.url}
+              alt="Channel media"
+              className="channel-media"
+              style={{ 
+                objectFit: 'cover', 
+                width: '100%', 
+                height: '100%' 
+              }}
+            />
+          </ReactFreezeframe>
         );
       } else {
         // Show normal GIF (always animated) when hover animation is disabled

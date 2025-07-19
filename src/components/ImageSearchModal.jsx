@@ -193,6 +193,26 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
                 </svg>
               </button>
             </div>
+            {/* Filter buttons */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              {FILETYPE_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFilter(opt.value)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 6,
+                    border: filter === opt.value ? '2px solid #646cff' : '1px solid #ccc',
+                    background: filter === opt.value ? '#e6eaff' : '#f9f9f9',
+                    fontWeight: filter === opt.value ? 'bold' : 'normal',
+                    color: '#222',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -290,25 +310,24 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
           Upload an image, GIF, or MP4 from your computer.
           <div style={{ marginTop: 14 }}>
             {/* Upload button/section UI here */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 4, marginBottom: 0 }}>
-              {FILETYPE_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setFilter(opt.value)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 6,
-                    border: filter === opt.value ? '2px solid #646cff' : '1px solid #ccc',
-                    background: filter === opt.value ? '#e6eaff' : '#f9f9f9',
-                    fontWeight: filter === opt.value ? 'bold' : 'normal',
-                    color: '#222',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => {
+                if (onUploadClick) onUploadClick();
+                onClose();
+              }}
+              style={{
+                padding: '10px 20px',
+                borderRadius: 6,
+                border: '1px solid #646cff',
+                background: '#646cff',
+                color: 'white',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontSize: '1em',
+              }}
+            >
+              Choose File
+            </button>
           </div>
         </div>
       </div>
