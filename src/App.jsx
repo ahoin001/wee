@@ -11,6 +11,7 @@ import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
 import audioManager from './utils/AudioManager';
+import intervalManager from './utils/IntervalManager';
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -416,14 +417,15 @@ function App() {
         setSoundSettings(soundLibrary); // ensure state is in sync
       }
     };
-    const interval = setInterval(handleSoundLibraryUpdate, 2000); // Check every 2 seconds
-    return () => clearInterval(interval);
+    const taskId = intervalManager.addTask(handleSoundLibraryUpdate, 5000, 'sound-library-update'); // Check every 5 seconds
+    return () => intervalManager.removeTask(taskId);
   }, []);
 
-  // Cleanup background audio on unmount
+  // Cleanup background audio and intervals on unmount
   useEffect(() => {
     return () => {
       audioManager.cleanup();
+      intervalManager.cleanup();
     };
   }, []);
 
@@ -1347,9 +1349,9 @@ function App() {
     checkFadeTimeout();
 
     // Set up interval to check fade timeout
-    const interval = setInterval(checkFadeTimeout, 100);
+    const taskId = intervalManager.addTask(checkFadeTimeout, 1000, 'channel-fade-check');
 
-    return () => clearInterval(interval);
+    return () => intervalManager.removeTask(taskId);
   }, [channelAutoFadeTimeout, lastChannelHoverTime]);
 
   // Pause/resume background music on window blur/focus

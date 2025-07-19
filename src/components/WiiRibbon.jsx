@@ -8,6 +8,7 @@ import RibbonSettingsModal from './RibbonSettingsModal';
 import WiiStyleButton from './WiiStyleButton';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
+import intervalManager from '../utils/IntervalManager';
 // import more icons as needed
 
 // Add a helper function to convert opacity to hex alpha if needed
@@ -137,10 +138,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   // Update time every second
   useEffect(() => {
-    const timer = setInterval(() => {
+    const taskId = intervalManager.addTask(() => {
       setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
+    }, 1000, 'time-update');
+    
+    return () => intervalManager.removeTask(taskId);
   }, []);
 
   // Watch for time color changes
@@ -156,9 +158,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     checkTimeColor();
     
     // Set up an interval to check for changes
-    const interval = setInterval(checkTimeColor, 100);
+    const taskId = intervalManager.addTask(checkTimeColor, 1000, 'time-color-check');
     
-    return () => clearInterval(interval);
+    return () => intervalManager.removeTask(taskId);
   }, [timeColor]);
 
   // Watch for time format changes
@@ -174,9 +176,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     checkTimeFormat();
     
     // Set up an interval to check for changes
-    const interval = setInterval(checkTimeFormat, 100);
+    const taskId = intervalManager.addTask(checkTimeFormat, 1000, 'time-format-check');
     
-    return () => clearInterval(interval);
+    return () => intervalManager.removeTask(taskId);
   }, [timeFormat24hr]);
 
   // Watch for ribbon color changes
@@ -192,8 +194,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       }
     };
     checkRibbonColor();
-    const interval = setInterval(checkRibbonColor, 100);
-    return () => clearInterval(interval);
+    const taskId = intervalManager.addTask(checkRibbonColor, 1000, 'ribbon-color-check');
+    return () => intervalManager.removeTask(taskId);
   }, [propRibbonColor, propRibbonGlowColor]);
 
   const formatTime = (date) => {
