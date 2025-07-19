@@ -3,7 +3,7 @@
   "description": "A Nintendo Wii-style launcher for your Windows desktop apps.",
   "author": "Your Name ",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.2.1",
   "type": "module",
   "main": "electron.cjs",
   "scripts": {

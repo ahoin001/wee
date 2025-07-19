@@ -9,6 +9,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
   const [enableTimePill, setEnableTimePill] = useState(true); // Default enabled
   const [timePillBlur, setTimePillBlur] = useState(8); // Default blur amount
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Default background opacity
+  const [timeFont, setTimeFont] = useState('default'); // Default font
 
   // Load current time settings on mount
   useEffect(() => {
@@ -20,6 +21,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
         setEnableTimePill(window.settings.enableTimePill ?? true);
         setTimePillBlur(window.settings.timePillBlur ?? 8);
         setTimePillOpacity(window.settings.timePillOpacity ?? 0.05);
+        setTimeFont(window.settings.timeFont || 'default');
       }
     }
   }, [isOpen]);
@@ -33,7 +35,8 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
           timeFormat24hr: timeFormat24hr,
           enableTimePill: enableTimePill,
           timePillBlur: timePillBlur,
-          timePillOpacity: timePillOpacity
+          timePillOpacity: timePillOpacity,
+          timeFont: timeFont,
         });
       }
       handleClose();
@@ -82,6 +85,18 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 {timeColor.toUpperCase()}
               </span>
             </div>
+          </div>
+          {/* Font Selection */}
+          <div style={{ marginTop: 18 }}>
+            <label style={{ fontWeight: 500, marginRight: 10 }}>Time Font</label>
+            <select
+              value={timeFont}
+              onChange={e => setTimeFont(e.target.value)}
+              style={{ padding: 4, borderRadius: 6 }}
+            >
+              <option value="default">Default</option>
+              <option value="digital">DigitalDisplayRegular-ODEO</option>
+            </select>
           </div>
         </div>
       </div>

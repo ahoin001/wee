@@ -66,3 +66,11 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+@font-face {
+  font-family: 'DigitalDisplayRegular-ODEO';
+  src: url('/fonts/DigitalDisplayRegular-ODEO.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

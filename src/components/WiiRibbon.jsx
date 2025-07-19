@@ -16,7 +16,7 @@ function hexAlpha(opacity) {
   return a === 255 ? '' : a.toString(16).padStart(2, '0');
 }
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, ribbonGlowColor: propRibbonGlowColor, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, ribbonGlowColor: propRibbonGlowColor, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, timeColor, timeFormat24hr, timeFont }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -38,10 +38,6 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [buttonConfigs, setButtonConfigs] = useState([{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]);
   const [activeButtonIndex, setActiveButtonIndex] = useState(null);
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
-  const [timeColor, setTimeColor] = useState(window.settings?.timeColor || '#ffffff'); // Add timeColor state
-  const [timeFormat24hr, setTimeFormat24hr] = useState(window.settings?.timeFormat24hr ?? true); // Add time format state
-  const [ribbonColor, setRibbonColor] = useState(window.settings?.ribbonColor || '#e0e6ef');
-  const [ribbonGlowColor, setRibbonGlowColor] = useState(window.settings?.ribbonGlowColor || '#0099ff');
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
 
   // Load configs from settings on mount
@@ -125,7 +121,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     const checkTimeColor = () => {
       const newTimeColor = window.settings?.timeColor || '#ffffff';
       if (newTimeColor !== timeColor) {
-        setTimeColor(newTimeColor);
+        // setTimeColor(newTimeColor); // This line is removed as per the edit hint
       }
     };
     
@@ -143,7 +139,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     const checkTimeFormat = () => {
       const newTimeFormat = window.settings?.timeFormat24hr ?? true;
       if (newTimeFormat !== timeFormat24hr) {
-        setTimeFormat24hr(newTimeFormat);
+        // setTimeFormat24hr(newTimeFormat); // This line is removed as per the edit hint
       }
     };
     
@@ -160,18 +156,18 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   useEffect(() => {
     const checkRibbonColor = () => {
       const newRibbonColor = window.settings?.ribbonColor || '#e0e6ef';
-      if (newRibbonColor !== ribbonColor) {
-        setRibbonColor(newRibbonColor);
+      if (newRibbonColor !== propRibbonColor) {
+        // setRibbonColor(newRibbonColor); // This line is removed as per the edit hint
       }
       const newRibbonGlowColor = window.settings?.ribbonGlowColor || '#0099ff';
-      if (newRibbonGlowColor !== ribbonGlowColor) {
-        setRibbonGlowColor(newRibbonGlowColor);
+      if (newRibbonGlowColor !== propRibbonGlowColor) {
+        // setRibbonGlowColor(newRibbonGlowColor); // This line is removed as per the edit hint
       }
     };
     checkRibbonColor();
     const interval = setInterval(checkRibbonColor, 100);
     return () => clearInterval(interval);
-  }, [ribbonColor, ribbonGlowColor]);
+  }, [propRibbonColor, propRibbonGlowColor]);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
@@ -247,7 +243,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           <div
             className="absolute inset-0 z-0 svg-container-glow"
             style={{
-              filter: `drop-shadow(0 0 ${isRibbonHovered ? (propRibbonGlowStrengthHover ?? 48) : (propRibbonGlowStrength ?? 32)}px ${propRibbonGlowColor || ribbonGlowColor}) drop-shadow(0 0 12px ${propRibbonGlowColor || ribbonGlowColor})`,
+              filter: `drop-shadow(0 0 ${isRibbonHovered ? (propRibbonGlowStrengthHover ?? 48) : (propRibbonGlowStrength ?? 32)}px ${propRibbonGlowColor}) drop-shadow(0 0 12px ${propRibbonGlowColor})`,
               transition: 'filter 0.3s',
             }}
             onMouseEnter={() => setIsRibbonHovered(true)}
@@ -282,7 +278,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                      L 1440 40 
                      L 1440 240 
                      L 0 240 Z"
-                  fill={glassWiiRibbon ? `rgba(255,255,255,${window.settings?.glassOpacity || 0.18})` : (propRibbonColor || ribbonColor) + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
+                  fill={glassWiiRibbon ? `rgba(255,255,255,${window.settings?.glassOpacity || 0.18})` : propRibbonColor + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
                   stroke={`rgba(255,255,255,${window.settings?.glassBorderOpacity || 0.5})`}
                   strokeWidth="2"
                   filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
@@ -371,14 +367,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
                       opacity: '1',
                       transform: 'translate(0px, 0px)',
-                      fontFamily: "'Orbitron', sans-serif",
+                      fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
                       zIndex: '1',
                       marginBottom: '8px'
                     }}
                   >
                       {formatTime(currentTime)}
                   </div>
-                  
                   {/* Date Display */}
                   <div 
                     className="glass-text"
@@ -390,7 +385,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
                       opacity: '1',
                       transform: 'translate(0px, 0px)',
-                      fontFamily: "'Orbitron', sans-serif",
+                      fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
                       zIndex: '1'
                     }}
                   >
@@ -404,7 +399,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     id="time" 
                     className="text-4xl font-bold" 
                     style={{ 
-                      fontFamily: "'Orbitron', sans-serif", 
+                      fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif", 
                       color: timeColor,
                       textShadow: '0px 2px 4px rgba(0, 0, 0, 0.3)'
                     }}
@@ -416,7 +411,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     className="text-lg font-bold mt-8" 
                     style={{ 
                       color: timeColor,
-                      textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)'
+                      textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
+                      fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
                     }}
                   >
                       {formatDate(currentTime)}

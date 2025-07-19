@@ -176,6 +176,7 @@ function App() {
   const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(48);
   const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
+  const [timeFont, setTimeFont] = useState('default'); // Add this to state
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   const [showPresetsModal, setShowPresetsModal] = useState(false);
@@ -188,12 +189,13 @@ function App() {
       // WiiRibbon & Glow
       ribbonColor, ribbonGlowColor, ribbonGlowStrength, ribbonGlowStrengthHover, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, recentRibbonColors, recentRibbonGlowColors,
       // Time & Pill
-      timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity,
+      timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, timeFont, // always include timeFont
       // Wallpaper & Effects
-      wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing,
+      wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, wallpaperBlur,
       // Primary Action Buttons
       ribbonButtonConfigs,
     };
+    console.log('Saving preset:', name, 'with timeFont:', timeFont, 'data:', data);
     setPresets(prev => [...prev, { name, data }].slice(0, 6));
   };
   const handleDeletePreset = (name) => {
@@ -219,6 +221,7 @@ function App() {
     setEnableTimePill(d.enableTimePill);
     setTimePillBlur(d.timePillBlur);
     setTimePillOpacity(d.timePillOpacity);
+    setTimeFont(d.timeFont !== undefined ? d.timeFont : timeFont); // fallback to current if missing
     // Wallpaper & Effects
     setWallpaper(d.wallpaper);
     setWallpaperOpacity(d.wallpaperOpacity);
@@ -234,11 +237,9 @@ function App() {
     setSlideDuration(d.slideDuration);
     setSlideEasing(d.slideEasing);
     setWallpaperBlur(d.wallpaperBlur !== undefined ? d.wallpaperBlur : 0);
-    // Set the active wallpaper in the backend so it persists and is selected in the modal
     if (d.wallpaper && d.wallpaper.url && window.api?.wallpapers?.setActive) {
       window.api.wallpapers.setActive({ url: d.wallpaper.url });
     }
-    // Primary Action Buttons
     setRibbonButtonConfigs(d.ribbonButtonConfigs || []);
     setShowPresetsModal(false);
   };
@@ -479,6 +480,7 @@ function App() {
         setChannelAutoFadeTimeout(settings.channelAutoFadeTimeout ?? 5); // Load channelAutoFadeTimeout
         currentTimeColorRef.current = settings.timeColor || '#ffffff';
         currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
+        setTimeFont(settings.timeFont || 'default');
         
         // Load ribbonButtonConfigs to ensure they're preserved during persistence
         if (settings.ribbonButtonConfigs) {
@@ -557,6 +559,7 @@ function App() {
         ribbonDockOpacity, // Persist ribbonDockOpacity
         presets, // Persist presets
         wallpaperBlur,
+        timeFont, // Persist timeFont
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -565,12 +568,13 @@ function App() {
         console.log('App: Restored ribbonButtonConfigs that were about to be lost');
       }
       
+      console.log('App: Persisting settings with timeFont:', timeFont);
       console.log('App: Persisting settings:', merged);
       console.log('App: Preserved ribbonButtonConfigs:', merged.ribbonButtonConfigs);
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, wallpaperBlur]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, wallpaperBlur, timeFont]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -748,6 +752,9 @@ function App() {
     if (newSettings.timePillOpacity !== undefined) {
       setTimePillOpacity(newSettings.timePillOpacity);
     }
+    if (newSettings.timeFont !== undefined) {
+      setTimeFont(newSettings.timeFont);
+    }
     if (newSettings.glassWiiRibbon !== undefined) {
       setGlassWiiRibbon(newSettings.glassWiiRibbon);
     }
@@ -834,6 +841,7 @@ function App() {
     ribbonGlowStrengthHover,
     ribbonDockOpacity,
     wallpaperBlur,
+    timeFont,
   };
 
   // Compute the list of wallpapers to cycle through
@@ -1211,6 +1219,7 @@ function App() {
     setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
     setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
     setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Update channelAutoFadeTimeout
+    setTimeFont(wallpaperData?.timeFont || 'default'); // Update timeFont
     // Reset the last hover time when the timeout changes to prevent immediate fade
     setLastChannelHoverTime(Date.now());
   };
@@ -1249,6 +1258,7 @@ function App() {
     setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
     setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
     setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Update channelAutoFadeTimeout
+    setTimeFont(wallpaperData?.timeFont || 'default'); // Update timeFont
     const channelData = await channelsApi?.get();
     setChannelConfigs(channelData || {});
   };
@@ -1325,13 +1335,14 @@ function App() {
 
   // Toast UI
   const handleUpdatePreset = (name) => {
+    console.log('Updating preset:', name, 'with current timeFont:', timeFont);
     setPresets(prev => prev.map(p => p.name === name ? {
       name,
       data: {
         // WiiRibbon & Glow
         ribbonColor, ribbonGlowColor, ribbonGlowStrength, ribbonGlowStrengthHover, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, recentRibbonColors, recentRibbonGlowColors,
         // Time & Pill
-        timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity,
+        timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, timeFont, // always include timeFont
         // Wallpaper & Effects
         wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, wallpaperBlur,
         // Primary Action Buttons
@@ -1427,9 +1438,6 @@ function App() {
           onGlassWiiRibbonChange={setGlassWiiRibbon}
           animatedOnHover={animatedOnHover}
           setAnimatedOnHover={setAnimatedOnHover}
-          enableTimePill={enableTimePill}
-          timePillBlur={timePillBlur}
-          timePillOpacity={timePillOpacity}
           startInFullscreen={startInFullscreen}
           setStartInFullscreen={setStartInFullscreen}
           ribbonColor={ribbonColor}
@@ -1445,6 +1453,12 @@ function App() {
           setShowPresetsModal={setShowPresetsModal}
           ribbonDockOpacity={ribbonDockOpacity}
           onRibbonDockOpacityChange={setRibbonDockOpacity}
+          timeColor={timeColor}
+          timeFormat24hr={timeFormat24hr}
+          enableTimePill={enableTimePill}
+          timePillBlur={timePillBlur}
+          timePillOpacity={timePillOpacity}
+          timeFont={timeFont}
         />
         {/* Channel Modal - rendered at top level for proper z-index */}
         {openChannelModal && (
