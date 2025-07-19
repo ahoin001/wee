@@ -14,6 +14,13 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [uploadError, setUploadError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
   const [useAdaptiveColor, setUseAdaptiveColor] = useState(config?.useAdaptiveColor || false);
+  const [useGlowEffect, setUseGlowEffect] = useState(config?.useGlowEffect || false);
+  const [glowStrength, setGlowStrength] = useState(config?.glowStrength || 20);
+  const [useGlassEffect, setUseGlassEffect] = useState(config?.useGlassEffect || false);
+  const [glassOpacity, setGlassOpacity] = useState(config?.glassOpacity || 0.18);
+  const [glassBlur, setGlassBlur] = useState(config?.glassBlur || 2.5);
+  const [glassBorderOpacity, setGlassBorderOpacity] = useState(config?.glassBorderOpacity || 0.5);
+  const [glassShineOpacity, setGlassShineOpacity] = useState(config?.glassShineOpacity || 0.7);
   
   // Update state when config changes (important for when modal reopens)
   useEffect(() => {
@@ -25,6 +32,13 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       setAction(config.action || '');
       setUseWiiGrayFilter(config.useWiiGrayFilter || false);
       setUseAdaptiveColor(config.useAdaptiveColor || false);
+      setUseGlowEffect(config.useGlowEffect || false);
+      setGlowStrength(config.glowStrength || 20);
+      setUseGlassEffect(config.useGlassEffect || false);
+      setGlassOpacity(config.glassOpacity || 0.18);
+      setGlassBlur(config.glassBlur || 2.5);
+      setGlassBorderOpacity(config.glassBorderOpacity || 0.5);
+      setGlassShineOpacity(config.glassShineOpacity || 0.7);
       setTextFont(config.textFont || 'default');
     }
   }, [config, buttonIndex]);
@@ -159,6 +173,13 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       action: isPresetsButton ? '' : action,
       useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false,
       useAdaptiveColor,
+      useGlowEffect,
+      glowStrength,
+      useGlassEffect,
+      glassOpacity,
+      glassBlur,
+      glassBorderOpacity,
+      glassShineOpacity,
       textFont: type === 'text' ? textFont : 'default', // Include font in save
     };
     onSave(saveData);
@@ -506,22 +527,165 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       )}
-      {/* Adaptive Color Card - Show for all buttons */}
+      {/* Hover Effect Card - Show for all buttons */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
-          <span className="wee-card-title">Adaptive Color</span>
+          <span className="wee-card-title">Hover Effect</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Choose how the button looks when you hover over it.
+          <div style={{ marginTop: 14 }}>
+            {/* Border Effect Option */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="hover-effect"
+                  checked={!useGlowEffect}
+                  onChange={() => setUseGlowEffect(false)}
+                />
+                <span style={{ fontWeight: 500 }}>Border Effect</span>
+              </label>
+              <div style={{ marginLeft: 24, marginTop: 4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={useAdaptiveColor && !useGlowEffect}
+                    onChange={(e) => setUseAdaptiveColor(e.target.checked)}
+                    disabled={useGlowEffect}
+                  />
+                  <span style={{ fontSize: 14, color: '#666' }}>Use adaptive color (matches ribbon glow)</span>
+                </label>
+              </div>
+            </div>
+            
+            {/* Glow Effect Option */}
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="hover-effect"
+                  checked={useGlowEffect}
+                  onChange={() => setUseGlowEffect(true)}
+                />
+                <span style={{ fontWeight: 500 }}>Glow Effect</span>
+              </label>
+              {useGlowEffect && (
+                <div style={{ marginLeft: 24, marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, color: '#666', minWidth: 60 }}>Strength:</span>
+                    <input
+                      type="range"
+                      min="5"
+                      max="50"
+                      value={glowStrength}
+                      onChange={(e) => setGlowStrength(Number(e.target.value))}
+                      style={{ flex: 1 }}
+                    />
+                    <span style={{ fontSize: 14, color: '#666', minWidth: 30 }}>{glowStrength}px</span>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={useAdaptiveColor && useGlowEffect}
+                      onChange={(e) => setUseAdaptiveColor(e.target.checked)}
+                    />
+                    <span style={{ fontSize: 14, color: '#666' }}>Use adaptive color (matches ribbon glow)</span>
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Glass Effect Card - Show for all buttons */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Glass Effect</span>
           <label className="toggle-switch" style={{ margin: 0 }}>
             <input
               type="checkbox"
-              checked={useAdaptiveColor}
-              onChange={(e) => setUseAdaptiveColor(e.target.checked)}
+              checked={useGlassEffect}
+              onChange={(e) => setUseGlassEffect(e.target.checked)}
             />
             <span className="slider" />
           </label>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
-          When enabled, matches the color of your ribbon glow.
+          Apply a glass morphism effect to the button background. Text and icons will appear above the glass effect.
+          {useGlassEffect && (
+            <div style={{ marginTop: 14 }}>
+              {/* Glass Opacity */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 14, color: '#666' }}>Glass Opacity</span>
+                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassOpacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.05"
+                  max="0.5"
+                  step="0.01"
+                  value={glassOpacity}
+                  onChange={(e) => setGlassOpacity(Number(e.target.value))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              
+              {/* Glass Blur */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 14, color: '#666' }}>Glass Blur</span>
+                  <span style={{ fontSize: 14, color: '#666' }}>{glassBlur}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="8"
+                  step="0.1"
+                  value={glassBlur}
+                  onChange={(e) => setGlassBlur(Number(e.target.value))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              
+              {/* Glass Border Opacity */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 14, color: '#666' }}>Border Opacity</span>
+                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassBorderOpacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value={glassBorderOpacity}
+                  onChange={(e) => setGlassBorderOpacity(Number(e.target.value))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              
+              {/* Glass Shine Opacity */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 14, color: '#666' }}>Shine Opacity</span>
+                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassShineOpacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value={glassShineOpacity}
+                  onChange={(e) => setGlassShineOpacity(Number(e.target.value))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
       {/* App Path/URL Card - Only show for non-presets buttons */}

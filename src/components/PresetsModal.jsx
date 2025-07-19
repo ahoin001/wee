@@ -10,6 +10,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
   const [editingPreset, setEditingPreset] = useState(null); // preset being edited
   const [editName, setEditName] = useState(''); // temporary edit name
   const [editError, setEditError] = useState(''); // error for edit mode
+  const [includeChannels, setIncludeChannels] = useState(false); // toggle for including channel data
 
   const handleSave = () => {
     if (!newPresetName.trim()) {
@@ -20,7 +21,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       setError('A preset with this name already exists.');
       return;
     }
-    onSavePreset(newPresetName.trim());
+    onSavePreset(newPresetName.trim(), includeChannels);
     setNewPresetName('');
     setError('');
   };
@@ -101,6 +102,22 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
             >
               Save Preset
             </button>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 14, color: '#666' }}>Include channel data (apps and media)</span>
+              <label className="toggle-switch" style={{ margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={includeChannels}
+                  onChange={(e) => setIncludeChannels(e.target.checked)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            <div style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 0 }}>
+              When enabled, this preset will also save your current channel apps and media files.
+            </div>
           </div>
           {error && <div style={{ color: '#dc3545', fontSize: 13, marginTop: 6 }}>{error}</div>}
           {presets.length >= 6 && <div style={{ color: '#888', fontSize: 13, marginTop: 6 }}>You can save up to 6 presets.</div>}
@@ -212,7 +229,7 @@ PresetsModal.propTypes = {
     name: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
   })).isRequired,
-  onSavePreset: PropTypes.func.isRequired,
+  onSavePreset: PropTypes.func.isRequired, // (name, includeChannels) => void
   onDeletePreset: PropTypes.func.isRequired,
   onApplyPreset: PropTypes.func.isRequired,
   onUpdatePreset: PropTypes.func.isRequired,

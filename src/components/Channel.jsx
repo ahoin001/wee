@@ -3,7 +3,8 @@ import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
 import ImageSearchModal from './ImageSearchModal';
-// import './Channel.css';
+import audioManager from '../utils/AudioManager';
+import './Channel.css';
 
 // Guard for window.api to prevent errors in browser
 const api = window.api || {
@@ -21,8 +22,6 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
-  const hoverAudioRef = useRef(null);
-  const fadeIntervalRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [mp4Preview, setMp4Preview] = useState(null);
   const videoRef = useRef(null);
@@ -64,24 +63,19 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     }
   }, [media, effectiveAnimatedOnHover]);
 
+  // Cleanup audio when component unmounts
+  useEffect(() => {
+    return () => {
+      audioManager.stopAllSounds();
+    };
+  }, []);
+
 
 
   const handleClick = async () => {
-    if (hoverAudioRef.current) {
-      // Fade out and stop hover sound on click
-      let v = hoverAudioRef.current.volume;
-      clearInterval(fadeIntervalRef.current);
-      fadeIntervalRef.current = setInterval(() => {
-        v -= 0.07;
-        if (v > 0) {
-          hoverAudioRef.current.volume = Math.max(v, 0);
-        } else {
-          clearInterval(fadeIntervalRef.current);
-          hoverAudioRef.current.pause();
-          hoverAudioRef.current = null;
-        }
-      }, 40);
-    }
+    // Stop hover sound immediately
+    audioManager.stopAllSounds();
+    
     if (empty) {
       setShowChannelModal(true);
     } else if (path) {
@@ -90,12 +84,8 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
         const soundLibrary = await soundsApi.getLibrary();
         const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
         if (enabledClickSound) {
-          const audio = new Audio(enabledClickSound.url);
-          audio.volume = enabledClickSound.volume ?? 0.5;
-        audio.play().catch(error => {
-          console.log('Channel click sound playback failed:', error);
-        });
-      }
+          await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
+        }
       } catch (error) {
         console.log('Failed to load sound library:', error);
       }
@@ -126,67 +116,25 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     if (!empty && path) {
       console.log('Channel: Hover sound data:', hoverSound);
       if (hoverSound && hoverSound.url) {
-        if (!hoverAudioRef.current) { // Only play if not already playing
-          console.log('Channel: Playing hover sound, URL:', hoverSound.url);
-          const audio = new Audio(hoverSound.url);
-          audio.volume = 0;
-          audio.loop = true;
-          audio.play().catch(error => {
-            console.log('Channel: Custom hover sound playback failed:', error);
-            console.log('Channel: Failed URL:', hoverSound.url);
-          });
-          hoverAudioRef.current = audio;
-          // Fade in
-          let v = 0;
-          clearInterval(fadeIntervalRef.current);
-          fadeIntervalRef.current = setInterval(() => {
-            v += 0.07;
-            if (audio.volume < (hoverSound.volume || 0.7)) {
-              audio.volume = Math.min(v, hoverSound.volume || 0.7);
-            } else {
-              clearInterval(fadeIntervalRef.current);
-            }
-          }, 40);
-        }
+        // Play custom hover sound once
+        await audioManager.playSound(hoverSound.url, hoverSound.volume || 0.7);
       } else {
         try {
           const soundLibrary = await soundsApi.getLibrary();
           const enabledHoverSound = soundLibrary.channelHover?.find(s => s.enabled);
-          if (enabledHoverSound && !hoverAudioRef.current) {
-            const audio = new Audio(enabledHoverSound.url);
-            audio.volume = enabledHoverSound.volume ?? 0.3;
-        audio.play().catch(error => {
-          console.log('Channel hover sound playback failed:', error);
-        });
-            hoverAudioRef.current = audio;
+          if (enabledHoverSound) {
+            await audioManager.playSound(enabledHoverSound.url, enabledHoverSound.volume ?? 0.3);
           }
         } catch (error) {
           console.log('Failed to load sound library:', error);
         }
       }
     }
-    
-
   };
 
   const handleMouseLeave = () => {
-    // Fade out and stop per-channel hover sound
-    if (hoverAudioRef.current) {
-      let v = hoverAudioRef.current.volume;
-      clearInterval(fadeIntervalRef.current);
-      fadeIntervalRef.current = setInterval(() => {
-        v -= 0.07;
-        if (v > 0) {
-          hoverAudioRef.current.volume = Math.max(v, 0);
-        } else {
-          clearInterval(fadeIntervalRef.current);
-          hoverAudioRef.current.pause();
-          hoverAudioRef.current = null;
-        }
-      }, 40);
-    }
-    
-
+    // Stop all sounds (including hover sounds)
+    audioManager.stopAllSounds();
   };
 
   const handleChannelSave = (channelId, channelData) => {

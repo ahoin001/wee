@@ -146,6 +146,31 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
 
   return (
     <BaseModal title="Search for Channel Image" onClose={onClose} maxWidth="900px">
+      {/* Performance Notice */}
+      <div style={{ 
+        marginBottom: 18, 
+        padding: 12, 
+        background: '#fff3cd', 
+        border: '1px solid #ffeaa7', 
+        borderRadius: 8, 
+        color: '#856404',
+        fontSize: 14,
+        lineHeight: 1.4
+      }}>
+        Fetching all the assets can be slow since a free service is used to host them.<br />
+        Uploading your own assets or <a 
+          href="https://graceful-cannoli-0197f9.netlify.app/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ 
+            color: '#0099ff', 
+            textDecoration: 'underline',
+            fontWeight: 500
+          }}
+        >
+          downloading them from here
+        </a> can be quicker.
+      </div>
       {/* Search Bar Card */}
       <div className="wee-card" style={{ marginTop: 0, marginBottom: 0 }}>
         <div className="wee-card-header">

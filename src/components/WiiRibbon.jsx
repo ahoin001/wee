@@ -37,8 +37,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     }
   });
   const [buttonConfigs, setButtonConfigs] = useState([
-    { type: 'text', text: 'Wii', useAdaptiveColor: false }, 
-    { type: 'text', text: 'Mail', useAdaptiveColor: false }
+    { type: 'text', text: 'Wii', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }, 
+    { type: 'text', text: 'Mail', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }
   ]);
   const [activeButtonIndex, setActiveButtonIndex] = useState(null);
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
@@ -53,10 +53,17 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         console.log('WiiRibbon: Loading settings:', settings);
         if (settings && settings.ribbonButtonConfigs) {
           console.log('WiiRibbon: Found ribbonButtonConfigs:', settings.ribbonButtonConfigs);
-          // Ensure each button config has useAdaptiveColor property
+          // Ensure each button config has all required properties
           const configsWithAdaptiveColor = settings.ribbonButtonConfigs.map(config => ({
             ...config,
-            useAdaptiveColor: config.useAdaptiveColor ?? false
+            useAdaptiveColor: config.useAdaptiveColor ?? false,
+            useGlowEffect: config.useGlowEffect ?? false,
+            glowStrength: config.glowStrength ?? 20,
+            useGlassEffect: config.useGlassEffect ?? false,
+            glassOpacity: config.glassOpacity ?? 0.18,
+            glassBlur: config.glassBlur ?? 2.5,
+            glassBorderOpacity: config.glassBorderOpacity ?? 0.5,
+            glassShineOpacity: config.glassShineOpacity ?? 0.7
           }));
           setButtonConfigs(configsWithAdaptiveColor);
         } else {
@@ -446,6 +453,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 onContextMenu={e => handleButtonContextMenu(0, e)}
                 onClick={() => handleButtonClick(0)}
                 useAdaptiveColor={buttonConfigs[0]?.useAdaptiveColor}
+                useGlowEffect={buttonConfigs[0]?.useGlowEffect}
+                glowStrength={buttonConfigs[0]?.glowStrength}
+                useGlassEffect={buttonConfigs[0]?.useGlassEffect}
+                glassOpacity={buttonConfigs[0]?.glassOpacity}
+                glassBlur={buttonConfigs[0]?.glassBlur}
+                glassBorderOpacity={buttonConfigs[0]?.glassBorderOpacity}
+                glassShineOpacity={buttonConfigs[0]?.glassShineOpacity}
                 ribbonGlowColor={propRibbonGlowColor}
                 style={{ marginLeft: 16 }}
               >
@@ -520,6 +534,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               onContextMenu={handlePresetsButtonContextMenu}
               title="Customize Looks (Right-click to customize button)"
               useAdaptiveColor={presetsButtonConfig?.useAdaptiveColor}
+              useGlowEffect={presetsButtonConfig?.useGlowEffect}
+              glowStrength={presetsButtonConfig?.glowStrength}
+              useGlassEffect={presetsButtonConfig?.useGlassEffect}
+              glassOpacity={presetsButtonConfig?.glassOpacity}
+              glassBlur={presetsButtonConfig?.glassBlur}
+              glassBorderOpacity={presetsButtonConfig?.glassBorderOpacity}
+              glassShineOpacity={presetsButtonConfig?.glassShineOpacity}
               ribbonGlowColor={propRibbonGlowColor}
             >
             {/* Dynamic icon based on configuration */}
@@ -571,6 +592,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     onContextMenu={e => handleButtonContextMenu(1, e)}
                     onClick={() => handleButtonClick(1)}
                     useAdaptiveColor={buttonConfigs[1]?.useAdaptiveColor}
+                    useGlowEffect={buttonConfigs[1]?.useGlowEffect}
+                    glowStrength={buttonConfigs[1]?.glowStrength}
+                    useGlassEffect={buttonConfigs[1]?.useGlassEffect}
+                    glassOpacity={buttonConfigs[1]?.glassOpacity}
+                    glassBlur={buttonConfigs[1]?.glassBlur}
+                    glassBorderOpacity={buttonConfigs[1]?.glassBorderOpacity}
+                    glassShineOpacity={buttonConfigs[1]?.glassShineOpacity}
                     ribbonGlowColor={propRibbonGlowColor}
                   >
                       {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (

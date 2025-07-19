@@ -10,6 +10,7 @@ import WallpaperModal from './components/WallpaperModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
+import audioManager from './utils/AudioManager';
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -159,7 +160,7 @@ function App() {
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Channel auto-fade timeout
   const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
-  const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false }); // Track presets button config
+  const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
   const currentTimeColorRef = useRef('#ffffff');
   const currentTimeFormatRef = useRef(true);
@@ -187,7 +188,7 @@ function App() {
   const [presets, setPresets] = useState([]);
 
   // Preset handlers (must be inside App)
-  const handleSavePreset = (name) => {
+  const handleSavePreset = (name, includeChannels = false) => {
     if (presets.length >= 6) return;
     const data = {
       // WiiRibbon & Glow
@@ -201,7 +202,15 @@ function App() {
       // Presets Button
       presetsButtonConfig, // Track presets button configuration
     };
-    console.log('Saving preset:', name, 'with timeFont:', timeFont, 'data:', data);
+    
+    // Include channel data if requested
+    if (includeChannels) {
+      data.channels = channels;
+      data.mediaMap = mediaMap;
+      data.appPathMap = appPathMap;
+    }
+    
+    console.log('Saving preset:', name, 'with timeFont:', timeFont, 'includeChannels:', includeChannels, 'data:', data);
     setPresets(prev => [...prev, { name, data }].slice(0, 6));
   };
   const handleDeletePreset = (name) => {
@@ -248,6 +257,26 @@ function App() {
     }
     setRibbonButtonConfigs(d.ribbonButtonConfigs || []); // This now includes textFont for each button
     setPresetsButtonConfig(d.presetsButtonConfig || { type: 'icon', icon: 'star' }); // Apply presets button config
+    
+    // Apply channel data if present
+    if (d.channels && d.mediaMap && d.appPathMap) {
+      setChannels(d.channels);
+      setMediaMap(d.mediaMap);
+      setAppPathMap(d.appPathMap);
+      
+      // Save channel data to persistent storage
+      const channelData = {};
+      d.channels.forEach(channel => {
+        if (!channel.empty) {
+          channelData[channel.id] = {
+            media: d.mediaMap[channel.id] || null,
+            path: d.appPathMap[channel.id] || null
+          };
+        }
+      });
+      channelsApi?.set(channelData);
+    }
+    
     setShowPresetsModal(false);
   };
 
@@ -318,15 +347,8 @@ function App() {
         console.log('Enabled startup sound:', enabledStartupSound);
         if (enabledStartupSound) {
           playedStartup = true;
-          const startupAudio = new Audio(enabledStartupSound.url);
-          startupAudio.volume = enabledStartupSound.volume ?? 0.6;
-          startupAudio.play().catch(error => {
+          audioManager.playSound(enabledStartupSound.url, enabledStartupSound.volume ?? 0.6).catch(error => {
             console.log('Startup sound playback failed:', error);
-            // Do not start background music here
-          });
-          startupAudio.addEventListener('ended', () => {
-            console.log('Startup sound ended');
-            // Do not start background music here
           });
         }
         // If no startup sound, do not start background music here
@@ -346,55 +368,29 @@ function App() {
   // In setupBackgroundMusic, stop playback if no enabled track, and show toast on change
   const setupBackgroundMusic = async (soundLibrary, enabledMusicSoundArg) => {
     console.log('Setting up background music with library:', soundLibrary);
-    if (backgroundAudioRef.current) {
-      backgroundAudioRef.current.pause();
-      backgroundAudioRef.current = null;
-      setBackgroundAudio(null);
-    }
-
+    
     const bgMusicArr = soundLibrary?.backgroundMusic;
     console.log('All background music tracks:', bgMusicArr);
     const enabledMusicSound = enabledMusicSoundArg !== undefined ? enabledMusicSoundArg : bgMusicArr?.find(s => s.enabled);
     console.log('Enabled background music sound:', enabledMusicSound);
+    
     if (enabledMusicSound) {
       if (!enabledMusicSound.url) {
         console.error('Enabled background music has no URL:', enabledMusicSound);
         return;
       }
-      // Try to fetch the file to check if it exists
-      try {
-        const testAudio = new Audio(enabledMusicSound.url);
-        testAudio.addEventListener('error', (e) => {
-          console.error('Audio file could not be loaded:', enabledMusicSound.url, e);
-        });
-        testAudio.volume = 0;
-        await testAudio.play().catch(err => {
-          console.error('Test play failed for background music:', err);
-      });
-        testAudio.pause();
-        testAudio.currentTime = 0;
-      } catch (err) {
-        console.error('Error testing background music file:', enabledMusicSound.url, err);
-        return;
-      }
-      const audio = new Audio(enabledMusicSound.url);
-      audio.volume = enabledMusicSound.volume ?? 0.4;
-      audio.loop = true;
-      audio.play().catch(error => {
-        console.log('Background music playback failed:', error);
-      });
-      backgroundAudioRef.current = audio;
-      setBackgroundAudio(audio);
+      
+      // Use AudioManager to set background music
+      audioManager.setBackgroundMusic(enabledMusicSound.url, enabledMusicSound.volume ?? 0.4);
+      setBackgroundAudio(audioManager.backgroundAudio);
       console.log('Background music started playing');
-      } else {
-        if (backgroundAudioRef.current) {
-          backgroundAudioRef.current.pause();
-          backgroundAudioRef.current = null;
-          setBackgroundAudio(null);
-        console.log('Background music stopped');
-      }
+    } else {
+      // Stop background music
+      audioManager.setBackgroundMusic(null);
+      setBackgroundAudio(null);
+      console.log('Background music stopped');
       console.warn('No enabled background music sound found. Available:', bgMusicArr);
-      }
+    }
   };
 
   // Listen for sound library updates from SoundModal (polling mechanism)
@@ -427,10 +423,7 @@ function App() {
   // Cleanup background audio on unmount
   useEffect(() => {
     return () => {
-      if (backgroundAudioRef.current) {
-        backgroundAudioRef.current.pause();
-        backgroundAudioRef.current = null;
-      }
+      audioManager.cleanup();
     };
   }, []);
 
@@ -510,7 +503,14 @@ function App() {
         setPresets(settings.presets || []);
         setPresetsButtonConfig({
           ...(settings.presetsButtonConfig || { type: 'icon', icon: 'star' }),
-          useAdaptiveColor: settings.presetsButtonConfig?.useAdaptiveColor ?? false
+          useAdaptiveColor: settings.presetsButtonConfig?.useAdaptiveColor ?? false,
+          useGlowEffect: settings.presetsButtonConfig?.useGlowEffect ?? false,
+          glowStrength: settings.presetsButtonConfig?.glowStrength ?? 20,
+          useGlassEffect: settings.presetsButtonConfig?.useGlassEffect ?? false,
+          glassOpacity: settings.presetsButtonConfig?.glassOpacity ?? 0.18,
+          glassBlur: settings.presetsButtonConfig?.glassBlur ?? 2.5,
+          glassBorderOpacity: settings.presetsButtonConfig?.glassBorderOpacity ?? 0.5,
+          glassShineOpacity: settings.presetsButtonConfig?.glassShineOpacity ?? 0.7
         });
         setShowPresetsButton(settings.showPresetsButton ?? false);
         setWallpaperBlur(settings.wallpaperBlur ?? 0);
@@ -755,7 +755,14 @@ function App() {
               if (newSettings.presetsButtonConfig) {
           setPresetsButtonConfig({
             ...newSettings.presetsButtonConfig,
-            useAdaptiveColor: newSettings.presetsButtonConfig.useAdaptiveColor ?? false
+            useAdaptiveColor: newSettings.presetsButtonConfig.useAdaptiveColor ?? false,
+            useGlowEffect: newSettings.presetsButtonConfig.useGlowEffect ?? false,
+            glowStrength: newSettings.presetsButtonConfig.glowStrength ?? 20,
+            useGlassEffect: newSettings.presetsButtonConfig.useGlassEffect ?? false,
+            glassOpacity: newSettings.presetsButtonConfig.glassOpacity ?? 0.18,
+            glassBlur: newSettings.presetsButtonConfig.glassBlur ?? 2.5,
+            glassBorderOpacity: newSettings.presetsButtonConfig.glassBorderOpacity ?? 0.5,
+            glassShineOpacity: newSettings.presetsButtonConfig.glassShineOpacity ?? 0.7
           });
         }
     }
@@ -1273,23 +1280,46 @@ function App() {
     // Reload all state
     const soundData = await soundsApi?.get();
     setSoundSettings(soundData || {});
-    const wallpaperData = await wallpapersApi?.get();
-    setWallpaper(wallpaperData?.wallpaper || null);
-    setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
-    setSavedWallpapers(wallpaperData?.savedWallpapers || []);
-    setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-    setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
-    setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
-    setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-    // setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade'); // This line was removed as per the edit hint
-    setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
-    setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Update timeColor
-    setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Update timeFormat24hr
-    setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Update enableTimePill
-    setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
-    setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
-    setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Update channelAutoFadeTimeout
-    setTimeFont(wallpaperData?.timeFont || 'default'); // Update timeFont
+    
+    // Set default Nintendo Wii white screen wallpaper
+    const defaultWiiWallpaper = {
+      url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTkyMCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPgo=',
+      name: 'Nintendo Wii White Screen',
+      type: 'default'
+    };
+    
+    setWallpaper(defaultWiiWallpaper);
+    setWallpaperOpacity(1);
+    setSavedWallpapers([]);
+    setLikedWallpapers([]);
+    setCycleWallpapers(false);
+    setCycleInterval(30);
+    setCycleAnimation('fade');
+    setSlideDirection('right');
+    setTimeColor('#ffffff'); // Update timeColor
+    setTimeFormat24hr(true); // Update timeFormat24hr
+    setEnableTimePill(true); // Update enableTimePill
+    setTimePillBlur(8); // Update timePillBlur
+    setTimePillOpacity(0.05); // Update timePillOpacity
+    setChannelAutoFadeTimeout(5); // Update channelAutoFadeTimeout
+    setTimeFont('default'); // Update timeFont
+    
+    // Save the default wallpaper to persistent storage
+    if (wallpapersApi?.set) {
+      await wallpapersApi.set({
+        wallpaper: defaultWiiWallpaper,
+        wallpaperOpacity: 1,
+        savedWallpapers: [],
+        likedWallpapers: [],
+        cyclingSettings: {
+          enabled: false,
+          interval: 30,
+          animation: 'fade',
+          slideDirection: 'right'
+        }
+      });
+    }
+    
     const channelData = await channelsApi?.get();
     setChannelConfigs(channelData || {});
   };
@@ -1325,28 +1355,10 @@ function App() {
   // Pause/resume background music on window blur/focus
   useEffect(() => {
     const handleBlur = () => {
-      if (backgroundAudioRef.current && !backgroundAudioRef.current.paused) {
-        backgroundAudioRef.current.pause();
-      }
+      audioManager.pauseBackgroundMusic();
     };
     const handleFocus = () => {
-      if (backgroundAudioRef.current) {
-        const audio = backgroundAudioRef.current;
-        const targetVolume = audio.volume;
-        audio.volume = 0;
-        audio.play().catch(() => {});
-        // Fade in over 1.5 seconds
-        let v = 0;
-        const fade = setInterval(() => {
-          v += targetVolume / 15; // 100ms steps
-          if (v < targetVolume) {
-            audio.volume = Math.min(v, targetVolume);
-          } else {
-            audio.volume = targetVolume;
-            clearInterval(fade);
-          }
-        }, 100);
-      }
+      audioManager.resumeBackgroundMusic();
     };
     window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);
@@ -1354,7 +1366,7 @@ function App() {
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [backgroundAudioRef]);
+  }, []);
 
   // Add a drag region at the top of the window only when not in fullscreen
   const [isFullscreen, setIsFullscreen] = useState(true);
@@ -1378,6 +1390,12 @@ function App() {
         wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, wallpaperBlur,
         // Primary Action Buttons
         ribbonButtonConfigs, // This now includes textFont for each button
+        // Presets Button
+        presetsButtonConfig, // Track presets button configuration
+        // Preserve existing channel data if present
+        ...(p.data.channels && { channels: p.data.channels }),
+        ...(p.data.mediaMap && { mediaMap: p.data.mediaMap }),
+        ...(p.data.appPathMap && { appPathMap: p.data.appPathMap }),
       }
     } : p));
   };
