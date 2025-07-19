@@ -2,15 +2,15 @@
 
 .channel {
   position: relative;
-  background: #fff;
+  background: hsl(var(--surface-primary));
   border-radius: 32px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 180px;
   min-height: 110px;
   aspect-ratio: 2 / 1;
@@ -20,17 +20,17 @@
 
 .channel:hover, .channel:focus {
   transform: scale(1.06);
-  box-shadow: 0 8px 32px 0 rgba(0,153,255,0.18), 0 0 0 4px rgba(0,153,255,0.10);
+  box-shadow: var(--shadow-glow), 0 0 0 4px hsl(var(--border-accent) / 0.2);
 }
 
 .channel:active {
   transform: none;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-md);
 }
 
 .channel.empty {
-  background: rgba(255,255,255,0.5) !important;
-  border: 2px dashed #d0d0d7 !important;
+  background: hsl(var(--surface-secondary) / 0.5) !important;
+  border: 2px dashed hsl(var(--border-secondary)) !important;
   box-shadow: none !important;
   cursor: default;
 }
@@ -105,10 +105,10 @@
 
 /* Context menu styles */
 .channel-context-menu {
-  background: white;
-  border: 1px solid #ccc;
+  background: hsl(var(--surface-primary));
+  border: 1px solid hsl(var(--border-primary));
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   padding: 8px 0;
   min-width: 160px;
   z-index: 1000;
@@ -117,13 +117,13 @@
 .channel-context-item {
   padding: 8px 16px;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 14px;
-  color: #333;
+  color: hsl(var(--text-primary));
 }
 
 .channel-context-item:hover {
-  background-color: #f5f5f5;
+  background-color: hsl(var(--state-hover));
 }
 
 .channel-context-item.danger {

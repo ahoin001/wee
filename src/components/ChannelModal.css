@@ -49,46 +49,48 @@
 
 .file-button {
   padding: 0.75rem;
-  border: 2px dashed #ccc;
+  border: 2px dashed hsl(var(--border-primary));
   border-radius: 6px;
-  background: #fff;
-  color: #666;
+  background: hsl(var(--surface-primary));
+  color: hsl(var(--text-secondary));
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.9rem;
   text-align: center;
 }
 
 .file-button:hover {
-  border-color: #0099ff;
-  color: #0099ff;
+  border-color: hsl(var(--border-accent));
+  color: hsl(var(--text-accent));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .text-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #e0e0e6;
+  border: 1px solid hsl(var(--border-primary));
   border-radius: 6px;
   font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
-  background: #fff;
-  color: #333;
+  background: hsl(var(--surface-primary));
+  color: hsl(var(--text-primary));
 }
 
 .text-input:focus {
   outline: none;
-  border-color: #0099ff;
-  box-shadow: 0 0 0 2px rgba(0, 153, 255, 0.1);
+  border-color: hsl(var(--border-accent));
+  box-shadow: 0 0 0 2px hsl(var(--border-accent) / 0.1);
 }
 
 .text-input.error {
-  border-color: #dc3545;
-  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+  border-color: hsl(var(--state-error));
+  box-shadow: 0 0 0 2px hsl(var(--state-error) / 0.1);
 }
 
 .text-input::placeholder {
-  color: #999;
+  color: hsl(var(--text-tertiary));
 }
 
 .path-input-group {
@@ -103,19 +105,21 @@
 
 .file-picker-button {
   padding: 0.75rem 1rem;
-  background: #0099ff;
-  color: white;
+  background: hsl(var(--wii-blue));
+  color: hsl(var(--text-inverse));
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
 .file-picker-button:hover {
-  background: #007acc;
+  background: hsl(var(--wii-blue-hover));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .help-text {
@@ -244,28 +248,13 @@ label {
   border-color: #666;
 }
 
-.dark-mode .file-button {
-  background: #2d2d2d;
-  border-color: #555;
-  color: #ccc;
-}
-
-.dark-mode .file-button:hover {
-  border-color: #0099ff;
-  color: #0099ff;
-}
+/* Dark mode styles are now handled by design system CSS variables */
 
 .dark-mode .image-preview img {
   border-color: #555;
 }
 
-.dark-mode .file-picker-button {
-  background: #0099ff;
-}
-
-.dark-mode .file-picker-button:hover {
-  background: #007acc;
-}
+/* Dark mode styles are now handled by design system CSS variables */
 
 /* Responsive design */
 @media (max-width: 600px) {

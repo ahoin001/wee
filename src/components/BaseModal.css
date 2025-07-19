@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: hsl(var(--bg-overlay));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,9 +67,9 @@
 }
 
 .base-modal {
-  background: #fff;
+  background: hsl(var(--surface-primary));
   border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
   width: 90%;
   max-height: 80vh;
   overflow: hidden;
@@ -88,9 +88,9 @@
 }
 
 .modal {
-  background: #fff;
+  background: hsl(var(--surface-primary));
   border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: var(--shadow-lg);
   padding: 32px 28px 24px 28px;
   min-width: 320px;
   max-width: 98vw;
@@ -114,14 +114,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e6;
+  border-bottom: 1px solid hsl(var(--border-primary));
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #222;
+  color: hsl(var(--text-primary));
 }
 
 .close-button {
@@ -129,15 +129,15 @@
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #666;
+  color: hsl(var(--text-secondary));
   padding: 0.25rem;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .close-button:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: hsl(var(--state-hover));
+  color: hsl(var(--text-primary));
 }
 
 .modal-content {
@@ -165,11 +165,11 @@
   right: 0;
   z-index: 10;
   /* Glass effect */
-  background: rgba(255, 255, 255, 0.45);
+  background: hsl(var(--glass-bg));
   backdrop-filter: blur(18px) saturate(1.5);
   -webkit-backdrop-filter: blur(18px) saturate(1.5);
-  border-top: 1.5px solid rgba(180, 180, 200, 0.18);
-  box-shadow: 0 -2px 16px 0 rgba(80, 80, 120, 0.07);
+  border-top: 1.5px solid hsl(var(--glass-border));
+  box-shadow: var(--glass-shadow);
   /* Add space above footer */
   margin-top: 32px;
 }
@@ -180,9 +180,9 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: #fafafa;
-  border-top: 1px solid #e0e0e6;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  background: hsl(var(--surface-secondary));
+  border-top: 1px solid hsl(var(--border-primary));
+  box-shadow: var(--shadow-sm);
 }
 
 .cancel-button, .save-button {
@@ -196,23 +196,23 @@
 }
 
 .cancel-button {
-  background: #f8f9fa;
-  color: #666;
-  border: 1px solid #e0e0e6;
+  background: hsl(var(--surface-secondary));
+  color: hsl(var(--text-secondary));
+  border: 1px solid hsl(var(--border-primary));
 }
 
 .cancel-button:hover {
-  background: #e9ecef;
-  color: #333;
+  background: hsl(var(--state-hover));
+  color: hsl(var(--text-primary));
 }
 
 .save-button {
-  background: #0099ff;
-  color: white;
+  background: hsl(var(--wii-blue));
+  color: hsl(var(--text-inverse));
 }
 
 .save-button:hover {
-  background: #007acc;
+  background: hsl(var(--wii-blue-hover));
 }
 
 .save-button:disabled {
@@ -225,44 +225,7 @@
   background: #ccc;
 }
 
-/* Dark mode styles */
-.dark-mode .base-modal {
-  background: #2d2d2d;
-  color: #fff;
-}
-
-.dark-mode .modal-header {
-  border-bottom-color: #444;
-}
-
-.dark-mode .modal-header h2 {
-  color: #fff;
-}
-
-.dark-mode .close-button {
-  color: #ccc;
-}
-
-.dark-mode .close-button:hover {
-  background: #444;
-  color: #fff;
-}
-
-.dark-mode .modal-footer {
-  border-top-color: #444;
-  background: #222;
-}
-
-.dark-mode .cancel-button {
-  background: #444;
-  color: #ccc;
-  border-color: #555;
-}
-
-.dark-mode .cancel-button:hover {
-  background: #555;
-  color: #fff;
-}
+/* Dark mode styles are now handled by design system CSS variables */
 
 /* Responsive design */
 @media (max-width: 600px) {
@@ -281,15 +244,21 @@
 } 
 
 .wee-card {
-  background: rgba(245,247,250,0.92);
-  border: 1px solid #e0e0e6;
+  background: hsl(var(--surface-secondary));
+  border: 1px solid hsl(var(--border-primary));
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(80,80,120,0.04);
+  box-shadow: var(--shadow-sm);
   padding: 18px 24px 14px 24px;
   margin-bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wee-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: hsl(var(--border-secondary));
 }
 
 .wee-card-header {
@@ -302,17 +271,17 @@
 .wee-card-title {
   font-weight: 700;
   font-size: 17px;
-  color: #222;
+  color: hsl(var(--text-primary));
 }
 
 .wee-card-separator {
-  border-bottom: 1.5px solid #e0e0e6;
+  border-bottom: 1.5px solid hsl(var(--border-primary));
   margin: 10px 0 8px 0;
   width: 100%;
 }
 
 .wee-card-desc {
-  color: #444;
+  color: hsl(var(--text-secondary));
   font-size: 15px;
   margin-left: 2px;
   margin-top: 2px;

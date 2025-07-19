@@ -35,21 +35,17 @@
 
 .card {
   padding: 2em;
+  background: hsl(var(--surface-primary));
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid hsl(var(--border-primary));
 }
 
 .read-the-docs {
-  color: #888;
+  color: hsl(var(--text-secondary));
 }
 
-:root {
-  --wii-blue: 195 75% 60%;
-  --ribbon-bg: 220 20% 95%;
-  --wii-gray-light: 220 15% 97%;
-  --wii-gray: 220 10% 80%;
-  --wii-gray-dark: 220 10% 40%;
-  --foreground: 220 10% 20%;
-  --muted-foreground: 220 10% 45%;
-}
+/* Design system variables are now imported from design-system.css */
 
 /* Wii Ribbon Utility Classes */
 .fixed { position: fixed; }
@@ -140,29 +136,29 @@ body, #root {
 }
 
 .channel {
-  position: relative; /* <-- ADD THIS LINE */
-  background: #fff;
+  position: relative;
+  background: hsl(var(--surface-primary));
   border-radius: 32px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 180px;
   min-height: 110px;
   aspect-ratio: 2 / 1;
   max-width: 100%;
-  overflow: hidden; /* <-- This is important, keep it! */
+  overflow: hidden;
 }
 .channel:hover, .channel:focus {
   transform: scale(1.06);
-  box-shadow: 0 8px 32px 0 rgba(0,153,255,0.18), 0 0 0 4px rgba(0,153,255,0.10);
+  box-shadow: var(--shadow-glow), 0 0 0 4px hsl(var(--border-accent) / 0.2);
 }
 .channel:active {
   transform: none;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-md);
 }
 
 .channel-media {
@@ -182,8 +178,8 @@ body, #root {
 }
 
 .channel.empty {
-  background: rgba(255,255,255,0.5) !important;
-  border: 2px dashed #d0d0d7 !important;
+  background: hsl(var(--surface-secondary) / 0.5) !important;
+  border: 2px dashed hsl(var(--border-secondary)) !important;
   box-shadow: none !important;
   cursor: default;
 }
@@ -194,9 +190,9 @@ body, #root {
   right: 0;
   bottom: 0;
   height: 56px;
-  background: #fff;
-  border-top: 1px solid #e0e0e6;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  background: hsl(var(--surface-primary));
+  border-top: 1px solid hsl(var(--border-primary));
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -208,32 +204,32 @@ body, #root {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 2px solid #e0e0e6;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 2px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-primary));
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
 }
 
 .circular-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  border-color: #d0d0d7;
+  box-shadow: var(--shadow-md);
+  border-color: hsl(var(--border-secondary));
 }
 
 .circular-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .settings-button.active {
-  background: #0099ff;
-  border-color: #0099ff;
-  color: #fff;
+  background: hsl(var(--wii-blue));
+  border-color: hsl(var(--wii-blue));
+  color: hsl(var(--text-inverse));
 }
 
 .settings-button.active svg path {
@@ -338,77 +334,33 @@ body, #root {
   }
 }
 
-/* Dark Mode Styles */
+/* Dark Mode Styles - Now handled by design system CSS variables */
 .dark-mode body, .dark-mode #root {
-  background-color: #1a1a1a;
+  background-color: hsl(var(--bg-primary));
   background-image: repeating-linear-gradient(
     to bottom,
-    #1a1a1a 0px,
-    #1a1a1a 1px,
-    #2a2a2a 1px,
-    #2a2a2a 2px
+    hsl(var(--bg-primary)) 0px,
+    hsl(var(--bg-primary)) 1px,
+    hsl(var(--bg-secondary)) 1px,
+    hsl(var(--bg-secondary)) 2px
   );
   background-size: 100% 24px;
 }
 
-.dark-mode .channel {
-  background: #2d2d2d;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-}
-
-.dark-mode .channel:hover, .dark-mode .channel:focus {
-  box-shadow: 0 8px 32px 0 rgba(0,153,255,0.25), 0 0 0 4px rgba(0,153,255,0.15);
-}
-
-.dark-mode .channel.empty {
-  background: rgba(45,45,45,0.5) !important;
-  border: 2px dashed #555 !important;
-}
-
-.dark-mode .ui-bar {
-  background: #2d2d2d;
-  border-top: 1px solid #444;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
-}
-
-.dark-mode .circular-button {
-  background: #2d2d2d;
-  border: 2px solid #555;
-  color: #ccc;
-}
-
-.dark-mode .circular-button:hover {
-  border-color: #777;
-  background: #3d3d3d;
-}
-
-.dark-mode .circular-button svg path {
-  stroke: #ccc;
-}
-
-.dark-mode .settings-button.active {
-  background: #0099ff;
-  border-color: #0099ff;
-}
-
-.dark-mode .settings-button.active svg path {
-  stroke: #fff;
-}
-
 .dark-mode .context-menu-content {
-  background: #2d2d2d;
-  border: 1px solid #555;
-  box-shadow: 0 10px 38px -10px rgba(0, 0, 0, 0.5), 0 10px 20px -15px rgba(0, 0, 0, 0.4);
+  background: hsl(var(--surface-elevated));
+  border: 1px solid hsl(var(--border-primary));
+  box-shadow: var(--shadow-xl);
 }
 
 .dark-mode .context-menu-item {
-  color: #ccc;
+  color: hsl(var(--text-secondary));
 }
 
 .dark-mode .context-menu-item:hover,
 .dark-mode .context-menu-item:focus {
-  background: #3d3d3d;
-  color: #fff;
+  background: hsl(var(--state-hover));
+  color: hsl(var(--text-primary));
 }
 
 /* Wii-style cursor */

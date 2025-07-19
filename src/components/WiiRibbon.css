@@ -1,17 +1,8 @@
-:root {
-  --wii-blue: 195 75% 60%;
-  --ribbon-bg: 220 20% 95%;
-  --wii-gray-light: 220 15% 97%;
-  --wii-gray: 220 10% 80%;
-  --wii-gray-dark: 220 10% 40%;
-  --foreground: 220 10% 20%;
-  --muted-foreground: 220 10% 45%;
-}
-
-.border-wii-gray { border-color: hsl(var(--wii-gray)); }
-.text-wii-gray-dark { color: hsl(var(--wii-gray-dark)); }
-.text-foreground { color: hsl(var(--foreground)); }
-.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+/* Design system variables are now imported from design-system.css */
+.border-wii-gray { border-color: hsl(var(--border-primary)); }
+.text-wii-gray-dark { color: hsl(var(--text-secondary)); }
+.text-foreground { color: hsl(var(--text-primary)); }
+.text-muted-foreground { color: hsl(var(--text-secondary)); }
 
 .interactive-footer {
   transform-origin: bottom center;
@@ -85,10 +76,10 @@
 .wii-style-button {
   transform: scale(1.2);
   transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.2s ease-in-out;
-  background: white;
-  border: 4px solid hsl(var(--wii-gray));
+  background: hsl(var(--surface-primary));
+  border: 4px solid hsl(var(--border-primary));
   border-radius: 50%;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -188,13 +179,13 @@
 
 .glass {
   position: relative;
-  background: rgba(255, 255, 255, 0.15);
+  background: hsl(var(--glass-bg));
   backdrop-filter: blur(2px) saturate(180%);
   -webkit-backdrop-filter: blur(2px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid hsl(var(--glass-border));
   border-radius: 2rem;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2),
-              inset 0 4px 20px rgba(255, 255, 255, 0.3);
+  box-shadow: var(--glass-shadow),
+              inset 0 4px 20px hsl(var(--glass-border));
   overflow: hidden;
 }
 .glass::after {
