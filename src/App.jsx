@@ -126,7 +126,8 @@ function App() {
   const [nextWallpaper, setNextWallpaper] = useState(null); // For smooth transitions
   const [isTransitioning, setIsTransitioning] = useState(false); // Track transition state
   const [slideDirection, setSlideDirection] = useState('right'); // 'left', 'right', 'up', 'down'
-
+  const [crossfadeProgress, setCrossfadeProgress] = useState(0); // Separate state for crossfade
+  const [slideProgress, setSlideProgress] = useState(0); // Separate state for slide
   const [savedWallpapers, setSavedWallpapers] = useState([]);
   const [likedWallpapers, setLikedWallpapers] = useState([]);
   const [cycleWallpapers, setCycleWallpapers] = useState(false);
@@ -153,6 +154,7 @@ function App() {
   const [timePillBlur, setTimePillBlur] = useState(8); // Time pill backdrop blur
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Channel auto-fade timeout
+  const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
   const currentTimeColorRef = useRef('#ffffff');
   const currentTimeFormatRef = useRef(true);
   const [lastChannelHoverTime, setLastChannelHoverTime] = useState(Date.now());
@@ -309,7 +311,7 @@ function App() {
       }
   };
 
-  // Optimized sound library updates using event-driven approach
+  // Listen for sound library updates from SoundModal (polling mechanism)
   useEffect(() => {
     const handleSoundLibraryUpdate = async () => {
       console.log('Sound library updated, refreshing background music');
@@ -317,50 +319,24 @@ function App() {
       if (soundLibrary) {
         const enabledMusicSound = soundLibrary?.backgroundMusic?.find(s => s.enabled);
         const isEnabled = !!enabledMusicSound;
-        
-        // Only update if there's an actual change
-        const hasChanged = (
+        if (
           (isEnabled !== lastMusicEnabledRef.current) ||
           (enabledMusicSound &&
             (enabledMusicSound.id !== lastMusicIdRef.current ||
              enabledMusicSound.url !== lastMusicUrlRef.current)
           )
-        );
-        
-        if (hasChanged) {
+        ) {
           lastMusicIdRef.current = enabledMusicSound ? enabledMusicSound.id : null;
           lastMusicUrlRef.current = enabledMusicSound ? enabledMusicSound.url : null;
           lastMusicEnabledRef.current = isEnabled;
           setupBackgroundMusic(soundLibrary, enabledMusicSound);
         }
-        
-        // Only update state if it actually changed
-        if (JSON.stringify(soundSettings) !== JSON.stringify(soundLibrary)) {
-          setSoundSettings(soundLibrary);
-        }
+        setSoundSettings(soundLibrary); // ensure state is in sync
       }
     };
-
-    // Fallback polling with longer interval (10 seconds instead of 2)
-    const interval = setInterval(handleSoundLibraryUpdate, 10000);
-    
-    // Also listen for manual updates from SoundModal
-    const handleManualUpdate = () => {
-      handleSoundLibraryUpdate();
-    };
-    
-    // Add event listener for manual updates (if available)
-    if (window.api?.onSoundLibraryChanged) {
-      window.api.onSoundLibraryChanged(handleManualUpdate);
-    }
-    
-    return () => {
-      clearInterval(interval);
-      if (window.api?.offSoundLibraryChanged) {
-        window.api.offSoundLibraryChanged();
-      }
-    };
-  }, [soundSettings]);
+    const interval = setInterval(handleSoundLibraryUpdate, 2000); // Check every 2 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   // Cleanup background audio on unmount
   useEffect(() => {
@@ -425,29 +401,33 @@ function App() {
         setChannelAutoFadeTimeout(settings.channelAutoFadeTimeout ?? 5); // Load channelAutoFadeTimeout
         currentTimeColorRef.current = settings.timeColor || '#ffffff';
         currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
+        
+        // Load ribbonButtonConfigs to ensure they're preserved during persistence
+        if (settings.ribbonButtonConfigs) {
+          console.log('App: Loaded ribbonButtonConfigs:', settings.ribbonButtonConfigs);
+          setRibbonButtonConfigs(settings.ribbonButtonConfigs);
+        }
       }
       // Mark as initialized after loading settings
       setHasInitialized(true);
     }
     loadSettings();
   }, []);
-  // Optimized settings persistence with debouncing
+  // Persist barType and other settings when changed
   useEffect(() => {
     // Only persist settings after initialization to prevent overwriting ribbonButtonConfigs on startup
     if (!hasInitialized) return;
     
-    // Debounce the persist function to avoid excessive file I/O
-    const timeoutId = setTimeout(async () => {
+    async function persistSettings() {
       let current = await settingsApi?.get();
       if (!current) current = {};
       
-      // Ensure we never overwrite ribbonButtonConfigs if they exist
-      // This prevents race conditions where button configs get reset
-      const preservedButtonConfigs = current.ribbonButtonConfigs;
+      // Use the loaded ribbonButtonConfigs from state, or preserve from current settings if not loaded
+      const preservedButtonConfigs = ribbonButtonConfigs || current.ribbonButtonConfigs;
       
       // Merge new state with current, preserving ribbonButtonConfigs and other existing data
       const merged = {
-        ...current, // This preserves ribbonButtonConfigs and any other existing settings
+        ...current, // This preserves any other existing settings not in our state
         isDarkMode,
         useCustomCursor,
         glassWiiRibbon,
@@ -487,10 +467,9 @@ function App() {
       console.log('App: Persisting settings:', merged);
       console.log('App: Preserved ribbonButtonConfigs:', merged.ribbonButtonConfigs);
       await settingsApi?.set(merged);
-    }, 1000); // Debounce for 1 second
-    
-    return () => clearTimeout(timeoutId);
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout]);
+    }
+    persistSettings();
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -546,12 +525,8 @@ function App() {
         setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
         setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
         setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
-        // Preserve current time settings if they exist, otherwise use saved values
-        setTimeColor(wallpaperData?.timeColor || currentTimeColorRef.current || '#ffffff');
-        setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? currentTimeFormatRef.current ?? true);
-        setEnableTimePill(wallpaperData?.enableTimePill ?? true);
-        setTimePillBlur(wallpaperData?.timePillBlur ?? 8);
-        setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05);
+        // Time settings should come from the main settings file, not wallpaper data
+        // These are preserved by the main settings persistence system
         
         // Also update window.settings to keep it in sync
         if (window.settings) {
@@ -648,6 +623,12 @@ function App() {
       setChannelAutoFadeTimeout(newSettings.channelAutoFadeTimeout);
       // Reset the last hover time when the timeout changes to prevent immediate fade
       setLastChannelHoverTime(Date.now());
+    }
+    if (newSettings.wallpaperOpacity !== undefined) {
+      setWallpaperOpacity(newSettings.wallpaperOpacity);
+    }
+    if (newSettings.ribbonButtonConfigs !== undefined) {
+      setRibbonButtonConfigs(newSettings.ribbonButtonConfigs);
     }
     if (newSettings.timeColor !== undefined) {
       setTimeColor(newSettings.timeColor);
@@ -769,7 +750,23 @@ function App() {
     }
   }, [cycleAnimation]);
 
-
+  // Apply easing function based on user selection
+  const applyEasing = useCallback((progress, easingType) => {
+    switch (easingType) {
+      case 'ease-out':
+        return 1 - Math.pow(1 - progress, 3); // Ease-out cubic
+      case 'ease-in':
+        return Math.pow(progress, 3); // Ease-in cubic
+      case 'ease-in-out':
+        return progress < 0.5 
+          ? 4 * progress * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2; // Ease-in-out cubic
+      case 'linear':
+        return progress; // Linear
+      default:
+        return 1 - Math.pow(1 - progress, 3); // Default to ease-out
+    }
+  }, []);
 
   // Function to calculate slide transform based on direction and progress
   const getSlideTransform = (direction, progress) => {
@@ -833,7 +830,7 @@ function App() {
     }
   };
 
-  // Optimized wallpaper cycling using CSS transitions
+  // Function to cycle to next wallpaper - memoized to prevent unnecessary re-creation
   const cycleToNextWallpaper = useCallback(() => {
     console.log('cycleToNextWallpaper called!');
     
@@ -881,49 +878,95 @@ function App() {
       .then(() => {
         console.log('Next wallpaper preloaded successfully');
         
-        // Start CSS-based transition
-        console.log('Starting CSS transition to:', nextWallpaperData);
+        // Start smooth transition
+        console.log('Starting smooth transition to:', nextWallpaperData);
         
-        // Choose slide direction based on saved setting (only for slide transitions)
-        if (getTransitionType() === 'slide') {
-          if (slideRandomDirection) {
-            // Use random direction selection with preference for horizontal
-            const horizontalDirections = ['left', 'right'];
-            const verticalDirections = ['up', 'down'];
-            
-            let selectedDirection;
-            if (Math.random() < 0.7) {
-              // Prefer horizontal scrolling
-              selectedDirection = horizontalDirections[Math.floor(Math.random() * horizontalDirections.length)];
+        // Small delay to ensure smooth state updates
+        requestAnimationFrame(() => {
+          setIsTransitioning(true);
+          setNextWallpaper(nextWallpaperData);
+          setCrossfadeProgress(0); // Reset crossfade progress
+          setSlideProgress(0); // Reset slide progress
+          
+          // Choose slide direction based on saved setting (only for slide transitions)
+          if (getTransitionType() === 'slide') {
+            if (slideRandomDirection) {
+              // Use random direction selection with preference for horizontal
+              const horizontalDirections = ['left', 'right'];
+              const verticalDirections = ['up', 'down'];
+              
+              let selectedDirection;
+              if (Math.random() < 0.7) {
+                // Prefer horizontal scrolling
+                selectedDirection = horizontalDirections[Math.floor(Math.random() * horizontalDirections.length)];
+              } else {
+                // Occasionally use vertical scrolling
+                selectedDirection = verticalDirections[Math.floor(Math.random() * verticalDirections.length)];
+              }
+              
+              setSlideDirection(selectedDirection);
             } else {
-              // Occasionally use vertical scrolling
-              selectedDirection = verticalDirections[Math.floor(Math.random() * verticalDirections.length)];
+              // Use the saved slideDirection
+              setSlideDirection(slideDirection);
+            }
+          }
+          
+          // Transition duration and steps based on animation type
+          const transitionDuration = getTransitionType() === 'slide' ? slideDuration * 1000 : crossfadeDuration * 1000;
+          const fadeSteps = getTransitionType() === 'slide' ? 90 : 120; // Fewer steps for slide but still smooth
+          const stepDuration = transitionDuration / fadeSteps;
+          
+          let currentStep = 0;
+          const fadeInterval = setInterval(() => {
+            currentStep++;
+            const rawProgress = currentStep / fadeSteps;
+            
+            // Apply easing function for smoother animation
+            let progress = applyEasing(rawProgress, getTransitionType() === 'slide' ? slideEasing : crossfadeEasing);
+            
+            // Apply additional smoothing for crossfade
+            let finalProgress = progress;
+            if (getTransitionType() === 'crossfade') {
+              // Use the easing function result directly for crossfade
+              finalProgress = progress;
+            } else if (getTransitionType() === 'slide') {
+              // Use the easing function result directly for slide
+              finalProgress = progress;
             }
             
-            setSlideDirection(selectedDirection);
-          }
-        }
-        
-        // Set up CSS transition
-        setIsTransitioning(true);
-        setNextWallpaper(nextWallpaperData);
-        
-        // Use CSS transition duration
-        const transitionDuration = getTransitionType() === 'slide' ? slideDuration * 1000 : crossfadeDuration * 1000;
-        
-        // Let CSS handle the animation, then update state
-        setTimeout(() => {
-          setWallpaper(nextWallpaperData);
-          currentWallpaperRef.current = nextWallpaperData; // Update ref
-          setWallpaperOpacity(1);
-          setNextWallpaper(null);
-          setIsTransitioning(false);
-          console.log('CSS transition complete');
-          
-          // Schedule next cycle
-          console.log('Scheduling next cycle in', cycleInterval, 'seconds');
-          cycleTimeoutRef.current = setTimeout(cycleToNextWallpaper, cycleInterval * 1000);
-        }, transitionDuration);
+            if (getTransitionType() === 'crossfade') {
+              // Crossfade transition - use separate state with easing
+              // Batch updates for better performance
+              requestAnimationFrame(() => {
+                setCrossfadeProgress(finalProgress);
+              });
+            } else if (getTransitionType() === 'slide') {
+              // Slide transition - animate the slide progress
+              requestAnimationFrame(() => {
+                setSlideProgress(finalProgress);
+              });
+            }
+            
+            if (currentStep >= fadeSteps) {
+              // Transition complete - use requestAnimationFrame for smooth final update
+              clearInterval(fadeInterval);
+              requestAnimationFrame(() => {
+                setWallpaper(nextWallpaperData);
+                currentWallpaperRef.current = nextWallpaperData; // Update ref
+                setWallpaperOpacity(1);
+                setCrossfadeProgress(0);
+                setSlideProgress(0);
+                setNextWallpaper(null);
+                setIsTransitioning(false);
+                console.log('Transition complete');
+                
+                // Schedule next cycle
+                console.log('Scheduling next cycle in', cycleInterval, 'seconds');
+                cycleTimeoutRef.current = setTimeout(cycleToNextWallpaper, cycleInterval * 1000);
+              });
+            }
+          }, stepDuration);
+        });
       })
       .catch((error) => {
         console.error('Failed to preload next wallpaper:', error);
@@ -931,6 +974,8 @@ function App() {
         setWallpaper(nextWallpaperData);
         currentWallpaperRef.current = nextWallpaperData; // Update ref
         setWallpaperOpacity(1);
+        setCrossfadeProgress(0);
+        setSlideProgress(0);
         setNextWallpaper(null);
         setIsTransitioning(false);
         
@@ -939,7 +984,7 @@ function App() {
         cycleTimeoutRef.current = setTimeout(cycleToNextWallpaper, cycleInterval * 1000);
       });
     
-  }, [cycleList, cycleInterval, cycleAnimation, isTransitioning, slideDirection, getTransitionType, slideDuration, crossfadeDuration, slideRandomDirection]);
+  }, [cycleList, cycleInterval, cycleAnimation, isTransitioning, slideDirection, getTransitionType, slideDuration, crossfadeDuration, slideRandomDirection, slideEasing, crossfadeEasing, applyEasing]); // Removed wallpaper from dependencies
   
   // Keep currentWallpaperRef in sync with wallpaper state
   useEffect(() => {
@@ -1072,7 +1117,7 @@ function App() {
     setChannelConfigs(channelData || {});
   };
 
-  // Optimized channel auto-fade logic using RequestAnimationFrame
+  // Channel auto-fade logic
   useEffect(() => {
     if (channelAutoFadeTimeout <= 0) {
       setChannelOpacity(1);
@@ -1084,25 +1129,21 @@ function App() {
       const timeSinceLastHover = now - lastChannelHoverTime;
       const timeoutMs = channelAutoFadeTimeout * 1000;
       
-      const shouldFade = timeSinceLastHover >= timeoutMs;
-      const newOpacity = shouldFade ? 0.3 : 1;
-      
-      // Only update if opacity actually changed
-      if (channelOpacity !== newOpacity) {
-        setChannelOpacity(newOpacity);
-      }
-      
-      // Continue checking only if needed (within 2 seconds of timeout)
-      if (timeSinceLastHover < timeoutMs + 2000) {
-        requestAnimationFrame(checkFadeTimeout);
+      if (timeSinceLastHover >= timeoutMs) {
+        setChannelOpacity(0.3); // Fade to 30% opacity
+      } else {
+        setChannelOpacity(1);
       }
     };
 
-    // Start the RAF loop
-    requestAnimationFrame(checkFadeTimeout);
+    // Check immediately
+    checkFadeTimeout();
 
-    // No cleanup needed as RAF will stop naturally
-  }, [channelAutoFadeTimeout, lastChannelHoverTime, channelOpacity]);
+    // Set up interval to check fade timeout
+    const interval = setInterval(checkFadeTimeout, 100);
+
+    return () => clearInterval(interval);
+  }, [channelAutoFadeTimeout, lastChannelHoverTime]);
 
   // Pause/resume background music on window blur/focus
   useEffect(() => {
@@ -1153,7 +1194,7 @@ function App() {
       <div className={`app-container ${useCustomCursor ? 'custom-cursor' : ''}`} style={{ filter: isLoading ? 'blur(2px)' : 'none', pointerEvents: isLoading ? 'none' : 'auto' }}>
         {/* Wii Cursor - rendered outside app container to avoid blur filter */}
         {useCustomCursor && <WiiCursor />}
-        {/* Wallpaper background layer - with CSS transitions */}
+        {/* Wallpaper background layer - with smooth transitions */}
         {wallpaper && wallpaper.url && (
           <div
             className="wallpaper-bg"
@@ -1166,13 +1207,13 @@ function App() {
               zIndex: 0,
               pointerEvents: 'none',
               background: `url('${wallpaper.url}') center center / cover no-repeat`,
-              opacity: wallpaperOpacity,
-              transition: isTransitioning ? `opacity ${crossfadeDuration}s ${crossfadeEasing}` : 'none',
-              willChange: isTransitioning ? 'opacity' : 'auto',
+              opacity: getTransitionType() === 'crossfade' ? 1 - crossfadeProgress : wallpaperOpacity,
+              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, false) : 'none',
+              transition: 'none', // Remove CSS transitions to prevent conflicts
             }}
           />
         )}
-        {/* Next wallpaper layer for CSS transitions */}
+        {/* Next wallpaper layer for smooth transitions */}
         {isTransitioning && nextWallpaper && nextWallpaper.url && (
           <div
             className="wallpaper-bg-next"
@@ -1185,10 +1226,9 @@ function App() {
               zIndex: 1,
               pointerEvents: 'none',
               background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
-              opacity: getTransitionType() === 'crossfade' ? 1 : 0,
-              transform: getTransitionType() === 'slide' ? getSlideTransform(slideDirection, true) : 'none',
-              transition: `opacity ${crossfadeDuration}s ${crossfadeEasing}, transform ${slideDuration}s ${slideEasing}`,
-              willChange: 'opacity, transform',
+              opacity: getTransitionType() === 'crossfade' ? crossfadeProgress : 1,
+              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, true) : 'none',
+              transition: 'none', // Remove CSS transitions to prevent conflicts
             }}
           />
         )}

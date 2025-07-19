@@ -140,21 +140,17 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
           audio.loop = true;
           audio.play();
           hoverAudioRef.current = audio;
-          // Optimized fade in with fewer steps
+          // Fade in
           let v = 0;
-          const targetVolume = hoverSound.volume || 0.7;
-          const fadeSteps = 10; // Reduced from 25fps to 10 steps
-          const stepVolume = targetVolume / fadeSteps;
-          
           clearInterval(fadeIntervalRef.current);
           fadeIntervalRef.current = setInterval(() => {
-            v += stepVolume;
-            if (audio.volume < targetVolume) {
-              audio.volume = Math.min(v, targetVolume);
+            v += 0.07;
+            if (audio.volume < (hoverSound.volume || 0.7)) {
+              audio.volume = Math.min(v, hoverSound.volume || 0.7);
             } else {
               clearInterval(fadeIntervalRef.current);
             }
-          }, 100); // Increased from 40ms to 100ms
+          }, 40);
         }
       } else {
         try {
@@ -182,15 +178,12 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   };
 
   const handleMouseLeave = () => {
-    // Optimized fade out and stop per-channel hover sound
+    // Fade out and stop per-channel hover sound
     if (hoverAudioRef.current) {
       let v = hoverAudioRef.current.volume;
-      const fadeSteps = 8; // Reduced from 25fps to 8 steps
-      const stepVolume = v / fadeSteps;
-      
       clearInterval(fadeIntervalRef.current);
       fadeIntervalRef.current = setInterval(() => {
-        v -= stepVolume;
+        v -= 0.07;
         if (v > 0) {
           hoverAudioRef.current.volume = Math.max(v, 0);
         } else {
@@ -198,7 +191,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
           hoverAudioRef.current.pause();
           hoverAudioRef.current = null;
         }
-      }, 100); // Increased from 40ms to 100ms
+      }, 40);
     }
     
     // Stop GIF animation and reset to first frame

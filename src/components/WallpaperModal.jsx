@@ -197,13 +197,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   // Save both selected wallpaper and cycling settings
   const handleSaveAll = async (handleClose) => {
     try {
-      // First, save all the settings to prevent race conditions
-      let data = await api.get();
-      data.wallpaperOpacity = wallpaperOpacity;
-      data.channelAutoFadeTimeout = channelAutoFadeTimeout; // Save channel auto-fade timeout setting
-      await api.set(data);
+      // Save wallpaper-specific settings only
+      let wallpaperData = await api.get();
+      wallpaperData.wallpaperOpacity = wallpaperOpacity;
+      await api.set(wallpaperData);
       
-      // Then handle wallpaper and cycling settings
+      // Handle wallpaper and cycling settings
       if (selectedWallpaper) {
         await api.setActive({ url: selectedWallpaper.url });
       }
@@ -221,13 +220,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       
       setMessage({ type: 'success', text: 'Wallpaper and settings saved.' });
       
-      // Update local state to match what we just saved
-      setChannelAutoFadeTimeout(channelAutoFadeTimeout);
-      
       // Call onSettingsChange to notify parent component of the new settings
+      // This will trigger the main App's settings persistence which preserves ribbonButtonConfigs
       if (onSettingsChange) {
         onSettingsChange({
-          channelAutoFadeTimeout: channelAutoFadeTimeout
+          channelAutoFadeTimeout: channelAutoFadeTimeout,
+          wallpaperOpacity: wallpaperOpacity
         });
       }
       handleClose();
@@ -393,17 +391,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below.
-          <div style={{ 
-            marginTop: 12, 
-            padding: '10px 12px', 
-            backgroundColor: '#fff3cd', 
-            border: '1px solid #ffeaa7', 
-            borderRadius: '6px', 
-            fontSize: '14px',
-            color: '#856404'
-          }}>
-            <strong>⚠️ Performance Notice:</strong> Wallpaper cycling with smooth animations can be resource-intensive, especially on lower-end systems. Consider using longer intervals or disabling animations if you experience performance issues.
-          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
             <span style={{ fontWeight: 500, minWidth: 120 }}>Time per wallpaper</span>
             <input

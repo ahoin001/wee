@@ -65,6 +65,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       const verifySettings = await window.api.settings.get();
       console.log('WiiRibbon: Settings after save:', verifySettings);
       console.log('WiiRibbon: Button configs after save:', verifySettings.ribbonButtonConfigs);
+      
+      // Notify parent component of the change
+      if (onSettingsChange) {
+        onSettingsChange({ ribbonButtonConfigs: configs });
+      }
     }
   };
 
