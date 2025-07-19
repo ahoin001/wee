@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './BaseModal.css';
 
-function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen }) {
+function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen, onSettingsChange, ...props }) {
   const [pip, setPip] = useState(immersivePip);
   const [glassRibbon, setGlassRibbon] = useState(glassWiiRibbon);
   const [hoverAnim, setHoverAnim] = useState(animatedOnHover);
   const [fullscreen, setFullscreen] = useState(startInFullscreen);
+  const [startOnBoot, setStartOnBoot] = useState(false);
+
+  useEffect(() => {
+    if (window.api && window.api.getAutoLaunch) {
+      window.api.getAutoLaunch().then(setStartOnBoot);
+    }
+  }, []);
 
   const handleSave = (handleClose) => {
     setImmersivePip(pip);
@@ -15,6 +22,18 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
     setAnimatedOnHover(hoverAnim);
     setStartInFullscreen(fullscreen);
     handleClose();
+  };
+
+  const handleStartOnBootToggle = (e) => {
+    const checked = e.target.checked;
+    setStartOnBoot(checked);
+    if (window.api && window.api.setAutoLaunch) {
+      window.api.setAutoLaunch(checked);
+    }
+    // Optionally, persist in your own settings file as well
+    if (onSettingsChange) {
+      onSettingsChange({ startOnBoot: checked });
+    }
   };
 
   return (
@@ -94,6 +113,21 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode.</div>
         </div>
+        <div className="wee-card">
+          <div className="wee-card-header">
+            <span className="wee-card-title">Launch app when my computer starts</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={startOnBoot}
+                onChange={handleStartOnBootToggle}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">When enabled, the app will launch automatically when your computer starts.</div>
+        </div>
       </div>
     </BaseModal>
   );
@@ -110,6 +144,7 @@ GeneralSettingsModal.propTypes = {
   setAnimatedOnHover: PropTypes.func,
   startInFullscreen: PropTypes.bool,
   setStartInFullscreen: PropTypes.func,
+  onSettingsChange: PropTypes.func,
 };
 
 export default GeneralSettingsModal; 

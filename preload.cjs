@@ -53,4 +53,6 @@ contextBridge.exposeInMainWorld('api', {
   openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
   openExternal: (url) => ipcRenderer.send('open-external-url', url),
   launchApp: (data) => ipcRenderer.send('launch-app', data),
+  getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+  setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
 });

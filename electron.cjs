@@ -1246,6 +1246,21 @@ ipcMain.handle('reset-to-default', async () => {
   }
 });
 
+// --- Auto-launch (Run at Startup) IPC Handlers ---
+ipcMain.handle('get-auto-launch', () => {
+  const settings = app.getLoginItemSettings();
+  return settings.openAtLogin;
+});
+
+ipcMain.handle('set-auto-launch', (event, enable) => {
+  app.setLoginItemSettings({
+    openAtLogin: !!enable,
+    path: process.execPath,
+    args: []
+  });
+  return true;
+});
+
 // --- App Launching Logic ---
 ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
   console.log(`Launching app: type=${type}, path=${appPath}, asAdmin=${asAdmin}`);
