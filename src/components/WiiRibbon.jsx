@@ -9,7 +9,7 @@ import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 // import more icons as needed
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, ribbonGlowColor: propRibbonGlowColor, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -33,6 +33,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
   const [timeColor, setTimeColor] = useState(window.settings?.timeColor || '#ffffff'); // Add timeColor state
   const [timeFormat24hr, setTimeFormat24hr] = useState(window.settings?.timeFormat24hr ?? true); // Add time format state
+  const [ribbonColor, setRibbonColor] = useState(window.settings?.ribbonColor || '#e0e6ef');
+  const [ribbonGlowColor, setRibbonGlowColor] = useState(window.settings?.ribbonGlowColor || '#0099ff');
+  const [isRibbonHovered, setIsRibbonHovered] = useState(false);
 
   // Load configs from settings on mount
   useEffect(() => {
@@ -146,6 +149,23 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     return () => clearInterval(interval);
   }, [timeFormat24hr]);
 
+  // Watch for ribbon color changes
+  useEffect(() => {
+    const checkRibbonColor = () => {
+      const newRibbonColor = window.settings?.ribbonColor || '#e0e6ef';
+      if (newRibbonColor !== ribbonColor) {
+        setRibbonColor(newRibbonColor);
+      }
+      const newRibbonGlowColor = window.settings?.ribbonGlowColor || '#0099ff';
+      if (newRibbonGlowColor !== ribbonGlowColor) {
+        setRibbonGlowColor(newRibbonGlowColor);
+      }
+    };
+    checkRibbonColor();
+    const interval = setInterval(checkRibbonColor, 100);
+    return () => clearInterval(interval);
+  }, [ribbonColor, ribbonGlowColor]);
+
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
       hour12: !timeFormat24hr,
@@ -217,7 +237,15 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   return (
     <>
       <footer className="interactive-footer" onContextMenu={handleRibbonContextMenu}>
-          <div className="absolute inset-0 z-0 svg-container-glow">
+          <div
+            className="absolute inset-0 z-0 svg-container-glow"
+            style={{
+              filter: `drop-shadow(0 0 ${isRibbonHovered ? (propRibbonGlowStrengthHover ?? 48) : (propRibbonGlowStrength ?? 32)}px ${propRibbonGlowColor || ribbonGlowColor}) drop-shadow(0 0 12px ${propRibbonGlowColor || ribbonGlowColor})`,
+              transition: 'filter 0.3s',
+            }}
+            onMouseEnter={() => setIsRibbonHovered(true)}
+            onMouseLeave={() => setIsRibbonHovered(false)}
+          >
               <svg width="100%" height="100%" viewBox="0 0 1440 240" preserveAspectRatio="none">
                 {glassWiiRibbon && (
                   <defs>
@@ -247,11 +275,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                      L 1440 40 
                      L 1440 240 
                      L 0 240 Z"
-                  fill={glassWiiRibbon ? `rgba(255,255,255,${window.settings?.glassOpacity || 0.18})` : "hsl(var(--ribbon-bg))"}
+                  fill={glassWiiRibbon ? `rgba(255,255,255,${window.settings?.glassOpacity || 0.18})` : (propRibbonColor || ribbonColor)}
                   stroke={`rgba(255,255,255,${window.settings?.glassBorderOpacity || 0.5})`}
                   strokeWidth="2"
                   filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
-                  style={glassWiiRibbon ? { transition: 'fill 0.3s' } : {}}
+                  style={glassWiiRibbon ? { transition: 'fill 0.3s' } : { transition: 'fill 0.3s' }}
                 />
                 {glassWiiRibbon && (
                   <path

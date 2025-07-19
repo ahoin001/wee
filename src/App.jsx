@@ -163,6 +163,16 @@ function App() {
   const fadeTimeoutRef = useRef(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [openChannelModal, setOpenChannelModal] = useState(null); // Track which channel modal is open
+  // Add ribbonColor state
+  const [ribbonColor, setRibbonColor] = useState('#e0e6ef');
+  // Add recentRibbonColors state
+  const [recentRibbonColors, setRecentRibbonColors] = useState([]);
+  // Add ribbonGlowColor and recentRibbonGlowColors state
+  const [ribbonGlowColor, setRibbonGlowColor] = useState('#0099ff');
+  const [recentRibbonGlowColors, setRecentRibbonGlowColors] = useState([]);
+  // Add ribbonGlowStrength and ribbonGlowStrengthHover state
+  const [ribbonGlowStrength, setRibbonGlowStrength] = useState(32);
+  const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(48);
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
 
@@ -408,6 +418,16 @@ function App() {
           console.log('App: Loaded ribbonButtonConfigs:', settings.ribbonButtonConfigs);
           setRibbonButtonConfigs(settings.ribbonButtonConfigs);
         }
+        // Load ribbonColor from settings
+        setRibbonColor(settings.ribbonColor || '#e0e6ef');
+        // Load recentRibbonColors from settings
+        setRecentRibbonColors(settings.recentRibbonColors || []);
+        // Load ribbonGlowColor and recentRibbonGlowColors from settings
+        setRibbonGlowColor(settings.ribbonGlowColor || '#0099ff');
+        setRecentRibbonGlowColors(settings.recentRibbonGlowColors || []);
+        // Load ribbonGlowStrength and ribbonGlowStrengthHover from settings
+        setRibbonGlowStrength(settings.ribbonGlowStrength || 32);
+        setRibbonGlowStrengthHover(settings.ribbonGlowStrengthHover || 48);
       }
       // Mark as initialized after loading settings
       setHasInitialized(true);
@@ -457,6 +477,12 @@ function App() {
         timePillBlur, // Persist timePillBlur
         timePillOpacity, // Persist timePillOpacity
         channelAutoFadeTimeout, // Persist channelAutoFadeTimeout
+        ribbonColor, // Persist ribbonColor
+        recentRibbonColors, // Persist recentRibbonColors
+        ribbonGlowColor, // Persist ribbonGlowColor
+        recentRibbonGlowColors, // Persist recentRibbonGlowColors
+        ribbonGlowStrength, // Persist ribbonGlowStrength
+        ribbonGlowStrengthHover, // Persist ribbonGlowStrengthHover
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -470,7 +496,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -666,6 +692,24 @@ function App() {
     if (newSettings.startInFullscreen !== undefined) {
       setStartInFullscreen(newSettings.startInFullscreen);
     }
+    if (newSettings.ribbonColor !== undefined) {
+      setRibbonColor(newSettings.ribbonColor);
+    }
+    if (newSettings.recentRibbonColors !== undefined) {
+      setRecentRibbonColors(newSettings.recentRibbonColors);
+    }
+    if (newSettings.ribbonGlowColor !== undefined) {
+      setRibbonGlowColor(newSettings.ribbonGlowColor);
+    }
+    if (newSettings.recentRibbonGlowColors !== undefined) {
+      setRecentRibbonGlowColors(newSettings.recentRibbonGlowColors);
+    }
+    if (newSettings.ribbonGlowStrength !== undefined) {
+      setRibbonGlowStrength(newSettings.ribbonGlowStrength);
+    }
+    if (newSettings.ribbonGlowStrengthHover !== undefined) {
+      setRibbonGlowStrengthHover(newSettings.ribbonGlowStrengthHover);
+    }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
     // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
@@ -699,6 +743,12 @@ function App() {
     glassBorderOpacity,
     glassShineOpacity,
     startInFullscreen,
+    ribbonColor,
+    recentRibbonColors,
+    ribbonGlowColor,
+    recentRibbonGlowColors,
+    ribbonGlowStrength,
+    ribbonGlowStrengthHover,
   };
 
   // Compute the list of wallpapers to cycle through
@@ -1281,6 +1331,16 @@ function App() {
           timePillOpacity={timePillOpacity}
           startInFullscreen={startInFullscreen}
           setStartInFullscreen={setStartInFullscreen}
+          ribbonColor={ribbonColor}
+          onRibbonColorChange={setRibbonColor}
+          recentRibbonColors={recentRibbonColors}
+          onRecentRibbonColorChange={setRecentRibbonColors}
+          ribbonGlowColor={ribbonGlowColor}
+          onRibbonGlowColorChange={setRibbonGlowColor}
+          recentRibbonGlowColors={recentRibbonGlowColors}
+          onRecentRibbonGlowColorChange={setRecentRibbonGlowColors}
+          ribbonGlowStrength={ribbonGlowStrength}
+          ribbonGlowStrengthHover={ribbonGlowStrengthHover}
         />
         {/* Channel Modal - rendered at top level for proper z-index */}
         {openChannelModal && (

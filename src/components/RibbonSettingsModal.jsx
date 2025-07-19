@@ -9,6 +9,12 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
   const [glassBlur, setGlassBlur] = useState(2.5); // Default backdrop blur
   const [glassBorderOpacity, setGlassBorderOpacity] = useState(0.5); // Default border opacity
   const [glassShineOpacity, setGlassShineOpacity] = useState(0.7); // Default shine effect opacity
+  const [ribbonColor, setRibbonColor] = useState('#e0e6ef'); // Default Wii blue
+  const [recentRibbonColors, setRecentRibbonColors] = useState([]); // Last 3 used colors
+  const [ribbonGlowColor, setRibbonGlowColor] = useState('#0099ff'); // Default glow color
+  const [recentRibbonGlowColors, setRecentRibbonGlowColors] = useState([]); // Last 3 used glow colors
+  const [ribbonGlowStrength, setRibbonGlowStrength] = useState(32); // Default normal glow
+  const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(48); // Default hover glow
 
   // Load current ribbon settings on mount
   useEffect(() => {
@@ -20,6 +26,12 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
         setGlassBlur(window.settings.glassBlur ?? 2.5);
         setGlassBorderOpacity(window.settings.glassBorderOpacity ?? 0.5);
         setGlassShineOpacity(window.settings.glassShineOpacity ?? 0.7);
+        setRibbonColor(window.settings.ribbonColor ?? '#e0e6ef');
+        setRecentRibbonColors(window.settings.recentRibbonColors ?? []);
+        setRibbonGlowColor(window.settings.ribbonGlowColor ?? '#0099ff');
+        setRecentRibbonGlowColors(window.settings.recentRibbonGlowColors ?? []);
+        setRibbonGlowStrength(window.settings.ribbonGlowStrength ?? 32);
+        setRibbonGlowStrengthHover(window.settings.ribbonGlowStrengthHover ?? 48);
       }
     }
   }, [isOpen, glassWiiRibbon]);
@@ -30,7 +42,11 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
       if (setGlassWiiRibbon) {
         setGlassWiiRibbon(glassEnabled);
       }
-      
+      // Update recent colors (most recent first, no duplicates, max 3)
+      let newRecent = [ribbonColor, ...recentRibbonColors.filter(c => c !== ribbonColor)].slice(0, 3);
+      setRecentRibbonColors(newRecent);
+      let newRecentGlow = [ribbonGlowColor, ...recentRibbonGlowColors.filter(c => c !== ribbonGlowColor)].slice(0, 3);
+      setRecentRibbonGlowColors(newRecentGlow);
       // Call onSettingsChange to notify parent component of the new settings
       if (onSettingsChange) {
         onSettingsChange({
@@ -38,10 +54,15 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
           glassOpacity: glassOpacity,
           glassBlur: glassBlur,
           glassBorderOpacity: glassBorderOpacity,
-          glassShineOpacity: glassShineOpacity
+          glassShineOpacity: glassShineOpacity,
+          ribbonColor: ribbonColor,
+          recentRibbonColors: newRecent,
+          ribbonGlowColor: ribbonGlowColor,
+          recentRibbonGlowColors: newRecentGlow,
+          ribbonGlowStrength: ribbonGlowStrength,
+          ribbonGlowStrengthHover: ribbonGlowStrengthHover
         });
       }
-      
       handleClose();
     } catch (err) {
       console.error('Failed to save ribbon settings:', err);
@@ -62,6 +83,114 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
         </div>
       )}
     >
+      {/* Ribbon Styles Card (contains both color pickers and glow controls) */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Ribbon Styles</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Choose the color for the Wii Ribbon background (applies only when glass effect is off).
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <input
+              type="color"
+              value={ribbonColor}
+              onChange={e => setRibbonColor(e.target.value)}
+              style={{ width: 40, height: 40, border: 'none', background: 'none', cursor: 'pointer' }}
+            />
+            <span style={{ fontWeight: 600, color: '#555', fontSize: 15 }}>{ribbonColor.toUpperCase()}</span>
+            {/* Previous colors */}
+            {recentRibbonColors.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 18 }}>
+                <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+                {recentRibbonColors.map((color, idx) => (
+                  <button
+                    key={color}
+                    onClick={() => setRibbonColor(color)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      border: color === ribbonColor ? '2px solid #0099ff' : '1.5px solid #bbb',
+                      background: color,
+                      cursor: 'pointer',
+                      outline: 'none',
+                      marginLeft: idx === 0 ? 0 : 2
+                    }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ fontSize: 14, color: '#666', marginTop: 18 }}>
+            Change the color of the ribbon's glow effect (the outer glow around the ribbon SVG).
+          </div>
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <input
+              type="color"
+              value={ribbonGlowColor}
+              onChange={e => setRibbonGlowColor(e.target.value)}
+              style={{ width: 40, height: 40, border: 'none', background: 'none', cursor: 'pointer' }}
+            />
+            <span style={{ fontWeight: 600, color: '#555', fontSize: 15 }}>{ribbonGlowColor.toUpperCase()}</span>
+            {/* Previous glow colors */}
+            {recentRibbonGlowColors.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 18 }}>
+                <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+                {recentRibbonGlowColors.map((color, idx) => (
+                  <button
+                    key={color}
+                    onClick={() => setRibbonGlowColor(color)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      border: color === ribbonGlowColor ? '2px solid #0099ff' : '1.5px solid #bbb',
+                      background: color,
+                      cursor: 'pointer',
+                      outline: 'none',
+                      marginLeft: idx === 0 ? 0 : 2
+                    }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ fontSize: 14, color: '#666', marginTop: 18 }}>
+            Adjust the strength of the ribbon's glow effect.
+          </div>
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <input
+              type="range"
+              min="0"
+              max="64"
+              step="1"
+              value={ribbonGlowStrength}
+              onChange={e => setRibbonGlowStrength(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{ribbonGlowStrength}px</span>
+          </div>
+          <div style={{ fontSize: 14, color: '#666', marginTop: 18 }}>
+            Adjust the strength of the glow effect when hovering over the ribbon.
+          </div>
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <input
+              type="range"
+              min="0"
+              max="96"
+              step="1"
+              value={ribbonGlowStrengthHover}
+              onChange={e => setRibbonGlowStrengthHover(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{ribbonGlowStrengthHover}px</span>
+          </div>
+        </div>
+      </div>
+
       {/* Glass Effect Toggle Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
