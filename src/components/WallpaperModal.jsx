@@ -393,6 +393,17 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below.
+          <div style={{ 
+            marginTop: 12, 
+            padding: '10px 12px', 
+            backgroundColor: '#fff3cd', 
+            border: '1px solid #ffeaa7', 
+            borderRadius: '6px', 
+            fontSize: '14px',
+            color: '#856404'
+          }}>
+            <strong>⚠️ Performance Notice:</strong> Wallpaper cycling with smooth animations can be resource-intensive, especially on lower-end systems. Consider using longer intervals or disabling animations if you experience performance issues.
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
             <span style={{ fontWeight: 500, minWidth: 120 }}>Time per wallpaper</span>
             <input

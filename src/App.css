@@ -482,19 +482,16 @@ body:not(.custom-cursor) {
   transition: opacity 0.8s;
 }
 
-/* Wallpaper transition styles - Ultra smooth */
+/* Optimized wallpaper transition styles */
 .wallpaper-bg {
-  will-change: opacity, transform;
+  will-change: opacity;
   backface-visibility: hidden;
   transform: translateZ(0); /* Force hardware acceleration */
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
-  /* Ultra-smooth optimizations */
+  /* Performance optimizations */
   contain: layout style paint;
   isolation: isolate;
-  /* Prevent sub-pixel rendering issues */
-  transform-style: preserve-3d;
-  perspective: 1000px;
 }
 
 .wallpaper-bg-next {
@@ -503,12 +500,9 @@ body:not(.custom-cursor) {
   transform: translateZ(0); /* Force hardware acceleration */
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
-  /* Ultra-smooth optimizations */
+  /* Performance optimizations */
   contain: layout style paint;
   isolation: isolate;
-  /* Prevent sub-pixel rendering issues */
-  transform-style: preserve-3d;
-  perspective: 1000px;
 }
 
 /* Infinite scroll specific optimizations */

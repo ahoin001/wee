@@ -14,6 +14,12 @@ contextBridge.exposeInMainWorld('api', {
     update: (args) => ipcRenderer.invoke('update-sound', args),
     getLibrary: () => ipcRenderer.invoke('get-sound-library'),
     selectFile: () => ipcRenderer.invoke('select-sound-file'),
+    onSoundLibraryChanged: (callback) => {
+      ipcRenderer.on('sound-library-changed', (event, data) => callback(data));
+    },
+    offSoundLibraryChanged: (callback) => {
+      ipcRenderer.removeAllListeners('sound-library-changed');
+    },
   },
   wallpapers: {
     get: () => ipcRenderer.invoke('wallpapers:get'),

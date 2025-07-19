@@ -36,6 +36,10 @@ const soundsData = {
   async set(data) {
     await ensureDataDir();
     await fs.writeFile(soundsFile, JSON.stringify(data, null, 2), 'utf-8');
+    // Notify renderer process of sound library changes
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('sound-library-changed', data);
+    }
   },
   async reset() {
     await this.set({ sounds: [], settings: {} });
@@ -824,6 +828,11 @@ ipcMain.handle('update-sound', async (event, { soundType, soundId, updates }) =>
     // Save updated library
     await writeJson(savedSoundsPath, library);
     console.log(`[SOUNDS] Updated sound: ${sound.name} in ${soundType}`);
+    
+    // Notify renderer process of sound library changes
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('sound-library-changed', library);
+    }
     
     return { success: true, sound: library[soundType][soundIndex] };
   } catch (error) {
