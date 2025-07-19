@@ -33,6 +33,8 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   const effectiveAnimatedOnHover = (channelConfig && channelConfig.animatedOnHover !== undefined)
     ? channelConfig.animatedOnHover
     : globalAnimatedOnHover;
+  
+  console.log('Channel', id, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover, 'globalAnimatedOnHover:', globalAnimatedOnHover, 'channelConfig:', channelConfig);
 
   // Generate static preview for MP4s on mount or when media changes
   useEffect(() => {
@@ -209,8 +211,43 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
 
   let mediaPreview = null;
   if (media && media.url && media.url.trim()) {
-    if (media.type.startsWith('image/')) {
-      mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;
+    // Check for GIFs first (before general image types)
+    if (media.type === 'image/gif' || media.url.match(/\.gif$/i)) {
+      console.log('GIF detected:', media.url, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover);
+      if (effectiveAnimatedOnHover) {
+        // Use ReactFreezeframe for GIFs when hover animation is enabled
+        console.log('Using ReactFreezeframe for GIF with hover trigger');
+        mediaPreview = (
+          <ReactFreezeframe
+            key={media.url} // Force re-render when URL changes
+            src={media.url}
+            alt="Channel media"
+            className="channel-media"
+            style={{ 
+              objectFit: 'cover', 
+              width: '100%', 
+              height: '100%' 
+            }}
+            options={{
+              trigger: 'hover',
+              overlay: false,
+              responsive: true,
+              warnings: false
+            }}
+          />
+        );
+      } else {
+        // Show normal GIF (always animated) when hover animation is disabled
+        console.log('Using normal img tag for GIF (always animated)');
+        mediaPreview = (
+          <img
+            src={media.url}
+            alt="Channel media"
+            className="channel-media"
+            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+          />
+        );
+      }
     } else if (media.type.startsWith('video/')) {
       if (effectiveAnimatedOnHover) {
         if (!isHovered && mp4Preview) {
@@ -259,39 +296,9 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       } else {
         mediaPreview = <video src={media.url} className="channel-media" autoPlay loop muted playsInline style={{ objectFit: 'cover', width: '100%', height: '100%' }} />;
       }
-    } else if (media && media.url && (media.type === 'image/gif' || media.url.match(/\.gif$/i))) {
-      if (effectiveAnimatedOnHover) {
-        // Use ReactFreezeframe for GIFs when hover animation is enabled
-        mediaPreview = (
-          <ReactFreezeframe
-            key={media.url} // Force re-render when URL changes
-            src={media.url}
-            alt="Channel media"
-            className="channel-media"
-            style={{ 
-              objectFit: 'cover', 
-              width: '100%', 
-              height: '100%' 
-            }}
-            options={{
-              trigger: 'hover',
-              overlay: false,
-              responsive: true,
-              warnings: false
-            }}
-          />
-        );
-      } else {
-        // Show normal GIF (always animated) when hover animation is disabled
-        mediaPreview = (
-          <img
-            src={media.url}
-            alt="Channel media"
-            className="channel-media"
-            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-          />
-        );
-      }
+    } else if (media.type.startsWith('image/')) {
+      // Handle other image types (PNG, JPG, etc.)
+      mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;
     }
   }
 
