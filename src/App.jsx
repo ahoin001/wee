@@ -8,6 +8,7 @@ import NotificationsButton from './components/NotificationsButton';
 import WiiRibbon from './components/WiiRibbon';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
+import PresetsModal from './components/PresetsModal';
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -175,6 +176,65 @@ function App() {
   const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(48);
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
+  const [showPresetsModal, setShowPresetsModal] = useState(false);
+  const [presets, setPresets] = useState([]);
+
+  // Preset handlers (must be inside App)
+  const handleSavePreset = (name) => {
+    if (presets.length >= 6) return;
+    const data = {
+      // WiiRibbon & Glow
+      ribbonColor, ribbonGlowColor, ribbonGlowStrength, ribbonGlowStrengthHover, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, recentRibbonColors, recentRibbonGlowColors,
+      // Time & Pill
+      timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity,
+      // Wallpaper & Effects
+      wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing,
+      // Primary Action Buttons
+      ribbonButtonConfigs,
+    };
+    setPresets(prev => [...prev, { name, data }].slice(0, 6));
+  };
+  const handleDeletePreset = (name) => {
+    setPresets(prev => prev.filter(p => p.name !== name));
+  };
+  const handleApplyPreset = (preset) => {
+    const d = preset.data;
+    // WiiRibbon & Glow
+    setRibbonColor(d.ribbonColor);
+    setRibbonGlowColor(d.ribbonGlowColor);
+    setRibbonGlowStrength(d.ribbonGlowStrength);
+    setRibbonGlowStrengthHover(d.ribbonGlowStrengthHover);
+    setGlassWiiRibbon(d.glassWiiRibbon);
+    setGlassOpacity(d.glassOpacity);
+    setGlassBlur(d.glassBlur);
+    setGlassBorderOpacity(d.glassBorderOpacity);
+    setGlassShineOpacity(d.glassShineOpacity);
+    setRecentRibbonColors(d.recentRibbonColors || []);
+    setRecentRibbonGlowColors(d.recentRibbonGlowColors || []);
+    // Time & Pill
+    setTimeColor(d.timeColor);
+    setTimeFormat24hr(d.timeFormat24hr);
+    setEnableTimePill(d.enableTimePill);
+    setTimePillBlur(d.timePillBlur);
+    setTimePillOpacity(d.timePillOpacity);
+    // Wallpaper & Effects
+    setWallpaper(d.wallpaper);
+    setWallpaperOpacity(d.wallpaperOpacity);
+    setSavedWallpapers(d.savedWallpapers || []);
+    setLikedWallpapers(d.likedWallpapers || []);
+    setCycleWallpapers(d.cycleWallpapers);
+    setCycleInterval(d.cycleInterval);
+    setCycleAnimation(d.cycleAnimation);
+    setSlideDirection(d.slideDirection);
+    setCrossfadeDuration(d.crossfadeDuration);
+    setCrossfadeEasing(d.crossfadeEasing);
+    setSlideRandomDirection(d.slideRandomDirection);
+    setSlideDuration(d.slideDuration);
+    setSlideEasing(d.slideEasing);
+    // Primary Action Buttons
+    setRibbonButtonConfigs(d.ribbonButtonConfigs || []);
+    setShowPresetsModal(false);
+  };
 
   // On mount, load all modular data
   useEffect(() => {
@@ -428,6 +488,8 @@ function App() {
         // Load ribbonGlowStrength and ribbonGlowStrengthHover from settings
         setRibbonGlowStrength(settings.ribbonGlowStrength || 32);
         setRibbonGlowStrengthHover(settings.ribbonGlowStrengthHover || 48);
+        // Load presets from settings
+        setPresets(settings.presets || []);
       }
       // Mark as initialized after loading settings
       setHasInitialized(true);
@@ -483,6 +545,7 @@ function App() {
         recentRibbonGlowColors, // Persist recentRibbonGlowColors
         ribbonGlowStrength, // Persist ribbonGlowStrength
         ribbonGlowStrengthHover, // Persist ribbonGlowStrengthHover
+        presets, // Persist presets
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -496,7 +559,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, presets]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -709,6 +772,9 @@ function App() {
     }
     if (newSettings.ribbonGlowStrengthHover !== undefined) {
       setRibbonGlowStrengthHover(newSettings.ribbonGlowStrengthHover);
+    }
+    if (newSettings.presets !== undefined) {
+      setPresets(newSettings.presets);
     }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
@@ -1341,6 +1407,7 @@ function App() {
           onRecentRibbonGlowColorChange={setRecentRibbonGlowColors}
           ribbonGlowStrength={ribbonGlowStrength}
           ribbonGlowStrengthHover={ribbonGlowStrengthHover}
+          setShowPresetsModal={setShowPresetsModal}
         />
         {/* Channel Modal - rendered at top level for proper z-index */}
         {openChannelModal && (
@@ -1356,6 +1423,14 @@ function App() {
           />
         )}
         {isLoading && <SplashScreen fadingOut={splashFading} />}
+        <PresetsModal
+          isOpen={showPresetsModal}
+          onClose={() => setShowPresetsModal(false)}
+          presets={presets}
+          onSavePreset={handleSavePreset}
+          onDeletePreset={handleDeletePreset}
+          onApplyPreset={handleApplyPreset}
+        />
       </div>
     </>
   );

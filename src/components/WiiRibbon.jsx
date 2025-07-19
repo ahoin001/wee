@@ -9,7 +9,7 @@ import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 // import more icons as needed
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, ribbonGlowColor: propRibbonGlowColor, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, ribbonGlowColor: propRibbonGlowColor, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -516,6 +516,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                    barType === 'wii-ribbon' ? 'Switch to Wii Bar' : 
                    'Switch to Flat Bar'}
                 </div> */}
+                <div className="context-menu-item" onClick={() => setShowPresetsModal(true)}>
+                  🎨 Presets
+                </div>
                 <div className="settings-menu-separator" />
                 {/* Window Group */}
                 <div className="settings-menu-group-label">Window</div>
