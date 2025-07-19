@@ -260,31 +260,25 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       }
     } else if (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) {
       if (effectiveAnimatedOnHover) {
-        // Use ReactFreezeframe for better GIF control when hover animation is enabled
+        // Use ReactFreezeframe for GIFs when hover animation is enabled
         mediaPreview = (
           <ReactFreezeframe
-            options={{
-              trigger: 'hover',
-              overlay: false,
-              responsive: true
-            }}
+            key={media.url} // Force re-render when URL changes
+            src={media.url}
+            alt="Channel media"
+            className="channel-media"
             style={{ 
               objectFit: 'cover', 
               width: '100%', 
               height: '100%' 
             }}
-          >
-            <img
-              src={media.url}
-              alt="Channel media"
-              className="channel-media"
-              style={{ 
-                objectFit: 'cover', 
-                width: '100%', 
-                height: '100%' 
-              }}
-            />
-          </ReactFreezeframe>
+            options={{
+              trigger: 'hover',
+              overlay: false,
+              responsive: true,
+              warnings: false
+            }}
+          />
         );
       } else {
         // Show normal GIF (always animated) when hover animation is disabled
