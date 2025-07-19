@@ -467,6 +467,7 @@ function getDefaultSettings() {
     ribbonButtonConfigs: [],
     presetsButtonConfig: { type: 'icon', icon: 'star' },
     showPresetsButton: false,
+    savedIcons: [], // Add savedIcons to default settings
     sounds: {
       // Will be set up by the sound library loader
     },
@@ -1239,8 +1240,12 @@ ipcMain.handle('reset-to-default', async () => {
     }
     await writeJson(savedSoundsPath, initialSoundLibrary);
 
-    // Reset settings
+    // Reset settings but preserve saved icons
+    const currentSettings = await readJson(settingsFile, {});
     const defaultSettings = getDefaultSettings();
+    // Preserve saved icons from current settings
+    defaultSettings.savedIcons = currentSettings.savedIcons || [];
+    
     // Set up default sound settings (enable first default sound for each type)
     for (const soundType of SOUND_TYPES) {
       const defaultSound = initialSoundLibrary[soundType][0];

@@ -61,40 +61,63 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   }, [savedIcons]);
 
   const refreshSavedIcons = () => {
+    console.log('refreshSavedIcons called');
     if (window.api?.icons?.list) {
+      console.log('window.api.icons.list is available');
       setLoadingIcons(true);
       window.api.icons.list().then(res => {
-        if (res && res.success) setSavedIcons(res.icons);
+        console.log('Icons list response:', res);
+        if (res && res.success) {
+          console.log('Setting saved icons:', res.icons);
+          setSavedIcons(res.icons);
+        } else {
+          console.error('Failed to get icons:', res?.error);
+        }
+        setLoadingIcons(false);
+      }).catch(err => {
+        console.error('Error fetching icons:', err);
         setLoadingIcons(false);
       });
+    } else {
+      console.error('window.api.icons.list is not available');
     }
   };
 
   // Upload and save icon immediately
   const handleUploadIcon = async () => {
+    console.log('handleUploadIcon called');
     setUploadError('');
     if (!window.api?.selectIconFile) {
+      console.error('Icon file picker is not available');
       setUploadError('Icon file picker is not available.');
       return;
     }
     setUploading(true);
     try {
+      console.log('Opening file picker...');
       const fileResult = await window.api.selectIconFile();
+      console.log('File picker result:', fileResult);
       if (!fileResult.success) {
         setUploadError(fileResult.error || 'File selection cancelled.');
         setUploading(false);
         return;
       }
       const file = fileResult.file;
+      console.log('Selected file:', file);
+      console.log('Adding icon with path:', file.path, 'filename:', file.name);
       const addResult = await window.api.icons.add({ filePath: file.path, filename: file.name });
+      console.log('Add icon result:', addResult);
       if (!addResult.success) {
         setUploadError(addResult.error || 'Failed to add icon.');
         setUploading(false);
         return;
       }
+      console.log('Icon added successfully, URL:', addResult.icon.url);
       setIcon(addResult.icon.url);
+      console.log('Refreshing saved icons...');
       refreshSavedIcons();
     } catch (err) {
+      console.error('Upload error:', err);
       setUploadError('Upload failed: ' + err.message);
     } finally {
       setUploading(false);
