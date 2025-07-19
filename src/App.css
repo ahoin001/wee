@@ -478,7 +478,7 @@ body:not(.custom-cursor) {
 
 /* Wallpaper transition styles - Ultra smooth */
 .wallpaper-bg {
-  will-change: opacity;
+  will-change: opacity, transform;
   backface-visibility: hidden;
   transform: translateZ(0); /* Force hardware acceleration */
   image-rendering: -webkit-optimize-contrast;
@@ -503,6 +503,17 @@ body:not(.custom-cursor) {
   /* Prevent sub-pixel rendering issues */
   transform-style: preserve-3d;
   perspective: 1000px;
+}
+
+/* Infinite scroll specific optimizations */
+.wallpaper-bg[style*="transform"],
+.wallpaper-bg-next[style*="transform"] {
+  /* Optimize for transform animations */
+  will-change: transform;
+  /* Prevent layout thrashing during slide */
+  contain: layout style paint;
+  /* Smooth transform interpolation */
+  transform-origin: center center;
 }
 
 /* Prevent flickering during transitions */

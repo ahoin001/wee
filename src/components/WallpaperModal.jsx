@@ -19,7 +19,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [cycling, setCycling] = useState(false);
   const [cycleInterval, setCycleInterval] = useState(30);
   const [cycleAnimation, setCycleAnimation] = useState('fade');
-  const [transitionType, setTransitionType] = useState('crossfade');
+  const [slideDirection, setSlideDirection] = useState('right');
+  const [crossfadeDuration, setCrossfadeDuration] = useState(1.2); // Duration in seconds
+  const [crossfadeEasing, setCrossfadeEasing] = useState('ease-out'); // Easing function
+  const [slideRandomDirection, setSlideRandomDirection] = useState(false); // Random vs fixed direction
+  const [slideDuration, setSlideDuration] = useState(1.5); // Duration in seconds
+  const [slideEasing, setSlideEasing] = useState('ease-out'); // Easing function
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [uploading, setUploading] = useState(false);
@@ -45,7 +50,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setCycling(data.cyclingSettings?.enabled ?? false);
       setCycleInterval(data.cyclingSettings?.interval ?? 30);
       setCycleAnimation(data.cyclingSettings?.animation ?? 'fade');
-      setTransitionType(data.cyclingSettings?.transitionType ?? 'crossfade');
+      setSlideDirection(data.cyclingSettings?.slideDirection ?? 'right');
+      setCrossfadeDuration(data.cyclingSettings?.crossfadeDuration ?? 1.2);
+      setCrossfadeEasing(data.cyclingSettings?.crossfadeEasing ?? 'ease-out');
+      setSlideRandomDirection(data.cyclingSettings?.slideRandomDirection ?? false);
+      setSlideDuration(data.cyclingSettings?.slideDuration ?? 1.5);
+      setSlideEasing(data.cyclingSettings?.slideEasing ?? 'ease-out');
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
       setTimeColor(data.timeColor || '#ffffff'); // Load time color setting
       setTimeFormat24hr(data.timeFormat24hr ?? true); // Load time format setting
@@ -174,7 +184,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         enabled: cycling,
         interval: cycleInterval,
         animation: cycleAnimation,
-        transitionType: transitionType,
+        slideDirection: slideDirection,
+        crossfadeDuration: crossfadeDuration,
+        crossfadeEasing: crossfadeEasing,
+        slideRandomDirection: slideRandomDirection,
+        slideDuration: slideDuration,
+        slideEasing: slideEasing,
       });
       if (!result.success) {
         setMessage({ type: 'error', text: result.error || 'Failed to save cycling settings.' });
@@ -215,6 +230,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         enabled: cycling,
         interval: cycleInterval,
         animation: cycleAnimation,
+        slideDirection: slideDirection,
+        crossfadeDuration: crossfadeDuration,
+        crossfadeEasing: crossfadeEasing,
+        slideRandomDirection: slideRandomDirection,
+        slideDuration: slideDuration,
+        slideEasing: slideEasing,
       });
       
       setMessage({ type: 'success', text: 'Wallpaper and settings saved.' });
@@ -415,15 +436,107 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
             <span style={{ fontWeight: 500, minWidth: 120 }}>Animation</span>
             <select
-              value={transitionType}
-              onChange={e => setTransitionType(e.target.value)}
+              value={cycleAnimation}
+              onChange={e => setCycleAnimation(e.target.value)}
               style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
             >
-              <option value="crossfade">Crossfade</option>
+              <option value="fade">Fade</option>
               <option value="slide">Slide</option>
-              <option value="none">None</option>
             </select>
           </div>
+          
+          {/* Crossfade Animation Parameters */}
+          {cycleAnimation === 'fade' && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                <span style={{ fontWeight: 500, minWidth: 120 }}>Crossfade Duration</span>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={3.0}
+                  step={0.1}
+                  value={crossfadeDuration}
+                  onChange={e => setCrossfadeDuration(Number(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
+                <select
+                  value={crossfadeEasing}
+                  onChange={e => setCrossfadeEasing(e.target.value)}
+                  style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                >
+                  <option value="ease-out">Ease Out (Smooth)</option>
+                  <option value="ease-in">Ease In (Accelerate)</option>
+                  <option value="ease-in-out">Ease In-Out (Smooth)</option>
+                  <option value="linear">Linear (Constant)</option>
+                </select>
+              </div>
+            </>
+          )}
+          
+          {/* Slide Animation Parameters */}
+          {cycleAnimation === 'slide' && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                <span style={{ fontWeight: 500, minWidth: 120 }}>Direction Mode</span>
+                <select
+                  value={slideRandomDirection ? 'random' : 'fixed'}
+                  onChange={e => setSlideRandomDirection(e.target.value === 'random')}
+                  style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                >
+                  <option value="fixed">Fixed Direction</option>
+                  <option value="random">Random Direction</option>
+                </select>
+              </div>
+              
+              {!slideRandomDirection && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Slide Direction</span>
+                  <select
+                    value={slideDirection}
+                    onChange={e => setSlideDirection(e.target.value)}
+                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                  >
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                    <option value="up">Up</option>
+                    <option value="down">Down</option>
+                  </select>
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                <span style={{ fontWeight: 500, minWidth: 120 }}>Slide Duration</span>
+                <input
+                  type="range"
+                  min={0.8}
+                  max={3.0}
+                  step={0.1}
+                  value={slideDuration}
+                  onChange={e => setSlideDuration(Number(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{slideDuration}s</span>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
+                <select
+                  value={slideEasing}
+                  onChange={e => setSlideEasing(e.target.value)}
+                  style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                >
+                  <option value="ease-out">Ease Out (Smooth)</option>
+                  <option value="ease-in">Ease In (Accelerate)</option>
+                  <option value="ease-in-out">Ease In-Out (Smooth)</option>
+                  <option value="linear">Linear (Constant)</option>
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </div>
       {/* Wallpaper Transparency Slider */}

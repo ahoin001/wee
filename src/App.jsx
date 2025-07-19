@@ -92,14 +92,19 @@ function App() {
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
   const [nextWallpaper, setNextWallpaper] = useState(null); // For smooth transitions
   const [isTransitioning, setIsTransitioning] = useState(false); // Track transition state
-  const [transitionType, setTransitionType] = useState('crossfade'); // 'crossfade' or 'slide'
   const [slideDirection, setSlideDirection] = useState('right'); // 'left', 'right', 'up', 'down'
   const [crossfadeProgress, setCrossfadeProgress] = useState(0); // Separate state for crossfade
+  const [slideProgress, setSlideProgress] = useState(0); // Separate state for slide
   const [savedWallpapers, setSavedWallpapers] = useState([]);
   const [likedWallpapers, setLikedWallpapers] = useState([]);
   const [cycleWallpapers, setCycleWallpapers] = useState(false);
   const [cycleInterval, setCycleInterval] = useState(30);
   const [cycleAnimation, setCycleAnimation] = useState('fade');
+  const [crossfadeDuration, setCrossfadeDuration] = useState(1.2);
+  const [crossfadeEasing, setCrossfadeEasing] = useState('ease-out');
+  const [slideRandomDirection, setSlideRandomDirection] = useState(false);
+  const [slideDuration, setSlideDuration] = useState(1.5);
+  const [slideEasing, setSlideEasing] = useState('ease-out');
   const [showWallpaperModal, setShowWallpaperModal] = useState(false); // track modal open
   const cycleTimeoutRef = useRef();
   const lastMusicIdRef = useRef(null);
@@ -135,8 +140,12 @@ function App() {
       setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
       setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
       setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-      setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade');
       setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
+      setCrossfadeDuration(wallpaperData?.cyclingSettings?.crossfadeDuration ?? 1.2);
+      setCrossfadeEasing(wallpaperData?.cyclingSettings?.crossfadeEasing ?? 'ease-out');
+      setSlideRandomDirection(wallpaperData?.cyclingSettings?.slideRandomDirection ?? false);
+      setSlideDuration(wallpaperData?.cyclingSettings?.slideDuration ?? 1.5);
+      setSlideEasing(wallpaperData?.cyclingSettings?.slideEasing ?? 'ease-out');
       setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Load timeColor
       setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Load timeFormat24hr
       setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Load enableTimePill
@@ -340,7 +349,6 @@ function App() {
         setCycleWallpapers(settings.cycleWallpapers ?? false);
         setCycleInterval(settings.cycleInterval ?? 30);
         setCycleAnimation(settings.cycleAnimation || 'fade');
-        setTransitionType(settings.transitionType || 'crossfade');
         setSlideDirection(settings.slideDirection || 'right');
         setTimeColor(settings.timeColor || '#ffffff'); // Load timeColor
         setTimeFormat24hr(settings.timeFormat24hr ?? true); // Load timeFormat24hr
@@ -372,8 +380,12 @@ function App() {
         cycleWallpapers,
         cycleInterval,
         cycleAnimation,
-        transitionType,
         slideDirection,
+        crossfadeDuration,
+        crossfadeEasing,
+        slideRandomDirection,
+        slideDuration,
+        slideEasing,
         timeColor, // Persist timeColor
         timeFormat24hr, // Persist timeFormat24hr
         enableTimePill, // Persist enableTimePill
@@ -383,7 +395,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, transitionType, slideDirection, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity]);
+  }, [isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -438,7 +450,6 @@ function App() {
         setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
         setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
         setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-        setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade');
         setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
         // Preserve current time settings if they exist, otherwise use saved values
         setTimeColor(wallpaperData?.timeColor || currentTimeColorRef.current || '#ffffff');
@@ -452,7 +463,6 @@ function App() {
           window.settings.cycleWallpapers = wallpaperData?.cyclingSettings?.enabled ?? false;
           window.settings.cycleInterval = wallpaperData?.cyclingSettings?.interval ?? 30;
           window.settings.cycleAnimation = wallpaperData?.cyclingSettings?.animation || 'fade';
-          window.settings.transitionType = wallpaperData?.cyclingSettings?.transitionType || 'crossfade';
           window.settings.slideDirection = wallpaperData?.cyclingSettings?.slideDirection || 'right';
         }
       };
@@ -554,7 +564,6 @@ function App() {
       setCycleWallpapers(settings.cycleWallpapers ?? false);
       setCycleInterval(settings.cycleInterval ?? 30);
       setCycleAnimation(settings.cycleAnimation || 'fade');
-      setTransitionType(settings.transitionType || 'crossfade');
       setSlideDirection(settings.slideDirection || 'right');
       setTimeColor(settings.timeColor || '#ffffff'); // Update timeColor
       setTimeFormat24hr(settings.timeFormat24hr ?? true); // Update timeFormat24hr
@@ -576,8 +585,12 @@ function App() {
     cycleWallpapers,
     cycleInterval,
     cycleAnimation,
-    transitionType,
     slideDirection,
+    crossfadeDuration,
+    crossfadeEasing,
+    slideRandomDirection,
+    slideDuration,
+    slideEasing,
     timeColor,
     timeFormat24hr,
     enableTimePill,
@@ -623,6 +636,36 @@ function App() {
     });
   };
 
+  // Map cycleAnimation to transitionType
+  const getTransitionType = useCallback(() => {
+    switch (cycleAnimation) {
+      case 'slide':
+        return 'slide';
+      case 'fade':
+        return 'crossfade';
+      default:
+        return 'crossfade';
+    }
+  }, [cycleAnimation]);
+
+  // Apply easing function based on user selection
+  const applyEasing = useCallback((progress, easingType) => {
+    switch (easingType) {
+      case 'ease-out':
+        return 1 - Math.pow(1 - progress, 3); // Ease-out cubic
+      case 'ease-in':
+        return Math.pow(progress, 3); // Ease-in cubic
+      case 'ease-in-out':
+        return progress < 0.5 
+          ? 4 * progress * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2; // Ease-in-out cubic
+      case 'linear':
+        return progress; // Linear
+      default:
+        return 1 - Math.pow(1 - progress, 3); // Default to ease-out
+    }
+  }, []);
+
   // Function to calculate slide transform based on direction and progress
   const getSlideTransform = (direction, progress) => {
     const slideDistance = '100%';
@@ -637,6 +680,49 @@ function App() {
         return `translateY(${(1 - easeProgress) * 100}%)`;
       case 'down':
         return `translateY(${-(1 - easeProgress) * 100}%)`;
+      default:
+        return 'none';
+    }
+  };
+
+  // Function to get infinite scroll slide transform
+  const getInfiniteScrollTransform = (direction, progress, isNextWallpaper = false) => {
+    // Use a smoother easing for infinite scroll
+    const easeProgress = 1 - Math.pow(1 - progress, 2); // Quadratic ease-out
+    
+    switch (direction) {
+      case 'left':
+        if (isNextWallpaper) {
+          // Next wallpaper slides in from the right (starts at 100% right, moves to 0%)
+          return `translateX(${(1 - easeProgress) * 100}%)`;
+        } else {
+          // Current wallpaper slides out to the left (starts at 0%, moves to -100%)
+          return `translateX(${-easeProgress * 100}%)`;
+        }
+      case 'right':
+        if (isNextWallpaper) {
+          // Next wallpaper slides in from the left (starts at -100% left, moves to 0%)
+          return `translateX(${-(1 - easeProgress) * 100}%)`;
+        } else {
+          // Current wallpaper slides out to the right (starts at 0%, moves to 100%)
+          return `translateX(${easeProgress * 100}%)`;
+        }
+      case 'up':
+        if (isNextWallpaper) {
+          // Next wallpaper slides in from below (starts at 100% down, moves to 0%)
+          return `translateY(${(1 - easeProgress) * 100}%)`;
+        } else {
+          // Current wallpaper slides out upward (starts at 0%, moves to -100%)
+          return `translateY(${-easeProgress * 100}%)`;
+        }
+      case 'down':
+        if (isNextWallpaper) {
+          // Next wallpaper slides in from above (starts at -100% up, moves to 0%)
+          return `translateY(${-(1 - easeProgress) * 100}%)`;
+        } else {
+          // Current wallpaper slides out downward (starts at 0%, moves to 100%)
+          return `translateY(${easeProgress * 100}%)`;
+        }
       default:
         return 'none';
     }
@@ -680,7 +766,8 @@ function App() {
       nextWallpaper: nextWallpaperData?.url,
       cycleListLength: cycleList.length,
       cycleInterval,
-      transitionType
+      cycleAnimation,
+      transitionType: getTransitionType()
     });
     
     // Preload the next wallpaper before starting transition
@@ -697,16 +784,34 @@ function App() {
           setIsTransitioning(true);
           setNextWallpaper(nextWallpaperData);
           setCrossfadeProgress(0); // Reset crossfade progress
+          setSlideProgress(0); // Reset slide progress
           
-          // Choose random slide direction for variety (only for slide transitions)
-          if (transitionType === 'slide') {
-            const directions = ['left', 'right', 'up', 'down'];
-            setSlideDirection(directions[Math.floor(Math.random() * directions.length)]);
+          // Choose slide direction based on saved setting (only for slide transitions)
+          if (getTransitionType() === 'slide') {
+            if (slideRandomDirection) {
+              // Use random direction selection with preference for horizontal
+              const horizontalDirections = ['left', 'right'];
+              const verticalDirections = ['up', 'down'];
+              
+              let selectedDirection;
+              if (Math.random() < 0.7) {
+                // Prefer horizontal scrolling
+                selectedDirection = horizontalDirections[Math.floor(Math.random() * horizontalDirections.length)];
+              } else {
+                // Occasionally use vertical scrolling
+                selectedDirection = verticalDirections[Math.floor(Math.random() * verticalDirections.length)];
+              }
+              
+              setSlideDirection(selectedDirection);
+            } else {
+              // Use the saved slideDirection
+              setSlideDirection(slideDirection);
+            }
           }
           
-          // Transition duration and steps
-          const transitionDuration = 1200; // Slightly longer for smoother feel
-          const fadeSteps = 120; // Much more steps for ultra-smooth animation (10ms intervals)
+          // Transition duration and steps based on animation type
+          const transitionDuration = getTransitionType() === 'slide' ? slideDuration * 1000 : crossfadeDuration * 1000;
+          const fadeSteps = getTransitionType() === 'slide' ? 90 : 120; // Fewer steps for slide but still smooth
           const stepDuration = transitionDuration / fadeSteps;
           
           let currentStep = 0;
@@ -715,29 +820,28 @@ function App() {
             const rawProgress = currentStep / fadeSteps;
             
             // Apply easing function for smoother animation
-            const progress = 1 - Math.pow(1 - rawProgress, 3); // Ease-out cubic
+            let progress = applyEasing(rawProgress, getTransitionType() === 'slide' ? slideEasing : crossfadeEasing);
             
             // Apply additional smoothing for crossfade
             let finalProgress = progress;
-            if (transitionType === 'crossfade') {
-              // Use a more sophisticated easing for crossfade
-              // Start slow, accelerate in middle, slow at end
-              const t = rawProgress;
-              finalProgress = t < 0.5 
-                ? 2 * t * t 
-                : 1 - Math.pow(-2 * t + 2, 2) / 2;
+            if (getTransitionType() === 'crossfade') {
+              // Use the easing function result directly for crossfade
+              finalProgress = progress;
+            } else if (getTransitionType() === 'slide') {
+              // Use the easing function result directly for slide
+              finalProgress = progress;
             }
             
-            if (transitionType === 'crossfade') {
+            if (getTransitionType() === 'crossfade') {
               // Crossfade transition - use separate state with easing
               // Batch updates for better performance
               requestAnimationFrame(() => {
                 setCrossfadeProgress(finalProgress);
               });
-            } else if (transitionType === 'slide') {
+            } else if (getTransitionType() === 'slide') {
               // Slide transition - animate the slide progress
               requestAnimationFrame(() => {
-                setWallpaperOpacity(progress);
+                setSlideProgress(finalProgress);
               });
             }
             
@@ -749,6 +853,7 @@ function App() {
                 currentWallpaperRef.current = nextWallpaperData; // Update ref
                 setWallpaperOpacity(1);
                 setCrossfadeProgress(0);
+                setSlideProgress(0);
                 setNextWallpaper(null);
                 setIsTransitioning(false);
                 console.log('Transition complete');
@@ -768,6 +873,7 @@ function App() {
         currentWallpaperRef.current = nextWallpaperData; // Update ref
         setWallpaperOpacity(1);
         setCrossfadeProgress(0);
+        setSlideProgress(0);
         setNextWallpaper(null);
         setIsTransitioning(false);
         
@@ -776,7 +882,7 @@ function App() {
         cycleTimeoutRef.current = setTimeout(cycleToNextWallpaper, cycleInterval * 1000);
       });
     
-  }, [cycleList, cycleInterval, transitionType, isTransitioning]); // Removed wallpaper from dependencies
+  }, [cycleList, cycleInterval, cycleAnimation, isTransitioning, slideDirection, getTransitionType, slideDuration, crossfadeDuration, slideRandomDirection, slideEasing, crossfadeEasing, applyEasing]); // Removed wallpaper from dependencies
   
   // Keep currentWallpaperRef in sync with wallpaper state
   useEffect(() => {
@@ -835,6 +941,7 @@ function App() {
         setIsTransitioning(false);
         setNextWallpaper(null);
         setCrossfadeProgress(0);
+        setSlideProgress(0);
         setWallpaperOpacity(1);
       }
     };
@@ -858,7 +965,7 @@ function App() {
     setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
     setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
     setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-    setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade');
+    // setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade'); // This line was removed as per the edit hint
     setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
     setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Update timeColor
     setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Update timeFormat24hr
@@ -888,7 +995,7 @@ function App() {
     setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
     setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
     setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-    setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade');
+    // setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade'); // This line was removed as per the edit hint
     setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
     setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Update timeColor
     setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Update timeFormat24hr
@@ -959,7 +1066,8 @@ function App() {
               zIndex: 0,
               pointerEvents: 'none',
               background: `url('${wallpaper.url}') center center / cover no-repeat`,
-              opacity: transitionType === 'crossfade' ? 1 - crossfadeProgress : wallpaperOpacity,
+              opacity: getTransitionType() === 'crossfade' ? 1 - crossfadeProgress : wallpaperOpacity,
+              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, false) : 'none',
               transition: 'none', // Remove CSS transitions to prevent conflicts
             }}
           />
@@ -977,8 +1085,8 @@ function App() {
               zIndex: 1,
               pointerEvents: 'none',
               background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
-              opacity: transitionType === 'crossfade' ? crossfadeProgress : 1,
-              transform: transitionType === 'slide' ? getSlideTransform(slideDirection, wallpaperOpacity) : 'none',
+              opacity: getTransitionType() === 'crossfade' ? crossfadeProgress : 1,
+              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, true) : 'none',
               transition: 'none', // Remove CSS transitions to prevent conflicts
             }}
           />
