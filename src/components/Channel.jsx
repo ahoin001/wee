@@ -208,7 +208,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   };
 
   let mediaPreview = null;
-  if (media) {
+  if (media && media.url && media.url.trim()) {
     if (media.type.startsWith('image/')) {
       mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;
     } else if (media.type.startsWith('video/')) {
@@ -259,7 +259,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       } else {
         mediaPreview = <video src={media.url} className="channel-media" autoPlay loop muted playsInline style={{ objectFit: 'cover', width: '100%', height: '100%' }} />;
       }
-    } else if (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) {
+    } else if (media && media.url && (media.type === 'image/gif' || media.url.match(/\.gif$/i))) {
       if (effectiveAnimatedOnHover) {
         // Use ReactFreezeframe for GIFs when hover animation is enabled
         mediaPreview = (
@@ -306,7 +306,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       role="button"
       onContextMenu={handleRightClick}
     >
-      {mediaPreview || <img src={icon} alt="" className="channel-media" />}
+      {mediaPreview || (icon && icon.trim() ? <img src={icon} alt="" className="channel-media" /> : null)}
     </div>
   );
 
