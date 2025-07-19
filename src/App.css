@@ -422,8 +422,12 @@ body, #root {
   pointer-events: none;
   z-index: 10001;
   transform: translate(-50%, -50%);
-  transition: all 0.1s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  /* Performance optimizations */
+  will-change: transform;
+  backface-visibility: hidden;
+  /* Remove transitions for better performance */
+  transition: none;
 }
 
 .wii-cursor.hover {
@@ -432,6 +436,8 @@ body, #root {
   background: rgba(255, 255, 255, 0.9);
   border-width: 3px;
   box-shadow: 0 4px 12px rgba(0, 153, 255, 0.4);
+  /* Smooth size transition only for hover state */
+  transition: width 0.15s ease, height 0.15s ease, border-width 0.15s ease, box-shadow 0.15s ease;
 }
 
 /* Hide default cursor completely when custom cursor is enabled */

@@ -33,44 +33,71 @@ const settingsApi = window.api?.settings || {
 };
 
 function WiiCursor() {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isHovering, setIsHovering] = useState(false);
+  const cursorRef = useRef(null);
+  const isHoveringRef = useRef(false);
+  const animationFrameRef = useRef(null);
 
   useEffect(() => {
+    const cursor = cursorRef.current;
+    if (!cursor) return;
+
+    let lastX = 0;
+    let lastY = 0;
+    let isHovering = false;
+
+    // Throttled mouse move handler using requestAnimationFrame
     const handleMouseMove = (e) => {
-      setPosition({ x: e.clientX, y: e.clientY });
+      if (animationFrameRef.current) return; // Skip if already scheduled
+      
+      animationFrameRef.current = requestAnimationFrame(() => {
+        const x = e.clientX;
+        const y = e.clientY;
+        
+        // Only update if position actually changed (prevents unnecessary DOM updates)
+        if (x !== lastX || y !== lastY) {
+          cursor.style.transform = `translate(${x}px, ${y}px)`;
+          lastX = x;
+          lastY = y;
+        }
+        
+        animationFrameRef.current = null;
+      });
     };
 
-    const handleMouseEnter = (e) => {
-      if (e.target.closest('.channel, .circular-button, .context-menu-item')) {
-        setIsHovering(true);
-      } else {
-        setIsHovering(false);
+    // Optimized hover detection using event delegation
+    const handleMouseOver = (e) => {
+      const target = e.target;
+      const shouldHover = target.closest('.channel, .circular-button, .context-menu-item');
+      
+      if (shouldHover !== isHovering) {
+        isHovering = shouldHover;
+        isHoveringRef.current = isHovering;
+        
+        if (isHovering) {
+          cursor.classList.add('hover');
+        } else {
+          cursor.classList.remove('hover');
+        }
       }
     };
 
-    const handleMouseLeave = () => {
-      setIsHovering(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseover', handleMouseEnter);
-    document.addEventListener('mouseout', handleMouseLeave);
+    // Use passive listeners for better performance
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
+    document.addEventListener('mouseover', handleMouseOver, { passive: true });
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseover', handleMouseEnter);
-      document.removeEventListener('mouseout', handleMouseLeave);
+      document.removeEventListener('mouseover', handleMouseOver);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, []);
 
   return (
     <div 
-      className={`wii-cursor ${isHovering ? 'hover' : ''}`}
-      style={{ 
-        left: position.x, 
-        top: position.y 
-      }}
+      ref={cursorRef}
+      className="wii-cursor"
     />
   );
 }
@@ -1156,7 +1183,9 @@ function App() {
   return (
     <>
       {/* Always render the main UI, but overlay the splash screen while loading */}
-      <div className="app-container" style={{ filter: isLoading ? 'blur(2px)' : 'none', pointerEvents: isLoading ? 'none' : 'auto' }}>
+      <div className={`app-container ${useCustomCursor ? 'custom-cursor' : ''}`} style={{ filter: isLoading ? 'blur(2px)' : 'none', pointerEvents: isLoading ? 'none' : 'auto' }}>
+        {/* Wii Cursor - rendered outside app container to avoid blur filter */}
+        {useCustomCursor && <WiiCursor />}
         {/* Wallpaper background layer - with smooth transitions */}
         {wallpaper && wallpaper.url && (
           <div
@@ -1202,7 +1231,6 @@ function App() {
         {showDragRegion && (
           <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
         )}
-        {useCustomCursor && <WiiCursor />}
         <div className="channels-grid" style={{ opacity: channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
           {channels.map((channel) => {
             const config = channelConfigs[channel.id];
