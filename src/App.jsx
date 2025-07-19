@@ -234,6 +234,10 @@ function App() {
     setSlideDuration(d.slideDuration);
     setSlideEasing(d.slideEasing);
     setWallpaperBlur(d.wallpaperBlur !== undefined ? d.wallpaperBlur : 0);
+    // Set the active wallpaper in the backend so it persists and is selected in the modal
+    if (d.wallpaper && d.wallpaper.url && window.api?.wallpapers?.setActive) {
+      window.api.wallpapers.setActive({ url: d.wallpaper.url });
+    }
     // Primary Action Buttons
     setRibbonButtonConfigs(d.ribbonButtonConfigs || []);
     setShowPresetsModal(false);
