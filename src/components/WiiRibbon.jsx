@@ -365,7 +365,15 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 {buttonConfigs[0].type === 'text' ? (
                   <span className="text-wii-gray-dark font-bold text-sm">{buttonConfigs[0].text || 'Wii'}</span>
                 ) : buttonConfigs[0].icon ? (
-                  <img src={buttonConfigs[0].icon} alt="icon" style={{ maxHeight: 40, maxWidth: 40 }} />
+                  <img 
+                    src={buttonConfigs[0].icon} 
+                    alt="icon" 
+                    style={{ 
+                      maxHeight: 40, 
+                      maxWidth: 40,
+                      filter: buttonConfigs[0].useWiiGrayFilter ? 'grayscale(100%) brightness(0.6) contrast(1.2)' : 'none'
+                    }} 
+                  />
                 ) : (
                   <span className="text-wii-gray-dark font-bold text-sm">Wii</span>
                 )}
@@ -392,7 +400,15 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                       {buttonConfigs[1].type === 'text' ? (
                         <span className="text-wii-gray-dark font-bold text-sm">{buttonConfigs[1].text || ''}</span>
                       ) : buttonConfigs[1].icon ? (
-                        <img src={buttonConfigs[1].icon} alt="icon" style={{ maxHeight: 40, maxWidth: 40 }} />
+                        <img 
+                          src={buttonConfigs[1].icon} 
+                          alt="icon" 
+                          style={{ 
+                            maxHeight: 40, 
+                            maxWidth: 40,
+                            filter: buttonConfigs[1].useWiiGrayFilter ? 'grayscale(100%) brightness(0.6) contrast(1.2)' : 'none'
+                          }} 
+                        />
                       ) : (
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-wii-gray-dark"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                       )}

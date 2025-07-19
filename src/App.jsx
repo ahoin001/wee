@@ -579,7 +579,18 @@ function App() {
     
     // For other settings that need to be saved to disk, use the existing logic
     if (window.api && window.api.saveSettings) {
-      await window.api.saveSettings(newSettings);
+      // Get current settings first to preserve existing data like ribbonButtonConfigs
+      let currentSettings = {};
+      if (window.api && window.api.getSettings) {
+        try {
+          currentSettings = await window.api.getSettings();
+        } catch (error) {
+          console.warn('Failed to get current settings:', error);
+        }
+      }
+      // Merge new settings with existing settings to preserve ribbonButtonConfigs and other data
+      const mergedSettings = { ...currentSettings, ...newSettings };
+      await window.api.saveSettings(mergedSettings);
     }
   };
 

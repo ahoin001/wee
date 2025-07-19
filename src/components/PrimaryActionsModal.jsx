@@ -12,6 +12,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [loadingIcons, setLoadingIcons] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
   const exeFileInputRef = useRef(null);
 
   // Fetch saved icons on open
@@ -136,6 +137,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       icon: type === 'icon' ? icon : null,
       actionType,
       action,
+      useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false,
     });
   };
 
@@ -363,7 +365,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={() => { if (validatePath()) { onSave({ type, text: type === 'text' ? text : '', icon: type === 'icon' ? icon : null, actionType, action }); handleClose(); } }} style={{ minWidth: 90 }}>Save</button>
+          <button className="save-button" onClick={() => { if (validatePath()) { onSave({ type, text: type === 'text' ? text : '', icon: type === 'icon' ? icon : null, actionType, action, useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false }); handleClose(); } }} style={{ minWidth: 90 }}>Save</button>
         </div>
       )}
     >
@@ -381,6 +383,26 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       </div>
+      {/* Wii Gray Filter Card - Only show when using icon */}
+      {type === 'icon' && (
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">Use Wii Button Color Filter</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={useWiiGrayFilter}
+                onChange={(e) => setUseWiiGrayFilter(e.target.checked)}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            Make the icon Wii gray to match the classic Wii button style.
+          </div>
+        </div>
+      )}
       {/* App Path/URL Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
