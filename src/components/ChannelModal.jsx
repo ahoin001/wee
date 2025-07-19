@@ -187,7 +187,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   };
 
   // On save, use channelsApi.set and reload state
-  const handleSave = async () => {
+  const handleSave = async (handleClose) => {
     // Validate path before saving
     if (!validatePath() || !media || !path.trim()) {
       setShowError(true);
@@ -208,14 +208,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     const updatedChannels = { ...allChannels, [channelId]: newChannel };
     await window.api?.channels?.set(updatedChannels);
     if (onSave) onSave(channelId, newChannel);
-      onClose();
+    handleClose();
   };
 
   const handleRemoveImage = () => {
     setMedia(null);
   };
 
-  const handleClearChannel = async () => {
+  const handleClearChannel = async (handleClose) => {
     // Reset all local state to empty/default values
     setMedia(null);
     setPath('');
@@ -240,7 +240,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     delete updatedChannels[channelId];
     await channelsApi?.set(updatedChannels);
     
-    onClose();
+    handleClose();
   };
 
   const canSave = media && path.trim() && !pathError;
@@ -255,12 +255,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     saveTooltip = pathError;
   }
 
-  const footerContent = (
+  const footerContent = ({ handleClose }) => (
     <>
       <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
-      <button className="cancel-button" onClick={onClose}>Cancel</button>
-        <button className="clear-button" style={{ border: '1.5px solid #dc3545', color: '#dc3545', background: '#fff', fontWeight: 600 }} onClick={handleClearChannel} onMouseOver={e => e.currentTarget.style.background='#ffeaea'} onMouseOut={e => e.currentTarget.style.background='#fff'}>Clear Channel</button>
-        <button className="save-button" onClick={handleSave} title={saveTooltip}>Save Channel</button>
+        <button className="cancel-button" onClick={handleClose}>Cancel</button>
+        <button className="clear-button" style={{ border: '1.5px solid #dc3545', color: '#dc3545', background: '#fff', fontWeight: 600 }} onClick={() => handleClearChannel(handleClose)} onMouseOver={e => e.currentTarget.style.background='#ffeaea'} onMouseOut={e => e.currentTarget.style.background='#fff'}>Clear Channel</button>
+        <button className="save-button" onClick={() => handleSave(handleClose)} title={saveTooltip}>Save Channel</button>
       </div>
       {showError && saveTooltip && (
         <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8, fontWeight: 500 }}>{saveTooltip}</div>

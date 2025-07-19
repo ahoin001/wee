@@ -31,7 +31,6 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
   const [audioRefs, setAudioRefs] = useState({});
   const fileInputRefs = useRef({});
   const [pendingUploadType, setPendingUploadType] = useState(null);
-  const [isClosing, setIsClosing] = useState(false);
 
   // Load sound library and settings on open
   useEffect(() => {
@@ -194,7 +193,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
   };
 
   // Save all changes (now only updates settings, not files)
-  const handleSave = async () => {
+  const handleSave = async (handleClose) => {
     // Compare localState to soundLibrary and persist only changes
     for (const cat of SOUND_CATEGORIES) {
       const orig = soundLibrary[cat.key] || [];
@@ -219,29 +218,22 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
       }
     }
     setMessage({ type: 'success', text: 'Sound settings saved.' });
-    handleClose(); // Use fade-out close
+    handleClose();
     if (onSettingsChange) setTimeout(onSettingsChange, 100);
   };
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-      setIsClosing(false);
-    }, 300); // Match BaseModal animation duration
-  };
 
-  if (!isOpen && !isClosing) return null;
+  if (!isOpen) return null;
 
   return (
     <BaseModal
       title="Manage App Sounds"
-      onClose={handleClose}
-      className={`sound-modal${isClosing ? ' closing' : ''}`}
+      onClose={onClose}
+      className="sound-modal"
       maxWidth="900px"
-      footerContent={({ handleClose: baseHandleClose }) => (
+      footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={handleSave} style={{ minWidth: 90 }}>Save</button>
+          <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
         </div>
       )}
     >

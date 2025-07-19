@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
-import ChannelModal from './ChannelModal';
 import ImageSearchModal from './ImageSearchModal';
 // import './Channel.css';
 
@@ -17,10 +16,9 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover }) {
+function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal }) {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
-  const [showChannelModal, setShowChannelModal] = useState(false);
   const [showImageSearch, setShowImageSearch] = useState(false);
   const hoverAudioRef = useRef(null);
   const fadeIntervalRef = useRef(null);
@@ -245,7 +243,9 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
 
   const handleRightClick = (e) => {
     e.preventDefault();
-    setShowChannelModal(true);
+    if (onOpenModal) {
+      onOpenModal();
+    }
   };
 
   let mediaPreview = null;
@@ -388,18 +388,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
           onUploadClick={handleUploadClick}
         />
       )}
-      {showChannelModal && (
-        <ChannelModal
-          channelId={id}
-          onClose={() => setShowChannelModal(false)}
-          onSave={handleChannelSave}
-          currentMedia={media}
-          currentPath={path}
-          currentType={type}
-          currentAsAdmin={asAdmin}
-          currentAnimatedOnHover={channelConfig?.animatedOnHover}
-        />
-      )}
+
     </>
   );
 }
@@ -425,6 +414,7 @@ Channel.propTypes = {
   }),
   animatedOnHover: PropTypes.bool,
   onHover: PropTypes.func,
+  onOpenModal: PropTypes.func,
 };
 
 export default Channel;

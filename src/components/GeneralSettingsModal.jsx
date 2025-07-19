@@ -8,15 +8,25 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   const [glassRibbon, setGlassRibbon] = useState(glassWiiRibbon);
   const [hoverAnim, setHoverAnim] = useState(animatedOnHover);
 
-  const handleSave = () => {
+  const handleSave = (handleClose) => {
     setImmersivePip(pip);
     setGlassWiiRibbon(glassRibbon);
     setAnimatedOnHover(hoverAnim);
-    onClose();
+    handleClose();
   };
 
   return (
-    <BaseModal title="General Settings" onClose={onClose} maxWidth="900px">
+    <BaseModal 
+      title="General Settings" 
+      onClose={onClose} 
+      maxWidth="900px"
+      footerContent={({ handleClose }) => (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button className="cancel-button" onClick={handleClose}>Cancel</button>
+          <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
+        </div>
+      )}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
         {/* Immersive PiP */}
         <div className="wee-card">
@@ -65,9 +75,6 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel.</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-          <button className="primary" onClick={handleSave} style={{ minWidth: 120, fontWeight: 600, fontSize: 16 }}>Save</button>
         </div>
       </div>
     </BaseModal>

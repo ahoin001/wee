@@ -3,6 +3,7 @@ import SoundModal from './SoundModal';
 import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
 import PrimaryActionsModal from './PrimaryActionsModal';
+import TimeSettingsModal from './TimeSettingsModal';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 // import more icons as needed
@@ -16,6 +17,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [isFullscreen, setIsFullscreen] = useState(true);
   const [isFrameless, setIsFrameless] = useState(true);
   const [showGeneralModal, setShowGeneralModal] = useState(false);
+  const [showTimeSettingsModal, setShowTimeSettingsModal] = useState(false);
   const [immersivePip, setImmersivePip] = useState(() => {
     // Try to load from localStorage or default to false
     try {
@@ -35,8 +37,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     async function loadButtonConfigs() {
       if (window.api?.settings?.get) {
         const settings = await window.api.settings.get();
+        console.log('WiiRibbon: Loading settings:', settings);
         if (settings && settings.ribbonButtonConfigs) {
+          console.log('WiiRibbon: Found ribbonButtonConfigs:', settings.ribbonButtonConfigs);
           setButtonConfigs(settings.ribbonButtonConfigs);
+        } else {
+          console.log('WiiRibbon: No ribbonButtonConfigs found in settings, keeping defaults');
         }
       }
     }
@@ -48,7 +54,10 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     setButtonConfigs(configs);
     if (window.api?.settings?.get && window.api?.settings?.set) {
       const settings = await window.api.settings.get();
+      console.log('WiiRibbon: Saving button configs:', configs);
+      console.log('WiiRibbon: Current settings:', settings);
       await window.api.settings.set({ ...settings, ribbonButtonConfigs: configs });
+      console.log('WiiRibbon: Button configs saved successfully');
     }
   };
 
@@ -56,6 +65,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     e.preventDefault();
     setActiveButtonIndex(index);
     setShowPrimaryActionsModal(true);
+  };
+
+  const handleTimeContextMenu = (e) => {
+    e.preventDefault();
+    setShowTimeSettingsModal(true);
   };
 
   const handlePrimaryActionsSave = (newConfig) => {
@@ -237,7 +251,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               </svg>
           </div>
 
-          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[300px] z-20 text-center pointer-events-none">
+          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[300px] z-20 text-center pointer-events-auto">
               {/* Apple Liquid Glass Pill Container */}
               {enableTimePill ? (
                 <div 
@@ -260,6 +274,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     textDecoration: 'none',
                     cursor: 'pointer'
                   }}
+                  onContextMenu={handleTimeContextMenu}
                 >
                   {/* ::before pseudo-element equivalent - subtle inner shadow */}
                   <div 
@@ -330,7 +345,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 </div>
               ) : (
                 /* Simple time display without pill when disabled */
-                <div>
+                <div onContextMenu={handleTimeContextMenu}>
                   <div 
                     id="time" 
                     className="text-4xl font-bold" 
@@ -427,6 +442,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <div className="settings-menu-group-label">Appearance</div>
                 <div className="context-menu-item" onClick={() => { setShowWallpaperModal(true); handleMenuClose(); }}>
                   Change Wallpaper
+                </div>
+                <div className="context-menu-item" onClick={() => { setShowTimeSettingsModal(true); handleMenuClose(); }}>
+                  Customize Time
                 </div>
                 <div className="context-menu-item" onClick={() => { onToggleDarkMode(); handleMenuClose(); }}>
                   Toggle Dark Mode
@@ -554,6 +572,14 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           config={buttonConfigs[activeButtonIndex]}
           buttonIndex={activeButtonIndex}
           preavailableIcons={preavailableIcons}
+        />
+      )}
+      {/* Time Settings Modal */}
+      {showTimeSettingsModal && (
+        <TimeSettingsModal
+          isOpen={showTimeSettingsModal}
+          onClose={() => setShowTimeSettingsModal(false)}
+          onSettingsChange={onSettingsChange}
         />
       )}
     </>

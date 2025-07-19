@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Channel from './components/Channel';
+import ChannelModal from './components/ChannelModal';
 import HomeButton from './components/HomeButton';
 import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
@@ -126,6 +127,8 @@ function App() {
   const [lastChannelHoverTime, setLastChannelHoverTime] = useState(Date.now());
   const [channelOpacity, setChannelOpacity] = useState(1);
   const fadeTimeoutRef = useRef(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [openChannelModal, setOpenChannelModal] = useState(null); // Track which channel modal is open
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
 
@@ -150,12 +153,8 @@ function App() {
       setSlideRandomDirection(wallpaperData?.cyclingSettings?.slideRandomDirection ?? false);
       setSlideDuration(wallpaperData?.cyclingSettings?.slideDuration ?? 1.5);
       setSlideEasing(wallpaperData?.cyclingSettings?.slideEasing ?? 'ease-out');
-      setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Load timeColor
-      setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Load timeFormat24hr
-      setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Load enableTimePill
-      setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Load timePillBlur
-      setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Load timePillOpacity
-      setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Load channelAutoFadeTimeout
+      // Note: Time-related settings are now loaded from general settings API in loadSettings()
+      // to avoid conflicts with ribbon button configs and other general settings
       // Load channels
       const channelData = await channelsApi.get();
       // Always show 12 channels
@@ -342,6 +341,7 @@ function App() {
   useEffect(() => {
     async function loadSettings() {
       let settings = await settingsApi?.get();
+      console.log('App: Loading general settings:', settings);
       if (settings) {
         setIsDarkMode(settings.isDarkMode ?? false);
         setUseCustomCursor(settings.useCustomCursor ?? true);
@@ -360,20 +360,26 @@ function App() {
         setEnableTimePill(settings.enableTimePill ?? true); // Load enableTimePill
         setTimePillBlur(settings.timePillBlur ?? 8); // Load timePillBlur
         setTimePillOpacity(settings.timePillOpacity ?? 0.05); // Load timePillOpacity
+        setChannelAutoFadeTimeout(settings.channelAutoFadeTimeout ?? 5); // Load channelAutoFadeTimeout
         currentTimeColorRef.current = settings.timeColor || '#ffffff';
         currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
       }
+      // Mark as initialized after loading settings
+      setHasInitialized(true);
     }
     loadSettings();
   }, []);
   // Persist barType and other settings when changed
   useEffect(() => {
+    // Only persist settings after initialization to prevent overwriting ribbonButtonConfigs on startup
+    if (!hasInitialized) return;
+    
     async function persistSettings() {
       let current = await settingsApi?.get();
       if (!current) current = {};
-      // Merge new state with current
+      // Merge new state with current, preserving ribbonButtonConfigs and other existing data
       const merged = {
-        ...current,
+        ...current, // This preserves ribbonButtonConfigs and any other existing settings
         isDarkMode,
         useCustomCursor,
         glassWiiRibbon,
@@ -396,11 +402,14 @@ function App() {
         enableTimePill, // Persist enableTimePill
         timePillBlur, // Persist timePillBlur
         timePillOpacity, // Persist timePillOpacity
+        channelAutoFadeTimeout, // Persist channelAutoFadeTimeout
       };
+      console.log('App: Persisting settings:', merged);
+      console.log('App: Preserved ribbonButtonConfigs:', current.ribbonButtonConfigs);
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -578,19 +587,19 @@ function App() {
     }
     
     // For other settings that need to be saved to disk, use the existing logic
-    if (window.api && window.api.saveSettings) {
+    if (window.api && window.api.settings?.set) {
       // Get current settings first to preserve existing data like ribbonButtonConfigs
       let currentSettings = {};
-      if (window.api && window.api.getSettings) {
+      if (window.api && window.api.settings?.get) {
         try {
-          currentSettings = await window.api.getSettings();
+          currentSettings = await window.api.settings.get();
         } catch (error) {
           console.warn('Failed to get current settings:', error);
         }
       }
       // Merge new settings with existing settings to preserve ribbonButtonConfigs and other data
       const mergedSettings = { ...currentSettings, ...newSettings };
-      await window.api.saveSettings(mergedSettings);
+      await window.api.settings.set(mergedSettings);
     }
   };
 
@@ -1176,6 +1185,7 @@ function App() {
                 animatedOnHover={animatedOnHover}
                 channelConfig={config}
                 onHover={handleChannelHover}
+                onOpenModal={() => setOpenChannelModal(channel.id)}
               />
             );
           })}
@@ -1194,6 +1204,19 @@ function App() {
           timePillBlur={timePillBlur}
           timePillOpacity={timePillOpacity}
         />
+        {/* Channel Modal - rendered at top level for proper z-index */}
+        {openChannelModal && (
+          <ChannelModal
+            channelId={openChannelModal}
+            onClose={() => setOpenChannelModal(null)}
+            onSave={handleChannelSave}
+            currentMedia={mediaMap[openChannelModal]}
+            currentPath={appPathMap[openChannelModal]}
+            currentType={channelConfigs[openChannelModal]?.type}
+            currentAsAdmin={channelConfigs[openChannelModal]?.asAdmin}
+            currentAnimatedOnHover={channelConfigs[openChannelModal]?.animatedOnHover}
+          />
+        )}
         {isLoading && <SplashScreen fadingOut={splashFading} />}
       </div>
     </>
