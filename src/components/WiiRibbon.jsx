@@ -4,6 +4,7 @@ import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
 import PrimaryActionsModal from './PrimaryActionsModal';
 import TimeSettingsModal from './TimeSettingsModal';
+import RibbonSettingsModal from './RibbonSettingsModal';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 // import more icons as needed
@@ -18,6 +19,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [isFrameless, setIsFrameless] = useState(true);
   const [showGeneralModal, setShowGeneralModal] = useState(false);
   const [showTimeSettingsModal, setShowTimeSettingsModal] = useState(false);
+  const [showRibbonSettingsModal, setShowRibbonSettingsModal] = useState(false);
   const [immersivePip, setImmersivePip] = useState(() => {
     // Try to load from localStorage or default to false
     try {
@@ -69,7 +71,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   const handleTimeContextMenu = (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event from bubbling up to the footer
     setShowTimeSettingsModal(true);
+  };
+
+  const handleRibbonContextMenu = (e) => {
+    e.preventDefault();
+    setShowRibbonSettingsModal(true);
   };
 
   const handlePrimaryActionsSave = (newConfig) => {
@@ -197,13 +205,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   return (
     <>
-      <footer className="interactive-footer">
+      <footer className="interactive-footer" onContextMenu={handleRibbonContextMenu}>
           <div className="absolute inset-0 z-0 svg-container-glow">
               <svg width="100%" height="100%" viewBox="0 0 1440 240" preserveAspectRatio="none">
                 {glassWiiRibbon && (
                   <defs>
                     <filter id="glass-blur" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="2.5" result="blur" />
+                      <feGaussianBlur stdDeviation={window.settings?.glassBlur || 2.5} result="blur" />
                       <feComponentTransfer>
                         <feFuncA type="linear" slope="1.2" />
                       </feComponentTransfer>
@@ -213,7 +221,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                       </feMerge>
                     </filter>
                     <linearGradient id="glass-shine" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="rgba(255,255,255,0.7)" />
+                      <stop offset="0%" stop-color={`rgba(255,255,255,${window.settings?.glassShineOpacity || 0.7})`} />
                       <stop offset="60%" stop-color="rgba(255,255,255,0.05)" />
                       <stop offset="100%" stop-color="rgba(255,255,255,0.0)" />
                     </linearGradient>
@@ -228,8 +236,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                      L 1440 40 
                      L 1440 240 
                      L 0 240 Z"
-                  fill={glassWiiRibbon ? "rgba(255,255,255,0.18)" : "hsl(var(--ribbon-bg))"}
-                  stroke="rgba(255,255,255,0.5)"
+                  fill={glassWiiRibbon ? `rgba(255,255,255,${window.settings?.glassOpacity || 0.18})` : "hsl(var(--ribbon-bg))"}
+                  stroke={`rgba(255,255,255,${window.settings?.glassBorderOpacity || 0.5})`}
                   strokeWidth="2"
                   filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
                   style={glassWiiRibbon ? { transition: 'fill 0.3s' } : {}}
@@ -245,7 +253,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                        L 1440 120 
                        L 0 120 Z"
                     fill="url(#glass-shine)"
-                    style={{ opacity: 0.7, pointerEvents: 'none' }}
+                    style={{ opacity: window.settings?.glassShineOpacity || 0.7, pointerEvents: 'none' }}
                   />
                 )}
               </svg>
@@ -446,6 +454,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <div className="context-menu-item" onClick={() => { setShowTimeSettingsModal(true); handleMenuClose(); }}>
                   Customize Time
                 </div>
+                <div className="context-menu-item" onClick={() => { setShowRibbonSettingsModal(true); handleMenuClose(); }}>
+                  Customize Ribbon
+                </div>
                 <div className="context-menu-item" onClick={() => { onToggleDarkMode(); handleMenuClose(); }}>
                   Toggle Dark Mode
                 </div>
@@ -580,6 +591,16 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           isOpen={showTimeSettingsModal}
           onClose={() => setShowTimeSettingsModal(false)}
           onSettingsChange={onSettingsChange}
+        />
+      )}
+      {/* Ribbon Settings Modal */}
+      {showRibbonSettingsModal && (
+        <RibbonSettingsModal
+          isOpen={showRibbonSettingsModal}
+          onClose={() => setShowRibbonSettingsModal(false)}
+          onSettingsChange={onSettingsChange}
+          glassWiiRibbon={glassWiiRibbon}
+          setGlassWiiRibbon={onGlassWiiRibbonChange}
         />
       )}
     </>

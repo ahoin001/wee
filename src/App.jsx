@@ -88,6 +88,10 @@ function App() {
   const [showDragRegion, setShowDragRegion] = useState(false);
   // Remove barType, defaultBarType, and related state
   const [glassWiiRibbon, setGlassWiiRibbon] = useState(false);
+  const [glassOpacity, setGlassOpacity] = useState(0.18);
+  const [glassBlur, setGlassBlur] = useState(2.5);
+  const [glassBorderOpacity, setGlassBorderOpacity] = useState(0.5);
+  const [glassShineOpacity, setGlassShineOpacity] = useState(0.7);
   const [animatedOnHover, setAnimatedOnHover] = useState(false);
   const [wallpaper, setWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
@@ -346,6 +350,10 @@ function App() {
         setIsDarkMode(settings.isDarkMode ?? false);
         setUseCustomCursor(settings.useCustomCursor ?? true);
         setGlassWiiRibbon(settings.glassWiiRibbon ?? false);
+        setGlassOpacity(settings.glassOpacity ?? 0.18);
+        setGlassBlur(settings.glassBlur ?? 2.5);
+        setGlassBorderOpacity(settings.glassBorderOpacity ?? 0.5);
+        setGlassShineOpacity(settings.glassShineOpacity ?? 0.7);
         setAnimatedOnHover(settings.animatedOnHover ?? false);
         setWallpaper(settings.wallpaper || null);
         setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
@@ -383,6 +391,10 @@ function App() {
         isDarkMode,
         useCustomCursor,
         glassWiiRibbon,
+        glassOpacity,
+        glassBlur,
+        glassBorderOpacity,
+        glassShineOpacity,
         animatedOnHover,
         wallpaper,
         wallpaperOpacity,
@@ -409,7 +421,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -585,6 +597,21 @@ function App() {
     if (newSettings.timePillOpacity !== undefined) {
       setTimePillOpacity(newSettings.timePillOpacity);
     }
+    if (newSettings.glassWiiRibbon !== undefined) {
+      setGlassWiiRibbon(newSettings.glassWiiRibbon);
+    }
+    if (newSettings.glassOpacity !== undefined) {
+      setGlassOpacity(newSettings.glassOpacity);
+    }
+    if (newSettings.glassBlur !== undefined) {
+      setGlassBlur(newSettings.glassBlur);
+    }
+    if (newSettings.glassBorderOpacity !== undefined) {
+      setGlassBorderOpacity(newSettings.glassBorderOpacity);
+    }
+    if (newSettings.glassShineOpacity !== undefined) {
+      setGlassShineOpacity(newSettings.glassShineOpacity);
+    }
     
     // For other settings that need to be saved to disk, use the existing logic
     if (window.api && window.api.settings?.set) {
@@ -624,6 +651,11 @@ function App() {
     timePillBlur,
     timePillOpacity,
     channelAutoFadeTimeout,
+    glassWiiRibbon,
+    glassOpacity,
+    glassBlur,
+    glassBorderOpacity,
+    glassShineOpacity,
   };
 
   // Compute the list of wallpapers to cycle through
