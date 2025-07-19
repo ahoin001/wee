@@ -38,6 +38,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   useEffect(() => {
     let video = null;
     let canvas = null;
+    let handleLoadedData = null;
     
     if (media && media.type && media.type.startsWith('video/') && effectiveAnimatedOnHover && !mp4Preview) {
       // Create a static preview from the first frame
@@ -48,7 +49,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       video.playsInline = true;
       video.preload = 'auto';
       
-      const handleLoadedData = () => {
+      handleLoadedData = () => {
         canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -71,7 +72,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
 
     // Cleanup function
     return () => {
-      if (video) {
+      if (video && handleLoadedData) {
         video.removeEventListener('loadeddata', handleLoadedData);
         video.src = '';
         video.load();
