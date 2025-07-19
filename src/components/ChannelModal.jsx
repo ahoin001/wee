@@ -42,6 +42,19 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         setAsAdmin(data[channelId].asAdmin);
         setHoverSound(data[channelId].hoverSound);
         setAnimatedOnHover(data[channelId].animatedOnHover);
+        
+        // Update hover sound state variables from loaded data
+        if (data[channelId].hoverSound) {
+          setHoverSoundName(data[channelId].hoverSound.name || '');
+          setHoverSoundUrl(data[channelId].hoverSound.url || '');
+          setHoverSoundVolume(data[channelId].hoverSound.volume || 0.7);
+          setHoverSoundEnabled(true);
+        } else {
+          setHoverSoundName('');
+          setHoverSoundUrl('');
+          setHoverSoundVolume(0.7);
+          setHoverSoundEnabled(false);
+        }
       }
     }
     loadChannel();
@@ -406,7 +419,24 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         <button
           className="file-button"
           style={{ minWidth: 120 }}
-          onClick={() => hoverSoundInputRef.current?.click()}
+          onClick={async () => {
+            console.log('Select hover sound clicked');
+            if (window.api && window.api.sounds && window.api.sounds.selectFile) {
+              console.log('Using IPC handler for sound file selection');
+              const result = await window.api.sounds.selectFile();
+              console.log('IPC result:', result);
+              if (result && result.success && result.file) {
+                console.log('Selected sound file:', result.file);
+                await handleHoverSoundFile(result.file);
+              } else if (result && result.error) {
+                console.log('IPC error:', result.error);
+                alert('Failed to select sound file: ' + result.error);
+              }
+            } else {
+              console.log('Falling back to file input');
+              hoverSoundInputRef.current?.click();
+            }
+          }}
         >
           {hoverSoundName || 'Select Audio File'}
         </button>

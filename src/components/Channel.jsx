@@ -133,12 +133,17 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     
     // Play per-channel hover sound if set, else global
     if (!empty && path) {
+      console.log('Channel: Hover sound data:', hoverSound);
       if (hoverSound && hoverSound.url) {
         if (!hoverAudioRef.current) { // Only play if not already playing
+          console.log('Channel: Playing hover sound, URL:', hoverSound.url);
           const audio = new Audio(hoverSound.url);
           audio.volume = 0;
           audio.loop = true;
-          audio.play();
+          audio.play().catch(error => {
+            console.log('Channel: Custom hover sound playback failed:', error);
+            console.log('Channel: Failed URL:', hoverSound.url);
+          });
           hoverAudioRef.current = audio;
           // Fade in
           let v = 0;

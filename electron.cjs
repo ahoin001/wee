@@ -1380,8 +1380,10 @@ app.whenReady().then(async () => {
   // Ensure default sounds exist in production
   await ensureDefaultSoundsExist();
   // Register userdata:// protocol for wallpapers, sounds, channel-hover-sounds, and icons
-  protocol.registerFileProtocol('userdata', (request, callback) => {
-    const url = request.url.replace('userdata://', '');
+  protocol.registerFileProtocol('userdata', async (request, callback) => {
+    const url = decodeURIComponent(request.url.replace('userdata://', ''));
+    console.log('[Protocol] Requested URL:', request.url);
+    console.log('[Protocol] Parsed URL (decoded):', url);
     let filePath;
     if (url.startsWith('wallpapers/')) {
       filePath = path.join(userWallpapersPath, url.replace(/^wallpapers[\\\/]/, ''));
@@ -1393,8 +1395,21 @@ app.whenReady().then(async () => {
       filePath = path.join(userIconsPath, url.replace(/^icons[\\\/]/, ''));
     } else {
       // Block access to other paths
+      console.log('[Protocol] Blocked access to:', url);
       return callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
     }
+    console.log('[Protocol] Resolved file path:', filePath);
+    console.log('[Protocol] User channel hover sounds path:', userChannelHoverSoundsPath);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+      console.log('[Protocol] File exists:', filePath);
+    } catch (error) {
+      console.log('[Protocol] File does not exist:', filePath);
+      console.log('[Protocol] Error:', error.message);
+    }
+    
     callback({ path: filePath });
   });
   await createWindow();
@@ -1530,7 +1545,7 @@ ipcMain.handle('channels:copyHoverSound', async (event, { filePath, filename }) 
   }
 });
 
-ipcMain.handle('resolve-userdata-url', (event, url) => {
+ipcMain.handle('resolve-userdata-url', async (event, url) => {
   if (typeof url !== 'string') return url;
   if (url.startsWith('userdata://')) {
     const rel = url.replace('userdata://', '');
@@ -1592,6 +1607,8 @@ ipcMain.handle('icon:selectFile', async () => {
     return { success: false, error: `Failed to open file dialog: ${error.message}` };
   }
 });
+
+
 
 ipcMain.handle('select-exe-or-shortcut-file', async () => {
   try {
