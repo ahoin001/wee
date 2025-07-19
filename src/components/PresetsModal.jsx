@@ -3,10 +3,13 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './BaseModal.css';
 
-function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset }) {
+function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset }) {
   const [newPresetName, setNewPresetName] = useState('');
   const [error, setError] = useState('');
   const [justUpdated, setJustUpdated] = useState(null); // name of last updated preset
+  const [editingPreset, setEditingPreset] = useState(null); // preset being edited
+  const [editName, setEditName] = useState(''); // temporary edit name
+  const [editError, setEditError] = useState(''); // error for edit mode
 
   const handleSave = () => {
     if (!newPresetName.trim()) {
@@ -26,6 +29,43 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     onUpdatePreset(name);
     setJustUpdated(name);
     setTimeout(() => setJustUpdated(null), 1500);
+  };
+
+  const handleStartEdit = (preset) => {
+    setEditingPreset(preset.name);
+    setEditName(preset.name);
+    setEditError('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPreset(null);
+    setEditName('');
+    setEditError('');
+  };
+
+  const handleSaveEdit = () => {
+    if (!editName.trim()) {
+      setEditError('Please enter a name for the preset.');
+      return;
+    }
+    if (presets.some(p => p.name === editName.trim() && p.name !== editingPreset)) {
+      setEditError('A preset with this name already exists.');
+      return;
+    }
+    if (onRenamePreset) {
+      onRenamePreset(editingPreset, editName.trim());
+    }
+    setEditingPreset(null);
+    setEditName('');
+    setEditError('');
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
   };
 
   if (!isOpen) return null;
@@ -78,22 +118,83 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
             {presets.map((preset, idx) => (
               <div key={preset.name} style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1.5px solid #e0e0e6', borderRadius: 8, padding: 12, background: '#f9fafd' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 16 }}>{preset.name}</div>
+                  {editingPreset === preset.name ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={e => { setEditName(e.target.value); setEditError(''); }}
+                        onKeyDown={handleKeyPress}
+                        style={{ 
+                          flex: 1, 
+                          padding: 6, 
+                          borderRadius: 4, 
+                          border: '1.5px solid #0099ff', 
+                          fontSize: 15,
+                          fontWeight: 600,
+                          background: '#fff',
+                          color: '#222'
+                        }}
+                        maxLength={32}
+                        autoFocus
+                      />
+                      <button
+                        className="save-button"
+                        style={{ minWidth: 50, padding: '4px 8px', fontSize: 12 }}
+                        onClick={handleSaveEdit}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        className="cancel-button"
+                        style={{ minWidth: 50, padding: '4px 8px', fontSize: 12 }}
+                        onClick={handleCancelEdit}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontWeight: 600, fontSize: 16, flex: 1 }}>{preset.name}</div>
+                      <button
+                        className="cancel-button"
+                        style={{ 
+                          minWidth: 50, 
+                          padding: '4px 8px', 
+                          fontSize: 12,
+                          background: '#f0f0f0',
+                          border: '1px solid #ccc',
+                          color: '#666'
+                        }}
+                        onClick={() => handleStartEdit(preset)}
+                        title="Edit name"
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                  )}
+                  {editError && editingPreset === preset.name && (
+                    <div style={{ color: '#dc3545', fontSize: 12, marginTop: 4 }}>{editError}</div>
+                  )}
                 </div>
-                <button className="save-button" style={{ minWidth: 70 }} onClick={() => onApplyPreset(preset)}>
-                  Apply
-                </button>
-                <button
-                  className="save-button"
-                  style={{ minWidth: 70, background: justUpdated === preset.name ? '#4CAF50' : undefined }}
-                  onClick={() => handleUpdate(preset.name)}
-                  disabled={justUpdated === preset.name}
-                >
-                  {justUpdated === preset.name ? 'Updated!' : 'Update'}
-                </button>
-                <button className="cancel-button" style={{ minWidth: 70 }} onClick={() => onDeletePreset(preset.name)}>
-                  Delete
-                </button>
+                {editingPreset !== preset.name && (
+                  <>
+                    <button className="save-button" style={{ minWidth: 70 }} onClick={() => onApplyPreset(preset)}>
+                      Apply
+                    </button>
+                    <button
+                      className="save-button"
+                      style={{ minWidth: 70, background: justUpdated === preset.name ? '#4CAF50' : undefined }}
+                      onClick={() => handleUpdate(preset.name)}
+                      disabled={justUpdated === preset.name}
+                    >
+                      {justUpdated === preset.name ? 'Updated!' : 'Update'}
+                    </button>
+                    <button className="cancel-button" style={{ minWidth: 70 }} onClick={() => onDeletePreset(preset.name)}>
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -115,6 +216,7 @@ PresetsModal.propTypes = {
   onDeletePreset: PropTypes.func.isRequired,
   onApplyPreset: PropTypes.func.isRequired,
   onUpdatePreset: PropTypes.func.isRequired,
+  onRenamePreset: PropTypes.func,
 };
 
 export default PresetsModal; 

@@ -5,6 +5,7 @@ import './BaseModal.css';
 
 function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
   const [timeColor, setTimeColor] = useState('#ffffff'); // Default white
+  const [recentTimeColors, setRecentTimeColors] = useState([]); // Color history
   const [timeFormat24hr, setTimeFormat24hr] = useState(true); // Default 24hr format
   const [enableTimePill, setEnableTimePill] = useState(true); // Default enabled
   const [timePillBlur, setTimePillBlur] = useState(8); // Default blur amount
@@ -17,6 +18,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
       // Load current settings from window.settings (set by App.jsx)
       if (window.settings) {
         setTimeColor(window.settings.timeColor || '#ffffff');
+        setRecentTimeColors(window.settings.recentTimeColors || []);
         setTimeFormat24hr(window.settings.timeFormat24hr ?? true);
         setEnableTimePill(window.settings.enableTimePill ?? true);
         setTimePillBlur(window.settings.timePillBlur ?? 8);
@@ -26,12 +28,34 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
     }
   }, [isOpen]);
 
+  // Update color history when timeColor changes
+  const updateTimeColor = (newColor) => {
+    setTimeColor(newColor);
+    // Add to recent colors (keep only last 3)
+    setRecentTimeColors(prev => {
+      const filtered = prev.filter(color => color !== newColor);
+      return [newColor, ...filtered].slice(0, 3);
+    });
+  };
+
+  // Reset to default values
+  const resetToDefault = () => {
+    setTimeColor('#ffffff');
+    setTimeFormat24hr(true);
+    setEnableTimePill(true);
+    setTimePillBlur(8);
+    setTimePillOpacity(0.05);
+    setTimeFont('default');
+    setRecentTimeColors([]);
+  };
+
   const handleSave = async (handleClose) => {
     try {
       // Call onSettingsChange to notify parent component of the new settings
       if (onSettingsChange) {
         onSettingsChange({
           timeColor: timeColor,
+          recentTimeColors: recentTimeColors,
           timeFormat24hr: timeFormat24hr,
           enableTimePill: enableTimePill,
           timePillBlur: timePillBlur,
@@ -53,9 +77,36 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
       onClose={onClose}
       maxWidth="480px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button 
+            className="reset-button" 
+            onClick={resetToDefault}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: '2px solid #0099ff',
+              background: 'transparent',
+              color: '#0099ff',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#0099ff';
+              e.target.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent';
+              e.target.style.color = '#0099ff';
+            }}
+          >
+            Reset to Default
+          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="cancel-button" onClick={handleClose}>Cancel</button>
+            <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
+          </div>
         </div>
       )}
     >
@@ -68,11 +119,11 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
         <div className="wee-card-desc">
           Choose the color for the time and date display text.
           <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <input
                 type="color"
                 value={timeColor}
-                onChange={(e) => setTimeColor(e.target.value)}
+                onChange={(e) => updateTimeColor(e.target.value)}
                 style={{
                   width: 50,
                   height: 40,
@@ -85,6 +136,28 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 {timeColor.toUpperCase()}
               </span>
             </div>
+            {recentTimeColors.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+                {recentTimeColors.map((color, idx) => (
+                  <button
+                    key={color}
+                    onClick={() => updateTimeColor(color)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      border: color === timeColor ? '2px solid #0099ff' : '1.5px solid #bbb',
+                      background: color,
+                      cursor: 'pointer',
+                      outline: 'none',
+                      marginLeft: idx === 0 ? 0 : 2
+                    }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           {/* Font Selection */}
           <div style={{ marginTop: 18 }}>

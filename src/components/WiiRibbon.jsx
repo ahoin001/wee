@@ -5,6 +5,7 @@ import GeneralSettingsModal from './GeneralSettingsModal';
 import PrimaryActionsModal from './PrimaryActionsModal';
 import TimeSettingsModal from './TimeSettingsModal';
 import RibbonSettingsModal from './RibbonSettingsModal';
+import WiiStyleButton from './WiiStyleButton';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 // import more icons as needed
@@ -35,7 +36,10 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       return false;
     }
   });
-  const [buttonConfigs, setButtonConfigs] = useState([{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]);
+  const [buttonConfigs, setButtonConfigs] = useState([
+    { type: 'text', text: 'Wii', useAdaptiveColor: false }, 
+    { type: 'text', text: 'Mail', useAdaptiveColor: false }
+  ]);
   const [activeButtonIndex, setActiveButtonIndex] = useState(null);
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
   const [showPresetsButtonModal, setShowPresetsButtonModal] = useState(false);
@@ -49,7 +53,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         console.log('WiiRibbon: Loading settings:', settings);
         if (settings && settings.ribbonButtonConfigs) {
           console.log('WiiRibbon: Found ribbonButtonConfigs:', settings.ribbonButtonConfigs);
-          setButtonConfigs(settings.ribbonButtonConfigs);
+          // Ensure each button config has useAdaptiveColor property
+          const configsWithAdaptiveColor = settings.ribbonButtonConfigs.map(config => ({
+            ...config,
+            useAdaptiveColor: config.useAdaptiveColor ?? false
+          }));
+          setButtonConfigs(configsWithAdaptiveColor);
         } else {
           console.log('WiiRibbon: No ribbonButtonConfigs found in settings, keeping defaults');
         }
@@ -63,15 +72,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     setButtonConfigs(configs);
     if (window.api?.settings?.get && window.api?.settings?.set) {
       const settings = await window.api.settings.get();
-      console.log('WiiRibbon: Saving button configs:', configs);
-      console.log('WiiRibbon: Current settings before save:', settings);
       await window.api.settings.set({ ...settings, ribbonButtonConfigs: configs });
-      console.log('WiiRibbon: Button configs saved successfully');
-      
-      // Verify the save worked
-      const verifySettings = await window.api.settings.get();
-      console.log('WiiRibbon: Settings after save:', verifySettings);
-      console.log('WiiRibbon: Button configs after save:', verifySettings.ribbonButtonConfigs);
       
       // Notify parent component of the change
       if (onSettingsChange) {
@@ -441,10 +442,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           </div>
 
           <div className="button-container left absolute w-[120px] left-0 z-10 ml-[-30px] pl-[120px] py-4 bg-white/20 rounded-r-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
-              <div
-                className="wii-style-button min-w-[80px] h-[70px] ml-4 rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer"
+              <WiiStyleButton
                 onContextMenu={e => handleButtonContextMenu(0, e)}
                 onClick={() => handleButtonClick(0)}
+                useAdaptiveColor={buttonConfigs[0]?.useAdaptiveColor}
+                ribbonGlowColor={propRibbonGlowColor}
+                style={{ marginLeft: 16 }}
               >
                 {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
                   <span 
@@ -484,7 +487,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 ) : (
                   <span className="text-wii-gray-dark font-bold text-sm">Wii</span>
                 )}
-              </div>
+              </WiiStyleButton>
           </div>
           {/* Restore settings button to original absolute position with glass effect */}
           <div 
@@ -499,12 +502,25 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           </div>
           {/* Presets Button: slightly below and to the right of the time container */}
           {showPresetsButton && (
-            <div 
-              className="sd-card-button absolute z-10 presets-cog-button glass-effect"
-              style={{ left: 'calc(50% + 170px)', top: '170px', backdropFilter: 'blur(12px) saturate(1.5)', background: 'rgba(255,255,255,0.45)', border: '1.5px solid rgba(180,180,200,0.18)', boxShadow: '0 2px 16px 0 rgba(80,80,120,0.07)' }}
+            <WiiStyleButton
+              className="sd-card-button presets-cog-button glass-effect"
+              style={{ 
+                position: 'absolute',
+                left: 'calc(50% + 170px)', 
+                top: '170px', 
+                backdropFilter: 'blur(12px) saturate(1.5)', 
+                background: 'rgba(255,255,255,0.45)', 
+                border: '1.5px solid rgba(180,180,200,0.18)', 
+                boxShadow: '0 2px 16px 0 rgba(80,80,120,0.07)',
+                width: '56px',
+                height: '56px',
+                minWidth: '56px'
+              }}
               onClick={() => setShowPresetsModal(true)}
               onContextMenu={handlePresetsButtonContextMenu}
               title="Customize Looks (Right-click to customize button)"
+              useAdaptiveColor={presetsButtonConfig?.useAdaptiveColor}
+              ribbonGlowColor={propRibbonGlowColor}
             >
             {/* Dynamic icon based on configuration */}
             {presetsButtonConfig.type === 'text' ? (
@@ -546,15 +562,16 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
             ) : (
               <span style={{ fontSize: 20, color: '#0099ff' }}>🎨</span>
             )}
-          </div>
+            </WiiStyleButton>
           )}
 
           <div className="button-container right absolute w-[120px] right-0 z-10 mr-[-30px] pr-[120px] py-4 bg-white/20 rounded-l-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
               <div className="relative ml-4">
-                  <div
-                    className="wii-style-button min-w-[80px] h-[70px] rounded-full bg-white border-4 border-wii-gray shadow-lg flex items-center justify-center cursor-pointer"
+                  <WiiStyleButton
                     onContextMenu={e => handleButtonContextMenu(1, e)}
                     onClick={() => handleButtonClick(1)}
+                    useAdaptiveColor={buttonConfigs[1]?.useAdaptiveColor}
+                    ribbonGlowColor={propRibbonGlowColor}
                   >
                       {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
                         <span 
@@ -594,7 +611,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                       ) : (
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-wii-gray-dark"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                       )}
-                  </div>
+                  </WiiStyleButton>
               </div>
           </div>
 
@@ -784,6 +801,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           config={buttonConfigs[activeButtonIndex]}
           buttonIndex={activeButtonIndex}
           preavailableIcons={preavailableIcons}
+          ribbonGlowColor={propRibbonGlowColor}
         />
       )}
       {showPresetsButtonModal && (
@@ -795,6 +813,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           buttonIndex="presets"
           preavailableIcons={preavailableIcons}
           title="Customize Presets Button"
+          ribbonGlowColor={propRibbonGlowColor}
         />
       )}
       {/* Time Settings Modal */}

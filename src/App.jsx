@@ -6,6 +6,7 @@ import HomeButton from './components/HomeButton';
 import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
 import WiiRibbon from './components/WiiRibbon';
+import WallpaperModal from './components/WallpaperModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
@@ -151,13 +152,14 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
   const [timeColor, setTimeColor] = useState('#ffffff'); // Time display color
+  const [recentTimeColors, setRecentTimeColors] = useState([]); // Time color history
   const [timeFormat24hr, setTimeFormat24hr] = useState(true); // Time format (24hr/12hr)
   const [enableTimePill, setEnableTimePill] = useState(true); // Time pill enabled
   const [timePillBlur, setTimePillBlur] = useState(8); // Time pill backdrop blur
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Channel auto-fade timeout
   const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
-  const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star' }); // Track presets button config
+  const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
   const currentTimeColorRef = useRef('#ffffff');
   const currentTimeFormatRef = useRef(true);
@@ -478,6 +480,7 @@ function App() {
         setCycleAnimation(settings.cycleAnimation || 'fade');
         setSlideDirection(settings.slideDirection || 'right');
         setTimeColor(settings.timeColor || '#ffffff'); // Load timeColor
+        setRecentTimeColors(settings.recentTimeColors || []); // Load recentTimeColors
         setTimeFormat24hr(settings.timeFormat24hr ?? true); // Load timeFormat24hr
         setEnableTimePill(settings.enableTimePill ?? true); // Load enableTimePill
         setTimePillBlur(settings.timePillBlur ?? 8); // Load timePillBlur
@@ -505,7 +508,10 @@ function App() {
         setRibbonDockOpacity(settings.ribbonDockOpacity ?? 1);
         // Load presets from settings
         setPresets(settings.presets || []);
-        setPresetsButtonConfig(settings.presetsButtonConfig || { type: 'icon', icon: 'star' });
+        setPresetsButtonConfig({
+          ...(settings.presetsButtonConfig || { type: 'icon', icon: 'star' }),
+          useAdaptiveColor: settings.presetsButtonConfig?.useAdaptiveColor ?? false
+        });
         setShowPresetsButton(settings.showPresetsButton ?? false);
         setWallpaperBlur(settings.wallpaperBlur ?? 0);
       }
@@ -552,6 +558,7 @@ function App() {
         slideDuration,
         slideEasing,
         timeColor, // Persist timeColor
+        recentTimeColors, // Persist recentTimeColors
         timeFormat24hr, // Persist timeFormat24hr
         enableTimePill, // Persist enableTimePill
         timePillBlur, // Persist timePillBlur
@@ -583,7 +590,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, wallpaperBlur, timeFont]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, wallpaperBlur, timeFont]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -745,7 +752,12 @@ function App() {
       setRibbonButtonConfigs(newSettings.ribbonButtonConfigs);
     }
     if (newSettings.presetsButtonConfig !== undefined) {
-      setPresetsButtonConfig(newSettings.presetsButtonConfig);
+              if (newSettings.presetsButtonConfig) {
+          setPresetsButtonConfig({
+            ...newSettings.presetsButtonConfig,
+            useAdaptiveColor: newSettings.presetsButtonConfig.useAdaptiveColor ?? false
+          });
+        }
     }
     if (newSettings.showPresetsButton !== undefined) {
       setShowPresetsButton(newSettings.showPresetsButton);
@@ -753,6 +765,9 @@ function App() {
     if (newSettings.timeColor !== undefined) {
       setTimeColor(newSettings.timeColor);
       currentTimeColorRef.current = newSettings.timeColor;
+    }
+    if (newSettings.recentTimeColors !== undefined) {
+      setRecentTimeColors(newSettings.recentTimeColors);
     }
     if (newSettings.timeFormat24hr !== undefined) {
       setTimeFormat24hr(newSettings.timeFormat24hr);
@@ -837,6 +852,7 @@ function App() {
     slideDuration,
     slideEasing,
     timeColor,
+    recentTimeColors,
     timeFormat24hr,
     enableTimePill,
     timePillBlur,
@@ -1365,10 +1381,31 @@ function App() {
       }
     } : p));
   };
+
+  const handleRenamePreset = (oldName, newName) => {
+    console.log('Renaming preset:', oldName, 'to:', newName);
+    setPresets(prev => prev.map(p => p.name === oldName ? { ...p, name: newName } : p));
+  };
+  // Handle right-click on empty space to open wallpaper modal
+  const handleAppRightClick = (e) => {
+    // Check if the click target is not a channel, ribbon, or other interactive element
+    const target = e.target;
+    const isInteractiveElement = target.closest('.channel, .circular-button, .context-menu-item, .wee-card, .modal, .interactive-footer, .time-pill, .wii-style-button, .sd-card-button, .button-container, .liquid-glass');
+    
+    if (!isInteractiveElement) {
+      e.preventDefault();
+      setShowWallpaperModal(true);
+    }
+  };
+
   return (
     <>
       {/* Always render the main UI, but overlay the splash screen while loading */}
-      <div className={`app-container ${useCustomCursor ? 'custom-cursor' : ''}`} style={{ filter: isLoading ? 'blur(2px)' : 'none', pointerEvents: isLoading ? 'none' : 'auto' }}>
+      <div 
+        className={`app-container ${useCustomCursor ? 'custom-cursor' : ''}`} 
+        style={{ filter: isLoading ? 'blur(2px)' : 'none', pointerEvents: isLoading ? 'none' : 'auto' }}
+        onContextMenu={handleAppRightClick}
+      >
         {/* Wii Cursor - rendered outside app container to avoid blur filter */}
         {useCustomCursor && <WiiCursor />}
         {/* Wallpaper background layer - with smooth transitions */}
@@ -1499,6 +1536,12 @@ function App() {
           onDeletePreset={handleDeletePreset}
           onApplyPreset={handleApplyPreset}
           onUpdatePreset={handleUpdatePreset}
+          onRenamePreset={handleRenamePreset}
+        />
+        <WallpaperModal
+          isOpen={showWallpaperModal}
+          onClose={() => setShowWallpaperModal(false)}
+          onSettingsChange={handleSettingsChange}
         />
       </div>
     </>

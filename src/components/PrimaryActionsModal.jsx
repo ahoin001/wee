@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BaseModal from './BaseModal';
 
-function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [] }) {
+function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [], ribbonGlowColor = '#0099ff' }) {
   const [type, setType] = useState(config?.type || 'text');
   const [text, setText] = useState(config?.text || (buttonIndex === 0 ? 'Wii' : ''));
   const [icon, setIcon] = useState(config?.icon || null);
@@ -13,6 +13,21 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
+  const [useAdaptiveColor, setUseAdaptiveColor] = useState(config?.useAdaptiveColor || false);
+  
+  // Update state when config changes (important for when modal reopens)
+  useEffect(() => {
+    if (config) {
+      setType(config.type || 'text');
+      setText(config.text || (buttonIndex === 0 ? 'Wii' : ''));
+      setIcon(config.icon || null);
+      setActionType(config.actionType || 'none');
+      setAction(config.action || '');
+      setUseWiiGrayFilter(config.useWiiGrayFilter || false);
+      setUseAdaptiveColor(config.useAdaptiveColor || false);
+      setTextFont(config.textFont || 'default');
+    }
+  }, [config, buttonIndex]);
   const [textFont, setTextFont] = useState(config?.textFont || 'default'); // Add font state
   const exeFileInputRef = useRef(null);
 
@@ -131,16 +146,22 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   };
 
   const handleSave = () => {
-    if (!validatePath()) return;
-    onSave({
+    // Check if this is for the presets button
+    const isPresetsButton = buttonIndex === "presets";
+    
+    if (!isPresetsButton && !validatePath()) return;
+    
+    const saveData = {
       type,
       text: type === 'text' ? text : '',
       icon: type === 'icon' ? icon : null,
-      actionType,
-      action,
+      actionType: isPresetsButton ? 'none' : actionType,
+      action: isPresetsButton ? '' : action,
       useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false,
+      useAdaptiveColor,
       textFont: type === 'text' ? textFont : 'default', // Include font in save
-    });
+    };
+    onSave(saveData);
   };
 
   // --- Section Renderers ---
@@ -424,22 +445,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     );
   }
 
-  function renderDisplayOptionsSection() {
-    return (
-      <>
-        <div style={{ display: 'flex', gap: 18, marginBottom: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input type="checkbox" checked={type === 'text'} onChange={() => setType('text')} />
-            Show Text
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input type="checkbox" checked={type === 'icon'} onChange={() => setType('icon')} />
-            Show Icon
-          </label>
-        </div>
-      </>
-    );
-  }
+
 
   if (!isOpen) return null;
 
@@ -456,15 +462,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           <button className="cancel-button" onClick={handleClose}>Cancel</button>
           <button className="save-button" onClick={() => { 
             if (isPresetsButton || validatePath()) { 
-              onSave({ 
-                type, 
-                text: type === 'text' ? text : '', 
-                icon: type === 'icon' ? icon : null, 
-                actionType: isPresetsButton ? 'none' : actionType, 
-                action: isPresetsButton ? '' : action, 
-                useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false, 
-                textFont: type === 'text' ? textFont : 'default' 
-              }); 
+              handleSave();
               handleClose(); 
             } 
           }} style={{ minWidth: 90 }}>Save</button>
@@ -508,6 +506,24 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       )}
+      {/* Adaptive Color Card - Show for all buttons */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Adaptive Color</span>
+          <label className="toggle-switch" style={{ margin: 0 }}>
+            <input
+              type="checkbox"
+              checked={useAdaptiveColor}
+              onChange={(e) => setUseAdaptiveColor(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          When enabled, matches the color of your ribbon glow.
+        </div>
+      </div>
       {/* App Path/URL Card - Only show for non-presets buttons */}
       {!isPresetsButton && (
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
@@ -524,22 +540,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       )}
-      {/* Text/Icon Display Options Card - Only show for non-presets buttons */}
-      {!isPresetsButton && (
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <span className="wee-card-title">Display Options</span>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            Choose whether to display text, an icon, or both on the channel button.
-            <div style={{ marginTop: 14 }}>
-              {/* Text/icon display options UI here */}
-              {renderDisplayOptionsSection && renderDisplayOptionsSection()}
-            </div>
-          </div>
-        </div>
-      )}
+
     </BaseModal>
   );
 }

@@ -40,6 +40,22 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
     }
   }, [isOpen, glassWiiRibbon]);
 
+  // Reset to default values
+  const resetToDefault = () => {
+    setRibbonColor('#e0e6ef');
+    setRibbonGlowColor('#0099ff');
+    setRibbonGlowStrength(20);
+    setRibbonGlowStrengthHover(28);
+    setRibbonDockOpacity(1);
+    setGlassEnabled(false);
+    setGlassOpacity(0.18);
+    setGlassBlur(2.5);
+    setGlassBorderOpacity(0.5);
+    setGlassShineOpacity(0.7);
+    setRecentRibbonColors([]);
+    setRecentRibbonGlowColors([]);
+  };
+
   const handleSave = async (handleClose) => {
     try {
       if (setGlassWiiRibbon) setGlassWiiRibbon(glassEnabled);
@@ -77,9 +93,36 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
       onClose={onClose}
       maxWidth="480px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: spacing.md }}>
-          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => handleSave(handleClose)}>Save</Button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button 
+            className="reset-button" 
+            onClick={resetToDefault}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: '2px solid #0099ff',
+              background: 'transparent',
+              color: '#0099ff',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#0099ff';
+              e.target.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent';
+              e.target.style.color = '#0099ff';
+            }}
+          >
+            Reset to Default
+          </button>
+          <div style={{ display: 'flex', gap: spacing.md }}>
+            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+            <Button variant="primary" onClick={() => handleSave(handleClose)}>Save</Button>
+          </div>
         </div>
       )}
     >
