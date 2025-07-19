@@ -19,6 +19,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [cycling, setCycling] = useState(false);
   const [cycleInterval, setCycleInterval] = useState(30);
   const [cycleAnimation, setCycleAnimation] = useState('fade');
+  const [transitionType, setTransitionType] = useState('crossfade');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [uploading, setUploading] = useState(false);
@@ -44,6 +45,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setCycling(data.cyclingSettings?.enabled ?? false);
       setCycleInterval(data.cyclingSettings?.interval ?? 30);
       setCycleAnimation(data.cyclingSettings?.animation ?? 'fade');
+      setTransitionType(data.cyclingSettings?.transitionType ?? 'crossfade');
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
       setTimeColor(data.timeColor || '#ffffff'); // Load time color setting
       setTimeFormat24hr(data.timeFormat24hr ?? true); // Load time format setting
@@ -172,6 +174,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         enabled: cycling,
         interval: cycleInterval,
         animation: cycleAnimation,
+        transitionType: transitionType,
       });
       if (!result.success) {
         setMessage({ type: 'error', text: result.error || 'Failed to save cycling settings.' });
@@ -381,6 +384,48 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           </div>
         </div>
       </div>
+      {/* Enable Cycling Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Enable Wallpaper Cycling</span>
+          <label className="toggle-switch" style={{ margin: 0 }}>
+            <input
+              type="checkbox"
+              checked={cycling}
+              onChange={e => setCycling(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
+            <span style={{ fontWeight: 500, minWidth: 120 }}>Time per wallpaper</span>
+            <input
+              type="number"
+              min={2}
+              max={600}
+              value={cycleInterval}
+              onChange={e => setCycleInterval(Number(e.target.value))}
+              style={{ width: 70, fontSize: 15, padding: '4px 8px', borderRadius: 6, border: '1px solid #ccc', marginRight: 8 }}
+            />
+            <span style={{ color: '#666', fontSize: 15 }}>seconds</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+            <span style={{ fontWeight: 500, minWidth: 120 }}>Animation</span>
+            <select
+              value={transitionType}
+              onChange={e => setTransitionType(e.target.value)}
+              style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+            >
+              <option value="crossfade">Crossfade</option>
+              <option value="slide">Slide</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+        </div>
+      </div>
       {/* Wallpaper Transparency Slider */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
@@ -533,48 +578,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               </div>
             </>
           )}
-        </div>
-      </div>
-      {/* Enable Cycling Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Enable Wallpaper Cycling</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={cycling}
-              onChange={e => setCycling(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below.
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
-            <span style={{ fontWeight: 500, minWidth: 120 }}>Time per wallpaper</span>
-            <input
-              type="number"
-              min={2}
-              max={600}
-              value={cycleInterval}
-              onChange={e => setCycleInterval(Number(e.target.value))}
-              style={{ width: 70, fontSize: 15, padding: '4px 8px', borderRadius: 6, border: '1px solid #ccc', marginRight: 8 }}
-            />
-            <span style={{ color: '#666', fontSize: 15 }}>seconds</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-            <span style={{ fontWeight: 500, minWidth: 120 }}>Animation</span>
-            <select
-              value={cycleAnimation}
-              onChange={e => setCycleAnimation(e.target.value)}
-              style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-            >
-              <option value="fade">Fade</option>
-              <option value="carousel">Carousel</option>
-              <option value="none">None</option>
-            </select>
-          </div>
         </div>
       </div>
     </BaseModal>

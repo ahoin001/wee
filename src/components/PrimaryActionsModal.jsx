@@ -12,6 +12,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [loadingIcons, setLoadingIcons] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const exeFileInputRef = useRef(null);
 
   // Fetch saved icons on open
   useEffect(() => {
@@ -82,12 +83,20 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     }
   };
 
+  const handleExeFileSelect = (file) => {
+    if (file && file.path) {
+      setAction(file.path);
+      setPathError('');
+    }
+  };
+
   const validatePath = () => {
     if (!action.trim()) {
       setPathError('');
       return true;
     }
     if (actionType === 'url') {
+      // Validate URL format
       try {
         const url = new URL(action.trim());
         if (url.protocol === 'http:' || url.protocol === 'https:') {
@@ -102,18 +111,16 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
         return false;
       }
     } else if (actionType === 'exe') {
+      // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
       const trimmedPath = action.trim();
-      if (trimmedPath.match(/^[A-Za-z]:\\/)) {
+      if (/\.exe(\s+.*)?$/i.test(trimmedPath) || /\.exe/i.test(trimmedPath)) {
         setPathError('');
         return true;
-      } else if (trimmedPath.startsWith('\\\\')) {
-        setPathError('');
-        return true;
-      } else if (trimmedPath.includes('\\') || trimmedPath.includes('/')) {
+      } else if (trimmedPath.startsWith('\\')) {
         setPathError('');
         return true;
       } else {
-        setPathError('Please enter a valid file path or use Browse Files');
+        setPathError('Please enter a valid file path or use "Browse Files" to select an executable');
         return false;
       }
     }
@@ -267,35 +274,64 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </label>
         </div>
         {actionType !== 'none' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="path-input-group">
             <input
               type="text"
-              className={`text-input${pathError ? ' error' : ''}`}
-              placeholder={actionType === 'exe' ? 'C:\\Path\\To\\App.exe' : 'https://example.com'}
+              placeholder={actionType === 'exe' ? 'C:\\Path\\To\\Application.exe or paste path here' : 'https://example.com'}
               value={action}
               onChange={e => { setAction(e.target.value); setPathError(''); }}
+              className={`text-input ${pathError ? 'error' : ''}`}
               style={{ flex: 1 }}
             />
             {actionType === 'exe' && (
-              <button
-                className="file-button"
-                style={{ padding: '6px 14px', fontSize: 14 }}
-                onClick={() => {
-                  if (window.api?.selectExeFile) {
-                    window.api.selectExeFile().then(result => {
-                      if (result && result.filePath) setAction(result.filePath);
-                    });
-                  } else {
-                    alert('File picker not available. Please enter the path manually.');
-                  }
-                }}
-              >
-                Browse Files
-              </button>
+              <>
+                <button
+                  className="file-picker-button"
+                  onClick={async () => {
+                    console.log('Browse Files clicked');
+                    if (window.api && window.api.selectExeOrShortcutFile) {
+                      console.log('Using IPC handler for file selection');
+                      const result = await window.api.selectExeOrShortcutFile();
+                      console.log('IPC result:', result);
+                      if (result && result.success && result.file) {
+                        let newPath = result.file.path;
+                        if (result.file.args && result.file.args.trim()) {
+                          newPath += ' ' + result.file.args.trim();
+                        }
+                        console.log('Setting path to:', newPath);
+                        setAction(newPath);
+                        setPathError('');
+                      } else if (result && result.error) {
+                        console.log('IPC error:', result.error);
+                        setPathError(result.error);
+                      }
+                    } else {
+                      console.log('Falling back to file input');
+                      exeFileInputRef.current?.click();
+                    }
+                  }}
+                >
+                  Browse Files
+                </button>
+                <input
+                  type="file"
+                  accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi,.lnk"
+                  ref={exeFileInputRef}
+                  onChange={(e) => handleExeFileSelect(e.target.files[0])}
+                  style={{ display: 'none' }}
+                />
+              </>
             )}
           </div>
         )}
-        {pathError && <div style={{ color: '#dc3545', fontSize: 13, marginTop: 6, fontWeight: 500 }}>{pathError}</div>}
+        {pathError && <p className="error-text">{pathError}</p>}
+        {actionType !== 'none' && (
+          <p className="help-text" style={{ marginTop: 6, color: '#888', fontSize: 14 }}>
+            {actionType === 'exe'
+              ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field.</span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
+              : 'Enter the complete URL including https://'}
+          </p>
+        )}
       </>
     );
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Channel from './components/Channel';
 import HomeButton from './components/HomeButton';
 import SettingsButton from './components/SettingsButton';
@@ -90,20 +90,22 @@ function App() {
   const [animatedOnHover, setAnimatedOnHover] = useState(false);
   const [wallpaper, setWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
+  const [nextWallpaper, setNextWallpaper] = useState(null); // For smooth transitions
+  const [isTransitioning, setIsTransitioning] = useState(false); // Track transition state
+  const [transitionType, setTransitionType] = useState('crossfade'); // 'crossfade' or 'slide'
+  const [slideDirection, setSlideDirection] = useState('right'); // 'left', 'right', 'up', 'down'
+  const [crossfadeProgress, setCrossfadeProgress] = useState(0); // Separate state for crossfade
   const [savedWallpapers, setSavedWallpapers] = useState([]);
   const [likedWallpapers, setLikedWallpapers] = useState([]);
   const [cycleWallpapers, setCycleWallpapers] = useState(false);
   const [cycleInterval, setCycleInterval] = useState(30);
   const [cycleAnimation, setCycleAnimation] = useState('fade');
-  const [wallpaperIndex, setWallpaperIndex] = useState(0);
-  const [animating, setAnimating] = useState(false);
   const [showWallpaperModal, setShowWallpaperModal] = useState(false); // track modal open
   const cycleTimeoutRef = useRef();
-  // Track previous wallpaper for fade animation
-  const [prevWallpaper, setPrevWallpaper] = useState(null);
   const lastMusicIdRef = useRef(null);
   const lastMusicUrlRef = useRef(null);
   const lastMusicEnabledRef = useRef(false);
+  const currentWallpaperRef = useRef(null); // Track current wallpaper to prevent re-creation
   // Remove toast state and logic
   // const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,9 +132,11 @@ function App() {
       setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
       setSavedWallpapers(wallpaperData?.savedWallpapers || []);
       setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-      setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
-      setCycleInterval(wallpaperData?.cycleInterval ?? 30);
-      setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+      setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
+      setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
+      setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
+      setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade');
+      setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
       setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Load timeColor
       setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Load timeFormat24hr
       setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Load enableTimePill
@@ -336,6 +340,8 @@ function App() {
         setCycleWallpapers(settings.cycleWallpapers ?? false);
         setCycleInterval(settings.cycleInterval ?? 30);
         setCycleAnimation(settings.cycleAnimation || 'fade');
+        setTransitionType(settings.transitionType || 'crossfade');
+        setSlideDirection(settings.slideDirection || 'right');
         setTimeColor(settings.timeColor || '#ffffff'); // Load timeColor
         setTimeFormat24hr(settings.timeFormat24hr ?? true); // Load timeFormat24hr
         setEnableTimePill(settings.enableTimePill ?? true); // Load enableTimePill
@@ -366,6 +372,8 @@ function App() {
         cycleWallpapers,
         cycleInterval,
         cycleAnimation,
+        transitionType,
+        slideDirection,
         timeColor, // Persist timeColor
         timeFormat24hr, // Persist timeFormat24hr
         enableTimePill, // Persist enableTimePill
@@ -375,7 +383,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity]);
+  }, [isDarkMode, useCustomCursor, glassWiiRibbon, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, transitionType, slideDirection, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -427,15 +435,26 @@ function App() {
         setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
         setSavedWallpapers(wallpaperData?.savedWallpapers || []);
         setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-        setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
-        setCycleInterval(wallpaperData?.cycleInterval ?? 30);
-        setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+        setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
+        setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
+        setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
+        setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade');
+        setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
         // Preserve current time settings if they exist, otherwise use saved values
         setTimeColor(wallpaperData?.timeColor || currentTimeColorRef.current || '#ffffff');
         setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? currentTimeFormatRef.current ?? true);
         setEnableTimePill(wallpaperData?.enableTimePill ?? true);
         setTimePillBlur(wallpaperData?.timePillBlur ?? 8);
         setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05);
+        
+        // Also update window.settings to keep it in sync
+        if (window.settings) {
+          window.settings.cycleWallpapers = wallpaperData?.cyclingSettings?.enabled ?? false;
+          window.settings.cycleInterval = wallpaperData?.cyclingSettings?.interval ?? 30;
+          window.settings.cycleAnimation = wallpaperData?.cyclingSettings?.animation || 'fade';
+          window.settings.transitionType = wallpaperData?.cyclingSettings?.transitionType || 'crossfade';
+          window.settings.slideDirection = wallpaperData?.cyclingSettings?.slideDirection || 'right';
+        }
       };
       window.api.onWallpapersUpdated(reloadWallpapers);
       return () => window.api.offWallpapersUpdated(reloadWallpapers);
@@ -535,6 +554,8 @@ function App() {
       setCycleWallpapers(settings.cycleWallpapers ?? false);
       setCycleInterval(settings.cycleInterval ?? 30);
       setCycleAnimation(settings.cycleAnimation || 'fade');
+      setTransitionType(settings.transitionType || 'crossfade');
+      setSlideDirection(settings.slideDirection || 'right');
       setTimeColor(settings.timeColor || '#ffffff'); // Update timeColor
       setTimeFormat24hr(settings.timeFormat24hr ?? true); // Update timeFormat24hr
       setEnableTimePill(settings.enableTimePill ?? true); // Update enableTimePill
@@ -555,6 +576,8 @@ function App() {
     cycleWallpapers,
     cycleInterval,
     cycleAnimation,
+    transitionType,
+    slideDirection,
     timeColor,
     timeFormat24hr,
     enableTimePill,
@@ -563,41 +586,259 @@ function App() {
   };
 
   // Compute the list of wallpapers to cycle through
-  const cycleList = savedWallpapers.filter(w => likedWallpapers.includes(w.url));
-  // Improved cycling logic: use a single timer for fade+interval, always use latest cycleInterval
-  useEffect(() => {
-    if (!cycleWallpapers || cycleList.length < 2 || showWallpaperModal) {
-      if (cycleTimeoutRef.current) clearTimeout(cycleTimeoutRef.current);
-      setPrevWallpaper(null);
+  const cycleList = useMemo(() => {
+    const list = savedWallpapers.filter(w => likedWallpapers.includes(w.url));
+    console.log('Cycle list debug:', {
+      savedWallpapersCount: savedWallpapers.length,
+      likedWallpapersCount: likedWallpapers.length,
+      cycleListCount: list.length,
+      savedWallpapers: savedWallpapers.map(w => ({ url: w.url, name: w.name })),
+      likedWallpapers: likedWallpapers,
+      cycleList: list.map(w => ({ url: w.url, name: w.name }))
+    });
+    return list;
+  }, [savedWallpapers, likedWallpapers]);
+  
+  // Function to preload an image with enhanced optimization
+  const preloadImage = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      
+      // Set crossOrigin for better caching
+      img.crossOrigin = 'anonymous';
+      
+      // Add loading optimization
+      img.onload = () => {
+        // Force a small delay to ensure image is fully decoded
+        setTimeout(() => resolve(img), 10);
+      };
+      
+      img.onerror = (error) => {
+        console.error('Failed to preload image:', url, error);
+        reject(error);
+      };
+      
+      // Start loading
+      img.src = url;
+    });
+  };
+
+  // Function to calculate slide transform based on direction and progress
+  const getSlideTransform = (direction, progress) => {
+    const slideDistance = '100%';
+    const easeProgress = 1 - Math.pow(1 - progress, 3); // Ease-out cubic
+    
+    switch (direction) {
+      case 'left':
+        return `translateX(${(1 - easeProgress) * 100}%)`;
+      case 'right':
+        return `translateX(${-(1 - easeProgress) * 100}%)`;
+      case 'up':
+        return `translateY(${(1 - easeProgress) * 100}%)`;
+      case 'down':
+        return `translateY(${-(1 - easeProgress) * 100}%)`;
+      default:
+        return 'none';
+    }
+  };
+
+  // Function to cycle to next wallpaper - memoized to prevent unnecessary re-creation
+  const cycleToNextWallpaper = useCallback(() => {
+    console.log('cycleToNextWallpaper called!');
+    
+    // Prevent starting a new transition if one is already in progress
+    if (isTransitioning) {
+      console.log('Transition already in progress, skipping');
       return;
     }
-    let idx = cycleList.findIndex(w => w.url === (wallpaper?.url));
-    if (idx === -1) idx = 0;
-    setWallpaperIndex(idx);
-    cycleTimeoutRef.current && clearTimeout(cycleTimeoutRef.current);
-    // Show fade for fade animation
-    const doCycle = () => {
-      if (cycleAnimation === 'fade') setPrevWallpaper(wallpaper);
-      setAnimating(true);
-      setTimeout(() => {
-        setAnimating(false);
-        setWallpaperIndex(prev => (prev + 1) % cycleList.length);
-        setWallpaper(cycleList[(idx + 1) % cycleList.length]);
-        if (cycleAnimation === 'fade') setTimeout(() => setPrevWallpaper(null), 800);
-        // Wait for fade, then wait for interval before next cycle
-        cycleTimeoutRef.current = setTimeout(doCycle, Math.max(2, cycleInterval) * 1000);
-      }, cycleAnimation === 'fade' ? 800 : cycleAnimation === 'carousel' ? 600 : 0);
-    };
-    // Start the first cycle after the interval
-    cycleTimeoutRef.current = setTimeout(doCycle, Math.max(2, cycleInterval) * 1000);
-    return () => cycleTimeoutRef.current && clearTimeout(cycleTimeoutRef.current);
-  }, [cycleWallpapers, cycleList, cycleAnimation, wallpaper, showWallpaperModal, likedWallpapers, cycleInterval]);
-  // When wallpaperIndex changes, update wallpaper
-  useEffect(() => {
-    if (cycleWallpapers && cycleList.length > 1) {
-      setWallpaper(cycleList[wallpaperIndex % cycleList.length]);
+    
+    if (cycleList.length === 0) {
+      console.log('cycleList is empty, returning');
+      return;
     }
-  }, [wallpaperIndex, cycleWallpapers, cycleList]);
+    
+    // Find current wallpaper index in cycle list using ref
+    let currentIndex = cycleList.findIndex(w => w.url === currentWallpaperRef.current?.url);
+    console.log('Current wallpaper:', currentWallpaperRef.current?.url);
+    console.log('Cycle list:', cycleList.map(w => w.url));
+    console.log('Current index found:', currentIndex);
+    
+    // If current wallpaper is not in the cycle list, start from the beginning
+    if (currentIndex === -1) {
+      console.log('Current wallpaper not in cycle list, starting from beginning');
+      currentIndex = -1; // This will make nextIndex = 0
+    }
+    
+    // Calculate next index
+    const nextIndex = (currentIndex + 1) % cycleList.length;
+    const nextWallpaperData = cycleList[nextIndex];
+    
+    console.log('Wallpaper cycling:', {
+      currentWallpaper: currentWallpaperRef.current?.url,
+      currentIndex,
+      nextIndex,
+      nextWallpaper: nextWallpaperData?.url,
+      cycleListLength: cycleList.length,
+      cycleInterval,
+      transitionType
+    });
+    
+    // Preload the next wallpaper before starting transition
+    console.log('Preloading next wallpaper:', nextWallpaperData?.url);
+    preloadImage(nextWallpaperData.url)
+      .then(() => {
+        console.log('Next wallpaper preloaded successfully');
+        
+        // Start smooth transition
+        console.log('Starting smooth transition to:', nextWallpaperData);
+        
+        // Small delay to ensure smooth state updates
+        requestAnimationFrame(() => {
+          setIsTransitioning(true);
+          setNextWallpaper(nextWallpaperData);
+          setCrossfadeProgress(0); // Reset crossfade progress
+          
+          // Choose random slide direction for variety (only for slide transitions)
+          if (transitionType === 'slide') {
+            const directions = ['left', 'right', 'up', 'down'];
+            setSlideDirection(directions[Math.floor(Math.random() * directions.length)]);
+          }
+          
+          // Transition duration and steps
+          const transitionDuration = 1200; // Slightly longer for smoother feel
+          const fadeSteps = 120; // Much more steps for ultra-smooth animation (10ms intervals)
+          const stepDuration = transitionDuration / fadeSteps;
+          
+          let currentStep = 0;
+          const fadeInterval = setInterval(() => {
+            currentStep++;
+            const rawProgress = currentStep / fadeSteps;
+            
+            // Apply easing function for smoother animation
+            const progress = 1 - Math.pow(1 - rawProgress, 3); // Ease-out cubic
+            
+            // Apply additional smoothing for crossfade
+            let finalProgress = progress;
+            if (transitionType === 'crossfade') {
+              // Use a more sophisticated easing for crossfade
+              // Start slow, accelerate in middle, slow at end
+              const t = rawProgress;
+              finalProgress = t < 0.5 
+                ? 2 * t * t 
+                : 1 - Math.pow(-2 * t + 2, 2) / 2;
+            }
+            
+            if (transitionType === 'crossfade') {
+              // Crossfade transition - use separate state with easing
+              // Batch updates for better performance
+              requestAnimationFrame(() => {
+                setCrossfadeProgress(finalProgress);
+              });
+            } else if (transitionType === 'slide') {
+              // Slide transition - animate the slide progress
+              requestAnimationFrame(() => {
+                setWallpaperOpacity(progress);
+              });
+            }
+            
+            if (currentStep >= fadeSteps) {
+              // Transition complete - use requestAnimationFrame for smooth final update
+              clearInterval(fadeInterval);
+              requestAnimationFrame(() => {
+                setWallpaper(nextWallpaperData);
+                currentWallpaperRef.current = nextWallpaperData; // Update ref
+                setWallpaperOpacity(1);
+                setCrossfadeProgress(0);
+                setNextWallpaper(null);
+                setIsTransitioning(false);
+                console.log('Transition complete');
+                
+                // Schedule next cycle
+                console.log('Scheduling next cycle in', cycleInterval, 'seconds');
+                cycleTimeoutRef.current = setTimeout(cycleToNextWallpaper, cycleInterval * 1000);
+              });
+            }
+          }, stepDuration);
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to preload next wallpaper:', error);
+        // Fallback to instant switch if preloading fails
+        setWallpaper(nextWallpaperData);
+        currentWallpaperRef.current = nextWallpaperData; // Update ref
+        setWallpaperOpacity(1);
+        setCrossfadeProgress(0);
+        setNextWallpaper(null);
+        setIsTransitioning(false);
+        
+        // Schedule next cycle
+        console.log('Scheduling next cycle in', cycleInterval, 'seconds');
+        cycleTimeoutRef.current = setTimeout(cycleToNextWallpaper, cycleInterval * 1000);
+      });
+    
+  }, [cycleList, cycleInterval, transitionType, isTransitioning]); // Removed wallpaper from dependencies
+  
+  // Keep currentWallpaperRef in sync with wallpaper state
+  useEffect(() => {
+    currentWallpaperRef.current = wallpaper;
+  }, [wallpaper]);
+
+  // Simplified wallpaper cycling logic - no animations for now
+  useEffect(() => {
+    console.log('Wallpaper cycling effect triggered:', {
+      cycleWallpapers,
+      cycleListLength: cycleList.length,
+      cycleInterval,
+      showWallpaperModal,
+      isTransitioning
+    });
+    
+    // Don't re-run if currently transitioning
+    if (isTransitioning) {
+      console.log('Currently transitioning, skipping effect re-run');
+      return;
+    }
+    
+    // Clear any existing timeout
+    if (cycleTimeoutRef.current) {
+      console.log('Clearing existing timeout');
+      clearTimeout(cycleTimeoutRef.current);
+      cycleTimeoutRef.current = null;
+    }
+
+    // Don't cycle if disabled, not enough wallpapers, or modal is open
+    if (!cycleWallpapers || cycleList.length < 2 || showWallpaperModal) {
+      console.log('Wallpaper cycling stopped:', {
+        reason: !cycleWallpapers ? 'disabled' : cycleList.length < 2 ? 'not enough wallpapers' : 'modal open'
+      });
+      return;
+    }
+
+    console.log('Starting wallpaper cycling with interval:', cycleInterval, 'seconds');
+
+    // Test if timeout works at all
+    console.log('Setting up initial timeout for', cycleInterval, 'seconds');
+    cycleTimeoutRef.current = setTimeout(() => {
+      console.log('Initial timeout fired!');
+      cycleToNextWallpaper();
+    }, cycleInterval * 1000);
+
+    // Cleanup function
+    return () => {
+      if (cycleTimeoutRef.current) {
+        console.log('Cleanup: clearing timeout');
+        clearTimeout(cycleTimeoutRef.current);
+        cycleTimeoutRef.current = null;
+      }
+      // Reset transition states on cleanup
+      if (isTransitioning) {
+        setIsTransitioning(false);
+        setNextWallpaper(null);
+        setCrossfadeProgress(0);
+        setWallpaperOpacity(1);
+      }
+    };
+  }, [cycleWallpapers, cycleList, cycleInterval, showWallpaperModal, cycleToNextWallpaper]); // Removed isTransitioning from dependencies
 
   // On save for sounds
   const handleSaveSounds = async (newSounds) => {
@@ -614,9 +855,11 @@ function App() {
     setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
     setSavedWallpapers(wallpaperData?.savedWallpapers || []);
     setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-    setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
-    setCycleInterval(wallpaperData?.cycleInterval ?? 30);
-    setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+    setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
+    setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
+    setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
+    setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade');
+    setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
     setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Update timeColor
     setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Update timeFormat24hr
     setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Update enableTimePill
@@ -642,9 +885,11 @@ function App() {
     setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
     setSavedWallpapers(wallpaperData?.savedWallpapers || []);
     setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-    setCycleWallpapers(wallpaperData?.cycleWallpapers ?? false);
-    setCycleInterval(wallpaperData?.cycleInterval ?? 30);
-    setCycleAnimation(wallpaperData?.cycleAnimation || 'fade');
+    setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
+    setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
+    setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
+    setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade');
+    setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
     setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Update timeColor
     setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Update timeFormat24hr
     setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Update enableTimePill
@@ -701,78 +946,43 @@ function App() {
     <>
       {/* Always render the main UI, but overlay the splash screen while loading */}
       <div className="app-container" style={{ filter: isLoading ? 'blur(2px)' : 'none', pointerEvents: isLoading ? 'none' : 'auto' }}>
-        {/* Wallpaper background layer with fade crossfade */}
-        {cycleAnimation === 'fade' && prevWallpaper && animating ? (
-          <div className="wallpaper-fade-stack">
-            <div
-              className="wallpaper-bg fade animating"
-              style={{
-                background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
-                opacity: wallpaperOpacity,
-              }}
-            />
-            <div
-              className="wallpaper-bg fade"
-              style={{
-                background: `url('${wallpaper.url}') center center / cover no-repeat`,
-                opacity: wallpaperOpacity,
-              }}
-            />
-          </div>
-        ) : (
-          wallpaper && wallpaper.url && (
-            <div
-              className={`wallpaper-bg${animating ? ' animating' : ''} ${cycleAnimation}`}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh',
-                zIndex: 0,
-                pointerEvents: 'none',
-                background: `url('${wallpaper.url}') center center / cover no-repeat`,
-                opacity: wallpaperOpacity,
-                transition: cycleAnimation === 'fade' ? 'opacity 0.8s' : cycleAnimation === 'carousel' ? 'none' : 'none',
-                transform: animating && cycleAnimation === 'carousel' ? 'none' : 'none',
-              }}
-            />
-          )
-        )}
-        {cycleAnimation === 'carousel' && animating && prevWallpaper && wallpaper ? (
-          <div className="wallpaper-carousel-stack" style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '200vw',
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'row',
-            zIndex: 0,
-            pointerEvents: 'none',
-            transform: animating ? 'translateX(0)' : 'translateX(-100vw)',
-            transition: 'transform 0.6s cubic-bezier(.4,1.3,.5,1)',
-          }}>
-            <div className="wallpaper-bg carousel" style={{
+        {/* Wallpaper background layer - with smooth transitions */}
+        {wallpaper && wallpaper.url && (
+          <div
+            className="wallpaper-bg"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
               width: '100vw',
               height: '100vh',
-              background: `url('${prevWallpaper.url}') center center / cover no-repeat`,
-              opacity: wallpaperOpacity,
-              margin: 0,
-              padding: 0,
-              border: 'none',
-            }} />
-            <div className="wallpaper-bg carousel" style={{
-              width: '100vw',
-              height: '100vh',
+              zIndex: 0,
+              pointerEvents: 'none',
               background: `url('${wallpaper.url}') center center / cover no-repeat`,
-              opacity: wallpaperOpacity,
-              margin: 0,
-              padding: 0,
-              border: 'none',
-            }} />
-          </div>
-        ) : null}
+              opacity: transitionType === 'crossfade' ? 1 - crossfadeProgress : wallpaperOpacity,
+              transition: 'none', // Remove CSS transitions to prevent conflicts
+            }}
+          />
+        )}
+        {/* Next wallpaper layer for smooth transitions */}
+        {isTransitioning && nextWallpaper && nextWallpaper.url && (
+          <div
+            className="wallpaper-bg-next"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 1,
+              pointerEvents: 'none',
+              background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
+              opacity: transitionType === 'crossfade' ? crossfadeProgress : 1,
+              transform: transitionType === 'slide' ? getSlideTransform(slideDirection, wallpaperOpacity) : 'none',
+              transition: 'none', // Remove CSS transitions to prevent conflicts
+            }}
+          />
+        )}
         {/* Drag region for windowed mode only */}
         {!isFullscreen && (
           <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />

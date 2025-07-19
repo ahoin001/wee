@@ -475,3 +475,46 @@ body:not(.custom-cursor) {
   opacity: 0;
   transition: opacity 0.8s;
 }
+
+/* Wallpaper transition styles - Ultra smooth */
+.wallpaper-bg {
+  will-change: opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0); /* Force hardware acceleration */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  /* Ultra-smooth optimizations */
+  contain: layout style paint;
+  isolation: isolate;
+  /* Prevent sub-pixel rendering issues */
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.wallpaper-bg-next {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  transform: translateZ(0); /* Force hardware acceleration */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  /* Ultra-smooth optimizations */
+  contain: layout style paint;
+  isolation: isolate;
+  /* Prevent sub-pixel rendering issues */
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* Prevent flickering during transitions */
+.wallpaper-bg,
+.wallpaper-bg-next {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  /* Additional optimizations for smooth crossfade */
+  contain: layout style paint;
+  isolation: isolate;
+  /* Ultra-smooth rendering */
+  filter: blur(0px); /* Force crisp rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

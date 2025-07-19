@@ -26,10 +26,11 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   const fadeIntervalRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [mp4Preview, setMp4Preview] = useState(null);
-  const [gifPreview, setGifPreview] = useState(null);
   const videoRef = useRef(null);
   const previewVideoRef = useRef(null);
   const previewCanvasRef = useRef(null);
+  const gifRef = useRef(null);
+  const [gifPaused, setGifPaused] = useState(false);
 
   // Determine which animatedOnHover setting to use
   const effectiveAnimatedOnHover = (channelConfig && channelConfig.animatedOnHover !== undefined)
@@ -66,35 +67,15 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     }
   }, [media, effectiveAnimatedOnHover]);
 
-  // Create static preview for GIFs when hover animation is enabled
+  // Simple GIF pause/play on hover
   useEffect(() => {
-    if (media && (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) && effectiveAnimatedOnHover && !gifPreview) {
-      // Create a static preview by loading the GIF into a canvas and extracting first frame
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        try {
-          const dataUrl = canvas.toDataURL('image/png');
-          setGifPreview(dataUrl);
-        } catch (e) {
-          console.error('Failed to create GIF preview:', e);
-          setGifPreview(null);
-        }
-      };
-      img.onerror = () => {
-        console.error('Failed to load GIF for preview');
-        setGifPreview(null);
-      };
-      img.src = media.url;
-    } else if (!media || !(media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i)))) {
-      setGifPreview(null);
+    if (media && (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) && effectiveAnimatedOnHover) {
+      // Pause GIF on load when hover animation is enabled
+      setGifPaused(true);
+    } else {
+      setGifPaused(false);
     }
-  }, [media, effectiveAnimatedOnHover, gifPreview]);
+  }, [media, effectiveAnimatedOnHover]);
 
   const handleClick = async () => {
     if (hoverAudioRef.current) {
@@ -188,7 +169,8 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     
     // Start GIF animation if applicable
     if (media && (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) && effectiveAnimatedOnHover) {
-      // The static preview approach handles GIF hover effect now
+      // Resume GIF animation on hover
+      setGifPaused(false);
     }
   };
 
@@ -211,7 +193,8 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
     
     // Stop GIF animation and reset to first frame
     if (media && (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) && effectiveAnimatedOnHover) {
-      // The static preview approach handles GIF hover effect now
+      // Pause GIF animation
+      setGifPaused(true);
     }
   };
 
@@ -314,22 +297,25 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
       }
     } else if (media.type === 'image/gif' || (media.url && media.url.match(/\.gif$/i))) {
       if (effectiveAnimatedOnHover) {
-        // Show static preview when not hovered, animated GIF when hovered
+        // Use simple GIF pause/play on hover
         mediaPreview = (
           <img
-            src={isHovered ? media.url : (gifPreview || media.url)}
+            ref={gifRef}
+            src={media.url}
             alt="Channel media"
             className="channel-media"
             style={{ 
               objectFit: 'cover', 
               width: '100%', 
-              height: '100%'
+              height: '100%',
+              animationPlayState: gifPaused ? 'paused' : 'running'
             }}
-            onMouseEnter={() => setIsHovered(true)}
-            onFocus={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            onBlur={() => setIsHovered(false)}
-            tabIndex={0}
+            onLoad={() => {
+              // Pause GIF immediately on load when hover animation is enabled
+              if (effectiveAnimatedOnHover) {
+                setGifPaused(true);
+              }
+            }}
           />
         );
       } else {
@@ -349,6 +335,7 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   const channelContent = (
     <div
       className={empty && !media ? "channel empty" : "channel"}
+      data-channel-id={id}
       onClick={handleClick}
       onMouseEnter={e => { handleMouseEnter(e); setIsHovered(true); }}
       onMouseLeave={e => { handleMouseLeave(e); setIsHovered(false); }}

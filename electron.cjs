@@ -1118,6 +1118,8 @@ ipcMain.handle('wallpapers:setCyclingSettings', async (event, settings) => {
       enabled: !!settings.enabled,
       interval: Math.max(2, Math.min(600, Number(settings.interval) || 30)),
       animation: settings.animation || 'fade',
+      transitionType: settings.transitionType || 'crossfade',
+      slideDirection: settings.slideDirection || 'right',
     };
     await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
     emitWallpapersUpdated();
