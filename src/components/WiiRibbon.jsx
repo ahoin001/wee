@@ -9,7 +9,7 @@ import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 // import more icons as needed
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -579,6 +579,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           setGlassWiiRibbon={onGlassWiiRibbonChange}
           animatedOnHover={!!animatedOnHover}
           setAnimatedOnHover={setAnimatedOnHover}
+          startInFullscreen={startInFullscreen}
+          setStartInFullscreen={setStartInFullscreen}
         />
       )}
       {showPrimaryActionsModal && (

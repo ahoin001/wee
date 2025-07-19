@@ -93,6 +93,7 @@ function App() {
   const [glassBorderOpacity, setGlassBorderOpacity] = useState(0.5);
   const [glassShineOpacity, setGlassShineOpacity] = useState(0.7);
   const [animatedOnHover, setAnimatedOnHover] = useState(false);
+  const [startInFullscreen, setStartInFullscreen] = useState(true);
   const [wallpaper, setWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
   const [nextWallpaper, setNextWallpaper] = useState(null); // For smooth transitions
@@ -355,6 +356,7 @@ function App() {
         setGlassBorderOpacity(settings.glassBorderOpacity ?? 0.5);
         setGlassShineOpacity(settings.glassShineOpacity ?? 0.7);
         setAnimatedOnHover(settings.animatedOnHover ?? false);
+        setStartInFullscreen(settings.startInFullscreen ?? true);
         setWallpaper(settings.wallpaper || null);
         setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
         setSavedWallpapers(settings.savedWallpapers || []);
@@ -401,6 +403,7 @@ function App() {
         glassBorderOpacity,
         glassShineOpacity,
         animatedOnHover,
+        startInFullscreen,
         wallpaper,
         wallpaperOpacity,
         savedWallpapers,
@@ -433,7 +436,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -624,6 +627,9 @@ function App() {
     if (newSettings.glassShineOpacity !== undefined) {
       setGlassShineOpacity(newSettings.glassShineOpacity);
     }
+    if (newSettings.startInFullscreen !== undefined) {
+      setStartInFullscreen(newSettings.startInFullscreen);
+    }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
     // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
@@ -656,6 +662,7 @@ function App() {
     glassBlur,
     glassBorderOpacity,
     glassShineOpacity,
+    startInFullscreen,
   };
 
   // Compute the list of wallpapers to cycle through
@@ -1235,6 +1242,8 @@ function App() {
           enableTimePill={enableTimePill}
           timePillBlur={timePillBlur}
           timePillOpacity={timePillOpacity}
+          startInFullscreen={startInFullscreen}
+          setStartInFullscreen={setStartInFullscreen}
         />
         {/* Channel Modal - rendered at top level for proper z-index */}
         {openChannelModal && (

@@ -3,15 +3,17 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './BaseModal.css';
 
-function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover }) {
+function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen }) {
   const [pip, setPip] = useState(immersivePip);
   const [glassRibbon, setGlassRibbon] = useState(glassWiiRibbon);
   const [hoverAnim, setHoverAnim] = useState(animatedOnHover);
+  const [fullscreen, setFullscreen] = useState(startInFullscreen);
 
   const handleSave = (handleClose) => {
     setImmersivePip(pip);
     setGlassWiiRibbon(glassRibbon);
     setAnimatedOnHover(hoverAnim);
+    setStartInFullscreen(fullscreen);
     handleClose();
   };
 
@@ -76,6 +78,22 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel.</div>
         </div>
+        {/* Start in Fullscreen */}
+        <div className="wee-card">
+          <div className="wee-card-header">
+            <span className="wee-card-title">Start in Fullscreen</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={fullscreen}
+                onChange={e => setFullscreen(e.target.checked)}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode.</div>
+        </div>
       </div>
     </BaseModal>
   );
@@ -90,6 +108,8 @@ GeneralSettingsModal.propTypes = {
   setGlassWiiRibbon: PropTypes.func,
   animatedOnHover: PropTypes.bool,
   setAnimatedOnHover: PropTypes.func,
+  startInFullscreen: PropTypes.bool,
+  setStartInFullscreen: PropTypes.func,
 };
 
 export default GeneralSettingsModal; 

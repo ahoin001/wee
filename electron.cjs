@@ -1324,7 +1324,21 @@ function sendWindowState() {
   }
 }
 
-function createWindow(opts = {}) {
+async function createWindow(opts = {}) {
+  // Check if we should start in fullscreen based on settings
+  let shouldStartFullscreen = opts.fullscreen || false;
+  
+  // If no explicit fullscreen option is provided, check the settings
+  if (opts.fullscreen === undefined) {
+    try {
+      const settings = await settingsData.get();
+      shouldStartFullscreen = settings.startInFullscreen !== false; // Default to true if not set
+    } catch (error) {
+      console.log('Could not load settings for fullscreen preference, defaulting to true');
+      shouldStartFullscreen = true;
+    }
+  }
+  
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -1332,7 +1346,7 @@ function createWindow(opts = {}) {
     minHeight: 600,
     show: true,
     frame: opts.frame === undefined ? !isFrameless : opts.frame, // borderless by default
-    fullscreen: opts.fullscreen || false,
+    fullscreen: shouldStartFullscreen,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -1383,11 +1397,11 @@ app.whenReady().then(async () => {
     }
     callback({ path: filePath });
   });
-  createWindow();
+  await createWindow();
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (BrowserWindow.getAllWindows().length === 0) createWindow().catch(console.error);
 });
 
 // --- Window Management IPC Handlers ---
@@ -1415,7 +1429,7 @@ ipcMain.on('toggle-frame', () => {
     frame: !isFrameless,
     fullscreen: wasFullScreen,
     bounds,
-  });
+  }).catch(console.error);
   // sendWindowState will be called after load
 });
 ipcMain.on('minimize-window', () => {
