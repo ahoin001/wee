@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './BaseModal.css';
@@ -11,6 +11,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
   const [editName, setEditName] = useState(''); // temporary edit name
   const [editError, setEditError] = useState(''); // error for edit mode
   const [includeChannels, setIncludeChannels] = useState(false); // toggle for including channel data
+  const handleCloseRef = useRef(null); // ref to store BaseModal's handleClose function
 
   const handleSave = () => {
     if (!newPresetName.trim()) {
@@ -69,6 +70,17 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     }
   };
 
+  // Wrapper function to handle apply preset with proper modal closing
+  const handleApplyPreset = (preset) => {
+    // Call onApplyPreset (which will set showPresetsModal to false)
+    onApplyPreset(preset);
+    
+    // Use BaseModal's handleClose for proper fade-out
+    if (handleCloseRef.current) {
+      handleCloseRef.current();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -76,7 +88,15 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       title="Manage Presets"
       onClose={onClose}
       maxWidth="540px"
-      footerContent={null}
+      footerContent={({ handleClose }) => {
+        // Store the handleClose function in the ref
+        handleCloseRef.current = handleClose;
+        return (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button className="cancel-button" onClick={handleClose}>Close</button>
+          </div>
+        );
+      }}
     >
        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
@@ -196,7 +216,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 </div>
                 {editingPreset !== preset.name && (
                   <>
-                    <button className="save-button" style={{ minWidth: 70 }} onClick={() => onApplyPreset(preset)}>
+                    <button className="save-button" style={{ minWidth: 70 }} onClick={() => handleApplyPreset(preset)}>
                       Apply
                     </button>
                     <button

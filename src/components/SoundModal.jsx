@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
+import ResourceUsageIndicator from './ResourceUsageIndicator';
 import './SoundModal.css';
 
 const SOUND_CATEGORIES = [
@@ -246,7 +247,19 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
         {SOUND_CATEGORIES.map(cat => (
           <div className="sound-section" key={cat.key}>
             <div className="section-header">
-              <h3>{cat.label}</h3>
+              <h3>
+                {cat.key === 'backgroundMusic' ? (
+                  <ResourceUsageIndicator level="high" tooltip="Background music plays continuously and can use significant CPU and memory resources">
+                    {cat.label}
+                  </ResourceUsageIndicator>
+                ) : cat.key === 'channelHover' ? (
+                  <ResourceUsageIndicator level="medium" tooltip="Hover sounds play frequently and can impact performance with many channels">
+                    {cat.label}
+                  </ResourceUsageIndicator>
+                ) : (
+                  cat.label
+                )}
+              </h3>
               <button
                 className="add-sound-button"
                 onClick={() => handleUploadClick(cat.key)}

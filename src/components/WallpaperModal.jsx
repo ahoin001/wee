@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
+import ResourceUsageIndicator from './ResourceUsageIndicator';
 import './BaseModal.css';
 
 const WALLPAPER_ANIMATIONS = [
@@ -467,7 +468,9 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       {/* Enable Cycling Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
-          <span className="wee-card-title">Enable Wallpaper Cycling</span>
+          <ResourceUsageIndicator level="high" tooltip="Wallpaper cycling continuously loads and displays images, using significant CPU, memory, and GPU resources">
+            <span className="wee-card-title">Enable Wallpaper Cycling</span>
+          </ResourceUsageIndicator>
           <label className="toggle-switch" style={{ margin: 0 }}>
             <input
               type="checkbox"

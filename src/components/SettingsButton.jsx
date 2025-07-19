@@ -4,6 +4,8 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import SoundModal from './SoundModal';
 import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
+import ResourceUsageIndicator from './ResourceUsageIndicator';
+import performanceMonitor from '../utils/PerformanceMonitor';
 import './SettingsButton.css';
 
 function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange, glassWiiRibbon, onGlassWiiRibbonChange }) {
@@ -161,6 +163,33 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div className="settings-menu-group-label">General</div>
               <div className="context-menu-item" onClick={() => { setShowGeneralModal(true); handleMenuClose(); }}>
                 General Settings
+              </div>
+              <div className="context-menu-item" onClick={() => { 
+                performanceMonitor.logPerformanceReport();
+                const status = performanceMonitor.getPerformanceStatus();
+                const recommendations = performanceMonitor.getRecommendations();
+                
+                let message = `Performance Status: ${status.status.toUpperCase()}\n\n`;
+                message += `FPS: ${status.metrics.fps.toFixed(1)}\n`;
+                message += `Memory: ${status.metrics.memory.toFixed(1)}MB\n`;
+                message += `Video Elements: ${status.metrics.videoElements}\n`;
+                message += `Audio Elements: ${status.metrics.audioElements}\n`;
+                message += `Intervals: ${status.metrics.intervals}\n`;
+                
+                if (status.issues.length > 0) {
+                  message += `\nIssues:\n${status.issues.join('\n')}\n`;
+                }
+                
+                if (recommendations.length > 0) {
+                  message += `\nRecommendations:\n${recommendations.map(r => `• ${r.message}`).join('\n')}`;
+                }
+                
+                alert(message);
+                handleMenuClose(); 
+              }}>
+                <ResourceUsageIndicator level="low" tooltip="Check current system performance and get optimization recommendations">
+                  Performance Monitor
+                </ResourceUsageIndicator>
               </div>
             </div>
           </div>

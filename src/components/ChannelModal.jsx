@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './ChannelModal.css';
 import ImageSearchModal from './ImageSearchModal';
+import ResourceUsageIndicator from './ResourceUsageIndicator';
 
 const channelsApi = window.api?.channels;
 
@@ -84,6 +85,20 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       }
     }
   };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverSoundAudio) {
+        if (hoverSoundAudio._fadeInterval) {
+          clearInterval(hoverSoundAudio._fadeInterval);
+        }
+        hoverSoundAudio.pause();
+        hoverSoundAudio.src = '';
+        hoverSoundAudio.load();
+      }
+    };
+  }, [hoverSoundAudio]);
   // Play hover sound (fade in)
   const handleTestHoverSound = async () => {
     if (hoverSoundUrl) {
@@ -106,12 +121,22 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           clearInterval(fade);
         }
       }, 40);
+      
+      // Store interval reference for cleanup
+      audio._fadeInterval = fade;
     }
   };
+  
   // Stop hover sound (fade out)
   const handleStopHoverSound = () => {
     if (hoverSoundAudio) {
       const audio = hoverSoundAudio;
+      
+      // Clear any existing fade interval
+      if (audio._fadeInterval) {
+        clearInterval(audio._fadeInterval);
+      }
+      
       let v = audio.volume;
       const fade = setInterval(() => {
         v -= 0.07;
@@ -120,9 +145,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         } else {
           clearInterval(fade);
           audio.pause();
+          audio.src = '';
+          audio.load();
           setHoverSoundAudio(null);
         }
       }, 40);
+      
+      // Store interval reference for cleanup
+      audio._fadeInterval = fade;
     }
   };
 
@@ -583,7 +613,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         {/* Per-Channel Animation Toggle Card */}
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
-            <span className="wee-card-title">Animation on Hover</span>
+            <ResourceUsageIndicator level="medium" tooltip="Video animations can use significant CPU and memory resources, especially with multiple channels">
+              <span className="wee-card-title">Animation on Hover</span>
+            </ResourceUsageIndicator>
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">

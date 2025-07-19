@@ -4,6 +4,7 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
 import ImageSearchModal from './ImageSearchModal';
 import audioManager from '../utils/AudioManager';
+import ResourceUsageIndicator from './ResourceUsageIndicator';
 import './Channel.css';
 
 // Guard for window.api to prevent errors in browser
@@ -35,16 +36,20 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
 
   // Generate static preview for MP4s on mount or when media changes
   useEffect(() => {
+    let video = null;
+    let canvas = null;
+    
     if (media && media.type && media.type.startsWith('video/') && effectiveAnimatedOnHover && !mp4Preview) {
       // Create a static preview from the first frame
-      const video = document.createElement('video');
+      video = document.createElement('video');
       video.src = media.url;
       video.crossOrigin = 'anonymous';
       video.muted = true;
       video.playsInline = true;
       video.preload = 'auto';
-      video.addEventListener('loadeddata', () => {
-        const canvas = document.createElement('canvas');
+      
+      const handleLoadedData = () => {
+        canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
@@ -55,13 +60,30 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
         } catch (e) {
           setMp4Preview(null);
         }
-      }, { once: true });
+      };
+      
+      video.addEventListener('loadeddata', handleLoadedData, { once: true });
       // Seek to 0 to ensure first frame
       video.currentTime = 0;
     } else if (!media || !media.type.startsWith('video/')) {
       setMp4Preview(null);
     }
-  }, [media, effectiveAnimatedOnHover]);
+
+    // Cleanup function
+    return () => {
+      if (video) {
+        video.removeEventListener('loadeddata', handleLoadedData);
+        video.src = '';
+        video.load();
+        video = null;
+      }
+      if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+        canvas = null;
+      }
+    };
+  }, [media, effectiveAnimatedOnHover, mp4Preview]);
 
   // Cleanup audio when component unmounts
   useEffect(() => {
