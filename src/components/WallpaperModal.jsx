@@ -37,6 +37,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [enableTimePill, setEnableTimePill] = useState(true); // Default enabled
   const [timePillBlur, setTimePillBlur] = useState(8); // Default blur amount
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Default background opacity
+  const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Default 5 seconds
 
   // Load wallpapers from backend
   const loadWallpapers = async () => {
@@ -62,6 +63,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setEnableTimePill(data.enableTimePill ?? true); // Load time pill enabled setting
       setTimePillBlur(data.timePillBlur ?? 8); // Load time pill blur setting
       setTimePillOpacity(data.timePillOpacity ?? 0.05); // Load time pill opacity setting
+      setChannelAutoFadeTimeout(data.channelAutoFadeTimeout ?? 5); // Load channel auto-fade timeout setting
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load wallpapers: ' + err.message });
     } finally {
@@ -220,6 +222,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       data.enableTimePill = enableTimePill; // Save time pill enabled setting
       data.timePillBlur = timePillBlur; // Save time pill blur setting
       data.timePillOpacity = timePillOpacity; // Save time pill opacity setting
+      data.channelAutoFadeTimeout = channelAutoFadeTimeout; // Save channel auto-fade timeout setting
       await api.set(data);
       
       // Then handle wallpaper and cycling settings
@@ -247,6 +250,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         window.settings.enableTimePill = enableTimePill; // Update time pill enabled immediately
         window.settings.timePillBlur = timePillBlur; // Update time pill blur immediately
         window.settings.timePillOpacity = timePillOpacity; // Update time pill opacity immediately
+        window.settings.channelAutoFadeTimeout = channelAutoFadeTimeout; // Update channel auto-fade timeout immediately
       }
       
       // Update local state to match what we just saved
@@ -255,6 +259,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setEnableTimePill(enableTimePill);
       setTimePillBlur(timePillBlur);
       setTimePillOpacity(timePillOpacity);
+      setChannelAutoFadeTimeout(channelAutoFadeTimeout);
       
       // Don't call loadWallpapers() as it overwrites our settings
       // Don't call onSettingsChange since we're updating window.settings directly
@@ -691,6 +696,32 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               </div>
             </>
           )}
+        </div>
+      </div>
+      {/* Channel Auto-Fade Configuration Card */}
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Channel Auto-Fade</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
+            <span style={{ fontWeight: 500, minWidth: 120 }}>Fade Timeout</span>
+            <input
+              type="range"
+              min={0}
+              max={30}
+              step={1}
+              value={channelAutoFadeTimeout}
+              onChange={e => setChannelAutoFadeTimeout(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{channelAutoFadeTimeout === 0 ? 'Off' : `${channelAutoFadeTimeout}s`}</span>
+          </div>
+          <div style={{ fontSize: 14, color: '#666', marginTop: 12 }}>
+            <strong>Fade Timeout:</strong> The time in seconds before channels start to fade out when not hovered. Set to 0 to disable auto-fade completely.
+          </div>
         </div>
       </div>
     </BaseModal>

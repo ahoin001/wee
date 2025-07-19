@@ -120,8 +120,12 @@ function App() {
   const [enableTimePill, setEnableTimePill] = useState(true); // Time pill enabled
   const [timePillBlur, setTimePillBlur] = useState(8); // Time pill backdrop blur
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
+  const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Channel auto-fade timeout
   const currentTimeColorRef = useRef('#ffffff');
   const currentTimeFormatRef = useRef(true);
+  const [lastChannelHoverTime, setLastChannelHoverTime] = useState(Date.now());
+  const [channelOpacity, setChannelOpacity] = useState(1);
+  const fadeTimeoutRef = useRef(null);
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
 
@@ -151,6 +155,7 @@ function App() {
       setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Load enableTimePill
       setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Load timePillBlur
       setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Load timePillOpacity
+      setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Load channelAutoFadeTimeout
       // Load channels
       const channelData = await channelsApi.get();
       // Always show 12 channels
@@ -972,6 +977,7 @@ function App() {
     setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Update enableTimePill
     setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
     setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
+    setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Update channelAutoFadeTimeout
   };
 
   // On save for channels
@@ -979,6 +985,11 @@ function App() {
     await channelsApi?.set(newChannels);
     const channelData = await channelsApi?.get();
     setChannelConfigs(channelData || {});
+  };
+
+  // Handle channel hover for auto-fade
+  const handleChannelHover = () => {
+    setLastChannelHoverTime(Date.now());
   };
 
   // On reset all
@@ -1002,9 +1013,38 @@ function App() {
     setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Update enableTimePill
     setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
     setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
+    setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Update channelAutoFadeTimeout
     const channelData = await channelsApi?.get();
     setChannelConfigs(channelData || {});
   };
+
+  // Channel auto-fade logic
+  useEffect(() => {
+    if (channelAutoFadeTimeout <= 0) {
+      setChannelOpacity(1);
+      return;
+    }
+
+    const checkFadeTimeout = () => {
+      const now = Date.now();
+      const timeSinceLastHover = now - lastChannelHoverTime;
+      const timeoutMs = channelAutoFadeTimeout * 1000;
+      
+      if (timeSinceLastHover >= timeoutMs) {
+        setChannelOpacity(0.3); // Fade to 30% opacity
+      } else {
+        setChannelOpacity(1);
+      }
+    };
+
+    // Check immediately
+    checkFadeTimeout();
+
+    // Set up interval to check fade timeout
+    const interval = setInterval(checkFadeTimeout, 100);
+
+    return () => clearInterval(interval);
+  }, [channelAutoFadeTimeout, lastChannelHoverTime]);
 
   // Pause/resume background music on window blur/focus
   useEffect(() => {
@@ -1099,7 +1139,7 @@ function App() {
           <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
         )}
         {useCustomCursor && <WiiCursor />}
-        <div className="channels-grid">
+        <div className="channels-grid" style={{ opacity: channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
           {channels.map((channel) => {
             const config = channelConfigs[channel.id];
             const isConfigured = config && (config.media || config.path);
@@ -1119,6 +1159,7 @@ function App() {
                 onChannelSave={handleChannelSave}
                 animatedOnHover={animatedOnHover}
                 channelConfig={config}
+                onHover={handleChannelHover}
               />
             );
           })}

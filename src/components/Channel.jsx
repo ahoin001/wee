@@ -17,7 +17,7 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig }) {
+function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover }) {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showChannelModal, setShowChannelModal] = useState(false);
@@ -128,6 +128,11 @@ function Channel({ id, type, path, icon, empty, media, onMediaChange, onAppPathC
   };
 
   const handleMouseEnter = async () => {
+    // Call the parent hover handler for auto-fade
+    if (onHover) {
+      onHover();
+    }
+    
     // Play per-channel hover sound if set, else global
     if (!empty && path) {
       if (hoverSound && hoverSound.url) {
@@ -419,6 +424,7 @@ Channel.propTypes = {
     volume: PropTypes.number,
   }),
   animatedOnHover: PropTypes.bool,
+  onHover: PropTypes.func,
 };
 
 export default Channel;
