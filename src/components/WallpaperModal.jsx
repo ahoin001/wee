@@ -164,6 +164,23 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
     }
   };
 
+  // Remove current wallpaper (set to default)
+  const handleRemoveWallpaper = async () => {
+    try {
+      const result = await api.setActive({ url: null });
+      if (!result.success) {
+        setMessage({ type: 'error', text: result.error || 'Failed to remove wallpaper.' });
+      } else {
+        setActiveWallpaper(null);
+        setSelectedWallpaper(null);
+        setMessage({ type: 'success', text: 'Wallpaper removed. Back to default background.' });
+        await loadWallpapers();
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Remove wallpaper failed: ' + err.message });
+    }
+  };
+
   // Save cycling settings
   const handleSaveCycling = async () => {
     try {
@@ -282,6 +299,73 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         <div className="wee-card-desc">
           Browse, select, and manage your saved wallpapers below.
           <div style={{ marginTop: 14 }}>
+            {/* Remove Wallpaper Option */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              marginBottom: 20,
+              padding: '12px 16px',
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(240,248,255,0.9) 100%)',
+              borderRadius: 12,
+              border: '1px solid rgba(0,153,255,0.15)',
+              boxShadow: '0 2px 8px rgba(0,153,255,0.08)'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12,
+                cursor: 'pointer',
+                padding: '8px 16px',
+                borderRadius: 8,
+                background: activeWallpaper === null ? 'rgba(0,153,255,0.12)' : 'rgba(255,255,255,0.7)',
+                border: activeWallpaper === null ? '2px solid #0099ff' : '1px solid rgba(0,153,255,0.2)',
+                transition: 'all 0.2s ease',
+                minWidth: 200,
+                justifyContent: 'center'
+              }}
+              onClick={handleRemoveWallpaper}
+              onMouseEnter={e => {
+                if (activeWallpaper !== null) {
+                  e.currentTarget.style.background = 'rgba(0,153,255,0.08)';
+                  e.currentTarget.style.border = '1px solid rgba(0,153,255,0.3)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (activeWallpaper !== null) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.7)';
+                  e.currentTarget.style.border = '1px solid rgba(0,153,255,0.2)';
+                }
+              }}
+              >
+                <div style={{
+                  width: 40,
+                  height: 25,
+                  background: 'linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%)',
+                  backgroundSize: '8px 8px',
+                  backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
+                  borderRadius: 4,
+                  border: '1px solid #ddd'
+                }} />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ 
+                    fontWeight: 600, 
+                    fontSize: 14, 
+                    color: activeWallpaper === null ? '#0099ff' : '#333',
+                    marginBottom: 2
+                  }}>
+                    Default Background
+                  </div>
+                  <div style={{ 
+                    fontSize: 12, 
+                    color: activeWallpaper === null ? '#0099ff' : '#666'
+                  }}>
+                    {activeWallpaper === null ? 'Currently active' : 'Remove wallpaper'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', alignItems: 'flex-start' }}>
               {wallpapers.length === 0 && <span style={{ color: '#888' }}>No saved wallpapers yet.</span>}
               {wallpapers.map((wallpaper, idx) => (
@@ -526,7 +610,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           </div>
           {/* Wallpaper Opacity Slider */}
           <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
-            <input
+              <input
               type="range"
               min="0"
               max="1"
@@ -534,7 +618,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               value={wallpaperOpacity}
               onChange={e => setWallpaperOpacity(Number(e.target.value))}
               style={{ flex: 1 }}
-            />
+              />
             <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round(wallpaperOpacity * 100)}%</span>
           </div>
           <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
@@ -548,7 +632,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               value={wallpaperBlur}
               onChange={e => setWallpaperBlur(Number(e.target.value))}
               style={{ flex: 1 }}
-            />
+                />
             <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{wallpaperBlur}px</span>
           </div>
           <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
@@ -562,22 +646,22 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity.
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
             <span style={{ fontWeight: 500, minWidth: 120 }}>Fade Timeout</span>
-            <input
-              type="range"
-              min={0}
+                <input
+                  type="range"
+                  min={0}
               max={30}
-              step={1}
+                  step={1}
               value={channelAutoFadeTimeout}
               onChange={e => setChannelAutoFadeTimeout(Number(e.target.value))}
-              style={{ flex: 1 }}
-            />
+                  style={{ flex: 1 }}
+                />
             <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{channelAutoFadeTimeout === 0 ? 'Off' : `${channelAutoFadeTimeout}s`}</span>
-          </div>
-          <div style={{ fontSize: 14, color: '#666', marginTop: 12 }}>
+              </div>
+              <div style={{ fontSize: 14, color: '#666', marginTop: 12 }}>
             <strong>Fade Timeout:</strong> The time in seconds before channels start to fade out when not hovered. Set to 0 to disable auto-fade completely.
-          </div>
+              </div>
         </div>
       </div>
     </BaseModal>

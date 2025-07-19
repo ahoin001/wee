@@ -16,7 +16,7 @@ function hexAlpha(opacity) {
   return a === 255 ? '' : a.toString(16).padStart(2, '0');
 }
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, ribbonGlowColor: propRibbonGlowColor, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, timeColor, timeFormat24hr, timeFont }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -38,6 +38,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [buttonConfigs, setButtonConfigs] = useState([{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]);
   const [activeButtonIndex, setActiveButtonIndex] = useState(null);
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
+  const [showPresetsButtonModal, setShowPresetsButtonModal] = useState(false);
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
 
   // Load configs from settings on mount
@@ -106,6 +107,24 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   const handlePrimaryActionsCancel = () => {
     setShowPrimaryActionsModal(false);
+  };
+
+  const handlePresetsButtonContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowPresetsButtonModal(true);
+  };
+
+  const handlePresetsButtonSave = (newConfig) => {
+    setShowPresetsButtonModal(false);
+    // Save to settings
+    if (onSettingsChange) {
+      onSettingsChange({ presetsButtonConfig: newConfig });
+    }
+  };
+
+  const handlePresetsButtonCancel = () => {
+    setShowPresetsButtonModal(false);
   };
 
   // Update time every second
@@ -243,7 +262,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           <div
             className="absolute inset-0 z-0 svg-container-glow"
             style={{
-              filter: `drop-shadow(0 0 ${isRibbonHovered ? (propRibbonGlowStrengthHover ?? 48) : (propRibbonGlowStrength ?? 32)}px ${propRibbonGlowColor}) drop-shadow(0 0 12px ${propRibbonGlowColor})`,
+              filter: `drop-shadow(0 0 ${isRibbonHovered ? (propRibbonGlowStrengthHover ?? 28) : (propRibbonGlowStrength ?? 20)}px ${propRibbonGlowColor}) drop-shadow(0 0 12px ${propRibbonGlowColor})`,
               transition: 'filter 0.3s',
             }}
             onMouseEnter={() => setIsRibbonHovered(true)}
@@ -427,9 +446,32 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 onContextMenu={e => handleButtonContextMenu(0, e)}
                 onClick={() => handleButtonClick(0)}
               >
-                {buttonConfigs[0].type === 'text' ? (
-                  <span className="text-wii-gray-dark font-bold text-sm">{buttonConfigs[0].text || 'Wii'}</span>
-                ) : buttonConfigs[0].icon ? (
+                {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
+                  <span 
+                    className="text-wii-gray-dark font-bold text-sm"
+                    style={{
+                      fontFamily: buttonConfigs[0].textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
+                    }}
+                  >
+                    {buttonConfigs[0].text || 'Wii'}
+                  </span>
+                ) : buttonConfigs[0] && buttonConfigs[0].icon === 'palette' ? (
+                  <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="13.5" cy="6.5" r="2.5"/>
+                    <circle cx="17.5" cy="10.5" r="2.5"/>
+                    <circle cx="8.5" cy="7.5" r="2.5"/>
+                    <circle cx="6.5" cy="12.5" r="2.5"/>
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                  </svg>
+                ) : buttonConfigs[0] && buttonConfigs[0].icon === 'star' ? (
+                  <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                  </svg>
+                ) : buttonConfigs[0] && buttonConfigs[0].icon === 'heart' ? (
+                  <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                ) : buttonConfigs[0] && buttonConfigs[0].icon ? (
                   <img 
                     src={buttonConfigs[0].icon} 
                     alt="icon" 
@@ -444,16 +486,68 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 )}
               </div>
           </div>
-          
+          {/* Restore settings button to original absolute position with glass effect */}
           <div 
-            className={`sd-card-button absolute z-10 settings-cog-button ${glassWiiRibbon ? 'glass-effect' : ''}`}
-            style={{ left: '220px', top: '158px' }}
+            className={`sd-card-button absolute z-10 settings-cog-button glass-effect`}
+            style={{ left: '220px', top: '158px', backdropFilter: 'blur(12px) saturate(1.5)', background: 'rgba(255,255,255,0.45)', border: '1.5px solid rgba(180,180,200,0.18)', boxShadow: '0 2px 16px 0 rgba(80,80,120,0.07)' }}
             onClick={handleSettingsClick}
+            title="Settings"
           >
               <svg width="28" height="28" viewBox="0 0 24 24" className="text-wii-gray-dark">
                 <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
               </svg>
           </div>
+          {/* Presets Button: slightly below and to the right of the time container */}
+          {showPresetsButton && (
+            <div 
+              className="sd-card-button absolute z-10 presets-cog-button glass-effect"
+              style={{ left: 'calc(50% + 170px)', top: '170px', backdropFilter: 'blur(12px) saturate(1.5)', background: 'rgba(255,255,255,0.45)', border: '1.5px solid rgba(180,180,200,0.18)', boxShadow: '0 2px 16px 0 rgba(80,80,120,0.07)' }}
+              onClick={() => setShowPresetsModal(true)}
+              onContextMenu={handlePresetsButtonContextMenu}
+              title="Customize Looks (Right-click to customize button)"
+            >
+            {/* Dynamic icon based on configuration */}
+            {presetsButtonConfig.type === 'text' ? (
+              <span 
+                className="text-wii-gray-dark font-bold text-sm"
+                style={{
+                  fontFamily: presetsButtonConfig.textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
+                }}
+              >
+                {presetsButtonConfig.text || '🎨'}
+              </span>
+
+            ) : presetsButtonConfig.icon === 'palette' ? (
+              <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="13.5" cy="6.5" r="2.5"/>
+                <circle cx="17.5" cy="10.5" r="2.5"/>
+                <circle cx="8.5" cy="7.5" r="2.5"/>
+                <circle cx="6.5" cy="12.5" r="2.5"/>
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+              </svg>
+            ) : presetsButtonConfig.icon === 'star' ? (
+              <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+              </svg>
+            ) : presetsButtonConfig.icon === 'heart' ? (
+              <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            ) : presetsButtonConfig.icon ? (
+              <img 
+                src={presetsButtonConfig.icon} 
+                alt="icon" 
+                style={{ 
+                  maxHeight: 28, 
+                  maxWidth: 28,
+                  filter: presetsButtonConfig.useWiiGrayFilter ? 'grayscale(100%) brightness(0.6) contrast(1.2)' : 'none'
+                }} 
+              />
+            ) : (
+              <span style={{ fontSize: 20, color: '#0099ff' }}>🎨</span>
+            )}
+          </div>
+          )}
 
           <div className="button-container right absolute w-[120px] right-0 z-10 mr-[-30px] pr-[120px] py-4 bg-white/20 rounded-l-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
               <div className="relative ml-4">
@@ -462,9 +556,32 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     onContextMenu={e => handleButtonContextMenu(1, e)}
                     onClick={() => handleButtonClick(1)}
                   >
-                      {buttonConfigs[1].type === 'text' ? (
-                        <span className="text-wii-gray-dark font-bold text-sm">{buttonConfigs[1].text || ''}</span>
-                      ) : buttonConfigs[1].icon ? (
+                      {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
+                        <span 
+                          className="text-wii-gray-dark font-bold text-sm"
+                          style={{
+                            fontFamily: buttonConfigs[1].textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
+                          }}
+                        >
+                          {buttonConfigs[1].text || ''}
+                        </span>
+                      ) : buttonConfigs[1] && buttonConfigs[1].icon === 'palette' ? (
+                        <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="13.5" cy="6.5" r="2.5"/>
+                          <circle cx="17.5" cy="10.5" r="2.5"/>
+                          <circle cx="8.5" cy="7.5" r="2.5"/>
+                          <circle cx="6.5" cy="12.5" r="2.5"/>
+                          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                        </svg>
+                      ) : buttonConfigs[1] && buttonConfigs[1].icon === 'star' ? (
+                        <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                        </svg>
+                      ) : buttonConfigs[1] && buttonConfigs[1].icon === 'heart' ? (
+                        <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                      ) : buttonConfigs[1] && buttonConfigs[1].icon ? (
                         <img 
                           src={buttonConfigs[1].icon} 
                           alt="icon" 
@@ -550,19 +667,54 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <div className="context-menu-item" style={{ color: '#dc3545', fontWeight: 600 }}
                   onClick={async () => {
                     handleMenuClose();
-                    if (window.confirm('Are you sure you want to reset all settings, channels, sounds, and wallpapers to default? This cannot be undone.')) {
-                      if (window.api && window.api.resetToDefault) {
-                        const result = await window.api.resetToDefault();
-                        if (result && result.success) {
-                          window.location.reload();
-                        } else {
-                          alert('Failed to reset to default: ' + (result?.error || 'Unknown error'));
-                        }
+                    if (window.confirm('Are you sure you want to reset all appearance settings to default? This will not affect your saved presets.')) {
+                      // Reset all visual/cosmetic settings to their original first-time user defaults
+                      if (typeof onSettingsChange === 'function') {
+                        onSettingsChange({
+                          // Ribbon & Glow
+                          ribbonColor: '#e0e6ef',
+                          ribbonGlowColor: '#0099ff',
+                          ribbonGlowStrength: 20,
+                          ribbonGlowStrengthHover: 28,
+                          ribbonDockOpacity: 1,
+                          glassWiiRibbon: false,
+                          glassOpacity: 0.18,
+                          glassBlur: 2.5,
+                          glassBorderOpacity: 0.5,
+                          glassShineOpacity: 0.7,
+                          recentRibbonColors: [],
+                          recentRibbonGlowColors: [],
+                          // Time & Pill
+                          timeColor: '#ffffff',
+                          timeFormat24hr: true,
+                          enableTimePill: true,
+                          timePillBlur: 8,
+                          timePillOpacity: 0.05,
+                          timeFont: 'default',
+                          // Wallpaper & Effects
+                          wallpaper: null,
+                          wallpaperOpacity: 1,
+                          wallpaperBlur: 0,
+                          savedWallpapers: [],
+                          likedWallpapers: [],
+                          cycleWallpapers: false,
+                          cycleInterval: 30,
+                          cycleAnimation: 'fade',
+                          slideDirection: 'right',
+                          crossfadeDuration: 1.2,
+                          crossfadeEasing: 'ease-out',
+                          slideRandomDirection: false,
+                          slideDuration: 1.5,
+                          slideEasing: 'ease-out',
+                          channelAutoFadeTimeout: 5,
+                          ribbonButtonConfigs: [{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]
+                        });
                       }
+                      // Do NOT reset presets
                     }
                   }}
                 >
-                  Reset to Default
+                  Reset Appearance
                 </div>
               </div>
             </div>
@@ -620,6 +772,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           setAnimatedOnHover={setAnimatedOnHover}
           startInFullscreen={startInFullscreen}
           setStartInFullscreen={setStartInFullscreen}
+          showPresetsButton={showPresetsButton}
+          setShowPresetsButton={val => onSettingsChange({ showPresetsButton: val })}
         />
       )}
       {showPrimaryActionsModal && (
@@ -630,6 +784,17 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           config={buttonConfigs[activeButtonIndex]}
           buttonIndex={activeButtonIndex}
           preavailableIcons={preavailableIcons}
+        />
+      )}
+      {showPresetsButtonModal && (
+        <PrimaryActionsModal
+          isOpen={showPresetsButtonModal}
+          onClose={handlePresetsButtonCancel}
+          onSave={handlePresetsButtonSave}
+          config={presetsButtonConfig}
+          buttonIndex="presets"
+          preavailableIcons={preavailableIcons}
+          title="Customize Presets Button"
         />
       )}
       {/* Time Settings Modal */}

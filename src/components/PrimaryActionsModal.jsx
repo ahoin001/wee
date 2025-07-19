@@ -13,6 +13,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
+  const [textFont, setTextFont] = useState(config?.textFont || 'default'); // Add font state
   const exeFileInputRef = useRef(null);
 
   // Fetch saved icons on open
@@ -138,6 +139,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       actionType,
       action,
       useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false,
+      textFont: type === 'text' ? textFont : 'default', // Include font in save
     });
   };
 
@@ -156,17 +158,101 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </label>
         </div>
         {type === 'text' ? (
-          <input
-            type="text"
-            className="text-input"
-            placeholder="Button text"
-            value={text}
-            onChange={e => setText(e.target.value)}
-            maxLength={16}
-            style={{ width: '100%', marginBottom: 12 }}
-          />
+          <>
+            <input
+              type="text"
+              className="text-input"
+              placeholder="Button text"
+              value={text}
+              onChange={e => setText(e.target.value)}
+              maxLength={16}
+              style={{ width: '100%', marginBottom: 12 }}
+            />
+            {/* Font Selection for Text */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontWeight: 500, marginRight: 10 }}>Text Font</label>
+              <select
+                value={textFont}
+                onChange={e => setTextFont(e.target.value)}
+                style={{ padding: 4, borderRadius: 6 }}
+              >
+                <option value="default">Default</option>
+                <option value="digital">DigitalDisplayRegular-ODEO</option>
+              </select>
+            </div>
+          </>
         ) : (
           <>
+            {/* Built-in Icons Section */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 500, marginBottom: 8 }}>Built-in Icons:</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {/* Palette Icon */}
+                <button
+                  type="button"
+                  style={{
+                    border: icon === 'palette' ? '2.5px solid #0099ff' : '1.5px solid #ccc',
+                    borderRadius: 8,
+                    padding: 8,
+                    background: icon === 'palette' ? '#e6f7ff' : '#fff',
+                    boxShadow: icon === 'palette' ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'border 0.18s, box-shadow 0.18s',
+                  }}
+                  onClick={() => setIcon('palette')}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="13.5" cy="6.5" r="2.5"/>
+                    <circle cx="17.5" cy="10.5" r="2.5"/>
+                    <circle cx="8.5" cy="7.5" r="2.5"/>
+                    <circle cx="6.5" cy="12.5" r="2.5"/>
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                  </svg>
+                </button>
+                
+                {/* Star Icon */}
+                <button
+                  type="button"
+                  style={{
+                    border: icon === 'star' ? '2.5px solid #0099ff' : '1.5px solid #ccc',
+                    borderRadius: 8,
+                    padding: 8,
+                    background: icon === 'star' ? '#e6f7ff' : '#fff',
+                    boxShadow: icon === 'star' ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'border 0.18s, box-shadow 0.18s',
+                  }}
+                  onClick={() => setIcon('star')}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                  </svg>
+                </button>
+                
+                {/* Heart Icon */}
+                <button
+                  type="button"
+                  style={{
+                    border: icon === 'heart' ? '2.5px solid #0099ff' : '1.5px solid #ccc',
+                    borderRadius: 8,
+                    padding: 8,
+                    background: icon === 'heart' ? '#e6f7ff' : '#fff',
+                    boxShadow: icon === 'heart' ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'border 0.18s, box-shadow 0.18s',
+                  }}
+                  onClick={() => setIcon('heart')}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
             {/* Upload New Icon Button */}
             <button
               className="file-button"
@@ -357,34 +443,53 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
 
   if (!isOpen) return null;
 
+  // Check if this is for the presets button
+  const isPresetsButton = buttonIndex === "presets";
+
   return (
     <BaseModal
-      title="Primary Actions"
+      title={isPresetsButton ? "Customize Presets Button" : "Primary Actions"}
       onClose={onClose}
       maxWidth="480px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={() => { if (validatePath()) { onSave({ type, text: type === 'text' ? text : '', icon: type === 'icon' ? icon : null, actionType, action, useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false }); handleClose(); } }} style={{ minWidth: 90 }}>Save</button>
+          <button className="save-button" onClick={() => { 
+            if (isPresetsButton || validatePath()) { 
+              onSave({ 
+                type, 
+                text: type === 'text' ? text : '', 
+                icon: type === 'icon' ? icon : null, 
+                actionType: isPresetsButton ? 'none' : actionType, 
+                action: isPresetsButton ? '' : action, 
+                useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false, 
+                textFont: type === 'text' ? textFont : 'default' 
+              }); 
+              handleClose(); 
+            } 
+          }} style={{ minWidth: 90 }}>Save</button>
         </div>
       )}
     >
       {/* Icon Selection/Upload Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
-          <span className="wee-card-title">Channel Icon</span>
+          <span className="wee-card-title">{isPresetsButton ? "Presets Button Icon" : "Channel Icon"}</span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
-          Choose or upload a custom icon for this channel. PNG recommended for best results.
+          {isPresetsButton 
+            ? "Choose or upload a custom icon for the presets button. This button opens the presets modal when clicked."
+            : "Choose or upload a custom icon for this channel. PNG recommended for best results."
+          }
           <div style={{ marginTop: 14 }}>
             {/* Icon selection/upload UI here */}
             {renderIconSection && renderIconSection()}
           </div>
         </div>
       </div>
-      {/* Wii Gray Filter Card - Only show when using icon */}
-      {type === 'icon' && (
+      {/* Wii Gray Filter Card - Only show when using icon and not presets button */}
+      {type === 'icon' && !isPresetsButton && (
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
             <span className="wee-card-title">Use Wii Button Color Filter</span>
@@ -403,34 +508,38 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       )}
-      {/* App Path/URL Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">App Path or URL</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Set the path to an app or a URL to launch when this channel is clicked.
-          <div style={{ marginTop: 14 }}>
-            {/* App path/URL input UI here */}
-            {renderAppPathSection && renderAppPathSection()}
+      {/* App Path/URL Card - Only show for non-presets buttons */}
+      {!isPresetsButton && (
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">App Path or URL</span>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            Set the path to an app or a URL to launch when this channel is clicked.
+            <div style={{ marginTop: 14 }}>
+              {/* App path/URL input UI here */}
+              {renderAppPathSection && renderAppPathSection()}
+            </div>
           </div>
         </div>
-      </div>
-      {/* Text/Icon Display Options Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Display Options</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Choose whether to display text, an icon, or both on the channel button.
-          <div style={{ marginTop: 14 }}>
-            {/* Text/icon display options UI here */}
-            {renderDisplayOptionsSection && renderDisplayOptionsSection()}
+      )}
+      {/* Text/Icon Display Options Card - Only show for non-presets buttons */}
+      {!isPresetsButton && (
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">Display Options</span>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            Choose whether to display text, an icon, or both on the channel button.
+            <div style={{ marginTop: 14 }}>
+              {/* Text/icon display options UI here */}
+              {renderDisplayOptionsSection && renderDisplayOptionsSection()}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </BaseModal>
   );
 }

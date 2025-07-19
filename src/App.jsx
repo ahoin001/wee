@@ -157,6 +157,8 @@ function App() {
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Channel auto-fade timeout
   const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
+  const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star' }); // Track presets button config
+  const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
   const currentTimeColorRef = useRef('#ffffff');
   const currentTimeFormatRef = useRef(true);
   const [lastChannelHoverTime, setLastChannelHoverTime] = useState(Date.now());
@@ -172,8 +174,8 @@ function App() {
   const [ribbonGlowColor, setRibbonGlowColor] = useState('#0099ff');
   const [recentRibbonGlowColors, setRecentRibbonGlowColors] = useState([]);
   // Add ribbonGlowStrength and ribbonGlowStrengthHover state
-  const [ribbonGlowStrength, setRibbonGlowStrength] = useState(32);
-  const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(48);
+  const [ribbonGlowStrength, setRibbonGlowStrength] = useState(20);
+  const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(28);
   const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
   const [timeFont, setTimeFont] = useState('default'); // Add this to state
@@ -193,7 +195,9 @@ function App() {
       // Wallpaper & Effects
       wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, wallpaperBlur,
       // Primary Action Buttons
-      ribbonButtonConfigs,
+      ribbonButtonConfigs, // This now includes textFont for each button
+      // Presets Button
+      presetsButtonConfig, // Track presets button configuration
     };
     console.log('Saving preset:', name, 'with timeFont:', timeFont, 'data:', data);
     setPresets(prev => [...prev, { name, data }].slice(0, 6));
@@ -240,7 +244,8 @@ function App() {
     if (d.wallpaper && d.wallpaper.url && window.api?.wallpapers?.setActive) {
       window.api.wallpapers.setActive({ url: d.wallpaper.url });
     }
-    setRibbonButtonConfigs(d.ribbonButtonConfigs || []);
+    setRibbonButtonConfigs(d.ribbonButtonConfigs || []); // This now includes textFont for each button
+    setPresetsButtonConfig(d.presetsButtonConfig || { type: 'icon', icon: 'star' }); // Apply presets button config
     setShowPresetsModal(false);
   };
 
@@ -495,11 +500,13 @@ function App() {
         setRibbonGlowColor(settings.ribbonGlowColor || '#0099ff');
         setRecentRibbonGlowColors(settings.recentRibbonGlowColors || []);
         // Load ribbonGlowStrength and ribbonGlowStrengthHover from settings
-        setRibbonGlowStrength(settings.ribbonGlowStrength || 32);
-        setRibbonGlowStrengthHover(settings.ribbonGlowStrengthHover || 48);
+        setRibbonGlowStrength(settings.ribbonGlowStrength || ribbonGlowStrength);
+        setRibbonGlowStrengthHover(settings.ribbonGlowStrengthHover || ribbonGlowStrengthHover);
         setRibbonDockOpacity(settings.ribbonDockOpacity ?? 1);
         // Load presets from settings
         setPresets(settings.presets || []);
+        setPresetsButtonConfig(settings.presetsButtonConfig || { type: 'icon', icon: 'star' });
+        setShowPresetsButton(settings.showPresetsButton ?? false);
         setWallpaperBlur(settings.wallpaperBlur ?? 0);
       }
       // Mark as initialized after loading settings
@@ -558,6 +565,8 @@ function App() {
         ribbonGlowStrengthHover, // Persist ribbonGlowStrengthHover
         ribbonDockOpacity, // Persist ribbonDockOpacity
         presets, // Persist presets
+        presetsButtonConfig, // Persist presets button configuration
+        showPresetsButton, // Persist show presets button setting
         wallpaperBlur,
         timeFont, // Persist timeFont
       };
@@ -574,7 +583,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, wallpaperBlur, timeFont]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, wallpaperBlur, timeFont]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -734,6 +743,12 @@ function App() {
     }
     if (newSettings.ribbonButtonConfigs !== undefined) {
       setRibbonButtonConfigs(newSettings.ribbonButtonConfigs);
+    }
+    if (newSettings.presetsButtonConfig !== undefined) {
+      setPresetsButtonConfig(newSettings.presetsButtonConfig);
+    }
+    if (newSettings.showPresetsButton !== undefined) {
+      setShowPresetsButton(newSettings.showPresetsButton);
     }
     if (newSettings.timeColor !== undefined) {
       setTimeColor(newSettings.timeColor);
@@ -1346,7 +1361,7 @@ function App() {
         // Wallpaper & Effects
         wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, wallpaperBlur,
         // Primary Action Buttons
-        ribbonButtonConfigs,
+        ribbonButtonConfigs, // This now includes textFont for each button
       }
     } : p));
   };
@@ -1459,6 +1474,8 @@ function App() {
           timePillBlur={timePillBlur}
           timePillOpacity={timePillOpacity}
           timeFont={timeFont}
+          presetsButtonConfig={presetsButtonConfig}
+          showPresetsButton={showPresetsButton}
         />
         {/* Channel Modal - rendered at top level for proper z-index */}
         {openChannelModal && (

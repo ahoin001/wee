@@ -79,7 +79,6 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
               <div key={preset.name} style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1.5px solid #e0e0e6', borderRadius: 8, padding: 12, background: '#f9fafd' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 16 }}>{preset.name}</div>
-                  <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Ribbon: <span style={{ color: preset.data.ribbonColor }}>{preset.data.ribbonColor}</span>, Wallpaper: <span style={{ color: '#0099ff' }}>{preset.data.wallpaper?.name || 'None'}</span></div>
                 </div>
                 <button className="save-button" style={{ minWidth: 70 }} onClick={() => onApplyPreset(preset)}>
                   Apply

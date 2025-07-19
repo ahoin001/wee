@@ -159,6 +159,33 @@
   transform: rotate(90deg);
 }
 
+.presets-cog-button {
+  transition: transform 0.2s ease, filter 0.2s ease, background-color 0.2s ease;
+}
+.presets-cog-button:hover {
+  transform: scale(1.15);
+  filter: drop-shadow(0px 0px 12px hsla(var(--wii-blue), 0.8));
+  background-color: #f0f4f8;
+}
+.presets-cog-button:active {
+  transform: scale(1.1);
+  transition-duration: 0.1s;
+}
+.glass-effect.presets-cog-button {
+  background-color: rgba(232, 228, 224, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.presets-cog-button svg {
+  transition: transform 0.3s ease;
+}
+.presets-cog-button:hover svg {
+  transform: rotate(90deg);
+}
+
+
+
 .glass {
   position: relative;
   background: rgba(255, 255, 255, 0.15);
@@ -187,4 +214,54 @@
   z-index: -1;
   filter: blur(1px) drop-shadow(10px 4px 6px black) brightness(115%);
   pointer-events: none;
-} 
+}
+
+/* Built-in Icon Animations for Primary Action Buttons */
+.palette-icon {
+  transition: transform 0.4s cubic-bezier(.4,1.3,.5,1), filter 0.3s;
+}
+.wii-style-button:hover .palette-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px #0099ff88);
+}
+
+.star-icon {
+  transition: transform 0.4s cubic-bezier(.4,1.3,.5,1), filter 0.3s;
+}
+.wii-style-button:hover .star-icon {
+  transform: scale(1.15) rotate(18deg);
+  filter: drop-shadow(0 0 8px #0099ff88);
+}
+
+.heart-icon {
+  transition: transform 0.4s cubic-bezier(.4,1.3,.5,1), filter 0.3s;
+}
+.wii-style-button:hover .heart-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px #0099ff88);
+}
+
+/* Presets Button Icon Animations */
+.presets-cog-button .palette-icon {
+  transition: transform 0.4s cubic-bezier(.4,1.3,.5,1), filter 0.3s;
+}
+.presets-cog-button:hover .palette-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px #0099ff88);
+}
+
+.presets-cog-button .star-icon {
+  transition: transform 0.4s cubic-bezier(.4,1.3,.5,1), filter 0.3s;
+}
+.presets-cog-button:hover .star-icon {
+  transform: scale(1.15) rotate(18deg);
+  filter: drop-shadow(0 0 8px #0099ff88);
+}
+
+.presets-cog-button .heart-icon {
+  transition: transform 0.4s cubic-bezier(.4,1.3,.5,1), filter 0.3s;
+}
+.presets-cog-button:hover .heart-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px #0099ff88);
+}

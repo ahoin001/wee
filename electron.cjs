@@ -432,6 +432,9 @@ function getDefaultSettings() {
     cycleWallpapers: false,
     cycleInterval: 30,
     cycleAnimation: 'fade',
+    ribbonButtonConfigs: [],
+    presetsButtonConfig: { type: 'icon', icon: 'star' },
+    showPresetsButton: false,
     sounds: {
       // Will be set up by the sound library loader
     },
@@ -461,6 +464,9 @@ function getDefaultSettings() {
     cycleWallpapers: false,
     cycleInterval: 30,
     cycleAnimation: 'fade',
+    ribbonButtonConfigs: [],
+    presetsButtonConfig: { type: 'icon', icon: 'star' },
+    showPresetsButton: false,
     sounds: {
       // Will be set up by the sound library loader
     },
@@ -1076,6 +1082,16 @@ ipcMain.handle('wallpapers:setActive', async (event, { url }) => {
   try {
     let data;
     try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    
+    // Handle removing wallpaper (setting to null)
+    if (url === null) {
+      data.wallpaper = null;
+      await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+      emitWallpapersUpdated();
+      return { success: true };
+    }
+    
+    // Handle setting a specific wallpaper
     const found = (data.savedWallpapers || []).find(w => w.url === url);
     if (!found) return { success: false, error: 'Wallpaper not found' };
     data.wallpaper = found;

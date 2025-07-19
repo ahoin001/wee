@@ -3,11 +3,12 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './BaseModal.css';
 
-function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen, onSettingsChange, ...props }) {
+function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, onSettingsChange, ...props }) {
   const [pip, setPip] = useState(immersivePip);
   const [glassRibbon, setGlassRibbon] = useState(glassWiiRibbon);
   const [hoverAnim, setHoverAnim] = useState(animatedOnHover);
   const [fullscreen, setFullscreen] = useState(startInFullscreen);
+  const [showPresets, setShowPresets] = useState(showPresetsButton);
   const [startOnBoot, setStartOnBoot] = useState(false);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
     setGlassWiiRibbon(glassRibbon);
     setAnimatedOnHover(hoverAnim);
     setStartInFullscreen(fullscreen);
+    setShowPresetsButton(showPresets);
     handleClose();
   };
 
@@ -115,6 +117,21 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
         </div>
         <div className="wee-card">
           <div className="wee-card-header">
+            <span className="wee-card-title">Show Presets Button</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={showPresets}
+                onChange={e => setShowPresets(e.target.checked)}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">When enabled, shows a presets button near the time display that allows quick access to saved appearance presets. Right-click the button to customize its icon.</div>
+        </div>
+        <div className="wee-card">
+          <div className="wee-card-header">
             <span className="wee-card-title">Launch app when my computer starts</span>
             <label className="toggle-switch" style={{ margin: 0 }}>
               <input
@@ -144,6 +161,8 @@ GeneralSettingsModal.propTypes = {
   setAnimatedOnHover: PropTypes.func,
   startInFullscreen: PropTypes.bool,
   setStartInFullscreen: PropTypes.func,
+  showPresetsButton: PropTypes.bool,
+  setShowPresetsButton: PropTypes.func,
   onSettingsChange: PropTypes.func,
 };
 
