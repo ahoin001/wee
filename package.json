@@ -4,6 +4,17 @@
   "author": "Your Name ",
   "private": true,
   "version": "1.4.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ahoin001/WiiDesktopLauncher.git"
+  },
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "ahoin001",
+      "repo": "WiiDesktopLauncher"
+    }
+  ],
   "type": "module",
   "main": "electron.cjs",
   "scripts": {
@@ -30,6 +41,7 @@
   "dependencies": {
     "@radix-ui/react-context-menu": "^2.1.5",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.6.2",
     "fs-extra": "^11.3.0",
     "fuse.js": "^7.1.0",
     "gifuct-js": "^2.1.2",

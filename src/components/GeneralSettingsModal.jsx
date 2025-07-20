@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
+import UpdateModal from './UpdateModal';
 import './BaseModal.css';
 
 function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, onSettingsChange, ...props }) {
@@ -10,6 +11,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   const [fullscreen, setFullscreen] = useState(startInFullscreen);
   const [showPresets, setShowPresets] = useState(showPresetsButton);
   const [startOnBoot, setStartOnBoot] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   useEffect(() => {
     if (window.api && window.api.getAutoLaunch) {
@@ -145,7 +147,32 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, the app will launch automatically when your computer starts.</div>
         </div>
+        <div className="wee-card">
+          <div className="wee-card-header">
+            <span className="wee-card-title">Check for Updates</span>
+            <button
+              onClick={() => setShowUpdateModal(true)}
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              Check Now
+            </button>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">Check for the latest version of WiiDesktop Launcher to get new features and improvements.</div>
+        </div>
       </div>
+      {showUpdateModal && (
+        <UpdateModal onClose={() => setShowUpdateModal(false)} />
+      )}
     </BaseModal>
   );
 }

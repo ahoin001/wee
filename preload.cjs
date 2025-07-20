@@ -55,4 +55,12 @@ contextBridge.exposeInMainWorld('api', {
   launchApp: (data) => ipcRenderer.send('launch-app', data),
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
   setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
+  // Auto-updater APIs
+  updater: {
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    downloadUpdate: () => ipcRenderer.invoke('download-update'),
+    installUpdate: () => ipcRenderer.invoke('install-update'),
+    onUpdateStatus: (cb) => ipcRenderer.on('update-status', (e, data) => cb(data)),
+    offUpdateStatus: (cb) => ipcRenderer.removeListener('update-status', cb),
+  },
 });

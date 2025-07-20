@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, shell, protocol, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { execFile, spawn } = require('child_process');
 const fs = require('fs/promises');
@@ -99,6 +100,40 @@ ipcMain.handle('channels:reset', async () => { await channelsData.reset(); retur
 
 ipcMain.handle('settings:get', async () => await settingsData.get());
 ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data); return true; });
+
+// --- Auto-Updater IPC Handlers ---
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    console.log('[AUTO-UPDATE] Manual update check requested');
+    await autoUpdater.checkForUpdates();
+    return { success: true };
+  } catch (error) {
+    console.error('[AUTO-UPDATE] Error checking for updates:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('download-update', async () => {
+  try {
+    console.log('[AUTO-UPDATE] Download update requested');
+    await autoUpdater.downloadUpdate();
+    return { success: true };
+  } catch (error) {
+    console.error('[AUTO-UPDATE] Error downloading update:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('install-update', async () => {
+  try {
+    console.log('[AUTO-UPDATE] Install update requested');
+    autoUpdater.quitAndInstall();
+    return { success: true };
+  } catch (error) {
+    console.error('[AUTO-UPDATE] Error installing update:', error);
+    return { success: false, error: error.message };
+  }
+});
 
 // --- Reset All ---
 ipcMain.handle('settings:resetAll', async () => {
@@ -1361,6 +1396,15 @@ function sendWindowState() {
 }
 
 async function createWindow(opts = {}) {
+  // Close existing window if it exists to prevent memory leaks
+  if (mainWindow) {
+    if (mainWindow.cleanup) {
+      mainWindow.cleanup();
+    }
+    mainWindow.close();
+    mainWindow = null;
+  }
+
   // Check if we should start in fullscreen based on settings
   let shouldStartFullscreen = opts.fullscreen || false;
   
@@ -1397,24 +1441,102 @@ async function createWindow(opts = {}) {
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
 
-  mainWindow.on('closed', () => {
+  // Store event listener references for proper cleanup
+  const onClosed = () => {
     mainWindow = null;
-  });
-
-  mainWindow.on('enter-full-screen', () => {
+  };
+  
+  const onEnterFullScreen = () => {
     isCurrentlyFullscreen = true;
     sendWindowState();
-  });
-  mainWindow.on('leave-full-screen', () => {
+  };
+  
+  const onLeaveFullScreen = () => {
     isCurrentlyFullscreen = false;
     sendWindowState();
-  });
+  };
+
+  mainWindow.on('closed', onClosed);
+  mainWindow.on('enter-full-screen', onEnterFullScreen);
+  mainWindow.on('leave-full-screen', onLeaveFullScreen);
+  
+  // Store cleanup function for potential future use
+  mainWindow.cleanup = () => {
+    if (mainWindow) {
+      mainWindow.removeListener('closed', onClosed);
+      mainWindow.removeListener('enter-full-screen', onEnterFullScreen);
+      mainWindow.removeListener('leave-full-screen', onLeaveFullScreen);
+    }
+  };
+  
   sendWindowState();
 }
 
 app.whenReady().then(async () => {
   // Ensure default sounds exist in production
   await ensureDefaultSoundsExist();
+  
+  // Setup auto-updater
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  
+  // Auto-updater events
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[AUTO-UPDATE] Checking for updates...');
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'checking' });
+    }
+  });
+  
+  autoUpdater.on('update-available', (info) => {
+    console.log('[AUTO-UPDATE] Update available:', info);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { 
+        status: 'available', 
+        version: info.version,
+        releaseDate: info.releaseDate,
+        releaseNotes: info.releaseNotes
+      });
+    }
+  });
+  
+  autoUpdater.on('update-not-available', () => {
+    console.log('[AUTO-UPDATE] No updates available');
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { status: 'not-available' });
+    }
+  });
+  
+  autoUpdater.on('error', (err) => {
+    console.error('[AUTO-UPDATE] Error:', err);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { 
+        status: 'error', 
+        error: err.message 
+      });
+    }
+  });
+  
+  autoUpdater.on('download-progress', (progressObj) => {
+    console.log('[AUTO-UPDATE] Download progress:', progressObj.percent);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { 
+        status: 'downloading', 
+        progress: progressObj.percent 
+      });
+    }
+  });
+  
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('[AUTO-UPDATE] Update downloaded:', info);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { 
+        status: 'downloaded', 
+        version: info.version 
+      });
+    }
+  });
+  
   // Register userdata:// protocol for wallpapers, sounds, channel-hover-sounds, and icons
   protocol.registerFileProtocol('userdata', async (request, callback) => {
     const url = decodeURIComponent(request.url.replace('userdata://', ''));

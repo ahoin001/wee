@@ -884,71 +884,19 @@ function App() {
     timeFont,
   };
 
-  // Compute the list of wallpapers to cycle through
-  const cycleList = useMemo(() => {
-    const list = savedWallpapers.filter(w => likedWallpapers.includes(w.url));
-    console.log('Cycle list debug:', {
-      savedWallpapersCount: savedWallpapers.length,
-      likedWallpapersCount: likedWallpapers.length,
-      cycleListCount: list.length,
-      savedWallpapers: savedWallpapers.map(w => ({ url: w.url, name: w.name })),
-      likedWallpapers: likedWallpapers,
-      cycleList: list.map(w => ({ url: w.url, name: w.name }))
-    });
-    return list;
-  }, [savedWallpapers, likedWallpapers]);
-  
-  // Function to preload an image with enhanced optimization
-  const preloadImage = (url) => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      
-      // Set crossOrigin for better caching
-      img.crossOrigin = 'anonymous';
-      
-      // Add loading optimization
-      img.onload = () => {
-        // Force a small delay to ensure image is fully decoded
-        setTimeout(() => resolve(img), 10);
-      };
-      
-      img.onerror = (error) => {
-        console.error('Failed to preload image:', url, error);
-        reject(error);
-      };
-      
-      // Start loading
-      img.src = url;
-    });
-  };
-
-  // Map cycleAnimation to transitionType
+  // Memoize expensive calculations
   const getTransitionType = useCallback(() => {
-    switch (cycleAnimation) {
-      case 'slide':
-        return 'slide';
-      case 'fade':
-        return 'crossfade';
-      default:
-        return 'crossfade';
-    }
+    if (cycleAnimation === 'crossfade') return 'crossfade';
+    if (cycleAnimation === 'slide') return 'slide';
+    return 'fade';
   }, [cycleAnimation]);
 
-  // Apply easing function based on user selection
-  const applyEasing = useCallback((progress, easingType) => {
-    switch (easingType) {
-      case 'ease-out':
-        return 1 - Math.pow(1 - progress, 3); // Ease-out cubic
-      case 'ease-in':
-        return Math.pow(progress, 3); // Ease-in cubic
-      case 'ease-in-out':
-        return progress < 0.5 
-          ? 4 * progress * progress * progress 
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2; // Ease-in-out cubic
-      case 'linear':
-        return progress; // Linear
-      default:
-        return 1 - Math.pow(1 - progress, 3); // Default to ease-out
+  const applyEasing = useCallback((progress, easing) => {
+    switch (easing) {
+      case 'ease-in': return progress * progress;
+      case 'ease-out': return 1 - (1 - progress) * (1 - progress);
+      case 'ease-in-out': return progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      default: return progress;
     }
   }, []);
 
@@ -1014,161 +962,75 @@ function App() {
     }
   };
 
+  // Memoize cycleList to prevent unnecessary recalculations
+  const cycleList = useMemo(() => {
+    return savedWallpapers.filter(w => w.url && w.url.trim());
+  }, [savedWallpapers]);
+
   // Function to cycle to next wallpaper - memoized to prevent unnecessary re-creation
   const cycleToNextWallpaper = useCallback(() => {
-    console.log('cycleToNextWallpaper called!');
+    if (cycleList.length < 2 || isTransitioning) return;
     
-    // Prevent starting a new transition if one is already in progress
-    if (isTransitioning) {
-      console.log('Transition already in progress, skipping');
-      return;
-    }
-    
-    if (cycleList.length === 0) {
-      console.log('cycleList is empty, returning');
-      return;
-    }
-    
-    // Find current wallpaper index in cycle list using ref
-    let currentIndex = cycleList.findIndex(w => w.url === currentWallpaperRef.current?.url);
-    console.log('Current wallpaper:', currentWallpaperRef.current?.url);
-    console.log('Cycle list:', cycleList.map(w => w.url));
-    console.log('Current index found:', currentIndex);
-    
-    // If current wallpaper is not in the cycle list, start from the beginning
-    if (currentIndex === -1) {
-      console.log('Current wallpaper not in cycle list, starting from beginning');
-      currentIndex = -1; // This will make nextIndex = 0
-    }
-    
-    // Calculate next index
+    const currentIndex = cycleList.findIndex(w => w.url === wallpaper?.url);
     const nextIndex = (currentIndex + 1) % cycleList.length;
-    const nextWallpaperData = cycleList[nextIndex];
+    const nextWallpaperItem = cycleList[nextIndex];
     
-    console.log('Wallpaper cycling:', {
-      currentWallpaper: currentWallpaperRef.current?.url,
-      currentIndex,
-      nextIndex,
-      nextWallpaper: nextWallpaperData?.url,
-      cycleListLength: cycleList.length,
-      cycleInterval,
-      cycleAnimation,
-      transitionType: getTransitionType()
-    });
+    setNextWallpaper(nextWallpaperItem);
+    setIsTransitioning(true);
     
-    // Preload the next wallpaper before starting transition
-    console.log('Preloading next wallpaper:', nextWallpaperData?.url);
-    preloadImage(nextWallpaperData.url)
-      .then(() => {
-        console.log('Next wallpaper preloaded successfully');
+    // Start transition animation
+    if (getTransitionType() === 'crossfade') {
+      setCrossfadeProgress(0);
+      const startTime = Date.now();
+      const duration = crossfadeDuration * 1000;
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = applyEasing(progress, crossfadeEasing);
         
-        // Start smooth transition
-        console.log('Starting smooth transition to:', nextWallpaperData);
+        setCrossfadeProgress(easedProgress);
         
-        // Small delay to ensure smooth state updates
-        requestAnimationFrame(() => {
-          setIsTransitioning(true);
-          setNextWallpaper(nextWallpaperData);
-          setCrossfadeProgress(0); // Reset crossfade progress
-          setSlideProgress(0); // Reset slide progress
-          
-          // Choose slide direction based on saved setting (only for slide transitions)
-          if (getTransitionType() === 'slide') {
-            if (slideRandomDirection) {
-              // Use random direction selection with preference for horizontal
-              const horizontalDirections = ['left', 'right'];
-              const verticalDirections = ['up', 'down'];
-              
-              let selectedDirection;
-              if (Math.random() < 0.7) {
-                // Prefer horizontal scrolling
-                selectedDirection = horizontalDirections[Math.floor(Math.random() * horizontalDirections.length)];
-              } else {
-                // Occasionally use vertical scrolling
-                selectedDirection = verticalDirections[Math.floor(Math.random() * verticalDirections.length)];
-              }
-              
-              setSlideDirection(selectedDirection);
-            } else {
-              // Use the saved slideDirection
-              setSlideDirection(slideDirection);
-            }
-          }
-          
-          // Transition duration and steps based on animation type
-          const transitionDuration = getTransitionType() === 'slide' ? slideDuration * 1000 : crossfadeDuration * 1000;
-          const fadeSteps = getTransitionType() === 'slide' ? 90 : 120; // Fewer steps for slide but still smooth
-          const stepDuration = transitionDuration / fadeSteps;
-          
-          let currentStep = 0;
-          const fadeInterval = setInterval(() => {
-            currentStep++;
-            const rawProgress = currentStep / fadeSteps;
-            
-            // Apply easing function for smoother animation
-            let progress = applyEasing(rawProgress, getTransitionType() === 'slide' ? slideEasing : crossfadeEasing);
-            
-            // Apply additional smoothing for crossfade
-            let finalProgress = progress;
-            if (getTransitionType() === 'crossfade') {
-              // Use the easing function result directly for crossfade
-              finalProgress = progress;
-            } else if (getTransitionType() === 'slide') {
-              // Use the easing function result directly for slide
-              finalProgress = progress;
-            }
-            
-            if (getTransitionType() === 'crossfade') {
-              // Crossfade transition - use separate state with easing
-              // Batch updates for better performance
-              requestAnimationFrame(() => {
-                setCrossfadeProgress(finalProgress);
-              });
-            } else if (getTransitionType() === 'slide') {
-              // Slide transition - animate the slide progress
-              requestAnimationFrame(() => {
-                setSlideProgress(finalProgress);
-              });
-            }
-            
-            if (currentStep >= fadeSteps) {
-              // Transition complete - use requestAnimationFrame for smooth final update
-              clearInterval(fadeInterval);
-              requestAnimationFrame(() => {
-                setWallpaper(nextWallpaperData);
-                currentWallpaperRef.current = nextWallpaperData; // Update ref
-                setWallpaperOpacity(1);
-                setCrossfadeProgress(0);
-                setSlideProgress(0);
-                setNextWallpaper(null);
-                setIsTransitioning(false);
-                console.log('Transition complete');
-                
-                // Schedule next cycle
-                console.log('Scheduling next cycle in', cycleInterval, 'seconds');
-                cycleTimeoutRef.current = setTimeout(cycleToNextWallpaper, cycleInterval * 1000);
-              });
-            }
-          }, stepDuration);
-        });
-      })
-      .catch((error) => {
-        console.error('Failed to preload next wallpaper:', error);
-        // Fallback to instant switch if preloading fails
-        setWallpaper(nextWallpaperData);
-        currentWallpaperRef.current = nextWallpaperData; // Update ref
-        setWallpaperOpacity(1);
-        setCrossfadeProgress(0);
-        setSlideProgress(0);
-        setNextWallpaper(null);
-        setIsTransitioning(false);
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setWallpaper(nextWallpaperItem);
+          setNextWallpaper(null);
+          setIsTransitioning(false);
+          setCrossfadeProgress(0);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    } else if (getTransitionType() === 'slide') {
+      setSlideProgress(0);
+      const startTime = Date.now();
+      const duration = slideDuration * 1000;
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = applyEasing(progress, slideEasing);
         
-        // Schedule next cycle
-        console.log('Scheduling next cycle in', cycleInterval, 'seconds');
-        cycleTimeoutRef.current = setTimeout(cycleToNextWallpaper, cycleInterval * 1000);
-      });
-    
-  }, [cycleList, cycleInterval, cycleAnimation, isTransitioning, slideDirection, getTransitionType, slideDuration, crossfadeDuration, slideRandomDirection, slideEasing, crossfadeEasing, applyEasing]); // Removed wallpaper from dependencies
+        setSlideProgress(easedProgress);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setWallpaper(nextWallpaperItem);
+          setNextWallpaper(null);
+          setIsTransitioning(false);
+          setSlideProgress(0);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    } else {
+      // Simple fade
+      setWallpaper(nextWallpaperItem);
+      setIsTransitioning(false);
+    }
+  }, [cycleList, wallpaper?.url, isTransitioning, getTransitionType, crossfadeDuration, crossfadeEasing, slideDuration, slideEasing, applyEasing]);
   
   // Keep currentWallpaperRef in sync with wallpaper state
   useEffect(() => {
@@ -1367,6 +1229,25 @@ function App() {
     return () => {
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Cleanup on app unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Cleanup audio manager
+      audioManager.cleanup();
+      
+      // Cleanup interval manager
+      intervalManager.cleanup();
+      
+      // Clear any remaining timeouts
+      if (cycleTimeoutRef.current) {
+        clearTimeout(cycleTimeoutRef.current);
+      }
+      if (fadeTimeoutRef.current) {
+        clearTimeout(fadeTimeoutRef.current);
+      }
     };
   }, []);
 

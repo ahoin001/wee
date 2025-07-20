@@ -11,6 +11,13 @@ class AudioManager {
     if (!this.audioInstances.has(url)) {
       const audio = new Audio(url);
       audio.preload = 'none'; // Don't preload to save memory
+      
+      // Add error handling to prevent memory leaks from failed loads
+      audio.addEventListener('error', () => {
+        console.warn('Audio failed to load, removing from cache:', url);
+        this.audioInstances.delete(url);
+      }, { once: true });
+      
       this.audioInstances.set(url, audio);
     }
     return this.audioInstances.get(url);
@@ -122,9 +129,30 @@ class AudioManager {
     this.stopAllSounds();
     if (this.backgroundAudio) {
       this.backgroundAudio.pause();
+      this.backgroundAudio.currentTime = 0;
       this.backgroundAudio = null;
     }
+    
+    // Properly cleanup all audio instances
+    this.audioInstances.forEach((audio, url) => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = '';
+      audio.load(); // Force cleanup
+    });
     this.audioInstances.clear();
+  }
+
+  // Remove specific audio instance to free memory
+  removeAudioInstance(url) {
+    const audio = this.audioInstances.get(url);
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = '';
+      audio.load();
+      this.audioInstances.delete(url);
+    }
   }
 
   // Get active sound count
