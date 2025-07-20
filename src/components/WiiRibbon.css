@@ -256,3 +256,19 @@
   transform: scale(1.15);
   filter: drop-shadow(0 0 8px #0099ff88);
 }
+
+/* Pulse animation for update notification badge */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

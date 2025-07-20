@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 
-function UpdateModal({ onClose }) {
+function UpdateModal({ isOpen, onClose }) {
   const [updateStatus, setUpdateStatus] = useState(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -10,8 +10,18 @@ function UpdateModal({ onClose }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!isOpen) {
+      // Reset state when modal closes
+      setUpdateStatus(null);
+      setIsChecking(false);
+      setIsDownloading(false);
+      setDownloadProgress(0);
+      setError(null);
+      return;
+    }
+
     const handleUpdateStatus = (data) => {
-      console.log('Update status received:', data);
+      console.log('[UpdateModal] Update status received:', data);
       setUpdateStatus(data);
       
       switch (data.status) {
@@ -24,6 +34,7 @@ function UpdateModal({ onClose }) {
           setError(null);
           break;
         case 'not-available':
+          console.log('[UpdateModal] No updates available, stopping check');
           setIsChecking(false);
           setError(null);
           break;
@@ -38,11 +49,17 @@ function UpdateModal({ onClose }) {
           setError(null);
           break;
         case 'error':
+          console.log('[UpdateModal] Update error received:', data.error);
           setIsChecking(false);
           setIsDownloading(false);
           setError(data.error || 'An unknown error occurred');
           break;
         default:
+          console.log('[UpdateModal] Unknown status received:', data.status);
+          // For any other status, ensure checking state is cleared
+          if (data.status !== 'checking') {
+            setIsChecking(false);
+          }
           break;
       }
     };
@@ -52,21 +69,55 @@ function UpdateModal({ onClose }) {
     return () => {
       window.api.updater.offUpdateStatus(handleUpdateStatus);
     };
-  }, []);
+  }, [isOpen]);
 
   const handleCheckForUpdates = async () => {
+    console.log('[UpdateModal] Starting update check...');
     setIsChecking(true);
     setError(null);
     setUpdateStatus(null);
     
     try {
-      const result = await window.api.updater.checkForUpdates();
+      // First, let's test if the API is available
+      if (!window.api || !window.api.updater) {
+        throw new Error('Update API not available');
+      }
+      
+      // Set a timeout to ensure we always get a result
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Update check timed out')), 8000);
+      });
+      
+      // Try to check for updates with a timeout
+      const result = await Promise.race([
+        window.api.updater.checkForUpdates(),
+        timeoutPromise
+      ]);
+      
+      console.log('[UpdateModal] Update check result:', result);
       if (!result.success) {
         setError(result.error || 'Failed to check for updates');
+        setIsChecking(false);
+        return;
       }
+      
+      // If we get here, the check was successful but we need to wait for status events
+      // Set a shorter timeout to prevent endless spinning
+      setTimeout(() => {
+        console.log('[UpdateModal] No status events received, assuming no updates available');
+        if (isChecking && !updateStatus) {
+          setUpdateStatus({ status: 'not-available' });
+          setIsChecking(false);
+        }
+      }, 3000); // 3 second timeout for better UX
+      
     } catch (err) {
-      setError(err.message || 'Failed to check for updates');
-    } finally {
+      console.error('[UpdateModal] Update check error:', err);
+      if (err.message === 'Update check timed out') {
+        setError('Update check timed out. Please try again later.');
+      } else {
+        setError(err.message || 'Failed to check for updates');
+      }
       setIsChecking(false);
     }
   };
@@ -111,38 +162,66 @@ function UpdateModal({ onClose }) {
       return (
         <div style={{ padding: '20px' }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
-            Update Available!
+            🎉 Update Available!
           </div>
           <div style={{ marginBottom: '15px', color: '#666' }}>
-            <div>Version: {updateStatus.version}</div>
+            <div><strong>New Version:</strong> {updateStatus.version}</div>
+            <div><strong>Current Version:</strong> 1.9.1</div>
             {updateStatus.releaseDate && (
-              <div>Release Date: {new Date(updateStatus.releaseDate).toLocaleDateString()}</div>
+              <div><strong>Release Date:</strong> {new Date(updateStatus.releaseDate).toLocaleDateString()}</div>
             )}
           </div>
           {updateStatus.releaseNotes && (
             <div style={{ marginBottom: '15px' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>What's New:</div>
-              <div style={{ fontSize: '14px', color: '#666', maxHeight: '150px', overflowY: 'auto', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>📋 What's New:</div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666', 
+                maxHeight: '200px', 
+                overflowY: 'auto', 
+                padding: '12px', 
+                backgroundColor: '#f8f9fa', 
+                borderRadius: '8px',
+                border: '1px solid #e9ecef',
+                lineHeight: '1.5'
+              }}>
                 {updateStatus.releaseNotes}
               </div>
             </div>
           )}
-          <button
-            onClick={handleDownloadUpdate}
-            disabled={isDownloading}
-            style={{
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '5px',
-              cursor: isDownloading ? 'not-allowed' : 'pointer',
-              opacity: isDownloading ? 0.6 : 1,
-              fontSize: '14px'
-            }}
-          >
-            {isDownloading ? 'Downloading...' : 'Download Update'}
-          </button>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              onClick={handleDownloadUpdate}
+              disabled={isDownloading}
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                cursor: isDownloading ? 'not-allowed' : 'pointer',
+                opacity: isDownloading ? 0.6 : 1,
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              {isDownloading ? '⏳ Downloading...' : '⬇️ Download Update'}
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Later
+            </button>
+          </div>
         </div>
       );
     }
@@ -232,9 +311,14 @@ function UpdateModal({ onClose }) {
         >
           Check for Updates
         </button>
+        <div style={{ marginTop: '10px', fontSize: '12px', color: '#999' }}>
+          Current version: 1.9.1
+        </div>
       </div>
     );
   };
+
+  if (!isOpen) return null;
 
   return (
     <BaseModal onClose={onClose} title="Check for Updates">
@@ -248,7 +332,24 @@ function UpdateModal({ onClose }) {
             marginBottom: '15px',
             fontSize: '14px'
           }}>
-            Error: {error}
+            <div style={{ marginBottom: '10px' }}>Error: {error}</div>
+            <button
+              onClick={() => {
+                setError(null);
+                handleCheckForUpdates();
+              }}
+              style={{
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                padding: '5px 10px',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Try Again
+            </button>
           </div>
         )}
         {renderStatusContent()}
@@ -264,6 +365,7 @@ function UpdateModal({ onClose }) {
 }
 
 UpdateModal.propTypes = {
+  isOpen: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
 };
 

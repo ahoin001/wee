@@ -105,7 +105,14 @@ ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data)
 ipcMain.handle('check-for-updates', async () => {
   try {
     console.log('[AUTO-UPDATE] Manual update check requested');
+    console.log('[AUTO-UPDATE] Auto-updater config:', {
+      autoDownload: autoUpdater.autoDownload,
+      autoInstallOnAppQuit: autoUpdater.autoInstallOnAppQuit,
+      allowDowngrade: autoUpdater.allowDowngrade,
+      allowPrerelease: autoUpdater.allowPrerelease
+    });
     await autoUpdater.checkForUpdates();
+    console.log('[AUTO-UPDATE] Update check completed');
     return { success: true };
   } catch (error) {
     console.error('[AUTO-UPDATE] Error checking for updates:', error);
@@ -1480,10 +1487,37 @@ app.whenReady().then(async () => {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   
+  // Background update checking
+  let lastUpdateCheck = 0;
+  const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  
+  // Function to check for updates in background
+  const checkForUpdatesBackground = async () => {
+    const now = Date.now();
+    if (now - lastUpdateCheck < UPDATE_CHECK_INTERVAL) {
+      return; // Don't check too frequently
+    }
+    
+    try {
+      console.log('[AUTO-UPDATE] Background update check started');
+      lastUpdateCheck = now;
+      await autoUpdater.checkForUpdates();
+    } catch (error) {
+      console.error('[AUTO-UPDATE] Background update check failed:', error);
+    }
+  };
+  
+  // Start background update checking after a delay
+  setTimeout(checkForUpdatesBackground, 5 * 60 * 1000); // Check after 5 minutes
+  
+  // Set up periodic background checks
+  setInterval(checkForUpdatesBackground, UPDATE_CHECK_INTERVAL);
+  
   // Auto-updater events
   autoUpdater.on('checking-for-update', () => {
     console.log('[AUTO-UPDATE] Checking for updates...');
     if (mainWindow) {
+      console.log('[AUTO-UPDATE] Sending checking status to renderer');
       mainWindow.webContents.send('update-status', { status: 'checking' });
     }
   });
@@ -1503,6 +1537,7 @@ app.whenReady().then(async () => {
   autoUpdater.on('update-not-available', () => {
     console.log('[AUTO-UPDATE] No updates available');
     if (mainWindow) {
+      console.log('[AUTO-UPDATE] Sending not-available status to renderer');
       mainWindow.webContents.send('update-status', { status: 'not-available' });
     }
   });

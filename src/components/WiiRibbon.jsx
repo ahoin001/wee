@@ -5,6 +5,7 @@ import GeneralSettingsModal from './GeneralSettingsModal';
 import PrimaryActionsModal from './PrimaryActionsModal';
 import TimeSettingsModal from './TimeSettingsModal';
 import RibbonSettingsModal from './RibbonSettingsModal';
+import UpdateModal from './UpdateModal';
 import WiiStyleButton from './WiiStyleButton';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
@@ -29,6 +30,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [showGeneralModal, setShowGeneralModal] = useState(false);
   const [showTimeSettingsModal, setShowTimeSettingsModal] = useState(false);
   const [showRibbonSettingsModal, setShowRibbonSettingsModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const [immersivePip, setImmersivePip] = useState(() => {
     // Try to load from localStorage or default to false
     try {
@@ -197,6 +200,28 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     const taskId = intervalManager.addTask(checkRibbonColor, 1000, 'ribbon-color-check');
     return () => intervalManager.removeTask(taskId);
   }, [propRibbonColor, propRibbonGlowColor]);
+  
+  // Listen for update status events
+  useEffect(() => {
+    const handleUpdateStatus = (data) => {
+      console.log('[WiiRibbon] Update status received:', data);
+      if (data.status === 'available') {
+        setUpdateAvailable(true);
+      } else if (data.status === 'not-available' || data.status === 'downloaded') {
+        setUpdateAvailable(false);
+      }
+    };
+    
+    if (window.api && window.api.onUpdateStatus) {
+      window.api.onUpdateStatus(handleUpdateStatus);
+    }
+    
+    return () => {
+      if (window.api && window.api.offUpdateStatus) {
+        window.api.offUpdateStatus(handleUpdateStatus);
+      }
+    };
+  }, []);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
@@ -705,6 +730,21 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <div className="context-menu-item" onClick={() => { setShowSoundModal(true); handleMenuClose(); }}>
                   Change Sounds
                 </div>
+                <div className="context-menu-item" onClick={() => { setShowUpdateModal(true); handleMenuClose(); }}>
+                  🔄 Check for Updates
+                  {updateAvailable && (
+                    <span style={{
+                      backgroundColor: '#ff4444',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '8px',
+                      height: '8px',
+                      display: 'inline-block',
+                      marginLeft: '8px',
+                      animation: 'pulse 2s infinite'
+                    }} />
+                  )}
+                </div>
                 <div className="context-menu-item" onClick={() => { api.close(); handleMenuClose(); }}>
                   Close App
                 </div>
@@ -787,6 +827,10 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         isOpen={showSoundModal}
         onClose={() => setShowSoundModal(false)}
         onSettingsChange={onSettingsChange}
+      />
+      <UpdateModal 
+        isOpen={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
       />
       {/* Wallpaper Modal */}
       {showWallpaperModal && (
