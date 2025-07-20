@@ -101,6 +101,16 @@ function UpdateModal({ isOpen, onClose }) {
         return;
       }
       
+      // Handle immediate responses (like development mode or no update config)
+      if (result.status === 'no-update') {
+        setUpdateStatus({
+          status: 'not-available',
+          message: result.message || 'No updates available'
+        });
+        setIsChecking(false);
+        return;
+      }
+      
       // If we get here, the check was successful but we need to wait for status events
       // Set a shorter timeout to prevent endless spinning
       setTimeout(() => {
@@ -232,9 +242,23 @@ function UpdateModal({ isOpen, onClose }) {
           <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
             ✓ Up to Date
           </div>
-          <div style={{ color: '#666' }}>
-            You're running the latest version of WiiDesktop Launcher.
+          <div style={{ color: '#666', marginBottom: '15px' }}>
+            {updateStatus.message || 'You\'re running the latest version of WiiDesktop Launcher.'}
           </div>
+          <button
+            onClick={onClose}
+            style={{
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Close
+          </button>
         </div>
       );
     }

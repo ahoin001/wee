@@ -111,11 +111,33 @@ ipcMain.handle('check-for-updates', async () => {
       allowDowngrade: autoUpdater.allowDowngrade,
       allowPrerelease: autoUpdater.allowPrerelease
     });
+    
+    // Check if we're in development mode
+    if (app.isPackaged === false) {
+      console.log('[AUTO-UPDATE] Running in development mode - skipping update check');
+      return { 
+        success: true, 
+        status: 'no-update',
+        message: 'Development mode - updates not available'
+      };
+    }
+    
     await autoUpdater.checkForUpdates();
     console.log('[AUTO-UPDATE] Update check completed');
     return { success: true };
   } catch (error) {
     console.error('[AUTO-UPDATE] Error checking for updates:', error);
+    
+    // Handle specific ENOENT error for missing app-update.yml
+    if (error.code === 'ENOENT' && error.message.includes('app-update.yml')) {
+      console.log('[AUTO-UPDATE] app-update.yml not found - likely development build or missing update config');
+      return { 
+        success: true, 
+        status: 'no-update',
+        message: 'No update configuration found'
+      };
+    }
+    
     return { success: false, error: error.message };
   }
 });
@@ -1507,11 +1529,15 @@ app.whenReady().then(async () => {
     }
   };
   
-  // Start background update checking after a delay
+  // Start background update checking after a delay (only in production)
+if (app.isPackaged) {
   setTimeout(checkForUpdatesBackground, 5 * 60 * 1000); // Check after 5 minutes
   
   // Set up periodic background checks
   setInterval(checkForUpdatesBackground, UPDATE_CHECK_INTERVAL);
+} else {
+  console.log('[AUTO-UPDATE] Background update checking disabled in development mode');
+}
   
   // Auto-updater events
   autoUpdater.on('checking-for-update', () => {
