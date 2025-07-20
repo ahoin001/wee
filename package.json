@@ -37,6 +37,19 @@
             "name": "WiiDesktopLauncher"
           }
         }
+      ],
+      "publishers": [
+        {
+          "name": "@electron-forge/publisher-github",
+          "config": {
+            "repository": {
+              "owner": "ahoin001",
+              "name": "WiiDesktopLauncher"
+            },
+            "prerelease": false,
+            "draft": false
+          }
+        }
       ]
     }
   },

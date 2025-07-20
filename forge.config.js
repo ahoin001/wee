@@ -74,7 +74,8 @@ module.exports = {
           owner: 'ahoin001',
           name: 'WiiDesktopLauncher'
         },
-        prerelease: false
+        prerelease: false,
+        draft: false
       }
     }
   ],

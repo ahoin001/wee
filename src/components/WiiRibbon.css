@@ -54,8 +54,15 @@
 .button-container {
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 6rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.button-container.left {
+  border-radius: 0 6rem 6rem 0; /* Only right corners rounded */
+}
+
+.button-container.right {
+  border-radius: 6rem 0 0 6rem; /* Only left corners rounded */
 }
 
 .glass-effect .button-container {
