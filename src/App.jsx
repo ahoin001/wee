@@ -189,7 +189,7 @@ function App() {
   const [presets, setPresets] = useState([]);
 
   // Preset handlers (must be inside App)
-  const handleSavePreset = (name, includeChannels = false) => {
+  const handleSavePreset = async (name, includeChannels = false, includeSounds = false) => {
     if (presets.length >= 6) return;
     const data = {
       // WiiRibbon & Glow
@@ -211,13 +211,20 @@ function App() {
       data.appPathMap = appPathMap;
     }
     
-    console.log('Saving preset:', name, 'with timeFont:', timeFont, 'includeChannels:', includeChannels, 'data:', data);
+    // Include sound settings if requested
+    if (includeSounds) {
+      // Get the complete sound library to save all sound configurations
+      const soundLibrary = await soundsApi?.getLibrary();
+      data.soundLibrary = soundLibrary;
+    }
+    
+    console.log('Saving preset:', name, 'with timeFont:', timeFont, 'includeChannels:', includeChannels, 'includeSounds:', includeSounds, 'data:', data);
     setPresets(prev => [...prev, { name, data }].slice(0, 6));
   };
   const handleDeletePreset = (name) => {
     setPresets(prev => prev.filter(p => p.name !== name));
   };
-  const handleApplyPreset = (preset) => {
+  const handleApplyPreset = async (preset) => {
     const d = preset.data;
     // WiiRibbon & Glow
     setRibbonColor(d.ribbonColor);
@@ -261,21 +268,49 @@ function App() {
     
     // Apply channel data if present
     if (d.channels && d.mediaMap && d.appPathMap) {
+      console.log('Applying preset with channel data:', { channels: d.channels, mediaMap: d.mediaMap, appPathMap: d.appPathMap });
+      
+      // Update the channels state
       setChannels(d.channels);
       setMediaMap(d.mediaMap);
       setAppPathMap(d.appPathMap);
       
-      // Save channel data to persistent storage
+      // Save channel data to persistent storage in the correct format
       const channelData = {};
       d.channels.forEach(channel => {
-        if (!channel.empty) {
+        if (!channel.empty && (d.mediaMap[channel.id] || d.appPathMap[channel.id])) {
           channelData[channel.id] = {
             media: d.mediaMap[channel.id] || null,
-            path: d.appPathMap[channel.id] || null
+            path: d.appPathMap[channel.id] || null,
+            type: d.mediaMap[channel.id]?.type || (d.appPathMap[channel.id]?.endsWith('.exe') ? 'exe' : 'url'),
+            title: d.mediaMap[channel.id]?.name || null
           };
         }
       });
+      
+      console.log('Saving channel data to persistent storage:', channelData);
       channelsApi?.set(channelData);
+    } else {
+      console.log('No channel data in preset or channel data incomplete');
+    }
+    
+    // Apply sound settings if present
+    if (d.soundLibrary) {
+      console.log('Applying preset with sound library:', d.soundLibrary);
+      setSoundSettings(d.soundLibrary);
+      soundsApi?.set(d.soundLibrary);
+      
+      // Update background music if there's an enabled background music track
+      const enabledMusicSound = d.soundLibrary?.backgroundMusic?.find(s => s.enabled);
+      if (enabledMusicSound) {
+        await audioManager.setBackgroundMusic(enabledMusicSound.url, enabledMusicSound.volume ?? 0.4);
+        setBackgroundAudio(audioManager.backgroundAudio);
+      } else {
+        await audioManager.setBackgroundMusic(null);
+        setBackgroundAudio(null);
+      }
+    } else {
+      console.log('No sound library in preset');
     }
     
     setShowPresetsModal(false);
@@ -1263,8 +1298,12 @@ function App() {
   }, []);
 
   // Toast UI
-  const handleUpdatePreset = (name) => {
+  const handleUpdatePreset = async (name) => {
     console.log('Updating preset:', name, 'with current timeFont:', timeFont);
+    
+    // Get current sound library
+    const currentSoundLibrary = await soundsApi?.getLibrary();
+    
     setPresets(prev => prev.map(p => p.name === name ? {
       name,
       data: {
@@ -1278,10 +1317,12 @@ function App() {
         ribbonButtonConfigs, // This now includes textFont for each button
         // Presets Button
         presetsButtonConfig, // Track presets button configuration
-        // Preserve existing channel data if present
-        ...(p.data.channels && { channels: p.data.channels }),
-        ...(p.data.mediaMap && { mediaMap: p.data.mediaMap }),
-        ...(p.data.appPathMap && { appPathMap: p.data.appPathMap }),
+        // Always include current channel data when updating a preset
+        channels,
+        mediaMap,
+        appPathMap,
+        // Always include current sound library when updating a preset
+        soundLibrary: currentSoundLibrary,
       }
     } : p));
   };
