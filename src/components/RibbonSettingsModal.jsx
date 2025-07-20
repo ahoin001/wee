@@ -93,7 +93,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
       onClose={onClose}
       maxWidth="480px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
           <button 
             className="reset-button" 
             onClick={resetToDefault}
@@ -119,10 +119,8 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
           >
             Reset to Default
           </button>
-          <div style={{ display: 'flex', gap: spacing.md }}>
-            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-            <Button variant="primary" onClick={() => handleSave(handleClose)}>Save</Button>
-          </div>
+          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => handleSave(handleClose)}>Save</Button>
         </div>
       )}
     >

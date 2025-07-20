@@ -77,7 +77,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
       onClose={onClose}
       maxWidth="480px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
           <button 
             className="reset-button" 
             onClick={resetToDefault}
@@ -103,10 +103,8 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
           >
             Reset to Default
           </button>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="cancel-button" onClick={handleClose}>Cancel</button>
-            <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
-          </div>
+          <button className="cancel-button" onClick={handleClose}>Cancel</button>
+          <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
         </div>
       )}
     >
