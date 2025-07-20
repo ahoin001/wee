@@ -80,7 +80,7 @@ function WiiCursor() {
         
         if (isHovering) {
           cursor.classList.add('hover');
-        } else {
+      } else {
           cursor.classList.remove('hover');
         }
       }
@@ -369,7 +369,7 @@ function App() {
   // In setupBackgroundMusic, stop playback if no enabled track, and show toast on change
   const setupBackgroundMusic = async (soundLibrary, enabledMusicSoundArg) => {
     console.log('Setting up background music with library:', soundLibrary);
-    
+
     const bgMusicArr = soundLibrary?.backgroundMusic;
     console.log('All background music tracks:', bgMusicArr);
     const enabledMusicSound = enabledMusicSoundArg !== undefined ? enabledMusicSoundArg : bgMusicArr?.find(s => s.enabled);
@@ -382,16 +382,16 @@ function App() {
       }
       
       // Use AudioManager to set background music
-      audioManager.setBackgroundMusic(enabledMusicSound.url, enabledMusicSound.volume ?? 0.4);
+      await audioManager.setBackgroundMusic(enabledMusicSound.url, enabledMusicSound.volume ?? 0.4);
       setBackgroundAudio(audioManager.backgroundAudio);
       console.log('Background music started playing');
-    } else {
+      } else {
       // Stop background music
-      audioManager.setBackgroundMusic(null);
-      setBackgroundAudio(null);
-      console.log('Background music stopped');
+      await audioManager.setBackgroundMusic(null);
+          setBackgroundAudio(null);
+        console.log('Background music stopped');
       console.warn('No enabled background music sound found. Available:', bgMusicArr);
-    }
+      }
   };
 
   // Listen for sound library updates from SoundModal (polling mechanism)
@@ -993,7 +993,7 @@ function App() {
         
         if (progress < 1) {
           requestAnimationFrame(animate);
-        } else {
+              } else {
           setWallpaper(nextWallpaperItem);
           setNextWallpaper(null);
           setIsTransitioning(false);
@@ -1002,7 +1002,7 @@ function App() {
       };
       
       requestAnimationFrame(animate);
-    } else if (getTransitionType() === 'slide') {
+            } else if (getTransitionType() === 'slide') {
       setSlideProgress(0);
       const startTime = Date.now();
       const duration = slideDuration * 1000;
@@ -1018,9 +1018,9 @@ function App() {
           requestAnimationFrame(animate);
         } else {
           setWallpaper(nextWallpaperItem);
-          setNextWallpaper(null);
-          setIsTransitioning(false);
-          setSlideProgress(0);
+                setNextWallpaper(null);
+                setIsTransitioning(false);
+        setSlideProgress(0);
         }
       };
       
@@ -1028,7 +1028,7 @@ function App() {
     } else {
       // Simple fade
       setWallpaper(nextWallpaperItem);
-      setIsTransitioning(false);
+        setIsTransitioning(false);
     }
   }, [cycleList, wallpaper?.url, isTransitioning, getTransitionType, crossfadeDuration, crossfadeEasing, slideDuration, slideEasing, applyEasing]);
   
@@ -1100,6 +1100,9 @@ function App() {
     await soundsApi?.set(newSounds);
     const soundData = await soundsApi?.get();
     setSoundSettings(soundData || {});
+    
+    // Update audio manager volumes to reflect new settings
+    await audioManager.updateVolumesFromLibrary();
   };
 
   // On save for wallpapers
@@ -1221,8 +1224,8 @@ function App() {
     const handleBlur = () => {
       audioManager.pauseBackgroundMusic();
     };
-    const handleFocus = () => {
-      audioManager.resumeBackgroundMusic();
+    const handleFocus = async () => {
+      await audioManager.resumeBackgroundMusic();
     };
     window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);

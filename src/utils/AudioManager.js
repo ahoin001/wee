@@ -34,9 +34,11 @@ class AudioManager {
     try {
       const audio = this.getAudioInstance(url);
       
+      // Always ensure volume is set correctly (this fixes the volume change bug)
+      audio.volume = volume;
+      
       // Reset audio state
       audio.currentTime = 0;
-      audio.volume = volume;
       audio.loop = options.loop || false;
       
       // Add to active sounds if not background
@@ -67,8 +69,76 @@ class AudioManager {
     }
   }
 
+  // Update volume for a specific audio instance (for live volume changes)
+  updateVolume(url, volume) {
+    const audio = this.audioInstances.get(url);
+    if (audio) {
+      audio.volume = volume;
+    }
+    
+    // Also update background music if it matches
+    if (this.backgroundAudio && this.backgroundAudio.src === url) {
+      this.backgroundAudio.volume = volume;
+    }
+  }
+
+  // Clear audio cache to force fresh instances (useful when settings change)
+  clearCache() {
+    this.audioInstances.forEach((audio, url) => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = '';
+      audio.load();
+    });
+    this.audioInstances.clear();
+  }
+
+  // Update volumes for all cached instances based on sound library
+  async updateVolumesFromLibrary() {
+    try {
+      // Get the current sound library
+      const soundsApi = window.api?.sounds;
+      if (!soundsApi) return;
+      
+      const library = await soundsApi.getLibrary();
+      if (!library) return;
+      
+      // Update volumes for all cached instances
+      this.audioInstances.forEach((audio, url) => {
+        // Find the sound in the library that matches this URL
+        for (const category of Object.values(library)) {
+          if (Array.isArray(category)) {
+            const sound = category.find(s => s.url === url);
+            if (sound && sound.volume !== undefined) {
+              // Only update volume if the sound is enabled, or if it's currently playing
+              if (sound.enabled || !audio.paused) {
+                audio.volume = sound.volume;
+              }
+              break;
+            }
+          }
+        }
+      });
+      
+      // Also update background music volume if it's playing
+      if (this.backgroundAudio && !this.backgroundAudio.paused) {
+        for (const category of Object.values(library)) {
+          if (Array.isArray(category)) {
+            const sound = category.find(s => s.url === this.backgroundAudio.src && s.enabled);
+            if (sound && sound.volume !== undefined) {
+              this.backgroundAudio.volume = sound.volume;
+              break;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to update volumes from library:', error);
+    }
+  }
+
   // Set background music
-  setBackgroundMusic(url, volume = 0.4) {
+  async setBackgroundMusic(url, volume = 0.4) {
     // Stop previous background music
     if (this.backgroundAudio) {
       this.backgroundAudio.pause();
@@ -77,6 +147,23 @@ class AudioManager {
 
     if (url) {
       this.backgroundAudio = this.getAudioInstance(url);
+      
+      // Get the current volume from sound library if available
+      try {
+        const soundsApi = window.api?.sounds;
+        if (soundsApi) {
+          const library = await soundsApi.getLibrary();
+          if (library?.backgroundMusic) {
+            const enabledMusic = library.backgroundMusic.find(s => s.enabled);
+            if (enabledMusic && enabledMusic.volume !== undefined) {
+              volume = enabledMusic.volume;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to get current background music volume:', error);
+      }
+      
       this.backgroundAudio.volume = volume;
       this.backgroundAudio.loop = true;
       this.backgroundAudio.play().catch(error => {
@@ -95,9 +182,26 @@ class AudioManager {
   }
 
   // Resume background music with fade
-  resumeBackgroundMusic(targetVolume = 0.4) {
+  async resumeBackgroundMusic(targetVolume = 0.4) {
     if (this.backgroundAudio) {
       const audio = this.backgroundAudio;
+      
+      // Get the current volume from sound library if available
+      try {
+        const soundsApi = window.api?.sounds;
+        if (soundsApi) {
+          const library = await soundsApi.getLibrary();
+          if (library?.backgroundMusic) {
+            const enabledMusic = library.backgroundMusic.find(s => s.enabled);
+            if (enabledMusic && enabledMusic.volume !== undefined) {
+              targetVolume = enabledMusic.volume;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to get current background music volume:', error);
+      }
+      
       audio.volume = 0;
       audio.play().catch(() => {});
       

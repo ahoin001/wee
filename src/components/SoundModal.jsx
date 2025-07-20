@@ -147,6 +147,18 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
     if (audioRefs[soundId]) {
       audioRefs[soundId].volume = value;
     }
+    
+    // Also update the cached audio instance in AudioManager for immediate effect
+    const sound = localState[catKey]?.find(s => s.id === soundId);
+    if (sound && sound.url) {
+      // Import audioManager dynamically to avoid circular imports
+      import('../utils/AudioManager').then(module => {
+        const audioManager = module.default;
+        audioManager.updateVolume(sound.url, value);
+      }).catch(err => {
+        console.warn('Failed to update audio volume:', err);
+      });
+    }
   };
 
   // Delete a user sound
@@ -218,6 +230,15 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
         }
       }
     }
+    
+    // Update audio manager volumes to reflect new settings (without clearing cache)
+    try {
+      const audioManager = await import('../utils/AudioManager');
+      await audioManager.default.updateVolumesFromLibrary();
+    } catch (err) {
+      console.warn('Failed to update audio volumes:', err);
+    }
+    
     setMessage({ type: 'success', text: 'Sound settings saved.' });
     handleClose();
     if (onSettingsChange) setTimeout(onSettingsChange, 100);
