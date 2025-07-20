@@ -23,6 +23,7 @@
     "lint": "eslint .",
     "start": "electron-forge start",
     "package": "electron-forge package",
+    "publish": "electron-forge publish",
     "make": "electron-forge make",
     "release": "node scripts/release.cjs"
   },
@@ -61,6 +62,7 @@
     "@electron-forge/maker-zip": "^7.8.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
     "@electron-forge/plugin-fuses": "^7.8.1",
+    "@electron-forge/publisher-github": "^7.8.1",
     "@electron/fuses": "^1.8.0",
     "@eslint/js": "^9.30.1",
     "@types/react": "^19.1.8",

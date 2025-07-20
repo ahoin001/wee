@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 out/
+# Release checklist (personal use only)
+RELEASE_CHECKLIST.md
