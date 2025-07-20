@@ -3,7 +3,7 @@
   "description": "A Nintendo Wii-style launcher for your Windows desktop apps.",
   "author": "Your Name ",
   "private": true,
-  "version": "1.9.1",
+  "version": "1.9.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/ahoin001/WiiDesktopLauncher.git"
@@ -24,7 +24,7 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.cjs"
   },
   "config": {
     "forge": {
