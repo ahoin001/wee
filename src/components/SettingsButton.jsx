@@ -13,7 +13,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
   const [showMenuFade, setShowMenuFade] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
   const [showWallpaperModal, setShowWallpaperModal] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(undefined); // undefined until loaded
   const [isFrameless, setIsFrameless] = useState(true);
   const [showGeneralModal, setShowGeneralModal] = useState(false);
   const [immersivePip, setImmersivePip] = useState(() => {
@@ -51,15 +51,50 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
     close: () => {},
     onFullscreenState: () => {},
     onFrameState: () => {},
+    getFullscreenState: () => Promise.resolve(false), // Default to false
   };
 
   useEffect(() => {
+    let isMounted = true;
+    // Query the current fullscreen state on mount
+    if (api.getFullscreenState) {
+      api.getFullscreenState().then(val => {
+        if (isMounted) setIsFullscreen(val);
+      });
+    } else {
+      // Fallback: assume not fullscreen
+      setIsFullscreen(false);
+    }
     if (api.onFullscreenState) {
-      api.onFullscreenState((val) => setIsFullscreen(val));
+      api.onFullscreenState((val) => {
+        if (isMounted) setIsFullscreen(val);
+      });
     }
     if (api.onFrameState) {
       api.onFrameState((val) => setIsFrameless(!val));
     }
+    // Listen for direct fullscreen-state events from main process
+    const handler = (event, val) => { if (isMounted) setIsFullscreen(val); };
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.on('fullscreen-state', handler);
+    } else if (window.require) {
+      // Fallback for Electron context
+      try {
+        const { ipcRenderer } = window.require('electron');
+        ipcRenderer.on('fullscreen-state', handler);
+      } catch {}
+    }
+    return () => {
+      isMounted = false;
+      if (window.electron && window.electron.ipcRenderer) {
+        window.electron.ipcRenderer.removeListener('fullscreen-state', handler);
+      } else if (window.require) {
+        try {
+          const { ipcRenderer } = window.require('electron');
+          ipcRenderer.removeListener('fullscreen-state', handler);
+        } catch {}
+      }
+    };
   }, []);
 
   return (
@@ -127,7 +162,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               {/* Window Group */}
               <div className="settings-menu-group-label">Window</div>
               <div className="context-menu-item" onClick={() => { api.toggleFullscreen(); handleMenuClose(); }}>
-                {isFullscreen ? 'Windowed Mode' : 'Fullscreen Mode'}
+                {isFullscreen === undefined ? '...' : (isFullscreen ? 'Windowed Mode' : 'Fullscreen Mode')}
               </div>
               <div className="context-menu-item" onClick={() => { api.minimize(); handleMenuClose(); }}>
                 Minimize Window

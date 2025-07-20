@@ -1488,6 +1488,7 @@ async function createWindow(opts = {}) {
   mainWindow.on('closed', onClosed);
   mainWindow.on('enter-full-screen', onEnterFullScreen);
   mainWindow.on('leave-full-screen', onLeaveFullScreen);
+  mainWindow.once('ready-to-show', sendWindowState);
   
   // Store cleanup function for potential future use
   mainWindow.cleanup = () => {
@@ -1498,7 +1499,6 @@ async function createWindow(opts = {}) {
     }
   };
   
-  sendWindowState();
 }
 
 app.whenReady().then(async () => {
@@ -1888,4 +1888,12 @@ ipcMain.handle('select-exe-or-shortcut-file', async () => {
     console.error('[IPC] Error in select-exe-or-shortcut-file:', error);
     return { success: false, error: 'Failed to open file dialog: ' + error.message };
   }
+});
+
+ipcMain.handle('get-fullscreen-state', async () => {
+  const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+  if (win) {
+    return win.isFullScreen();
+  }
+  return false;
 });
