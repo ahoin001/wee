@@ -100,30 +100,26 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     };
   }, [hoverSoundAudio]);
   // Play hover sound (fade in)
-  const handleTestHoverSound = async () => {
-    if (hoverSoundUrl) {
-      let realUrl = hoverSoundUrl;
-      if (realUrl.startsWith('userdata://') && window.api?.resolveUserdataUrl) {
-        realUrl = await window.api.resolveUserdataUrl(realUrl);
-      }
-      const audio = new Audio(realUrl);
-      audio.volume = 0;
-      audio.loop = true;
-      audio.play();
-      setHoverSoundAudio(audio);
-      // Fade in
-      let v = 0;
-      const fade = setInterval(() => {
-        v += 0.07;
-        if (audio.volume < hoverSoundVolume) {
-          audio.volume = Math.min(v, hoverSoundVolume);
-        } else {
-          clearInterval(fade);
-        }
-      }, 40);
-      
-      // Store interval reference for cleanup
-      audio._fadeInterval = fade;
+  const handleTestHoverSound = () => {
+    if (hoverSoundAudio) {
+      // Audio is playing → stop it
+      hoverSoundAudio.pause();
+      hoverSoundAudio.currentTime = 0;
+      setHoverSoundAudio(null);
+    } else if (hoverSoundUrl) {
+      // No audio is playing → start it
+      const audio = new Audio(hoverSoundUrl);
+      audio.volume = hoverSoundVolume;
+      audio.play().then(() => {
+        console.log('[DEBUG] Audio play started');
+        setHoverSoundAudio(audio);
+      }).catch(e => {
+        console.error('[DEBUG] Audio play error:', e);
+      });
+  
+      audio.onended = () => {
+        setHoverSoundAudio(null);
+      };
     }
   };
   
@@ -477,16 +473,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           onChange={e => handleHoverSoundFile(e.target.files[0])}
           style={{ display: 'none' }}
         />
-        <button
-          className="test-button"
-          style={{ minWidth: 60 }}
-          onMouseDown={handleTestHoverSound}
-          onMouseUp={handleStopHoverSound}
-          onMouseLeave={handleStopHoverSound}
-          disabled={!hoverSoundUrl}
-        >
-          Test
-        </button>
+<button
+  className="test-button"
+  style={{ minWidth: 60 }}
+  onClick={handleTestHoverSound}
+  disabled={!hoverSoundUrl}
+>
+  {hoverSoundAudio ? 'Stop' : 'Test'}
+</button>
         <label style={{ fontWeight: 500, marginLeft: 10 }}>
           Volume:
           <input
