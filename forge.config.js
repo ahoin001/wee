@@ -72,7 +72,7 @@ module.exports = {
       config: {
         repository: {
           owner: 'ahoin001',
-          name: 'WiiDesktopLauncher'
+          name: 'wee'
         },
         prerelease: false,
         draft: false

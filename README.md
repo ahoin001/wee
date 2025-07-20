@@ -31,8 +31,8 @@ WiiDesktop Launcher is built for ultimate personalization. Nearly every aspect o
 ## 📥 How to Install (for Users)
 
 1. **Download the Latest Release:**
-   * Go to the [**Releases Page**](https://github.com/YOUR_USERNAME/WiiDesktopLauncher/releases) of this repository.
-   * Under the latest version, find the "Assets" section and click on the `WiiDesktopLauncher-Setup-x.x.x.exe` file to download it.
+   * Go to the [**Releases Page**](https://github.com/ahoin001/wee/releases) of this repository.
+* Under the latest version, find the "Assets" section and click on the `WeeDesktopLauncher-Setup-x.x.x.exe` file to download it.
 
 2. **Run the Installer:**
    * Once downloaded, double-click the `.exe` file.
@@ -45,4 +45,4 @@ If you'd like to contribute or run the app in a development environment, follow 
 
 1. **Clone the Repository:**
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/WiiDesktopLauncher.git](https://github.com/YOUR_USERNAME/WiiDesktopLauncher.git)
+   git clone https://github.com/ahoin001/wee.git

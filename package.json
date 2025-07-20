@@ -1,18 +1,18 @@
 {
-  "name": "weedesktoplauncher",
+  "name": "WeeDesktopLauncher",
   "description": "A Nintendo Wii-style launcher for your Windows desktop apps.",
   "author": "Your Name ",
   "private": true,
   "version": "1.9.4",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ahoin001/WiiDesktopLauncher.git"
+    "url": "https://github.com/ahoin001/wee.git"
   },
   "publish": [
     {
       "provider": "github",
       "owner": "ahoin001",
-      "repo": "WiiDesktopLauncher"
+      "repo": "wee"
     }
   ],
   "type": "module",
@@ -34,7 +34,7 @@
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "WiiDesktopLauncher"
+            "name": "WeeDesktopLauncher"
           }
         }
       ],
@@ -44,7 +44,7 @@
           "config": {
             "repository": {
               "owner": "ahoin001",
-              "name": "WiiDesktopLauncher"
+              "name": "wee"
             },
             "prerelease": false,
             "draft": false

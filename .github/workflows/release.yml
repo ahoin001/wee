@@ -32,8 +32,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          out/WiiDesktopLauncher-Setup-*.exe
-          out/WiiDesktopLauncher-*.exe
+          out/WeeDesktopLauncher-Setup-*.exe
+          out/WeeDesktopLauncher-*.exe
         generate_release_notes: true
         draft: false
         prerelease: false
