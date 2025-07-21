@@ -148,6 +148,8 @@ function App() {
   const lastMusicIdRef = useRef(null);
   const lastMusicUrlRef = useRef(null);
   const lastMusicEnabledRef = useRef(false);
+  const lastBgmEnabledRef = useRef(true);
+  const lastPlaylistModeRef = useRef(false);
   const currentWallpaperRef = useRef(null); // Track current wallpaper to prevent re-creation
   // Remove toast state and logic
   // const [toast, setToast] = useState(null);
@@ -300,15 +302,8 @@ function App() {
       setSoundSettings(d.soundLibrary);
       soundsApi?.set(d.soundLibrary);
       
-      // Update background music if there's an enabled background music track
-      const enabledMusicSound = d.soundLibrary?.backgroundMusic?.find(s => s.enabled);
-      if (enabledMusicSound) {
-        await audioManager.setBackgroundMusic(enabledMusicSound.url, enabledMusicSound.volume ?? 0.4);
-        setBackgroundAudio(audioManager.backgroundAudio);
-      } else {
-        await audioManager.setBackgroundMusic(null);
-        setBackgroundAudio(null);
-      }
+      // Update background music using the proper setup function
+      await setupBackgroundMusic(d.soundLibrary);
     } else {
       console.log('No sound library in preset');
     }
@@ -387,7 +382,9 @@ function App() {
             console.log('Startup sound playback failed:', error);
           });
         }
-        // If no startup sound, do not start background music here
+        
+        // Set up background music based on settings
+        await setupBackgroundMusic(soundLibrary);
       }
     }
     loadSettings();
@@ -405,28 +402,68 @@ function App() {
   const setupBackgroundMusic = async (soundLibrary, enabledMusicSoundArg) => {
     console.log('Setting up background music with library:', soundLibrary);
 
+    // First check if background music is enabled in settings
+    const bgmSettings = soundLibrary?.backgroundMusicSettings;
+    const bgmEnabled = bgmSettings?.enabled !== false; // Default to true if not set
+    
+    console.log('Background music settings:', bgmSettings);
+    console.log('Background music enabled:', bgmEnabled);
+
+    if (!bgmEnabled) {
+      // Background music is disabled, stop it
+      await audioManager.setBackgroundMusic(null);
+      setBackgroundAudio(null);
+      console.log('Background music stopped (disabled in settings)');
+      return;
+    }
+
     const bgMusicArr = soundLibrary?.backgroundMusic;
     console.log('All background music tracks:', bgMusicArr);
-    const enabledMusicSound = enabledMusicSoundArg !== undefined ? enabledMusicSoundArg : bgMusicArr?.find(s => s.enabled);
-    console.log('Enabled background music sound:', enabledMusicSound);
     
-    if (enabledMusicSound) {
-      if (!enabledMusicSound.url) {
-        console.error('Enabled background music has no URL:', enabledMusicSound);
-        return;
-      }
+    // Check if playlist mode is enabled
+    const playlistMode = bgmSettings?.playlistMode === true;
+    console.log('Playlist mode:', playlistMode);
+    
+    if (playlistMode) {
+      // In playlist mode, get all enabled and liked sounds
+      const enabledMusicTracks = bgMusicArr?.filter(s => s.enabled && s.liked) || [];
+      console.log('Enabled and liked music tracks for playlist:', enabledMusicTracks);
       
-      // Use AudioManager to set background music
-      await audioManager.setBackgroundMusic(enabledMusicSound.url, enabledMusicSound.volume ?? 0.4);
-      setBackgroundAudio(audioManager.backgroundAudio);
-      console.log('Background music started playing');
+      if (enabledMusicTracks.length > 0) {
+        const looping = bgmSettings?.looping !== false; // Default to true if not set
+        await audioManager.setBackgroundMusicPlaylist(enabledMusicTracks, looping);
+        setBackgroundAudio(audioManager.backgroundAudio);
+        console.log('Background music playlist started playing');
       } else {
-      // Stop background music
-      await audioManager.setBackgroundMusic(null);
-          setBackgroundAudio(null);
-        console.log('Background music stopped');
-      console.warn('No enabled background music sound found. Available:', bgMusicArr);
+        // Stop background music
+        await audioManager.setBackgroundMusic(null);
+        setBackgroundAudio(null);
+        console.log('Background music stopped - no enabled and liked tracks for playlist');
       }
+    } else {
+      // In single track mode, get only the first enabled sound
+      const enabledMusicSound = enabledMusicSoundArg !== undefined ? enabledMusicSoundArg : bgMusicArr?.find(s => s.enabled);
+      console.log('Enabled background music sound (single track):', enabledMusicSound);
+      
+      if (enabledMusicSound) {
+        if (!enabledMusicSound.url) {
+          console.error('Enabled background music has no URL:', enabledMusicSound);
+          return;
+        }
+        
+        // Use AudioManager to set background music
+        const looping = bgmSettings?.looping !== false; // Default to true if not set
+        await audioManager.setBackgroundMusic(enabledMusicSound.url, enabledMusicSound.volume ?? 0.4, looping);
+        setBackgroundAudio(audioManager.backgroundAudio);
+        console.log('Background music started playing (single track)');
+      } else {
+        // Stop background music
+        await audioManager.setBackgroundMusic(null);
+        setBackgroundAudio(null);
+        console.log('Background music stopped');
+        console.warn('No enabled background music sound found. Available:', bgMusicArr);
+      }
+    }
   };
 
   // Listen for sound library updates from SoundModal (polling mechanism)
@@ -435,18 +472,30 @@ function App() {
       console.log('Sound library updated, refreshing background music');
       const soundLibrary = await soundsApi?.getLibrary();
       if (soundLibrary) {
+        // Check if background music settings have changed
+        const bgmSettings = soundLibrary?.backgroundMusicSettings;
+        const bgmEnabled = bgmSettings?.enabled !== false;
         const enabledMusicSound = soundLibrary?.backgroundMusic?.find(s => s.enabled);
-        const isEnabled = !!enabledMusicSound;
+        const isEnabled = bgmEnabled && !!enabledMusicSound;
+        
+        console.log('Background music settings changed:', bgmSettings);
+        console.log('Background music enabled:', bgmEnabled);
+        console.log('Has enabled music sound:', !!enabledMusicSound);
+        
         if (
           (isEnabled !== lastMusicEnabledRef.current) ||
           (enabledMusicSound &&
             (enabledMusicSound.id !== lastMusicIdRef.current ||
              enabledMusicSound.url !== lastMusicUrlRef.current)
-          )
+          ) ||
+          (bgmSettings?.enabled !== lastBgmEnabledRef.current) ||
+          (bgmSettings?.playlistMode !== lastPlaylistModeRef.current)
         ) {
           lastMusicIdRef.current = enabledMusicSound ? enabledMusicSound.id : null;
           lastMusicUrlRef.current = enabledMusicSound ? enabledMusicSound.url : null;
           lastMusicEnabledRef.current = isEnabled;
+          lastBgmEnabledRef.current = bgmSettings?.enabled;
+          lastPlaylistModeRef.current = bgmSettings?.playlistMode;
           setupBackgroundMusic(soundLibrary, enabledMusicSound);
         }
         setSoundSettings(soundLibrary); // ensure state is in sync

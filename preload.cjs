@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('api', {
     update: (args) => ipcRenderer.invoke('update-sound', args),
     getLibrary: () => ipcRenderer.invoke('get-sound-library'),
     selectFile: () => ipcRenderer.invoke('select-sound-file'),
+    toggleLike: (args) => ipcRenderer.invoke('sounds:toggleLike', args),
+    setBackgroundMusicSettings: (settings) => ipcRenderer.invoke('sounds:setBackgroundMusicSettings', settings),
+    getBackgroundMusicSettings: () => ipcRenderer.invoke('sounds:getBackgroundMusicSettings'),
   },
   wallpapers: {
     get: () => ipcRenderer.invoke('wallpapers:get'),

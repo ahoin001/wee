@@ -449,4 +449,320 @@ input:checked + .slider:before {
   .add-sound-button {
     align-self: flex-start;
   }
+}
+
+/* Background Music Settings Styles */
+.background-music-settings {
+  background: hsl(var(--surface-secondary) / 0.5);
+  border: 1px solid hsl(var(--border-primary));
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-row {
+  margin-bottom: 12px;
+}
+
+.settings-row:last-child {
+  margin-bottom: 0;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: hsl(var(--text-primary));
+  transition: color 0.2s ease;
+}
+
+.setting-item:hover {
+  color: hsl(var(--text-primary) / 0.8);
+}
+
+.setting-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: hsl(var(--state-success));
+}
+
+/* Playlist Info Styles */
+.playlist-info {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: white;
+}
+
+/* Background Music Disabled Warning */
+.bgm-disabled-warning {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: white;
+}
+
+.warning-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.warning-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.playlist-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.info-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+/* Like Button Styles */
+.like-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+}
+
+.like-button:hover {
+  background: rgba(233, 30, 99, 0.1);
+  transform: scale(1.1);
+}
+
+.like-button.liked {
+  animation: heartBeat 0.3s ease;
+}
+
+.like-button.liked:hover {
+  background: rgba(233, 30, 99, 0.2);
+}
+
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Liked Badge Styles */
+.liked-badge {
+  font-size: 12px;
+  margin-left: 4px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Enhanced Sound Item Styles */
+.sound-item.liked {
+  border-left: 4px solid #e91e63;
+  background: hsl(var(--surface-primary) / 0.95);
+  box-shadow: 0 2px 8px rgba(233, 30, 99, 0.1);
+}
+
+.sound-item.liked:hover {
+  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
+}
+
+/* Drag and Drop Styles */
+.sound-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  position: relative;
+}
+
+.sound-item.drag-over {
+  border: 2px dashed #4ecdc4;
+  background: hsl(var(--surface-primary) / 0.8);
+  transform: scale(1.02);
+}
+
+.sound-item[draggable="true"] {
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.sound-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.sound-item[draggable="true"]:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Drag Handle */
+.drag-handle {
+  color: #888;
+  font-size: 14px;
+  margin-right: 8px;
+  cursor: grab;
+  user-select: none;
+  display: inline-block;
+  transition: color 0.2s ease;
+}
+
+.drag-handle:hover {
+  color: #4ecdc4;
+}
+
+.sound-item.dragging .drag-handle {
+  cursor: grabbing;
+}
+
+/* Background Music Disabled State */
+.sound-item.bgm-disabled {
+  opacity: 0.5;
+  background: hsl(var(--surface-disabled));
+  position: relative;
+}
+
+.sound-item.bgm-disabled::before {
+  content: "Background Music Disabled";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: hsl(var(--state-warning));
+  color: hsl(var(--text-inverse));
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.sound-item.bgm-disabled .sound-controls input[type="range"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sound-item.bgm-disabled .sound-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sound-item.bgm-disabled .toggle-switch {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sound-item.bgm-disabled .toggle-switch input {
+  cursor: not-allowed;
+}
+
+.sound-item.bgm-disabled .like-button {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sound-item.bgm-disabled .like-button:hover {
+  transform: none;
+  background: none;
+}
+
+/* Responsive adjustments for new features */
+@media (max-width: 768px) {
+  .background-music-settings {
+    padding: 12px;
+  }
+  
+  .playlist-info {
+    padding: 12px;
+  }
+  
+  .bgm-disabled-warning {
+    padding: 12px;
+  }
+  
+  .info-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .like-button {
+    font-size: 16px;
+    min-width: 28px;
+    height: 28px;
+  }
+  
+  .drag-handle {
+    font-size: 12px;
+    margin-right: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-row {
+    margin-bottom: 8px;
+  }
+  
+  .setting-item {
+    font-size: 14px;
+  }
+  
+  .playlist-info {
+    padding: 10px;
+  }
+  
+  .bgm-disabled-warning {
+    padding: 10px;
+  }
+  
+  .info-text {
+    font-size: 12px;
+  }
+  
+  .warning-text {
+    font-size: 12px;
+  }
+  
+  .drag-handle {
+    font-size: 10px;
+    margin-right: 4px;
+  }
 } 

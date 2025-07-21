@@ -458,6 +458,14 @@ async function loadSoundLibrary() {
       console.log('[SOUNDS] Updated sound library URLs for all sounds');
     }
     
+    // Preserve background music settings from saved library
+    if (savedLibrary.backgroundMusicSettings) {
+      mergedLibrary.backgroundMusicSettings = savedLibrary.backgroundMusicSettings;
+      console.log('[SOUNDS] Preserved background music settings:', savedLibrary.backgroundMusicSettings);
+    } else {
+      console.log('[SOUNDS] No background music settings found in saved library');
+    }
+    
     // Save merged library if it changed
     if (JSON.stringify(savedLibrary) !== JSON.stringify(mergedLibrary)) {
       await writeJson(savedSoundsPath, mergedLibrary);
@@ -899,6 +907,95 @@ ipcMain.handle('update-sound', async (event, { soundType, soundId, updates }) =>
     return { success: true, sound: library[soundType][soundIndex] };
   } catch (error) {
     console.error('[SOUNDS] Error updating sound:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Background music settings handlers
+ipcMain.handle('sounds:toggleLike', async (event, { soundId }) => {
+  try {
+    const library = await loadSoundLibrary();
+    
+    if (!library.backgroundMusic) {
+      library.backgroundMusic = [];
+    }
+    
+    const soundIndex = library.backgroundMusic.findIndex(s => s.id === soundId);
+    if (soundIndex === -1) {
+      return { success: false, error: 'Sound not found' };
+    }
+    
+    const sound = library.backgroundMusic[soundIndex];
+    const wasLiked = sound.liked || false;
+    
+    // Toggle like status
+    library.backgroundMusic[soundIndex].liked = !wasLiked;
+    
+    // Save updated library
+    await writeJson(savedSoundsPath, library);
+    console.log(`[SOUNDS] Toggled like for sound: ${sound.name}`);
+    
+    return { 
+      success: true, 
+      liked: !wasLiked,
+      sound: library.backgroundMusic[soundIndex]
+    };
+  } catch (error) {
+    console.error('[SOUNDS] Error toggling like:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('sounds:setBackgroundMusicSettings', async (event, settings) => {
+  try {
+    console.log('[SOUNDS] Setting background music settings:', settings);
+    
+    const library = await loadSoundLibrary();
+    
+    if (!library.backgroundMusic) {
+      library.backgroundMusic = [];
+    }
+    
+    // Update background music settings
+    library.backgroundMusicSettings = {
+      looping: !!settings.looping,
+      playlistMode: !!settings.playlistMode,
+      enabled: settings.enabled !== undefined ? !!settings.enabled : true
+    };
+    
+    console.log('[SOUNDS] New background music settings:', library.backgroundMusicSettings);
+    
+    // Save updated library
+    await writeJson(savedSoundsPath, library);
+    console.log('[SOUNDS] Saved background music settings to file');
+    
+    return { success: true, settings: library.backgroundMusicSettings };
+  } catch (error) {
+    console.error('[SOUNDS] Error updating background music settings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('sounds:getBackgroundMusicSettings', async () => {
+  try {
+    const library = await loadSoundLibrary();
+    
+    const defaultSettings = {
+      looping: true,
+      playlistMode: false,
+      enabled: true
+    };
+    
+    const settings = library.backgroundMusicSettings || defaultSettings;
+    console.log('[SOUNDS] Getting background music settings:', settings);
+    console.log('[SOUNDS] Library has backgroundMusicSettings:', !!library.backgroundMusicSettings);
+    
+    return { 
+      success: true, 
+      settings: settings
+    };
+  } catch (error) {
+    console.error('[SOUNDS] Error getting background music settings:', error);
     return { success: false, error: error.message };
   }
 });
