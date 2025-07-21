@@ -20,6 +20,10 @@ contextBridge.exposeInMainWorld('api', {
   },
   steam: {
     getInstalledGames: () => ipcRenderer.invoke('steam:getInstalledGames'),
+    pickLibraryFolder: () => ipcRenderer.invoke('steam:pickLibraryFolder'),
+  },
+  epic: {
+    getInstalledGames: () => ipcRenderer.invoke('epic:getInstalledGames'),
   },
   wallpapers: {
     get: () => ipcRenderer.invoke('wallpapers:get'),

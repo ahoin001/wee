@@ -469,7 +469,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
           <ResourceUsageIndicator level="high" tooltip="Wallpaper cycling continuously loads and displays images, using significant CPU, memory, and GPU resources">
-            <span className="wee-card-title">Enable Wallpaper Cycling</span>
+          <span className="wee-card-title">Enable Wallpaper Cycling</span>
           </ResourceUsageIndicator>
           <label className="toggle-switch" style={{ margin: 0 }}>
             <input

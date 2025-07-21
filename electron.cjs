@@ -2299,3 +2299,49 @@ async function getInstalledSteamGames() {
 ipcMain.handle('steam:getInstalledGames', async () => {
   return await getInstalledSteamGames();
 });
+
+// Helper to get all installed Epic Games
+async function getInstalledEpicGames() {
+  try {
+    const epicManifestsDir = 'C:/ProgramData/Epic/EpicGamesLauncher/Data/Manifests';
+    if (!fsSync.existsSync(epicManifestsDir)) {
+      console.error('[EpicScan] Could not find Epic Games manifests directory.');
+      return { error: 'Could not find Epic Games manifests directory.' };
+    }
+    const files = fsSync.readdirSync(epicManifestsDir).filter(f => f.endsWith('.item'));
+    let games = [];
+    for (const file of files) {
+      try {
+        const manifest = JSON.parse(fsSync.readFileSync(path.join(epicManifestsDir, file), 'utf-8'));
+        const name = manifest.DisplayName;
+        const appName = manifest.AppName;
+        if (name && appName) {
+          games.push({ name, appName });
+        }
+      } catch (err) {
+        console.warn('[EpicScan] Failed to parse', file, err);
+      }
+    }
+    console.log(`[EpicScan] Found ${games.length} installed Epic games.`);
+    return { games };
+  } catch (err) {
+    console.error('[EpicScan] Error scanning Epic games:', err);
+    return { error: err.message };
+  }
+}
+
+ipcMain.handle('epic:getInstalledGames', async () => {
+  return await getInstalledEpicGames();
+});
+
+ipcMain.handle('steam:pickLibraryFolder', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Select your Steam library folder',
+    properties: ['openDirectory'],
+    message: 'Pick the folder containing your steamapps/libraryfolders.vdf file.'
+  });
+  if (result.canceled || !result.filePaths || !result.filePaths[0]) {
+    return { canceled: true };
+  }
+  return { path: result.filePaths[0] };
+});

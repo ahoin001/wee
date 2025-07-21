@@ -154,11 +154,11 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
         );
       } else {
         // For non-playlist mode or other sound types, only allow one enabled at a time
-        updated[catKey] = updated[catKey].map(s =>
-          s.id === soundId
-            ? { ...s, enabled: !s.enabled }
-            : { ...s, enabled: false }
-        );
+      updated[catKey] = updated[catKey].map(s =>
+        s.id === soundId
+          ? { ...s, enabled: !s.enabled }
+          : { ...s, enabled: false }
+      );
       }
       
       return updated;
@@ -386,29 +386,29 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
         return;
       }
 
-      // Compare localState to soundLibrary and persist only changes
-      for (const cat of SOUND_CATEGORIES) {
-        const orig = soundLibrary[cat.key] || [];
-        const curr = localState[cat.key] || [];
-        for (let i = 0; i < curr.length; i++) {
-          const origSound = orig[i];
-          const currSound = curr[i];
-          if (!origSound) continue;
-          if (
-            origSound.enabled !== currSound.enabled ||
-            origSound.volume !== currSound.volume
-          ) {
-            await soundsApi.update({
-              soundType: cat.key,
-              soundId: currSound.id,
-              updates: {
-                enabled: currSound.enabled,
-                volume: currSound.volume,
-              },
-            });
-          }
+    // Compare localState to soundLibrary and persist only changes
+    for (const cat of SOUND_CATEGORIES) {
+      const orig = soundLibrary[cat.key] || [];
+      const curr = localState[cat.key] || [];
+      for (let i = 0; i < curr.length; i++) {
+        const origSound = orig[i];
+        const currSound = curr[i];
+        if (!origSound) continue;
+        if (
+          origSound.enabled !== currSound.enabled ||
+          origSound.volume !== currSound.volume
+        ) {
+          await soundsApi.update({
+            soundType: cat.key,
+            soundId: currSound.id,
+            updates: {
+              enabled: currSound.enabled,
+              volume: currSound.volume,
+            },
+          });
         }
       }
+    }
       
       // Update audio manager volumes to reflect new settings (without clearing cache)
       try {
@@ -420,9 +420,9 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
         console.warn('Failed to update audio volumes:', err);
       }
       
-      setMessage({ type: 'success', text: 'Sound settings saved.' });
+    setMessage({ type: 'success', text: 'Sound settings saved.' });
       handleClose();
-      if (onSettingsChange) setTimeout(onSettingsChange, 100);
+    if (onSettingsChange) setTimeout(onSettingsChange, 100);
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to save settings: ' + err.message });
     }
@@ -631,8 +631,8 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
 
           // Regular sound sections for other categories
           return (
-            <div className="sound-section" key={cat.key}>
-              <div className="section-header">
+          <div className="sound-section" key={cat.key}>
+            <div className="section-header">
                 <h3>
                   {cat.key === 'channelHover' ? (
                     <ResourceUsageIndicator level="medium" tooltip="Hover sounds play frequently and can impact performance with many channels">
@@ -642,65 +642,65 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                     cat.label
                   )}
                 </h3>
-                <button
-                  className="add-sound-button"
-                  onClick={() => handleUploadClick(cat.key)}
-                  disabled={uploading[cat.key]}
+              <button
+                className="add-sound-button"
+                onClick={() => handleUploadClick(cat.key)}
+                disabled={uploading[cat.key]}
+              >
+                {uploading[cat.key] ? 'Uploading...' : 'Add Sound'}
+              </button>
+            </div>
+            <div className="sound-list">
+              {localState[cat.key]?.length === 0 && (
+                <span className="no-sounds" style={{ color: '#888' }}>No sounds yet.</span>
+              )}
+              {localState[cat.key]?.map(sound => (
+                <div
+                  className={`sound-item ${sound.isDefault ? 'default' : 'user'}${sound.enabled ? ' enabled' : ''}${!sound.enabled ? ' disabled' : ''}`}
+                  key={sound.id}
                 >
-                  {uploading[cat.key] ? 'Uploading...' : 'Add Sound'}
-                </button>
-              </div>
-              <div className="sound-list">
-                {localState[cat.key]?.length === 0 && (
-                  <span className="no-sounds" style={{ color: '#888' }}>No sounds yet.</span>
-                )}
-                {localState[cat.key]?.map(sound => (
-                  <div
-                    className={`sound-item ${sound.isDefault ? 'default' : 'user'}${sound.enabled ? ' enabled' : ''}${!sound.enabled ? ' disabled' : ''}`}
-                    key={sound.id}
-                  >
-                    <div className="sound-info">
-                      <div className="sound-name">
-                        {sound.name}
-                        {sound.isDefault && <span className="default-badge">Default</span>}
+                  <div className="sound-info">
+                    <div className="sound-name">
+                      {sound.name}
+                      {sound.isDefault && <span className="default-badge">Default</span>}
+                    </div>
+                    <div className="sound-controls">
+                      <div className="volume-control">
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={sound.volume ?? 0.5}
+                          onChange={e => handleVolumeChange(cat.key, sound.id, Number(e.target.value))}
+                        />
+                        <span className="volume-value">{Math.round((sound.volume ?? 0.5) * 100)}%</span>
                       </div>
-                      <div className="sound-controls">
-                        <div className="volume-control">
-                          <input
-                            type="range"
-                            min={0}
-                            max={1}
-                            step={0.01}
-                            value={sound.volume ?? 0.5}
-                            onChange={e => handleVolumeChange(cat.key, sound.id, Number(e.target.value))}
-                          />
-                          <span className="volume-value">{Math.round((sound.volume ?? 0.5) * 100)}%</span>
-                        </div>
-                        {testing[sound.id] ? (
-                          <button className="test-button" onClick={() => handleStopTest(sound.id)} style={{ minWidth: 60 }}>Stop</button>
-                        ) : (
-                          <button className="test-button" onClick={() => handleTestSound(cat.key, sound)} style={{ minWidth: 60 }}>Test</button>
-                        )}
-                        {!sound.isDefault && (
-                          <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
-                        )}
-                        <label className="toggle-switch" title="Enable/Disable">
-                          <input
-                            type="checkbox"
-                            checked={!!sound.enabled}
-                            onChange={() => handleToggleEnable(cat.key, sound.id)}
-                          />
-                          <span className="slider" />
-                        </label>
-                      </div>
+                      {testing[sound.id] ? (
+                        <button className="test-button" onClick={() => handleStopTest(sound.id)} style={{ minWidth: 60 }}>Stop</button>
+                      ) : (
+                        <button className="test-button" onClick={() => handleTestSound(cat.key, sound)} style={{ minWidth: 60 }}>Test</button>
+                      )}
+                      {!sound.isDefault && (
+                        <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
+                      )}
+                      <label className="toggle-switch" title="Enable/Disable">
+                        <input
+                          type="checkbox"
+                          checked={!!sound.enabled}
+                          onChange={() => handleToggleEnable(cat.key, sound.id)}
+                        />
+                        <span className="slider" />
+                      </label>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div style={{ marginTop: 10, textAlign: 'right' }}>
-                <button className="add-sound-button" style={{ background: '#bbb', color: '#222' }} onClick={() => handleDisableAll(cat.key)}>Disable All</button>
-              </div>
+                </div>
+              ))}
             </div>
+            <div style={{ marginTop: 10, textAlign: 'right' }}>
+              <button className="add-sound-button" style={{ background: '#bbb', color: '#222' }} onClick={() => handleDisableAll(cat.key)}>Disable All</button>
+            </div>
+          </div>
           );
         })}
       </div>
