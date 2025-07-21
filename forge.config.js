@@ -5,7 +5,8 @@ module.exports = {
   packagerConfig: {
     asar: true,
     extraResource: [
-      'public/sounds'
+      'public/sounds',
+      'scripts/installer.html'
     ],
     ignore: [
       /^\/public\/sounds\/.*\.md$/  // Ignore README files

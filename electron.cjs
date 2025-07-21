@@ -1502,6 +1502,14 @@ async function createWindow(opts = {}) {
 }
 
 app.whenReady().then(async () => {
+  // Check if this is the first run (installer mode)
+  const isFirstRun = await checkIfFirstRun();
+  
+  if (isFirstRun) {
+    // Show custom installer
+    await showCustomInstaller();
+  }
+  
   // Ensure default sounds exist in production
   await ensureDefaultSoundsExist();
   
@@ -1631,6 +1639,212 @@ if (app.isPackaged) {
     
     callback({ path: filePath });
   });
+  
+  // Installer functions
+  async function checkIfFirstRun() {
+    try {
+      const userDataPath = app.getPath('userData');
+      const firstRunFile = path.join(userDataPath, 'first-run-complete.json');
+      
+      // Check if first run file exists
+      const exists = await fs.access(firstRunFile).then(() => true).catch(() => false);
+      
+      if (!exists) {
+        // Create first run file to mark as completed
+        await fs.writeJson(firstRunFile, {
+          completed: true,
+          date: new Date().toISOString(),
+          version: app.getVersion()
+        });
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking first run status:', error);
+      return false;
+    }
+  }
+  
+  async function showCustomInstaller() {
+    return new Promise((resolve) => {
+      const installerWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        resizable: false,
+        maximizable: false,
+        minimizable: false,
+        fullscreenable: false,
+        show: false,
+        frame: false,
+        transparent: true,
+        webPreferences: {
+          nodeIntegration: true,
+          contextIsolation: false,
+          enableRemoteModule: true
+        }
+      });
+      
+      // Load the installer HTML
+      installerWindow.loadFile(path.join(__dirname, 'scripts', 'installer.html'));
+      
+      installerWindow.once('ready-to-show', () => {
+        installerWindow.show();
+      });
+      
+      installerWindow.on('closed', () => {
+        resolve();
+      });
+      
+      // Handle installer IPC
+      ipcMain.handle('installer:get-step', () => {
+        const steps = [
+          {
+            title: "Welcome to WeeDesktopLauncher! 🎮",
+            description: "Transform your Windows desktop into a nostalgic Wii experience!",
+            features: [
+              "🎨 Beautiful Wii-style interface",
+              "🎵 Customizable sounds and music", 
+              "🖼️ Easy wallpaper customization",
+              "🚀 Quick app launching",
+              "⚙️ Full customization options"
+            ],
+            animation: "welcome"
+          },
+          {
+            title: "Installation Options 📁",
+            description: "Choose where you'd like shortcuts to be created:",
+            options: [
+              { id: 'desktop', label: 'Desktop Shortcut', default: true },
+              { id: 'startmenu', label: 'Start Menu', default: true },
+              { id: 'taskbar', label: 'Pin to Taskbar', default: false },
+              { id: 'autostart', label: 'Start with Windows', default: false }
+            ],
+            animation: "options"
+          },
+          {
+            title: "Installation Progress ⚡",
+            description: "Setting up your Wii-style desktop experience...",
+            animation: "progress"
+          },
+          {
+            title: "Installation Complete! 🎉",
+            description: "WeeDesktopLauncher has been successfully installed!",
+            animation: "complete"
+          }
+        ];
+        
+        return steps[0]; // Return first step initially
+      });
+      
+      ipcMain.handle('installer:next-step', async (event, options) => {
+        // Handle installation options and create shortcuts
+        if (options) {
+          await createShortcuts(options);
+        }
+        return { complete: true };
+      });
+      
+      ipcMain.handle('installer:start-install', async () => {
+        // Simulate installation progress
+        return { success: true };
+      });
+      
+      ipcMain.on('launch-app-after-install', () => {
+        installerWindow.close();
+      });
+    });
+  }
+  
+  async function createShortcuts(options) {
+    try {
+      if (options.desktop) {
+        await createDesktopShortcut();
+      }
+      
+      if (options.startmenu) {
+        await createStartMenuShortcut();
+      }
+      
+      if (options.taskbar) {
+        await pinToTaskbar();
+      }
+      
+      if (options.autostart) {
+        await setupAutoStart();
+      }
+    } catch (error) {
+      console.error('Error creating shortcuts:', error);
+    }
+  }
+  
+  async function createDesktopShortcut() {
+    try {
+      const os = require('os');
+      const desktopPath = path.join(os.homedir(), 'Desktop');
+      const shortcutPath = path.join(desktopPath, 'WeeDesktopLauncher.lnk');
+      const exePath = app.getPath('exe');
+      
+      const command = `powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('${shortcutPath}'); $Shortcut.TargetPath = '${exePath}'; $Shortcut.Save()"`;
+      
+      return new Promise((resolve, reject) => {
+        exec(command, (error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    } catch (error) {
+      console.error('Error creating desktop shortcut:', error);
+    }
+  }
+  
+  async function createStartMenuShortcut() {
+    try {
+      const os = require('os');
+      const startMenuPath = path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+      const shortcutPath = path.join(startMenuPath, 'WeeDesktopLauncher.lnk');
+      const exePath = app.getPath('exe');
+      
+      const command = `powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('${shortcutPath}'); $Shortcut.TargetPath = '${exePath}'; $Shortcut.Save()"`;
+      
+      return new Promise((resolve, reject) => {
+        exec(command, (error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    } catch (error) {
+      console.error('Error creating start menu shortcut:', error);
+    }
+  }
+  
+  async function pinToTaskbar() {
+    try {
+      const exePath = app.getPath('exe');
+      const command = `powershell -Command "& { $shell = New-Object -ComObject Shell.Application; $shell.NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}').Items() | Where-Object {$_.Path -eq '${exePath}'} | ForEach-Object {$_.InvokeVerb('taskbarpin')}"}`;
+      
+      return new Promise((resolve, reject) => {
+        exec(command, (error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    } catch (error) {
+      console.error('Error pinning to taskbar:', error);
+    }
+  }
+  
+  async function setupAutoStart() {
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: true,
+        path: app.getPath('exe')
+      });
+    } catch (error) {
+      console.error('Error setting up auto-start:', error);
+    }
+  }
+  
   await createWindow();
 });
 

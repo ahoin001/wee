@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeeDesktopLauncher Installer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .installer-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .title-bar {
+            height: 40px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            -webkit-app-region: drag;
+        }
+
+        .title-bar h1 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .close-btn {
+            -webkit-app-region: no-drag;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .step-container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .step-container.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .step-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .step-description {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+        }
+
+        .features-list {
+            list-style: none;
+            margin: 30px 0;
+        }
+
+        .features-list li {
+            font-size: 16px;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            animation: slideInLeft 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        .features-list li:nth-child(1) { animation-delay: 0.1s; }
+        .features-list li:nth-child(2) { animation-delay: 0.2s; }
+        .features-list li:nth-child(3) { animation-delay: 0.3s; }
+        .features-list li:nth-child(4) { animation-delay: 0.4s; }
+        .features-list li:nth-child(5) { animation-delay: 0.5s; }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .option-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(10px);
+        }
+
+        .option-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            accent-color: #4ecdc4;
+        }
+
+        .option-item label {
+            font-size: 16px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .progress-container {
+            width: 100%;
+            margin: 30px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            margin-top: 10px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .button-container {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(78, 205, 196, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .wii-logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: scaleIn 0.5s ease;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4ecdc4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff6b6b;
+            animation: confetti-fall 3s linear infinite;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="installer-container">
+        <div class="title-bar">
+            <h1>WeeDesktopLauncher Installer</h1>
+            <button class="close-btn" onclick="window.close()">×</button>
+        </div>
+        
+        <div class="content">
+            <div id="step-container" class="step-container">
+                <!-- Content will be dynamically loaded -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        let currentStep = 0;
+        let installOptions = {
+            desktop: true,
+            startmenu: true,
+            taskbar: false,
+            autostart: false
+        };
+
+        // Initialize installer
+        async function initInstaller() {
+            await loadStep(0);
+        }
+
+        // Load step content
+        async function loadStep(stepIndex) {
+            try {
+                const stepData = await ipcRenderer.invoke('installer:get-step');
+                currentStep = stepIndex;
+                
+                const container = document.getElementById('step-container');
+                container.innerHTML = '';
+                container.classList.remove('show');
+                
+                setTimeout(() => {
+                    container.innerHTML = generateStepHTML(stepData);
+                    container.classList.add('show');
+                    
+                    // Add confetti for completion
+                    if (stepData.animation === 'complete') {
+                        createConfetti();
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('Error loading step:', error);
+            }
+        }
+
+        // Generate HTML for each step
+        function generateStepHTML(stepData) {
+            switch (stepData.animation) {
+                case 'welcome':
+                    return `
+                        <div class="wii-logo">🎮</div>
+                        <h2 class="step-title">${stepData.title}</h2>
+                        <p class="step-description">${stepData.description}</p>
+                        <ul class="features-list">
+                            ${stepData.features.map(feature => `<li>${feature}</li>`).join('')}
+                        </ul>
+                        <div class="button-container">
+                            <button class="btn btn-primary" onclick="nextStep()">Get Started</button>
+                        </div>
+                    `;
+                
+                case 'options':
+                    return `
+                        <h2 class="step-title">${stepData.title}</h2>
+                        <p class="step-description">${stepData.description}</p>
+                        <div class="options-list">
+                            ${stepData.options.map(option => `
+                                <div class="option-item" onclick="toggleOption('${option.id}')">
+                                    <input type="checkbox" id="${option.id}" 
+                                           ${installOptions[option.id] ? 'checked' : ''}>
+                                    <label for="${option.id}">${option.label}</label>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="button-container">
+                            <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+                            <button class="btn btn-primary" onclick="startInstall()">Install</button>
+                        </div>
+                    `;
+                
+                case 'progress':
+                    return `
+                        <div class="spinner"></div>
+                        <h2 class="step-title">${stepData.title}</h2>
+                        <p class="step-description">${stepData.description}</p>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <div class="progress-text" id="progress-text">Preparing installation...</div>
+                        </div>
+                    `;
+                
+                case 'complete':
+                    return `
+                        <div class="success-icon">🎉</div>
+                        <h2 class="step-title">${stepData.title}</h2>
+                        <p class="step-description">${stepData.description}</p>
+                        <div class="button-container">
+                            <button class="btn btn-primary" onclick="launchApp()">Launch WeeDesktopLauncher</button>
+                        </div>
+                    `;
+                
+                default:
+                    return `<p>Loading...</p>`;
+            }
+        }
+
+        // Navigation functions
+        async function nextStep() {
+            if (currentStep === 1) {
+                // Save options before proceeding
+                await ipcRenderer.invoke('installer:next-step', installOptions);
+            } else {
+                await ipcRenderer.invoke('installer:next-step');
+            }
+            
+            const result = await ipcRenderer.invoke('installer:get-step');
+            if (result) {
+                await loadStep(currentStep + 1);
+            }
+        }
+
+        async function prevStep() {
+            if (currentStep > 0) {
+                await loadStep(currentStep - 1);
+            }
+        }
+
+        async function startInstall() {
+            await ipcRenderer.invoke('installer:start-install');
+            await loadStep(2);
+            
+            // Start progress updates
+            updateProgress();
+        }
+
+        // Progress tracking
+        async function updateProgress() {
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            const updateProgressBar = (progress, message) => {
+                if (progressFill) progressFill.style.width = `${progress}%`;
+                if (progressText) progressText.textContent = message;
+            };
+            
+            // Listen for progress updates
+            ipcRenderer.on('installer:progress-update', (event, data) => {
+                updateProgressBar(data.progress, data.message);
+                
+                if (data.progress >= 100) {
+                    setTimeout(() => {
+                        loadStep(3);
+                    }, 500);
+                }
+            });
+        }
+
+        // Option toggling
+        function toggleOption(optionId) {
+            installOptions[optionId] = !installOptions[optionId];
+            const checkbox = document.getElementById(optionId);
+            if (checkbox) {
+                checkbox.checked = installOptions[optionId];
+            }
+        }
+
+        // Launch app
+        function launchApp() {
+            ipcRenderer.send('launch-app-after-install');
+            window.close();
+        }
+
+        // Create confetti effect
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 2 + 's';
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 3000);
+                }, i * 100);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initInstaller);
+    </script>
+</body>
+</html> 
