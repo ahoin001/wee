@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  send: (channel, ...args) => {
+    console.log('[preload] Sending IPC:', channel, ...args);
+    ipcRenderer.send(channel, ...args);
+  },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (data) => ipcRenderer.invoke('settings:set', data),

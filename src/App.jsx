@@ -1411,6 +1411,7 @@ function App() {
     // When ready:
     setTimeout(() => {
       setIsReady(true);
+      console.log('[renderer] Sending renderer-ready');
       // Notify Electron main process
       if (window?.api && window.api.send) {
         window.api.send('renderer-ready');

@@ -1589,6 +1589,7 @@ async function createWindow(opts = {}) {
 
   // Listen for renderer-ready event to show the window
   ipcMain.on('renderer-ready', () => {
+    console.log('[main] Received renderer-ready, showing window');
     if (mainWindow) mainWindow.show();
   });
 
