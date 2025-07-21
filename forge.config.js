@@ -11,6 +11,8 @@ module.exports = {
     ignore: [
       /^\/public\/sounds\/.*\.md$/  // Ignore README files
     ],
+    // Auto-update configuration
+    generateUpdatesFilesForAllChannels: true,
     afterCopy: [
       (buildPath, electronVersion, platform, arch) => {
         console.log('Copying sounds to build directory...');
@@ -76,7 +78,8 @@ module.exports = {
           name: 'wee'
         },
         prerelease: false,
-        draft: false
+        draft: false,
+        generateReleaseNotes: true
       }
     }
   ],

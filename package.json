@@ -26,34 +26,10 @@
     "publish": "electron-forge publish",
     "make": "electron-forge make",
     "release": "node scripts/release.cjs",
+    "check-update": "node scripts/check-update.cjs",
     "test-installer": "node scripts/test-installer.cjs"
   },
-  "config": {
-    "forge": {
-      "packagerConfig": {},
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "WeeDesktopLauncher"
-          }
-        }
-      ],
-      "publishers": [
-        {
-          "name": "@electron-forge/publisher-github",
-          "config": {
-            "repository": {
-              "owner": "ahoin001",
-              "name": "wee"
-            },
-            "prerelease": false,
-            "draft": false
-          }
-        }
-      ]
-    }
-  },
+
   "dependencies": {
     "@radix-ui/react-context-menu": "^2.1.5",
     "electron-squirrel-startup": "^1.0.1",

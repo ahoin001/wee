@@ -1675,11 +1675,26 @@ if (app.isPackaged) {
   
   autoUpdater.on('error', (err) => {
     console.error('[AUTO-UPDATE] Error:', err);
-    if (mainWindow) {
-      mainWindow.webContents.send('update-status', { 
-        status: 'error', 
-        error: err.message 
-      });
+    
+    // Check if this is the app-update.yml missing error
+    if (err.message && err.message.includes('app-update.yml')) {
+      console.warn('[AUTO-UPDATE] app-update.yml not found. This is expected for the first published version or if auto-update is not properly configured.');
+      console.warn('[AUTO-UPDATE] To fix this, ensure the app is published with the correct Forge configuration.');
+      
+      if (mainWindow) {
+        mainWindow.webContents.send('update-status', { 
+          status: 'error', 
+          error: 'Auto-update not configured. Please download updates manually from GitHub.',
+          details: 'The app-update.yml file is missing. This will be fixed in future releases.'
+        });
+      }
+    } else {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-status', { 
+          status: 'error', 
+          error: err.message 
+        });
+      }
     }
   });
   
