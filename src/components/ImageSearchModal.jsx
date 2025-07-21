@@ -68,6 +68,16 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     return true;
   });
 
+  // Helper to download an image
+  const handleDownload = (img) => {
+    const link = document.createElement('a');
+    link.href = img.url;
+    link.download = img.name || 'image.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Option cards for initial choice
   if (!mode) {
     return (
@@ -170,6 +180,10 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
         >
           downloading them from here
         </a> can be quicker.
+      </div>
+      {/* Tip message */}
+      <div style={{ marginBottom: 12, color: '#888', fontSize: 15, fontWeight: 500 }}>
+        Tip: You can download images from the community gallery (<a href="https://graceful-cannoli-0197f9.netlify.app/" target="_blank" rel="noopener noreferrer">gallery</a>) and upload them from your device. Uploaded images are stored locally and always work, even if the original website is offline.
       </div>
       {/* Search Bar Card */}
       <div className="wee-card" style={{ marginTop: 0, marginBottom: 0 }}>
@@ -317,6 +331,28 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
                           />
                         ) : null}
                       </div>
+                      <button
+                        onClick={() => handleDownload(img)}
+                        style={{
+                          position: 'absolute',
+                          top: 4,
+                          right: 4,
+                          background: '#0099ff',
+                          color: 'white',
+                          borderRadius: 6,
+                          padding: '4px 8px',
+                          fontSize: '0.8em',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          zIndex: 1,
+                          border: 'none',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        }}
+                        title="Download Image"
+                        aria-label="Download Image"
+                      >
+                        ⬇️
+                      </button>
                     </div>
                   ))
                 )}

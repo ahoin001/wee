@@ -38,7 +38,10 @@ function UpdateModal({ isOpen, onClose }) {
     const handleUpdateStatus = (data) => {
       console.log('[UpdateModal] Update status received:', data);
       setUpdateStatus(data);
-      
+      let friendlyError = data.error;
+      if (friendlyError && typeof friendlyError === 'string' && friendlyError.includes('app-update.yml')) {
+        friendlyError = 'No update configuration found. Please check your release setup or try again later.';
+      }
       switch (data.status) {
         case 'checking':
           setIsChecking(true);
@@ -67,7 +70,7 @@ function UpdateModal({ isOpen, onClose }) {
           console.log('[UpdateModal] Update error received:', data.error);
           setIsChecking(false);
           setIsDownloading(false);
-          setError(data.error || 'An unknown error occurred');
+          setError(friendlyError || 'An unknown error occurred');
           break;
         default:
           console.log('[UpdateModal] Unknown status received:', data.status);
@@ -111,7 +114,11 @@ function UpdateModal({ isOpen, onClose }) {
       
       console.log('[UpdateModal] Update check result:', result);
       if (!result.success) {
-        setError(result.error || 'Failed to check for updates');
+        let friendlyError = result.error;
+        if (friendlyError && typeof friendlyError === 'string' && friendlyError.includes('app-update.yml')) {
+          friendlyError = 'No update configuration found. Please check your release setup or try again later.';
+        }
+        setError(friendlyError || 'Failed to check for updates');
         setIsChecking(false);
         return;
       }
@@ -137,11 +144,14 @@ function UpdateModal({ isOpen, onClose }) {
       }, 3000); // 3 second timeout for better UX
       
     } catch (err) {
-      console.error('[UpdateModal] Update check error:', err);
+      let friendlyError = err.message;
+      if (friendlyError && typeof friendlyError === 'string' && friendlyError.includes('app-update.yml')) {
+        friendlyError = 'No update configuration found. Please check your release setup or try again later.';
+      }
       if (err.message === 'Update check timed out') {
         setError('Update check timed out. Please try again later.');
       } else {
-        setError(err.message || 'Failed to check for updates');
+        setError(friendlyError || 'Failed to check for updates');
       }
       setIsChecking(false);
     }
