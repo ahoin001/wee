@@ -34,7 +34,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     ? channelConfig.animatedOnHover
     : globalAnimatedOnHover;
   
-  console.log('Channel', id, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover, 'globalAnimatedOnHover:', globalAnimatedOnHover, 'channelConfig:', channelConfig);
+  // console.log('Channel', id, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover, 'globalAnimatedOnHover:', globalAnimatedOnHover, 'channelConfig:', channelConfig);
 
   // Generate static preview for MP4s on mount or when media changes
   useEffect(() => {

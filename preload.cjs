@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('api', {
     setBackgroundMusicSettings: (settings) => ipcRenderer.invoke('sounds:setBackgroundMusicSettings', settings),
     getBackgroundMusicSettings: () => ipcRenderer.invoke('sounds:getBackgroundMusicSettings'),
   },
+  steam: {
+    getInstalledGames: () => ipcRenderer.invoke('steam:getInstalledGames'),
+  },
   wallpapers: {
     get: () => ipcRenderer.invoke('wallpapers:get'),
     set: (data) => ipcRenderer.invoke('wallpapers:set', data),

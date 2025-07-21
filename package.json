@@ -3,7 +3,7 @@
   "description": "A Nintendo Wii-style launcher for your Windows desktop apps.",
   "author": "Your Name ",
   "private": true,
-  "version": "1.9.6",
+  "version": "1.9.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/ahoin001/wee.git"
@@ -26,8 +26,33 @@
     "publish": "electron-forge publish",
     "make": "electron-forge make",
     "release": "node scripts/release.cjs",
-    "check-update": "node scripts/check-update.cjs",
     "test-installer": "node scripts/test-installer.cjs"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "WeeDesktopLauncher"
+          }
+        }
+      ],
+      "publishers": [
+        {
+          "name": "@electron-forge/publisher-github",
+          "config": {
+            "repository": {
+              "owner": "ahoin001",
+              "name": "wee"
+            },
+            "prerelease": false,
+            "draft": false
+          }
+        }
+      ]
+    }
   },
   "dependencies": {
     "@radix-ui/react-context-menu": "^2.1.5",
@@ -41,6 +66,7 @@
     "react-dom": "^19.1.0",
     "react-freezeframe-vite": "^5.0.3",
     "react-icons": "^5.5.0",
+    "vdf": "^0.0.2",
     "windows-shortcuts": "^0.1.6"
   },
   "devDependencies": {

@@ -4,8 +4,20 @@ import BaseModal from './BaseModal';
 import './ChannelModal.css';
 import ImageSearchModal from './ImageSearchModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
+import Button from '../ui/Button';
+import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
 
 const channelsApi = window.api?.channels;
+
+// Utility to deduplicate by appid
+function dedupeByAppId(games) {
+  const seen = new Set();
+  return games.filter(g => {
+    if (seen.has(g.appid)) return false;
+    seen.add(g.appid);
+    return true;
+  });
+}
 
 function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover }) {
   const [media, setMedia] = useState(currentMedia);
@@ -26,40 +38,47 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [hoverSoundAudio, setHoverSoundAudio] = useState(null);
   const [showError, setShowError] = useState(false);
   const [animatedOnHover, setAnimatedOnHover] = useState(currentAnimatedOnHover);
+  const [steamQuery, setSteamQuery] = useState('');
+  const [steamResults, setSteamResults] = useState([]);
+  const [steamDropdownOpen, setSteamDropdownOpen] = useState(false);
+  const [steamLoading, setSteamLoading] = useState(false);
+  const [steamError, setSteamError] = useState('');
+  const [installedGames, setInstalledGames] = useState([]);
 
-  // When type changes, clear the path
+  // Load installed Steam games on first open of Steam tab
   useEffect(() => {
-    setPath('');
+    if (type === 'steam') {
+      setSteamLoading(true);
+      setSteamError('');
+      setInstalledGames([]);
+      window.api.steam.getInstalledGames().then(result => {
+        setSteamLoading(false);
+        if (result.error) {
+          setSteamError(result.error);
+          setInstalledGames([]);
+        } else {
+          setInstalledGames(dedupeByAppId(result.games || []));
+          setSteamError('');
+        }
+      }).catch(err => {
+        setSteamLoading(false);
+        setSteamError(err.message || 'Failed to scan Steam games.');
+        setInstalledGames([]);
+      });
+    }
   }, [type]);
 
-  // Load channel data on mount
+  // Fuzzy search as user types
   useEffect(() => {
-    async function loadChannel() {
-      const data = await channelsApi?.get();
-      if (data && data[channelId]) {
-        setMedia(data[channelId].media);
-        setPath(data[channelId].path);
-        setType(data[channelId].type);
-        setAsAdmin(data[channelId].asAdmin);
-        setHoverSound(data[channelId].hoverSound);
-        setAnimatedOnHover(data[channelId].animatedOnHover);
-        
-        // Update hover sound state variables from loaded data
-        if (data[channelId].hoverSound) {
-          setHoverSoundName(data[channelId].hoverSound.name || '');
-          setHoverSoundUrl(data[channelId].hoverSound.url || '');
-          setHoverSoundVolume(data[channelId].hoverSound.volume || 0.7);
-          setHoverSoundEnabled(true);
-        } else {
-          setHoverSoundName('');
-          setHoverSoundUrl('');
-          setHoverSoundVolume(0.7);
-          setHoverSoundEnabled(false);
-        }
-      }
+    if (type === 'steam' && steamQuery && installedGames.length > 0) {
+      const q = steamQuery.toLowerCase();
+      setSteamResults(installedGames.filter(g => g.name.toLowerCase().includes(q)).slice(0, 10));
+      setSteamDropdownOpen(true);
+    } else {
+      setSteamResults([]);
+      setSteamDropdownOpen(false);
     }
-    loadChannel();
-  }, [channelId]);
+  }, [steamQuery, type, installedGames]);
 
   // Handle hover sound file select
   const handleHoverSoundFile = async (file) => {
@@ -213,6 +232,15 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         setPathError('Please enter a valid URL (e.g., https://example.com)');
         return false;
       }
+    } else if (type === 'steam') {
+      // Validate Steam URI/AppID format
+      if (path.trim().startsWith('steam://') || path.trim().startsWith('steam://rungameid/') || path.trim().startsWith('steam://launch/')) {
+        setPathError('');
+        return true;
+      } else {
+        setPathError('Please enter a valid Steam URI (e.g., steam://rungameid/252950) or AppID (e.g., 252950)');
+        return false;
+      }
     } else {
       // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
       const trimmedPath = path.trim();
@@ -232,6 +260,41 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const handlePathChange = (e) => {
     setPath(e.target.value);
     setPathError(''); // Clear error when user types
+  };
+
+  const handleSteamInputChange = (e) => {
+    setSteamQuery(e.target.value);
+    setPath(e.target.value); // keep path in sync for manual entry
+    setPathError('');
+  };
+
+  const handleSteamResultClick = (game) => {
+    const uri = `steam://rungameid/${game.appid}`;
+    setPath(uri);
+    setSteamQuery(game.name);
+    setSteamDropdownOpen(false);
+    setPathError('');
+  };
+
+  const handleSteamRefresh = async () => {
+    setSteamLoading(true);
+    setSteamError('');
+    setInstalledGames([]);
+    try {
+      const result = await window.api.steam.getInstalledGames();
+      setSteamLoading(false);
+      if (result.error) {
+        setSteamError(result.error);
+        setInstalledGames([]);
+      } else {
+        setInstalledGames(dedupeByAppId(result.games || []));
+        setSteamError('');
+      }
+    } catch (err) {
+      setSteamLoading(false);
+      setSteamError(err.message || 'Failed to scan Steam games.');
+      setInstalledGames([]);
+    }
   };
 
   // On save, use channelsApi.set and reload state
@@ -367,52 +430,154 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           />
           Website (URL)
         </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="radio"
+            name={`launch-type-${channelId}`}
+            value="steam"
+            checked={type === 'steam'}
+            onChange={() => setType('steam')}
+          />
+          Steam Game
+        </label>
       </div>
       <div className="path-input-group">
-        <input
-          type="text"
-          placeholder={type === 'exe' ? 'C:\\Path\\To\\Application.exe or paste path here' : 'https://example.com'}
-          value={path}
-          onChange={handlePathChange}
-          className={`text-input ${pathError ? 'error' : ''}`}
-        />
-        {type === 'exe' && (
+        {type === 'steam' ? (
+          <div style={{ width: '100%', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Type a Steam game name (e.g. Rocket League)"
+                value={steamQuery}
+                onChange={handleSteamInputChange}
+                className={`text-input ${pathError ? 'error' : ''}`}
+                style={{ flex: 1 }}
+                autoComplete="off"
+                onFocus={() => steamResults.length > 0 && setSteamDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setSteamDropdownOpen(false), 150)}
+                disabled={steamLoading || !!steamError || installedGames.length === 0}
+              />
+              <Button
+                variant="primary"
+                title="Rescan your Steam library for installed games."
+                style={{ fontSize: 14, borderRadius: 6, marginLeft: 0 }}
+                onClick={handleSteamRefresh}
+                disabled={steamLoading}
+              >
+                {steamLoading ? 'Scanning...' : 'Rescan'}
+              </Button>
+            </div>
+            <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+              <span>Format: <code>steam://rungameid/[AppID]</code> or <code>steam://launch/[AppID]/[LaunchOption]</code></span>
+              <br />
+              <span>If you can't find your game, make sure it's installed in your Steam library.</span>
+            </div>
+            {steamError && (
+              <div style={{ color: '#dc3545', fontWeight: 500, marginTop: 8, fontSize: 15 }}>
+                {steamError} <br />
+                Please ensure Steam is installed and you have games downloaded.
+              </div>
+            )}
+            {steamLoading && (
+              <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 18, color: '#007bff', fontWeight: 500 }}>
+                Scanning your Steam library for installed games...
+              </div>
+            )}
+            {!steamLoading && !steamError && installedGames.length === 0 && (
+              <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 16, color: '#888', fontWeight: 500 }}>
+                No installed Steam games found.
+              </div>
+            )}
+            {/* Add a style tag for the hover effect */}
+            <style>{`
+              .steam-dropdown-result:hover {
+                background: #f0f6ff !important;
+                transition: background 0.15s, transform 0.15s;
+              }
+              .steam-dropdown-result:hover img {
+                transform: scale(1.07);
+                transition: transform 0.15s;
+              }
+              .steam-dropdown-result:hover span {
+                transform: scale(1.04);
+                transition: transform 0.15s;
+              }
+            `}</style>
+            {steamDropdownOpen && steamResults.length > 0 && (
+              <ul style={{
+                position: 'absolute',
+                zIndex: 10,
+                background: '#fff',
+                border: '1px solid #b0c4d8',
+                borderRadius: 8,
+                margin: 0,
+                padding: 0,
+                width: '100%',
+                maxHeight: 320,
+                overflowY: 'auto',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.10)'
+              }}>
+                {dedupeByAppId(steamResults).map(game => (
+                  <li
+                    key={game.appid}
+                    className="steam-dropdown-result"
+                    style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '14px 18px', cursor: 'pointer', fontSize: 18, minHeight: 56, transition: 'background 0.15s' }}
+                    onMouseDown={() => handleSteamResultClick(game)}
+                  >
+                    <img
+                      src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg`}
+                      alt="Game header"
+                      style={{ width: 90, height: 42, objectFit: 'cover', borderRadius: 6, background: '#e9eff3', flexShrink: 0, transition: 'transform 0.15s' }}
+                      onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                    />
+                    <span style={{ transition: 'transform 0.15s' }}>{game.name} <span style={{ color: '#888', fontSize: 15 }}>{`(${game.appid})`}</span></span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
           <>
-            <button
-              className="file-picker-button"
-              onClick={async () => {
-                console.log('Browse Files clicked');
-                if (window.api && window.api.selectExeOrShortcutFile) {
-                  console.log('Using IPC handler for file selection');
-                  const result = await window.api.selectExeOrShortcutFile();
-                  console.log('IPC result:', result);
-                  if (result && result.success && result.file) {
-                    let newPath = result.file.path;
-                    if (result.file.args && result.file.args.trim()) {
-                      newPath += ' ' + result.file.args.trim();
-                    }
-                    console.log('Setting path to:', newPath);
-                    setPath(newPath);
-                    setPathError('');
-                  } else if (result && result.error) {
-                    console.log('IPC error:', result.error);
-                    setPathError(result.error);
-                  }
-                } else {
-                  console.log('Falling back to file input');
-                  exeFileInputRef.current?.click();
-                }
-              }}
-            >
-              Browse Files
-            </button>
             <input
-              type="file"
-              accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi,.lnk"
-              ref={exeFileInputRef}
-              onChange={(e) => handleExeFileSelect(e.target.files[0])}
-              style={{ display: 'none' }}
+              type="text"
+              placeholder={type === 'exe' ? 'C:\\Path\\To\\Application.exe or paste path here' : 'https://example.com'}
+              value={path}
+              onChange={handlePathChange}
+              className={`text-input ${pathError ? 'error' : ''}`}
             />
+            {type === 'exe' && (
+              <>
+                <button
+                  className="file-picker-button"
+                  onClick={async () => {
+                    if (window.api && window.api.selectExeOrShortcutFile) {
+                      const result = await window.api.selectExeOrShortcutFile();
+                      if (result && result.success && result.file) {
+                        let newPath = result.file.path;
+                        if (result.file.args && result.file.args.trim()) {
+                          newPath += ' ' + result.file.args.trim();
+                        }
+                        setPath(newPath);
+                        setPathError('');
+                      } else if (result && result.error) {
+                        setPathError(result.error);
+                      }
+                    } else {
+                      exeFileInputRef.current?.click();
+                    }
+                  }}
+                >
+                  Browse Files
+                </button>
+                <input
+                  type="file"
+                  accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi,.lnk"
+                  ref={exeFileInputRef}
+                  onChange={(e) => handleExeFileSelect(e.target.files[0])}
+                  style={{ display: 'none' }}
+                />
+              </>
+            )}
           </>
         )}
       </div>
@@ -420,7 +585,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       <p className="help-text" style={{ marginTop: 6, color: '#888', fontSize: 14 }}>
         {type === 'exe'
           ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field.</span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
-          : 'Enter the complete URL including https://'}
+          : type === 'steam'
+            ? (<><span>Type a Steam game name and select from the list, or paste a Steam URI/AppID directly.</span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: steam://rungameid/252950</span></>)
+            : 'Enter the complete URL including https://'}
       </p>
     </>
   );
@@ -455,20 +622,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           className="file-button"
           style={{ minWidth: 120 }}
           onClick={async () => {
-            console.log('Select hover sound clicked');
             if (window.api && window.api.sounds && window.api.sounds.selectFile) {
-              console.log('Using IPC handler for sound file selection');
               const result = await window.api.sounds.selectFile();
-              console.log('IPC result:', result);
               if (result && result.success && result.file) {
-                console.log('Selected sound file:', result.file);
                 await handleHoverSoundFile(result.file);
               } else if (result && result.error) {
-                console.log('IPC error:', result.error);
                 alert('Failed to select sound file: ' + result.error);
               }
             } else {
-              console.log('Falling back to file input');
               hoverSoundInputRef.current?.click();
             }
           }}

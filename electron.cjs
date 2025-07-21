@@ -7,6 +7,8 @@ const fsSync = require('fs');
 const url = require('url');
 const fsExtra = require('fs-extra');
 const ws = require('windows-shortcuts');
+const vdf = require('vdf');
+const os = require('os');
 
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
@@ -1451,6 +1453,12 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
     shell.openExternal(appPath).catch(err => {
       console.error('Failed to open URL:', err);
     });
+  } else if (type === 'steam' || (typeof appPath === 'string' && appPath.startsWith('steam://'))) {
+    // Launch Steam URI
+    console.log('Launching Steam URI:', appPath);
+    shell.openExternal(appPath).catch(err => {
+      console.error('Failed to open Steam URI:', err);
+    });
   } else if (type === 'exe') {
     try {
       // Parse the path to extract executable and arguments
@@ -1675,26 +1683,11 @@ if (app.isPackaged) {
   
   autoUpdater.on('error', (err) => {
     console.error('[AUTO-UPDATE] Error:', err);
-    
-    // Check if this is the app-update.yml missing error
-    if (err.message && err.message.includes('app-update.yml')) {
-      console.warn('[AUTO-UPDATE] app-update.yml not found. This is expected for the first published version or if auto-update is not properly configured.');
-      console.warn('[AUTO-UPDATE] To fix this, ensure the app is published with the correct Forge configuration.');
-      
-      if (mainWindow) {
-        mainWindow.webContents.send('update-status', { 
-          status: 'error', 
-          error: 'Auto-update not configured. Please download updates manually from GitHub.',
-          details: 'The app-update.yml file is missing. This will be fixed in future releases.'
-        });
-      }
-    } else {
-      if (mainWindow) {
-        mainWindow.webContents.send('update-status', { 
-          status: 'error', 
-          error: err.message 
-        });
-      }
+    if (mainWindow) {
+      mainWindow.webContents.send('update-status', { 
+        status: 'error', 
+        error: err.message 
+      });
     }
   });
   
@@ -2226,4 +2219,83 @@ ipcMain.handle('get-fullscreen-state', async () => {
 
 ipcMain.handle('get-app-version', async () => {
   return app.getVersion();
+});
+
+// Helper to get all installed Steam games
+async function getInstalledSteamGames() {
+  try {
+    // Default Steam path
+    let steamPath = 'C:/Program Files (x86)/Steam';
+    // Try to find Steam path from registry (future improvement)
+    const libraryVdfPath = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
+    if (!fsSync.existsSync(libraryVdfPath)) {
+      // Try common alternative locations (user may have moved Steam)
+      const home = os.homedir();
+      const altPaths = [
+        path.join(home, 'AppData', 'Local', 'Steam'),
+        path.join(home, 'AppData', 'Roaming', 'Steam'),
+        path.join('D:/Steam'),
+        path.join('E:/Steam'),
+      ];
+      let found = false;
+      for (const alt of altPaths) {
+        const altVdf = path.join(alt, 'steamapps', 'libraryfolders.vdf');
+        if (fsSync.existsSync(altVdf)) {
+          steamPath = alt;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        console.error('[SteamScan] Could not find Steam installation.');
+        return { error: 'Could not find Steam installation.' };
+      }
+    }
+    console.log('[SteamScan] Using Steam path:', steamPath);
+    const libraryVdf = fsSync.readFileSync(path.join(steamPath, 'steamapps', 'libraryfolders.vdf'), 'utf-8');
+    const libraries = vdf.parse(libraryVdf).libraryfolders;
+    let libraryPaths = [];
+    // Newer Steam format: numbered keys, each with a 'path' property
+    for (const key in libraries) {
+      if (libraries[key] && libraries[key].path) {
+        libraryPaths.push(libraries[key].path.replace(/\\/g, '/'));
+      } else if (!isNaN(key) && typeof libraries[key] === 'string') {
+        // Older format: value is the path
+        libraryPaths.push(libraries[key].replace(/\\/g, '/'));
+      }
+    }
+    // Always include the main Steam path
+    if (!libraryPaths.includes(steamPath)) {
+      libraryPaths.push(steamPath);
+    }
+    let games = [];
+    for (const libPath of libraryPaths) {
+      const steamapps = path.join(libPath, 'steamapps');
+      if (!fsSync.existsSync(steamapps)) continue;
+      const files = fsSync.readdirSync(steamapps);
+      for (const file of files) {
+        if (file.startsWith('appmanifest_') && file.endsWith('.acf')) {
+          try {
+            const manifest = vdf.parse(fsSync.readFileSync(path.join(steamapps, file), 'utf-8'));
+            const appid = manifest.AppState.appid;
+            const name = manifest.AppState.name;
+            if (appid && name) {
+              games.push({ name, appid });
+            }
+          } catch (err) {
+            console.warn('[SteamScan] Failed to parse', file, err);
+          }
+        }
+      }
+    }
+    console.log(`[SteamScan] Found ${games.length} installed Steam games.`);
+    return { games };
+  } catch (err) {
+    console.error('[SteamScan] Error scanning Steam games:', err);
+    return { error: err.message };
+  }
+}
+
+ipcMain.handle('steam:getInstalledGames', async () => {
+  return await getInstalledSteamGames();
 });

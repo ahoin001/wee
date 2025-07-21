@@ -32,7 +32,7 @@ When you first open the Sound Settings modal, the app will automatically:
 
 ## Customization
 
-You can:
+You can:F
 - Replace the default files with your own sounds (keep the same filenames)
 - Add additional sound files and they will be available in the app
 - Adjust volume levels and enable/disable sounds in the Sound Settings modal

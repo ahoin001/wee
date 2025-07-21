@@ -1,0 +1,22 @@
+[
+  { "name": "Counter-Strike 2", "appid": 730 },
+  { "name": "Dota 2", "appid": 570 },
+  { "name": "Apex Legends", "appid": 1172470 },
+  { "name": "PUBG: BATTLEGROUNDS", "appid": 578080 },
+  { "name": "Grand Theft Auto V", "appid": 271590 },
+  { "name": "Rust", "appid": 252490 },
+  { "name": "Team Fortress 2", "appid": 440 },
+  { "name": "Call of Duty®", "appid": 1938090 },
+  { "name": "ARK: Survival Evolved", "appid": 346110 },
+  { "name": "Cyberpunk 2077", "appid": 1091500 },
+  { "name": "The Witcher 3: Wild Hunt", "appid": 292030 },
+  { "name": "Rocket League", "appid": 252950 },
+  { "name": "Elden Ring", "appid": 1245620 },
+  { "name": "Red Dead Redemption 2", "appid": 1174180 },
+  { "name": "Among Us", "appid": 945360 },
+  { "name": "Terraria", "appid": 105600 },
+  { "name": "Stardew Valley", "appid": 413150 },
+  { "name": "Hades", "appid": 1145360 },
+  { "name": "Valheim", "appid": 892970 },
+  { "name": "The Elder Scrolls V: Skyrim", "appid": 72850 }
+] 
