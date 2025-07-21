@@ -484,14 +484,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       <div className="path-input-group">
         {(gameType === 'steam' || gameType === 'epic') ? (
           <div style={{ width: '100%', position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '16px 0 12px 0' }}>
               <input
                 type="text"
                 placeholder={gameType === 'steam' ? 'Type a Steam game name (e.g. Rocket League) or paste a Steam URI' : 'Type an Epic game name (e.g. Fortnite) or paste an Epic URI'}
                 value={gameQuery}
                 onChange={handleGameInputChange}
                 className={`text-input ${pathError ? 'error' : ''}`}
-                style={{ flex: 1 }}
+                style={{ flex: 1, padding: '12px 14px', fontSize: 17 }}
                 autoComplete="off"
                 onFocus={() => gameResults.length > 0 && setGameDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setGameDropdownOpen(false), 150)}
@@ -518,7 +518,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 </Button>
               )}
             </div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: '#888', marginTop: 16 }}>
               <span>Format: {gameType === 'steam' ? <code>steam://rungameid/[AppID]</code> : <code>com.epicgames.launcher://apps/[AppName]?action=launch&amp;silent=true</code>}</span>
               <br />
               <span>
