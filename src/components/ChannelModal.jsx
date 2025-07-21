@@ -8,6 +8,10 @@ import Button from '../ui/Button';
 import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
 
 const channelsApi = window.api?.channels;
+const appsApi = window.api?.apps || {
+  getInstalled: async () => [],
+  rescanInstalled: async () => [],
+};
 
 // Utility to deduplicate by appid
 function dedupeByAppId(games) {
@@ -56,6 +60,13 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [installedGames, setInstalledGames] = useState([]);
   const [gameType, setGameType] = useState(type || 'exe'); // 'exe', 'url', 'steam', 'epic'
   const [customSteamPath, setCustomSteamPath] = useState(() => localStorage.getItem('customSteamPath') || '');
+  const [appQuery, setAppQuery] = useState('');
+  const [appResults, setAppResults] = useState([]);
+  const [appDropdownOpen, setAppDropdownOpen] = useState(false);
+  const [installedApps, setInstalledApps] = useState([]);
+  const [appLoading, setAppLoading] = useState(false);
+  const [appError, setAppError] = useState('');
+  const installedAppsCache = useRef(null); // Persist across modal opens
 
   // Load installed games on first open of Steam or Epic tab
   useEffect(() => {
@@ -83,6 +94,26 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   }, [gameType, customSteamPath]);
 
+  // Load installed apps on mount (once per session)
+  useEffect(() => {
+    if (type === 'exe' && installedApps.length === 0 && appsApi.getInstalled) {
+      if (installedAppsCache.current && installedAppsCache.current.length > 0) {
+        setInstalledApps(installedAppsCache.current);
+        setAppLoading(false);
+      } else {
+        setAppLoading(true);
+        appsApi.getInstalled().then(apps => {
+          setInstalledApps(apps || []);
+          installedAppsCache.current = apps || [];
+          setAppLoading(false);
+        }).catch(e => {
+          setAppError('Failed to scan apps');
+          setAppLoading(false);
+        });
+      }
+    }
+  }, [type, installedApps.length]);
+
   // Fuzzy search as user types
   useEffect(() => {
     if ((gameType === 'steam' || gameType === 'epic') && gameQuery && installedGames.length > 0) {
@@ -94,6 +125,18 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       setGameDropdownOpen(false);
     }
   }, [gameQuery, gameType, installedGames]);
+
+  // Fuzzy search as user types in app path
+  useEffect(() => {
+    if (type === 'exe' && appQuery && installedApps.length > 0) {
+      const q = appQuery.toLowerCase();
+      setAppResults(installedApps.filter(a => a.name.toLowerCase().includes(q)).slice(0, 10));
+      setAppDropdownOpen(true);
+    } else {
+      setAppResults([]);
+      setAppDropdownOpen(false);
+    }
+  }, [appQuery, type, installedApps]);
 
   // Handle hover sound file select
   const handleHoverSoundFile = async (file) => {
@@ -327,6 +370,20 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
 
+  const handleAppInputChange = (e) => {
+    setAppQuery(e.target.value);
+    setPath(e.target.value);
+    setPathError('');
+  };
+
+  const handleAppResultClick = (app) => {
+    const fullPath = app.args ? `${app.path} ${app.args}` : app.path;
+    setPath(fullPath);
+    setAppQuery(app.name);
+    setAppDropdownOpen(false);
+    setPathError('');
+  };
+
   // On save, use channelsApi.set and reload state
   const handleSave = async (handleClose) => {
     // Validate path before saving
@@ -481,6 +538,98 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           Epic Game
         </label>
       </div>
+      {/* App Path Input (EXE) */}
+      {type === 'exe' && (
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <input
+            type="text"
+            className="text-input"
+            placeholder="Enter or search for an app..."
+            value={appQuery || path}
+            onChange={handleAppInputChange}
+            onFocus={() => { if (appResults.length > 0) setAppDropdownOpen(true); }}
+            onBlur={() => setTimeout(() => setAppDropdownOpen(false), 150)}
+            style={{ width: '100%', padding: '10px 12px', fontSize: 16, borderRadius: 8, border: '1.5px solid #ccc', marginBottom: 0 }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            {appLoading && (
+              <span style={{ color: '#888', fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="20" height="20" viewBox="0 0 50 50" style={{ marginRight: 4 }}>
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="#0099ff" strokeWidth="5" strokeDasharray="31.4 31.4" strokeLinecap="round">
+                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
+                  </circle>
+                </svg>
+                Scanning apps...
+              </span>
+            )}
+            <button
+              type="button"
+              style={{ padding: '4px 12px', borderRadius: 6, border: '1.5px solid #0099ff', background: '#f7fafd', color: '#0099ff', fontWeight: 600, cursor: appLoading ? 'not-allowed' : 'pointer', opacity: appLoading ? 0.6 : 1, marginLeft: 0 }}
+              title="Rescan if you recently installed a new app and it's not showing up."
+              disabled={appLoading}
+              onClick={async () => {
+                setAppLoading(true);
+                setAppError('');
+                setAppResults([]);
+                setInstalledApps([]);
+                try {
+                  const apps = await appsApi.rescanInstalled();
+                  setInstalledApps(apps || []);
+                  installedAppsCache.current = apps || [];
+                } catch (e) {
+                  setAppError('Failed to rescan apps');
+                } finally {
+                  setAppLoading(false);
+                }
+              }}
+            >
+              Rescan
+            </button>
+          </div>
+          {appDropdownOpen && appResults.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              background: '#fff',
+              border: '1px solid #ccc',
+              borderRadius: 8,
+              boxShadow: '0 2px 8px #0002',
+              zIndex: 1000,
+              maxHeight: 260,
+              overflowY: 'auto',
+            }}>
+              {appResults.map(app => (
+                <div
+                  key={app.lnk || app.path}
+                  onClick={() => handleAppResultClick(app)}
+                  style={{
+                    padding: '10px 14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    borderBottom: '1px solid #eee',
+                    fontSize: 15,
+                  }}
+                  onMouseDown={e => e.preventDefault()}
+                >
+                  {app.icon ? (
+                    <img src={`file:///${app.icon.replace(/\\/g, '/')}`} alt="icon" style={{ width: 24, height: 24, borderRadius: 6, objectFit: 'contain', marginRight: 6 }} />
+                  ) : (
+                    <span style={{ width: 24, height: 24, display: 'inline-block', marginRight: 6, background: '#e0e0e0', borderRadius: 6, textAlign: 'center', lineHeight: '24px', fontSize: 18 }}>🗂️</span>
+                  )}
+                  <span style={{ fontWeight: 600 }}>{app.name}</span>
+                  <span style={{ color: '#888', fontSize: 13, marginLeft: 8, flex: 1 }}>{app.args ? `${app.path} ${app.args}` : app.path}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {appLoading && <div style={{ color: '#888', fontSize: 14, marginTop: 6 }}>Scanning apps...</div>}
+          {appError && <div style={{ color: '#dc3545', fontSize: 14, marginTop: 6 }}>{appError}</div>}
+        </div>
+      )}
       <div className="path-input-group">
         {(gameType === 'steam' || gameType === 'epic') ? (
           <div style={{ width: '100%' }}>

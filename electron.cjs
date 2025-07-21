@@ -2,13 +2,15 @@ const { app, BrowserWindow, ipcMain, shell, protocol, dialog } = require('electr
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { execFile, spawn } = require('child_process');
-const fs = require('fs/promises');
-const fsSync = require('fs');
+const fs = require('fs');
+const fsPromises = require('fs/promises');
 const url = require('url');
 const fsExtra = require('fs-extra');
 const ws = require('windows-shortcuts');
 const vdf = require('vdf');
 const os = require('os');
+const { promisify } = require('util');
+const wsQuery = promisify(ws.query);
 
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
@@ -23,22 +25,22 @@ const userChannelHoverSoundsPath = path.join(dataDir, 'channel-hover-sounds');
 const userIconsPath = path.join(dataDir, 'icons');
 
 async function ensureDataDir() {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.mkdir(userWallpapersPath, { recursive: true });
-  await fs.mkdir(userSoundsPath, { recursive: true });
-  await fs.mkdir(userChannelHoverSoundsPath, { recursive: true });
-  await fs.mkdir(userIconsPath, { recursive: true });
+  await fsPromises.mkdir(dataDir, { recursive: true });
+  await fsPromises.mkdir(userWallpapersPath, { recursive: true });
+  await fsPromises.mkdir(userSoundsPath, { recursive: true });
+  await fsPromises.mkdir(userChannelHoverSoundsPath, { recursive: true });
+  await fsPromises.mkdir(userIconsPath, { recursive: true });
 }
 
 // --- Sounds Data Module ---
 const soundsData = {
   async get() {
     await ensureDataDir();
-    try { return JSON.parse(await fs.readFile(soundsFile, 'utf-8')); } catch { return { sounds: [], settings: {} }; }
+    try { return JSON.parse(await fsPromises.readFile(soundsFile, 'utf-8')); } catch { return { sounds: [], settings: {} }; }
   },
   async set(data) {
     await ensureDataDir();
-    await fs.writeFile(soundsFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(soundsFile, JSON.stringify(data, null, 2), 'utf-8');
   },
   async reset() {
     await this.set({ sounds: [], settings: {} });
@@ -49,11 +51,11 @@ const soundsData = {
 const wallpapersData = {
   async get() {
     await ensureDataDir();
-    try { return JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { return { wallpapers: [], settings: {} }; }
+    try { return JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { return { wallpapers: [], settings: {} }; }
   },
   async set(data) {
     await ensureDataDir();
-    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
   },
   async reset() {
     await this.set({ wallpapers: [], settings: {} });
@@ -64,11 +66,11 @@ const wallpapersData = {
 const channelsData = {
   async get() {
     await ensureDataDir();
-    try { return JSON.parse(await fs.readFile(channelsFile, 'utf-8')); } catch { return { channels: [] }; }
+    try { return JSON.parse(await fsPromises.readFile(channelsFile, 'utf-8')); } catch { return { channels: [] }; }
   },
   async set(data) {
     await ensureDataDir();
-    await fs.writeFile(channelsFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(channelsFile, JSON.stringify(data, null, 2), 'utf-8');
   },
   async reset() {
     await this.set({ channels: [] });
@@ -79,11 +81,11 @@ const channelsData = {
 const settingsData = {
   async get() {
     await ensureDataDir();
-    try { return JSON.parse(await fs.readFile(settingsFile, 'utf-8')); } catch { return {}; }
+    try { return JSON.parse(await fsPromises.readFile(settingsFile, 'utf-8')); } catch { return {}; }
   },
   async set(data) {
     await ensureDataDir();
-    await fs.writeFile(settingsFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(settingsFile, JSON.stringify(data, null, 2), 'utf-8');
   },
 };
 
@@ -179,7 +181,7 @@ ipcMain.handle('settings:resetAll', async () => {
 // Helper: Read JSON file, return defaultValue if not found or error
 async function readJson(filePath, defaultValue) {
   try {
-    const data = await fs.readFile(filePath, 'utf-8');
+    const data = await fsPromises.readFile(filePath, 'utf-8');
     if (!data.trim()) {
       console.warn(`[READ] File is empty: ${filePath}`);
       return {};
@@ -206,8 +208,8 @@ async function readJson(filePath, defaultValue) {
 async function writeJson(filePath, data) {
   const tempPath = filePath + '.tmp';
   try {
-    await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
-    await fs.rename(tempPath, filePath);
+    await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.rename(tempPath, filePath);
     console.log(`[WRITE] Atomically wrote file: ${filePath}`);
     return true;
   } catch (err) {
@@ -217,7 +219,7 @@ async function writeJson(filePath, data) {
       console.error(`[WRITE] Error writing file ${filePath}:`, err);
     }
     // Clean up temp file if exists
-    try { await fs.unlink(tempPath); } catch {}
+    try { await fsPromises.unlink(tempPath); } catch {}
     return false;
   }
 }
@@ -226,7 +228,7 @@ async function writeJson(filePath, data) {
 async function copyFileToUserDirectory(sourcePath, targetDirectory, filename) {
   try {
     const targetPath = path.join(targetDirectory, filename);
-    await fs.copyFile(sourcePath, targetPath);
+    await fsPromises.copyFile(sourcePath, targetPath);
     console.log(`[COPY] Copied file to: ${targetPath}`);
     return targetPath;
   } catch (err) {
@@ -299,11 +301,11 @@ async function ensureDefaultSoundsExist() {
         
         // Check if file already exists
         try {
-          await fs.access(targetPath);
+          await fsPromises.access(targetPath);
           console.log(`[SOUNDS] Default sound already exists: ${sound.filename} at ${targetPath}`);
         } catch {
           // Copy file to user directory
-          await fs.copyFile(sourcePath, targetPath);
+          await fsPromises.copyFile(sourcePath, targetPath);
           console.log(`[SOUNDS] Copied default sound: ${sound.filename} from ${sourcePath} to ${targetPath}`);
         }
       } catch (error) {
@@ -558,8 +560,8 @@ ipcMain.handle('save-settings', async (event, settings) => {
 
 ipcMain.handle('get-channel-configs', async () => {
   try {
-    await fs.access(channelConfigsPath);
-    const data = await fs.readFile(channelConfigsPath, 'utf-8');
+    await fsPromises.access(channelConfigsPath);
+    const data = await fsPromises.readFile(channelConfigsPath, 'utf-8');
     console.log(`[READ] Successfully read file: ${channelConfigsPath}`);
     const parsed = JSON.parse(data);
     // Return empty object if file is empty or contains invalid data
@@ -583,7 +585,7 @@ ipcMain.handle('get-channel-configs', async () => {
 
 ipcMain.handle('save-channel-configs', async (event, configs) => {
   try {
-    await fs.writeFile(channelConfigsPath, JSON.stringify(configs, null, 2));
+    await fsPromises.writeFile(channelConfigsPath, JSON.stringify(configs, null, 2));
     console.log(`[WRITE] Successfully wrote file: ${channelConfigsPath}`);
     return { success: true };
   } catch (error) {
@@ -647,7 +649,7 @@ ipcMain.handle('select-sound-file', async () => {
       
       // Validate file exists
       try {
-        await fs.access(filePath);
+        await fsPromises.access(filePath);
       } catch (error) {
         console.error(`[SOUNDS] Selected file does not exist: ${filePath}`);
         return { success: false, error: 'Selected file no longer exists. Please try again.' };
@@ -666,7 +668,7 @@ ipcMain.handle('select-sound-file', async () => {
       // Check file size (max 10MB)
       let fileSize = null;
       try {
-        const stats = await fs.stat(filePath);
+        const stats = await fsPromises.stat(filePath);
         fileSize = stats.size;
         if (stats.size > 10 * 1024 * 1024) {
           return { 
@@ -724,7 +726,7 @@ ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
     
     // Check if source file exists
     try {
-      await fs.access(file.path);
+      await fsPromises.access(file.path);
     } catch (error) {
       return { success: false, error: `Source file not found: ${file.path}` };
     }
@@ -738,7 +740,7 @@ ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
     
     // Check file size (max 10MB)
     try {
-      const stats = await fs.stat(file.path);
+      const stats = await fsPromises.stat(file.path);
       if (stats.size > 10 * 1024 * 1024) {
         return { success: false, error: 'File is too large. Maximum size is 10MB.' };
       }
@@ -761,7 +763,7 @@ ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
     
     // Ensure user sounds directory exists
     try {
-      await fs.mkdir(userSoundsPath, { recursive: true });
+      await fsPromises.mkdir(userSoundsPath, { recursive: true });
     } catch (error) {
       console.error(`[SOUNDS] Failed to create user sounds directory: ${error.message}`);
       return { success: false, error: 'Failed to create sounds directory. Please check permissions.' };
@@ -820,7 +822,7 @@ ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
       console.error(`[SOUNDS] Failed to save sound library: ${error.message}`);
       // Try to clean up the copied file
       try {
-        await fs.unlink(targetPath);
+        await fsPromises.unlink(targetPath);
       } catch (cleanupError) {
         console.warn(`[SOUNDS] Could not clean up file after save failure: ${cleanupError.message}`);
       }
@@ -858,7 +860,7 @@ ipcMain.handle('remove-sound', async (event, { soundType, soundId }) => {
     // Try to delete the file
     try {
       const filePath = path.join(userSoundsPath, sound.filename);
-      await fs.unlink(filePath);
+      await fsPromises.unlink(filePath);
       console.log(`[SOUNDS] Deleted sound file: ${sound.filename}`);
     } catch (fileError) {
       console.warn(`[SOUNDS] Could not delete sound file: ${sound.filename}`, fileError);
@@ -1024,8 +1026,8 @@ ipcMain.handle('copy-wallpaper-file', async (event, { sourcePath, filename }) =>
 ipcMain.handle('get-user-files', async () => {
   try {
     const [soundFiles, wallpaperFiles] = await Promise.all([
-      fs.readdir(userSoundsPath).catch(() => []),
-      fs.readdir(userWallpapersPath).catch(() => [])
+      fsPromises.readdir(userSoundsPath).catch(() => []),
+      fsPromises.readdir(userWallpapersPath).catch(() => [])
     ]);
     
     return {
@@ -1055,13 +1057,13 @@ ipcMain.handle('debug-sounds', async () => {
   
   try {
     // Check user sounds directory
-    debugInfo.userSoundsFiles = await fs.readdir(userSoundsPath).catch(() => []);
+    debugInfo.userSoundsFiles = await fsPromises.readdir(userSoundsPath).catch(() => []);
     
     // Check extraResource path in production
     if (!isDev) {
       const extraResourcePath = path.join(process.resourcesPath, 'public', 'sounds');
       debugInfo.extraResourcePath = extraResourcePath;
-      debugInfo.extraResourceFiles = await fs.readdir(extraResourcePath).catch(() => []);
+      debugInfo.extraResourceFiles = await fsPromises.readdir(extraResourcePath).catch(() => []);
     }
     
     // Get current sound library with URLs
@@ -1099,11 +1101,11 @@ ipcMain.handle('refresh-sound-urls', async () => {
 // IPC handler to copy wallpaper to user directory
 ipcMain.handle('copy-wallpaper-to-user-directory', async (event, { filePath, filename }) => {
   try {
-    if (!fsSync.existsSync(userWallpapersPath)) {
-      fsSync.mkdirSync(userWallpapersPath, { recursive: true });
+    if (!fs.existsSync(userWallpapersPath)) {
+      fs.mkdirSync(userWallpapersPath, { recursive: true });
     }
     const destPath = path.join(userWallpapersPath, filename);
-    await fs.copyFile(filePath, destPath);
+    await fsPromises.copyFile(filePath, destPath);
     return { success: true, url: `userdata://wallpapers/${filename}` };
   } catch (error) {
     return { success: false, error: error.message };
@@ -1129,7 +1131,7 @@ ipcMain.handle('select-wallpaper-file', async () => {
       const filename = path.basename(filePath);
       // Validate file exists
       try {
-        await fs.access(filePath);
+        await fsPromises.access(filePath);
       } catch (error) {
         console.error(`[WALLPAPER] Selected file does not exist: ${filePath}`);
         return { success: false, error: 'Selected file no longer exists. Please try again.' };
@@ -1146,7 +1148,7 @@ ipcMain.handle('select-wallpaper-file', async () => {
       // Check file size (max 20MB)
       let fileSize = null;
       try {
-        const stats = await fs.stat(filePath);
+        const stats = await fsPromises.stat(filePath);
         fileSize = stats.size;
         if (stats.size > 20 * 1024 * 1024) {
           return {
@@ -1190,15 +1192,15 @@ ipcMain.handle('select-wallpaper-file', async () => {
 ipcMain.handle('wallpapers:add', async (event, { filePath, filename }) => {
   try {
     await ensureDataDir();
-    if (!fsSync.existsSync(userWallpapersPath)) {
-      fsSync.mkdirSync(userWallpapersPath, { recursive: true });
+    if (!fs.existsSync(userWallpapersPath)) {
+      fs.mkdirSync(userWallpapersPath, { recursive: true });
     }
     // Generate unique filename if needed
     let base = path.basename(filename, path.extname(filename));
     let ext = path.extname(filename);
     let uniqueName = base + ext;
     let counter = 1;
-    while (fsSync.existsSync(path.join(userWallpapersPath, uniqueName))) {
+    while (fs.existsSync(path.join(userWallpapersPath, uniqueName))) {
       uniqueName = `${base}_${counter}${ext}`;
       counter++;
     }
@@ -1206,13 +1208,13 @@ ipcMain.handle('wallpapers:add', async (event, { filePath, filename }) => {
     await fsExtra.copy(filePath, destPath);
     // Update wallpapers.json
     let data;
-    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    try { data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
     if (!data.savedWallpapers) data.savedWallpapers = [];
     const url = `userdata://wallpapers/${uniqueName}`;
     const newWallpaper = { url, name: filename, type: ext.replace('.', ''), added: Date.now() };
     data.savedWallpapers.push(newWallpaper);
     data.wallpaper = newWallpaper;
-    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
     emitWallpapersUpdated();
     return { success: true, url };
   } catch (error) {
@@ -1229,11 +1231,11 @@ ipcMain.handle('wallpapers:delete', async (event, { url }) => {
     await fsExtra.remove(filePath);
     // Update wallpapers.json
     let data;
-    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    try { data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
     data.savedWallpapers = (data.savedWallpapers || []).filter(w => w.url !== url);
     data.likedWallpapers = (data.likedWallpapers || []).filter(u => u !== url);
     if (data.wallpaper && data.wallpaper.url === url) data.wallpaper = null;
-    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
     emitWallpapersUpdated();
     return { success: true };
   } catch (error) {
@@ -1245,12 +1247,12 @@ ipcMain.handle('wallpapers:delete', async (event, { url }) => {
 ipcMain.handle('wallpapers:setActive', async (event, { url }) => {
   try {
     let data;
-    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    try { data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
     
     // Handle removing wallpaper (setting to null)
     if (url === null) {
       data.wallpaper = null;
-      await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+      await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
       emitWallpapersUpdated();
       return { success: true };
     }
@@ -1259,7 +1261,7 @@ ipcMain.handle('wallpapers:setActive', async (event, { url }) => {
     const found = (data.savedWallpapers || []).find(w => w.url === url);
     if (!found) return { success: false, error: 'Wallpaper not found' };
     data.wallpaper = found;
-    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
     emitWallpapersUpdated();
     return { success: true };
   } catch (error) {
@@ -1271,7 +1273,7 @@ ipcMain.handle('wallpapers:setActive', async (event, { url }) => {
 ipcMain.handle('wallpapers:toggleLike', async (event, { url }) => {
   try {
     let data;
-    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    try { data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
     if (!data.likedWallpapers) data.likedWallpapers = [];
     let liked;
     if (data.likedWallpapers.includes(url)) {
@@ -1281,7 +1283,7 @@ ipcMain.handle('wallpapers:toggleLike', async (event, { url }) => {
       data.likedWallpapers.push(url);
       liked = true;
     }
-    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
     emitWallpapersUpdated();
     return { success: true, liked, likedWallpapers: data.likedWallpapers };
   } catch (error) {
@@ -1293,7 +1295,7 @@ ipcMain.handle('wallpapers:toggleLike', async (event, { url }) => {
 ipcMain.handle('wallpapers:setCyclingSettings', async (event, settings) => {
   try {
     let data;
-    try { data = JSON.parse(await fs.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
+    try { data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
     data.cyclingSettings = {
       enabled: !!settings.enabled,
       interval: Math.max(2, Math.min(600, Number(settings.interval) || 30)),
@@ -1301,7 +1303,7 @@ ipcMain.handle('wallpapers:setCyclingSettings', async (event, settings) => {
       transitionType: settings.transitionType || 'crossfade',
       slideDirection: settings.slideDirection || 'right',
     };
-    await fs.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
     emitWallpapersUpdated();
     return { success: true };
   } catch (error) {
@@ -1320,15 +1322,15 @@ function emitWallpapersUpdated() {
 ipcMain.handle('icons:add', async (event, { filePath, filename }) => {
   try {
     await ensureDataDir();
-    if (!fsSync.existsSync(userIconsPath)) {
-      fsSync.mkdirSync(userIconsPath, { recursive: true });
+    if (!fs.existsSync(userIconsPath)) {
+      fs.mkdirSync(userIconsPath, { recursive: true });
     }
     // Generate unique filename if needed
     let base = path.basename(filename, path.extname(filename));
     let ext = path.extname(filename);
     let uniqueName = base + ext;
     let counter = 1;
-    while (fsSync.existsSync(path.join(userIconsPath, uniqueName))) {
+    while (fs.existsSync(path.join(userIconsPath, uniqueName))) {
       uniqueName = `${base}_${counter}${ext}`;
       counter++;
     }
@@ -1336,12 +1338,12 @@ ipcMain.handle('icons:add', async (event, { filePath, filename }) => {
     await fsExtra.copy(filePath, destPath);
     // Save metadata in settings.json
     let settings = {};
-    try { settings = JSON.parse(await fs.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
+    try { settings = JSON.parse(await fsPromises.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
     if (!settings.savedIcons) settings.savedIcons = [];
     const url = `userdata://icons/${uniqueName}`;
     const newIcon = { url, name: filename, added: Date.now() };
     settings.savedIcons.push(newIcon);
-    await fs.writeFile(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
+    await fsPromises.writeFile(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
     return { success: true, icon: newIcon };
   } catch (error) {
     return { success: false, error: error.message };
@@ -1351,7 +1353,7 @@ ipcMain.handle('icons:add', async (event, { filePath, filename }) => {
 ipcMain.handle('icons:list', async () => {
   try {
     let settings = {};
-    try { settings = JSON.parse(await fs.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
+    try { settings = JSON.parse(await fsPromises.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
     return { success: true, icons: settings.savedIcons || [] };
   } catch (error) {
     return { success: false, error: error.message };
@@ -1366,9 +1368,9 @@ ipcMain.handle('icons:delete', async (event, { url }) => {
     await fsExtra.remove(filePath);
     // Remove from settings
     let settings = {};
-    try { settings = JSON.parse(await fs.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
+    try { settings = JSON.parse(await fsPromises.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
     settings.savedIcons = (settings.savedIcons || []).filter(i => i.url !== url);
-    await fs.writeFile(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
+    await fsPromises.writeFile(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -1381,9 +1383,9 @@ ipcMain.handle('reset-to-default', async () => {
     // Remove all user sounds and wallpapers
     const deleteFilesInDir = async (dir) => {
       try {
-        const files = await fs.readdir(dir);
+        const files = await fsPromises.readdir(dir);
         for (const file of files) {
-          await fs.unlink(path.join(dir, file));
+          await fsPromises.unlink(path.join(dir, file));
         }
       } catch {}
     };
@@ -1454,58 +1456,68 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
       console.error('Failed to open URL:', err);
     });
   } else if (type === 'steam' || (typeof appPath === 'string' && appPath.startsWith('steam://'))) {
-    // Launch Steam URI
     console.log('Launching Steam URI:', appPath);
     shell.openExternal(appPath).catch(err => {
       console.error('Failed to open Steam URI:', err);
     });
   } else if (type === 'exe') {
     try {
-      // Parse the path to extract executable and arguments
-      let executablePath = appPath;
-      let args = [];
-      
-      // Check if the path contains arguments (space followed by dash or other characters)
-      const spaceIndex = appPath.indexOf(' ');
-      if (spaceIndex !== -1) {
-        executablePath = appPath.substring(0, spaceIndex);
-        const argsString = appPath.substring(spaceIndex + 1);
-        // Parse arguments (simple space-based splitting, can be improved)
-        args = argsString.split(' ').filter(arg => arg.trim());
+      // Robustly parse the executable path and arguments, even with spaces.
+      function parseExeAndArgs(appPath) {
+        // If quoted, use quoted part
+        if (appPath.startsWith('"')) {
+          const match = appPath.match(/^"([^\"]+)"\s*(.*)$/);
+          if (match) {
+            const exe = match[1];
+            const argsString = match[2] || '';
+            const args = argsString.match(/(?:[^\s\"]+|"[^"]*")+/g) || [];
+            return [exe, ...args.map(arg => arg.replace(/^"|"$/g, ''))];
+          }
+        }
+        // NEW: If the full path exists as a file, use it as the exe
+        if (fs.existsSync(appPath)) {
+          return [appPath];
+        }
+        // Try to find the longest valid path from the start
+        let parts = appPath.split(' ');
+        let exe = parts[0];
+        let i = 1;
+        while (i <= parts.length) {
+          const testPath = parts.slice(0, i).join(' ');
+          if (fs.existsSync(testPath)) {
+            exe = testPath;
+            i++;
+          } else {
+            break;
+          }
+        }
+        const args = parts.slice(i - 1);
+        return [exe, ...args];
       }
-
-      console.log(`Parsed executable: ${executablePath}, args: ${JSON.stringify(args)}`);
-
+      const [executablePath, ...args] = parseExeAndArgs(appPath);
+      const workingDir = path.dirname(executablePath);
+      console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
       if (asAdmin) {
-        // Launch as admin using PowerShell
         const argsString = args.length > 0 ? ` -ArgumentList "${args.join('", "')}"` : '';
-        const command = `Start-Process -FilePath "${executablePath.replace(/"/g, '\"')}"${argsString} -Verb RunAs`;
+        const command = `Start-Process -FilePath "${executablePath}"${argsString} -Verb RunAs`;
         const child = spawn('powershell', ['-Command', command], {
           detached: true,
           stdio: 'ignore',
           shell: true
         });
-        child.on('error', (err) => {
-          console.error('Failed to launch executable as admin:', err);
-        });
-        child.on('spawn', () => {
-          console.log('Executable launched as admin successfully');
-          child.unref();
-        });
+        child.on('error', (err) => console.error('Failed to launch executable as admin:', err));
+        child.on('spawn', () => { console.log('Executable launched as admin successfully'); child.unref(); });
       } else {
-        // Normal launch
+        // Normal launch using the parsed path and setting the working directory.
+        console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
         const child = spawn(executablePath, args, {
-        detached: true,
-        stdio: 'ignore',
-          shell: true
-      });
-      child.on('error', (err) => {
-        console.error('Failed to launch executable:', err);
-      });
-      child.on('spawn', () => {
-        console.log('Executable launched successfully');
-        child.unref();
-      });
+          cwd: workingDir,
+          detached: true,
+          stdio: 'ignore',
+          shell: false
+        });
+        child.on('error', (err) => console.error('Failed to launch executable:', err));
+        child.on('spawn', () => { console.log('Executable launched successfully'); child.unref(); });
       }
     } catch (err) {
       console.error('Failed to launch executable:', err);
@@ -1735,7 +1747,7 @@ if (app.isPackaged) {
     
     // Check if file exists
     try {
-      await fs.access(filePath);
+      await fsPromises.access(filePath);
       console.log('[Protocol] File exists:', filePath);
     } catch (error) {
       console.log('[Protocol] File does not exist:', filePath);
@@ -1752,11 +1764,11 @@ if (app.isPackaged) {
       const firstRunFile = path.join(userDataPath, 'first-run-complete.json');
       
       // Check if first run file exists
-      const exists = await fs.access(firstRunFile).then(() => true).catch(() => false);
+      const exists = await fsPromises.access(firstRunFile).then(() => true).catch(() => false);
       
       if (!exists) {
         // Create first run file to mark as completed
-        await fs.writeJson(firstRunFile, {
+        await fsPromises.writeFile(firstRunFile, {
           completed: true,
           date: new Date().toISOString(),
           version: app.getVersion()
@@ -2031,7 +2043,7 @@ ipcMain.handle('wallpaper:selectFile', async () => {
       const filePath = result.filePaths[0];
       const filename = path.basename(filePath);
       // Validate file exists
-      try { await fs.access(filePath); } catch { return { success: false, error: 'Selected file no longer exists. Please try again.' }; }
+      try { await fsPromises.access(filePath); } catch { return { success: false, error: 'Selected file no longer exists. Please try again.' }; }
       // Validate file extension
       const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
       const fileExtension = path.extname(filename).toLowerCase();
@@ -2041,7 +2053,7 @@ ipcMain.handle('wallpaper:selectFile', async () => {
       // Check file size (max 20MB)
       let fileSize = null;
       try {
-        const stats = await fs.stat(filePath);
+        const stats = await fsPromises.stat(filePath);
         fileSize = stats.size;
         if (stats.size > 20 * 1024 * 1024) {
           return { success: false, error: 'File is too large.\n\nMaximum file size is 20MB. Please select a smaller file.' };
@@ -2062,15 +2074,15 @@ ipcMain.handle('wallpaper:selectFile', async () => {
 ipcMain.handle('channels:copyHoverSound', async (event, { filePath, filename }) => {
   try {
     await ensureDataDir();
-    if (!fsSync.existsSync(userChannelHoverSoundsPath)) {
-      fsSync.mkdirSync(userChannelHoverSoundsPath, { recursive: true });
+    if (!fs.existsSync(userChannelHoverSoundsPath)) {
+      fs.mkdirSync(userChannelHoverSoundsPath, { recursive: true });
     }
     // Generate unique filename if needed
     let base = path.basename(filename, path.extname(filename));
     let ext = path.extname(filename);
     let uniqueName = base + ext;
     let counter = 1;
-    while (fsSync.existsSync(path.join(userChannelHoverSoundsPath, uniqueName))) {
+    while (fs.existsSync(path.join(userChannelHoverSoundsPath, uniqueName))) {
       uniqueName = `${base}_${counter}${ext}`;
       counter++;
     }
@@ -2118,7 +2130,7 @@ ipcMain.handle('icon:selectFile', async () => {
       const filePath = result.filePaths[0];
       const filename = path.basename(filePath);
       // Validate file exists
-      try { await fs.access(filePath); } catch { return { success: false, error: 'Selected file no longer exists. Please try again.' }; }
+      try { await fsPromises.access(filePath); } catch { return { success: false, error: 'Selected file no longer exists. Please try again.' }; }
       // Validate file extension
       const validExtensions = ['.png'];
       const fileExtension = path.extname(filename).toLowerCase();
@@ -2128,7 +2140,7 @@ ipcMain.handle('icon:selectFile', async () => {
       // Check file size (max 2MB)
       let fileSize = null;
       try {
-        const stats = await fs.stat(filePath);
+        const stats = await fsPromises.stat(filePath);
         fileSize = stats.size;
         if (stats.size > 2 * 1024 * 1024) {
           return { success: false, error: 'File is too large. Maximum file size is 2MB.' };
@@ -2228,7 +2240,7 @@ async function getInstalledSteamGames() {
     let steamPath = 'C:/Program Files (x86)/Steam';
     // Try to find Steam path from registry (future improvement)
     const libraryVdfPath = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
-    if (!fsSync.existsSync(libraryVdfPath)) {
+    if (!fs.existsSync(libraryVdfPath)) {
       // Try common alternative locations (user may have moved Steam)
       const home = os.homedir();
       const altPaths = [
@@ -2240,7 +2252,7 @@ async function getInstalledSteamGames() {
       let found = false;
       for (const alt of altPaths) {
         const altVdf = path.join(alt, 'steamapps', 'libraryfolders.vdf');
-        if (fsSync.existsSync(altVdf)) {
+        if (fs.existsSync(altVdf)) {
           steamPath = alt;
           found = true;
           break;
@@ -2252,7 +2264,7 @@ async function getInstalledSteamGames() {
       }
     }
     console.log('[SteamScan] Using Steam path:', steamPath);
-    const libraryVdf = fsSync.readFileSync(path.join(steamPath, 'steamapps', 'libraryfolders.vdf'), 'utf-8');
+    const libraryVdf = fs.readFileSync(path.join(steamPath, 'steamapps', 'libraryfolders.vdf'), 'utf-8');
     const libraries = vdf.parse(libraryVdf).libraryfolders;
     let libraryPaths = [];
     // Newer Steam format: numbered keys, each with a 'path' property
@@ -2271,12 +2283,12 @@ async function getInstalledSteamGames() {
     let games = [];
     for (const libPath of libraryPaths) {
       const steamapps = path.join(libPath, 'steamapps');
-      if (!fsSync.existsSync(steamapps)) continue;
-      const files = fsSync.readdirSync(steamapps);
+      if (!fs.existsSync(steamapps)) continue;
+      const files = fs.readdirSync(steamapps);
       for (const file of files) {
         if (file.startsWith('appmanifest_') && file.endsWith('.acf')) {
           try {
-            const manifest = vdf.parse(fsSync.readFileSync(path.join(steamapps, file), 'utf-8'));
+            const manifest = vdf.parse(fs.readFileSync(path.join(steamapps, file), 'utf-8'));
             const appid = manifest.AppState.appid;
             const name = manifest.AppState.name;
             if (appid && name) {
@@ -2304,15 +2316,15 @@ ipcMain.handle('steam:getInstalledGames', async () => {
 async function getInstalledEpicGames() {
   try {
     const epicManifestsDir = 'C:/ProgramData/Epic/EpicGamesLauncher/Data/Manifests';
-    if (!fsSync.existsSync(epicManifestsDir)) {
+    if (!fs.existsSync(epicManifestsDir)) {
       console.error('[EpicScan] Could not find Epic Games manifests directory.');
       return { error: 'Could not find Epic Games manifests directory.' };
     }
-    const files = fsSync.readdirSync(epicManifestsDir).filter(f => f.endsWith('.item'));
+    const files = fs.readdirSync(epicManifestsDir).filter(f => f.endsWith('.item'));
     let games = [];
     for (const file of files) {
       try {
-        const manifest = JSON.parse(fsSync.readFileSync(path.join(epicManifestsDir, file), 'utf-8'));
+        const manifest = JSON.parse(fs.readFileSync(path.join(epicManifestsDir, file), 'utf-8'));
         const name = manifest.DisplayName;
         const appName = manifest.AppName;
         const image = manifest.DisplayImage || manifest.ImageUrl || null;
@@ -2345,4 +2357,76 @@ ipcMain.handle('steam:pickLibraryFolder', async () => {
     return { canceled: true };
   }
   return { path: result.filePaths[0] };
+});
+
+// --- App Scanning Cache ---
+let appsCache = null;
+let appsCacheTime = 0;
+const APPS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+async function scanInstalledApps() {
+  // Scan Start Menu shortcuts for installed apps
+  const startMenuDirs = [
+    path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+    path.join('C:', 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+  ];
+  const results = [];
+  async function scanDir(dir) {
+    try {
+      const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await scanDir(fullPath);
+        } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.lnk')) {
+          try {
+            const shortcut = await wsQuery(fullPath);
+            if (shortcut && shortcut.target) {
+              results.push({
+                name: path.basename(entry.name, '.lnk'),
+                path: shortcut.target,
+                args: shortcut.args || '',
+                icon: shortcut.icon || null,
+                lnk: fullPath,
+              });
+            }
+          } catch (e) {
+            // Ignore broken shortcuts
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore missing dirs
+    }
+  }
+  for (const dir of startMenuDirs) {
+    await scanDir(dir);
+  }
+  // Deduplicate by name+path
+  const seen = new Set();
+  const deduped = results.filter(app => {
+    const key = app.name + '|' + app.path;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return deduped;
+}
+
+ipcMain.handle('apps:getInstalled', async () => {
+  const now = Date.now();
+  if (appsCache && (now - appsCacheTime < APPS_CACHE_TTL)) {
+    return appsCache;
+  }
+  const deduped = await scanInstalledApps();
+  appsCache = deduped;
+  appsCacheTime = now;
+  return deduped;
+});
+
+ipcMain.handle('apps:rescanInstalled', async () => {
+  const deduped = await scanInstalledApps();
+  appsCache = deduped;
+  appsCacheTime = Date.now();
+  return deduped;
 });

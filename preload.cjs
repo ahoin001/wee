@@ -75,4 +75,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   getFullscreenState: () => ipcRenderer.invoke('get-fullscreen-state'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  apps: {
+    getInstalled: () => ipcRenderer.invoke('apps:getInstalled'),
+  },
 });
