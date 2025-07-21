@@ -10,15 +10,7 @@ const tag = `v${version}`;
 console.log(`\n[Release] Building app for version ${version}...`);
 execSync('npm run build', { stdio: 'inherit' });
 
-console.log(`\n[Release] Creating git tag: ${tag}`);
-try {
-  execSync(`git tag ${tag}`);
-  console.log(`[Release] Tag ${tag} created.`);
-} catch (e) {
-  console.error(`[Release] Failed to create tag: ${e.message}`);
-  process.exit(1);
-}
-
+// Do NOT create the tag here; npm version already did it
 console.log(`\n[Release] Pushing tag ${tag} to origin...`);
 try {
   execSync(`git push origin ${tag}`, { stdio: 'inherit' });
