@@ -8,34 +8,28 @@ on:
 jobs:
   build-and-release:
     runs-on: windows-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-        
+
     - name: Install dependencies
       run: npm ci
-      
-    - name: Build application
-      run: npm run build
-      
-    - name: Package application
-      run: npm run make
-      
+
+    - name: Build and Package (electron-builder)
+      run: npx electron-builder --win --x64 --publish never
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          out/WeeDesktopLauncher-Setup-*.exe
-          out/WeeDesktopLauncher-*.exe
-        generate_release_notes: true
-        draft: false
-        prerelease: false
+          dist/*.exe
+          dist/latest.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
