@@ -11,18 +11,15 @@ module.exports = {
     ignore: [
       /^\/public\/sounds\/.*\.md$/  // Ignore README files
     ],
-    // Auto-update configuration
     generateUpdatesFilesForAllChannels: true,
     afterCopy: [
       (buildPath, electronVersion, platform, arch) => {
         console.log('Copying sounds to build directory...');
         const fs = require('fs-extra');
         const path = require('path');
-        
         // Copy sounds to the resources directory
         const sourceSoundsPath = path.join(__dirname, 'public', 'sounds');
         const targetSoundsPath = path.join(buildPath, 'resources', 'public', 'sounds');
-        
         try {
           fs.ensureDirSync(path.dirname(targetSoundsPath));
           fs.copySync(sourceSoundsPath, targetSoundsPath);
@@ -57,8 +54,6 @@ module.exports = {
       name: '@electron-forge/plugin-auto-unpack-natives',
       config: {},
     },
-    // Fuses are used to enable/disable various Electron functionality
-    // at package time, before code signing the application
     new FusesPlugin({
       version: FuseVersion.V1,
       [FuseV1Options.RunAsNode]: false,
