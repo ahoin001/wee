@@ -483,8 +483,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       </div>
       <div className="path-input-group">
         {(gameType === 'steam' || gameType === 'epic') ? (
-          <div style={{ width: '100%', position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '16px 0 12px 0' }}>
+          <div style={{ width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
               <input
                 type="text"
                 placeholder={gameType === 'steam' ? 'Type a Steam game name (e.g. Rocket League) or paste a Steam URI' : 'Type an Epic game name (e.g. Fortnite) or paste an Epic URI'}
@@ -509,13 +509,57 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               {gameType === 'steam' && (
                 <Button
                   variant="secondary"
-                  title="Pick a different Steam library folder to scan for games."
+                  title="Pick your main Steam folder (the one containing the steamapps folder and libraryfolders.vdf). Do NOT select the steamapps folder itself."
                   style={{ fontSize: 14, borderRadius: 6, marginLeft: 0, background: '#f7fafd', color: '#222', border: '1px solid #b0c4d8' }}
                   onClick={handlePickSteamFolder}
                   disabled={gameLoading}
                 >
                   Change Steam Folder
                 </Button>
+              )}
+              {gameDropdownOpen && gameResults.length > 0 && (
+                <ul style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  width: '100%',
+                  zIndex: 10,
+                  background: '#fff',
+                  border: '1px solid #b0c4d8',
+                  borderRadius: 8,
+                  margin: 0,
+                  padding: 0,
+                  maxHeight: 320,
+                  overflowY: 'auto',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.10)'
+                }}>
+                  {dedupeByKey(gameResults, gameType === 'steam' ? 'appid' : 'appName').map(game => (
+                    <li
+                      key={gameType === 'steam' ? game.appid : game.appName}
+                      className="steam-dropdown-result"
+                      style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '14px 18px', cursor: 'pointer', fontSize: 18, minHeight: 56, transition: 'background 0.15s' }}
+                      onMouseDown={() => handleGameResultClick(game)}
+                    >
+                      {gameType === 'steam' && (
+                        <img
+                          src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg`}
+                          alt={game.name + ' cover'}
+                          style={{ width: 90, height: 42, objectFit: 'cover', borderRadius: 6, background: '#e9eff3', flexShrink: 0, transition: 'transform 0.15s' }}
+                          onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                        />
+                      )}
+                      {gameType === 'epic' && game.image && (
+                        <img
+                          src={game.image}
+                          alt={game.name + ' cover'}
+                          style={{ width: 90, height: 42, objectFit: 'cover', borderRadius: 6, background: '#e9eff3', flexShrink: 0, transition: 'transform 0.15s' }}
+                          onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                        />
+                      )}
+                      <span>{game.name} <span style={{ color: '#888', fontSize: 15 }}>{gameType === 'steam' ? `(${game.appid})` : `(${game.appName})`}</span></span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
             <div style={{ fontSize: 13, color: '#888', marginTop: 16 }}>
@@ -526,6 +570,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 {gameType === 'steam' && (
                   <>
                     The correct Steam library path is required to scan your games. {customSteamPath ? <span>Currently using: <code>{customSteamPath}</code></span> : <span>Default: <code>C:\Program Files (x86)\Steam</code></span>}<br />
+                    <b>When changing the Steam folder, select your main Steam folder (the one containing the <code>steamapps</code> folder and <code>libraryfolders.vdf</code>).<br />Do <u>NOT</u> select the <code>steamapps</code> folder itself.</b><br />
                     If you move your Steam library, use the <b>Change Steam Folder</b> button.
                   </>
                 )}
@@ -569,32 +614,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 transition: transform 0.15s;
               }
             `}</style>
-            {gameDropdownOpen && gameResults.length > 0 && (
-              <ul style={{
-                position: 'absolute',
-                zIndex: 10,
-                background: '#fff',
-                border: '1px solid #b0c4d8',
-                borderRadius: 8,
-                margin: 0,
-                padding: 0,
-                width: '100%',
-                maxHeight: 320,
-                overflowY: 'auto',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.10)'
-              }}>
-                {dedupeByKey(gameResults, gameType === 'steam' ? 'appid' : 'appName').map(game => (
-                  <li
-                    key={gameType === 'steam' ? game.appid : game.appName}
-                    className="steam-dropdown-result"
-                    style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '14px 18px', cursor: 'pointer', fontSize: 18, minHeight: 56, transition: 'background 0.15s' }}
-                    onMouseDown={() => handleGameResultClick(game)}
-                  >
-                    <span>{game.name} <span style={{ color: '#888', fontSize: 15 }}>{gameType === 'steam' ? `(${game.appid})` : `(${game.appName})`}</span></span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         ) : (
           <>

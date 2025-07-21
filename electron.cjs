@@ -2315,8 +2315,9 @@ async function getInstalledEpicGames() {
         const manifest = JSON.parse(fsSync.readFileSync(path.join(epicManifestsDir, file), 'utf-8'));
         const name = manifest.DisplayName;
         const appName = manifest.AppName;
+        const image = manifest.DisplayImage || manifest.ImageUrl || null;
         if (name && appName) {
-          games.push({ name, appName });
+          games.push({ name, appName, image });
         }
       } catch (err) {
         console.warn('[EpicScan] Failed to parse', file, err);
