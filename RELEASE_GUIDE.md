@@ -17,9 +17,9 @@ git push origin v1.9.2
 ```
 
 ### 3. GitHub Actions Will Automatically:
-- Build the application
+- Build the application using electron-builder
 - Create a GitHub release
-- Upload the installer files
+- Upload the installer and update files (including latest.yml, .exe, etc.)
 - Generate release notes
 
 ## 📋 Manual Release Process
@@ -35,7 +35,7 @@ If you prefer to do it manually:
 ### 2. Build and Package
 ```bash
 npm run build
-npm run make
+npx electron-builder --win --publish never
 ```
 
 ### 3. Create GitHub Release
@@ -43,7 +43,7 @@ npm run make
 - Click "Create a new release"
 - Set tag to `v1.9.2`
 - Add release notes from CHANGELOG.md
-- Upload the `.exe` files from `out/` directory
+- Upload the `.exe` and `latest.yml` files from the `dist/` directory
 
 ## 📝 Changelog Guidelines
 
@@ -62,7 +62,7 @@ When adding features or fixes, update the `CHANGELOG.md` file:
 ## [Unreleased]
 
 ### Added
-- New auto-update system
+- New auto-update system (electron-updater)
 - Enhanced preset functionality
 
 ### Fixed
@@ -77,6 +77,7 @@ When adding features or fixes, update the `CHANGELOG.md` file:
 3. **Manual Check**: Users can click "Check for Updates" anytime
 4. **Changelog**: Users see what's new in the update
 5. **Download**: Users can download and install the update
+6. **Install**: App will prompt to restart and install the update
 
 ## 🐛 Troubleshooting
 
@@ -88,7 +89,8 @@ When adding features or fixes, update the `CHANGELOG.md` file:
 ### Users Not Getting Updates
 - Verify the version number was incremented
 - Check that the GitHub release was published (not draft)
-- Ensure the auto-updater is configured correctly
+- Ensure the auto-updater is configured correctly in electron.cjs
+- Make sure latest.yml and installer files are present in the release
 
 ### Build Failures
 - Check Node.js version (requires 18+)
