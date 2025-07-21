@@ -1571,7 +1571,7 @@ async function createWindow(opts = {}) {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    show: true,
+    show: false, // Hide until renderer signals ready
     frame: opts.frame === undefined ? !isFrameless : opts.frame, // borderless by default
     fullscreen: shouldStartFullscreen,
     webPreferences: {
@@ -1583,10 +1583,14 @@ async function createWindow(opts = {}) {
 
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
-    // mainWindow.webContents.openDevTools(); // Commented out to prevent auto-opening console in dev
   } else {
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
+
+  // Listen for renderer-ready event to show the window
+  ipcMain.on('renderer-ready', () => {
+    if (mainWindow) mainWindow.show();
+  });
 
   // Store event listener references for proper cleanup
   const onClosed = () => {

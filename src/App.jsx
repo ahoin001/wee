@@ -1404,6 +1404,28 @@ function App() {
     }
   };
 
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Simulate loading, or check for actual readiness (e.g., data loaded)
+    // When ready:
+    setTimeout(() => {
+      setIsReady(true);
+      // Notify Electron main process
+      if (window?.api && window.api.send) {
+        window.api.send('renderer-ready');
+      } else if (window?.require) {
+        try {
+          window.require('electron').ipcRenderer.send('renderer-ready');
+        } catch {}
+      }
+    }, 1000); // Simulate 1s loading, adjust as needed
+  }, []);
+
+  if (!isReady) {
+    return <SplashScreen />;
+  }
+
   return (
     <>
       {/* Always render the main UI, but overlay the splash screen while loading */}

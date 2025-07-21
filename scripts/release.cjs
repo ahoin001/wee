@@ -7,7 +7,7 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const version = pkg.version;
 const tag = `v${version}`;
 
-console.log(`\n[Release] Building app for version ${version}...`);
+console.log(`\n[Release] Building Vite app...`);
 execSync('npm run build', { stdio: 'inherit' });
 
 // Do NOT create the tag here; npm version already did it
