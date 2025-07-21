@@ -35,6 +35,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Default 5 seconds
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
+  const [channelOpacity, setChannelOpacity] = useState(1);
+  const [restoreOpacityOnHover, setRestoreOpacityOnHover] = useState(true);
 
   // Load wallpapers from backend
   const loadWallpapers = async () => {
@@ -57,6 +59,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
       setChannelAutoFadeTimeout(data.channelAutoFadeTimeout ?? 5); // Load channel auto-fade timeout setting
       setWallpaperBlur(data.wallpaperBlur ?? 0);
+      setChannelOpacity(typeof data.channelOpacity === 'number' ? data.channelOpacity : 1);
+      setRestoreOpacityOnHover(typeof data.restoreOpacityOnHover === 'boolean' ? data.restoreOpacityOnHover : true);
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load wallpapers: ' + err.message });
     } finally {
@@ -222,6 +226,9 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       let wallpaperData = await api.get();
       wallpaperData.wallpaperOpacity = wallpaperOpacity;
       wallpaperData.wallpaperBlur = wallpaperBlur;
+      wallpaperData.channelOpacity = channelOpacity;
+      wallpaperData.restoreOpacityOnHover = restoreOpacityOnHover;
+      wallpaperData.channelAutoFadeTimeout = channelAutoFadeTimeout;
       await api.set(wallpaperData);
       
       // Handle wallpaper and cycling settings
@@ -249,6 +256,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           channelAutoFadeTimeout: channelAutoFadeTimeout,
           wallpaperOpacity: wallpaperOpacity,
           wallpaperBlur: wallpaperBlur,
+          channelOpacity: channelOpacity,
+          restoreOpacityOnHover: restoreOpacityOnHover,
         });
       }
       handleClose();
@@ -665,6 +674,37 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               <div style={{ fontSize: 14, color: '#666', marginTop: 12 }}>
             <strong>Fade Timeout:</strong> The time in seconds before channels start to fade out when not hovered. Set to 0 to disable auto-fade completely.
               </div>
+        </div>
+      </div>
+      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+        <div className="wee-card-header">
+          <span className="wee-card-title">Channel Opacity</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 10 }}>
+            <input
+              type="range"
+              min={0.2}
+              max={1}
+              step={0.01}
+              value={channelOpacity}
+              onChange={e => setChannelOpacity(Number(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ minWidth: 40, fontWeight: 600 }}>{Math.round(channelOpacity * 100)}%</span>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+            <input
+              type="checkbox"
+              checked={restoreOpacityOnHover}
+              onChange={e => setRestoreOpacityOnHover(e.target.checked)}
+            />
+            Restore opacity on hover
+          </label>
+          <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
+            Set the default opacity for all channels. If enabled, channels become fully opaque when hovered.
+          </div>
         </div>
       </div>
     </BaseModal>

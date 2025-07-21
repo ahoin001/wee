@@ -169,6 +169,7 @@ function App() {
   const currentTimeFormatRef = useRef(true);
   const [lastChannelHoverTime, setLastChannelHoverTime] = useState(Date.now());
   const [channelOpacity, setChannelOpacity] = useState(1);
+  const [restoreOpacityOnHover, setRestoreOpacityOnHover] = useState(true);
   const fadeTimeoutRef = useRef(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [openChannelModal, setOpenChannelModal] = useState(null); // Track which channel modal is open
@@ -923,6 +924,12 @@ function App() {
     if (newSettings.wallpaperBlur !== undefined) {
       setWallpaperBlur(newSettings.wallpaperBlur);
     }
+    if (newSettings.channelOpacity !== undefined) {
+      setChannelOpacity(newSettings.channelOpacity);
+    }
+    if (newSettings.restoreOpacityOnHover !== undefined) {
+      setRestoreOpacityOnHover(newSettings.restoreOpacityOnHover);
+    }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
     // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
@@ -1278,7 +1285,7 @@ function App() {
   // Channel auto-fade logic
   useEffect(() => {
     if (channelAutoFadeTimeout <= 0) {
-      setChannelOpacity(1);
+      // Always use the slider value
       return;
     }
 
@@ -1298,10 +1305,15 @@ function App() {
     checkFadeTimeout();
 
     // Set up interval to check fade timeout
-    const taskId = intervalManager.addTask(checkFadeTimeout, 1000, 'channel-fade-check');
-
-    return () => intervalManager.removeTask(taskId);
+    const interval = setInterval(checkFadeTimeout, 500);
+    return () => clearInterval(interval);
   }, [channelAutoFadeTimeout, lastChannelHoverTime]);
+
+  useEffect(() => {
+    if (channelAutoFadeTimeout <= 0) {
+      setChannelOpacity(channelOpacity);
+    }
+  }, [channelOpacity, channelAutoFadeTimeout]);
 
   // Pause/resume background music on window blur/focus
   useEffect(() => {
@@ -1448,7 +1460,7 @@ function App() {
         {showDragRegion && (
           <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
         )}
-        <div className="channels-grid" style={{ opacity: channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
+        <div className="channels-grid" style={{ opacity: channelAutoFadeTimeout > 0 ? channelOpacity : channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
           {channels.map((channel) => {
             const config = channelConfigs[channel.id];
             const isConfigured = config && (config.media || config.path);
@@ -1470,6 +1482,8 @@ function App() {
                 channelConfig={config}
                 onHover={handleChannelHover}
                 onOpenModal={() => setOpenChannelModal(channel.id)}
+                channelOpacity={channelOpacity}
+                restoreOpacityOnHover={restoreOpacityOnHover}
               />
             );
           })}

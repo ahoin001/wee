@@ -19,7 +19,7 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal }) => {
+const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, channelOpacity = 1, restoreOpacityOnHover = true }) => {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -302,6 +302,9 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     }
   }
 
+  // Compute effective opacity
+  const effectiveOpacity = restoreOpacityOnHover && isHovered ? 1 : channelOpacity;
+
   const channelContent = (
     <div
       className={empty && !media ? "channel empty" : "channel"}
@@ -312,6 +315,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       tabIndex={0}
       role="button"
       onContextMenu={handleRightClick}
+      style={{ opacity: effectiveOpacity, transition: 'opacity 0.3s' }}
     >
       {mediaPreview || (icon && icon.trim() ? <img src={icon} alt="" className="channel-media" /> : null)}
     </div>
@@ -380,6 +384,8 @@ Channel.propTypes = {
   animatedOnHover: PropTypes.bool,
   onHover: PropTypes.func,
   onOpenModal: PropTypes.func,
+  channelOpacity: PropTypes.number,
+  restoreOpacityOnHover: PropTypes.bool,
 };
 
 export default Channel;
