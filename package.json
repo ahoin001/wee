@@ -26,7 +26,10 @@
     "publish": "electron-forge publish",
     "make": "electron-forge make",
     "release": "node scripts/release.cjs",
-    "test-installer": "node scripts/test-installer.cjs"
+    "test-installer": "node scripts/test-installer.cjs",
+    "release:patch": "npm version patch && npm run release",
+    "release:minor": "npm version minor && npm run release",
+    "release:major": "npm version major && npm run release"
   },
   "build": {
     "appId": "com.ahoin001.wiidesktoplauncher",
@@ -99,7 +102,6 @@
     "@electron-forge/cli": "^7.8.1",
     "@electron-forge/maker-deb": "^7.8.1",
     "@electron-forge/maker-rpm": "^7.8.1",
-    "@electron-forge/maker-squirrel": "^7.8.1",
     "@electron-forge/maker-zip": "^7.8.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
     "@electron-forge/plugin-fuses": "^7.8.1",
