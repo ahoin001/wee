@@ -40,6 +40,11 @@
     "directories": {
       "output": "dist"
     },
+    "files": [
+      "dist/**/*",
+      "electron.cjs",
+      "preload.cjs"
+    ],
     "publish": [
       {
         "provider": "github"
