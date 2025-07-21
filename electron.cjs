@@ -1897,3 +1897,7 @@ ipcMain.handle('get-fullscreen-state', async () => {
   }
   return false;
 });
+
+ipcMain.handle('get-app-version', async () => {
+  return app.getVersion();
+});

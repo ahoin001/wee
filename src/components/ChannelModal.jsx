@@ -122,6 +122,15 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       };
     }
   };
+
+  // Handle volume change for hover sound (live update)
+  const handleHoverSoundVolumeChange = (value) => {
+    setHoverSoundVolume(value);
+    // Live update test audio volume if this sound is being tested
+    if (hoverSoundAudio) {
+      hoverSoundAudio.volume = value;
+    }
+  };
   
   // Stop hover sound (fade out)
   const handleStopHoverSound = () => {
@@ -481,19 +490,18 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 >
   {hoverSoundAudio ? 'Stop' : 'Test'}
 </button>
-        <label style={{ fontWeight: 500, marginLeft: 10 }}>
-          Volume:
+        <div className="volume-control" style={{ marginLeft: 10 }}>
+          <span style={{ fontWeight: 500, fontSize: '14px' }}>Volume:</span>
           <input
             type="range"
             min="0"
             max="1"
-            step="0.05"
+            step="0.01"
             value={hoverSoundVolume}
-            onChange={e => setHoverSoundVolume(parseFloat(e.target.value))}
-            style={{ marginLeft: 8, verticalAlign: 'middle' }}
+            onChange={e => handleHoverSoundVolumeChange(parseFloat(e.target.value))}
           />
-          {` ${Math.round(hoverSoundVolume * 100)}%`}
-        </label>
+          <span className="volume-value">{Math.round(hoverSoundVolume * 100)}%</span>
+        </div>
       </div>
       <span style={{ color: '#888', fontSize: 13 }}>Sound will fade in on hover, and fade out on leave or click.</span>
     </>

@@ -64,4 +64,5 @@ contextBridge.exposeInMainWorld('api', {
     offUpdateStatus: (cb) => ipcRenderer.removeListener('update-status', cb),
   },
   getFullscreenState: () => ipcRenderer.invoke('get-fullscreen-state'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 });

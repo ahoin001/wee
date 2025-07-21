@@ -8,6 +8,7 @@ function UpdateModal({ isOpen, onClose }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [appVersion, setAppVersion] = useState('1.9.4');
 
   useEffect(() => {
     if (!isOpen) {
@@ -19,6 +20,20 @@ function UpdateModal({ isOpen, onClose }) {
       setError(null);
       return;
     }
+
+    // Load app version when modal opens
+    const loadAppVersion = async () => {
+      try {
+        if (window.api && window.api.getAppVersion) {
+          const version = await window.api.getAppVersion();
+          setAppVersion(version);
+        }
+      } catch (err) {
+        console.warn('Failed to get app version:', err);
+        // Keep default version if API fails
+      }
+    };
+    loadAppVersion();
 
     const handleUpdateStatus = (data) => {
       console.log('[UpdateModal] Update status received:', data);
@@ -176,7 +191,7 @@ function UpdateModal({ isOpen, onClose }) {
           </div>
           <div style={{ marginBottom: '15px', color: '#666' }}>
             <div><strong>New Version:</strong> {updateStatus.version}</div>
-            <div><strong>Current Version:</strong> 1.9.1</div>
+            <div><strong>Current Version:</strong> {appVersion}</div>
             {updateStatus.releaseDate && (
               <div><strong>Release Date:</strong> {new Date(updateStatus.releaseDate).toLocaleDateString()}</div>
             )}
@@ -336,7 +351,7 @@ function UpdateModal({ isOpen, onClose }) {
           Check for Updates
         </button>
         <div style={{ marginTop: '10px', fontSize: '12px', color: '#999' }}>
-          Current version: 1.9.1
+          Current version: {appVersion}
         </div>
       </div>
     );
