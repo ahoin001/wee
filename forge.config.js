@@ -34,7 +34,9 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        name: 'weelauncher',
+      },
     },
     {
       name: '@electron-forge/maker-zip',

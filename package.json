@@ -29,7 +29,6 @@
     "check-update": "node scripts/check-update.cjs",
     "test-installer": "node scripts/test-installer.cjs"
   },
-
   "dependencies": {
     "@radix-ui/react-context-menu": "^2.1.5",
     "electron-squirrel-startup": "^1.0.1",
