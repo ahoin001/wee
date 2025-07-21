@@ -11,6 +11,7 @@ const vdf = require('vdf');
 const os = require('os');
 const { promisify } = require('util');
 const wsQuery = promisify(ws.query);
+const { nativeImage } = require('electron');
 
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
@@ -1512,8 +1513,8 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
         console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
         const child = spawn(executablePath, args, {
           cwd: workingDir,
-          detached: true,
-          stdio: 'ignore',
+        detached: true,
+        stdio: 'ignore',
           shell: false
         });
         child.on('error', (err) => console.error('Failed to launch executable:', err));
@@ -1591,7 +1592,7 @@ async function createWindow(opts = {}) {
   const onClosed = () => {
     mainWindow = null;
   };
-  
+
   const onEnterFullScreen = () => {
     isCurrentlyFullscreen = true;
     sendWindowState();
@@ -2381,15 +2382,40 @@ async function scanInstalledApps() {
         } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.lnk')) {
           try {
             const shortcut = await wsQuery(fullPath);
-            if (shortcut && shortcut.target) {
-              results.push({
-                name: path.basename(entry.name, '.lnk'),
-                path: shortcut.target,
-                args: shortcut.args || '',
-                icon: shortcut.icon || null,
-                lnk: fullPath,
-              });
+            let iconDataUrl = null;
+            // Try shortcut icon first
+            if (shortcut && shortcut.icon) {
+              try {
+                let iconPath = shortcut.icon;
+                if (iconPath.includes(',')) iconPath = iconPath.split(',')[0];
+                if (fs.existsSync(iconPath)) {
+                  const iconImg = nativeImage.createFromPath(iconPath);
+                  if (!iconImg.isEmpty()) {
+                    iconDataUrl = iconImg.toDataURL();
+                  }
+                }
+              } catch (iconErr) {
+                // Ignore icon extraction errors
+              }
             }
+            // Fallback: try target executable if icon is still missing
+            if (!iconDataUrl && shortcut && shortcut.target && fs.existsSync(shortcut.target)) {
+              try {
+                const iconImg = nativeImage.createFromPath(shortcut.target);
+                if (!iconImg.isEmpty()) {
+                  iconDataUrl = iconImg.toDataURL();
+                }
+              } catch (iconErr) {
+                // Ignore icon extraction errors
+              }
+            }
+            results.push({
+              name: path.basename(entry.name, '.lnk'),
+              path: shortcut.target,
+              args: shortcut.args || '',
+              icon: iconDataUrl,
+              lnk: fullPath,
+            });
           } catch (e) {
             // Ignore broken shortcuts
           }

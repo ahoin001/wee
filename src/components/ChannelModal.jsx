@@ -616,7 +616,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   onMouseDown={e => e.preventDefault()}
                 >
                   {app.icon ? (
-                    <img src={`file:///${app.icon.replace(/\\/g, '/')}`} alt="icon" style={{ width: 24, height: 24, borderRadius: 6, objectFit: 'contain', marginRight: 6 }} />
+                    <img src={app.icon} alt="icon" style={{ width: 24, height: 24, borderRadius: 6, objectFit: 'contain', marginRight: 6 }} />
                   ) : (
                     <span style={{ width: 24, height: 24, display: 'inline-block', marginRight: 6, background: '#e0e0e0', borderRadius: 6, textAlign: 'center', lineHeight: '24px', fontSize: 18 }}>🗂️</span>
                   )}
