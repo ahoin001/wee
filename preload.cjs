@@ -82,4 +82,5 @@ contextBridge.exposeInMainWorld('api', {
   apps: {
     getInstalled: () => ipcRenderer.invoke('apps:getInstalled'),
   },
+  quit: () => ipcRenderer.send('app:quit'),
 });

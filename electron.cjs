@@ -1643,3 +1643,7 @@ ipcMain.on('close-window', () => {
     mainWindow.close();
   }
 });
+
+ipcMain.on('app:quit', () => {
+  app.quit();
+});
