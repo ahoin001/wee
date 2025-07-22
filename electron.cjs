@@ -1598,6 +1598,24 @@ app.whenReady().then(async () => {
   });
   
   await createWindow();
+
+  // Register userdata:// protocol for sounds, wallpapers, channel-hover-sounds, and icons
+  protocol.registerFileProtocol('userdata', (request, callback) => {
+    const url = decodeURIComponent(request.url.replace('userdata://', ''));
+    let filePath;
+    if (url.startsWith('wallpapers/')) {
+      filePath = path.join(userWallpapersPath, url.replace(/^wallpapers[\\/]/, ''));
+    } else if (url.startsWith('sounds/')) {
+      filePath = path.join(userSoundsPath, url.replace(/^sounds[\\/]/, ''));
+    } else if (url.startsWith('channel-hover-sounds/')) {
+      filePath = path.join(userChannelHoverSoundsPath, url.replace(/^channel-hover-sounds[\\/]/, ''));
+    } else if (url.startsWith('icons/')) {
+      filePath = path.join(userIconsPath, url.replace(/^icons[\\/]/, ''));
+    } else {
+      return callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
+    }
+    callback({ path: filePath });
+  });
 });
 
 app.on('activate', () => {
@@ -1662,4 +1680,26 @@ ipcMain.on('app:quit', () => {
 
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
+});
+
+// IPC handler to resolve userdata:// URLs to file:// URLs (for renderer compatibility)
+ipcMain.handle('resolve-userdata-url', async (event, url) => {
+  if (typeof url !== 'string') return url;
+  if (url.startsWith('userdata://')) {
+    const rel = url.replace('userdata://', '');
+    let filePath;
+    if (rel.startsWith('sounds/')) {
+      filePath = path.join(userSoundsPath, rel.replace(/^sounds[\\/]/, ''));
+    } else if (rel.startsWith('channel-hover-sounds/')) {
+      filePath = path.join(userChannelHoverSoundsPath, rel.replace(/^channel-hover-sounds[\\/]/, ''));
+    } else if (rel.startsWith('wallpapers/')) {
+      filePath = path.join(userWallpapersPath, rel.replace(/^wallpapers[\\/]/, ''));
+    } else if (rel.startsWith('icons/')) {
+      filePath = path.join(userIconsPath, rel.replace(/^icons[\\/]/, ''));
+    }
+    if (filePath) {
+      return 'file://' + filePath;
+    }
+  }
+  return url;
 });
