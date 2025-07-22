@@ -2521,7 +2521,7 @@ ipcMain.handle('apps:rescanInstalled', async () => {
 });
 
 // Add robust error logging for production crashes
-const fs = require('fs');
+
 process.on('uncaughtException', (err) => {
   try {
     fs.writeFileSync('main-error.log', (err && err.stack) || String(err));
