@@ -1594,3 +1594,41 @@ app.on('window-all-closed', () => {
 // ... (rest of your app features and IPC handlers) ...
 // No custom packaging or legacy update logic.
 // ... existing code ...
+
+ipcMain.handle('wallpaper:selectFile', async (...args) => {
+  // Call the same logic as 'select-wallpaper-file'
+  return await ipcMain.handlers['select-wallpaper-file'](...args);
+});
+
+// Restore legacy IPC handler names for frontend compatibility
+const legacyIpcAliases = [
+  // [legacyName, newName]
+  ['sounds:get', 'sounds:get'],
+  ['sounds:set', 'sounds:set'],
+  ['sounds:reset', 'sounds:reset'],
+  ['wallpapers:get', 'wallpapers:get'],
+  ['wallpapers:set', 'wallpapers:set'],
+  ['wallpapers:reset', 'wallpapers:reset'],
+  ['channels:get', 'channels:get'],
+  ['channels:set', 'channels:set'],
+  ['channels:reset', 'channels:reset'],
+  ['settings:get', 'settings:get'],
+  ['settings:set', 'settings:set'],
+  ['settings:resetAll', 'settings:resetAll'],
+  ['sounds:toggleLike', 'sounds:toggleLike'],
+  ['sounds:setBackgroundMusicSettings', 'sounds:setBackgroundMusicSettings'],
+  ['sounds:getBackgroundMusicSettings', 'sounds:getBackgroundMusicSettings'],
+  ['wallpapers:add', 'wallpapers:add'],
+  ['wallpapers:delete', 'wallpapers:delete'],
+  ['wallpapers:setActive', 'wallpapers:setActive'],
+  ['wallpapers:toggleLike', 'wallpapers:toggleLike'],
+  ['wallpapers:setCyclingSettings', 'wallpapers:setCyclingSettings'],
+  ['icons:add', 'icons:add'],
+  ['icons:list', 'icons:list'],
+  ['icons:delete', 'icons:delete'],
+];
+legacyIpcAliases.forEach(([legacy, modern]) => {
+  if (!ipcMain.handlers[legacy] && ipcMain.handlers[modern]) {
+    ipcMain.handle(legacy, async (...args) => ipcMain.handlers[modern](...args));
+  }
+});
