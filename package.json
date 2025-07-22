@@ -21,10 +21,10 @@
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "vite build",
     "lint": "eslint .",
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "publish": "electron-forge publish",
-    "make": "electron-forge make",
+    "start": "electron-builder start",
+    "package": "electron-builder package",
+    "publish": "electron-builder publish",
+    "make": "electron-builder make",
     "release": "node scripts/release.cjs",
     "test-installer": "node scripts/test-installer.cjs"
   },
@@ -56,7 +56,6 @@
   },
   "dependencies": {
     "@radix-ui/react-context-menu": "^2.1.5",
-    "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",
     "fs-extra": "^11.3.0",
     "fuse.js": "^7.1.0",
