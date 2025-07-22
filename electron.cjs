@@ -1623,6 +1623,14 @@ app.on('ready', async () => {
       console.warn('Failed to remove user data directory:', userDataPath, e);
     }
   }
+  // Immediately recreate userDataPath and all required subdirectories
+  fs.mkdirSync(userDataPath, { recursive: true });
+  const dataDir = path.join(userDataPath, 'data');
+  fs.mkdirSync(dataDir, { recursive: true });
+  fs.mkdirSync(path.join(dataDir, 'sounds'), { recursive: true });
+  fs.mkdirSync(path.join(dataDir, 'wallpapers'), { recursive: true });
+  fs.mkdirSync(path.join(dataDir, 'channel-hover-sounds'), { recursive: true });
+  fs.mkdirSync(path.join(dataDir, 'icons'), { recursive: true });
   // Optionally show a welcome message or modal here
 
   const currentVersion = app.getVersion();
