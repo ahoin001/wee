@@ -1614,22 +1614,13 @@ const semverCompare = (a, b) => {
 
 app.on('ready', async () => {
   const userDataPath = app.getPath('userData');
-  const localAppData = app.getPath('localAppData');
-  const oldDirs = [
-    path.join(userDataPath),
-    path.join(localAppData, 'WeeDesktopLauncher'),
-    path.join(localAppData, 'Programs', 'WeeDesktopLauncher')
-  ];
-
-  // Always remove all previous data on every launch of a new release
-  for (const dir of oldDirs) {
-    if (fs.existsSync(dir)) {
-      try {
-        fs.rmSync(dir, { recursive: true, force: true });
-        console.log('Removed old install directory:', dir);
-      } catch (e) {
-        console.warn('Failed to remove old directory:', dir, e);
-      }
+  // Only clean userDataPath for guaranteed safety
+  if (fs.existsSync(userDataPath)) {
+    try {
+      fs.rmSync(userDataPath, { recursive: true, force: true });
+      console.log('Removed user data directory:', userDataPath);
+    } catch (e) {
+      console.warn('Failed to remove user data directory:', userDataPath, e);
     }
   }
   // Optionally show a welcome message or modal here
