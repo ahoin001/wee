@@ -33,7 +33,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
 
   const [selectedWallpaper, setSelectedWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
-  const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Default 5 seconds
+  const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(0); // Default 0 seconds (off)
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
   const [channelOpacity, setChannelOpacity] = useState(1);
   const [restoreOpacityOnHover, setRestoreOpacityOnHover] = useState(true);
@@ -60,7 +60,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setSlideDuration(data.cyclingSettings?.slideDuration ?? 1.5);
       setSlideEasing(data.cyclingSettings?.slideEasing ?? 'ease-out');
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
-      setChannelAutoFadeTimeout(data.channelAutoFadeTimeout ?? 5); // Load channel auto-fade timeout setting
+      setChannelAutoFadeTimeout(data.channelAutoFadeTimeout ?? 0); // Load channel auto-fade timeout setting
       setWallpaperBlur(data.wallpaperBlur ?? 0);
       setChannelOpacity(typeof data.channelOpacity === 'number' ? data.channelOpacity : 1);
       setRestoreOpacityOnHover(typeof data.restoreOpacityOnHover === 'boolean' ? data.restoreOpacityOnHover : true);

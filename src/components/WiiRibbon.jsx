@@ -789,7 +789,7 @@ function WiiRibbon(props) {
                           slideRandomDirection: false,
                           slideDuration: 1.5,
                           slideEasing: 'ease-out',
-                          channelAutoFadeTimeout: 5,
+                          channelAutoFadeTimeout: 0,
                           ribbonButtonConfigs: [{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]
                         });
                       }
