@@ -1578,7 +1578,24 @@ app.whenReady().then(async () => {
   autoUpdater.autoInstallOnAppQuit = true;
   
   // Auto-updater events (as in your code)
-  // ...
+  autoUpdater.on('checking-for-update', () => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { status: 'checking' });
+  });
+  autoUpdater.on('update-available', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { status: 'available', info });
+  });
+  autoUpdater.on('update-not-available', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { status: 'not-available', info });
+  });
+  autoUpdater.on('error', (err) => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { status: 'error', error: err.message });
+  });
+  autoUpdater.on('download-progress', (progress) => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { status: 'downloading', progress: progress.percent });
+  });
+  autoUpdater.on('update-downloaded', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update-status', { status: 'downloaded', info });
+  });
   
   await createWindow();
 });
@@ -1594,11 +1611,6 @@ app.on('window-all-closed', () => {
 // ... (rest of your app features and IPC handlers) ...
 // No custom packaging or legacy update logic.
 // ... existing code ...
-
-ipcMain.handle('wallpaper:selectFile', async (...args) => {
-  // Call the same logic as 'select-wallpaper-file'
-  return await ipcMain.handlers['select-wallpaper-file'](...args);
-});
 
 // Restore legacy IPC handler names for frontend compatibility
 const legacyIpcAliases = [
@@ -1646,4 +1658,8 @@ ipcMain.on('close-window', () => {
 
 ipcMain.on('app:quit', () => {
   app.quit();
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
 });

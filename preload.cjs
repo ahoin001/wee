@@ -44,7 +44,7 @@ contextBridge.exposeInMainWorld('api', {
     list: () => ipcRenderer.invoke('icons:list'),
     delete: (url) => ipcRenderer.invoke('icons:delete', { url }),
   },
-  selectWallpaperFile: () => ipcRenderer.invoke('wallpaper:selectFile'),
+  selectWallpaperFile: () => ipcRenderer.invoke('select-wallpaper-file'),
   selectIconFile: () => ipcRenderer.invoke('icon:selectFile'),
   selectExeOrShortcutFile: () => ipcRenderer.invoke('select-exe-or-shortcut-file'),
   onWallpapersUpdated: (cb) => ipcRenderer.on('wallpapers:updated', cb),
