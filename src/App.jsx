@@ -1405,13 +1405,20 @@ function App() {
   };
 
   const [isReady, setIsReady] = useState(false);
+  const splashAudioRef = useRef(null);
+  const hasStartedBGM = useRef(false);
 
   useEffect(() => {
-    // Simulate loading, or check for actual readiness (e.g., data loaded)
-    // When ready:
+    // Play splash sound only during splash
+    const splashAudio = new Audio('/sounds/splash.mp3');
+    splashAudioRef.current = splashAudio;
+    splashAudio.play();
+
     setTimeout(() => {
       setIsReady(true);
-      console.log('[renderer] Sending renderer-ready');
+      // Stop splash sound
+      splashAudio.pause();
+      splashAudio.currentTime = 0;
       // Notify Electron main process
       if (window?.api && window.api.send) {
         window.api.send('renderer-ready');
@@ -1420,8 +1427,23 @@ function App() {
           window.require('electron').ipcRenderer.send('renderer-ready');
         } catch {}
       }
-    }, 1000); // Simulate 1s loading, adjust as needed
+    }, 1000); // Adjust as needed
+
+    return () => {
+      splashAudio.pause();
+      splashAudio.currentTime = 0;
+    };
   }, []);
+
+  useEffect(() => {
+    if (isReady && !hasStartedBGM.current) {
+      hasStartedBGM.current = true;
+      // Start background music here (not during splash)
+      if (audioManager && audioManager.playBackgroundMusic) {
+        audioManager.playBackgroundMusic();
+      }
+    }
+  }, [isReady]);
 
   if (!isReady) {
     return <SplashScreen />;

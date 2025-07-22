@@ -1635,35 +1635,17 @@ const semverCompare = (a, b) => {
   return 0;
 };
 
-const userDataPath = app.getPath('userData');
-const localAppData = app.getPath('localAppData');
-const oldDirs = [
-  path.join(userDataPath),
-  path.join(localAppData, 'WeeDesktopLauncher'),
-  path.join(localAppData, 'Programs', 'WeeDesktopLauncher')
-];
-
-function getStoredVersion() {
-  try {
-    const versionFile = path.join(userDataPath, 'version.json');
-    if (fs.existsSync(versionFile)) {
-      const data = JSON.parse(fs.readFileSync(versionFile, 'utf-8'));
-      return data.version;
-    }
-  } catch {}
-  return null;
-}
-
-function setStoredVersion(version) {
-  try {
-    const versionFile = path.join(userDataPath, 'version.json');
-    fs.writeFileSync(versionFile, JSON.stringify({ version }), 'utf-8');
-  } catch {}
-}
-
 app.on('ready', async () => {
+  const userDataPath = app.getPath('userData');
+  const localAppData = app.getPath('localAppData');
+  const oldDirs = [
+    path.join(userDataPath),
+    path.join(localAppData, 'WeeDesktopLauncher'),
+    path.join(localAppData, 'Programs', 'WeeDesktopLauncher')
+  ];
+
   const currentVersion = app.getVersion();
-  const storedVersion = getStoredVersion();
+  const storedVersion = getStoredVersion(userDataPath);
   if (!storedVersion || semverCompare(storedVersion, '1.9.23') < 0) {
     // First time install or upgrade from < 1.9.23
     for (const dir of oldDirs) {
@@ -1678,9 +1660,27 @@ app.on('ready', async () => {
     }
     // Optionally show a welcome message or modal here
   }
-  setStoredVersion(currentVersion);
+  setStoredVersion(currentVersion, userDataPath);
   // ...rest of your app launch logic...
 });
+
+function getStoredVersion(userDataPath) {
+  try {
+    const versionFile = path.join(userDataPath, 'version.json');
+    if (fs.existsSync(versionFile)) {
+      const data = JSON.parse(fs.readFileSync(versionFile, 'utf-8'));
+      return data.version;
+    }
+  } catch {}
+  return null;
+}
+
+function setStoredVersion(version, userDataPath) {
+  try {
+    const versionFile = path.join(userDataPath, 'version.json');
+    fs.writeFileSync(versionFile, JSON.stringify({ version }), 'utf-8');
+  } catch {}
+}
 
 app.whenReady().then(async () => {
   // Check if this is the first run (installer mode)
