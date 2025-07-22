@@ -21,42 +21,13 @@
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "vite build",
     "lint": "eslint .",
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "publish": "electron-forge publish",
-    "make": "electron-forge make",
-    "release": "node scripts/release.cjs",
+    "release:patch": "node scripts/auto-release.cjs patch",
+    "release:minor": "node scripts/auto-release.cjs minor",
+    "release:major": "node scripts/auto-release.cjs major",
     "test-installer": "node scripts/test-installer.cjs"
-  },
-  "config": {
-    "forge": {
-      "packagerConfig": {},
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "WeeDesktopLauncher"
-          }
-        }
-      ],
-      "publishers": [
-        {
-          "name": "@electron-forge/publisher-github",
-          "config": {
-            "repository": {
-              "owner": "ahoin001",
-              "name": "wee"
-            },
-            "prerelease": false,
-            "draft": false
-          }
-        }
-      ]
-    }
   },
   "dependencies": {
     "@radix-ui/react-context-menu": "^2.1.5",
-    "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",
     "fs-extra": "^11.3.0",
     "fuse.js": "^7.1.0",

@@ -109,62 +109,41 @@ ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data)
 // --- Auto-Updater IPC Handlers ---
 ipcMain.handle('check-for-updates', async () => {
   try {
-    console.log('[AUTO-UPDATE] Manual update check requested');
-    console.log('[AUTO-UPDATE] Auto-updater config:', {
-      autoDownload: autoUpdater.autoDownload,
-      autoInstallOnAppQuit: autoUpdater.autoInstallOnAppQuit,
-      allowDowngrade: autoUpdater.allowDowngrade,
-      allowPrerelease: autoUpdater.allowPrerelease
-    });
-    
-    // Check if we're in development mode
     if (app.isPackaged === false) {
-      console.log('[AUTO-UPDATE] Running in development mode - skipping update check');
       return { 
         success: true, 
         status: 'no-update',
         message: 'Development mode - updates not available'
       };
     }
-    
     await autoUpdater.checkForUpdates();
-    console.log('[AUTO-UPDATE] Update check completed');
     return { success: true };
   } catch (error) {
-    console.error('[AUTO-UPDATE] Error checking for updates:', error);
-    
-    // Handle specific ENOENT error for missing app-update.yml
     if (error.code === 'ENOENT' && error.message.includes('app-update.yml')) {
-      console.log('[AUTO-UPDATE] app-update.yml not found - likely development build or missing update config');
       return { 
         success: true, 
         status: 'no-update',
         message: 'No update configuration found'
       };
     }
-    
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('download-update', async () => {
   try {
-    console.log('[AUTO-UPDATE] Download update requested');
     await autoUpdater.downloadUpdate();
     return { success: true };
   } catch (error) {
-    console.error('[AUTO-UPDATE] Error downloading update:', error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('install-update', async () => {
   try {
-    console.log('[AUTO-UPDATE] Install update requested');
     autoUpdater.quitAndInstall();
     return { success: true };
   } catch (error) {
-    console.error('[AUTO-UPDATE] Error installing update:', error);
     return { success: false, error: error.message };
   }
 });
