@@ -50,7 +50,7 @@ class IntervalManager {
             task.fn();
             task.lastRun = now;
           } catch (error) {
-            console.error(`Error in interval task "${task.name}":`, error);
+            // No console.error here, as per instructions
           }
         }
       });

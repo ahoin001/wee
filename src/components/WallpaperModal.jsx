@@ -84,13 +84,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    if (wallpapers && wallpapers.length > 0) {
-      console.log('Saved wallpapers:', wallpapers);
-      wallpapers.forEach(wp => console.log('Wallpaper URL:', wp.url));
-    }
-  }, [wallpapers]);
-
   // Upload a new wallpaper
   const handleUpload = async () => {
     setUploading(true);
@@ -371,62 +364,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     color: activeWallpaper === null ? '#0099ff' : '#666'
                   }}>
                     {activeWallpaper === null ? 'Currently active' : 'Remove wallpaper'}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              marginBottom: 20,
-              padding: '12px 16px',
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(240,248,255,0.9) 100%)',
-              borderRadius: 12,
-              border: '1px solid rgba(0,153,255,0.15)',
-              boxShadow: '0 2px 8px rgba(0,153,255,0.08)'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 12,
-                cursor: 'pointer',
-                padding: '8px 16px',
-                borderRadius: 8,
-                background: selectedWallpaper && selectedWallpaper.url === 'default-animated' ? 'rgba(0,153,255,0.12)' : 'rgba(255,255,255,0.7)',
-                border: selectedWallpaper && selectedWallpaper.url === 'default-animated' ? '2px solid #0099ff' : '1px solid rgba(0,153,255,0.2)',
-                transition: 'all 0.2s ease',
-                minWidth: 200,
-                justifyContent: 'center'
-              }}
-              onClick={() => setSelectedWallpaper({ url: 'default-animated', name: 'Default Animated' })}
-              onMouseEnter={e => {
-                if (!selectedWallpaper || selectedWallpaper.url !== 'default-animated') {
-                  e.currentTarget.style.background = 'rgba(0,153,255,0.08)';
-                  e.currentTarget.style.border = '1px solid rgba(0,153,255,0.3)';
-                }
-              }}
-              onMouseLeave={e => {
-                if (!selectedWallpaper || selectedWallpaper.url !== 'default-animated') {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.7)';
-                  e.currentTarget.style.border = '1px solid rgba(0,153,255,0.2)';
-                }
-              }}
-              >
-                <div style={{ width: 40, height: 25, borderRadius: 4, border: '1px solid #ddd', overflow: 'hidden', background: '#222' }}>
-                  {/* Show animated preview (GIF or MP4) */}
-                  <img src={'/wallpapers/default-animated.gif'} alt="Default Animated" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: selectedWallpaper && selectedWallpaper.url === 'default-animated' ? '#0099ff' : '#333', marginBottom: 2 }}>
-                    Default Wallpaper Animated
-                  </div>
-                  <div style={{ fontSize: 12, color: selectedWallpaper && selectedWallpaper.url === 'default-animated' ? '#0099ff' : '#666' }}>
-                    {selectedWallpaper && selectedWallpaper.url === 'default-animated' ? 'Currently active' : 'Set as animated default'}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
-                    Place your animated default wallpaper at <b>public/wallpapers/default-animated.gif</b> (or .mp4)
                   </div>
                 </div>
               </div>

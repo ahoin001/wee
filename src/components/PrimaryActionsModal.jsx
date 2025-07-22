@@ -55,69 +55,69 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
 
   useEffect(() => {
     if (savedIcons && savedIcons.length > 0) {
-      console.log('Saved icons:', savedIcons);
-      savedIcons.forEach(icon => console.log('Icon URL:', icon.url));
+      // console.log('Saved icons:', savedIcons);
+      // savedIcons.forEach(icon => console.log('Icon URL:', icon.url));
     }
   }, [savedIcons]);
 
   const refreshSavedIcons = () => {
-    console.log('refreshSavedIcons called');
+    // console.log('refreshSavedIcons called');
     if (window.api?.icons?.list) {
-      console.log('window.api.icons.list is available');
+      // console.log('window.api.icons.list is available');
       setLoadingIcons(true);
       window.api.icons.list().then(res => {
-        console.log('Icons list response:', res);
+        // console.log('Icons list response:', res);
         if (res && res.success) {
-          console.log('Setting saved icons:', res.icons);
+          // console.log('Setting saved icons:', res.icons);
           setSavedIcons(res.icons);
         } else {
-          console.error('Failed to get icons:', res?.error);
+          // console.error('Failed to get icons:', res?.error);
         }
         setLoadingIcons(false);
       }).catch(err => {
-        console.error('Error fetching icons:', err);
+        // console.error('Error fetching icons:', err);
         setLoadingIcons(false);
       });
     } else {
-      console.error('window.api.icons.list is not available');
+      // console.error('window.api.icons.list is not available');
     }
   };
 
   // Upload and save icon immediately
   const handleUploadIcon = async () => {
-    console.log('handleUploadIcon called');
+    // console.log('handleUploadIcon called');
     setUploadError('');
     if (!window.api?.selectIconFile) {
-      console.error('Icon file picker is not available');
+      // console.error('Icon file picker is not available');
       setUploadError('Icon file picker is not available.');
       return;
     }
     setUploading(true);
     try {
-      console.log('Opening file picker...');
+      // console.log('Opening file picker...');
       const fileResult = await window.api.selectIconFile();
-      console.log('File picker result:', fileResult);
+      // console.log('File picker result:', fileResult);
       if (!fileResult.success) {
         setUploadError(fileResult.error || 'File selection cancelled.');
         setUploading(false);
         return;
       }
       const file = fileResult.file;
-      console.log('Selected file:', file);
-      console.log('Adding icon with path:', file.path, 'filename:', file.name);
+      // console.log('Selected file:', file);
+      // console.log('Adding icon with path:', file.path, 'filename:', file.name);
       const addResult = await window.api.icons.add({ filePath: file.path, filename: file.name });
-      console.log('Add icon result:', addResult);
+      // console.log('Add icon result:', addResult);
       if (!addResult.success) {
         setUploadError(addResult.error || 'Failed to add icon.');
         setUploading(false);
         return;
       }
-      console.log('Icon added successfully, URL:', addResult.icon.url);
+      // console.log('Icon added successfully, URL:', addResult.icon.url);
       setIcon(addResult.icon.url);
-      console.log('Refreshing saved icons...');
+      // console.log('Refreshing saved icons...');
       refreshSavedIcons();
     } catch (err) {
-      console.error('Upload error:', err);
+      // console.error('Upload error:', err);
       setUploadError('Upload failed: ' + err.message);
     } finally {
       setUploading(false);
@@ -441,25 +441,25 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 <button
                   className="file-picker-button"
                   onClick={async () => {
-                    console.log('Browse Files clicked');
+                    // console.log('Browse Files clicked');
                     if (window.api && window.api.selectExeOrShortcutFile) {
-                      console.log('Using IPC handler for file selection');
+                      // console.log('Using IPC handler for file selection');
                       const result = await window.api.selectExeOrShortcutFile();
-                      console.log('IPC result:', result);
+                      // console.log('IPC result:', result);
                       if (result && result.success && result.file) {
                         let newPath = result.file.path;
                         if (result.file.args && result.file.args.trim()) {
                           newPath += ' ' + result.file.args.trim();
                         }
-                        console.log('Setting path to:', newPath);
+                        // console.log('Setting path to:', newPath);
                         setAction(newPath);
                         setPathError('');
                       } else if (result && result.error) {
-                        console.log('IPC error:', result.error);
+                        // console.log('IPC error:', result.error);
                         setPathError(result.error);
                       }
                     } else {
-                      console.log('Falling back to file input');
+                      // console.log('Falling back to file input');
                       exeFileInputRef.current?.click();
                     }
                   }}

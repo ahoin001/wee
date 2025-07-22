@@ -210,19 +210,7 @@ class MemoryOptimizer {
   // Log memory usage for debugging
   logStats() {
     const stats = this.getStats();
-    console.log('🔍 Memory Optimizer Stats:', stats);
-    
-    if (stats.totalTracked > 50) {
-      console.warn('⚠️ High number of tracked resources detected:', stats.totalTracked);
-    }
-    
-    if (stats.audioElements > 10) {
-      console.warn('⚠️ High number of audio elements detected:', stats.audioElements);
-    }
-    
-    if (stats.videoElements > 5) {
-      console.warn('⚠️ High number of video elements detected:', stats.videoElements);
-    }
+    // Remove all console.log and console.warn statements
   }
 }
 

@@ -31,7 +31,6 @@ class PerformanceMonitor {
       this.collectMetrics();
     }, intervalMs);
     
-    console.log('🔍 Performance monitoring started');
   }
 
   // Stop performance monitoring
@@ -44,7 +43,6 @@ class PerformanceMonitor {
       this.monitoringInterval = null;
     }
     
-    console.log('🔍 Performance monitoring stopped');
   }
 
   // Collect current performance metrics
@@ -182,18 +180,6 @@ class PerformanceMonitor {
     const status = this.getPerformanceStatus();
     const metrics = status.metrics;
     
-    console.log('📊 Performance Report:');
-    console.log(`Status: ${status.status.toUpperCase()}`);
-    console.log(`FPS: ${metrics.fps.toFixed(1)}`);
-    console.log(`Memory: ${metrics.memory.toFixed(1)}MB`);
-    console.log(`Video Elements: ${metrics.videoElements}`);
-    console.log(`Audio Elements: ${metrics.audioElements}`);
-    console.log(`Intervals: ${metrics.intervals}`);
-    console.log(`Timeouts: ${metrics.timeouts}`);
-    
-    if (status.issues.length > 0) {
-      console.warn('⚠️ Performance Issues:', status.issues);
-    }
   }
 
   // Get recommendations for performance improvement

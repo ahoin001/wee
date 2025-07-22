@@ -65,7 +65,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
       }
       handleClose();
     } catch (err) {
-      console.error('Failed to save time settings:', err);
+      // No console.error here, as per instructions
     }
   };
 

@@ -54,9 +54,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     async function loadButtonConfigs() {
       if (window.api?.settings?.get) {
         const settings = await window.api.settings.get();
-        console.log('WiiRibbon: Loading settings:', settings);
         if (settings && settings.ribbonButtonConfigs) {
-          console.log('WiiRibbon: Found ribbonButtonConfigs:', settings.ribbonButtonConfigs);
           // Ensure each button config has all required properties
           const configsWithAdaptiveColor = settings.ribbonButtonConfigs.map(config => ({
             ...config,
@@ -71,7 +69,6 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           }));
           setButtonConfigs(configsWithAdaptiveColor);
         } else {
-          console.log('WiiRibbon: No ribbonButtonConfigs found in settings, keeping defaults');
         }
       }
     }
@@ -204,7 +201,6 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   // Listen for update status events
   useEffect(() => {
     const handleUpdateStatus = (data) => {
-      console.log('[WiiRibbon] Update status received:', data);
       if (data.status === 'available') {
         setUpdateAvailable(true);
       } else if (data.status === 'not-available' || data.status === 'downloaded') {

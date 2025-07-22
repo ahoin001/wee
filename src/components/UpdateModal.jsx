@@ -29,14 +29,12 @@ function UpdateModal({ isOpen, onClose }) {
           setAppVersion(version);
         }
       } catch (err) {
-        console.warn('Failed to get app version:', err);
         // Keep default version if API fails
       }
     };
     loadAppVersion();
 
     const handleUpdateStatus = (data) => {
-      console.log('[UpdateModal] Update status received:', data);
       setUpdateStatus(data);
       let friendlyError = data.error;
       if (friendlyError && typeof friendlyError === 'string' && friendlyError.includes('app-update.yml')) {
@@ -52,7 +50,6 @@ function UpdateModal({ isOpen, onClose }) {
           setError(null);
           break;
         case 'not-available':
-          console.log('[UpdateModal] No updates available, stopping check');
           setIsChecking(false);
           setError(null);
           break;
@@ -67,13 +64,11 @@ function UpdateModal({ isOpen, onClose }) {
           setError(null);
           break;
         case 'error':
-          console.log('[UpdateModal] Update error received:', data.error);
           setIsChecking(false);
           setIsDownloading(false);
           setError(friendlyError || 'An unknown error occurred');
           break;
         default:
-          console.log('[UpdateModal] Unknown status received:', data.status);
           // For any other status, ensure checking state is cleared
           if (data.status !== 'checking') {
             setIsChecking(false);
@@ -90,7 +85,6 @@ function UpdateModal({ isOpen, onClose }) {
   }, [isOpen]);
 
   const handleCheckForUpdates = async () => {
-    console.log('[UpdateModal] Starting update check...');
     setIsChecking(true);
     setError(null);
     setUpdateStatus(null);
@@ -112,7 +106,6 @@ function UpdateModal({ isOpen, onClose }) {
         timeoutPromise
       ]);
       
-      console.log('[UpdateModal] Update check result:', result);
       if (!result.success) {
         let friendlyError = result.error;
         if (friendlyError && typeof friendlyError === 'string' && friendlyError.includes('app-update.yml')) {
@@ -136,7 +129,6 @@ function UpdateModal({ isOpen, onClose }) {
       // If we get here, the check was successful but we need to wait for status events
       // Set a shorter timeout to prevent endless spinning
       setTimeout(() => {
-        console.log('[UpdateModal] No status events received, assuming no updates available');
         if (isChecking && !updateStatus) {
           setUpdateStatus({ status: 'not-available' });
           setIsChecking(false);

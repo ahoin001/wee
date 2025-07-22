@@ -14,7 +14,6 @@ class AudioManager {
       
       // Add error handling to prevent memory leaks from failed loads
       audio.addEventListener('error', () => {
-        console.warn('Audio failed to load, removing from cache:', url);
         this.audioInstances.delete(url);
       }, { once: true });
       
@@ -27,7 +26,6 @@ class AudioManager {
   async playSound(url, volume = 0.6, options = {}) {
     // Check concurrent sound limit
     if (this.activeSounds.size >= this.maxConcurrentSounds && !options.background) {
-      console.log('Too many concurrent sounds, skipping:', url);
       return;
     }
 
@@ -65,7 +63,7 @@ class AudioManager {
       }
       
     } catch (error) {
-      console.error('Failed to play audio:', url, error);
+      // console.error('Failed to play audio:', url, error); // Removed
     }
   }
 
@@ -93,7 +91,6 @@ class AudioManager {
       // If not looping, add ended listener
       if (!loop) {
         const onEnded = () => {
-          console.log('Background music ended (looping disabled)');
           this.backgroundAudio = null;
           this.backgroundAudio.removeEventListener('ended', onEnded);
         };
@@ -154,7 +151,7 @@ class AudioManager {
         }
       }
     } catch (error) {
-      console.warn('Failed to update volumes from library:', error);
+      // console.warn('Failed to update volumes from library:', error); // Removed
     }
   }
 
@@ -209,7 +206,7 @@ class AudioManager {
     this.backgroundAudio.addEventListener('ended', onEnded);
     
     this.backgroundAudio.play().catch(error => {
-      console.error('Failed to play playlist track:', error);
+      // console.error('Failed to play playlist track:', error); // Removed
       // Try next track on error
       this.currentPlaylistIndex++;
       this.playNextPlaylistTrack();
@@ -240,7 +237,7 @@ class AudioManager {
           }
         }
       } catch (error) {
-        console.warn('Failed to get current background music volume:', error);
+        // console.warn('Failed to get current background music volume:', error); // Removed
       }
       
       this.backgroundAudio.volume = volume;
@@ -249,7 +246,6 @@ class AudioManager {
       // If not looping, stop background music when it ends
       if (!loop) {
         const onEnded = () => {
-          console.log('Background music ended (looping disabled)');
           this.backgroundAudio = null;
           this.backgroundAudio.removeEventListener('ended', onEnded);
         };
@@ -257,7 +253,7 @@ class AudioManager {
       }
       
       this.backgroundAudio.play().catch(error => {
-        console.error('Failed to play background music:', error);
+        // console.error('Failed to play background music:', error); // Removed
       });
     } else {
       this.backgroundAudio = null;
@@ -289,7 +285,7 @@ class AudioManager {
           }
         }
       } catch (error) {
-        console.warn('Failed to get current background music volume:', error);
+        // console.warn('Failed to get current background music volume:', error); // Removed
       }
       
       audio.volume = 0;
@@ -348,7 +344,7 @@ class AudioManager {
         }
       }
     } catch (error) {
-      console.warn('Failed to update background music from settings:', error);
+      // console.warn('Failed to update background music from settings:', error); // Removed
     }
   }
 

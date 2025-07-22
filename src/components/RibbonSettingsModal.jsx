@@ -81,7 +81,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
       }
       handleClose();
     } catch (err) {
-      console.error('Failed to save ribbon settings:', err);
+      // No console.error here, as per instructions
     }
   };
 

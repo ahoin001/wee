@@ -18,7 +18,6 @@ function fuzzySearch(games, query) {
 
 export async function loadGames() {
   lastError = null;
-  console.log('[SteamGames] Fetching full Steam games list...');
   try {
     const resp = await fetch(GAMES_URL);
     if (!resp.ok) throw new Error('Steam API fetch failed: ' + resp.status);
@@ -29,14 +28,11 @@ export async function loadGames() {
     lastUpdated = Date.now();
     localStorage.setItem(CACHE_KEY, JSON.stringify(games));
     localStorage.setItem(CACHE_TIMESTAMP_KEY, lastUpdated);
-    console.log(`[SteamGames] Fetched full list: ${games.length} games.`);
     return games;
   } catch (err) {
     lastError = err.message;
-    console.error('[SteamGames] Failed to fetch full list:', err);
     // Fallback to popular games
     try {
-      console.log('[SteamGames] Fetching fallback popular games...');
       const resp = await fetch(POPULAR_GAMES_URL);
       if (!resp.ok) throw new Error('Popular games fetch failed: ' + resp.status);
       const data = await resp.json();
@@ -44,7 +40,6 @@ export async function loadGames() {
       lastUpdated = Date.now();
       localStorage.setItem(CACHE_KEY, JSON.stringify(data));
       localStorage.setItem(CACHE_TIMESTAMP_KEY, lastUpdated);
-      console.log(`[SteamGames] Fallback: loaded ${data.length} popular games.`);
       return data;
     } catch (fallbackErr) {
       lastError = fallbackErr.message;
@@ -52,7 +47,6 @@ export async function loadGames() {
       lastUpdated = null;
       localStorage.removeItem(CACHE_KEY);
       localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-      console.error('[SteamGames] Failed to fetch fallback popular games:', fallbackErr);
       throw fallbackErr;
     }
   }
