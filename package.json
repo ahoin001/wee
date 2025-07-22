@@ -26,7 +26,13 @@
     "publish": "electron-builder publish",
     "make": "electron-builder make",
     "release": "node scripts/release.cjs",
-    "test-installer": "node scripts/test-installer.cjs"
+    "test-installer": "node scripts/test-installer.cjs",
+    "release:patch": "node scripts/auto-release.cjs patch",
+    "release:minor": "node scripts/auto-release.cjs minor",
+    "release:major": "node scripts/auto-release.cjs major",
+    "release:p": "npm run release:patch",
+    "release:m": "npm run release:minor",
+    "release:M": "npm run release:major"
   },
   "config": {
     "forge": {
