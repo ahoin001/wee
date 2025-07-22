@@ -1624,6 +1624,64 @@ async function createWindow(opts = {}) {
   
 }
 
+const semverCompare = (a, b) => {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0, nb = pb[i] || 0;
+    if (na > nb) return 1;
+    if (na < nb) return -1;
+  }
+  return 0;
+};
+
+const userDataPath = app.getPath('userData');
+const localAppData = app.getPath('localAppData');
+const oldDirs = [
+  path.join(userDataPath),
+  path.join(localAppData, 'WeeDesktopLauncher'),
+  path.join(localAppData, 'Programs', 'WeeDesktopLauncher')
+];
+
+function getStoredVersion() {
+  try {
+    const versionFile = path.join(userDataPath, 'version.json');
+    if (fs.existsSync(versionFile)) {
+      const data = JSON.parse(fs.readFileSync(versionFile, 'utf-8'));
+      return data.version;
+    }
+  } catch {}
+  return null;
+}
+
+function setStoredVersion(version) {
+  try {
+    const versionFile = path.join(userDataPath, 'version.json');
+    fs.writeFileSync(versionFile, JSON.stringify({ version }), 'utf-8');
+  } catch {}
+}
+
+app.on('ready', async () => {
+  const currentVersion = app.getVersion();
+  const storedVersion = getStoredVersion();
+  if (!storedVersion || semverCompare(storedVersion, '1.9.23') < 0) {
+    // First time install or upgrade from < 1.9.23
+    for (const dir of oldDirs) {
+      if (fs.existsSync(dir)) {
+        try {
+          fs.rmSync(dir, { recursive: true, force: true });
+          console.log('Removed old install directory:', dir);
+        } catch (e) {
+          console.warn('Failed to remove old directory:', dir, e);
+        }
+      }
+    }
+    // Optionally show a welcome message or modal here
+  }
+  setStoredVersion(currentVersion);
+  // ...rest of your app launch logic...
+});
+
 app.whenReady().then(async () => {
   // Check if this is the first run (installer mode)
   const isFirstRun = await checkIfFirstRun();
