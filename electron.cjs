@@ -108,17 +108,17 @@ ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data)
 // --- Auto-Updater IPC Handlers ---
 ipcMain.handle('check-for-updates', async () => {
   try {
-    console.log('[AUTO-UPDATE] Manual update check requested');
-    console.log('[AUTO-UPDATE] Auto-updater config:', {
-      autoDownload: autoUpdater.autoDownload,
-      autoInstallOnAppQuit: autoUpdater.autoInstallOnAppQuit,
-      allowDowngrade: autoUpdater.allowDowngrade,
-      allowPrerelease: autoUpdater.allowPrerelease
-    });
+    // console.log('[AUTO-UPDATE] Manual update check requested');
+    // console.log('[AUTO-UPDATE] Auto-updater config:', {
+    //   autoDownload: autoUpdater.autoDownload,
+    //   autoInstallOnAppQuit: autoUpdater.autoInstallOnAppQuit,
+    //   allowDowngrade: autoUpdater.allowDowngrade,
+    //   allowPrerelease: autoUpdater.allowPrerelease
+    // });
     
     // Check if we're in development mode
     if (app.isPackaged === false) {
-      console.log('[AUTO-UPDATE] Running in development mode - skipping update check');
+      // console.log('[AUTO-UPDATE] Running in development mode - skipping update check');
       return { 
         success: true, 
         status: 'no-update',
@@ -127,14 +127,14 @@ ipcMain.handle('check-for-updates', async () => {
     }
     
     await autoUpdater.checkForUpdates();
-    console.log('[AUTO-UPDATE] Update check completed');
+    // console.log('[AUTO-UPDATE] Update check completed');
     return { success: true };
   } catch (error) {
     console.error('[AUTO-UPDATE] Error checking for updates:', error);
     
     // Handle specific ENOENT error for missing app-update.yml
     if (error.code === 'ENOENT' && error.message.includes('app-update.yml')) {
-      console.log('[AUTO-UPDATE] app-update.yml not found - likely development build or missing update config');
+      // console.log('[AUTO-UPDATE] app-update.yml not found - likely development build or missing update config');
       return { 
         success: true, 
         status: 'no-update',
@@ -148,7 +148,7 @@ ipcMain.handle('check-for-updates', async () => {
 
 ipcMain.handle('download-update', async () => {
   try {
-    console.log('[AUTO-UPDATE] Download update requested');
+    // console.log('[AUTO-UPDATE] Download update requested');
     await autoUpdater.downloadUpdate();
     return { success: true };
   } catch (error) {
@@ -159,7 +159,7 @@ ipcMain.handle('download-update', async () => {
 
 ipcMain.handle('install-update', async () => {
   try {
-    console.log('[AUTO-UPDATE] Install update requested');
+    // console.log('[AUTO-UPDATE] Install update requested');
     autoUpdater.quitAndInstall();
     return { success: true };
   } catch (error) {
@@ -212,7 +212,7 @@ async function writeJson(filePath, data) {
     await fsPromises.mkdir(dir, { recursive: true }); // Ensure parent directory exists
     await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
     await fsPromises.rename(tempPath, filePath);
-    console.log(`[WRITE] Atomically wrote file: ${filePath}`);
+    // console.log(`[WRITE] Atomically wrote file: ${filePath}`);
     return true;
   } catch (err) {
     if (err.code === 'EACCES') {
@@ -231,7 +231,7 @@ async function copyFileToUserDirectory(sourcePath, targetDirectory, filename) {
   try {
     const targetPath = path.join(targetDirectory, filename);
     await fsPromises.copyFile(sourcePath, targetPath);
-    console.log(`[COPY] Copied file to: ${targetPath}`);
+    // console.log(`[COPY] Copied file to: ${targetPath}`);
     return targetPath;
   } catch (err) {
     console.error(`[COPY] Failed to copy file:`, err);
@@ -293,7 +293,7 @@ async function ensureDefaultSoundsExist() {
     sourceBasePath = path.join(process.resourcesPath, 'public', 'sounds');
   }
   
-  console.log(`[SOUNDS] Ensuring default sounds exist from: ${sourceBasePath}`);
+  // console.log(`[SOUNDS] Ensuring default sounds exist from: ${sourceBasePath}`);
   
   for (const soundType of SOUND_TYPES) {
     for (const sound of DEFAULT_SOUNDS[soundType]) {
@@ -304,11 +304,11 @@ async function ensureDefaultSoundsExist() {
         // Check if file already exists
         try {
           await fsPromises.access(targetPath);
-          console.log(`[SOUNDS] Default sound already exists: ${sound.filename} at ${targetPath}`);
+          // console.log(`[SOUNDS] Default sound already exists: ${sound.filename} at ${targetPath}`);
         } catch {
           // Copy file to user directory
           await fsPromises.copyFile(sourcePath, targetPath);
-          console.log(`[SOUNDS] Copied default sound: ${sound.filename} from ${sourcePath} to ${targetPath}`);
+          // console.log(`[SOUNDS] Copied default sound: ${sound.filename} from ${sourcePath} to ${targetPath}`);
         }
       } catch (error) {
         console.error(`[SOUNDS] Failed to copy default sound ${sound.filename}:`, error);
@@ -332,7 +332,7 @@ async function refreshSoundLibraryUrls() {
           const filename = path.basename(sound.url);
           const newUrl = getDevServerUrl(filename);
           if (sound.url !== newUrl) {
-            console.log(`[SOUNDS] Refreshing URL: ${sound.url} -> ${newUrl}`);
+            // console.log(`[SOUNDS] Refreshing URL: ${sound.url} -> ${newUrl}`);
             sound.url = newUrl;
             needsUpdate = true;
           }
@@ -342,7 +342,7 @@ async function refreshSoundLibraryUrls() {
     
     if (needsUpdate) {
       await writeJson(savedSoundsPath, library);
-      console.log('[SOUNDS] Refreshed sound library URLs for development');
+      // console.log('[SOUNDS] Refreshed sound library URLs for development');
     }
   } catch (error) {
     console.error('[SOUNDS] Error refreshing sound library URLs:', error);
@@ -390,7 +390,7 @@ async function loadSoundLibrary() {
       
       // Save initial library
       await writeJson(savedSoundsPath, initialLibrary);
-      console.log('[SOUNDS] Created initial sound library with defaults');
+      // console.log('[SOUNDS] Created initial sound library with defaults');
       return initialLibrary;
     }
     
@@ -435,7 +435,7 @@ async function loadSoundLibrary() {
             // In production, always use userdata:// URL
             const prodUrl = `userdata://sounds/${sound.filename}`;
             if (sound.url !== prodUrl) {
-              console.log(`[SOUNDS] Correcting default sound URL for production: ${sound.url} -> ${prodUrl}`);
+              // console.log(`[SOUNDS] Correcting default sound URL for production: ${sound.url} -> ${prodUrl}`);
               sound.url = prodUrl;
               needsUpdate = true;
             }
@@ -443,7 +443,7 @@ async function loadSoundLibrary() {
             // In dev, always use dev server URL
             const devUrl = getDevServerUrl(sound.filename);
             if (sound.url !== devUrl) {
-              console.log(`[SOUNDS] Correcting default sound URL for dev: ${sound.url} -> ${devUrl}`);
+              // console.log(`[SOUNDS] Correcting default sound URL for dev: ${sound.url} -> ${devUrl}`);
               sound.url = devUrl;
               needsUpdate = true;
             }
@@ -452,7 +452,7 @@ async function loadSoundLibrary() {
           // User sounds: always use userdata:// protocol
           const correctUrl = `userdata://sounds/${sound.filename}`;
           if (sound.url !== correctUrl) {
-            console.log(`[SOUNDS] Correcting user sound URL: ${sound.url} -> ${correctUrl}`);
+            // console.log(`[SOUNDS] Correcting user sound URL: ${sound.url} -> ${correctUrl}`);
             sound.url = correctUrl;
             needsUpdate = true;
           }
@@ -461,21 +461,21 @@ async function loadSoundLibrary() {
     }
     if (needsUpdate) {
       await writeJson(savedSoundsPath, mergedLibrary);
-      console.log('[SOUNDS] Updated sound library URLs for all sounds');
+      // console.log('[SOUNDS] Updated sound library URLs for all sounds');
     }
     
     // Preserve background music settings from saved library
     if (savedLibrary.backgroundMusicSettings) {
       mergedLibrary.backgroundMusicSettings = savedLibrary.backgroundMusicSettings;
-      console.log('[SOUNDS] Preserved background music settings:', savedLibrary.backgroundMusicSettings);
+      // console.log('[SOUNDS] Preserved background music settings:', savedLibrary.backgroundMusicSettings);
     } else {
-      console.log('[SOUNDS] No background music settings found in saved library');
+      // console.log('[SOUNDS] No background music settings found in saved library');
     }
     
     // Save merged library if it changed
     if (JSON.stringify(savedLibrary) !== JSON.stringify(mergedLibrary)) {
       await writeJson(savedSoundsPath, mergedLibrary);
-      console.log('[SOUNDS] Updated sound library with missing defaults');
+      // console.log('[SOUNDS] Updated sound library with missing defaults');
     }
     
     return mergedLibrary;
@@ -541,7 +541,7 @@ ipcMain.handle('get-channel-configs', async () => {
   try {
     await fsPromises.access(channelConfigsPath);
     const data = await fsPromises.readFile(channelConfigsPath, 'utf-8');
-    console.log(`[READ] Successfully read file: ${channelConfigsPath}`);
+    // console.log(`[READ] Successfully read file: ${channelConfigsPath}`);
     const parsed = JSON.parse(data);
     // Return empty object if file is empty or contains invalid data
     if (!parsed || typeof parsed !== 'object') {
@@ -565,7 +565,7 @@ ipcMain.handle('get-channel-configs', async () => {
 ipcMain.handle('save-channel-configs', async (event, configs) => {
   try {
     await fsPromises.writeFile(channelConfigsPath, JSON.stringify(configs, null, 2));
-    console.log(`[WRITE] Successfully wrote file: ${channelConfigsPath}`);
+    // console.log(`[WRITE] Successfully wrote file: ${channelConfigsPath}`);
     return { success: true };
   } catch (error) {
     if (error.code === 'EACCES') {
@@ -580,7 +580,7 @@ ipcMain.handle('save-channel-configs', async (event, configs) => {
 ipcMain.handle('get-sound-library', async () => {
   try {
     const library = await loadSoundLibrary();
-    console.log('[SOUNDS] Loaded sound library:', Object.keys(library).map(k => `${k}: ${library[k].length} sounds`));
+    // console.log('[SOUNDS] Loaded sound library:', Object.keys(library).map(k => `${k}: ${library[k].length} sounds`));
     return library;
   } catch (error) {
     console.error('[SOUNDS] Error getting sound library:', error);
@@ -591,7 +591,7 @@ ipcMain.handle('get-sound-library', async () => {
 ipcMain.handle('save-sound-library', async (event, library) => {
   try {
     await writeJson(savedSoundsPath, library);
-    console.log('[SOUNDS] Saved sound library');
+    // console.log('[SOUNDS] Saved sound library');
     return { success: true };
   } catch (error) {
     console.error('[SOUNDS] Error saving sound library:', error);
@@ -611,7 +611,7 @@ ipcMain.handle('save-saved-sounds', async (event, sounds) => {
 // File dialog handler for sound selection
 ipcMain.handle('select-sound-file', async () => {
   try {
-    console.log('[SOUNDS] Opening file dialog for sound selection');
+    // console.log('[SOUNDS] Opening file dialog for sound selection');
     
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openFile'],
@@ -666,7 +666,7 @@ ipcMain.handle('select-sound-file', async () => {
         console.warn(`[SOUNDS] Could not check file stats: ${error.message}`);
       }
       
-      console.log(`[SOUNDS] Successfully selected file: ${filename} (${filePath})`);
+      // console.log(`[SOUNDS] Successfully selected file: ${filename} (${filePath})`);
       return { 
         success: true, 
         file: { 
@@ -676,7 +676,7 @@ ipcMain.handle('select-sound-file', async () => {
         } 
       };
     } else {
-      console.log('[SOUNDS] File selection cancelled by user');
+      // console.log('[SOUNDS] File selection cancelled by user');
       return { success: false, error: 'No file selected' };
     }
   } catch (error) {
@@ -691,7 +691,7 @@ ipcMain.handle('select-sound-file', async () => {
 // Sound management IPC handlers
 ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
   try {
-    console.log(`[SOUNDS] Adding sound: ${name} (${file.name}) to ${soundType}`);
+    // console.log(`[SOUNDS] Adding sound: ${name} (${file.name}) to ${soundType}`);
     
     // Validate sound type
     if (!SOUND_TYPES.includes(soundType)) {
@@ -795,7 +795,7 @@ ipcMain.handle('add-sound', async (event, { soundType, file, name }) => {
     // Save updated library
     try {
       await writeJson(savedSoundsPath, library);
-      console.log(`[SOUNDS] Successfully added new sound: ${name} to ${soundType}`);
+      // console.log(`[SOUNDS] Successfully added new sound: ${name} to ${soundType}`);
       return { success: true, sound: newSound };
     } catch (error) {
       console.error(`[SOUNDS] Failed to save sound library: ${error.message}`);
@@ -840,14 +840,14 @@ ipcMain.handle('remove-sound', async (event, { soundType, soundId }) => {
     try {
       const filePath = path.join(userSoundsPath, sound.filename);
       await fsPromises.unlink(filePath);
-      console.log(`[SOUNDS] Deleted sound file: ${sound.filename}`);
+      // console.log(`[SOUNDS] Deleted sound file: ${sound.filename}`);
     } catch (fileError) {
       console.warn(`[SOUNDS] Could not delete sound file: ${sound.filename}`, fileError);
     }
     
     // Save updated library
     await writeJson(savedSoundsPath, library);
-    console.log(`[SOUNDS] Removed sound: ${sound.name} from ${soundType}`);
+    // console.log(`[SOUNDS] Removed sound: ${sound.name} from ${soundType}`);
     
     return { success: true };
   } catch (error) {
@@ -885,7 +885,7 @@ ipcMain.handle('update-sound', async (event, { soundType, soundId, updates }) =>
     
     // Save updated library
     await writeJson(savedSoundsPath, library);
-    console.log(`[SOUNDS] Updated sound: ${sound.name} in ${soundType}`);
+    // console.log(`[SOUNDS] Updated sound: ${sound.name} in ${soundType}`);
     
     return { success: true, sound: library[soundType][soundIndex] };
   } catch (error) {
@@ -916,7 +916,7 @@ ipcMain.handle('sounds:toggleLike', async (event, { soundId }) => {
     
     // Save updated library
     await writeJson(savedSoundsPath, library);
-    console.log(`[SOUNDS] Toggled like for sound: ${sound.name}`);
+    // console.log(`[SOUNDS] Toggled like for sound: ${sound.name}`);
     
     return { 
       success: true, 
@@ -931,7 +931,7 @@ ipcMain.handle('sounds:toggleLike', async (event, { soundId }) => {
 
 ipcMain.handle('sounds:setBackgroundMusicSettings', async (event, settings) => {
   try {
-    console.log('[SOUNDS] Setting background music settings:', settings);
+    // console.log('[SOUNDS] Setting background music settings:', settings);
     
     const library = await loadSoundLibrary();
     
@@ -946,11 +946,11 @@ ipcMain.handle('sounds:setBackgroundMusicSettings', async (event, settings) => {
       enabled: settings.enabled !== undefined ? !!settings.enabled : true
     };
     
-    console.log('[SOUNDS] New background music settings:', library.backgroundMusicSettings);
+    // console.log('[SOUNDS] New background music settings:', library.backgroundMusicSettings);
     
     // Save updated library
     await writeJson(savedSoundsPath, library);
-    console.log('[SOUNDS] Saved background music settings to file');
+    // console.log('[SOUNDS] Saved background music settings to file');
     
     return { success: true, settings: library.backgroundMusicSettings };
   } catch (error) {
@@ -970,8 +970,8 @@ ipcMain.handle('sounds:getBackgroundMusicSettings', async () => {
     };
     
     const settings = library.backgroundMusicSettings || defaultSettings;
-    console.log('[SOUNDS] Getting background music settings:', settings);
-    console.log('[SOUNDS] Library has backgroundMusicSettings:', !!library.backgroundMusicSettings);
+    // console.log('[SOUNDS] Getting background music settings:', settings);
+    // console.log('[SOUNDS] Library has backgroundMusicSettings:', !!library.backgroundMusicSettings);
     
     return { 
       success: true, 
@@ -1057,7 +1057,7 @@ ipcMain.handle('debug-sounds', async () => {
       debugInfo.devServerUrl = url;
     }
     
-    console.log('[DEBUG] Sound debug info:', debugInfo);
+    // console.log('[DEBUG] Sound debug info:', debugInfo);
     return debugInfo;
   } catch (error) {
     console.error('[DEBUG] Error getting sound debug info:', error);
@@ -1094,7 +1094,7 @@ ipcMain.handle('copy-wallpaper-to-user-directory', async (event, { filePath, fil
 // File dialog handler for wallpaper selection
 ipcMain.handle('select-wallpaper-file', async () => {
   try {
-    console.log('[WALLPAPER] Opening file dialog for wallpaper selection');
+    // console.log('[WALLPAPER] Opening file dialog for wallpaper selection');
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openFile'],
       filters: [
@@ -1144,7 +1144,7 @@ ipcMain.handle('select-wallpaper-file', async () => {
       } catch (error) {
         console.warn(`[WALLPAPER] Could not check file stats: ${error.message}`);
       }
-      console.log(`[WALLPAPER] Successfully selected file: ${filename} (${filePath})`);
+      // console.log(`[WALLPAPER] Successfully selected file: ${filename} (${filePath})`);
       return {
         success: true,
         file: {
@@ -1154,7 +1154,7 @@ ipcMain.handle('select-wallpaper-file', async () => {
         }
       };
     } else {
-      console.log('[WALLPAPER] File selection cancelled by user');
+      // console.log('[WALLPAPER] File selection cancelled by user');
       return { success: false, error: 'No file selected' };
     }
   } catch (error) {
@@ -1428,14 +1428,14 @@ ipcMain.handle('set-auto-launch', (event, enable) => {
 
 // --- App Launching Logic ---
 ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
-  console.log(`Launching app: type=${type}, path=${appPath}, asAdmin=${asAdmin}`);
+  // console.log(`Launching app: type=${type}, path=${appPath}, asAdmin=${asAdmin}`);
 
   if (type === 'url') {
     shell.openExternal(appPath).catch(err => {
       console.error('Failed to open URL:', err);
     });
   } else if (type === 'steam' || (typeof appPath === 'string' && appPath.startsWith('steam://'))) {
-    console.log('Launching Steam URI:', appPath);
+    // console.log('Launching Steam URI:', appPath);
     shell.openExternal(appPath).catch(err => {
       console.error('Failed to open Steam URI:', err);
     });
@@ -1475,7 +1475,7 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
       }
       const [executablePath, ...args] = parseExeAndArgs(appPath);
       const workingDir = path.dirname(executablePath);
-      console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
+      // console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
       if (asAdmin) {
         const argsString = args.length > 0 ? ` -ArgumentList "${args.join('", "')}"` : '';
         const command = `Start-Process -FilePath "${executablePath}"${argsString} -Verb RunAs`;
@@ -1488,7 +1488,7 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
         child.on('spawn', () => { console.log('Executable launched as admin successfully'); child.unref(); });
       } else {
         // Normal launch using the parsed path and setting the working directory.
-        console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
+        // console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
         const child = spawn(executablePath, args, {
           cwd: workingDir,
         detached: true,
@@ -1635,5 +1635,11 @@ legacyIpcAliases.forEach(([legacy, modern]) => {
     ipcMain.handle(legacy, async (...args) => ipcMain.handlers[modern](...args));
   } else if (legacy !== modern && typeof ipcMain.handlers[modern] !== 'function') {
     console.warn(`[IPC Alias] Handler for '${modern}' is undefined, cannot alias '${legacy}'`);
+  }
+});
+
+ipcMain.on('close-window', () => {
+  if (mainWindow) {
+    mainWindow.close();
   }
 });
