@@ -243,24 +243,24 @@ class AudioManager {
         // console.warn('Failed to get current background music volume:', error); // Removed
       }
       if (this.backgroundAudio) {
-        this.backgroundAudio.volume = volume;
-        this.backgroundAudio.loop = loop;
-        // If not looping, stop background music when it ends
-        if (!loop) {
-          const onEnded = () => {
+      this.backgroundAudio.volume = volume;
+      this.backgroundAudio.loop = loop;
+      // If not looping, stop background music when it ends
+      if (!loop) {
+        const onEnded = () => {
             if (this.backgroundAudio) {
-              this.backgroundAudio = null;
-              this.backgroundAudio.removeEventListener('ended', onEnded);
+          this.backgroundAudio = null;
+          this.backgroundAudio.removeEventListener('ended', onEnded);
             }
-          };
-          this.backgroundAudio.addEventListener('ended', onEnded);
-        }
+        };
+        this.backgroundAudio.addEventListener('ended', onEnded);
+      }
         this.backgroundAudio.play().catch(err => {
           if (err && err.name !== 'AbortError') {
             // Optionally log or handle non-abort errors
             // console.error('Audio play error:', err);
           }
-        });
+      });
       }
     } else {
       this.backgroundAudio = null;
