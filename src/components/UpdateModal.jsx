@@ -8,7 +8,7 @@ function UpdateModal({ isOpen, onClose }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [error, setError] = useState(null);
-  const [appVersion, setAppVersion] = useState('1.9.4');
+  const [appVersion, setAppVersion] = useState('2.1.0');
 
   useEffect(() => {
     if (!isOpen) {

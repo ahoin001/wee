@@ -1,6 +1,6 @@
 {
   "name": "WeeDesktopLauncher",
-  "version": "1.9.6",
+  "version": "2.1.0",
   "description": "A Nintendo Wii-style launcher for your Windows desktop apps.",
   "main": "electron.cjs",
   "author": "Your Name",
@@ -35,21 +35,23 @@
     ]
   },
   "dependencies": {
+    "@radix-ui/react-context-menu": "^2.2.15",
     "electron-updater": "^6.1.0",
     "fs-extra": "^11.3.0",
-    "vdf": "^0.0.2",
-    "windows-shortcuts": "^0.1.6",
+    "prop-types": "^15.8.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "prop-types": "^15.8.1"
+    "react-freezeframe-vite": "^5.0.3",
+    "vdf": "^0.0.2",
+    "windows-shortcuts": "^0.1.6"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^9.2.0",
+    "cross-env": "^7.0.3",
     "electron": "^27.0.0",
     "electron-builder": "^26.0.12",
     "vite": "^7.0.4",
-    "@vitejs/plugin-react": "^4.6.0",
-    "concurrently": "^9.2.0",
-    "wait-on": "^8.0.3",
-    "cross-env": "^7.0.3"
+    "wait-on": "^8.0.3"
   }
 }

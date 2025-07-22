@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
 import ImageSearchModal from './ImageSearchModal';
 import audioManager from '../utils/AudioManager';
