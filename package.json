@@ -1,6 +1,6 @@
 {
   "name": "WeeDesktopLauncher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Nintendo Wii-style launcher for your Windows desktop apps.",
   "main": "electron.cjs",
   "author": "Your Name",
@@ -16,15 +16,23 @@
   "build": {
     "appId": "com.ahoin001.wiidesktoplauncher",
     "productName": "WeeDesktopLauncher",
-    "win": { "target": "nsis" },
-    "directories": { "output": "dist" },
+    "win": {
+      "target": "nsis"
+    },
+    "directories": {
+      "output": "dist"
+    },
     "files": [
       "dist/**/*",
       "public/sounds/**/*",
       "electron.cjs",
       "preload.cjs"
     ],
-    "publish": [{ "provider": "github" }]
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
   },
   "dependencies": {
     "electron-updater": "^6.1.0",
