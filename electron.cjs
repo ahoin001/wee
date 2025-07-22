@@ -2519,3 +2519,16 @@ ipcMain.handle('apps:rescanInstalled', async () => {
   appsCacheTime = Date.now();
   return deduped;
 });
+
+// Add robust error logging for production crashes
+const fs = require('fs');
+process.on('uncaughtException', (err) => {
+  try {
+    fs.writeFileSync('main-error.log', (err && err.stack) || String(err));
+  } catch {}
+});
+process.on('unhandledRejection', (reason) => {
+  try {
+    fs.writeFileSync('main-error.log', (reason && reason.stack) || String(reason));
+  } catch {}
+});
