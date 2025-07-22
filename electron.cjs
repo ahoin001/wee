@@ -208,7 +208,9 @@ async function readJson(filePath, defaultValue) {
 // Helper: Write JSON file atomically
 async function writeJson(filePath, data) {
   const tempPath = filePath + '.tmp';
+  const dir = path.dirname(filePath);
   try {
+    await fsPromises.mkdir(dir, { recursive: true }); // Ensure parent directory exists
     await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
     await fsPromises.rename(tempPath, filePath);
     console.log(`[WRITE] Atomically wrote file: ${filePath}`);
@@ -1614,17 +1616,28 @@ const semverCompare = (a, b) => {
 
 app.on('ready', async () => {
   const userDataPath = app.getPath('userData');
-  // Only clean userDataPath for guaranteed safety
-  if (fs.existsSync(userDataPath)) {
-    try {
-      fs.rmSync(userDataPath, { recursive: true, force: true });
-      console.log('Removed user data directory:', userDataPath);
-    } catch (e) {
-      console.warn('Failed to remove user data directory:', userDataPath, e);
+  // Only clean up app's own subfolders/files, not the entire userDataPath
+  const appFilesAndDirs = [
+    'data',
+    'settings.json',
+    'wallpapers.json',
+    'sounds.json',
+    'channels.json',
+    'channel-hover-sounds',
+    'icons'
+  ];
+  for (const name of appFilesAndDirs) {
+    const target = path.join(userDataPath, name);
+    if (fs.existsSync(target)) {
+      try {
+        fs.rmSync(target, { recursive: true, force: true });
+        console.log('Removed app data:', target);
+      } catch (e) {
+        console.warn('Failed to remove app data:', target, e);
+      }
     }
   }
-  // Immediately recreate userDataPath and all required subdirectories
-  fs.mkdirSync(userDataPath, { recursive: true });
+  // Immediately recreate required subdirectories
   const dataDir = path.join(userDataPath, 'data');
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(path.join(dataDir, 'sounds'), { recursive: true });
