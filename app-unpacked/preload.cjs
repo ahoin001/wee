@@ -1,0 +1,86 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('api', {
+  send: (channel, ...args) => {
+    console.log('[preload] Sending IPC:', channel, ...args);
+    ipcRenderer.send(channel, ...args);
+  },
+  settings: {
+    get: () => ipcRenderer.invoke('settings:get'),
+    set: (data) => ipcRenderer.invoke('settings:set', data),
+  },
+  sounds: {
+    get: () => ipcRenderer.invoke('sounds:get'),
+    set: (data) => ipcRenderer.invoke('sounds:set', data),
+    reset: () => ipcRenderer.invoke('sounds:reset'),
+    add: (args) => ipcRenderer.invoke('add-sound', args),
+    remove: (args) => ipcRenderer.invoke('remove-sound', args),
+    update: (args) => ipcRenderer.invoke('update-sound', args),
+    getLibrary: () => ipcRenderer.invoke('get-sound-library'),
+    selectFile: () => ipcRenderer.invoke('select-sound-file'),
+    toggleLike: (args) => ipcRenderer.invoke('sounds:toggleLike', args),
+    setBackgroundMusicSettings: (settings) => ipcRenderer.invoke('sounds:setBackgroundMusicSettings', settings),
+    getBackgroundMusicSettings: () => ipcRenderer.invoke('sounds:getBackgroundMusicSettings'),
+  },
+  steam: {
+    getInstalledGames: () => ipcRenderer.invoke('steam:getInstalledGames'),
+    pickLibraryFolder: () => ipcRenderer.invoke('steam:pickLibraryFolder'),
+  },
+  epic: {
+    getInstalledGames: () => ipcRenderer.invoke('epic:getInstalledGames'),
+  },
+  wallpapers: {
+    get: () => ipcRenderer.invoke('wallpapers:get'),
+    set: (data) => ipcRenderer.invoke('wallpapers:set', data),
+    reset: () => ipcRenderer.invoke('wallpapers:reset'),
+    add: (args) => ipcRenderer.invoke('wallpapers:add', args),
+    delete: (args) => ipcRenderer.invoke('wallpapers:delete', args),
+    setActive: (args) => ipcRenderer.invoke('wallpapers:setActive', args),
+    toggleLike: (args) => ipcRenderer.invoke('wallpapers:toggleLike', args),
+    setCyclingSettings: (args) => ipcRenderer.invoke('wallpapers:setCyclingSettings', args),
+  },
+  icons: {
+    add: ({ filePath, filename }) => ipcRenderer.invoke('icons:add', { filePath, filename }),
+    list: () => ipcRenderer.invoke('icons:list'),
+    delete: (url) => ipcRenderer.invoke('icons:delete', { url }),
+  },
+  selectWallpaperFile: () => ipcRenderer.invoke('select-wallpaper-file'),
+  selectIconFile: () => ipcRenderer.invoke('icon:selectFile'),
+  selectExeOrShortcutFile: () => ipcRenderer.invoke('select-exe-or-shortcut-file'),
+  onWallpapersUpdated: (cb) => ipcRenderer.on('wallpapers:updated', cb),
+  offWallpapersUpdated: (cb) => ipcRenderer.removeListener('wallpapers:updated', cb),
+  channels: {
+    get: () => ipcRenderer.invoke('channels:get'),
+    set: (data) => ipcRenderer.invoke('channels:set', data),
+    reset: () => ipcRenderer.invoke('channels:reset'),
+    copyHoverSound: ({ filePath, filename }) => ipcRenderer.invoke('channels:copyHoverSound', { filePath, filename }),
+  },
+  resetAll: () => ipcRenderer.invoke('settings:resetAll'),
+  resolveUserdataUrl: (url) => ipcRenderer.invoke('resolve-userdata-url', url),
+  // Window management APIs
+  close: () => ipcRenderer.send('close-window'),
+  toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
+  toggleFrame: () => ipcRenderer.send('toggle-frame'),
+  minimize: () => ipcRenderer.send('minimize-window'),
+  onFullscreenState: (cb) => ipcRenderer.on('fullscreen-state', (e, val) => cb(val)),
+  onFrameState: (cb) => ipcRenderer.on('frame-state', (e, val) => cb(val)),
+  openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
+  openExternal: (url) => ipcRenderer.send('open-external-url', url),
+  launchApp: (data) => ipcRenderer.send('launch-app', data),
+  getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+  setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
+  // Auto-updater APIs
+  updater: {
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    downloadUpdate: () => ipcRenderer.invoke('download-update'),
+    installUpdate: () => ipcRenderer.invoke('install-update'),
+    onUpdateStatus: (cb) => ipcRenderer.on('update-status', (e, data) => cb(data)),
+    offUpdateStatus: (cb) => ipcRenderer.removeListener('update-status', cb),
+  },
+  getFullscreenState: () => ipcRenderer.invoke('get-fullscreen-state'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  apps: {
+    getInstalled: () => ipcRenderer.invoke('apps:getInstalled'),
+  },
+  quit: () => ipcRenderer.send('app:quit'),
+});
