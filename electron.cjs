@@ -1832,11 +1832,11 @@ if (app.isPackaged) {
       
       if (!exists) {
         // Create first run file to mark as completed
-        await fsPromises.writeFile(firstRunFile, {
+        await fsPromises.writeFile(firstRunFile, JSON.stringify({
           completed: true,
           date: new Date().toISOString(),
           version: app.getVersion()
-        });
+        }));
         return true;
       }
       
