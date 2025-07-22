@@ -2487,14 +2487,15 @@ ipcMain.handle('apps:rescanInstalled', async () => {
 });
 
 // Add robust error logging for production crashes
+const errorLogPath = path.join(app.getPath('userData'), 'main-error.log');
 
 process.on('uncaughtException', (err) => {
   try {
-    fs.writeFileSync('main-error.log', (err && err.stack) || String(err));
+    fs.writeFileSync(errorLogPath, (err && err.stack) || String(err));
   } catch {}
 });
 process.on('unhandledRejection', (reason) => {
   try {
-    fs.writeFileSync('main-error.log', (reason && reason.stack) || String(reason));
+    fs.writeFileSync(errorLogPath, (reason && reason.stack) || String(reason));
   } catch {}
 });
