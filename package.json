@@ -20,7 +20,8 @@
     "appId": "com.ahoin001.wiidesktoplauncher",
     "productName": "WeeDesktopLauncher",
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "artifactName": "WeeDesktopLauncher-Setup-${version}.${ext}"
     },
     "directories": {
       "output": "dist"
