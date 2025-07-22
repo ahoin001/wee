@@ -1602,7 +1602,6 @@ ipcMain.handle('wallpaper:selectFile', async (...args) => {
 
 // Restore legacy IPC handler names for frontend compatibility
 const legacyIpcAliases = [
-  // [legacyName, newName]
   ['sounds:get', 'sounds:get'],
   ['sounds:set', 'sounds:set'],
   ['sounds:reset', 'sounds:reset'],
@@ -1628,7 +1627,13 @@ const legacyIpcAliases = [
   ['icons:delete', 'icons:delete'],
 ];
 legacyIpcAliases.forEach(([legacy, modern]) => {
-  if (!ipcMain.handlers[legacy] && ipcMain.handlers[modern]) {
+  if (
+    legacy !== modern &&
+    !ipcMain.handlers[legacy] &&
+    typeof ipcMain.handlers[modern] === 'function'
+  ) {
     ipcMain.handle(legacy, async (...args) => ipcMain.handlers[modern](...args));
+  } else if (legacy !== modern && typeof ipcMain.handlers[modern] !== 'function') {
+    console.warn(`[IPC Alias] Handler for '${modern}' is undefined, cannot alias '${legacy}'`);
   }
 });
