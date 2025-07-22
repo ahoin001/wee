@@ -205,11 +205,11 @@ class AudioManager {
     };
     this.backgroundAudio.addEventListener('ended', onEnded);
     
-    this.backgroundAudio.play().catch(error => {
-      // console.error('Failed to play playlist track:', error); // Removed
-      // Try next track on error
-      this.currentPlaylistIndex++;
-      this.playNextPlaylistTrack();
+    this.backgroundAudio.play().catch(err => {
+      if (err && err.name !== 'AbortError') {
+        // Optionally log or handle non-abort errors
+        // console.error('Audio play error:', err);
+      }
     });
   }
 
@@ -221,9 +221,12 @@ class AudioManager {
       this.backgroundAudio.currentTime = 0;
     }
 
-    if (url) {
+    if (url && typeof url === 'string' && url.trim() !== '') {
       this.backgroundAudio = this.getAudioInstance(url);
-      
+      if (!this.backgroundAudio) {
+        this.backgroundAudio = null;
+        return;
+      }
       // Get the current volume from sound library if available
       try {
         const soundsApi = window.api?.sounds;
@@ -239,22 +242,26 @@ class AudioManager {
       } catch (error) {
         // console.warn('Failed to get current background music volume:', error); // Removed
       }
-      
-      this.backgroundAudio.volume = volume;
-      this.backgroundAudio.loop = loop;
-      
-      // If not looping, stop background music when it ends
-      if (!loop) {
-        const onEnded = () => {
-          this.backgroundAudio = null;
-          this.backgroundAudio.removeEventListener('ended', onEnded);
-        };
-        this.backgroundAudio.addEventListener('ended', onEnded);
+      if (this.backgroundAudio) {
+        this.backgroundAudio.volume = volume;
+        this.backgroundAudio.loop = loop;
+        // If not looping, stop background music when it ends
+        if (!loop) {
+          const onEnded = () => {
+            if (this.backgroundAudio) {
+              this.backgroundAudio = null;
+              this.backgroundAudio.removeEventListener('ended', onEnded);
+            }
+          };
+          this.backgroundAudio.addEventListener('ended', onEnded);
+        }
+        this.backgroundAudio.play().catch(err => {
+          if (err && err.name !== 'AbortError') {
+            // Optionally log or handle non-abort errors
+            // console.error('Audio play error:', err);
+          }
+        });
       }
-      
-      this.backgroundAudio.play().catch(error => {
-        // console.error('Failed to play background music:', error); // Removed
-      });
     } else {
       this.backgroundAudio = null;
     }

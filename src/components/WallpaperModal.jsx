@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
@@ -37,6 +37,9 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
   const [channelOpacity, setChannelOpacity] = useState(1);
   const [restoreOpacityOnHover, setRestoreOpacityOnHover] = useState(true);
+
+  const likedWallpapersMemo = useMemo(() => likedWallpapers, [likedWallpapers]);
+  const wallpapersMemo = useMemo(() => wallpapers, [wallpapers]);
 
   // Load wallpapers from backend
   const loadWallpapers = async () => {
@@ -85,7 +88,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   }, [isOpen]);
 
   // Upload a new wallpaper
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async () => {
     setUploading(true);
     setMessage({ type: '', text: '' });
     try {
@@ -109,7 +112,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
     } finally {
       setUploading(false);
     }
-  };
+  }, [selectFile, loadWallpapers]);
 
   // Delete a wallpaper
   const handleDelete = async (url) => {
@@ -370,8 +373,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
             </div>
             
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', alignItems: 'flex-start' }}>
-              {wallpapers.length === 0 && <span style={{ color: '#888' }}>No saved wallpapers yet.</span>}
-              {wallpapers.map((wallpaper, idx) => (
+              {wallpapersMemo.length === 0 && <span style={{ color: '#888' }}>No saved wallpapers yet.</span>}
+              {wallpapersMemo.map((wallpaper, idx) => (
                 <div key={wallpaper.url || idx} style={{ minWidth: 120, maxWidth: 160, flex: '1 1 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
                   <div
                     style={{
@@ -407,7 +410,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                         position: 'absolute',
                         top: 7,
                         left: 7,
-                        background: likedWallpapers.includes(wallpaper.url) ? 'rgba(231,76,60,0.13)' : 'rgba(255,255,255,0.92)',
+                        background: likedWallpapersMemo.includes(wallpaper.url) ? 'rgba(231,76,60,0.13)' : 'rgba(255,255,255,0.92)',
                         border: 'none',
                         borderRadius: '50%',
                         width: 28,
@@ -416,19 +419,19 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: 16,
-                        color: likedWallpapers.includes(wallpaper.url) ? '#e74c3c' : '#333',
+                        color: likedWallpapersMemo.includes(wallpaper.url) ? '#e74c3c' : '#333',
                         zIndex: 2,
                         cursor: 'pointer',
                         boxShadow: '0 1px 6px rgba(0,0,0,0.10)',
                         transition: 'color 0.2s, background 0.2s',
                       }}
-                      title={likedWallpapers.includes(wallpaper.url) ? 'Unlike' : 'Like'}
-                      aria-label={likedWallpapers.includes(wallpaper.url) ? 'Unlike wallpaper' : 'Like wallpaper'}
+                      title={likedWallpapersMemo.includes(wallpaper.url) ? 'Unlike' : 'Like'}
+                      aria-label={likedWallpapersMemo.includes(wallpaper.url) ? 'Unlike wallpaper' : 'Like wallpaper'}
                       onClick={e => { e.stopPropagation(); handleLike(wallpaper.url); }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(231,76,60,0.18)'; e.currentTarget.style.color = '#e74c3c'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = likedWallpapers.includes(wallpaper.url) ? 'rgba(231,76,60,0.13)' : 'rgba(255,255,255,0.92)'; e.currentTarget.style.color = likedWallpapers.includes(wallpaper.url) ? '#e74c3c' : '#333'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = likedWallpapersMemo.includes(wallpaper.url) ? 'rgba(231,76,60,0.13)' : 'rgba(255,255,255,0.92)'; e.currentTarget.style.color = likedWallpapersMemo.includes(wallpaper.url) ? '#e74c3c' : '#333'; }}
                     >
-                      {likedWallpapers.includes(wallpaper.url) ? '♥' : '♡'}
+                      {likedWallpapersMemo.includes(wallpaper.url) ? '♥' : '♡'}
                     </button>
                     {/* Delete button */}
                     <button
@@ -709,4 +712,4 @@ WallpaperModal.propTypes = {
   onClose: PropTypes.func.isRequired,
 };
 
-export default WallpaperModal; 
+export default React.memo(WallpaperModal); 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import SoundModal from './SoundModal';
 import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
@@ -19,7 +19,7 @@ function hexAlpha(opacity) {
   return a === 255 ? '' : a.toString(16).padStart(2, '0');
 }
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton }) => {
+function WiiRibbon(props) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuFade, setShowMenuFade] = useState(false);
@@ -83,58 +83,58 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       await window.api.settings.set({ ...settings, ribbonButtonConfigs: configs });
       
       // Notify parent component of the change
-      if (onSettingsChange) {
-        onSettingsChange({ ribbonButtonConfigs: configs });
+      if (props.onSettingsChange) {
+        props.onSettingsChange({ ribbonButtonConfigs: configs });
       }
     }
   };
 
-  const handleButtonContextMenu = (index, e) => {
+  const handleButtonContextMenu = useCallback((index, e) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent event from bubbling up to the footer
     setActiveButtonIndex(index);
     setShowPrimaryActionsModal(true);
-  };
+  }, []);
 
-  const handleTimeContextMenu = (e) => {
+  const handleTimeContextMenu = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent event from bubbling up to the footer
     setShowTimeSettingsModal(true);
-  };
+  }, []);
 
-  const handleRibbonContextMenu = (e) => {
+  const handleRibbonContextMenu = useCallback((e) => {
     e.preventDefault();
     setShowRibbonSettingsModal(true);
-  };
+  }, []);
 
-  const handlePrimaryActionsSave = (newConfig) => {
+  const handlePrimaryActionsSave = useCallback((newConfig) => {
     const newConfigs = [...buttonConfigs];
     newConfigs[activeButtonIndex] = newConfig;
     saveButtonConfigs(newConfigs);
     setShowPrimaryActionsModal(false);
-  };
+  }, [buttonConfigs, activeButtonIndex]);
 
-  const handlePrimaryActionsCancel = () => {
+  const handlePrimaryActionsCancel = useCallback(() => {
     setShowPrimaryActionsModal(false);
-  };
+  }, []);
 
-  const handlePresetsButtonContextMenu = (e) => {
+  const handlePresetsButtonContextMenu = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     setShowPresetsButtonModal(true);
-  };
+  }, []);
 
-  const handlePresetsButtonSave = (newConfig) => {
+  const handlePresetsButtonSave = useCallback((newConfig) => {
     setShowPresetsButtonModal(false);
     // Save to settings
-    if (onSettingsChange) {
-      onSettingsChange({ presetsButtonConfig: newConfig });
+    if (props.onSettingsChange) {
+      props.onSettingsChange({ presetsButtonConfig: newConfig });
     }
-  };
+  }, [props.onSettingsChange]);
 
-  const handlePresetsButtonCancel = () => {
+  const handlePresetsButtonCancel = useCallback(() => {
     setShowPresetsButtonModal(false);
-  };
+  }, []);
 
   // Update time every second
   useEffect(() => {
@@ -149,7 +149,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   useEffect(() => {
     const checkTimeColor = () => {
       const newTimeColor = window.settings?.timeColor || '#ffffff';
-      if (newTimeColor !== timeColor) {
+      if (newTimeColor !== props.timeColor) {
         // setTimeColor(newTimeColor); // This line is removed as per the edit hint
       }
     };
@@ -161,13 +161,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     const taskId = intervalManager.addTask(checkTimeColor, 1000, 'time-color-check');
     
     return () => intervalManager.removeTask(taskId);
-  }, [timeColor]);
+  }, [props.timeColor]);
 
   // Watch for time format changes
   useEffect(() => {
     const checkTimeFormat = () => {
       const newTimeFormat = window.settings?.timeFormat24hr ?? true;
-      if (newTimeFormat !== timeFormat24hr) {
+      if (newTimeFormat !== props.timeFormat24hr) {
         // setTimeFormat24hr(newTimeFormat); // This line is removed as per the edit hint
       }
     };
@@ -179,24 +179,24 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     const taskId = intervalManager.addTask(checkTimeFormat, 1000, 'time-format-check');
     
     return () => intervalManager.removeTask(taskId);
-  }, [timeFormat24hr]);
+  }, [props.timeFormat24hr]);
 
   // Watch for ribbon color changes
   useEffect(() => {
     const checkRibbonColor = () => {
       const newRibbonColor = window.settings?.ribbonColor || '#e0e6ef';
-      if (newRibbonColor !== propRibbonColor) {
+      if (newRibbonColor !== props.ribbonColor) {
         // setRibbonColor(newRibbonColor); // This line is removed as per the edit hint
       }
       const newRibbonGlowColor = window.settings?.ribbonGlowColor || '#0099ff';
-      if (newRibbonGlowColor !== propRibbonGlowColor) {
+      if (newRibbonGlowColor !== props.ribbonGlowColor) {
         // setRibbonGlowColor(newRibbonGlowColor); // This line is removed as per the edit hint
       }
     };
     checkRibbonColor();
     const taskId = intervalManager.addTask(checkRibbonColor, 1000, 'ribbon-color-check');
     return () => intervalManager.removeTask(taskId);
-  }, [propRibbonColor, propRibbonGlowColor]);
+  }, [props.ribbonColor, props.ribbonGlowColor]);
   
   // Listen for update status events
   useEffect(() => {
@@ -221,7 +221,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
-      hour12: !timeFormat24hr,
+      hour12: !props.timeFormat24hr,
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -235,15 +235,15 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     }).replace(',', '');
   };
 
-  const handleSettingsClick = () => {
+  const handleSettingsClick = useCallback(() => {
     setShowMenu(true);
     setTimeout(() => setShowMenuFade(true), 10); // trigger fade-in
-  };
+  }, []);
 
-  const handleMenuClose = () => {
+  const handleMenuClose = useCallback(() => {
     setShowMenuFade(false);
     setTimeout(() => setShowMenu(false), 200); // match fade-out duration
-  };
+  }, []);
 
   // Guard for window.api to prevent errors in browser
   const api = window.api || {
@@ -270,7 +270,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     // add more imported icons here
   ];
 
-  const handleButtonClick = (index) => {
+  const handleButtonClick = useCallback((index, e) => {
     const config = buttonConfigs[index];
     if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
     if (window.api && window.api.launchApp) {
@@ -285,7 +285,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         window.open(config.action, '_blank');
       }
     }
-  };
+  }, [buttonConfigs]);
 
   return (
     <>
@@ -293,14 +293,14 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           <div
             className="absolute inset-0 z-0 svg-container-glow"
             style={{
-              filter: `drop-shadow(0 0 ${isRibbonHovered ? (propRibbonGlowStrengthHover ?? 28) : (propRibbonGlowStrength ?? 20)}px ${propRibbonGlowColor}) drop-shadow(0 0 12px ${propRibbonGlowColor})`,
+              filter: `drop-shadow(0 0 ${isRibbonHovered ? (props.ribbonGlowStrengthHover ?? 28) : (props.ribbonGlowStrength ?? 20)}px ${props.ribbonGlowColor}) drop-shadow(0 0 12px ${props.ribbonGlowColor})`,
               transition: 'filter 0.3s',
             }}
             onMouseEnter={() => setIsRibbonHovered(true)}
             onMouseLeave={() => setIsRibbonHovered(false)}
           >
               <svg width="100%" height="100%" viewBox="0 0 1440 240" preserveAspectRatio="none">
-                {glassWiiRibbon && (
+                {props.glassWiiRibbon && (
                   <defs>
                     <filter id="glass-blur" x="-20%" y="-20%" width="140%" height="140%">
                       <feGaussianBlur stdDeviation={window.settings?.glassBlur || 2.5} result="blur" />
@@ -328,13 +328,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                      L 1440 40 
                      L 1440 240 
                      L 0 240 Z"
-                  fill={glassWiiRibbon ? `rgba(255,255,255,${window.settings?.glassOpacity || 0.18})` : propRibbonColor + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
+                  fill={props.glassWiiRibbon ? `rgba(255,255,255,${window.settings?.glassOpacity || 0.18})` : props.ribbonColor + (props.ribbonDockOpacity !== undefined ? hexAlpha(props.ribbonDockOpacity) : '')}
                   stroke={`rgba(255,255,255,${window.settings?.glassBorderOpacity || 0.5})`}
                   strokeWidth="2"
-                  filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
-                  style={glassWiiRibbon ? { transition: 'fill 0.3s' } : { transition: 'fill 0.3s' }}
+                  filter={props.glassWiiRibbon ? "url(#glass-blur)" : undefined}
+                  style={props.glassWiiRibbon ? { transition: 'fill 0.3s' } : { transition: 'fill 0.3s' }}
                 />
-                {glassWiiRibbon && (
+                {props.glassWiiRibbon && (
                   <path
                     d="M 0 40 
                        L 250 40 
@@ -353,7 +353,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
           <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[300px] z-20 text-center pointer-events-auto">
               {/* Apple Liquid Glass Pill Container */}
-              {enableTimePill ? (
+              {props.enableTimePill ? (
                 <div 
                   className="liquid-glass"
                   style={{
@@ -398,9 +398,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                       inset: '0',
                       zIndex: '-1',
                       borderRadius: '56px',
-                      backdropFilter: `blur(${timePillBlur}px)`,
-                      WebkitBackdropFilter: `blur(${timePillBlur}px)`,
-                      backgroundColor: `rgba(255, 255, 255, ${timePillOpacity})`,
+                      backdropFilter: `blur(${props.timePillBlur}px)`,
+                      WebkitBackdropFilter: `blur(${props.timePillBlur}px)`,
+                      backgroundColor: `rgba(255, 255, 255, ${props.timePillOpacity})`,
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       pointerEvents: 'none'
                     }}
@@ -411,13 +411,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     className="glass-text"
                     style={{
                       position: 'relative',
-                      color: timeColor,
+                      color: props.timeColor,
                       fontSize: '32px',
                       fontWeight: 'bold',
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
                       opacity: '1',
                       transform: 'translate(0px, 0px)',
-                      fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
+                      fontFamily: props.timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
                       zIndex: '1',
                       marginBottom: '8px'
                     }}
@@ -429,13 +429,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     className="glass-text"
                     style={{
                       position: 'relative',
-                      color: timeColor,
+                      color: props.timeColor,
                       fontSize: '18px',
                       fontWeight: 'bold',
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
                       opacity: '1',
                       transform: 'translate(0px, 0px)',
-                      fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
+                      fontFamily: props.timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
                       zIndex: '1'
                     }}
                   >
@@ -449,8 +449,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     id="time" 
                     className="text-4xl font-bold" 
                     style={{ 
-                      fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif", 
-                      color: timeColor,
+                      fontFamily: props.timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif", 
+                      color: props.timeColor,
                       textShadow: '0px 2px 4px rgba(0, 0, 0, 0.3)'
                     }}
                   >
@@ -460,9 +460,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     id="date" 
                     className="text-lg font-bold mt-8" 
                     style={{ 
-                      color: timeColor,
+                      color: props.timeColor,
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
-                      fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
+                      fontFamily: props.timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
                     }}
                   >
                       {formatDate(currentTime)}
@@ -474,7 +474,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           <div className="button-container left absolute w-[120px] left-0 z-10 ml-[-30px] pl-[120px] py-4 bg-white/20 rounded-r-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
               <WiiStyleButton
                 onContextMenu={e => handleButtonContextMenu(0, e)}
-                onClick={() => handleButtonClick(0)}
+                onClick={e => handleButtonClick(0, e)}
                 useAdaptiveColor={buttonConfigs[0]?.useAdaptiveColor}
                 useGlowEffect={buttonConfigs[0]?.useGlowEffect}
                 glowStrength={buttonConfigs[0]?.glowStrength}
@@ -483,7 +483,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 glassBlur={buttonConfigs[0]?.glassBlur}
                 glassBorderOpacity={buttonConfigs[0]?.glassBorderOpacity}
                 glassShineOpacity={buttonConfigs[0]?.glassShineOpacity}
-                ribbonGlowColor={propRibbonGlowColor}
+                ribbonGlowColor={props.ribbonGlowColor}
                 style={{ marginLeft: 16 }}
               >
                 {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
@@ -538,7 +538,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               </svg>
           </div>
           {/* Presets Button: slightly below and to the right of the time container */}
-          {showPresetsButton && (
+          {props.showPresetsButton && (
             <WiiStyleButton
               className="sd-card-button presets-cog-button glass-effect"
               style={{ 
@@ -553,31 +553,31 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 height: '56px',
                 minWidth: '56px'
               }}
-              onClick={() => setShowPresetsModal(true)}
+              onClick={() => props.setShowPresetsModal(true)}
               onContextMenu={handlePresetsButtonContextMenu}
               title="Customize Looks (Right-click to customize button)"
-              useAdaptiveColor={presetsButtonConfig?.useAdaptiveColor}
-              useGlowEffect={presetsButtonConfig?.useGlowEffect}
-              glowStrength={presetsButtonConfig?.glowStrength}
-              useGlassEffect={presetsButtonConfig?.useGlassEffect}
-              glassOpacity={presetsButtonConfig?.glassOpacity}
-              glassBlur={presetsButtonConfig?.glassBlur}
-              glassBorderOpacity={presetsButtonConfig?.glassBorderOpacity}
-              glassShineOpacity={presetsButtonConfig?.glassShineOpacity}
-              ribbonGlowColor={propRibbonGlowColor}
+              useAdaptiveColor={props.presetsButtonConfig?.useAdaptiveColor}
+              useGlowEffect={props.presetsButtonConfig?.useGlowEffect}
+              glowStrength={props.presetsButtonConfig?.glowStrength}
+              useGlassEffect={props.presetsButtonConfig?.useGlassEffect}
+              glassOpacity={props.presetsButtonConfig?.glassOpacity}
+              glassBlur={props.presetsButtonConfig?.glassBlur}
+              glassBorderOpacity={props.presetsButtonConfig?.glassBorderOpacity}
+              glassShineOpacity={props.presetsButtonConfig?.glassShineOpacity}
+              ribbonGlowColor={props.ribbonGlowColor}
             >
             {/* Dynamic icon based on configuration */}
-            {presetsButtonConfig.type === 'text' ? (
+            {props.presetsButtonConfig.type === 'text' ? (
               <span 
                 className="text-wii-gray-dark font-bold text-sm"
                 style={{
-                  fontFamily: presetsButtonConfig.textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
+                  fontFamily: props.presetsButtonConfig.textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
                 }}
               >
-                {presetsButtonConfig.text || '🎨'}
+                {props.presetsButtonConfig.text || '🎨'}
               </span>
 
-            ) : presetsButtonConfig.icon === 'palette' ? (
+            ) : props.presetsButtonConfig.icon === 'palette' ? (
               <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="13.5" cy="6.5" r="2.5"/>
                 <circle cx="17.5" cy="10.5" r="2.5"/>
@@ -585,22 +585,22 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <circle cx="6.5" cy="12.5" r="2.5"/>
                 <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
               </svg>
-            ) : presetsButtonConfig.icon === 'star' ? (
+            ) : props.presetsButtonConfig.icon === 'star' ? (
               <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
               </svg>
-            ) : presetsButtonConfig.icon === 'heart' ? (
+            ) : props.presetsButtonConfig.icon === 'heart' ? (
               <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
-            ) : presetsButtonConfig.icon ? (
+            ) : props.presetsButtonConfig.icon ? (
               <img 
-                src={presetsButtonConfig.icon} 
+                src={props.presetsButtonConfig.icon} 
                 alt="icon" 
                 style={{ 
                   maxHeight: 28, 
                   maxWidth: 28,
-                  filter: presetsButtonConfig.useWiiGrayFilter ? 'grayscale(100%) brightness(0.6) contrast(1.2)' : 'none'
+                  filter: props.presetsButtonConfig.useWiiGrayFilter ? 'grayscale(100%) brightness(0.6) contrast(1.2)' : 'none'
                 }} 
               />
             ) : (
@@ -613,7 +613,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               <div className="relative ml-4">
                   <WiiStyleButton
                     onContextMenu={e => handleButtonContextMenu(1, e)}
-                    onClick={() => handleButtonClick(1)}
+                    onClick={e => handleButtonClick(1, e)}
                     useAdaptiveColor={buttonConfigs[1]?.useAdaptiveColor}
                     useGlowEffect={buttonConfigs[1]?.useGlowEffect}
                     glowStrength={buttonConfigs[1]?.glowStrength}
@@ -622,7 +622,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     glassBlur={buttonConfigs[1]?.glassBlur}
                     glassBorderOpacity={buttonConfigs[1]?.glassBorderOpacity}
                     glassShineOpacity={buttonConfigs[1]?.glassShineOpacity}
-                    ribbonGlowColor={propRibbonGlowColor}
+                    ribbonGlowColor={props.ribbonGlowColor}
                   >
                       {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
                         <span 
@@ -684,11 +684,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <div className="context-menu-item" onClick={() => { setShowRibbonSettingsModal(true); handleMenuClose(); }}>
                   Customize Ribbon
                 </div>
-                <div className="context-menu-item" onClick={() => { onToggleDarkMode(); handleMenuClose(); }}>
+                <div className="context-menu-item" onClick={() => { props.onToggleDarkMode(); handleMenuClose(); }}>
                   Toggle Dark Mode
                 </div>
-                <div className="context-menu-item" onClick={() => { onToggleCursor(); handleMenuClose(); }}>
-                  {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
+                <div className="context-menu-item" onClick={() => { props.onToggleCursor(); handleMenuClose(); }}>
+                  {props.useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
                 </div>
                 {/* <div className="context-menu-item" onClick={() => { 
                   if (barType === 'flat') {
@@ -704,7 +704,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                    barType === 'wii-ribbon' ? 'Switch to Wii Bar' : 
                    'Switch to Flat Bar'}
                 </div> */}
-                <div className="context-menu-item" onClick={() => setShowPresetsModal(true)}>
+                <div className="context-menu-item" onClick={() => props.setShowPresetsModal(true)}>
                   🎨 Presets
                 </div>
                 <div className="settings-menu-separator" />
@@ -752,8 +752,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     handleMenuClose();
                     if (window.confirm('Are you sure you want to reset all appearance settings to default? This will not affect your saved presets.')) {
                       // Reset all visual/cosmetic settings to their original first-time user defaults
-                      if (typeof onSettingsChange === 'function') {
-                        onSettingsChange({
+                      if (typeof props.onSettingsChange === 'function') {
+                        props.onSettingsChange({
                           // Ribbon & Glow
                           ribbonColor: '#e0e6ef',
                           ribbonGlowColor: '#0099ff',
@@ -822,7 +822,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       <SoundModal 
         isOpen={showSoundModal}
         onClose={() => setShowSoundModal(false)}
-        onSettingsChange={onSettingsChange}
+        onSettingsChange={props.onSettingsChange}
       />
       <UpdateModal 
         isOpen={showUpdateModal}
@@ -833,7 +833,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         <WallpaperModal
           isOpen={showWallpaperModal}
           onClose={() => setShowWallpaperModal(false)}
-          onSettingsChange={onSettingsChange}
+          onSettingsChange={props.onSettingsChange}
           currentWallpaper={window.settings?.wallpaper}
           currentOpacity={window.settings?.wallpaperOpacity}
           savedWallpapers={window.settings?.savedWallpapers || []}
@@ -853,14 +853,14 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
             setImmersivePip(val);
             localStorage.setItem('immersivePip', JSON.stringify(val));
           }}
-          glassWiiRibbon={glassWiiRibbon}
-          setGlassWiiRibbon={onGlassWiiRibbonChange}
-          animatedOnHover={!!animatedOnHover}
-          setAnimatedOnHover={setAnimatedOnHover}
-          startInFullscreen={startInFullscreen}
-          setStartInFullscreen={setStartInFullscreen}
-          showPresetsButton={showPresetsButton}
-          setShowPresetsButton={val => onSettingsChange({ showPresetsButton: val })}
+          glassWiiRibbon={props.glassWiiRibbon}
+          setGlassWiiRibbon={props.onGlassWiiRibbonChange}
+          animatedOnHover={!!props.animatedOnHover}
+          setAnimatedOnHover={props.setAnimatedOnHover}
+          startInFullscreen={props.startInFullscreen}
+          setStartInFullscreen={props.setStartInFullscreen}
+          showPresetsButton={props.showPresetsButton}
+          setShowPresetsButton={val => props.onSettingsChange({ showPresetsButton: val })}
         />
       )}
       {showPrimaryActionsModal && (
@@ -871,7 +871,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           config={buttonConfigs[activeButtonIndex]}
           buttonIndex={activeButtonIndex}
           preavailableIcons={preavailableIcons}
-          ribbonGlowColor={propRibbonGlowColor}
+          ribbonGlowColor={props.ribbonGlowColor}
         />
       )}
       {showPresetsButtonModal && (
@@ -879,11 +879,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           isOpen={showPresetsButtonModal}
           onClose={handlePresetsButtonCancel}
           onSave={handlePresetsButtonSave}
-          config={presetsButtonConfig}
+          config={props.presetsButtonConfig}
           buttonIndex="presets"
           preavailableIcons={preavailableIcons}
           title="Customize Presets Button"
-          ribbonGlowColor={propRibbonGlowColor}
+          ribbonGlowColor={props.ribbonGlowColor}
         />
       )}
       {/* Time Settings Modal */}
@@ -891,7 +891,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         <TimeSettingsModal
           isOpen={showTimeSettingsModal}
           onClose={() => setShowTimeSettingsModal(false)}
-          onSettingsChange={onSettingsChange}
+          onSettingsChange={props.onSettingsChange}
         />
       )}
       {/* Ribbon Settings Modal */}
@@ -899,13 +899,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         <RibbonSettingsModal
           isOpen={showRibbonSettingsModal}
           onClose={() => setShowRibbonSettingsModal(false)}
-          onSettingsChange={onSettingsChange}
-          glassWiiRibbon={glassWiiRibbon}
-          setGlassWiiRibbon={onGlassWiiRibbonChange}
+          onSettingsChange={props.onSettingsChange}
+          glassWiiRibbon={props.glassWiiRibbon}
+          setGlassWiiRibbon={props.onGlassWiiRibbonChange}
         />
       )}
     </>
   );
 };
 
-export default WiiRibbon; 
+export default React.memo(WiiRibbon); 

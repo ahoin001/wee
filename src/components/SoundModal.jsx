@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
@@ -306,42 +306,42 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
     }
   };
 
-  const getLikedBackgroundMusic = () => {
+  const getLikedBackgroundMusic = useCallback(() => {
     return localState.backgroundMusic?.filter(sound => sound.liked) || [];
-  };
+  }, [localState.backgroundMusic]);
 
-  const getEnabledBackgroundMusic = () => {
+  const getEnabledBackgroundMusic = useCallback(() => {
     return localState.backgroundMusic?.filter(sound => sound.enabled) || [];
-  };
+  }, [localState.backgroundMusic]);
 
   // Drag and drop handlers for playlist reordering
-  const handleDragStart = (e, soundId) => {
+  const handleDragStart = useCallback((e, soundId) => {
     if (!backgroundMusicSettings.playlistMode) return;
     setDraggedItem(soundId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.target.outerHTML);
-  };
+  }, [backgroundMusicSettings.playlistMode]);
 
-  const handleDragOver = (e, soundId) => {
+  const handleDragOver = useCallback((e, soundId) => {
     if (!backgroundMusicSettings.playlistMode || !draggedItem) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverItem(soundId);
-  };
+  }, [backgroundMusicSettings.playlistMode, draggedItem]);
 
-  const handleDragEnter = (e, soundId) => {
+  const handleDragEnter = useCallback((e, soundId) => {
     if (!backgroundMusicSettings.playlistMode || !draggedItem) return;
     e.preventDefault();
     setDragOverItem(soundId);
-  };
+  }, [backgroundMusicSettings.playlistMode, draggedItem]);
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = useCallback((e) => {
     if (!backgroundMusicSettings.playlistMode) return;
     e.preventDefault();
     setDragOverItem(null);
-  };
+  }, [backgroundMusicSettings.playlistMode]);
 
-  const handleDrop = (e, targetSoundId) => {
+  const handleDrop = useCallback((e, targetSoundId) => {
     if (!backgroundMusicSettings.playlistMode || !draggedItem || draggedItem === targetSoundId) {
       setDraggedItem(null);
       setDragOverItem(null);
@@ -369,7 +369,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
     
     setDraggedItem(null);
     setDragOverItem(null);
-  };
+  }, [backgroundMusicSettings.playlistMode, draggedItem, localState.backgroundMusic]);
 
   const handleDragEnd = () => {
     setDraggedItem(null);
@@ -714,4 +714,4 @@ SoundModal.propTypes = {
   onSettingsChange: PropTypes.func,
 };
 
-export default SoundModal; 
+export default React.memo(SoundModal); 

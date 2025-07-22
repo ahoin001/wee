@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './ChannelModal.css';
@@ -67,6 +67,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [appLoading, setAppLoading] = useState(false);
   const [appError, setAppError] = useState('');
   const installedAppsCache = useRef(null); // Persist across modal opens
+
+  const dedupedInstalledGames = useMemo(() => dedupeByKey(installedGames, gameType === 'steam' ? 'appid' : 'appName'), [installedGames, gameType]);
+  const dedupedAppResults = useMemo(() => dedupeByKey(appResults, 'appName'), [appResults]);
 
   // Load installed games on first open of Steam or Epic tab
   useEffect(() => {
@@ -326,7 +329,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setPathError('');
   };
 
-  const handleGameResultClick = (game) => {
+  const handleGameResultClick = useCallback((game) => {
     let uri = '';
     if (gameType === 'steam') {
       uri = `steam://rungameid/${game.appid}`;
@@ -337,7 +340,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setGameQuery(game.name);
     setGameDropdownOpen(false);
     setPathError('');
-  };
+  }, [gameType]);
 
   const handleGameRefresh = async () => {
     setGameLoading(true);
@@ -682,7 +685,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   overflowY: 'auto',
                   boxShadow: '0 2px 12px rgba(0,0,0,0.10)'
                 }}>
-                  {dedupeByKey(gameResults, gameType === 'steam' ? 'appid' : 'appName').map(game => (
+                  {dedupedInstalledGames.map(game => (
                     <li
                       key={gameType === 'steam' ? game.appid : game.appName}
                       className="steam-dropdown-result"
@@ -1040,4 +1043,4 @@ ChannelModal.propTypes = {
   currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global']),
 };
 
-export default ChannelModal; 
+export default React.memo(ChannelModal); 

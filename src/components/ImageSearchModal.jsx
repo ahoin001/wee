@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 
@@ -29,17 +29,14 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     setLoading(true);
     fetch(THUMBNAILS_URL)
       .then(res => {
-        console.log('Fetched thumbnails.json response:', res);
         return res.json();
       })
       .then(data => {
-        console.log('Fetched thumbnails.json data:', data);
         setImages(data);
         setLoading(false);
         setRefreshing(false);
       })
       .catch(err => {
-        console.error('Failed to load images:', err);
         setError('Failed to load images');
         setLoading(false);
         setRefreshing(false);
@@ -52,7 +49,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     }
   }, [mode]);
 
-  const filteredImages = images.filter(img => {
+  const filteredImages = useMemo(() => images.filter(img => {
     if (filter !== 'all') {
       if (filter === 'image' && img.format !== 'image') return false;
       if (filter === 'gif' && img.format !== 'gif') return false;
@@ -66,17 +63,16 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
       );
     }
     return true;
-  });
+  }), [images, filter, search]);
 
-  // Helper to download an image
-  const handleDownload = (img) => {
+  const handleDownload = useCallback((img) => {
     const link = document.createElement('a');
     link.href = img.url;
     link.download = img.name || 'image.png';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, []);
 
   // Option cards for initial choice
   if (!mode) {
@@ -402,4 +398,4 @@ ImageSearchModal.propTypes = {
   onUploadClick: PropTypes.func,
 };
 
-export default ImageSearchModal; 
+export default React.memo(ImageSearchModal); 

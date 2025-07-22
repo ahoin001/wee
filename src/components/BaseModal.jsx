@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import './BaseModal.css';
 
@@ -11,6 +11,7 @@ function BaseModal({
   maxWidth = '900px'
 }) {
   const [isClosing, setIsClosing] = useState(false);
+  const overlayRef = useRef(null);
 
   // Handle escape key press
   useEffect(() => {
@@ -19,11 +20,7 @@ function BaseModal({
         handleClose();
       }
     };
-
-    // Add event listener when modal opens
     document.addEventListener('keydown', handleEscapeKey);
-
-    // Cleanup event listener when modal closes
     return () => {
       document.removeEventListener('keydown', handleEscapeKey);
     };
@@ -31,21 +28,25 @@ function BaseModal({
 
   const handleClose = () => {
     setIsClosing(true);
-    // Wait for animation to complete before calling onClose
-    setTimeout(() => {
-      onClose();
-    }, 300); // Match animation duration
   };
 
-  // Expose handleClose to children via context or prop
-  // Instead, recommend: pass handleClose to footerContent and use it for Cancel/Save
-
-  if (isClosing) {
-    // Optionally, block interaction while closing
-  }
+  // Listen for animation end to call onClose
+  useEffect(() => {
+    if (!isClosing) return;
+    const node = overlayRef.current;
+    if (!node) return;
+    const onAnimationEnd = (e) => {
+      // Only close when the overlay's fade-out animation ends
+      if (e.target === node && e.animationName && e.animationName.includes('modalFadeOut')) {
+        onClose();
+      }
+    };
+    node.addEventListener('animationend', onAnimationEnd);
+    return () => node.removeEventListener('animationend', onAnimationEnd);
+  }, [isClosing, onClose]);
 
   return (
-    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
+    <div ref={overlayRef} className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div 
         className={`base-modal ${className} ${isClosing ? 'closing' : ''}`} 
         onClick={(e) => e.stopPropagation()}
