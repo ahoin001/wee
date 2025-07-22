@@ -2,24 +2,29 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 
-function UpdateModal({ isOpen, onClose }) {
+function UpdateModal({ isOpen, onClose, onBackgroundDownload }) {
   const [updateStatus, setUpdateStatus] = useState(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [error, setError] = useState(null);
   const [appVersion, setAppVersion] = useState('2.1.0');
+  const [backgroundDownload, setBackgroundDownload] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
-      // Reset state when modal closes
-      setUpdateStatus(null);
-      setIsChecking(false);
-      setIsDownloading(false);
-      setDownloadProgress(0);
-      setError(null);
+      // If modal closes while downloading, enable background download
+      if (isDownloading) {
+        setBackgroundDownload(true);
+        if (onBackgroundDownload) onBackgroundDownload(true, downloadProgress);
+      } else {
+        setBackgroundDownload(false);
+        if (onBackgroundDownload) onBackgroundDownload(false, 0);
+      }
       return;
     }
+    setBackgroundDownload(false);
+    if (onBackgroundDownload) onBackgroundDownload(false, 0);
 
     // Load app version when modal opens
     const loadAppVersion = async () => {
@@ -82,7 +87,7 @@ function UpdateModal({ isOpen, onClose }) {
     return () => {
       window.api.updater.offUpdateStatus(handleUpdateStatus);
     };
-  }, [isOpen]);
+  }, [isOpen, isDownloading, downloadProgress, onBackgroundDownload]);
 
   const handleCheckForUpdates = async () => {
     setIsChecking(true);
@@ -152,6 +157,8 @@ function UpdateModal({ isOpen, onClose }) {
   const handleDownloadUpdate = async () => {
     setIsDownloading(true);
     setError(null);
+    setBackgroundDownload(false);
+    if (onBackgroundDownload) onBackgroundDownload(false, 0);
     
     try {
       const result = await window.api.updater.downloadUpdate();
@@ -408,6 +415,7 @@ function UpdateModal({ isOpen, onClose }) {
 UpdateModal.propTypes = {
   isOpen: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
+  onBackgroundDownload: PropTypes.func,
 };
 
 export default UpdateModal; 

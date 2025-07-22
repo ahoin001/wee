@@ -12,6 +12,8 @@ import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
 import audioManager from './utils/AudioManager';
 import intervalManager from './utils/IntervalManager';
+import UpdateModal from './components/UpdateModal';
+import BaseModal from './components/BaseModal';
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -1445,12 +1447,109 @@ function App() {
     }
   }, [isReady]);
 
+  // Update-related state
+  const [updateProgress, setUpdateProgress] = useState(null); // null or {progress: number}
+  const [showUpdateCompleteModal, setShowUpdateCompleteModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  // Handler for background update download progress
+  const handleBackgroundDownload = (isDownloading, progress) => {
+    if (isDownloading) {
+      setUpdateProgress({ progress });
+    } else {
+      setUpdateProgress(null);
+    }
+    // If download completes (progress 100), show completion modal
+    if (progress === 100) {
+      setShowUpdateCompleteModal(true);
+      setUpdateProgress(null);
+    }
+  };
+
+  // Handler for install update now
+  const handleInstallUpdateNow = async () => {
+    setShowUpdateCompleteModal(false);
+    if (window.api && window.api.updater && window.api.updater.installUpdate) {
+      await window.api.updater.installUpdate();
+    }
+  };
+
+  // Handler for "I'll close later"
+  const handleCloseLater = () => {
+    setShowUpdateCompleteModal(false);
+  };
+
   if (!isReady) {
     return <SplashScreen />;
   }
 
   return (
     <>
+      {/* Global update progress bar at the top */}
+      {updateProgress && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '8px',
+          background: '#e9ecef',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            width: `${updateProgress.progress}%`,
+            height: '100%',
+            background: '#007bff',
+            transition: 'width 0.3s ease',
+          }} />
+        </div>
+      )}
+      {/* Update complete modal */}
+      {showUpdateCompleteModal && (
+        <BaseModal
+          title="Update Ready to Install"
+          onClose={handleCloseLater}
+        >
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
+              Update Downloaded!
+            </div>
+            <div style={{ marginBottom: '15px', color: '#666' }}>
+              The update has finished downloading. You can restart now to install, or close the app later.
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                onClick={handleInstallUpdateNow}
+                style={{
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                Restart & Install Now
+              </button>
+              <button
+                onClick={handleCloseLater}
+                style={{
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                I'll Close Later
+              </button>
+            </div>
+          </div>
+        </BaseModal>
+      )}
       {/* Always render the main UI, but overlay the splash screen while loading */}
       <div 
         className={`app-container ${useCustomCursor ? 'custom-cursor' : ''}`} 
@@ -1595,6 +1694,11 @@ function App() {
           isOpen={showWallpaperModal}
           onClose={() => setShowWallpaperModal(false)}
           onSettingsChange={handleSettingsChange}
+        />
+        <UpdateModal
+          isOpen={showUpdateModal}
+          onClose={() => setShowUpdateModal(false)}
+          onBackgroundDownload={handleBackgroundDownload}
         />
       </div>
     </>
