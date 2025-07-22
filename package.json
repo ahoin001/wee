@@ -42,6 +42,7 @@
     },
     "files": [
       "dist/**/*",
+      "public/sounds/**/*",
       "electron.cjs",
       "preload.cjs"
     ],
