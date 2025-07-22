@@ -230,3 +230,29 @@
     transition: none;
   }
 } 
+
+.select-box {
+  background: hsl(var(--surface-primary));
+  color: hsl(var(--text-primary));
+  border: 1.5px solid hsl(var(--border-primary));
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 16px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+.select-box:focus {
+  outline: 2px solid hsl(var(--border-accent));
+  outline-offset: 2px;
+}
+.select-box:disabled {
+  background: hsl(var(--state-disabled));
+  color: hsl(var(--text-tertiary));
+  cursor: not-allowed;
+}
+
+.dark-mode .select-box {
+  background: hsl(var(--surface-primary));
+  color: hsl(var(--text-primary));
+  border: 1.5px solid hsl(var(--border-primary));
+} 

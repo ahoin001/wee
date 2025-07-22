@@ -496,47 +496,19 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   const renderAppPathSection = () => (
     <>
-      <div style={{ display: 'flex', gap: 18, marginBottom: 12 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input
-            type="radio"
-            name={`launch-type-${channelId}`}
-            value="exe"
-            checked={gameType === 'exe'}
-            onChange={() => { setGameType('exe'); setType('exe'); }}
-          />
-          Application (.exe)
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input
-            type="radio"
-            name={`launch-type-${channelId}`}
-            value="url"
-            checked={gameType === 'url'}
-            onChange={() => { setGameType('url'); setType('url'); }}
-          />
-          Website (URL)
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input
-            type="radio"
-            name={`launch-type-${channelId}`}
-            value="steam"
-            checked={gameType === 'steam'}
-            onChange={() => { setGameType('steam'); setType('steam'); }}
-          />
-          Steam Game
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input
-            type="radio"
-            name={`launch-type-${channelId}`}
-            value="epic"
-            checked={gameType === 'epic'}
-            onChange={() => { setGameType('epic'); setType('epic'); }}
-          />
-          Epic Game
-        </label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
+        <label htmlFor={`launch-type-select-${channelId}`} style={{ fontWeight: 600, marginBottom: 4 }}>Launch Type</label>
+        <select
+          id={`launch-type-select-${channelId}`}
+          value={gameType}
+          onChange={e => { setGameType(e.target.value); setType(e.target.value); }}
+          className="select-box"
+        >
+          <option value="exe">Application (.exe)</option>
+          <option value="url">Website (URL)</option>
+          <option value="steam">Steam Game</option>
+          <option value="epic">Epic Game</option>
+        </select>
       </div>
       {/* App Path Input (EXE) */}
       {type === 'exe' && (
