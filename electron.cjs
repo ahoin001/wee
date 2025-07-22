@@ -1621,22 +1621,20 @@ app.on('ready', async () => {
     path.join(localAppData, 'Programs', 'WeeDesktopLauncher')
   ];
 
-  const currentVersion = app.getVersion();
-  const storedVersion = getStoredVersion(userDataPath);
-  if (!storedVersion || semverCompare(storedVersion, '1.9.23') < 0) {
-    // First time install or upgrade from < 1.9.23
-    for (const dir of oldDirs) {
-      if (fs.existsSync(dir)) {
-        try {
-          fs.rmSync(dir, { recursive: true, force: true });
-          console.log('Removed old install directory:', dir);
-        } catch (e) {
-          console.warn('Failed to remove old directory:', dir, e);
-        }
+  // Always remove all previous data on every launch of a new release
+  for (const dir of oldDirs) {
+    if (fs.existsSync(dir)) {
+      try {
+        fs.rmSync(dir, { recursive: true, force: true });
+        console.log('Removed old install directory:', dir);
+      } catch (e) {
+        console.warn('Failed to remove old directory:', dir, e);
       }
     }
-    // Optionally show a welcome message or modal here
   }
+  // Optionally show a welcome message or modal here
+
+  const currentVersion = app.getVersion();
   setStoredVersion(currentVersion, userDataPath);
   // ...rest of your app launch logic...
 });
