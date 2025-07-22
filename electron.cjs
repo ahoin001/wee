@@ -512,6 +512,7 @@ function getDefaultSettings() {
     ribbonButtonConfigs: [],
     presetsButtonConfig: { type: 'icon', icon: 'star' },
     showPresetsButton: false,
+    channelAutoFadeTimeout: 0, // Default: off
     sounds: {
       // Will be set up by the sound library loader
     },
@@ -525,30 +526,6 @@ function getDefaultChannels() {
     channels[`channel-${i}`] = {};
   }
   return channels;
-}
-
-// --- Default Settings Helper ---
-function getDefaultSettings() {
-  return {
-    isDarkMode: false,
-    useCustomCursor: true,
-    barType: 'flat',
-    glassWiiRibbon: true,
-    wallpaper: null,
-    wallpaperOpacity: 1,
-    savedWallpapers: [],
-    likedWallpapers: [],
-    cycleWallpapers: false,
-    cycleInterval: 30,
-    cycleAnimation: 'fade',
-    ribbonButtonConfigs: [],
-    presetsButtonConfig: { type: 'icon', icon: 'star' },
-    showPresetsButton: false,
-    savedIcons: [], // Add savedIcons to default settings
-    sounds: {
-      // Will be set up by the sound library loader
-    },
-  };
 }
 
 ipcMain.handle('get-settings', async () => {
