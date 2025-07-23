@@ -33,7 +33,7 @@ function dedupeByKey(games, key) {
   });
 }
 
-function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover }) {
+function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover, cachedSteamGames, cachedInstalledApps, rescanSteamGames, rescanInstalledApps, steamGamesLoading, installedAppsLoading, steamGamesError, installedAppsError }) {
   const [media, setMedia] = useState(currentMedia);
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
@@ -66,9 +66,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [installedApps, setInstalledApps] = useState([]);
   const [appLoading, setAppLoading] = useState(false);
   const [appError, setAppError] = useState('');
-  const installedAppsCache = useRef(null); // Persist across modal opens
+  // Remove installedAppsCache and local scan logic
 
-  // Load installed games on first open of Steam or Epic tab
+  // Use cachedSteamGames and cachedInstalledApps for instant search
   useEffect(() => {
     if (gameType === 'steam' || gameType === 'epic') {
       setGameLoading(true);
@@ -97,14 +97,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   // Load installed apps on mount (once per session)
   useEffect(() => {
     if (type === 'exe' && installedApps.length === 0 && appsApi.getInstalled) {
-      if (installedAppsCache.current && installedAppsCache.current.length > 0) {
-        setInstalledApps(installedAppsCache.current);
+      if (cachedInstalledApps && cachedInstalledApps.length > 0) {
+        setInstalledApps(cachedInstalledApps);
         setAppLoading(false);
       } else {
         setAppLoading(true);
         appsApi.getInstalled().then(apps => {
           setInstalledApps(apps || []);
-          installedAppsCache.current = apps || [];
+          // installedAppsCache.current = apps || []; // This line is removed
           setAppLoading(false);
         }).catch(e => {
           setAppError('Failed to scan apps');
@@ -534,6 +534,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 Scanning apps...
               </span>
             )}
+            {/* Add a Rescan button for Apps */}
             <button
               type="button"
               style={{ padding: '4px 12px', borderRadius: 6, border: '1.5px solid #0099ff', background: '#f7fafd', color: '#0099ff', fontWeight: 600, cursor: appLoading ? 'not-allowed' : 'pointer', opacity: appLoading ? 0.6 : 1, marginLeft: 0 }}
@@ -547,7 +548,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 try {
                   const apps = await appsApi.rescanInstalled();
                   setInstalledApps(apps || []);
-                  installedAppsCache.current = apps || [];
+                  // installedAppsCache.current = apps || []; // This line is removed
                 } catch (e) {
                   setAppError('Failed to rescan apps');
                 } finally {
@@ -618,15 +619,18 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 onBlur={() => setTimeout(() => setGameDropdownOpen(false), 150)}
                 disabled={gameLoading}
               />
-              <Button
-                variant="primary"
-                title={gameType === 'steam' ? 'Rescan your Steam library for installed games.' : 'Rescan your Epic library for installed games.'}
-                style={{ fontSize: 14, borderRadius: 6, marginLeft: 0 }}
-                onClick={handleGameRefresh}
-                disabled={gameLoading}
-              >
-                {gameLoading ? 'Scanning...' : 'Rescan'}
-              </Button>
+              {/* Add a Rescan button for Steam/Epic */}
+              {(gameType === 'steam' || gameType === 'epic') && (
+                <Button
+                  variant="primary"
+                  title={gameType === 'steam' ? 'Rescan your Steam library for installed games.' : 'Rescan your Epic library for installed games.'}
+                  style={{ fontSize: 14, borderRadius: 6, marginLeft: 0 }}
+                  onClick={handleGameRefresh}
+                  disabled={gameLoading}
+                >
+                  {gameLoading ? 'Scanning...' : 'Rescan'}
+                </Button>
+              )}
               {gameType === 'steam' && (
                 <Button
                   variant="secondary"
@@ -1010,6 +1014,14 @@ ChannelModal.propTypes = {
   currentHoverSound: PropTypes.object,
   currentAsAdmin: PropTypes.bool,
   currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global']),
+  cachedSteamGames: PropTypes.arrayOf(PropTypes.object),
+  cachedInstalledApps: PropTypes.arrayOf(PropTypes.object),
+  rescanSteamGames: PropTypes.func,
+  rescanInstalledApps: PropTypes.func,
+  steamGamesLoading: PropTypes.bool,
+  installedAppsLoading: PropTypes.bool,
+  steamGamesError: PropTypes.string,
+  installedAppsError: PropTypes.string,
 };
 
 export default ChannelModal; 

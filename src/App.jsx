@@ -189,6 +189,50 @@ function App() {
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   const [showPresetsModal, setShowPresetsModal] = useState(false);
   const [presets, setPresets] = useState([]);
+  const [cachedSteamGames, setCachedSteamGames] = useState([]);
+  const [cachedInstalledApps, setCachedInstalledApps] = useState([]);
+  const [steamGamesLoading, setSteamGamesLoading] = useState(false);
+  const [installedAppsLoading, setInstalledAppsLoading] = useState(false);
+  const [steamGamesError, setSteamGamesError] = useState('');
+  const [installedAppsError, setInstalledAppsError] = useState('');
+
+  // Rescan Steam games
+  const rescanSteamGames = async (customSteamPath) => {
+    setSteamGamesLoading(true);
+    setSteamGamesError('');
+    try {
+      const api = window.api?.steam;
+      const args = customSteamPath ? { customPath: customSteamPath } : undefined;
+      const result = await api.getInstalledGames(args);
+      if (result.error) {
+        setCachedSteamGames([]);
+        setSteamGamesError(result.error);
+      } else {
+        setCachedSteamGames(result.games || []);
+      }
+    } catch (err) {
+      setCachedSteamGames([]);
+      setSteamGamesError(err.message || 'Failed to scan games.');
+    } finally {
+      setSteamGamesLoading(false);
+    }
+  };
+
+  // Rescan installed apps
+  const rescanInstalledApps = async () => {
+    setInstalledAppsLoading(true);
+    setInstalledAppsError('');
+    try {
+      const api = window.api?.apps;
+      const apps = await api.getInstalled();
+      setCachedInstalledApps(apps || []);
+    } catch (err) {
+      setCachedInstalledApps([]);
+      setInstalledAppsError(err.message || 'Failed to scan apps.');
+    } finally {
+      setInstalledAppsLoading(false);
+    }
+  };
 
   // Preset handlers (must be inside App)
   const handleSavePreset = async (name, includeChannels = false, includeSounds = false) => {
@@ -1519,6 +1563,14 @@ function App() {
             currentType={channelConfigs[openChannelModal]?.type}
             currentAsAdmin={channelConfigs[openChannelModal]?.asAdmin}
             currentAnimatedOnHover={channelConfigs[openChannelModal]?.animatedOnHover}
+            cachedSteamGames={cachedSteamGames}
+            cachedInstalledApps={cachedInstalledApps}
+            rescanSteamGames={rescanSteamGames}
+            rescanInstalledApps={rescanInstalledApps}
+            steamGamesLoading={steamGamesLoading}
+            installedAppsLoading={installedAppsLoading}
+            steamGamesError={steamGamesError}
+            installedAppsError={installedAppsError}
           />
         )}
         {isLoading && <SplashScreen fadingOut={splashFading} />}
