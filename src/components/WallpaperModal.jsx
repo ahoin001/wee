@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import './BaseModal.css';
+import Card from '../ui/Card';
 
 const WALLPAPER_ANIMATIONS = [
   { value: 'none', label: 'None' },
@@ -276,42 +277,37 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         </div>
       )}
       {/* Upload Wallpaper Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Upload New Wallpaper</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Add a new wallpaper from your computer. Supported formats: JPG, PNG, GIF, MP4, WEBM, etc.
+      <Card
+        title="Upload New Wallpaper"
+        separator
+        desc="Add a new wallpaper from your computer. Supported formats: JPG, PNG, GIF, MP4, WEBM, etc."
+        actions={
           <div style={{ marginTop: 14 }}>
             {/* Upload button and logic here */}
             <button className="file-button" onClick={handleUpload} disabled={uploading}>
               {uploading ? 'Uploading...' : 'Upload New Wallpaper'}
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
       {/* Saved Wallpapers Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Saved Wallpapers</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Browse, select, and manage your saved wallpapers below.
-          <div style={{ marginTop: 14 }}>
-            {/* Remove Wallpaper Option */}
+      <Card
+        title="Saved Wallpapers"
+        separator
+        desc="Browse, select, and manage your saved wallpapers below."
+        actions={
+          <>
             <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              marginBottom: 20,
-              padding: '12px 16px',
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(240,248,255,0.9) 100%)',
-              borderRadius: 12,
-              border: '1px solid rgba(0,153,255,0.15)',
-              boxShadow: '0 2px 8px rgba(0,153,255,0.08)'
-            }}>
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                marginBottom: 20,
+                padding: '12px 16px',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(240,248,255,0.9) 100%)',
+                borderRadius: 12,
+                border: '1px solid rgba(0,153,255,0.15)',
+                boxShadow: '0 2px 8px rgba(0,153,255,0.08)'
+              }}>
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -366,7 +362,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 </div>
               </div>
             </div>
-            
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', alignItems: 'flex-start' }}>
               {wallpapers.length === 0 && <span style={{ color: '#888' }}>No saved wallpapers yet.</span>}
               {wallpapers.map((wallpaper, idx) => (
@@ -462,195 +457,185 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
       {/* Enable Cycling Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <ResourceUsageIndicator level="high" tooltip="Wallpaper cycling continuously loads and displays images, using significant CPU, memory, and GPU resources">
-          <span className="wee-card-title">Enable Wallpaper Cycling</span>
-          </ResourceUsageIndicator>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={cycling}
-              onChange={e => setCycling(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below.
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
-            <span style={{ fontWeight: 500, minWidth: 120 }}>Time per wallpaper</span>
-            <input
-              type="number"
-              min={2}
-              max={600}
-              value={cycleInterval}
-              onChange={e => setCycleInterval(Number(e.target.value))}
-              style={{ width: 70, fontSize: 15, padding: '4px 8px', borderRadius: 6, border: '1px solid #ccc', marginRight: 8 }}
-            />
-            <span style={{ color: '#666', fontSize: 15 }}>seconds</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-            <span style={{ fontWeight: 500, minWidth: 120 }}>Animation</span>
-            <select
-              value={cycleAnimation}
-              onChange={e => setCycleAnimation(e.target.value)}
-              style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-            >
-              <option value="fade">Fade</option>
-              <option value="slide">Slide</option>
-            </select>
-          </div>
-          
-          {/* Crossfade Animation Parameters */}
-          {cycleAnimation === 'fade' && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                <span style={{ fontWeight: 500, minWidth: 120 }}>Crossfade Duration</span>
-                <input
-                  type="range"
-                  min={0.5}
-                  max={3.0}
-                  step={0.1}
-                  value={crossfadeDuration}
-                  onChange={e => setCrossfadeDuration(Number(e.target.value))}
-                  style={{ flex: 1 }}
-                />
-                <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
-                <select
-                  value={crossfadeEasing}
-                  onChange={e => setCrossfadeEasing(e.target.value)}
-                  style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                >
-                  <option value="ease-out">Ease Out (Smooth)</option>
-                  <option value="ease-in">Ease In (Accelerate)</option>
-                  <option value="ease-in-out">Ease In-Out (Smooth)</option>
-                  <option value="linear">Linear (Constant)</option>
-                </select>
-              </div>
-            </>
-          )}
-          
-          {/* Slide Animation Parameters */}
-          {cycleAnimation === 'slide' && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                <span style={{ fontWeight: 500, minWidth: 120 }}>Direction Mode</span>
-                <select
-                  value={slideRandomDirection ? 'random' : 'fixed'}
-                  onChange={e => setSlideRandomDirection(e.target.value === 'random')}
-                  style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                >
-                  <option value="fixed">Fixed Direction</option>
-                  <option value="random">Random Direction</option>
-                </select>
-              </div>
-              
-              {!slideRandomDirection && (
+      <Card
+        title="Enable Wallpaper Cycling"
+        separator
+        desc="When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below."
+        actions={
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
+              <span style={{ fontWeight: 500, minWidth: 120 }}>Time per wallpaper</span>
+              <input
+                type="number"
+                min={2}
+                max={600}
+                value={cycleInterval}
+                onChange={e => setCycleInterval(Number(e.target.value))}
+                style={{ width: 70, fontSize: 15, padding: '4px 8px', borderRadius: 6, border: '1px solid #ccc', marginRight: 8 }}
+              />
+              <span style={{ color: '#666', fontSize: 15 }}>seconds</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+              <span style={{ fontWeight: 500, minWidth: 120 }}>Animation</span>
+              <select
+                value={cycleAnimation}
+                onChange={e => setCycleAnimation(e.target.value)}
+                style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+              >
+                <option value="fade">Fade</option>
+                <option value="slide">Slide</option>
+              </select>
+            </div>
+            
+            {/* Crossfade Animation Parameters */}
+            {cycleAnimation === 'fade' && (
+              <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Slide Direction</span>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Crossfade Duration</span>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={3.0}
+                    step={0.1}
+                    value={crossfadeDuration}
+                    onChange={e => setCrossfadeDuration(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
                   <select
-                    value={slideDirection}
-                    onChange={e => setSlideDirection(e.target.value)}
+                    value={crossfadeEasing}
+                    onChange={e => setCrossfadeEasing(e.target.value)}
                     style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
                   >
-                    <option value="left">Left</option>
-                    <option value="right">Right</option>
-                    <option value="up">Up</option>
-                    <option value="down">Down</option>
+                    <option value="ease-out">Ease Out (Smooth)</option>
+                    <option value="ease-in">Ease In (Accelerate)</option>
+                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
+                    <option value="linear">Linear (Constant)</option>
                   </select>
                 </div>
-              )}
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                <span style={{ fontWeight: 500, minWidth: 120 }}>Slide Duration</span>
-                <input
-                  type="range"
-                  min={0.8}
-                  max={3.0}
-                  step={0.1}
-                  value={slideDuration}
-                  onChange={e => setSlideDuration(Number(e.target.value))}
-                  style={{ flex: 1 }}
-                />
-                <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{slideDuration}s</span>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
-                <select
-                  value={slideEasing}
-                  onChange={e => setSlideEasing(e.target.value)}
-                  style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                >
-                  <option value="ease-out">Ease Out (Smooth)</option>
-                  <option value="ease-in">Ease In (Accelerate)</option>
-                  <option value="ease-in-out">Ease In-Out (Smooth)</option>
-                  <option value="linear">Linear (Constant)</option>
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+              </>
+            )}
+            
+            {/* Slide Animation Parameters */}
+            {cycleAnimation === 'slide' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Direction Mode</span>
+                  <select
+                    value={slideRandomDirection ? 'random' : 'fixed'}
+                    onChange={e => setSlideRandomDirection(e.target.value === 'random')}
+                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                  >
+                    <option value="fixed">Fixed Direction</option>
+                    <option value="random">Random Direction</option>
+                  </select>
+                </div>
+                
+                {!slideRandomDirection && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                    <span style={{ fontWeight: 500, minWidth: 120 }}>Slide Direction</span>
+                    <select
+                      value={slideDirection}
+                      onChange={e => setSlideDirection(e.target.value)}
+                      style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                    >
+                      <option value="left">Left</option>
+                      <option value="right">Right</option>
+                      <option value="up">Up</option>
+                      <option value="down">Down</option>
+                    </select>
+                  </div>
+                )}
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Slide Duration</span>
+                  <input
+                    type="range"
+                    min={0.8}
+                    max={3.0}
+                    step={0.1}
+                    value={slideDuration}
+                    onChange={e => setSlideDuration(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{slideDuration}s</span>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
+                  <select
+                    value={slideEasing}
+                    onChange={e => setSlideEasing(e.target.value)}
+                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                  >
+                    <option value="ease-out">Ease Out (Smooth)</option>
+                    <option value="ease-in">Ease In (Accelerate)</option>
+                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
+                    <option value="linear">Linear (Constant)</option>
+                  </select>
+                </div>
+              </>
+            )}
+          </>
+        }
+      />
       {/* Wallpaper Effects Card (merged opacity and blur) */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Wallpaper Effects</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          <div style={{ fontSize: 14, color: '#666', marginTop: 0 }}>
-            Adjust the transparency and blur of the wallpaper background.
-          </div>
-          {/* Wallpaper Opacity Slider */}
-          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
-              <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={wallpaperOpacity}
-              onChange={e => setWallpaperOpacity(Number(e.target.value))}
-              style={{ flex: 1 }}
-              />
-            <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round(wallpaperOpacity * 100)}%</span>
-          </div>
-          <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
-          {/* Wallpaper Blur Slider */}
-          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
-            <input
-              type="range"
-              min="0"
-              max="24"
-              step="0.5"
-              value={wallpaperBlur}
-              onChange={e => setWallpaperBlur(Number(e.target.value))}
-              style={{ flex: 1 }}
+      <Card
+        title="Wallpaper Effects"
+        separator
+        desc="Adjust the transparency and blur of the wallpaper background."
+        actions={
+          <>
+            <div style={{ fontSize: 14, color: '#666', marginTop: 0 }}>
+              <strong>Wallpaper Opacity:</strong> Adjust the transparency of the wallpaper background.
+            </div>
+            {/* Wallpaper Opacity Slider */}
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+                <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={wallpaperOpacity}
+                onChange={e => setWallpaperOpacity(Number(e.target.value))}
+                style={{ flex: 1 }}
                 />
-            <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{wallpaperBlur}px</span>
-          </div>
-          <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
-        </div>
-      </div>
+              <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round(wallpaperOpacity * 100)}%</span>
+            </div>
+            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
+            {/* Wallpaper Blur Slider */}
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <input
+                type="range"
+                min="0"
+                max="24"
+                step="0.5"
+                value={wallpaperBlur}
+                onChange={e => setWallpaperBlur(Number(e.target.value))}
+                style={{ flex: 1 }}
+                  />
+              <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{wallpaperBlur}px</span>
+            </div>
+            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
+          </>
+        }
+      />
       {/* Channel Auto-Fade Configuration Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Channel Auto-Fade</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity.
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
-            <span style={{ fontWeight: 500, minWidth: 120 }}>Fade Timeout</span>
+      <Card
+        title="Channel Auto-Fade"
+        separator
+        desc="Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity."
+        actions={
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
+              <span style={{ fontWeight: 500, minWidth: 120 }}>Fade Timeout</span>
                 <input
                   type="range"
                   min={0}
@@ -665,8 +650,9 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               <div style={{ fontSize: 14, color: '#666', marginTop: 12 }}>
             <strong>Fade Timeout:</strong> The time in seconds before channels start to fade out when not hovered. Set to 0 to disable auto-fade completely.
               </div>
-        </div>
-      </div>
+          </>
+        }
+      />
     </BaseModal>
   );
 }

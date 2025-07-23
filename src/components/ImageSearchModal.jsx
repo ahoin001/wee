@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
+import Card from '../ui/Card';
 
 const THUMBNAILS_URL = 'https://raw.githubusercontent.com/ahoin001/wee-images-repo/main/thumbnails.json';
 
@@ -242,89 +243,76 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
         </div>
       </div>
       {/* Results Grid Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Results</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Browse and select an image or video below.
-          <div style={{ marginTop: 14 }}>
-            {/* Results grid UI here */}
-            {loading ? (
-              <div style={{ textAlign: 'center', padding: 32, color: '#333' }}>Loading...</div>
-            ) : error ? (
-              <div style={{ color: 'red', textAlign: 'center', padding: 32 }}>{error}</div>
-            ) : (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 18,
-                maxHeight: 480,
-                overflowY: 'auto',
-              }}>
-                {filteredImages.length === 0 ? (
-                  <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#888' }}>No images found.</div>
-                ) : (
-                  filteredImages.map(img => (
-                    <div key={img.url} style={{ padding: 12, boxSizing: 'border-box', position: 'relative' }}>
-                      <div
-                        onClick={() => onSelect(img)}
-                        onContextMenu={e => {
-                          e.preventDefault();
-                          setContextMenu({ visible: true, x: e.clientX, y: e.clientY, img });
-                        }}
-                        style={{
-                          width: 200,
-                          height: 120,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: 8,
-                          overflow: 'hidden',
-                          transition: 'transform 0.18s cubic-bezier(.4,1.3,.5,1), box-shadow 0.18s cubic-bezier(.4,1.3,.5,1)',
-                          cursor: 'pointer',
-                          background: '#e9eff3',
-                          position: 'relative',
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.transform = 'scale(1.1)';
-                          e.currentTarget.style.boxShadow = '0 0 24px 4px #0099ff33';
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,153,255,0)';
-                        }}
-                      >
-                        {itemLoading[img.url] && <Spinner />}
-                        {img.format === 'image' || img.format === 'gif' ? (
-                          <img
-                            src={img.url}
-                            alt={img.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: itemLoading[img.url] ? 0 : 1, transition: 'opacity 0.2s' }}
-                            onLoad={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
-                            onError={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
-                            onLoadStart={() => setItemLoading(l => ({ ...l, [img.url]: true }))}
-                          />
-                        ) : img.format === 'mp4' ? (
-                          <video
-                            src={img.url}
-                            style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: itemLoading[img.url] ? 0 : 1, transition: 'opacity 0.2s' }}
-                            autoPlay loop muted
-                            onLoadedData={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
-                            onLoadStart={() => setItemLoading(l => ({ ...l, [img.url]: true }))}
-                            onError={() => setItemLoading(l => ({ ...l, [img.url]: false }))}
-                          />
-                        ) : null}
-                      </div>
+      <Card style={{ marginTop: 18, marginBottom: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: '1.1em', marginBottom: 6 }}>Results</div>
+        <div style={{ height: 1, background: '#e0e0e6', margin: '10px 0' }} />
+        <div style={{ color: '#555', fontSize: '0.97em', marginBottom: 10 }}>Browse and select an image or video below.</div>
+        <div style={{ marginTop: 14 }}>
+          {/* Results grid UI here */}
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: 32, color: '#333' }}>Loading...</div>
+          ) : error ? (
+            <div style={{ color: 'red', textAlign: 'center', padding: 32 }}>{error}</div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: 18,
+              maxHeight: 480,
+              overflowY: 'auto',
+            }}>
+              {filteredImages.length === 0 ? (
+                <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#888' }}>No images found.</div>
+              ) : (
+                filteredImages.map(img => (
+                  <div key={img.url} style={{ padding: 12, boxSizing: 'border-box', position: 'relative' }}>
+                    <div
+                      onClick={() => onSelect(img)}
+                      onContextMenu={e => {
+                        setContextMenu({ visible: true, x: e.clientX, y: e.clientY, img });
+                      }}
+                      style={{
+                        width: 200,
+                        height: 120,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        transition: 'transform 0.18s cubic-bezier(.4,1.3,.5,1), box-shadow 0.18s cubic-bezier(.4,1.3,.5,1)',
+                        cursor: 'pointer',
+                        background: '#e9eff3',
+                        position: 'relative',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 0 24px 4px #0099ff33';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,153,255,0)';
+                      }}
+                    >
+                      {img.format === 'mp4' ? (
+                        <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted />
+                      ) : (
+                        <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      )}
+                      {img.format === 'gif' && (
+                        <span style={{ position: 'absolute', top: 6, right: 8, background: '#fff', color: '#222', fontSize: 11, borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>GIF</span>
+                      )}
+                      {img.format === 'mp4' && (
+                        <span style={{ position: 'absolute', top: 6, right: 8, background: '#fff', color: '#222', fontSize: 11, borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>MP4</span>
+                      )}
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+                    <div style={{ marginTop: 8, fontSize: 13, color: '#333', textAlign: 'center', fontWeight: 500 }}>{img.name}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      </Card>
       {/* Upload Button/Section Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
