@@ -1,3 +1,7 @@
+// Card.jsx - Unified card component for app UI
+// Usage:
+// <Card><Text variant="h3">Title</Text>...</Card>
+
 import React from "react";
 import { colors, radii, shadows, spacing } from "./tokens";
 

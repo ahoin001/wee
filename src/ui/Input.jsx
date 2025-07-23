@@ -1,13 +1,12 @@
 import React from "react";
 import { colors, radii, fontSizes } from "./tokens";
+import Text from "./Text";
 
 export default function Input({ label, error, ...props }) {
   return (
     <div style={{ marginBottom: 16 }}>
       {label && (
-        <label style={{ fontWeight: 500, color: colors.text, fontSize: fontSizes.md }}>
-          {label}
-        </label>
+        <Text variant="label">{label}</Text>
       )}
       <input
         style={{
@@ -20,7 +19,7 @@ export default function Input({ label, error, ...props }) {
         }}
         {...props}
       />
-      {error && <div style={{ color: colors.error, fontSize: fontSizes.sm }}>{error}</div>}
+      {error && <Text size="sm" color={colors.error}>{error}</Text>}
     </div>
   );
 } 

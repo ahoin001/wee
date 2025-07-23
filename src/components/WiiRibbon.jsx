@@ -865,6 +865,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           setStartInFullscreen={setStartInFullscreen}
           showPresetsButton={showPresetsButton}
           setShowPresetsButton={val => onSettingsChange({ showPresetsButton: val })}
+          channelAnimation={window.settings?.channelAnimation}
+          onSettingsChange={onSettingsChange}
         />
       )}
       {showPrimaryActionsModal && (

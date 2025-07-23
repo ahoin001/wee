@@ -19,7 +19,7 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal }) => {
+const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle }) => {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -95,6 +95,23 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     };
   }, []);
 
+  // Animation logic
+  const [randomAnim, setRandomAnim] = useState(null);
+  useEffect(() => {
+    let timer;
+    const anims = ['pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'flip', 'swing', 'shake', 'pop', 'fade', 'slide', 'colorcycle', 'sparkle', 'heartbeat', 'orbit', 'wave', 'jelly', 'zoom', 'rotate', 'glowtrail'];
+    if (animationStyle === 'random') {
+      setRandomAnim(anims[Math.floor(Math.random() * anims.length)]);
+    } else if (animationStyle === 'fullrandom') {
+      const cycle = () => {
+        setRandomAnim(anims[Math.floor(Math.random() * anims.length)]);
+        timer = setTimeout(cycle, 2000 + Math.random() * 2000); // 2-4s
+      };
+      cycle();
+      return () => clearTimeout(timer);
+    }
+  }, [animationStyle, id]);
+  const animClass = (animationStyle === 'random' || animationStyle === 'fullrandom') ? randomAnim : animationStyle;
 
 
   const handleClick = async () => {
@@ -139,7 +156,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     
     // Play per-channel hover sound if set, else global
     if (!empty && path) {
-      console.log('Channel: Hover sound data:', hoverSound);
+      // console.log('Channel: Hover sound data:', hoverSound);
       if (hoverSound && hoverSound.url) {
         // Play custom hover sound once
         await audioManager.playSound(hoverSound.url, hoverSound.volume || 0.7);
@@ -213,10 +230,10 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   if (media && media.url && media.url.trim()) {
     // Check for GIFs first (before general image types)
     if (media.type === 'image/gif' || media.url.match(/\.gif$/i)) {
-      console.log('GIF detected:', media.url, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover);
+      // console.log('GIF detected:', media.url, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover);
       if (effectiveAnimatedOnHover) {
         // Use ReactFreezeframe for GIFs when hover animation is enabled
-        console.log('Using ReactFreezeframe for GIF with hover trigger');
+        // console.log('Using ReactFreezeframe for GIF with hover trigger');
         mediaPreview = (
           <ReactFreezeframe
             key={media.url} // Force re-render when URL changes
@@ -238,7 +255,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         );
       } else {
         // Show normal GIF (always animated) when hover animation is disabled
-        console.log('Using normal img tag for GIF (always animated)');
+        // console.log('Using normal img tag for GIF (always animated)');
         mediaPreview = (
           <img
             src={media.url}
@@ -304,7 +321,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
 
   const channelContent = (
     <div
-      className={empty && !media ? "channel empty" : "channel"}
+      className={empty && !media ? "channel empty" : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}`}
       data-channel-id={id}
       onClick={handleClick}
       onMouseEnter={e => { handleMouseEnter(e); setIsHovered(true); }}
@@ -380,6 +397,7 @@ Channel.propTypes = {
   animatedOnHover: PropTypes.bool,
   onHover: PropTypes.func,
   onOpenModal: PropTypes.func,
+  animationStyle: PropTypes.oneOf(['none', 'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'random']),
 };
 
 export default Channel;

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './BaseModal.css';
+import Toggle from '../ui/Toggle';
+import Text from '../ui/Text';
+import Button from '../ui/Button';
 
 function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, onSettingsChange, ...props }) {
   const [pip, setPip] = useState(immersivePip);
@@ -10,6 +13,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   const [fullscreen, setFullscreen] = useState(startInFullscreen);
   const [showPresets, setShowPresets] = useState(showPresetsButton);
   const [startOnBoot, setStartOnBoot] = useState(false);
+  const [channelAnimation, setChannelAnimation] = useState(props.channelAnimation || 'none');
 
   useEffect(() => {
     if (window.api && window.api.getAutoLaunch) {
@@ -23,6 +27,9 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
     setAnimatedOnHover(hoverAnim);
     setStartInFullscreen(fullscreen);
     setShowPresetsButton(showPresets);
+    if (onSettingsChange) {
+      onSettingsChange({ channelAnimation });
+    }
     handleClose();
   };
 
@@ -145,6 +152,44 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, the app will launch automatically when your computer starts.</div>
         </div>
+        <div className="wee-card" style={{ marginBottom: 18 }}>
+          <div className="wee-card-header">
+            <Text as="span" size="lg" weight={700} className="wee-card-title">Channel Animations</Text>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            <Text as="label" size="md" weight={500} style={{ display: 'block', marginBottom: 8 }}>Channel Animation Style</Text>
+            <select
+              value={channelAnimation}
+              onChange={e => setChannelAnimation(e.target.value)}
+              style={{ fontSize: 15, padding: '8px 12px', borderRadius: 8, border: '1.5px solid #ccc', marginBottom: 8 }}
+            >
+              <option value="none">None</option>
+              <option value="pulse">Pulse</option>
+              <option value="bounce">Bounce</option>
+              <option value="wiggle">Wiggle</option>
+              <option value="glow">Glow</option>
+              <option value="parallax">Parallax</option>
+              <option value="flip">Flip</option>
+              <option value="swing">Swing</option>
+              <option value="shake">Shake</option>
+              <option value="pop">Pop</option>
+              <option value="slide">Slide</option>
+              <option value="colorcycle">Color Cycle</option>
+              <option value="sparkle">Sparkle</option>
+              <option value="heartbeat">Heartbeat</option>
+              <option value="orbit">Orbit</option>
+              <option value="wave">Wave</option>
+              <option value="jelly">Jelly</option>
+              <option value="zoom">Zoom</option>
+              <option value="rotate">Rotate</option>
+              <option value="glowtrail">Glow Trail</option>
+              <option value="random">Random</option>
+              <option value="fullrandom">Full Random (cycle animations)</option>
+            </select>
+            <Text as="p" size="sm" color="#888">Choose how your channel icons animate on the home screen. No hover needed—animations will play automatically.</Text>
+          </div>
+        </div>
 
       </div>
     </BaseModal>
@@ -165,6 +210,7 @@ GeneralSettingsModal.propTypes = {
   showPresetsButton: PropTypes.bool,
   setShowPresetsButton: PropTypes.func,
   onSettingsChange: PropTypes.func,
+  channelAnimation: PropTypes.string,
 };
 
 export default GeneralSettingsModal; 

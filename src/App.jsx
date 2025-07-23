@@ -185,6 +185,7 @@ function App() {
   const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
   const [timeFont, setTimeFont] = useState('default'); // Add this to state
+  const [channelAnimation, setChannelAnimation] = useState(null); // Add to app state
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   const [showPresetsModal, setShowPresetsModal] = useState(false);
@@ -412,176 +413,6 @@ function App() {
   // Load sound settings and play startup sound
   useEffect(() => {
     async function loadSettings() {
-      let soundLibrary = await soundsApi?.getLibrary();
-      console.log('Loading sound library:', soundLibrary);
-      
-      if (soundLibrary) {
-        // Play startup sound if enabled
-        let playedStartup = false;
-        const enabledStartupSound = soundLibrary.startup?.find(s => s.enabled);
-        console.log('Enabled startup sound:', enabledStartupSound);
-        if (enabledStartupSound) {
-          playedStartup = true;
-          audioManager.playSound(enabledStartupSound.url, enabledStartupSound.volume ?? 0.6).catch(error => {
-            console.log('Startup sound playback failed:', error);
-          });
-        }
-        
-        // Set up background music based on settings
-        await setupBackgroundMusic(soundLibrary);
-      }
-    }
-    loadSettings();
-  }, []);
-
-  // Persist sound settings whenever they change
-  useEffect(() => {
-    if (soundSettings) {
-      // Save sound settings as part of the main settings object
-      soundsApi?.set({ sounds: soundSettings });
-    }
-  }, [soundSettings]);
-
-  // In setupBackgroundMusic, stop playback if no enabled track, and show toast on change
-  const setupBackgroundMusic = async (soundLibrary, enabledMusicSoundArg) => {
-    console.log('Setting up background music with library:', soundLibrary);
-
-    // First check if background music is enabled in settings
-    const bgmSettings = soundLibrary?.backgroundMusicSettings;
-    const bgmEnabled = bgmSettings?.enabled !== false; // Default to true if not set
-    
-    console.log('Background music settings:', bgmSettings);
-    console.log('Background music enabled:', bgmEnabled);
-
-    if (!bgmEnabled) {
-      // Background music is disabled, stop it
-      await audioManager.setBackgroundMusic(null);
-      setBackgroundAudio(null);
-      console.log('Background music stopped (disabled in settings)');
-      return;
-    }
-
-    const bgMusicArr = soundLibrary?.backgroundMusic;
-    console.log('All background music tracks:', bgMusicArr);
-    
-    // Check if playlist mode is enabled
-    const playlistMode = bgmSettings?.playlistMode === true;
-    console.log('Playlist mode:', playlistMode);
-    
-    if (playlistMode) {
-      // In playlist mode, get all enabled and liked sounds
-      const enabledMusicTracks = bgMusicArr?.filter(s => s.enabled && s.liked) || [];
-      console.log('Enabled and liked music tracks for playlist:', enabledMusicTracks);
-      
-      if (enabledMusicTracks.length > 0) {
-        const looping = bgmSettings?.looping !== false; // Default to true if not set
-        await audioManager.setBackgroundMusicPlaylist(enabledMusicTracks, looping);
-        setBackgroundAudio(audioManager.backgroundAudio);
-        console.log('Background music playlist started playing');
-      } else {
-        // Stop background music
-        await audioManager.setBackgroundMusic(null);
-        setBackgroundAudio(null);
-        console.log('Background music stopped - no enabled and liked tracks for playlist');
-      }
-    } else {
-      // In single track mode, get only the first enabled sound
-      const enabledMusicSound = enabledMusicSoundArg !== undefined ? enabledMusicSoundArg : bgMusicArr?.find(s => s.enabled);
-      console.log('Enabled background music sound (single track):', enabledMusicSound);
-      
-      if (enabledMusicSound) {
-        if (!enabledMusicSound.url) {
-          console.error('Enabled background music has no URL:', enabledMusicSound);
-          return;
-        }
-        
-        // Use AudioManager to set background music
-        const looping = bgmSettings?.looping !== false; // Default to true if not set
-        await audioManager.setBackgroundMusic(enabledMusicSound.url, enabledMusicSound.volume ?? 0.4, looping);
-        setBackgroundAudio(audioManager.backgroundAudio);
-        console.log('Background music started playing (single track)');
-      } else {
-        // Stop background music
-        await audioManager.setBackgroundMusic(null);
-        setBackgroundAudio(null);
-        console.log('Background music stopped');
-        console.warn('No enabled background music sound found. Available:', bgMusicArr);
-      }
-    }
-  };
-
-  // Listen for sound library updates from SoundModal (polling mechanism)
-  useEffect(() => {
-    const handleSoundLibraryUpdate = async () => {
-      console.log('Sound library updated, refreshing background music');
-      const soundLibrary = await soundsApi?.getLibrary();
-      if (soundLibrary) {
-        // Check if background music settings have changed
-        const bgmSettings = soundLibrary?.backgroundMusicSettings;
-        const bgmEnabled = bgmSettings?.enabled !== false;
-        const enabledMusicSound = soundLibrary?.backgroundMusic?.find(s => s.enabled);
-        const isEnabled = bgmEnabled && !!enabledMusicSound;
-        
-        console.log('Background music settings changed:', bgmSettings);
-        console.log('Background music enabled:', bgmEnabled);
-        console.log('Has enabled music sound:', !!enabledMusicSound);
-        
-        if (
-          (isEnabled !== lastMusicEnabledRef.current) ||
-          (enabledMusicSound &&
-            (enabledMusicSound.id !== lastMusicIdRef.current ||
-             enabledMusicSound.url !== lastMusicUrlRef.current)
-          ) ||
-          (bgmSettings?.enabled !== lastBgmEnabledRef.current) ||
-          (bgmSettings?.playlistMode !== lastPlaylistModeRef.current)
-        ) {
-          lastMusicIdRef.current = enabledMusicSound ? enabledMusicSound.id : null;
-          lastMusicUrlRef.current = enabledMusicSound ? enabledMusicSound.url : null;
-          lastMusicEnabledRef.current = isEnabled;
-          lastBgmEnabledRef.current = bgmSettings?.enabled;
-          lastPlaylistModeRef.current = bgmSettings?.playlistMode;
-          setupBackgroundMusic(soundLibrary, enabledMusicSound);
-        }
-        setSoundSettings(soundLibrary); // ensure state is in sync
-      }
-    };
-    const taskId = intervalManager.addTask(handleSoundLibraryUpdate, 5000, 'sound-library-update'); // Check every 5 seconds
-    return () => intervalManager.removeTask(taskId);
-  }, []);
-
-  // Cleanup background audio and intervals on unmount
-  useEffect(() => {
-    return () => {
-      audioManager.cleanup();
-      intervalManager.cleanup();
-    };
-  }, []);
-
-  // Load channel configurations from persistent storage
-  useEffect(() => {
-    async function loadChannelConfigs() {
-      let configs = await channelsApi?.get();
-      if (!configs) configs = {};
-        setChannelConfigs(configs);
-        // Update mediaMap and appPathMap from saved configs
-        const newMediaMap = {};
-        const newAppPathMap = {};
-        Object.entries(configs).forEach(([channelId, config]) => {
-          if (config.media) newMediaMap[channelId] = config.media;
-          if (config.path) newAppPathMap[channelId] = config.path;
-        });
-        setMediaMap(newMediaMap);
-        setAppPathMap(newAppPathMap);
-    }
-    loadChannelConfigs();
-  }, []);
-
-  // Note: Channel configs are saved directly in handleChannelSave, not here
-  // to avoid overwriting data on app startup
-
-  // Load settings (including barType) from persistent storage
-  useEffect(() => {
-    async function loadSettings() {
       let settings = await settingsApi?.get();
       console.log('App: Loading general settings:', settings);
       if (settings) {
@@ -612,6 +443,7 @@ function App() {
         currentTimeColorRef.current = settings.timeColor || '#ffffff';
         currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
         setTimeFont(settings.timeFont || 'default');
+        setChannelAnimation(settings.channelAnimation || 'none'); // Load channelAnimation
         
         // Load ribbonButtonConfigs to ensure they're preserved during persistence
         if (settings.ribbonButtonConfigs) {
@@ -706,6 +538,7 @@ function App() {
         showPresetsButton, // Persist show presets button setting
         wallpaperBlur,
         timeFont, // Persist timeFont
+        channelAnimation, // Persist channelAnimation
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -720,7 +553,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, wallpaperBlur, timeFont]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, wallpaperBlur, timeFont, channelAnimation]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -967,6 +800,9 @@ function App() {
     if (newSettings.wallpaperBlur !== undefined) {
       setWallpaperBlur(newSettings.wallpaperBlur);
     }
+    if (newSettings.channelAnimation !== undefined) {
+      setChannelAnimation(newSettings.channelAnimation);
+    }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
     // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
@@ -1010,6 +846,7 @@ function App() {
     ribbonDockOpacity,
     wallpaperBlur,
     timeFont,
+    channelAnimation,
   };
 
   // Memoize expensive calculations
@@ -1514,6 +1351,7 @@ function App() {
                 channelConfig={config}
                 onHover={handleChannelHover}
                 onOpenModal={() => setOpenChannelModal(channel.id)}
+                animationStyle={channelAnimation}
               />
             );
           })}
