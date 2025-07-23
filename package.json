@@ -1,6 +1,6 @@
 {
   "name": "WeeDesktopLauncher",
-  "version": "2.1.14",
+  "version": "2.1.15",
   "main": "electron.cjs",
   "private": true,
   "description": "A Nintendo Wii-style launcher for your Windows desktop apps.",
