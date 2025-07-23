@@ -300,6 +300,15 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         setPathError('Please enter a valid Steam URI (e.g., steam://rungameid/252950) or AppID (e.g., 252950)');
         return false;
       }
+    } else if (type === 'microsoftstore') {
+      // Accept any AppID containing an exclamation mark
+      if (typeof path === 'string' && path.includes('!')) {
+        setPathError('');
+        return true;
+      } else {
+        setPathError('Please enter a valid Microsoft Store AppID (e.g., ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr!App)');
+        return false;
+      }
     } else {
       // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
       const trimmedPath = path.trim();
@@ -471,9 +480,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     <div className="image-section">
       {media ? (
         <div className="image-preview">
-          {media.type.startsWith('image/') ? (
+          {media && typeof media.type === 'string' && media.type.startsWith('image/') ? (
           <img src={media.url} alt="Channel preview" />
-          ) : media.type.startsWith('video/') ? (
+          ) : media && typeof media.type === 'string' && media.type.startsWith('video/') ? (
             <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
           ) : null}
           <button className="remove-image-button" onClick={handleRemoveImage}>
@@ -509,6 +518,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           <option value="url">Website (URL)</option>
           <option value="steam">Steam Game</option>
           <option value="epic">Epic Game</option>
+          <option value="microsoftstore">Microsoft Store App</option>
         </select>
       </div>
       {/* App Path Input (EXE) */}
@@ -530,6 +540,38 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             dropdownOpen={appDropdownOpen}
             setDropdownOpen={setAppDropdownOpen}
           />
+        </div>
+      )}
+      {/* Microsoft Store AppID Input */}
+      {type === 'microsoftstore' && (
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <input
+            type="text"
+            className="text-input"
+            placeholder="Search or enter Microsoft Store App name or AppID"
+            value={uwpQuery}
+            onChange={e => setUwpQuery(e.target.value)}
+            onFocus={() => { if (filteredUwpApps.length > 0) setUwpDropdownOpen(true); }}
+            onBlur={() => setTimeout(() => setUwpDropdownOpen(false), 150)}
+            style={{ width: '100%', padding: '12px 14px', fontSize: 17 }}
+            autoComplete="off"
+          />
+          {uwpAppsLoading && <div style={{ position: 'absolute', top: 40, left: 0, color: '#888' }}>Loading...</div>}
+          {uwpAppsError && <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8 }}>{uwpAppsError}</div>}
+          {uwpDropdownOpen && filteredUwpApps.length > 0 && (
+            <div className="uwp-dropdown" style={{ position: 'absolute', zIndex: 10, background: '#fff', border: '1px solid #b0c4d8', width: '100%', maxHeight: 200, overflowY: 'auto', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              {filteredUwpApps.map(app => (
+                <div
+                  key={app.appId}
+                  style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
+                  onMouseDown={() => { setPath(app.appId); setUwpQuery(app.name); setUwpDropdownOpen(false); }}
+                >
+                  <div style={{ fontWeight: 500 }}>{app.name}</div>
+                  <div style={{ fontSize: 12, color: '#888' }}>{app.appId}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <div className="path-input-group">
@@ -834,6 +876,36 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         Always play animation (override)
       </label>
     </div>
+  );
+
+  // Add state for Microsoft Store apps
+  const [uwpApps, setUwpApps] = useState([]);
+  const [uwpAppsLoading, setUwpAppsLoading] = useState(false);
+  const [uwpAppsError, setUwpAppsError] = useState('');
+  const [uwpQuery, setUwpQuery] = useState('');
+  const [uwpDropdownOpen, setUwpDropdownOpen] = useState(false);
+
+  // Fetch and cache UWP apps when type is microsoftstore
+  useEffect(() => {
+    if (type === 'microsoftstore' && uwpApps.length === 0 && !uwpAppsLoading) {
+      setUwpAppsLoading(true);
+      setUwpAppsError('');
+      window.api.uwp.listApps()
+        .then(apps => {
+          setUwpApps(apps);
+          setUwpAppsLoading(false);
+        })
+        .catch(err => {
+          setUwpAppsError('Failed to load Microsoft Store apps');
+          setUwpAppsLoading(false);
+        });
+    }
+  }, [type]);
+
+  // Filtered UWP apps
+  const filteredUwpApps = uwpApps.filter(app =>
+    app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
+    app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
   );
 
   return (

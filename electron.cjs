@@ -12,6 +12,7 @@ const os = require('os');
 const { promisify } = require('util');
 const wsQuery = promisify(ws.query);
 const { nativeImage } = require('electron');
+const { exec } = require('child_process');
 
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
@@ -1461,6 +1462,20 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
     shell.openExternal(appPath).catch(err => {
       console.error('Failed to open Steam URI:', err);
     });
+  } else if (type === 'microsoftstore') {
+    // Launch Microsoft Store (UWP) app using the start command
+    try {
+      const command = `start shell:AppsFolder\\${appPath}`;
+      const child = spawn('cmd', ['/c', command], {
+        detached: true,
+        stdio: 'ignore',
+        shell: true
+      });
+      child.on('error', (err) => console.error('Failed to launch Microsoft Store app:', err));
+      child.on('spawn', () => { console.log('Microsoft Store app launched successfully'); child.unref(); });
+    } catch (err) {
+      console.error('Failed to launch Microsoft Store app:', err);
+    }
   } else if (type === 'exe') {
     try {
       // Robustly parse the executable path and arguments, even with spaces.
@@ -2488,4 +2503,31 @@ ipcMain.handle('wallpapers:save-file', async (event, { filename, data }) => {
   } catch (e) {
     return { success: false, error: e.message };
   }
+});
+
+// IPC: List Microsoft Store (UWP) apps
+ipcMain.handle('uwp:list-apps', async () => {
+  return new Promise((resolve) => {
+    exec('powershell -Command "Get-StartApps | Select-Object Name, AppID | ConvertTo-Json"', { encoding: 'utf8', maxBuffer: 1024 * 1024 }, (err, stdout) => {
+      if (err) return resolve([]);
+      try {
+        const data = JSON.parse(stdout);
+        // Ensure array
+        const apps = Array.isArray(data) ? data : [data];
+        resolve(apps.map(app => ({ name: app.Name, appId: app.AppID })).filter(app => app.name && app.appId));
+      } catch {
+        resolve([]);
+      }
+    });
+  });
+});
+// IPC: Launch UWP app by AppID
+ipcMain.handle('uwp:launch', async (event, appId) => {
+  return new Promise((resolve) => {
+    if (!appId) return resolve({ success: false, error: 'No AppID provided' });
+    exec(`start shell:AppsFolder\\${appId}`, (err) => {
+      if (err) return resolve({ success: false, error: err.message });
+      resolve({ success: true });
+    });
+  });
 });

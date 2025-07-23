@@ -80,4 +80,8 @@ contextBridge.exposeInMainWorld('api', {
   apps: {
     getInstalled: () => ipcRenderer.invoke('apps:getInstalled'),
   },
+  uwp: {
+    listApps: () => ipcRenderer.invoke('uwp:list-apps'),
+    launch: (appId) => ipcRenderer.invoke('uwp:launch', appId),
+  },
 });

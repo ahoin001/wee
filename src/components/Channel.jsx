@@ -68,7 +68,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       video.addEventListener('loadeddata', handleLoadedData, { once: true });
       // Seek to 0 to ensure first frame
       video.currentTime = 0;
-    } else if (!media || !media.type.startsWith('video/')) {
+    } else if (!media || typeof media.type !== 'string' || !media.type.startsWith('video/')) {
       setMp4Preview(null);
     }
 
