@@ -1,3 +1,5 @@
+<img width="1609" height="1010" alt="image" src="https://github.com/user-attachments/assets/9f366428-036e-4ef2-97a4-a4162e5955af" />
+
 # WiiDesktop Launcher
 
 Transform your Windows desktop into a nostalgic and functional masterpiece with WiiDesktop Launcher! This custom application replicates the beloved visual experience of the classic Nintendo Wii home screen, allowing you to launch your favorite apps, games, and websites from beautiful, interactive "channel" tiles.
