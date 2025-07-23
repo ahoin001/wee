@@ -1972,7 +1972,7 @@ app.on('activate', () => {
 
 // --- Window Management IPC Handlers ---
 ipcMain.on('close-window', () => {
-  if (mainWindow) mainWindow.close();
+  app.quit();
 });
 ipcMain.on('toggle-fullscreen', () => {
   if (!mainWindow) return;
