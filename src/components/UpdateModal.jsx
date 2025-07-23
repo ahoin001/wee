@@ -214,7 +214,7 @@ function UpdateModal({ isOpen, onClose }) {
               </div>
             </div>
           )}
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={handleDownloadUpdate}
               disabled={isDownloading}
@@ -232,6 +232,26 @@ function UpdateModal({ isOpen, onClose }) {
             >
               {isDownloading ? '⏳ Downloading...' : '⬇️ Download Update'}
             </button>
+            <a
+              href="https://github.com/ahoin001/WiiDesktopLauncher/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-block',
+                backgroundColor: '#f7fafd',
+                color: '#007bff',
+                border: '1px solid #b0c4d8',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'background 0.2s, color 0.2s',
+                marginLeft: 0
+              }}
+            >
+              📦 Download from Release Page
+            </a>
             <button
               onClick={onClose}
               style={{
@@ -350,6 +370,26 @@ function UpdateModal({ isOpen, onClose }) {
         >
           Check for Updates
         </button>
+        <a
+          href="https://github.com/ahoin001/WiiDesktopLauncher/releases/latest"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-block',
+            backgroundColor: '#f7fafd',
+            color: '#007bff',
+            border: '1px solid #b0c4d8',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: '500',
+            marginLeft: 10,
+            marginTop: 10
+          }}
+        >
+          📦 Download from Release Page
+        </a>
         <div style={{ marginTop: '10px', fontSize: '12px', color: '#999' }}>
           Current version: {appVersion}
         </div>
