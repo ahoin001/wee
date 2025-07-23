@@ -1,0 +1,92 @@
+.installer-experience-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 99999;
+  background: linear-gradient(135deg, #e0e6ef 0%, #b3c6e7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.5s;
+}
+
+.installer-content {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 48px 36px 32px 36px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  animation: popIn 0.7s cubic-bezier(.4,1.3,.5,1);
+}
+
+.installer-animation {
+  margin-bottom: 32px;
+}
+.wii-animation-placeholder {
+  font-size: 48px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.bounce {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0099ff;
+  animation: bounce 1.2s infinite alternate;
+}
+
+.shortcut-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 18px;
+  align-items: flex-start;
+}
+.shortcut-option {
+  font-size: 18px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.shortcut-option.selected {
+  background: #e6f3ff;
+  color: #0099ff;
+}
+.finish-button {
+  background: #0099ff;
+  color: white;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.finish-button:hover {
+  background: #007acc;
+}
+.installer-footer {
+  margin-top: 24px;
+  color: #888;
+  font-size: 16px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  80% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-10px); }
+} 

@@ -34,6 +34,8 @@ contextBridge.exposeInMainWorld('api', {
     setActive: (args) => ipcRenderer.invoke('wallpapers:setActive', args),
     toggleLike: (args) => ipcRenderer.invoke('wallpapers:toggleLike', args),
     setCyclingSettings: (args) => ipcRenderer.invoke('wallpapers:setCyclingSettings', args),
+    getFile: (url) => ipcRenderer.invoke('wallpapers:get-file', url),
+    saveFile: (args) => ipcRenderer.invoke('wallpapers:save-file', args),
   },
   icons: {
     add: ({ filePath, filename }) => ipcRenderer.invoke('icons:add', { filePath, filename }),

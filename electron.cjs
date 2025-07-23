@@ -2456,3 +2456,36 @@ ipcMain.handle('apps:rescanInstalled', async () => {
   appsCacheTime = Date.now();
   return deduped;
 });
+
+// --- Wallpaper file access for preset import/export ---
+ipcMain.handle('wallpapers:get-file', async (event, url) => {
+  try {
+    if (!url || !url.startsWith('userdata://wallpapers/')) return { success: false, error: 'Invalid wallpaper URL' };
+    const filename = url.replace('userdata://wallpapers/', '');
+    const filePath = path.join(userWallpapersPath, filename);
+    const data = await fsPromises.readFile(filePath);
+    return { success: true, filename, data: data.toString('base64') };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('wallpapers:save-file', async (event, { filename, data }) => {
+  try {
+    await ensureDataDir();
+    // Ensure unique filename
+    let base = path.basename(filename, path.extname(filename));
+    let ext = path.extname(filename);
+    let uniqueName = filename;
+    let i = 1;
+    while (fs.existsSync(path.join(userWallpapersPath, uniqueName))) {
+      uniqueName = `${base}_${i}${ext}`;
+      i++;
+    }
+    const filePath = path.join(userWallpapersPath, uniqueName);
+    await fsPromises.writeFile(filePath, Buffer.from(data, 'base64'));
+    return { success: true, url: `userdata://wallpapers/${uniqueName}` };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});

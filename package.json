@@ -56,6 +56,7 @@
     "fs-extra": "^11.3.0",
     "fuse.js": "^7.1.0",
     "gifuct-js": "^2.1.2",
+    "jszip": "^3.10.1",
     "prop-types": "^15.8.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

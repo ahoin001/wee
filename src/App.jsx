@@ -235,9 +235,9 @@ function App() {
   };
 
   // Preset handlers (must be inside App)
-  const handleSavePreset = async (name, includeChannels = false, includeSounds = false) => {
+  const handleSavePreset = async (name, includeChannels = false, includeSounds = false, importedData = null) => {
     if (presets.length >= 6) return;
-    const data = {
+    const data = importedData || {
       // WiiRibbon & Glow
       ribbonColor, ribbonGlowColor, ribbonGlowStrength, ribbonGlowStrengthHover, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, recentRibbonColors, recentRibbonGlowColors,
       // Time & Pill
@@ -250,15 +250,15 @@ function App() {
       presetsButtonConfig, // Track presets button configuration
     };
     
-    // Include channel data if requested
-    if (includeChannels) {
+    // Include channel data if requested and not importing
+    if (!importedData && includeChannels) {
       data.channels = channels;
       data.mediaMap = mediaMap;
       data.appPathMap = appPathMap;
     }
     
-    // Include sound settings if requested
-    if (includeSounds) {
+    // Include sound settings if requested and not importing
+    if (!importedData && includeSounds) {
       // Get the complete sound library to save all sound configurations
       const soundLibrary = await soundsApi?.getLibrary();
       data.soundLibrary = soundLibrary;

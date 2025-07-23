@@ -256,3 +256,27 @@
   color: hsl(var(--text-primary));
   border: 1.5px solid hsl(var(--border-primary));
 } 
+
+/* Subtle blue pulse animation for selected items */
+@keyframes pulse-blue {
+  0% {
+    box-shadow: 0 0 16px 6px rgba(0,153,255,0.22), 0 2px 8px #0099ff11;
+    transform: scale(1.025);
+    animation-timing-function: cubic-bezier(0.7, 0.2, 0.5, 1.1);
+  }
+  50% {
+    box-shadow: 0 0 0 0 rgba(0,153,255,0.10), 0 2px 8px #0099ff11;
+    transform: scale(0.98);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  100% {
+    box-shadow: 0 0 16px 6px rgba(0,153,255,0.22), 0 2px 8px #0099ff11;
+    transform: scale(1.025);
+  }
+}
+.pulse-blue {
+  animation: pulse-blue 2.8s infinite;
+  border: 1.5px solid #0099ff;
+  background: #e6f3ff;
+  border-radius: 10px;
+} 
