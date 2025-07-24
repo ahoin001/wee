@@ -10,24 +10,22 @@ import { colors, radii, fontSizes, shadows } from "./tokens";
 import Text from "./Text";
 
 function getAutoButtonColors({ variant, color, bgColor, borderColor }) {
-  // Detect dark mode
-  const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  // Defaults
+  // Use design system CSS variables that automatically handle dark mode
   let text = color;
   let bg = bgColor;
   let border = borderColor;
   if (!color) {
-    if (variant === "primary") text = isDark ? colors.surface : colors.textOnPrimary;
-    else text = isDark ? colors.primary : colors.primary;
+    if (variant === "primary") text = "hsl(var(--text-inverse))";
+    else text = "hsl(var(--text-primary))";
   }
   if (!bgColor) {
-    if (variant === "primary") bg = isDark ? "#1a4a6a" : colors.primary;
-    else if (variant === "secondary") bg = isDark ? "#222b36" : "#f7fafd"; // Light blue-gray background for light mode
+    if (variant === "primary") bg = "hsl(var(--wii-blue))";
+    else if (variant === "secondary") bg = "hsl(var(--surface-secondary))";
     else bg = "transparent";
   }
   if (!borderColor) {
-    if (variant === "primary") border = isDark ? "#1a4a6a" : colors.primary;
-    else if (variant === "secondary") border = isDark ? colors.primary : colors.primary;
+    if (variant === "primary") border = "hsl(var(--wii-blue))";
+    else if (variant === "secondary") border = "hsl(var(--border-primary))";
     else border = "transparent";
   }
   return { text, bg, border };
@@ -63,7 +61,7 @@ export default function Button({
     position: "relative",
     boxShadow: variant !== "tertiary" ? shadows.card : "none",
     border: `1.5px solid ${border}`,
-    background: bg,
+    backgroundColor: bg,
     color: text,
     width: fullWidth ? "100%" : undefined,
     display: "inline-flex",
@@ -76,24 +74,24 @@ export default function Button({
   if (hovered) {
     if (variant === "primary") {
       hoverStyle = {
-        background: "#007acc",
-        border: `1.5px solid #007acc`,
-        boxShadow: `${shadows.card}, 0 0 8px 2px #0099ff33`,
-        color: colors.textOnPrimary,
+        backgroundColor: "hsl(var(--wii-blue-hover))",
+        border: `1.5px solid hsl(var(--wii-blue-hover))`,
+        boxShadow: `var(--shadow-md), var(--shadow-glow)`,
+        color: "hsl(var(--text-inverse))",
         transform: "translateY(-1px) scale(1.03)",
   };
     } else if (variant === "secondary") {
       hoverStyle = {
-        background: "#e6f3ff",
-        border: `1.5px solid #007acc`,
-        color: colors.primary,
-        boxShadow: shadows.card,
+        backgroundColor: "hsl(var(--state-hover))",
+        border: `1.5px solid hsl(var(--wii-blue))`,
+        color: "hsl(var(--text-primary))",
+        boxShadow: "var(--shadow-md)",
         transform: "translateY(-1px) scale(1.03)",
       };
     } else if (variant === "tertiary") {
       hoverStyle = {
-        background: "#e6f3ff",
-        color: colors.primary,
+        backgroundColor: "hsl(var(--state-hover))",
+        color: "hsl(var(--text-primary))",
         textDecoration: "underline",
       };
     }

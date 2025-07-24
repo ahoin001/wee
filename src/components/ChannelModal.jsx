@@ -11,6 +11,7 @@ import AppPathSectionCard from './AppPathSectionCard';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import { useCallback } from 'react';
 import Card from '../ui/Card';
+import Text from '../ui/Text';
 
 const channelsApi = window.api?.channels;
 
@@ -751,14 +752,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           </>
         )}
       </div>
-      {pathError && <p className="error-text">{pathError}</p>}
-      <p className="help-text" style={{ marginTop: 6, color: '#888', fontSize: 14 }}>
+      {pathError && <Text variant="error">{pathError}</Text>}
+      <Text variant="help">
         {type === 'exe'
-          ? (<><span>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field.</span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</span></>)
+          ? (<>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field.<br />Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</>)
           : type === 'steam'
-            ? (<><span>Type a Steam game name and select from the list, or paste a Steam URI/AppID directly.</span><br /><span style={{ fontSize: '0.95em', color: '#888' }}>Example: steam://rungameid/252950</span></>)
+            ? (<>Type a Steam game name and select from the list, or paste a Steam URI/AppID directly.<br />Example: steam://rungameid/252950</>)
             : 'Enter the complete URL including https://'}
-      </p>
+      </Text>
     </>
   );
 

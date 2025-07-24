@@ -315,35 +315,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       }}
     >
       {importError && <div style={{ color: 'red', marginBottom: 12 }}>{importError}</div>}
-      {showImportPreview && importedPresets && (
-        <div className="import-preview-modal" style={{ background: '#f7fafd', border: '1.5px solid #0099ff', borderRadius: 12, padding: 24, marginBottom: 18 }}>
-          <h3>Preview Imported Presets</h3>
-          <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
-            {importedPresets.map((preset, idx) => {
-              const exists = presets.some(p => p.name === preset.name);
-              return (
-                <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
-                  {exists && (
-                    <label style={{ fontSize: 13, color: '#0099ff', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
-                      <input
-                        type="checkbox"
-                        checked={overwriteMap[preset.name]}
-                        onChange={() => handleToggleOverwrite(preset.name)}
-                        style={{ marginRight: 4 }}
-                      />
-                      Overwrite existing
-                    </label>
-                  )}
-                  {exists && !overwriteMap[preset.name] && <span style={{ color: '#888', fontSize: 13 }}>(Will skip)</span>}
-                </li>
-              );
-            })}
-          </ul>
-          <button onClick={handleConfirmImport} style={{ marginRight: 12, padding: '8px 24px', borderRadius: 8, background: '#0099ff', color: 'white', fontWeight: 600 }}>Import</button>
-          <button onClick={handleCancelImport} style={{ padding: '8px 24px', borderRadius: 8 }}>Cancel</button>
-        </div>
-      )}
+     
       <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
         <div className="wee-card-desc">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -441,6 +413,37 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           </div>
         )}
         <hr style={{ border: 'none', borderTop: '1.5px solid #e0e6ef', margin: '0 0 18px 0' }} />
+        
+         {showImportPreview && importedPresets && (
+        <div className="import-preview-modal" style={{ background: '#f7fafd', border: '1.5px solid #0099ff', borderRadius: 12, padding: 24, marginBottom: 18 }}>
+          <h3>Preview Imported Presets</h3>
+          <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
+            {importedPresets.map((preset, idx) => {
+              const exists = presets.some(p => p.name === preset.name);
+              return (
+                <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
+                  {exists && (
+                    <label style={{ fontSize: 13, color: '#0099ff', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={overwriteMap[preset.name]}
+                        onChange={() => handleToggleOverwrite(preset.name)}
+                        style={{ marginRight: 4 }}
+                      />
+                      Overwrite existing
+                    </label>
+                  )}
+                  {exists && !overwriteMap[preset.name] && <span style={{ color: '#888', fontSize: 13 }}>(Will skip)</span>}
+                </li>
+              );
+            })}
+          </ul>
+          <button onClick={handleConfirmImport} style={{ marginRight: 12, padding: '8px 24px', borderRadius: 8, background: '#0099ff', color: 'white', fontWeight: 600 }}>Import</button>
+          <button onClick={handleCancelImport} style={{ padding: '8px 24px', borderRadius: 8 }}>Cancel</button>
+        </div>
+      )}
+        
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
           {presets.map((preset, idx) => (
             <li

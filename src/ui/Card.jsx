@@ -4,6 +4,7 @@
 
 import React from 'react';
 import './Card.css';
+import Text from './Text';
 
 export default function Card({ title, separator, desc, actions, headerActions, children, className = '', style = {} }) {
   return (
@@ -11,13 +12,13 @@ export default function Card({ title, separator, desc, actions, headerActions, c
       {(title || headerActions) && (
         <div className="wee-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {title && (
-            <span className="wee-card-title">{title}</span>
+            <Text variant="h3" style={{ margin: 0 }}>{title}</Text>
           )}
           {headerActions}
         </div>
       )}
       {separator && <div className="wee-card-separator" />}
-      {desc && <div className="wee-card-desc">{desc}</div>}
+      {desc && <Text variant="desc">{desc}</Text>}
       {actions}
       {children}
     </div>
