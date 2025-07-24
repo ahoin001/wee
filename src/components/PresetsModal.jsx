@@ -8,7 +8,7 @@ import '../styles/design-system.css';
 import Text from '../ui/Text';
 import Card from '../ui/Card';
 
-function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset, onImportPresets }) {
+function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset, onImportPresets, onReorderPresets }) {
   const fileInputRef = useRef();
   const [importedPresets, setImportedPresets] = useState(null);
   const [importError, setImportError] = useState('');
@@ -25,6 +25,8 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
   const [selectedPresets, setSelectedPresets] = useState([]);
   const [selectMode, setSelectMode] = useState(false);
   const handleCloseRef = useRef(null); // ref to store BaseModal's handleClose function
+  const [draggingPreset, setDraggingPreset] = useState(null); // name of preset being dragged
+  const [dropTarget, setDropTarget] = useState(null); // name of preset being hovered over for drop
 
   // Helper to get presets to export
   const getPresetsToExport = () => {
@@ -32,6 +34,66 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       return presets.filter(p => selectedPresets.includes(p.name));
     }
     return presets;
+  };
+
+  // Drag and drop handlers for preset reordering
+  const handleDragStart = (e, presetName) => {
+    if (selectMode) return; // Don't allow dragging in select mode
+    setDraggingPreset(presetName);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.outerHTML);
+  };
+
+  const handleDragOver = (e, presetName) => {
+    if (!draggingPreset || selectMode) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(presetName);
+  };
+
+  const handleDragEnter = (e, presetName) => {
+    if (!draggingPreset || selectMode) return;
+    e.preventDefault();
+    setDropTarget(presetName);
+  };
+
+  const handleDragLeave = (e) => {
+    if (selectMode) return;
+    e.preventDefault();
+    setDropTarget(null);
+  };
+
+  const handleDrop = (e, targetPresetName) => {
+    if (!draggingPreset || draggingPreset === targetPresetName || selectMode) {
+      setDraggingPreset(null);
+      setDropTarget(null);
+      return;
+    }
+    
+    e.preventDefault();
+    
+    // Reorder the presets array
+    const currentPresets = [...presets];
+    const draggedIndex = currentPresets.findIndex(p => p.name === draggingPreset);
+    const targetIndex = currentPresets.findIndex(p => p.name === targetPresetName);
+    
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      const [draggedPreset] = currentPresets.splice(draggedIndex, 1);
+      currentPresets.splice(targetIndex, 0, draggedPreset);
+      
+      // Call the reorder callback to update the parent state
+      if (onReorderPresets) {
+        onReorderPresets(currentPresets);
+      }
+    }
+    
+    setDraggingPreset(null);
+    setDropTarget(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingPreset(null);
+    setDropTarget(null);
   };
 
   // Export presets as JSON
@@ -368,7 +430,12 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           {presets.length >= 6 && <Text size="sm" color="#888" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
         </div>
       </Card>
-      <Card style={{ marginBottom: 18 }} title="Saved Presets" separator>
+      <Card 
+        style={{ marginBottom: 18 }} 
+        title="Saved Presets" 
+        separator
+        desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
+      >
         {/* Import/Export controls now above the preset list */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
           <Button variant="secondary" onClick={handleImportClick}>
@@ -445,27 +512,57 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       )}
         
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
-          {presets.map((preset, idx) => (
+          {presets.map((preset, idx) => {
+            const isDragging = draggingPreset === preset.name;
+            const isDropTarget = dropTarget === preset.name;
+            const isSelected = selectMode && selectedPresets.includes(preset.name);
+            
+            return (
             <li
               key={preset.name}
-              className={selectMode && selectedPresets.includes(preset.name) ? 'pulse-blue' : ''}
+              className={isSelected ? 'pulse-blue' : ''}
+              draggable={!selectMode}
+              onDragStart={(e) => handleDragStart(e, preset.name)}
+              onDragOver={(e) => handleDragOver(e, preset.name)}
+              onDragEnter={(e) => handleDragEnter(e, preset.name)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, preset.name)}
+              onDragEnd={handleDragEnd}
               style={{
                 display: 'flex', alignItems: 'center', marginBottom: 10, padding: '12px 24px', borderBottom: '1px solid #f0f0f0',
-                cursor: selectMode ? 'pointer' : 'default',
-                background: selectMode && selectedPresets.includes(preset.name) ? '#e6f3ff' : '#fff',
-                borderRadius: selectMode && selectedPresets.includes(preset.name) ? 10 : 8,
-                boxShadow: !selectMode || !selectedPresets.includes(preset.name)
+                cursor: selectMode ? 'pointer' : (isDragging ? 'grabbing' : 'grab'),
+                background: isSelected ? '#e6f3ff' : (isDropTarget ? '#f0f9ff' : '#fff'),
+                borderRadius: isSelected ? 10 : 8,
+                boxShadow: !selectMode || !isSelected
                   ? '0 1.5px 6px #0099ff08'
                   : undefined,
-                border: !selectMode || !selectedPresets.includes(preset.name)
-                  ? '1.5px solid #e0e6ef'
+                border: !selectMode || !isSelected
+                  ? (isDropTarget ? '2px solid #0099ff' : '1.5px solid #e0e6ef')
                   : undefined,
                 transition: 'background 0.2s, box-shadow 0.2s, border 0.2s, transform 0.2s',
+                opacity: isDragging ? 0.5 : 1,
+                transform: isDragging ? 'scale(0.98)' : (isDropTarget ? 'scale(1.02)' : 'scale(1)'),
               }}
               onClick={selectMode ? () => handleToggleSelectPreset(preset.name) : undefined}
             >
               {/* Title left, buttons right */}
-              <span style={{ fontWeight: 500, flex: 1, textAlign: 'left', fontSize: 16 }}>{preset.name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                {!selectMode && (
+                  <span 
+                    style={{ 
+                      fontSize: 14, 
+                      color: '#999', 
+                      marginRight: 8, 
+                      cursor: 'grab',
+                      userSelect: 'none'
+                    }}
+                    title="Drag to reorder"
+                  >
+                    ⋮⋮
+                  </span>
+                )}
+                <span style={{ fontWeight: 500, textAlign: 'left', fontSize: 16 }}>{preset.name}</span>
+              </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
                 {editingPreset === preset.name ? (
                   <>
@@ -492,7 +589,8 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 )}
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </Card>
      
@@ -513,6 +611,7 @@ PresetsModal.propTypes = {
   onUpdatePreset: PropTypes.func.isRequired,
   onRenamePreset: PropTypes.func,
   onImportPresets: PropTypes.func, // (presets: Preset[]) => void
+  onReorderPresets: PropTypes.func, // (reorderedPresets: Preset[]) => void
 };
 
 export default PresetsModal; 

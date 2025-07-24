@@ -158,8 +158,11 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
         fontSize: 14,
         lineHeight: 1.4
       }}>
-        Fetching all the assets can be slow since a free service is used to host them.<br />
-        Uploading your own assets or <a 
+        I recommend downloading your favoirte assets on the site or here, then using the upload from device optoin.
+        <br />
+        If you use an image directly from here, their reliability is not great due to being hosted on a cheap service.
+        <br />
+         <a 
           href="https://graceful-cannoli-0197f9.netlify.app/" 
           target="_blank" 
           rel="noopener noreferrer"
@@ -169,7 +172,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
             fontWeight: 500
           }}
         >
-          downloading them from here
+          You can also upload assets for the community here or also download from here
         </a> can be quicker.
       </div>
       {/* Search Bar Card */}

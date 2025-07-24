@@ -275,6 +275,10 @@ function App() {
   const handleImportPresets = (newPresets) => {
     setPresets(newPresets);
   };
+
+  const handleReorderPresets = (reorderedPresets) => {
+    setPresets(reorderedPresets);
+  };
   const handleApplyPreset = async (preset) => {
     const d = preset.data;
     // WiiRibbon & Glow
@@ -1529,6 +1533,7 @@ function App() {
           onUpdatePreset={handleUpdatePreset}
           onRenamePreset={handleRenamePreset}
           onImportPresets={handleImportPresets}
+          onReorderPresets={handleReorderPresets}
         />
         <WallpaperModal
           isOpen={showWallpaperModal}
