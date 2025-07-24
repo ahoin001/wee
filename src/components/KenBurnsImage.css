@@ -285,6 +285,11 @@
   pointer-events: none;
 }
 
+/* Allow pointer events for hover mode Ken Burns */
+.ken-burns-container.ken-burns-hover-mode {
+  pointer-events: auto;
+}
+
 .channel {
   pointer-events: auto;
 } 

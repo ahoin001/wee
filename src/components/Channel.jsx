@@ -5,6 +5,7 @@ import ReactFreezeframe from 'react-freezeframe-vite';
 import ImageSearchModal from './ImageSearchModal';
 import audioManager from '../utils/AudioManager';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
+import KenBurnsImage from './KenBurnsImage';
 import './Channel.css';
 
 // Guard for window.api to prevent errors in browser
@@ -19,7 +20,7 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle }) => {
+const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode }) => {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -33,6 +34,15 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   const effectiveAnimatedOnHover = (channelConfig && channelConfig.animatedOnHover !== undefined)
     ? channelConfig.animatedOnHover
     : globalAnimatedOnHover;
+  
+  // Determine Ken Burns settings (channel-specific overrides global)
+  const effectiveKenBurnsEnabled = (channelConfig && channelConfig.kenBurnsEnabled !== undefined)
+    ? channelConfig.kenBurnsEnabled
+    : globalKenBurnsEnabled;
+    
+  const effectiveKenBurnsMode = (channelConfig && channelConfig.kenBurnsMode !== undefined)
+    ? channelConfig.kenBurnsMode
+    : globalKenBurnsMode;
   
   // console.log('Channel', id, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover, 'globalAnimatedOnHover:', globalAnimatedOnHover, 'channelConfig:', channelConfig);
 
@@ -315,7 +325,52 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       }
     } else if (media.type.startsWith('image/')) {
       // Handle other image types (PNG, JPG, etc.)
-      mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;
+      if (effectiveKenBurnsEnabled) {
+        // Use Ken Burns effect for static images
+        const kenBurnsProps = {
+          mode: effectiveKenBurnsMode,
+          width: "100%",
+          height: "100%",
+          borderRadius: "12px",
+          objectFit: "cover",
+          alt: media.name || 'Channel Image',
+          
+          // Use advanced settings from global configuration
+          hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
+          hoverScale: window.settings?.kenBurnsHoverScale ?? 1.1,
+          autoplayDuration: window.settings?.kenBurnsAutoplayDuration ?? 12000,
+          autoplayScale: window.settings?.kenBurnsAutoplayScale ?? 1.15,
+          slideshowDuration: window.settings?.kenBurnsSlideshowDuration ?? 10000,
+          slideshowScale: window.settings?.kenBurnsSlideshowScale ?? 1.2,
+          crossfadeDuration: window.settings?.kenBurnsCrossfadeDuration ?? 1000,
+          
+          // Performance settings
+          enableIntersectionObserver: true
+        };
+
+        // Check if this is a gallery (slideshow mode with multiple images)
+        if (media.useGallery && media.gallery && media.gallery.length > 0) {
+          // Use gallery images for slideshow
+          mediaPreview = (
+            <KenBurnsImage
+              {...kenBurnsProps}
+              images={media.gallery.map(img => img.url)}
+              mode="slideshow"
+            />
+          );
+        } else {
+          // Single image Ken Burns
+          mediaPreview = (
+            <KenBurnsImage
+              {...kenBurnsProps}
+              src={media.url}
+            />
+          );
+        }
+      } else {
+        // Regular static image without Ken Burns
+        mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;
+      }
     }
   }
 
@@ -398,6 +453,8 @@ Channel.propTypes = {
   onHover: PropTypes.func,
   onOpenModal: PropTypes.func,
   animationStyle: PropTypes.oneOf(['none', 'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'random']),
+  kenBurnsEnabled: PropTypes.bool,
+  kenBurnsMode: PropTypes.oneOf(['hover', 'autoplay']),
 };
 
 export default Channel;

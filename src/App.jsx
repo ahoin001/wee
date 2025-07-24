@@ -199,6 +199,19 @@ function App() {
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
   const [timeFont, setTimeFont] = useState('default'); // Add this to state
   const [channelAnimation, setChannelAnimation] = useState(null); // Add to app state
+  
+  // Ken Burns settings
+  const [kenBurnsEnabled, setKenBurnsEnabled] = useState(false);
+  const [kenBurnsMode, setKenBurnsMode] = useState('hover');
+  
+  // Advanced Ken Burns settings
+  const [kenBurnsHoverScale, setKenBurnsHoverScale] = useState(1.1);
+  const [kenBurnsAutoplayScale, setKenBurnsAutoplayScale] = useState(1.15);
+  const [kenBurnsSlideshowScale, setKenBurnsSlideshowScale] = useState(1.2);
+  const [kenBurnsHoverDuration, setKenBurnsHoverDuration] = useState(8000);
+  const [kenBurnsAutoplayDuration, setKenBurnsAutoplayDuration] = useState(12000);
+  const [kenBurnsSlideshowDuration, setKenBurnsSlideshowDuration] = useState(10000);
+  const [kenBurnsCrossfadeDuration, setKenBurnsCrossfadeDuration] = useState(1000);
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   // showPresetsModal now managed by useUIStore
@@ -538,6 +551,19 @@ function App() {
         setTimeFont(settings.timeFont || 'default');
         setChannelAnimation(settings.channelAnimation || 'none'); // Load channelAnimation
         
+        // Load Ken Burns settings
+            setKenBurnsEnabled(settings.kenBurnsEnabled ?? false);
+    setKenBurnsMode(settings.kenBurnsMode || 'hover');
+    
+    // Load advanced Ken Burns settings
+    setKenBurnsHoverScale(settings.kenBurnsHoverScale ?? 1.1);
+    setKenBurnsAutoplayScale(settings.kenBurnsAutoplayScale ?? 1.15);
+    setKenBurnsSlideshowScale(settings.kenBurnsSlideshowScale ?? 1.2);
+    setKenBurnsHoverDuration(settings.kenBurnsHoverDuration ?? 8000);
+    setKenBurnsAutoplayDuration(settings.kenBurnsAutoplayDuration ?? 12000);
+    setKenBurnsSlideshowDuration(settings.kenBurnsSlideshowDuration ?? 10000);
+    setKenBurnsCrossfadeDuration(settings.kenBurnsCrossfadeDuration ?? 1000);
+        
         // Load ribbonButtonConfigs to ensure they're preserved during persistence
         if (settings.ribbonButtonConfigs) {
           console.log('App: Loaded ribbonButtonConfigs:', settings.ribbonButtonConfigs);
@@ -639,6 +665,15 @@ function App() {
         showPresetsButton, // Persist show presets button setting
         timeFont, // Persist timeFont
         channelAnimation, // Persist channelAnimation
+        kenBurnsEnabled, // Persist Ken Burns enabled setting
+        kenBurnsMode, // Persist Ken Burns mode setting
+        kenBurnsHoverScale, // Persist Ken Burns hover scale
+        kenBurnsAutoplayScale, // Persist Ken Burns autoplay scale
+        kenBurnsSlideshowScale, // Persist Ken Burns slideshow scale
+        kenBurnsHoverDuration, // Persist Ken Burns hover duration
+        kenBurnsAutoplayDuration, // Persist Ken Burns autoplay duration
+        kenBurnsSlideshowDuration, // Persist Ken Burns slideshow duration
+        kenBurnsCrossfadeDuration, // Persist Ken Burns crossfade duration
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -653,7 +688,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -940,6 +975,35 @@ function App() {
     if (newSettings.channelAnimation !== undefined) {
       setChannelAnimation(newSettings.channelAnimation);
     }
+    if (newSettings.kenBurnsEnabled !== undefined) {
+      setKenBurnsEnabled(newSettings.kenBurnsEnabled);
+    }
+    if (newSettings.kenBurnsMode !== undefined) {
+      setKenBurnsMode(newSettings.kenBurnsMode);
+    }
+    
+    // Advanced Ken Burns settings
+    if (newSettings.kenBurnsHoverScale !== undefined) {
+      setKenBurnsHoverScale(newSettings.kenBurnsHoverScale);
+    }
+    if (newSettings.kenBurnsAutoplayScale !== undefined) {
+      setKenBurnsAutoplayScale(newSettings.kenBurnsAutoplayScale);
+    }
+    if (newSettings.kenBurnsSlideshowScale !== undefined) {
+      setKenBurnsSlideshowScale(newSettings.kenBurnsSlideshowScale);
+    }
+    if (newSettings.kenBurnsHoverDuration !== undefined) {
+      setKenBurnsHoverDuration(newSettings.kenBurnsHoverDuration);
+    }
+    if (newSettings.kenBurnsAutoplayDuration !== undefined) {
+      setKenBurnsAutoplayDuration(newSettings.kenBurnsAutoplayDuration);
+    }
+    if (newSettings.kenBurnsSlideshowDuration !== undefined) {
+      setKenBurnsSlideshowDuration(newSettings.kenBurnsSlideshowDuration);
+    }
+    if (newSettings.kenBurnsCrossfadeDuration !== undefined) {
+      setKenBurnsCrossfadeDuration(newSettings.kenBurnsCrossfadeDuration);
+    }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
     // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
@@ -984,6 +1048,15 @@ function App() {
     wallpaperBlur,
     timeFont,
     channelAnimation,
+    kenBurnsEnabled,
+    kenBurnsMode,
+    kenBurnsHoverScale,
+    kenBurnsAutoplayScale,
+    kenBurnsSlideshowScale,
+    kenBurnsHoverDuration,
+    kenBurnsAutoplayDuration,
+    kenBurnsSlideshowDuration,
+    kenBurnsCrossfadeDuration,
   };
 
   // Memoize expensive calculations
@@ -1493,6 +1566,8 @@ function App() {
                 onHover={handleChannelHover}
                 onOpenModal={() => setOpenChannelModal(channel.id)}
                 animationStyle={channelAnimation}
+                kenBurnsEnabled={kenBurnsEnabled}
+                kenBurnsMode={kenBurnsMode}
               />
             );
           })}
@@ -1545,6 +1620,8 @@ function App() {
                 currentAsAdmin={channelConfigs[openChannelModal]?.asAdmin}
                 currentAnimatedOnHover={channelConfigs[openChannelModal]?.animatedOnHover}
                 currentHoverSound={channelConfigs[openChannelModal]?.hoverSound}
+                currentKenBurnsEnabled={channelConfigs[openChannelModal]?.kenBurnsEnabled}
+                currentKenBurnsMode={channelConfigs[openChannelModal]?.kenBurnsMode}
               />
             );
           })()

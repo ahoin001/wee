@@ -15,13 +15,18 @@ import Text from '../ui/Text';
 
 const channelsApi = window.api?.channels;
 
-function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover }) {
+function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode }) {
   const [media, setMedia] = useState(currentMedia);
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
   const [pathError, setPathError] = useState('');
+  
+  // Multi-image gallery state for Ken Burns slideshow
+  const [imageGallery, setImageGallery] = useState(currentMedia?.gallery || []);
+  const [galleryMode, setGalleryMode] = useState(currentMedia?.useGallery || false);
   const [asAdmin, setAsAdmin] = useState(currentAsAdmin);
   const fileInputRef = useRef();
+  const galleryFileInputRef = useRef();
   const exeFileInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
   // Hover sound state
@@ -34,6 +39,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [hoverSoundAudio, setHoverSoundAudio] = useState(null);
   const [showError, setShowError] = useState(false);
   const [animatedOnHover, setAnimatedOnHover] = useState(currentAnimatedOnHover);
+  
+  // Ken Burns settings
+  const [kenBurnsEnabled, setKenBurnsEnabled] = useState(currentKenBurnsEnabled);
+  const [kenBurnsMode, setKenBurnsMode] = useState(currentKenBurnsMode);
+  
   const [gameQuery, setGameQuery] = useState('');
   const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
   const [gameType, setGameType] = useState(type || 'exe'); // 'exe', 'url', 'steam', 'epic'
@@ -196,6 +206,31 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
 
+  const handleGalleryFilesSelect = (files) => {
+    if (files && files.length > 0) {
+      const newImages = Array.from(files).map(file => ({
+        url: URL.createObjectURL(file),
+        type: file.type,
+        name: file.name,
+        id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      }));
+      setImageGallery(prev => [...prev, ...newImages]);
+    }
+  };
+
+  const handleRemoveGalleryImage = (imageId) => {
+    setImageGallery(prev => prev.filter(img => img.id !== imageId));
+  };
+
+  const handleReorderGalleryImages = (startIndex, endIndex) => {
+    setImageGallery(prev => {
+      const result = Array.from(prev);
+      const [removed] = result.splice(startIndex, 1);
+      result.splice(endIndex, 0, removed);
+      return result;
+    });
+  };
+
   const handleExeFileSelect = (file) => {
     if (file) {
       // For Electron apps, we can get the file path
@@ -326,13 +361,20 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
     setShowError(false);
     // Only save if both media and path are provided
+    // Prepare media object with gallery support
+    const mediaObject = galleryMode && imageGallery.length > 0 
+      ? { ...media, useGallery: true, gallery: imageGallery }
+      : media;
+      
     const newChannel = {
-        media,
+        media: mediaObject,
         path: path.trim(),
         type,
       asAdmin,
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
       animatedOnHover: animatedOnHover !== 'global' ? animatedOnHover : undefined,
+      kenBurnsEnabled: kenBurnsEnabled !== 'global' ? kenBurnsEnabled : undefined,
+      kenBurnsMode: kenBurnsMode !== 'global' ? kenBurnsMode : undefined,
     };
     // Save to channels API
     const allChannels = await window.api?.channels?.get();
@@ -359,6 +401,10 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setHoverSoundVolume(0.7);
     setHoverSoundEnabled(false);
     setAnimatedOnHover(undefined);
+    setKenBurnsEnabled(undefined);
+    setKenBurnsMode(undefined);
+    setImageGallery([]);
+    setGalleryMode(false);
     
     // Save the cleared channel state (passing null to indicate complete reset)
     if (onSave) {
@@ -399,33 +445,187 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </>
   );
 
-  const renderImageSection = () => (
-    <div className="image-section">
-      {media ? (
-        <div className="image-preview">
-          {media && typeof media.type === 'string' && media.type.startsWith('image/') ? (
-          <img src={media.url} alt="Channel preview" />
-          ) : media && typeof media.type === 'string' && media.type.startsWith('video/') ? (
-            <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
-          ) : null}
-          <button className="remove-image-button" onClick={handleRemoveImage}>
-            Remove
-          </button>
-        </div>
-      ) : (
-        <button className="file-button" style={{ background: '#f7fafd', color: '#222', border: '2px solid #b0c4d8', fontWeight: 500 }} onClick={() => setShowImageSearch(true)}>
-          Add Channel Image
-        </button>
-      )}
-      <input
-        type="file"
-        accept="image/*,video/mp4"
-        ref={fileInputRef}
-        onChange={(e) => handleFileSelect(e.target.files[0])}
-        style={{ display: 'none' }}
-      />
-    </div>
-  );
+  const renderImageSection = () => {
+    // Determine if we should show gallery mode option
+    const showGalleryOption = kenBurnsEnabled === true;
+    
+    return (
+      <div className="image-section">
+        {/* Gallery Mode Toggle - only show when Ken Burns is enabled and in slideshow mode */}
+        {showGalleryOption && (
+          <div style={{ marginBottom: 16 }}>
+            <Text as="label" size="md" weight={600} style={{ display: 'block', marginBottom: 8 }}>
+              Image Mode
+            </Text>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input
+                  type="radio"
+                  name="imageMode"
+                  checked={!galleryMode}
+                  onChange={() => setGalleryMode(false)}
+                />
+                Single Image
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input
+                  type="radio"
+                  name="imageMode"
+                  checked={galleryMode}
+                  onChange={() => setGalleryMode(true)}
+                />
+                Image Gallery (slideshow)
+              </label>
+            </div>
+            <Text variant="help" style={{ marginTop: 8 }}>
+              {galleryMode 
+                ? 'Upload multiple images for Ken Burns slideshow effect.'
+                : 'Use a single image with Ken Burns animation.'}
+            </Text>
+          </div>
+        )}
+
+        {/* Single Image Mode */}
+        {!galleryMode && (
+          <>
+            {media ? (
+              <div className="image-preview">
+                {media && typeof media.type === 'string' && media.type.startsWith('image/') ? (
+                <img src={media.url} alt="Channel preview" />
+                ) : media && typeof media.type === 'string' && media.type.startsWith('video/') ? (
+                  <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
+                ) : null}
+                <button className="remove-image-button" onClick={handleRemoveImage}>
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button className="file-button" style={{ background: '#f7fafd', color: '#222', border: '2px solid #b0c4d8', fontWeight: 500 }} onClick={() => setShowImageSearch(true)}>
+                Add Channel Image
+              </button>
+            )}
+          </>
+        )}
+
+        {/* Gallery Mode */}
+        {galleryMode && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Gallery Grid */}
+            {imageGallery.length > 0 && (
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', 
+                gap: 12,
+                marginBottom: 12
+              }}>
+                {imageGallery.map((image, index) => (
+                  <div key={image.id} style={{ position: 'relative' }}>
+                    <div style={{
+                      width: '100%',
+                      height: 80,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      border: '2px solid #e0e0e6',
+                      background: '#f5f5f5'
+                    }}>
+                      {image.type.startsWith('image/') ? (
+                        <img 
+                          src={image.url} 
+                          alt={`Gallery ${index + 1}`}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover' 
+                          }}
+                        />
+                      ) : image.type.startsWith('video/') ? (
+                        <video 
+                          src={image.url} 
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover' 
+                          }}
+                          muted
+                        />
+                      ) : null}
+                    </div>
+                    <button 
+                      onClick={() => handleRemoveGalleryImage(image.id)}
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        background: 'rgba(220, 53, 69, 0.9)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        width: 20,
+                        height: 20,
+                        fontSize: 12,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ×
+                    </button>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 4,
+                      left: 4,
+                      background: 'rgba(0, 0, 0, 0.7)',
+                      color: 'white',
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: 500
+                    }}>
+                      {index + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add Images Button */}
+            <button 
+              className="file-button" 
+              style={{ background: '#f7fafd', color: '#222', border: '2px solid #b0c4d8', fontWeight: 500 }}
+              onClick={() => galleryFileInputRef.current?.click()}
+            >
+              {imageGallery.length === 0 ? 'Add Images for Gallery' : 'Add More Images'}
+            </button>
+
+            {/* Gallery Help Text */}
+            <Text variant="help">
+              {imageGallery.length === 0 
+                ? 'Select multiple images to create a Ken Burns slideshow. Images will cycle automatically with smooth transitions.'
+                : `${imageGallery.length} image${imageGallery.length !== 1 ? 's' : ''} in gallery. Images will display in order with Ken Burns effects.`}
+            </Text>
+          </div>
+        )}
+
+        {/* File Inputs */}
+        <input
+          type="file"
+          accept="image/*,video/mp4"
+          ref={fileInputRef}
+          onChange={(e) => handleFileSelect(e.target.files[0])}
+          style={{ display: 'none' }}
+        />
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          ref={galleryFileInputRef}
+          onChange={(e) => handleGalleryFilesSelect(e.target.files)}
+          style={{ display: 'none' }}
+        />
+      </div>
+    );
+  };
 
   // Gather all relevant state for AppPathSectionCard
   const appPathSectionValue = {
@@ -874,6 +1074,109 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </div>
   );
 
+  const renderKenBurnsSection = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Ken Burns Enabled Setting */}
+      <div>
+        <Text as="label" size="md" weight={600} style={{ display: 'block', marginBottom: 8 }}>
+          Ken Burns Effect
+        </Text>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="radio"
+              name="kenBurnsEnabled"
+              value="global"
+              checked={kenBurnsEnabled === undefined || kenBurnsEnabled === 'global'}
+              onChange={() => setKenBurnsEnabled('global')}
+            />
+            Use global setting
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="radio"
+              name="kenBurnsEnabled"
+              value="true"
+              checked={kenBurnsEnabled === true}
+              onChange={() => setKenBurnsEnabled(true)}
+            />
+            Enable for this channel (override)
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="radio"
+              name="kenBurnsEnabled"
+              value="false"
+              checked={kenBurnsEnabled === false}
+              onChange={() => setKenBurnsEnabled(false)}
+            />
+            Disable for this channel (override)
+          </label>
+        </div>
+      </div>
+
+      {/* Ken Burns Mode Setting - only show when enabled */}
+      {kenBurnsEnabled === true && (
+        <div>
+          <Text as="label" size="md" weight={600} style={{ display: 'block', marginBottom: 8 }}>
+            Activation Mode
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="radio"
+                name="kenBurnsMode"
+                value="global"
+                checked={kenBurnsMode === undefined || kenBurnsMode === 'global'}
+                onChange={() => setKenBurnsMode('global')}
+              />
+              Use global setting
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="radio"
+                name="kenBurnsMode"
+                value="hover"
+                checked={kenBurnsMode === 'hover'}
+                onChange={() => setKenBurnsMode('hover')}
+              />
+              Hover to activate (override)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="radio"
+                name="kenBurnsMode"
+                value="autoplay"
+                checked={kenBurnsMode === 'autoplay'}
+                onChange={() => setKenBurnsMode('autoplay')}
+              />
+              Always active (override)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="radio"
+                name="kenBurnsMode"
+                value="slideshow"
+                checked={kenBurnsMode === 'slideshow'}
+                onChange={() => setKenBurnsMode('slideshow')}
+              />
+              Slideshow mode (override)
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Helper text */}
+      <Text variant="help">
+        {kenBurnsEnabled === true 
+          ? 'Ken Burns adds cinematic zoom and pan effects to images. Use slideshow mode for multi-image galleries.'
+          : kenBurnsEnabled === false
+          ? 'Ken Burns effect is disabled for this channel, even if enabled globally.'
+          : 'This channel will follow the global Ken Burns setting.'}
+      </Text>
+    </div>
+  );
+
   return (
     <>
       <BaseModal
@@ -931,6 +1234,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         <Card title="Animation on Hover" separator desc="Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.">
           {renderAnimationToggleSection()}
         </Card>
+
+        {/* Ken Burns Effect Card */}
+        <Card title="Ken Burns Effect" separator desc="Override the global Ken Burns setting for this channel. Adds cinematic zoom and pan to images.">
+          {renderKenBurnsSection()}
+        </Card>
       </BaseModal>
       {showImageSearch && (
         <ImageSearchModal
@@ -952,7 +1260,9 @@ ChannelModal.propTypes = {
   currentType: PropTypes.string,
   currentHoverSound: PropTypes.object,
   currentAsAdmin: PropTypes.bool,
-  currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global'])
+  currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global']),
+  currentKenBurnsEnabled: PropTypes.oneOf([true, false, 'global']),
+  currentKenBurnsMode: PropTypes.oneOf(['hover', 'autoplay', 'slideshow', 'global'])
 };
 
 export default ChannelModal; 
