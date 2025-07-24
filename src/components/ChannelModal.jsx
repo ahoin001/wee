@@ -7,7 +7,7 @@ import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Button from '../ui/Button';
 // Remove unused imports related to old fetching/caching logic
 // import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
-import AppPathSearchCard from './AppPathSearchCard';
+import AppPathSectionCard from './AppPathSectionCard';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import { useCallback } from 'react';
 import { dedupeByAppId, dedupeByKey } from '../utils/arrayUtils';
@@ -444,7 +444,44 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </div>
   );
 
-  // Update renderAppPathSection to use Zustand state/actions
+  // Gather all relevant state for AppPathSectionCard
+  const appPathSectionValue = {
+    gameType,
+    appQuery,
+    appDropdownOpen,
+    appResults,
+    appsLoading,
+    appsError,
+    path,
+    pathError,
+    exeFileInputRef,
+    uwpQuery,
+    uwpDropdownOpen,
+    filteredUwpApps,
+    uwpLoading,
+    uwpError,
+    gameQuery,
+    gameDropdownOpen,
+    gameResults,
+    steamLoading,
+    epicLoading,
+    steamError,
+    epicError,
+    customSteamPath,
+  };
+
+  const handleAppPathSectionChange = updates => {
+    if ('gameType' in updates) { setGameType(updates.gameType); setType(updates.gameType); }
+    if ('appQuery' in updates) setAppQuery(updates.appQuery);
+    if ('appDropdownOpen' in updates) setAppDropdownOpen(updates.appDropdownOpen);
+    if ('path' in updates) setPath(updates.path);
+    if ('pathError' in updates) setPathError(updates.pathError);
+    if ('uwpQuery' in updates) setUwpQuery(updates.uwpQuery);
+    if ('uwpDropdownOpen' in updates) setUwpDropdownOpen(updates.uwpDropdownOpen);
+    if ('gameQuery' in updates) setGameQuery(updates.gameQuery);
+    if ('gameDropdownOpen' in updates) setGameDropdownOpen(updates.gameDropdownOpen);
+  };
+
   const renderAppPathSection = () => (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
@@ -465,27 +502,16 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       {/* App Path Input (EXE) */}
       {type === 'exe' && (
         <div style={{ position: 'relative', marginBottom: 16 }}>
-          <AppPathSearchCard
-            value={appQuery || path}
-            onChange={e => { setAppQuery(e.target.value); setPath(e.target.value); setPathError(''); }}
-            onFocus={() => { if (appResults.length > 0) setAppDropdownOpen(true); }}
-            onBlur={() => setTimeout(() => setAppDropdownOpen(false), 150)}
-            results={appResults}
-            loading={appsLoading}
-            error={appsError}
-            onSelect={app => {
-              const fullPath = app.args ? `${app.path} ${app.args}` : app.path;
-              setPath(fullPath);
-              setAppQuery(app.name);
-              setAppDropdownOpen(false);
-              setPathError('');
-            }}
-            onRescan={rescanInstalledApps}
-            rescanLabel="Rescan Apps"
-            disabled={appsLoading}
-            placeholder="Enter or search for an app..."
-            dropdownOpen={appDropdownOpen}
-            setDropdownOpen={setAppDropdownOpen}
+          <AppPathSectionCard
+            value={appPathSectionValue}
+            onChange={handleAppPathSectionChange}
+            onAppSelect={handleAppResultClick}
+            onRescanInstalledApps={rescanInstalledApps}
+            onGameResultClick={handleGameResultClick}
+            handlePickSteamFolder={handlePickSteamFolder}
+            fetchSteamGames={fetchSteamGames}
+            handleGameRefresh={handleGameRefresh}
+            handleExeFileSelect={handleExeFileSelect}
           />
           {/* Visual indicator for loading */}
           {appsLoading && appQuery && appResults.length === 0 && (
@@ -879,7 +905,17 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         </Card>
         {/* App Path/URL Card */}
         <Card title="App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
-          {renderAppPathSection()}
+          <AppPathSectionCard
+            value={appPathSectionValue}
+            onChange={handleAppPathSectionChange}
+            onAppSelect={handleAppResultClick}
+            onRescanInstalledApps={rescanInstalledApps}
+            onGameResultClick={handleGameResultClick}
+            handlePickSteamFolder={handlePickSteamFolder}
+            fetchSteamGames={fetchSteamGames}
+            handleGameRefresh={handleGameRefresh}
+            handleExeFileSelect={handleExeFileSelect}
+          />
         </Card>
         {/* Launch Options Card */}
         <Card title="Launch Options" separator desc="Choose how this application should be launched when the channel is clicked.">
