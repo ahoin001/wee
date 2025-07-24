@@ -9,28 +9,11 @@ import Button from '../ui/Button';
 // import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
 import AppPathSearchCard from './AppPathSearchCard';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
+import { useCallback } from 'react';
+import { dedupeByAppId, dedupeByKey } from '../utils/arrayUtils';
+import Card from '../ui/Card';
 
 const channelsApi = window.api?.channels;
-
-// Utility to deduplicate by appid
-function dedupeByAppId(games) {
-  const seen = new Set();
-  return games.filter(g => {
-    if (seen.has(g.appid)) return false;
-    seen.add(g.appid);
-    return true;
-  });
-}
-
-// Utility to deduplicate by key
-function dedupeByKey(games, key) {
-  const seen = new Set();
-  return games.filter(g => {
-    if (seen.has(g[key])) return false;
-    seen.add(g[key]);
-    return true;
-  });
-}
 
 function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover }) {
   const [media, setMedia] = useState(currentMedia);
@@ -54,7 +37,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [gameQuery, setGameQuery] = useState('');
   const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
   const [gameType, setGameType] = useState(type || 'exe'); // 'exe', 'url', 'steam', 'epic'
-  const [customSteamPath, setCustomSteamPath] = useState(() => localStorage.getItem('customSteamPath') || '');
   const [appQuery, setAppQuery] = useState('');
   const [appDropdownOpen, setAppDropdownOpen] = useState(false);
 
@@ -63,21 +45,20 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     installedApps, appsLoading, appsError, fetchInstalledApps, rescanInstalledApps,
     steamGames, steamLoading, steamError, fetchSteamGames, rescanSteamGames,
     epicGames, epicLoading, epicError, fetchEpicGames, rescanEpicGames,
-    uwpApps, uwpLoading, uwpError, fetchUwpApps, rescanUwpApps
+    uwpApps, uwpLoading, uwpError, fetchUwpApps, rescanUwpApps,
+    customSteamPath, setCustomSteamPath
   } = useAppLibraryStore();
 
   // Fuzzy search for apps
   const appResults = (type === 'exe' && appQuery && installedApps.length > 0)
     ? installedApps.filter(a => a.name.toLowerCase().includes(appQuery.toLowerCase())).slice(0, 10)
     : [];
-  console.log('[ChannelModal] appResults:', appResults);
 
   // Fuzzy search for games
   const installedGames = (gameType === 'steam') ? steamGames : (gameType === 'epic' ? epicGames : []);
   const gameResults = (['steam', 'epic'].includes(gameType) && gameQuery && installedGames.length > 0)
     ? installedGames.filter(g => g.name.toLowerCase().includes(gameQuery.toLowerCase())).slice(0, 10)
     : [];
-  console.log('[ChannelModal] gameResults:', gameResults);
 
   // Fuzzy search for UWP
   const [uwpQuery, setUwpQuery] = useState('');
@@ -86,7 +67,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
     app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
   );
-  console.log('[ChannelModal] filteredUwpApps:', filteredUwpApps);
 
   // Best-practice: useEffect to sync dropdown open state with results
   useEffect(() => {
@@ -160,7 +140,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       const audio = new Audio(hoverSoundUrl);
       audio.volume = hoverSoundVolume;
       audio.play().then(() => {
-        console.log('[DEBUG] Audio play started');
         setHoverSoundAudio(audio);
       }).catch(e => {
         console.error('[DEBUG] Audio play error:', e);
@@ -320,33 +299,23 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setPathError('');
   };
 
-  const handleGameRefresh = async () => {
-    // setGameLoading(true); // Removed
-    // setGameError(''); // Removed
-    // setInstalledGames([]); // Removed
+  // Refactored handleGameRefresh
+  const handleGameRefresh = useCallback(async () => {
     try {
-      const api = gameType === 'steam' ? window.api.steam : window.api.epic;
-      const result = await api.getInstalledGames();
-      // setGameLoading(false); // Removed
-      if (result.error) {
-        // setGameError(result.error); // Removed
-        // setInstalledGames([]); // Removed
-      } else {
-        const key = gameType === 'steam' ? 'appid' : 'appName';
-        // setInstalledGames(dedupeByKey(result.games || [], key)); // Removed
-        // setGameError(''); // Removed
+      if (gameType === 'steam') {
+        await rescanSteamGames(customSteamPath);
+      } else if (gameType === 'epic') {
+        await rescanEpicGames();
       }
     } catch (err) {
-      // setGameLoading(false); // Removed
-      // setGameError(err.message || 'Failed to scan games.'); // Removed
-      // setInstalledGames([]); // Removed
+      console.error('Error during rescan:', err);
+      // Optionally: show a toast/notification
     }
-  };
+  }, [gameType, customSteamPath, rescanSteamGames, rescanEpicGames]);
 
   const handlePickSteamFolder = async () => {
     const result = await window.api.steam.pickLibraryFolder();
     if (result && result.path) {
-      localStorage.setItem('customSteamPath', result.path);
       setCustomSteamPath(result.path);
     }
   };
@@ -584,7 +553,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   variant="primary"
                   title={gameType === 'steam' ? 'Rescan your Steam library for installed games.' : 'Rescan your Epic library for installed games.'}
                   style={{ fontSize: 14, borderRadius: 6, marginLeft: 0 }}
-                  onClick={() => gameType === 'steam' ? rescanSteamGames(customSteamPath) : rescanEpicGames()}
+                  onClick={handleGameRefresh}
                   disabled={gameType === 'steam' ? steamLoading : epicLoading}
                 >
                   {(gameType === 'steam' ? steamLoading : epicLoading) ? 'Scanning...' : 'Rescan'}
@@ -595,14 +564,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   variant="secondary"
                   title="Pick your main Steam folder (the one containing the steamapps folder and libraryfolders.vdf). Do NOT select the steamapps folder itself."
                   style={{ fontSize: 14, borderRadius: 6, marginLeft: 0, background: '#f7fafd', color: '#222', border: '1px solid #b0c4d8' }}
-                  onClick={async () => {
-                    const result = await window.api.steam.pickLibraryFolder();
-                    if (result && result.path) {
-                      localStorage.setItem('customSteamPath', result.path);
-                      setCustomSteamPath(result.path);
-                      fetchSteamGames(result.path);
-                    }
-                  }}
+                  onClick={handlePickSteamFolder}
                   disabled={steamLoading}
                 >
                   Change Steam Folder
@@ -912,48 +874,23 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         footerContent={footerContent}
       >
         {/* Channel Image Selection/Upload Card */}
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <span className="wee-card-title">Channel Image</span>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            Choose or upload an image, GIF, or MP4 for this channel.
-            <div style={{ marginTop: 14 }}>
-              {renderImageSection && renderImageSection()}
-            </div>
-          </div>
-        </div>
+        <Card title="Channel Image" separator desc="Choose or upload an image, GIF, or MP4 for this channel.">
+          {renderImageSection()}
+        </Card>
         {/* App Path/URL Card */}
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <span className="wee-card-title">App Path or URL</span>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            Set the path to an app or a URL to launch when this channel is clicked.
-            <div style={{ marginTop: 14 }}>
-              {renderAppPathSection && renderAppPathSection()}
-            </div>
-          </div>
-        </div>
+        <Card title="App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
+          {renderAppPathSection()}
+        </Card>
         {/* Launch Options Card */}
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <span className="wee-card-title">Launch Options</span>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            Choose how this application should be launched when the channel is clicked.
-            <div style={{ marginTop: 14 }}>
-              {renderDisplayOptionsSection && renderDisplayOptionsSection()}
-            </div>
-          </div>
-        </div>
+        <Card title="Launch Options" separator desc="Choose how this application should be launched when the channel is clicked.">
+          {renderDisplayOptionsSection()}
+        </Card>
         {/* Hover Sound Card */}
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="wee-card-title">Custom Hover Sound</span>
+        <Card
+          title="Custom Hover Sound"
+          separator
+          desc="Set a custom sound to play when hovering over this channel."
+          headerActions={
             <label className="toggle-switch" style={{ margin: 0 }}>
               <input
                 type="checkbox"
@@ -962,32 +899,19 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               />
               <span className="slider" />
             </label>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            {hoverSoundEnabled && (
-              <div style={{ marginTop: 0 }}>
-                {renderHoverSoundSection && renderHoverSoundSection()}
-              </div>
-            )}
-            {!hoverSoundEnabled && <span style={{ color: '#888' }}>Set a custom sound to play when hovering over this channel.</span>}
-          </div>
-        </div>
-        {/* Per-Channel Animation Toggle Card */}
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <ResourceUsageIndicator level="medium" tooltip="Video animations can use significant CPU and memory resources, especially with multiple channels">
-              <span className="wee-card-title">Animation on Hover</span>
-            </ResourceUsageIndicator>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.
-            <div style={{ marginTop: 14 }}>
-              {renderAnimationToggleSection && renderAnimationToggleSection()}
+          }
+        >
+          {hoverSoundEnabled && (
+            <div style={{ marginTop: 0 }}>
+              {renderHoverSoundSection()}
             </div>
-          </div>
-        </div>
+          )}
+          {!hoverSoundEnabled && <span style={{ color: '#888' }}>Set a custom sound to play when hovering over this channel.</span>}
+        </Card>
+        {/* Per-Channel Animation Toggle Card */}
+        <Card title="Animation on Hover" separator desc="Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.">
+          {renderAnimationToggleSection()}
+        </Card>
       </BaseModal>
       {showImageSearch && (
         <ImageSearchModal

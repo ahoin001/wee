@@ -81,7 +81,7 @@ export default function Button({
         boxShadow: `${shadows.card}, 0 0 8px 2px #0099ff33`,
         color: colors.textOnPrimary,
         transform: "translateY(-1px) scale(1.03)",
-      };
+  };
     } else if (variant === "secondary") {
       hoverStyle = {
         background: "#e6f3ff",

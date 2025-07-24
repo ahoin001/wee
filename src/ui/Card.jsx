@@ -2,26 +2,22 @@
 // Usage:
 // <Card><Text variant="h3">Title</Text>...</Card>
 
-import React from "react";
-import { colors, radii, shadows, spacing } from "./tokens";
-import Text from "./Text";
+import React from 'react';
+import './Card.css';
 
-export default function Card({ children, style, title, separator, desc, actions, ...props }) {
+export default function Card({ title, separator, desc, actions, headerActions, children, className = '', style = {} }) {
   return (
-    <div
-      style={{
-        background: colors.card,
-        borderRadius: radii.lg,
-        boxShadow: shadows.card,
-        padding: spacing.lg,
-        marginBottom: spacing.lg,
-        ...style,
-      }}
-      {...props}
-    >
-      {title && <Text variant="h3" color={colors.text || '#222'} style={{ marginBottom: 6 }}>{title}</Text>}
-      {separator && <div style={{ height: 1, background: '#e0e0e6', margin: '10px 0' }} />}
-      {desc && <div style={{ color: '#555', fontSize: '0.97em', marginBottom: 10 }}>{desc}</div>}
+    <div className={`wee-card ${className}`} style={style}>
+      {(title || headerActions) && (
+        <div className="wee-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {title && (
+            <span className="wee-card-title">{title}</span>
+          )}
+          {headerActions}
+        </div>
+      )}
+      {separator && <div className="wee-card-separator" />}
+      {desc && <div className="wee-card-desc">{desc}</div>}
       {actions}
       {children}
     </div>

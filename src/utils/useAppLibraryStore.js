@@ -102,6 +102,20 @@ const useAppLibraryStore = create((set, get) => ({
   rescanUwpApps: async () => {
     await get().fetchUwpApps();
   },
+
+  // Steam library path (single source of truth)
+  customSteamPath: localStorage.getItem('customSteamPath') || '',
+  setCustomSteamPath: (path) => {
+    localStorage.setItem('customSteamPath', path);
+    set({ customSteamPath: path });
+  },
+
+  // Epic library path (single source of truth)
+  customEpicPath: localStorage.getItem('customEpicPath') || '',
+  setCustomEpicPath: (path) => {
+    localStorage.setItem('customEpicPath', path);
+    set({ customEpicPath: path });
+  },
 }));
 
 export default useAppLibraryStore; 
