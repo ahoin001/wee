@@ -12,6 +12,7 @@ import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
 import audioManager from './utils/AudioManager';
 import intervalManager from './utils/IntervalManager';
+import useAppLibraryStore from './utils/useAppLibraryStore';
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -623,6 +624,21 @@ function App() {
       window.api.onWallpapersUpdated(reloadWallpapers);
       return () => window.api.offWallpapersUpdated(reloadWallpapers);
     }
+  }, []);
+
+  // Prefetch app/game/UWP lists on app launch
+  useEffect(() => {
+    const {
+      installedApps, fetchInstalledApps,
+      steamGames, fetchSteamGames,
+      epicGames, fetchEpicGames,
+      uwpApps, fetchUwpApps
+    } = useAppLibraryStore.getState();
+
+    if (installedApps.length === 0) fetchInstalledApps();
+    if (steamGames.length === 0) fetchSteamGames();
+    if (epicGames.length === 0) fetchEpicGames();
+    if (uwpApps.length === 0) fetchUwpApps();
   }, []);
 
   const handleMediaChange = (id, file) => {
@@ -1401,14 +1417,7 @@ function App() {
             currentType={channelConfigs[openChannelModal]?.type}
             currentAsAdmin={channelConfigs[openChannelModal]?.asAdmin}
             currentAnimatedOnHover={channelConfigs[openChannelModal]?.animatedOnHover}
-            cachedSteamGames={cachedSteamGames}
-            cachedInstalledApps={cachedInstalledApps}
-            rescanSteamGames={rescanSteamGames}
-            rescanInstalledApps={rescanInstalledApps}
-            steamGamesLoading={steamGamesLoading}
-            installedAppsLoading={installedAppsLoading}
-            steamGamesError={steamGamesError}
-            installedAppsError={installedAppsError}
+            currentHoverSound={channelConfigs[openChannelModal]?.hoverSound}
           />
         )}
         {isLoading && <SplashScreen fadingOut={splashFading} />}

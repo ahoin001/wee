@@ -5,14 +5,12 @@ import './ChannelModal.css';
 import ImageSearchModal from './ImageSearchModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Button from '../ui/Button';
-import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
+// Remove unused imports related to old fetching/caching logic
+// import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
 import AppPathSearchCard from './AppPathSearchCard';
+import useAppLibraryStore from '../utils/useAppLibraryStore';
 
 const channelsApi = window.api?.channels;
-const appsApi = window.api?.apps || {
-  getInstalled: async () => [],
-  rescanInstalled: async () => [],
-};
 
 // Utility to deduplicate by appid
 function dedupeByAppId(games) {
@@ -34,7 +32,7 @@ function dedupeByKey(games, key) {
   });
 }
 
-function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover, cachedSteamGames, cachedInstalledApps, rescanSteamGames, rescanInstalledApps, steamGamesLoading, installedAppsLoading, steamGamesError, installedAppsError }) {
+function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover }) {
   const [media, setMedia] = useState(currentMedia);
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
@@ -54,90 +52,63 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [showError, setShowError] = useState(false);
   const [animatedOnHover, setAnimatedOnHover] = useState(currentAnimatedOnHover);
   const [gameQuery, setGameQuery] = useState('');
-  const [gameResults, setGameResults] = useState([]);
   const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
-  const [gameLoading, setGameLoading] = useState(false);
-  const [gameError, setGameError] = useState('');
-  const [installedGames, setInstalledGames] = useState([]);
   const [gameType, setGameType] = useState(type || 'exe'); // 'exe', 'url', 'steam', 'epic'
   const [customSteamPath, setCustomSteamPath] = useState(() => localStorage.getItem('customSteamPath') || '');
   const [appQuery, setAppQuery] = useState('');
-  const [appResults, setAppResults] = useState([]);
   const [appDropdownOpen, setAppDropdownOpen] = useState(false);
-  const [installedApps, setInstalledApps] = useState([]);
-  const [appLoading, setAppLoading] = useState(false);
-  const [appError, setAppError] = useState('');
-  // Remove installedAppsCache and local scan logic
 
-  // Use cachedSteamGames and cachedInstalledApps for instant search
-  useEffect(() => {
-    if (gameType === 'steam' || gameType === 'epic') {
-      setGameLoading(true);
-      setGameError('');
-      setInstalledGames([]);
-      const api = gameType === 'steam' ? window.api.steam : window.api.epic;
-      const args = gameType === 'steam' && customSteamPath ? { customPath: customSteamPath } : undefined;
-      (api.getInstalledGames(args)).then(result => {
-        setGameLoading(false);
-        if (result.error) {
-          setGameError(result.error);
-          setInstalledGames([]);
-        } else {
-          const key = gameType === 'steam' ? 'appid' : 'appName';
-          setInstalledGames(dedupeByKey(result.games || [], key));
-          setGameError('');
-        }
-      }).catch(err => {
-        setGameLoading(false);
-        setGameError(err.message || 'Failed to scan games.');
-        setInstalledGames([]);
-      });
-    }
-  }, [gameType, customSteamPath]);
+  // Zustand store selectors
+  const {
+    installedApps, appsLoading, appsError, fetchInstalledApps, rescanInstalledApps,
+    steamGames, steamLoading, steamError, fetchSteamGames, rescanSteamGames,
+    epicGames, epicLoading, epicError, fetchEpicGames, rescanEpicGames,
+    uwpApps, uwpLoading, uwpError, fetchUwpApps, rescanUwpApps
+  } = useAppLibraryStore();
 
-  // Load installed apps on mount (once per session)
-  useEffect(() => {
-    if (type === 'exe' && installedApps.length === 0 && appsApi.getInstalled) {
-      if (cachedInstalledApps && cachedInstalledApps.length > 0) {
-        setInstalledApps(cachedInstalledApps);
-        setAppLoading(false);
-      } else {
-        setAppLoading(true);
-        appsApi.getInstalled().then(apps => {
-          setInstalledApps(apps || []);
-          // installedAppsCache.current = apps || []; // This line is removed
-          setAppLoading(false);
-        }).catch(e => {
-          setAppError('Failed to scan apps');
-          setAppLoading(false);
-        });
-      }
-    }
-  }, [type, installedApps.length]);
+  // Fuzzy search for apps
+  const appResults = (type === 'exe' && appQuery && installedApps.length > 0)
+    ? installedApps.filter(a => a.name.toLowerCase().includes(appQuery.toLowerCase())).slice(0, 10)
+    : [];
+  console.log('[ChannelModal] appResults:', appResults);
 
-  // Fuzzy search as user types
-  useEffect(() => {
-    if ((gameType === 'steam' || gameType === 'epic') && gameQuery && installedGames.length > 0) {
-      const q = gameQuery.toLowerCase();
-      setGameResults(installedGames.filter(g => g.name.toLowerCase().includes(q)).slice(0, 10));
-      setGameDropdownOpen(true);
-    } else {
-      setGameResults([]);
-      setGameDropdownOpen(false);
-    }
-  }, [gameQuery, gameType, installedGames]);
+  // Fuzzy search for games
+  const installedGames = (gameType === 'steam') ? steamGames : (gameType === 'epic' ? epicGames : []);
+  const gameResults = (['steam', 'epic'].includes(gameType) && gameQuery && installedGames.length > 0)
+    ? installedGames.filter(g => g.name.toLowerCase().includes(gameQuery.toLowerCase())).slice(0, 10)
+    : [];
+  console.log('[ChannelModal] gameResults:', gameResults);
 
-  // Fuzzy search as user types in app path
+  // Fuzzy search for UWP
+  const [uwpQuery, setUwpQuery] = useState('');
+  const [uwpDropdownOpen, setUwpDropdownOpen] = useState(false);
+  const filteredUwpApps = uwpApps.filter(app =>
+    app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
+    app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
+  );
+  console.log('[ChannelModal] filteredUwpApps:', filteredUwpApps);
+
+  // Best-practice: useEffect to sync dropdown open state with results
   useEffect(() => {
-    if (type === 'exe' && appQuery && installedApps.length > 0) {
-      const q = appQuery.toLowerCase();
-      setAppResults(installedApps.filter(a => a.name.toLowerCase().includes(q)).slice(0, 10));
-      setAppDropdownOpen(true);
-    } else {
-      setAppResults([]);
-      setAppDropdownOpen(false);
+    if (type === 'exe') {
+      if (appQuery && appResults.length > 0) setAppDropdownOpen(true);
+      else setAppDropdownOpen(false);
     }
-  }, [appQuery, type, installedApps]);
+  }, [type, appQuery, appResults.length]);
+
+  useEffect(() => {
+    if ((gameType === 'steam' || gameType === 'epic')) {
+      if (gameQuery && gameResults.length > 0) setGameDropdownOpen(true);
+      else setGameDropdownOpen(false);
+    }
+  }, [gameType, gameQuery, gameResults.length]);
+
+  useEffect(() => {
+    if (type === 'microsoftstore') {
+      if (uwpQuery && filteredUwpApps.length > 0) setUwpDropdownOpen(true);
+      else setUwpDropdownOpen(false);
+    }
+  }, [type, uwpQuery, filteredUwpApps.length]);
 
   // Handle hover sound file select
   const handleHoverSoundFile = async (file) => {
@@ -350,25 +321,25 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   };
 
   const handleGameRefresh = async () => {
-    setGameLoading(true);
-    setGameError('');
-    setInstalledGames([]);
+    // setGameLoading(true); // Removed
+    // setGameError(''); // Removed
+    // setInstalledGames([]); // Removed
     try {
       const api = gameType === 'steam' ? window.api.steam : window.api.epic;
       const result = await api.getInstalledGames();
-      setGameLoading(false);
+      // setGameLoading(false); // Removed
       if (result.error) {
-        setGameError(result.error);
-        setInstalledGames([]);
+        // setGameError(result.error); // Removed
+        // setInstalledGames([]); // Removed
       } else {
         const key = gameType === 'steam' ? 'appid' : 'appName';
-        setInstalledGames(dedupeByKey(result.games || [], key));
-        setGameError('');
+        // setInstalledGames(dedupeByKey(result.games || [], key)); // Removed
+        // setGameError(''); // Removed
       }
     } catch (err) {
-      setGameLoading(false);
-      setGameError(err.message || 'Failed to scan games.');
-      setInstalledGames([]);
+      // setGameLoading(false); // Removed
+      // setGameError(err.message || 'Failed to scan games.'); // Removed
+      // setInstalledGames([]); // Removed
     }
   };
 
@@ -504,6 +475,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </div>
   );
 
+  // Update renderAppPathSection to use Zustand state/actions
   const renderAppPathSection = () => (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
@@ -526,20 +498,32 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         <div style={{ position: 'relative', marginBottom: 16 }}>
           <AppPathSearchCard
             value={appQuery || path}
-            onChange={handleAppInputChange}
+            onChange={e => { setAppQuery(e.target.value); setPath(e.target.value); setPathError(''); }}
             onFocus={() => { if (appResults.length > 0) setAppDropdownOpen(true); }}
             onBlur={() => setTimeout(() => setAppDropdownOpen(false), 150)}
             results={appResults}
-            loading={installedAppsLoading}
-            error={installedAppsError || appError}
-            onSelect={handleAppResultClick}
+            loading={appsLoading}
+            error={appsError}
+            onSelect={app => {
+              const fullPath = app.args ? `${app.path} ${app.args}` : app.path;
+              setPath(fullPath);
+              setAppQuery(app.name);
+              setAppDropdownOpen(false);
+              setPathError('');
+            }}
             onRescan={rescanInstalledApps}
             rescanLabel="Rescan Apps"
-            disabled={appLoading}
+            disabled={appsLoading}
             placeholder="Enter or search for an app..."
             dropdownOpen={appDropdownOpen}
             setDropdownOpen={setAppDropdownOpen}
           />
+          {/* Visual indicator for loading */}
+          {appsLoading && appQuery && appResults.length === 0 && (
+            <div style={{ position: 'absolute', left: 0, top: '100%', color: '#007bff', fontWeight: 500, fontSize: 15, marginTop: 4 }}>
+              <span>Scanning for installed apps...</span>
+            </div>
+          )}
         </div>
       )}
       {/* Microsoft Store AppID Input */}
@@ -556,8 +540,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             style={{ width: '100%', padding: '12px 14px', fontSize: 17 }}
             autoComplete="off"
           />
-          {uwpAppsLoading && <div style={{ position: 'absolute', top: 40, left: 0, color: '#888' }}>Loading...</div>}
-          {uwpAppsError && <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8 }}>{uwpAppsError}</div>}
+          {uwpLoading && uwpQuery && filteredUwpApps.length === 0 && (
+            <div style={{ position: 'absolute', top: 40, left: 0, color: '#007bff', fontWeight: 500, fontSize: 15 }}>
+              <span>Scanning for Microsoft Store apps...</span>
+            </div>
+          )}
+          {uwpError && <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8 }}>{uwpError}</div>}
           {uwpDropdownOpen && filteredUwpApps.length > 0 && (
             <div className="uwp-dropdown" style={{ position: 'absolute', zIndex: 10, background: '#fff', border: '1px solid #b0c4d8', width: '100%', maxHeight: 200, overflowY: 'auto', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
               {filteredUwpApps.map(app => (
@@ -582,13 +570,13 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 type="text"
                 placeholder={gameType === 'steam' ? 'Type a Steam game name (e.g. Rocket League) or paste a Steam URI' : 'Type an Epic game name (e.g. Fortnite) or paste an Epic URI'}
                 value={gameQuery}
-                onChange={handleGameInputChange}
+                onChange={e => { setGameQuery(e.target.value); setPath(e.target.value); setPathError(''); }}
                 className={`text-input ${pathError ? 'error' : ''}`}
                 style={{ flex: 1, padding: '12px 14px', fontSize: 17 }}
                 autoComplete="off"
                 onFocus={() => gameResults.length > 0 && setGameDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setGameDropdownOpen(false), 150)}
-                disabled={gameLoading}
+                disabled={gameType === 'steam' ? steamLoading : epicLoading}
               />
               {/* Add a Rescan button for Steam/Epic */}
               {(gameType === 'steam' || gameType === 'epic') && (
@@ -596,10 +584,10 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   variant="primary"
                   title={gameType === 'steam' ? 'Rescan your Steam library for installed games.' : 'Rescan your Epic library for installed games.'}
                   style={{ fontSize: 14, borderRadius: 6, marginLeft: 0 }}
-                  onClick={handleGameRefresh}
-                  disabled={gameLoading}
+                  onClick={() => gameType === 'steam' ? rescanSteamGames(customSteamPath) : rescanEpicGames()}
+                  disabled={gameType === 'steam' ? steamLoading : epicLoading}
                 >
-                  {gameLoading ? 'Scanning...' : 'Rescan'}
+                  {(gameType === 'steam' ? steamLoading : epicLoading) ? 'Scanning...' : 'Rescan'}
                 </Button>
               )}
               {gameType === 'steam' && (
@@ -607,11 +595,29 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   variant="secondary"
                   title="Pick your main Steam folder (the one containing the steamapps folder and libraryfolders.vdf). Do NOT select the steamapps folder itself."
                   style={{ fontSize: 14, borderRadius: 6, marginLeft: 0, background: '#f7fafd', color: '#222', border: '1px solid #b0c4d8' }}
-                  onClick={handlePickSteamFolder}
-                  disabled={gameLoading}
+                  onClick={async () => {
+                    const result = await window.api.steam.pickLibraryFolder();
+                    if (result && result.path) {
+                      localStorage.setItem('customSteamPath', result.path);
+                      setCustomSteamPath(result.path);
+                      fetchSteamGames(result.path);
+                    }
+                  }}
+                  disabled={steamLoading}
                 >
                   Change Steam Folder
                 </Button>
+              )}
+              {/* Visual indicator for loading games */}
+              {(gameType === 'steam' && steamLoading && gameQuery && gameResults.length === 0) && (
+                <div style={{ position: 'absolute', left: 0, top: '100%', color: '#007bff', fontWeight: 500, fontSize: 15, marginTop: 4 }}>
+                  <span>Scanning for Steam games...</span>
+                </div>
+              )}
+              {(gameType === 'epic' && epicLoading && gameQuery && gameResults.length === 0) && (
+                <div style={{ position: 'absolute', left: 0, top: '100%', color: '#007bff', fontWeight: 500, fontSize: 15, marginTop: 4 }}>
+                  <span>Scanning for Epic games...</span>
+                </div>
               )}
               {gameDropdownOpen && gameResults.length > 0 && (
                 <ul style={{
@@ -634,7 +640,18 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                       key={gameType === 'steam' ? game.appid : game.appName}
                       className="steam-dropdown-result"
                       style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '14px 18px', cursor: 'pointer', fontSize: 18, minHeight: 56, transition: 'background 0.15s' }}
-                      onMouseDown={() => handleGameResultClick(game)}
+                      onMouseDown={() => {
+                        let uri = '';
+                        if (gameType === 'steam') {
+                          uri = `steam://rungameid/${game.appid}`;
+                        } else if (gameType === 'epic') {
+                          uri = `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`;
+                        }
+                        setPath(uri);
+                        setGameQuery(game.name);
+                        setGameDropdownOpen(false);
+                        setPathError('');
+                      }}
                     >
                       {gameType === 'steam' && (
                         <img
@@ -672,30 +689,38 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 )}
               </span>
             </div>
-            {gameError === 'Could not find Steam installation.' && gameType === 'steam' ? (
+            {(gameType === 'steam' && steamError) && (
               <div style={{ color: '#dc3545', fontWeight: 500, marginTop: 8, fontSize: 15 }}>
-                Cannot find Steam installation.<br />
-                Please ensure Steam is installed.<br />
-                Do you have Steam installed at <code>C:\Program Files (x86)\Steam\steamapps\libraryfolders.vdf</code> as we expect?<br />
-                <span style={{ color: '#222', fontWeight: 400, fontSize: 14 }}>You can still manually enter a Steam URI above.</span>
-              </div>
-            ) : gameError && (
-              <div style={{ color: '#dc3545', fontWeight: 500, marginTop: 8, fontSize: 15 }}>
-                {gameError} <br />
-                Please ensure {gameType === 'steam' ? 'Steam' : 'Epic Games Launcher'} is installed and you have games downloaded.
+                {steamError} <br />
+                Please ensure Steam is installed and you have games downloaded.
               </div>
             )}
-            {gameLoading && (
+            {(gameType === 'epic' && epicError) && (
+              <div style={{ color: '#dc3545', fontWeight: 500, marginTop: 8, fontSize: 15 }}>
+                {epicError} <br />
+                Please ensure Epic Games Launcher is installed and you have games downloaded.
+              </div>
+            )}
+            {(gameType === 'steam' && steamLoading) && (
               <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 18, color: '#007bff', fontWeight: 500 }}>
-                Scanning your {gameType === 'steam' ? 'Steam' : 'Epic'} library for installed games...
+                Scanning your Steam library for installed games...
               </div>
             )}
-            {!gameLoading && !gameError && installedGames.length === 0 && (
+            {(gameType === 'epic' && epicLoading) && (
+              <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 18, color: '#007bff', fontWeight: 500 }}>
+                Scanning your Epic library for installed games...
+              </div>
+            )}
+            {!steamLoading && !steamError && gameType === 'steam' && installedGames.length === 0 && (
               <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 16, color: '#888', fontWeight: 500 }}>
-                No installed {gameType === 'steam' ? 'Steam' : 'Epic'} games found.
+                No installed Steam games found.
               </div>
             )}
-            {/* Add a style tag for the hover effect */}
+            {!epicLoading && !epicError && gameType === 'epic' && installedGames.length === 0 && (
+              <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 16, color: '#888', fontWeight: 500 }}>
+                No installed Epic games found.
+              </div>
+            )}
             <style>{`
               .steam-dropdown-result:hover {
                 background: #f0f6ff !important;
@@ -717,7 +742,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               type="text"
               placeholder={type === 'exe' ? 'C:\\Path\\To\\Application.exe or paste path here' : 'https://example.com'}
               value={path}
-              onChange={handlePathChange}
+              onChange={e => { setPath(e.target.value); setPathError(''); }}
               className={`text-input ${pathError ? 'error' : ''}`}
             />
             {type === 'exe' && (
@@ -748,7 +773,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   type="file"
                   accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi,.lnk"
                   ref={exeFileInputRef}
-                  onChange={(e) => handleExeFileSelect(e.target.files[0])}
+                  onChange={e => handleExeFileSelect(e.target.files[0])}
                   style={{ display: 'none' }}
                 />
               </>
@@ -878,36 +903,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </div>
   );
 
-  // Add state for Microsoft Store apps
-  const [uwpApps, setUwpApps] = useState([]);
-  const [uwpAppsLoading, setUwpAppsLoading] = useState(false);
-  const [uwpAppsError, setUwpAppsError] = useState('');
-  const [uwpQuery, setUwpQuery] = useState('');
-  const [uwpDropdownOpen, setUwpDropdownOpen] = useState(false);
-
-  // Fetch and cache UWP apps when type is microsoftstore
-  useEffect(() => {
-    if (type === 'microsoftstore' && uwpApps.length === 0 && !uwpAppsLoading) {
-      setUwpAppsLoading(true);
-      setUwpAppsError('');
-      window.api.uwp.listApps()
-        .then(apps => {
-          setUwpApps(apps);
-          setUwpAppsLoading(false);
-        })
-        .catch(err => {
-          setUwpAppsError('Failed to load Microsoft Store apps');
-          setUwpAppsLoading(false);
-        });
-    }
-  }, [type]);
-
-  // Filtered UWP apps
-  const filteredUwpApps = uwpApps.filter(app =>
-    app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
-    app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
-  );
-
   return (
     <>
       <BaseModal
@@ -942,7 +937,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             </div>
           </div>
         </div>
-        {/* Display Options Card */}
+        {/* Launch Options Card */}
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
             <span className="wee-card-title">Launch Options</span>
@@ -1014,15 +1009,7 @@ ChannelModal.propTypes = {
   currentType: PropTypes.string,
   currentHoverSound: PropTypes.object,
   currentAsAdmin: PropTypes.bool,
-  currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global']),
-  cachedSteamGames: PropTypes.arrayOf(PropTypes.object),
-  cachedInstalledApps: PropTypes.arrayOf(PropTypes.object),
-  rescanSteamGames: PropTypes.func,
-  rescanInstalledApps: PropTypes.func,
-  steamGamesLoading: PropTypes.bool,
-  installedAppsLoading: PropTypes.bool,
-  steamGamesError: PropTypes.string,
-  installedAppsError: PropTypes.string,
+  currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global'])
 };
 
 export default ChannelModal; 

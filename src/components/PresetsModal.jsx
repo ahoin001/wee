@@ -6,6 +6,7 @@ import JSZip from 'jszip';
 import Button from '../ui/Button';
 import '../styles/design-system.css';
 import Text from '../ui/Text';
+import Card from '../ui/Card';
 
 function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset }) {
   const fileInputRef = useRef();
@@ -340,11 +341,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           <button onClick={handleCancelImport} style={{ padding: '8px 24px', borderRadius: 8 }}>Cancel</button>
         </div>
       )}
-      <div className="wee-card" style={{ marginBottom: 18 }}>
-        <div className="wee-card-header">
-          <Text as="span" size="lg" weight={700} className="wee-card-title">Save Current as Preset</Text>
-        </div>
-        <div className="wee-card-separator" />
+      <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
         <div className="wee-card-desc">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <input
@@ -352,7 +349,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
               placeholder="Preset name"
               value={newPresetName}
               onChange={e => { setNewPresetName(e.target.value); setError(''); }}
-              style={{ flex: 1, padding: 8, borderRadius: 6, border: '1.5px solid #bbb', fontSize: 15, background: '#fff' }}
+              style={{ flex: 1, padding: 8, borderRadius: 6, border: '1.5px solid #bbb', fontSize: 15, background: '#fff', color: '#222' }}
               maxLength={32}
               disabled={presets.length >= 6}
             />
@@ -395,12 +392,8 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
           {presets.length >= 6 && <Text size="sm" color="#888" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
         </div>
-      </div>
-      <div className="wee-card" style={{ marginBottom: 18 }}>
-        <div className="wee-card-header">
-          <Text as="span" size="lg" weight={700} className="wee-card-title">Saved Presets</Text>
-        </div>
-        <div className="wee-card-separator" />
+      </Card>
+      <Card style={{ marginBottom: 18 }} title="Saved Presets" separator>
         {/* Import/Export controls now above the preset list */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
           <Button variant="secondary" onClick={handleImportClick}>
@@ -495,7 +488,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
             </li>
           ))}
         </ul>
-      </div>
+      </Card>
      
     </BaseModal>
   );
