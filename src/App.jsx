@@ -387,12 +387,30 @@ function App() {
       for (let i = 0; i < 12; i++) {
         const id = `channel-${i}`;
         if (channelData && channelData[id]) {
-          gridChannels.push({ id, ...channelData[id], empty: !(channelData[id].media || channelData[id].path) });
+          let config = { ...channelData[id] };
+          // Ensure type is present
+          if (!config.type) {
+            config.type = inferChannelType(config.path);
+          }
+          gridChannels.push({ id, ...config, empty: !(config.media || config.path) });
         } else {
           gridChannels.push({ id, empty: true });
         }
       }
       setChannels(gridChannels);
+      
+      // Set channelConfigs to the processed channel data
+      const processedConfigs = {};
+      Object.entries(channelData || {}).forEach(([channelId, config]) => {
+        let processedConfig = { ...config };
+        // Ensure type is present
+        if (!processedConfig.type) {
+          processedConfig.type = inferChannelType(processedConfig.path);
+        }
+        processedConfigs[channelId] = processedConfig;
+      });
+      setChannelConfigs(processedConfigs);
+      
       // Update mediaMap and appPathMap from saved configs
       const newMediaMap = {};
       const newAppPathMap = {};
@@ -410,6 +428,43 @@ function App() {
     }
     loadAll();
   }, []);
+
+  // Helper function to infer channel type from path
+  const inferChannelType = (path) => {
+    if (!path || typeof path !== 'string') {
+      return 'exe';
+    }
+    
+    const trimmedPath = path.trim();
+    
+    // Check for URLs
+    if (/^https?:\/\//i.test(trimmedPath)) {
+      return 'url';
+    }
+    
+    // Check for Steam URIs/paths (various formats)
+    if (/^steam:\/\//i.test(trimmedPath) || 
+        /^steam:\/\/rungameid\//i.test(trimmedPath) ||
+        /^steam:\/\/launch\//i.test(trimmedPath) ||
+        // Also handle just numeric AppIDs that might be Steam games
+        (/^\d+$/.test(trimmedPath) && parseInt(trimmedPath) > 0)) {
+      return 'steam';
+    }
+    
+    // Check for Epic Games URIs
+    if (/^com\.epicgames\.launcher:\/\//i.test(trimmedPath)) {
+      return 'epic';
+    }
+    
+    // Check for Microsoft Store AppIDs (contain exclamation marks and follow the pattern)
+    if (trimmedPath.includes('!') && 
+        /^[A-Za-z0-9._-]+\.[A-Za-z0-9._-]+_[A-Za-z0-9._-]+![A-Za-z0-9._-]+$/i.test(trimmedPath)) {
+      return 'microsoftstore';
+    }
+    
+    // Default to exe for executable paths and everything else
+    return 'exe';
+  };
 
   // Load sound settings and play startup sound
   useEffect(() => {
@@ -483,6 +538,24 @@ function App() {
     }
     loadSettings();
   }, []);
+
+  // After soundSettings is loaded, initialize audio manager
+  useEffect(() => {
+    if (!soundSettings) return;
+    async function initSounds() {
+      try {
+        console.log('[App] Initializing audio manager: updateVolumesFromLibrary (after soundSettings loaded)');
+        await audioManager.updateVolumesFromLibrary();
+        console.log('[App] updateVolumesFromLibrary complete');
+        console.log('[App] Initializing audio manager: updateBackgroundMusicFromSettings (after soundSettings loaded)');
+        await audioManager.updateBackgroundMusicFromSettings();
+        console.log('[App] updateBackgroundMusicFromSettings complete');
+      } catch (err) {
+        console.warn('Failed to initialize audio manager:', err);
+      }
+    }
+    initSounds();
+  }, [soundSettings]);
   // Persist barType and other settings when changed
   useEffect(() => {
     // Only persist settings after initialization to prevent overwriting ribbonButtonConfigs on startup
@@ -681,11 +754,18 @@ function App() {
     }
     // Update channel configurations
     setChannelConfigs(prev => {
-      const updated = {
-        ...prev,
-        [channelId]: channelData
-      };
-      // Save the updated configs
+      let updatedChannelData = { ...channelData, ...prev };
+      let updated = { ...prev };
+      if (channelData === null) {
+        // ... existing code for clearing ...
+        return updated;
+      }
+      // Ensure type is present
+      let channelType = channelData.type;
+      if (!channelType) {
+        channelType = inferChannelType(channelData.path);
+      }
+      updated[channelId] = { ...channelData, type: channelType };
       channelsApi?.set(updated);
       return updated;
     });
@@ -1169,6 +1249,7 @@ function App() {
     }
     
     const channelData = await channelsApi?.get();
+    console.log('channelData', channelData);
     setChannelConfigs(channelData || {});
   };
 
@@ -1348,6 +1429,9 @@ function App() {
         <div className="channels-grid" style={{ opacity: channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
           {channels.map((channel) => {
             const config = channelConfigs[channel.id];
+            if (config && !config.type) {
+              console.warn('[WARNING] Channel config missing type:', channel.id, config);
+            }
             const isConfigured = config && (config.media || config.path);
             return (
               <Channel
@@ -1408,17 +1492,21 @@ function App() {
         />
         {/* Channel Modal - rendered at top level for proper z-index */}
         {openChannelModal && (
-          <ChannelModal
-            channelId={openChannelModal}
-            onClose={() => setOpenChannelModal(null)}
-            onSave={handleChannelSave}
-            currentMedia={mediaMap[openChannelModal]}
-            currentPath={appPathMap[openChannelModal]}
-            currentType={channelConfigs[openChannelModal]?.type}
-            currentAsAdmin={channelConfigs[openChannelModal]?.asAdmin}
-            currentAnimatedOnHover={channelConfigs[openChannelModal]?.animatedOnHover}
-            currentHoverSound={channelConfigs[openChannelModal]?.hoverSound}
-          />
+          (() => {
+            return (
+              <ChannelModal
+                channelId={openChannelModal}
+                onClose={() => setOpenChannelModal(null)}
+                onSave={handleChannelSave}
+                currentMedia={mediaMap[openChannelModal]}
+                currentPath={appPathMap[openChannelModal]}
+                currentType={channelConfigs[openChannelModal]?.type}
+                currentAsAdmin={channelConfigs[openChannelModal]?.asAdmin}
+                currentAnimatedOnHover={channelConfigs[openChannelModal]?.animatedOnHover}
+                currentHoverSound={channelConfigs[openChannelModal]?.hoverSound}
+              />
+            );
+          })()
         )}
         {isLoading && <SplashScreen fadingOut={splashFading} />}
         <PresetsModal

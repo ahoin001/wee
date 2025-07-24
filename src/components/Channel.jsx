@@ -119,7 +119,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     audioManager.stopAllSounds();
     
     if (empty) {
-      setShowChannelModal(true);
+      // setShowChannelModal(true);
     } else if (path) {
       // Play channel click sound if enabled
       try {
