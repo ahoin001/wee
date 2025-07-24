@@ -63,8 +63,30 @@ function AppPathSearchCard({
             {filteredUwpApps.map((app, idx) => (
               <div
                 key={app.appId}
-                style={{ padding: 10, cursor: 'pointer', borderBottom: idx < filteredUwpApps.length - 1 ? '1px solid #eee' : 'none' }}
+                style={{ 
+                  padding: '12px 16px', 
+                  cursor: 'pointer', 
+                  borderBottom: idx < filteredUwpApps.length - 1 ? '1px solid #eee' : 'none',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  borderRadius: idx === 0 ? '8px 8px 0 0' : idx === filteredUwpApps.length - 1 ? '0 0 8px 8px' : '0',
+                  position: 'relative',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: '#333'
+                }}
                 onMouseDown={() => onSelect({ name: app.name, appId: app.appId, type: 'uwp' })}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#f0f8ff';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 153, 255, 0.15)';
+                  e.currentTarget.style.color = '#0066cc';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.color = '#333';
+                }}
               >
                 {app.name}
               </div>
@@ -117,10 +139,70 @@ function AppPathSearchCard({
           {results.map((item, idx) => (
             <div
               key={item.id || item.name || idx}
-              style={{ padding: 10, cursor: 'pointer', borderBottom: idx < results.length - 1 ? '1px solid #eee' : 'none' }}
+              style={{ 
+                padding: '12px 16px', 
+                cursor: 'pointer', 
+                borderBottom: idx < results.length - 1 ? '1px solid #eee' : 'none',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                borderRadius: idx === 0 ? '8px 8px 0 0' : idx === results.length - 1 ? '0 0 8px 8px' : '0',
+                position: 'relative',
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#333',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}
               onMouseDown={() => onSelect(item)}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#f0f8ff';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 153, 255, 0.15)';
+                e.currentTarget.style.color = '#0066cc';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.color = '#333';
+              }}
             >
-              {item.name || item.path || item.appName}
+              {item.icon && (
+                <img 
+                  src={item.icon} 
+                  alt={`${item.name} icon`}
+                  style={{ 
+                    width: '24px', 
+                    height: '24px', 
+                    borderRadius: '4px',
+                    objectFit: 'contain',
+                    transition: 'transform 0.2s ease'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                />
+              )}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', marginBottom: '2px' }}>
+                  {item.name || item.path || item.appName}
+                </div>
+                {item.path && item.name && (
+                  <div style={{ 
+                    fontSize: '13px', 
+                    color: '#666', 
+                    opacity: '0.8',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {item.path}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
