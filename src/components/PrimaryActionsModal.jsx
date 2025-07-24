@@ -62,7 +62,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
     app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
   );
-
+  
   // Update state when config changes (important for when modal reopens)
   useEffect(() => {
     if (config) {
@@ -550,7 +550,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const handleAppResultClick = (item) => {
     const fullPath = item.args ? `${item.path} ${item.args}` : item.path;
     const newPath = fullPath || item.name || '';
-    setPath(newPath);
+                        setPath(newPath);
     setAction(newPath); // Also update action for saving
     setAppQuery(item.name || item.path || '');
     setAppDropdownOpen(false);

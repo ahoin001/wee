@@ -481,7 +481,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                       {justUpdated === preset.name ? 'Updated!' : 'Update'}
                     </Button>
                     <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); handleStartEdit(preset); }}>Rename</Button>
-                    <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); handleDeletePreset(preset.name); }}>Delete</Button>
+                    <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); onDeletePreset(preset.name); }}>Delete</Button>
                   </>
                 )}
               </div>
