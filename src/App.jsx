@@ -13,6 +13,7 @@ import PresetsModal from './components/PresetsModal';
 import audioManager from './utils/AudioManager';
 import intervalManager from './utils/IntervalManager';
 import useAppLibraryStore from './utils/useAppLibraryStore';
+import useUIStore from './utils/useUIStore';
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -109,6 +110,17 @@ function WiiCursor() {
 }
 
 function App() {
+  // UI Store for global keyboard shortcuts and modal management
+  const { 
+    handleGlobalKeyPress,
+    showPresetsModal,
+    showWallpaperModal, 
+    showSoundModal,
+    closePresetsModal,
+    closeWallpaperModal,
+    closeSoundModal
+  } = useUIStore();
+  
   const [mediaMap, setMediaMap] = useState({});
   const [appPathMap, setAppPathMap] = useState({});
   const [channelConfigs, setChannelConfigs] = useState({});
@@ -144,7 +156,7 @@ function App() {
   const [slideRandomDirection, setSlideRandomDirection] = useState(false);
   const [slideDuration, setSlideDuration] = useState(1.5);
   const [slideEasing, setSlideEasing] = useState('ease-out');
-  const [showWallpaperModal, setShowWallpaperModal] = useState(false); // track modal open
+  // showWallpaperModal now managed by useUIStore
   const cycleTimeoutRef = useRef();
   const lastMusicIdRef = useRef(null);
   const lastMusicUrlRef = useRef(null);
@@ -189,7 +201,7 @@ function App() {
   const [channelAnimation, setChannelAnimation] = useState(null); // Add to app state
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
-  const [showPresetsModal, setShowPresetsModal] = useState(false);
+  // showPresetsModal now managed by useUIStore
   const [presets, setPresets] = useState([]);
   const [cachedSteamGames, setCachedSteamGames] = useState([]);
   const [cachedInstalledApps, setCachedInstalledApps] = useState([]);
@@ -377,7 +389,7 @@ function App() {
       console.log('No sound library in preset');
     }
     
-    setShowPresetsModal(false);
+            closePresetsModal();
   };
 
   // On mount, load all modular data
@@ -660,6 +672,21 @@ function App() {
       document.body.classList.remove('dark-mode');
     }
   }, [isDarkMode]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Don't handle shortcuts if user is typing in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
+        return;
+      }
+      
+      handleGlobalKeyPress(event);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleGlobalKeyPress]);
 
   // Apply cursor mode
   useEffect(() => {
@@ -1380,7 +1407,7 @@ function App() {
     
     if (!isInteractiveElement) {
       e.preventDefault();
-      setShowWallpaperModal(true);
+              // wallpaper modal opening now handled by keyboard shortcut or ribbon
     }
   };
 
@@ -1492,7 +1519,7 @@ function App() {
           onRecentRibbonGlowColorChange={setRecentRibbonGlowColors}
           ribbonGlowStrength={ribbonGlowStrength}
           ribbonGlowStrengthHover={ribbonGlowStrengthHover}
-          setShowPresetsModal={setShowPresetsModal}
+          setShowPresetsModal={useUIStore.getState().openPresetsModal}
           ribbonDockOpacity={ribbonDockOpacity}
           onRibbonDockOpacityChange={setRibbonDockOpacity}
           timeColor={timeColor}
@@ -1525,7 +1552,7 @@ function App() {
         {isLoading && <SplashScreen fadingOut={splashFading} />}
         <PresetsModal
           isOpen={showPresetsModal}
-          onClose={() => setShowPresetsModal(false)}
+          onClose={closePresetsModal}
           presets={presets}
           onSavePreset={handleSavePreset}
           onDeletePreset={handleDeletePreset}
@@ -1537,7 +1564,7 @@ function App() {
         />
         <WallpaperModal
           isOpen={showWallpaperModal}
-          onClose={() => setShowWallpaperModal(false)}
+          onClose={closeWallpaperModal}
           onSettingsChange={handleSettingsChange}
         />
       </div>

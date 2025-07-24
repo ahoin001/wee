@@ -10,6 +10,7 @@ import WiiStyleButton from './WiiStyleButton';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 import intervalManager from '../utils/IntervalManager';
+import useUIStore from '../utils/useUIStore';
 // import more icons as needed
 
 // Add a helper function to convert opacity to hex alpha if needed
@@ -21,10 +22,23 @@ function hexAlpha(opacity) {
 
 const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [showMenu, setShowMenu] = useState(false);
-  const [showMenuFade, setShowMenuFade] = useState(false);
-  const [showSoundModal, setShowSoundModal] = useState(false);
-  const [showWallpaperModal, setShowWallpaperModal] = useState(false);
+  
+  // Use Zustand store for settings menu and modal states
+  const { 
+    showSettingsMenu, 
+    settingsMenuFadeIn, 
+    openSettingsMenu, 
+    closeSettingsMenu,
+    showSoundModal,
+    showWallpaperModal,
+    showPresetsModal,
+    openSoundModal,
+    closeSoundModal,
+    openWallpaperModal,
+    closeWallpaperModal,
+    openPresetsModal,
+    closePresetsModal
+  } = useUIStore();
   const [isFullscreen, setIsFullscreen] = useState(true);
   const [isFrameless, setIsFrameless] = useState(true);
   const [showGeneralModal, setShowGeneralModal] = useState(false);
@@ -240,13 +254,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   };
 
   const handleSettingsClick = () => {
-    setShowMenu(true);
-    setTimeout(() => setShowMenuFade(true), 10); // trigger fade-in
+    openSettingsMenu();
   };
 
   const handleMenuClose = () => {
-    setShowMenuFade(false);
-    setTimeout(() => setShowMenu(false), 200); // match fade-out duration
+    closeSettingsMenu();
   };
 
   // Guard for window.api to prevent errors in browser
@@ -557,7 +569,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 height: '56px',
                 minWidth: '56px'
               }}
-              onClick={() => setShowPresetsModal(true)}
+              onClick={openPresetsModal}
               onContextMenu={handlePresetsButtonContextMenu}
               title="Customize Looks (Right-click to customize button)"
               useAdaptiveColor={presetsButtonConfig?.useAdaptiveColor}
@@ -671,15 +683,15 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           </div>
 
           {/* Settings Menu */}
-          {showMenu && (
+          {showSettingsMenu && (
             <div className="settings-menu">
               <div
-                className={`context-menu-content settings-menu-fade${showMenuFade ? ' in' : ''}`}
+                className={`context-menu-content settings-menu-fade${settingsMenuFadeIn ? ' in' : ''}`}
                 style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
               >
                 {/* Appearance Group */}
                 <div className="settings-menu-group-label">Appearance</div>
-                <div className="context-menu-item" onClick={() => { setShowWallpaperModal(true); handleMenuClose(); }}>
+                <div className="context-menu-item" onClick={() => { openWallpaperModal(); handleMenuClose(); }}>
                   Change Wallpaper
                 </div>
                 <div className="context-menu-item" onClick={() => { setShowTimeSettingsModal(true); handleMenuClose(); }}>
@@ -708,7 +720,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                    barType === 'wii-ribbon' ? 'Switch to Wii Bar' : 
                    'Switch to Flat Bar'}
                 </div> */}
-                <div className="context-menu-item" onClick={() => setShowPresetsModal(true)}>
+                <div className="context-menu-item" onClick={() => { openPresetsModal(); handleMenuClose(); }}>
                   🎨 Presets
                 </div>
                 <div className="settings-menu-separator" />
@@ -727,7 +739,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 <div className="context-menu-item" onClick={() => { setShowGeneralModal(true); handleMenuClose(); }}>
                   General Settings
                 </div>
-                <div className="context-menu-item" onClick={() => { setShowSoundModal(true); handleMenuClose(); }}>
+                <div className="context-menu-item" onClick={() => { openSoundModal(); handleMenuClose(); }}>
                   Change Sounds
                 </div>
                 <div className="context-menu-item" onClick={() => { setShowUpdateModal(true); handleMenuClose(); }}>
@@ -808,7 +820,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           )}
           
           {/* Click outside to close */}
-          {showMenu && (
+          {showSettingsMenu && (
             <div 
               style={{ 
                 position: 'fixed', 
@@ -825,7 +837,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
       <SoundModal 
         isOpen={showSoundModal}
-        onClose={() => setShowSoundModal(false)}
+        onClose={closeSoundModal}
         onSettingsChange={onSettingsChange}
       />
       <UpdateModal 
@@ -836,7 +848,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       {showWallpaperModal && (
         <WallpaperModal
           isOpen={showWallpaperModal}
-          onClose={() => setShowWallpaperModal(false)}
+          onClose={closeWallpaperModal}
           onSettingsChange={onSettingsChange}
           currentWallpaper={window.settings?.wallpaper}
           currentOpacity={window.settings?.wallpaperOpacity}
