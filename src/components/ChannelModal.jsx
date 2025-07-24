@@ -10,7 +10,6 @@ import Button from '../ui/Button';
 import AppPathSectionCard from './AppPathSectionCard';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import { useCallback } from 'react';
-import { dedupeByAppId, dedupeByKey } from '../utils/arrayUtils';
 import Card from '../ui/Card';
 
 const channelsApi = window.api?.channels;
@@ -275,17 +274,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
 
-  const handlePathChange = (e) => {
-    setPath(e.target.value);
-    setPathError(''); // Clear error when user types
-  };
-
-  const handleGameInputChange = (e) => {
-    setGameQuery(e.target.value);
-    setPath(e.target.value); // keep path in sync for manual entry
-    setPathError('');
-  };
-
   const handleGameResultClick = (game) => {
     let uri = '';
     if (gameType === 'steam') {
@@ -318,12 +306,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     if (result && result.path) {
       setCustomSteamPath(result.path);
     }
-  };
-
-  const handleAppInputChange = (e) => {
-    setAppQuery(e.target.value);
-    setPath(e.target.value);
-    setPathError('');
   };
 
   const handleAppResultClick = (app) => {
@@ -623,7 +605,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   overflowY: 'auto',
                   boxShadow: '0 2px 12px rgba(0,0,0,0.10)'
                 }}>
-                  {dedupeByKey(gameResults, gameType === 'steam' ? 'appid' : 'appName').map(game => (
+                  {gameResults.map(game => (
                     <li
                       key={gameType === 'steam' ? game.appid : game.appName}
                       className="steam-dropdown-result"
