@@ -272,6 +272,9 @@ function App() {
   const handleDeletePreset = (name) => {
     setPresets(prev => prev.filter(p => p.name !== name));
   };
+  const handleImportPresets = (newPresets) => {
+    setPresets(newPresets);
+  };
   const handleApplyPreset = async (preset) => {
     const d = preset.data;
     // WiiRibbon & Glow
@@ -308,8 +311,24 @@ function App() {
     setSlideDuration(d.slideDuration);
     setSlideEasing(d.slideEasing);
     setWallpaperBlur(d.wallpaperBlur !== undefined ? d.wallpaperBlur : 0);
+    // Handle wallpaper setting with proper persistence
     if (d.wallpaper && d.wallpaper.url && window.api?.wallpapers?.setActive) {
-      window.api.wallpapers.setActive({ url: d.wallpaper.url });
+      try {
+        await window.api.wallpapers.setActive({ url: d.wallpaper.url });
+        console.log('Successfully set wallpaper from preset:', d.wallpaper.url);
+      } catch (error) {
+        console.warn('Failed to set wallpaper from preset:', error);
+        // If setting the wallpaper fails, set to null to avoid UI inconsistency
+        setWallpaper(null);
+      }
+    } else if (!d.wallpaper) {
+      // If preset has no wallpaper, clear current wallpaper
+      try {
+        await window.api.wallpapers.setActive({ url: null });
+        console.log('Cleared wallpaper as preset has none');
+      } catch (error) {
+        console.warn('Failed to clear wallpaper:', error);
+      }
     }
     setRibbonButtonConfigs(d.ribbonButtonConfigs || []); // This now includes textFont for each button
     setPresetsButtonConfig(d.presetsButtonConfig || { type: 'icon', icon: 'star' }); // Apply presets button config
@@ -365,7 +384,7 @@ function App() {
       setSoundSettings(soundData || {});
       // Load wallpapers
       const wallpaperData = await wallpapersApi.get();
-      setWallpaper(wallpaperData?.wallpaper || null);
+      // setWallpaper(wallpaperData?.wallpaper || null); // Remove - wallpaper now loaded from general settings
       setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
       setSavedWallpapers(wallpaperData?.savedWallpapers || []);
       setLikedWallpapers(wallpaperData?.likedWallpapers || []);
@@ -481,14 +500,16 @@ function App() {
         setGlassShineOpacity(settings.glassShineOpacity ?? 0.7);
         setAnimatedOnHover(settings.animatedOnHover ?? false);
         setStartInFullscreen(settings.startInFullscreen ?? true);
-        setWallpaper(settings.wallpaper || null);
-        setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
-        setSavedWallpapers(settings.savedWallpapers || []);
-        setLikedWallpapers(settings.likedWallpapers || []);
-        setCycleWallpapers(settings.cycleWallpapers ?? false);
-        setCycleInterval(settings.cycleInterval ?? 30);
-        setCycleAnimation(settings.cycleAnimation || 'fade');
-        setSlideDirection(settings.slideDirection || 'right');
+        // Remove wallpaper settings - these are loaded from wallpaper backend in loadAll
+        // setWallpaper(settings.wallpaper || null);
+        // setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
+        // setSavedWallpapers(settings.savedWallpapers || []);
+        // setLikedWallpapers(settings.likedWallpapers || []);
+        // setCycleWallpapers(settings.cycleWallpapers ?? false);
+        // setCycleInterval(settings.cycleInterval ?? 30);
+        // setCycleAnimation(settings.cycleAnimation || 'fade');
+        // setSlideDirection(settings.slideDirection || 'right');
+        setWallpaper(settings.wallpaper || null); // Add wallpaper back to match ribbon settings persistence
         setTimeColor(settings.timeColor || '#ffffff'); // Load timeColor
         setRecentTimeColors(settings.recentTimeColors || []); // Load recentTimeColors
         setTimeFormat24hr(settings.timeFormat24hr ?? true); // Load timeFormat24hr
@@ -580,19 +601,9 @@ function App() {
         glassShineOpacity,
         animatedOnHover,
         startInFullscreen,
-        wallpaper,
-        wallpaperOpacity,
-        savedWallpapers,
-        likedWallpapers,
-        cycleWallpapers,
-        cycleInterval,
-        cycleAnimation,
-        slideDirection,
-        crossfadeDuration,
-        crossfadeEasing,
-        slideRandomDirection,
-        slideDuration,
-        slideEasing,
+        // Remove wallpaper settings - these are loaded from wallpaper backend in loadAll
+        // wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing,
+        wallpaper, // Add wallpaper back to ensure persistence like ribbon settings
         timeColor, // Persist timeColor
         recentTimeColors, // Persist recentTimeColors
         timeFormat24hr, // Persist timeFormat24hr
@@ -610,7 +621,6 @@ function App() {
         presets, // Persist presets
         presetsButtonConfig, // Persist presets button configuration
         showPresetsButton, // Persist show presets button setting
-        wallpaperBlur,
         timeFont, // Persist timeFont
         channelAnimation, // Persist channelAnimation
       };
@@ -627,7 +637,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, wallpaperBlur, timeFont, channelAnimation]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -1518,6 +1528,7 @@ function App() {
           onApplyPreset={handleApplyPreset}
           onUpdatePreset={handleUpdatePreset}
           onRenamePreset={handleRenamePreset}
+          onImportPresets={handleImportPresets}
         />
         <WallpaperModal
           isOpen={showWallpaperModal}

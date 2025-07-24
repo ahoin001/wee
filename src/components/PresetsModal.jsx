@@ -8,7 +8,7 @@ import '../styles/design-system.css';
 import Text from '../ui/Text';
 import Card from '../ui/Card';
 
-function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset }) {
+function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset, onImportPresets }) {
   const fileInputRef = useRef();
   const [importedPresets, setImportedPresets] = useState(null);
   const [importError, setImportError] = useState('');
@@ -179,22 +179,25 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
   // Confirm import: replace or skip duplicates
   const handleConfirmImport = () => {
     if (importedPresets && Array.isArray(importedPresets)) {
-      setPresets(prev => {
-        let updated = [...prev];
-        importedPresets.forEach(preset => {
-          if (preset && preset.name && preset.data) {
-            const existsIdx = updated.findIndex(p => p.name === preset.name);
-            if (existsIdx !== -1) {
-              if (overwriteMap[preset.name]) {
-                updated[existsIdx] = preset; // Overwrite
-              } // else skip
-            } else {
-              updated.push(preset);
-            }
+      let updated = [...presets];
+      importedPresets.forEach(preset => {
+        if (preset && preset.name && preset.data) {
+          const existsIdx = updated.findIndex(p => p.name === preset.name);
+          if (existsIdx !== -1) {
+            if (overwriteMap[preset.name]) {
+              updated[existsIdx] = preset; // Overwrite
+            } // else skip
+          } else {
+            updated.push(preset);
           }
-        });
-        return updated.slice(0, 6);
+        }
       });
+      
+      // Call the import handler with the processed presets
+      if (onImportPresets) {
+        onImportPresets(updated.slice(0, 6));
+      }
+      
       setShowImportPreview(false);
       setImportedPresets(null);
       setOverwriteMap({});
@@ -506,6 +509,7 @@ PresetsModal.propTypes = {
   onApplyPreset: PropTypes.func.isRequired,
   onUpdatePreset: PropTypes.func.isRequired,
   onRenamePreset: PropTypes.func,
+  onImportPresets: PropTypes.func, // (presets: Preset[]) => void
 };
 
 export default PresetsModal; 

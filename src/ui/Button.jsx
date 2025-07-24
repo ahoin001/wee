@@ -22,7 +22,7 @@ function getAutoButtonColors({ variant, color, bgColor, borderColor }) {
   }
   if (!bgColor) {
     if (variant === "primary") bg = isDark ? "#1a4a6a" : colors.primary;
-    else if (variant === "secondary") bg = isDark ? "#222b36" : colors.card;
+    else if (variant === "secondary") bg = isDark ? "#222b36" : "#f7fafd"; // Light blue-gray background for light mode
     else bg = "transparent";
   }
   if (!borderColor) {
