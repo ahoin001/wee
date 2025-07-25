@@ -4,6 +4,9 @@ import BaseModal from './BaseModal';
 import Card from '../ui/Card';
 
 const THUMBNAILS_URL = 'https://raw.githubusercontent.com/ahoin001/wee-images-repo/main/thumbnails.json';
+const CACHE_KEY = 'wii_images_cache';
+const CACHE_TIMESTAMP_KEY = 'wii_images_cache_timestamp';
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 const FILETYPE_OPTIONS = [
   { label: 'All', value: 'all' },
@@ -23,28 +26,198 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, img: null });
   const [refreshing, setRefreshing] = useState(false);
   const [itemLoading, setItemLoading] = useState({});
+  const [downloadSuccess, setDownloadSuccess] = useState({});
+  const [cacheStatus, setCacheStatus] = useState(null); // 'cached' | 'fresh' | 'fallback' | null
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12); // 12 items per page for better performance
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
 
-  // Fetch images function
-  const fetchImages = () => {
+  // Cache management functions
+  const getCachedData = () => {
+    try {
+      const cachedData = localStorage.getItem(CACHE_KEY);
+      const cacheTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+      
+      if (!cachedData || !cacheTimestamp) {
+        return null;
+      }
+      
+      const now = Date.now();
+      const cacheAge = now - parseInt(cacheTimestamp);
+      
+      // Check if cache is expired (older than 7 days)
+      if (cacheAge > CACHE_DURATION) {
+        console.log('[ImageCache] Cache expired, will fetch fresh data');
+        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+        return null;
+      }
+      
+      console.log('[ImageCache] Using cached data, age:', Math.round(cacheAge / (1000 * 60 * 60)), 'hours');
+      return JSON.parse(cachedData);
+    } catch (error) {
+      console.warn('[ImageCache] Error reading cache, will fetch fresh data:', error);
+      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+      return null;
+    }
+  };
+
+  const setCachedData = (data) => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+      console.log('[ImageCache] Data cached successfully');
+    } catch (error) {
+      console.warn('[ImageCache] Error caching data:', error);
+    }
+  };
+
+  const clearCache = () => {
+    try {
+      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+      console.log('[ImageCache] Cache cleared manually');
+    } catch (error) {
+      console.warn('[ImageCache] Error clearing cache:', error);
+    }
+  };
+
+  // Fetch images function with caching
+  const fetchImages = (forceRefresh = false) => {
     setRefreshing(true);
     setLoading(true);
+    setError(null);
+
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cachedData = getCachedData();
+      if (cachedData) {
+        setImages(cachedData);
+        setCacheStatus('cached');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+    } else {
+      // Clear cache when force refreshing
+      clearCache();
+      console.log('[ImageCache] Force refresh requested, cache cleared');
+    }
+
+    // Fetch from network
+    console.log('[ImageCache] Fetching fresh data from network');
     fetch(THUMBNAILS_URL)
       .then(res => {
-        console.log('Fetched thumbnails.json response:', res);
+        console.log('[ImageCache] Network response received:', res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
         return res.json();
       })
       .then(data => {
-        console.log('Fetched thumbnails.json data:', data);
+        console.log('[ImageCache] Network data received, items:', data.length);
+        
+        // Cache the fresh data
+        setCachedData(data);
+        
         setImages(data);
+        setCacheStatus('fresh');
         setLoading(false);
         setRefreshing(false);
       })
       .catch(err => {
-        console.error('Failed to load images:', err);
-        setError('Failed to load images');
+        console.error('[ImageCache] Network fetch failed:', err);
+        setError(`Failed to load images: ${err.message}`);
         setLoading(false);
         setRefreshing(false);
+        
+                 // Try to fall back to expired cache if network fails
+         try {
+           const fallbackCache = localStorage.getItem(CACHE_KEY);
+           if (fallbackCache) {
+             console.log('[ImageCache] Using expired cache as fallback');
+             setImages(JSON.parse(fallbackCache));
+             setCacheStatus('fallback');
+             setError('Using cached data (network unavailable)');
+           }
+         } catch (fallbackError) {
+           console.warn('[ImageCache] Fallback cache also failed:', fallbackError);
+         }
       });
+  };
+
+  const handleDownload = async (img) => {
+    // Prevent multiple simultaneous downloads
+    if (itemLoading[img.url]) return;
+    
+    setItemLoading(prev => ({ ...prev, [img.url]: true }));
+    
+    try {
+      console.log('Starting download for:', img.name, img.url);
+      
+      // Fetch the file
+      const response = await fetch(img.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+      }
+      
+      // Get the blob
+      const blob = await response.blob();
+      
+      // Determine file extension based on format
+      let extension = 'png';
+      if (img.format === 'gif') extension = 'gif';
+      else if (img.format === 'mp4') extension = 'mp4';
+      else if (img.format === 'image') {
+        // Try to get extension from URL or default to png
+        const urlParts = img.url.split('.');
+        const lastPart = urlParts[urlParts.length - 1].toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'webp'].includes(lastPart)) {
+          extension = lastPart;
+        }
+      }
+      
+      // Clean filename and add extension
+      const cleanName = img.name.replace(/[^\w\-_\. ]/g, '').trim();
+      const filename = cleanName.includes('.') ? cleanName : `${cleanName}.${extension}`;
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      
+      console.log('Download completed for:', filename);
+      
+      // Show success indicator
+      setDownloadSuccess(prev => ({ ...prev, [img.url]: true }));
+      setTimeout(() => {
+        setDownloadSuccess(prev => ({ ...prev, [img.url]: false }));
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Download failed for:', img.name, error);
+      
+      // Show error notification (you could replace this with a better notification system)
+      if (window.confirm) {
+        setTimeout(() => {
+          alert(`Download failed for "${img.name}". Please try again or download manually from the community site.`);
+        }, 100);
+      }
+    } finally {
+      setItemLoading(prev => ({ ...prev, [img.url]: false }));
+    }
   };
 
   useEffect(() => {
@@ -68,6 +241,17 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     }
     return true;
   });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredImages.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPageImages = filteredImages.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search/filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
 
   // Option cards for initial choice
   if (!mode) {
@@ -147,6 +331,14 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
 
   return (
     <BaseModal title="Search for Channel Image" onClose={onClose} maxWidth="900px">
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
       {/* Performance Notice */}
       <div style={{ 
         marginBottom: 18, 
@@ -158,9 +350,19 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
         fontSize: 14,
         lineHeight: 1.4
       }}>
-        I recommend downloading your favoirte assets on the site or here, then using the upload from device optoin.
+        💡 <strong>Tip:</strong> Click the "DL" button next to any image to download it to your device first, then use "Upload Your Own" for better reliability.
         <br />
-        If you use an image directly from here, their reliability is not great due to being hosted on a cheap service.
+        Direct usage from here works but may be less reliable due to free hosting limitations.
+        {cacheStatus && (
+          <>
+            <br />
+            <span style={{ fontSize: '12px', opacity: 0.8 }}>
+              {cacheStatus === 'cached' && '📦 Using cached data (updates weekly)'}
+              {cacheStatus === 'fresh' && '🔄 Fresh data loaded from network'}
+              {cacheStatus === 'fallback' && '⚠️ Using offline cache (network unavailable)'}
+            </span>
+          </>
+        )}
         <br />
          <a 
           href="https://graceful-cannoli-0197f9.netlify.app/" 
@@ -172,8 +374,8 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
             fontWeight: 500
           }}
         >
-          You can also upload assets for the community here or also download from here
-        </a> can be quicker.
+          Visit the community site
+        </a> to upload your own assets or browse more collections.
       </div>
       {/* Search Bar Card */}
       <div className="wee-card" style={{ marginTop: 0, marginBottom: 0 }}>
@@ -194,8 +396,8 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
                 style={{ padding: 8, fontSize: '1em', borderRadius: 6, border: '1px solid #ccc', color: '#222', background: '#fff', marginBottom: 0, flex: 1 }}
               />
               <button
-                onClick={fetchImages}
-                title="Refresh images"
+                onClick={() => fetchImages(true)}
+                title="Refresh images (clears cache)"
                 aria-label="Refresh images"
                 style={{
                   background: 'none',
@@ -213,7 +415,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
                 }}
                 disabled={refreshing}
                 tabIndex={0}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fetchImages(); }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fetchImages(true); }}
                 onMouseDown={e => e.preventDefault()}
               >
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: refreshing ? 0.5 : 1, transition: 'opacity 0.2s', transform: refreshing ? 'rotate(360deg)' : 'none', transitionProperty: 'opacity, transform', transitionDuration: '0.2s, 0.7s' }}>
@@ -222,97 +424,174 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
                 </svg>
               </button>
             </div>
-            {/* Filter buttons */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              {FILETYPE_OPTIONS.map(opt => (
+            {/* Filter buttons and view toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {FILETYPE_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setFilter(opt.value)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 6,
+                      border: filter === opt.value ? '2px solid #646cff' : '1px solid #ccc',
+                      background: filter === opt.value ? '#e6eaff' : '#f9f9f9',
+                      fontWeight: filter === opt.value ? 'bold' : 'normal',
+                      color: '#222',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              
+              {/* View mode toggle */}
+              <div style={{ display: 'flex', gap: 4, background: '#f0f0f0', borderRadius: 6, padding: 2 }}>
                 <button
-                  key={opt.value}
-                  onClick={() => setFilter(opt.value)}
+                  onClick={() => setViewMode('grid')}
                   style={{
-                    padding: '6px 14px',
-                    borderRadius: 6,
-                    border: filter === opt.value ? '2px solid #646cff' : '1px solid #ccc',
-                    background: filter === opt.value ? '#e6eaff' : '#f9f9f9',
-                    fontWeight: filter === opt.value ? 'bold' : 'normal',
-                    color: '#222',
+                    padding: '4px 8px',
+                    border: 'none',
+                    borderRadius: 4,
+                    background: viewMode === 'grid' ? '#646cff' : 'transparent',
+                    color: viewMode === 'grid' ? 'white' : '#666',
                     cursor: 'pointer',
+                    fontSize: 12
                   }}
                 >
-                  {opt.label}
+                  Grid
                 </button>
-              ))}
+                <button
+                  onClick={() => setViewMode('list')}
+                  style={{
+                    padding: '4px 8px',
+                    border: 'none',
+                    borderRadius: 4,
+                    background: viewMode === 'list' ? '#646cff' : 'transparent',
+                    color: viewMode === 'list' ? 'white' : '#666',
+                    cursor: 'pointer',
+                    fontSize: 12
+                  }}
+                >
+                  List
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
       {/* Results Grid Card */}
       <Card style={{ marginTop: 18, marginBottom: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: '1.1em', marginBottom: 6 }}>Results</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: '1.1em' }}>Results</div>
+          <div style={{ fontSize: '0.9em', color: '#666' }}>
+            {filteredImages.length} items • Page {currentPage} of {totalPages}
+          </div>
+        </div>
         <div style={{ height: 1, background: '#e0e0e6', margin: '10px 0' }} />
-        <div style={{ color: '#555', fontSize: '0.97em', marginBottom: 10 }}>Browse and select an image or video below.</div>
+        <div style={{ color: '#555', fontSize: '0.97em', marginBottom: 10 }}>
+          Browse and select an image or video below. Showing {itemsPerPage} items per page for better performance.
+        </div>
         <div style={{ marginTop: 14 }}>
-          {/* Results grid UI here */}
+          {/* Results UI here */}
           {loading ? (
             <div style={{ textAlign: 'center', padding: 32, color: '#333' }}>Loading...</div>
           ) : error ? (
             <div style={{ color: 'red', textAlign: 'center', padding: 32 }}>{error}</div>
-          ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 18,
-              maxHeight: 480,
-              overflowY: 'auto',
-            }}>
-              {filteredImages.length === 0 ? (
-                <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#888' }}>No images found.</div>
-              ) : (
-                filteredImages.map(img => (
-                  <div key={img.url} style={{ padding: 12, boxSizing: 'border-box', position: 'relative' }}>
-                    <div
-                      onClick={() => onSelect(img)}
-                      onContextMenu={e => {
-                        setContextMenu({ visible: true, x: e.clientX, y: e.clientY, img });
-                      }}
-                      style={{
-                        width: 200,
-                        height: 120,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        transition: 'transform 0.18s cubic-bezier(.4,1.3,.5,1), box-shadow 0.18s cubic-bezier(.4,1.3,.5,1)',
-                        cursor: 'pointer',
-                        background: '#e9eff3',
-                        position: 'relative',
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'scale(1.1)';
-                        e.currentTarget.style.boxShadow = '0 0 24px 4px #0099ff33';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,153,255,0)';
-                      }}
-                    >
-                      {img.format === 'mp4' ? (
-                        <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted />
-                      ) : (
-                        <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      )}
-                      {img.format === 'gif' && (
-                        <span style={{ position: 'absolute', top: 6, right: 8, background: '#fff', color: '#222', fontSize: 11, borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>GIF</span>
-                      )}
-                      {img.format === 'mp4' && (
-                        <span style={{ position: 'absolute', top: 6, right: 8, background: '#fff', color: '#222', fontSize: 11, borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>MP4</span>
-                      )}
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 13, color: '#333', textAlign: 'center', fontWeight: 500 }}>{img.name}</div>
-                  </div>
-                ))
-              )}
+          ) : currentPageImages.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#888', padding: 32 }}>
+              {filteredImages.length === 0 ? 'No images found.' : 'No items on this page.'}
             </div>
+          ) : (
+            <>
+              {/* Pagination Controls - Top */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid #ccc',
+                      borderRadius: 4,
+                      background: currentPage === 1 ? '#f5f5f5' : '#fff',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      color: currentPage === 1 ? '#999' : '#333'
+                    }}
+                  >
+                    ← Previous
+                  </button>
+                  
+                  <span style={{ fontSize: 14, color: '#666', padding: '0 12px' }}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid #ccc',
+                      borderRadius: 4,
+                      background: currentPage === totalPages ? '#f5f5f5' : '#fff',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      color: currentPage === totalPages ? '#999' : '#333'
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+
+              {/* Results Content */}
+              {viewMode === 'grid' ? (
+                <GridView images={currentPageImages} onSelect={onSelect} onDownload={handleDownload} 
+                         itemLoading={itemLoading} downloadSuccess={downloadSuccess} />
+              ) : (
+                <ListView images={currentPageImages} onSelect={onSelect} onDownload={handleDownload} 
+                         itemLoading={itemLoading} downloadSuccess={downloadSuccess} />
+              )}
+
+              {/* Pagination Controls - Bottom */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid #ccc',
+                      borderRadius: 4,
+                      background: currentPage === 1 ? '#f5f5f5' : '#fff',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      color: currentPage === 1 ? '#999' : '#333'
+                    }}
+                  >
+                    ← Previous
+                  </button>
+                  
+                  <span style={{ fontSize: 14, color: '#666', padding: '0 12px' }}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid #ccc',
+                      borderRadius: 4,
+                      background: currentPage === totalPages ? '#f5f5f5' : '#fff',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      color: currentPage === totalPages ? '#999' : '#333'
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </Card>
@@ -350,6 +629,230 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     </BaseModal>
   );
 }
+
+// Grid View Component for better performance
+const GridView = ({ images, onSelect, onDownload, itemLoading, downloadSuccess }) => (
+  <div style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: 18,
+  }}>
+    {images.map(img => (
+      <ImageItem
+        key={img.url}
+        img={img}
+        onSelect={onSelect}
+        onDownload={onDownload}
+        itemLoading={itemLoading}
+        downloadSuccess={downloadSuccess}
+        viewMode="grid"
+      />
+    ))}
+  </div>
+);
+
+// List View Component for compact browsing
+const ListView = ({ images, onSelect, onDownload, itemLoading, downloadSuccess }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    {images.map(img => (
+      <ImageItem
+        key={img.url}
+        img={img}
+        onSelect={onSelect}
+        onDownload={onDownload}
+        itemLoading={itemLoading}
+        downloadSuccess={downloadSuccess}
+        viewMode="list"
+      />
+    ))}
+  </div>
+);
+
+// Reusable Image Item Component
+const ImageItem = ({ img, onSelect, onDownload, itemLoading, downloadSuccess, viewMode }) => {
+  if (viewMode === 'list') {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: 12,
+        border: '1px solid #e5e7eb',
+        borderRadius: 8,
+        background: '#fff',
+        cursor: 'pointer',
+        transition: 'background 0.2s',
+      }}
+      onClick={() => onSelect(img)}
+      onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+      onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+      >
+        <div style={{
+          width: 60,
+          height: 40,
+          borderRadius: 4,
+          overflow: 'hidden',
+          background: '#e9eff3',
+          position: 'relative',
+          flexShrink: 0
+        }}>
+          {img.format === 'mp4' ? (
+            <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+          ) : (
+            <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          )}
+          {img.format === 'gif' && (
+            <span style={{ position: 'absolute', top: 2, right: 2, background: '#fff', color: '#222', fontSize: 8, borderRadius: 2, padding: '1px 3px', fontWeight: 600 }}>GIF</span>
+          )}
+          {img.format === 'mp4' && (
+            <span style={{ position: 'absolute', top: 2, right: 2, background: '#fff', color: '#222', fontSize: 8, borderRadius: 2, padding: '1px 3px', fontWeight: 600 }}>MP4</span>
+          )}
+        </div>
+        
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {img.name}
+          </div>
+          <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+            {img.format?.toUpperCase() || 'IMAGE'}
+          </div>
+        </div>
+        
+        <DownloadButton img={img} onDownload={onDownload} itemLoading={itemLoading} downloadSuccess={downloadSuccess} size="small" />
+      </div>
+    );
+  }
+
+  // Grid view (original layout)
+  return (
+    <div style={{ padding: 12, boxSizing: 'border-box', position: 'relative' }}>
+      <div
+        onClick={() => onSelect(img)}
+        style={{
+          width: 200,
+          height: 120,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 8,
+          overflow: 'hidden',
+          transition: 'transform 0.18s cubic-bezier(.4,1.3,.5,1), box-shadow 0.18s cubic-bezier(.4,1.3,.5,1)',
+          cursor: 'pointer',
+          background: '#e9eff3',
+          position: 'relative',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.boxShadow = '0 0 24px 4px #0099ff33';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,153,255,0)';
+        }}
+      >
+        {img.format === 'mp4' ? (
+          <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted />
+        ) : (
+          <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        )}
+        {img.format === 'gif' && (
+          <span style={{ position: 'absolute', top: 6, right: 8, background: '#fff', color: '#222', fontSize: 11, borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>GIF</span>
+        )}
+        {img.format === 'mp4' && (
+          <span style={{ position: 'absolute', top: 6, right: 8, background: '#fff', color: '#222', fontSize: 11, borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>MP4</span>
+        )}
+      </div>
+      <div style={{ 
+        marginTop: 8, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        gap: 8
+      }}>
+        <div style={{ 
+          fontSize: 13, 
+          color: '#333', 
+          fontWeight: 500,
+          flex: 1,
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {img.name}
+        </div>
+        <DownloadButton img={img} onDownload={onDownload} itemLoading={itemLoading} downloadSuccess={downloadSuccess} />
+      </div>
+    </div>
+  );
+};
+
+// Reusable Download Button Component
+const DownloadButton = ({ img, onDownload, itemLoading, downloadSuccess, size = 'normal' }) => {
+  const isSmall = size === 'small';
+  
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onDownload(img);
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+      title={`Download ${img.name}`}
+      style={{
+        background: downloadSuccess[img.url] ? '#28a745' : '#0099ff',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        padding: isSmall ? '3px 6px' : '4px 8px',
+        fontSize: isSmall ? '10px' : '11px',
+        fontWeight: '500',
+        cursor: itemLoading[img.url] ? 'not-allowed' : 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        transition: 'background 0.2s',
+        flexShrink: 0,
+        opacity: itemLoading[img.url] ? 0.7 : 1
+      }}
+      onMouseEnter={(e) => {
+        if (!itemLoading[img.url] && !downloadSuccess[img.url]) {
+          e.currentTarget.style.background = '#0077cc';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!downloadSuccess[img.url]) {
+          e.currentTarget.style.background = '#0099ff';
+        }
+      }}
+      disabled={itemLoading[img.url]}
+    >
+      {itemLoading[img.url] ? (
+        <svg width={isSmall ? "10" : "12"} height={isSmall ? "10" : "12"} viewBox="0 0 50 50" style={{ animation: 'spin 1s linear infinite' }}>
+          <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" strokeWidth="5" strokeDasharray="31.4 31.4" strokeLinecap="round">
+            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+      ) : downloadSuccess[img.url] ? (
+        <>
+          <svg width={isSmall ? "10" : "12"} height={isSmall ? "10" : "12"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="20,6 9,17 4,12"/>
+          </svg>
+          ✓
+        </>
+      ) : (
+        <>
+          <svg width={isSmall ? "10" : "12"} height={isSmall ? "10" : "12"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          {!isSmall && 'DL'}
+        </>
+      )}
+    </button>
+  );
+};
 
 ImageSearchModal.propTypes = {
   onClose: PropTypes.func.isRequired,
