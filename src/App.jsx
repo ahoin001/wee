@@ -11,6 +11,7 @@ import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
 import WiiRibbon from './components/WiiRibbon';
 import WallpaperModal from './components/WallpaperModal';
+import WallpaperOverlay from './components/WallpaperOverlay';
 import NavigationCustomizationModal from './components/NavigationCustomizationModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
@@ -202,6 +203,15 @@ function App() {
   const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(28);
   const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
+  
+  // Overlay effect settings
+  const [overlayEnabled, setOverlayEnabled] = useState(false);
+  const [overlayEffect, setOverlayEffect] = useState('snow');
+  const [overlayIntensity, setOverlayIntensity] = useState(50);
+  const [overlaySpeed, setOverlaySpeed] = useState(1);
+  const [overlayWind, setOverlayWind] = useState(0.02);
+  const [overlayGravity, setOverlayGravity] = useState(0.1);
+  
   const [timeFont, setTimeFont] = useState('default'); // Add this to state
   const [channelAnimation, setChannelAnimation] = useState(null); // Add to app state
   const [adaptiveEmptyChannels, setAdaptiveEmptyChannels] = useState(true);
@@ -447,6 +457,14 @@ function App() {
       setSlideRandomDirection(wallpaperData?.cyclingSettings?.slideRandomDirection ?? false);
       setSlideDuration(wallpaperData?.cyclingSettings?.slideDuration ?? 1.5);
       setSlideEasing(wallpaperData?.cyclingSettings?.slideEasing ?? 'ease-out');
+      
+      // Load overlay settings
+      setOverlayEnabled(wallpaperData?.overlayEnabled ?? false);
+      setOverlayEffect(wallpaperData?.overlayEffect ?? 'snow');
+      setOverlayIntensity(wallpaperData?.overlayIntensity ?? 50);
+      setOverlaySpeed(wallpaperData?.overlaySpeed ?? 1);
+      setOverlayWind(wallpaperData?.overlayWind ?? 0.02);
+      setOverlayGravity(wallpaperData?.overlayGravity ?? 0.1);
       // Note: Time-related settings are now loaded from general settings API in loadSettings()
       // to avoid conflicts with ribbon button configs and other general settings
       
@@ -1066,6 +1084,26 @@ function App() {
     if (newSettings.wallpaperBlur !== undefined) {
       setWallpaperBlur(newSettings.wallpaperBlur);
     }
+    
+    // Handle overlay settings
+    if (newSettings.overlayEnabled !== undefined) {
+      setOverlayEnabled(newSettings.overlayEnabled);
+    }
+    if (newSettings.overlayEffect !== undefined) {
+      setOverlayEffect(newSettings.overlayEffect);
+    }
+    if (newSettings.overlayIntensity !== undefined) {
+      setOverlayIntensity(newSettings.overlayIntensity);
+    }
+    if (newSettings.overlaySpeed !== undefined) {
+      setOverlaySpeed(newSettings.overlaySpeed);
+    }
+    if (newSettings.overlayWind !== undefined) {
+      setOverlayWind(newSettings.overlayWind);
+    }
+    if (newSettings.overlayGravity !== undefined) {
+      setOverlayGravity(newSettings.overlayGravity);
+    }
     if (newSettings.channelAnimation !== undefined) {
       setChannelAnimation(newSettings.channelAnimation);
     }
@@ -1172,8 +1210,17 @@ function App() {
     ribbonGlowStrengthHover,
     ribbonDockOpacity,
     wallpaperBlur,
+    
+    // Overlay settings
+    overlayEnabled,
+    overlayEffect,
+    overlayIntensity,
+    overlaySpeed,
+    overlayWind,
+    overlayGravity,
+    
     timeFont,
-          channelAnimation,
+    channelAnimation,
       adaptiveEmptyChannels,
       idleAnimationEnabled,
       idleAnimationTypes,
@@ -1669,6 +1716,17 @@ function App() {
             }}
           />
         )}
+        
+        {/* Wallpaper Overlay Effects */}
+        <WallpaperOverlay
+          effect={overlayEffect}
+          enabled={overlayEnabled}
+          intensity={overlayIntensity}
+          speed={overlaySpeed}
+          wind={overlayWind}
+          gravity={overlayGravity}
+        />
+        
         {/* Drag region for windowed mode only */}
         {!isFullscreen && (
           <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />

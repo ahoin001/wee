@@ -36,6 +36,14 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Default 5 seconds
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
+  
+  // Overlay effect settings
+  const [overlayEnabled, setOverlayEnabled] = useState(false);
+  const [overlayEffect, setOverlayEffect] = useState('snow');
+  const [overlayIntensity, setOverlayIntensity] = useState(50);
+  const [overlaySpeed, setOverlaySpeed] = useState(1);
+  const [overlayWind, setOverlayWind] = useState(0.02);
+  const [overlayGravity, setOverlayGravity] = useState(0.1);
 
   // Load wallpapers from backend
   const loadWallpapers = async () => {
@@ -58,6 +66,14 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
       setChannelAutoFadeTimeout(data.channelAutoFadeTimeout ?? 5); // Load channel auto-fade timeout setting
       setWallpaperBlur(data.wallpaperBlur ?? 0);
+      
+      // Load overlay settings
+      setOverlayEnabled(data.overlayEnabled ?? false);
+      setOverlayEffect(data.overlayEffect ?? 'snow');
+      setOverlayIntensity(data.overlayIntensity ?? 50);
+      setOverlaySpeed(data.overlaySpeed ?? 1);
+      setOverlayWind(data.overlayWind ?? 0.02);
+      setOverlayGravity(data.overlayGravity ?? 0.1);
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load wallpapers: ' + err.message });
     } finally {
@@ -223,6 +239,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       let wallpaperData = await api.get();
       wallpaperData.wallpaperOpacity = wallpaperOpacity;
       wallpaperData.wallpaperBlur = wallpaperBlur;
+      wallpaperData.overlayEnabled = overlayEnabled;
+      wallpaperData.overlayEffect = overlayEffect;
+      wallpaperData.overlayIntensity = overlayIntensity;
+      wallpaperData.overlaySpeed = overlaySpeed;
+      wallpaperData.overlayWind = overlayWind;
+      wallpaperData.overlayGravity = overlayGravity;
       await api.set(wallpaperData);
       
       // Handle wallpaper and cycling settings
@@ -250,6 +272,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           channelAutoFadeTimeout: channelAutoFadeTimeout,
           wallpaperOpacity: wallpaperOpacity,
           wallpaperBlur: wallpaperBlur,
+          overlayEnabled: overlayEnabled,
+          overlayEffect: overlayEffect,
+          overlayIntensity: overlayIntensity,
+          overlaySpeed: overlaySpeed,
+          overlayWind: overlayWind,
+          overlayGravity: overlayGravity,
         });
       }
       handleClose();
@@ -624,6 +652,110 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{wallpaperBlur}px</span>
             </div>
             <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
+          </>
+        }
+      />
+      {/* Wallpaper Overlay Effects Card */}
+      <Card
+        title="Wallpaper Overlay Effects"
+        separator
+        desc="Add beautiful animated overlay effects to your wallpaper, like snow, rain, leaves, fireflies, or dust particles."
+        actions={
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
+              <span style={{ fontWeight: 500, minWidth: 120 }}>Enable Overlay</span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={overlayEnabled}
+                  onChange={e => setOverlayEnabled(e.target.checked)}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span style={{ fontSize: 15, color: '#333' }}>Show overlay effects</span>
+              </label>
+            </div>
+            
+            {overlayEnabled && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Effect Type</span>
+                  <select
+                    value={overlayEffect}
+                    onChange={e => setOverlayEffect(e.target.value)}
+                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                  >
+                    <option value="snow">❄️ Snow</option>
+                    <option value="rain">🌧️ Rain</option>
+                    <option value="leaves">🍃 Leaves</option>
+                    <option value="fireflies">✨ Fireflies</option>
+                    <option value="dust">💨 Dust</option>
+                    <option value="fire">🔥 Fire</option>
+                  </select>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Intensity</span>
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    step={5}
+                    value={overlayIntensity}
+                    onChange={e => setOverlayIntensity(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{overlayIntensity}%</span>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Speed</span>
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={3}
+                    step={0.05}
+                    value={overlaySpeed}
+                    onChange={e => setOverlaySpeed(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{overlaySpeed}x</span>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Wind</span>
+                  <input
+                    type="range"
+                    min={-0.1}
+                    max={0.1}
+                    step={0.005}
+                    value={overlayWind}
+                    onChange={e => setOverlayWind(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{overlayWind.toFixed(3)}</span>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Gravity</span>
+                  <input
+                    type="range"
+                    min={-0.2}
+                    max={0.5}
+                    step={0.01}
+                    value={overlayGravity}
+                    onChange={e => setOverlayGravity(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{overlayGravity.toFixed(2)}</span>
+                </div>
+                
+                <div style={{ fontSize: 13, color: '#888', marginTop: 8 }}>
+                  <strong>Effect Types:</strong> Snow (gentle falling snowflakes), Rain (falling raindrops), 
+                  Leaves (floating autumn leaves), Fireflies (glowing particles), Dust (floating dust particles), 
+                  Fire (rising flames).
+                </div>
+              </>
+            )}
           </>
         }
       />
