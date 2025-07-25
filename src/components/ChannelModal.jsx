@@ -476,7 +476,18 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   };
 
   const handleAppResultClick = (app) => {
+    console.log('[ChannelModal] handleAppResultClick called with app:', app);
+    
+    // Ensure we have a valid path
+    if (!app.path) {
+      console.error('[ChannelModal] App selected but path is missing:', app);
+      setPathError('Selected app has no file path. Please try rescanning apps or manually enter the path.');
+      return;
+    }
+    
     const fullPath = app.args ? `${app.path} ${app.args}` : app.path;
+    console.log('[ChannelModal] Setting path to:', fullPath);
+    
     setPath(fullPath);
     setAppQuery(app.name);
     setAppDropdownOpen(false);

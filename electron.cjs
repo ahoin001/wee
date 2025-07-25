@@ -1478,6 +1478,33 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
     }
   } else if (type === 'exe') {
     try {
+      // FIX: Fallback paths for common system applications
+      // This ensures that even if the app scanning missed some system apps,
+      // they can still be launched by name
+      // Fallback paths for common system applications
+      const systemAppFallbacks = {
+        'File Explorer': 'C:\\Windows\\explorer.exe',
+        'explorer': 'C:\\Windows\\explorer.exe',
+        'Explorer': 'C:\\Windows\\explorer.exe',
+        'Notepad': 'C:\\Windows\\System32\\notepad.exe',
+        'notepad': 'C:\\Windows\\System32\\notepad.exe',
+        'Calculator': 'C:\\Windows\\System32\\calc.exe',
+        'calc': 'C:\\Windows\\System32\\calc.exe',
+        'Paint': 'C:\\Windows\\System32\\mspaint.exe',
+        'mspaint': 'C:\\Windows\\System32\\mspaint.exe',
+        'Command Prompt': 'C:\\Windows\\System32\\cmd.exe',
+        'cmd': 'C:\\Windows\\System32\\cmd.exe',
+        'PowerShell': 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+        'powershell': 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+      };
+
+      // Check if the app name matches a system app fallback
+      const appName = path.basename(appPath, path.extname(appPath));
+      if (systemAppFallbacks[appName] && fs.existsSync(systemAppFallbacks[appName])) {
+        appPath = systemAppFallbacks[appName];
+        console.log(`[LAUNCH] Using fallback path for ${appName}: ${appPath}`);
+      }
+
       // Robustly parse the executable path and arguments, even with spaces.
       function parseExeAndArgs(appPath) {
         // If quoted, use quoted part
@@ -2404,11 +2431,79 @@ const APPS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 async function scanInstalledApps() {
   // Scan Start Menu shortcuts for installed apps
+  // FIX: Added system applications that might not be properly detected by shortcut scanning
+  // This ensures Windows File Explorer and other system apps are always available
   const startMenuDirs = [
     path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
     path.join('C:', 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
   ];
   const results = [];
+  
+  // Add system applications that might not be properly detected
+  const systemApps = [
+    {
+      name: 'File Explorer',
+      path: 'C:\\Windows\\explorer.exe',
+      args: '',
+      icon: null,
+      lnk: null,
+    },
+    {
+      name: 'Notepad',
+      path: 'C:\\Windows\\System32\\notepad.exe',
+      args: '',
+      icon: null,
+      lnk: null,
+    },
+    {
+      name: 'Calculator',
+      path: 'C:\\Windows\\System32\\calc.exe',
+      args: '',
+      icon: null,
+      lnk: null,
+    },
+    {
+      name: 'Paint',
+      path: 'C:\\Windows\\System32\\mspaint.exe',
+      args: '',
+      icon: null,
+      lnk: null,
+    },
+    {
+      name: 'Command Prompt',
+      path: 'C:\\Windows\\System32\\cmd.exe',
+      args: '',
+      icon: null,
+      lnk: null,
+    },
+    {
+      name: 'Windows PowerShell',
+      path: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+      args: '',
+      icon: null,
+      lnk: null,
+    },
+  ];
+
+  // Add system apps to results if they exist
+  for (const app of systemApps) {
+    if (fs.existsSync(app.path)) {
+      try {
+        // Try to extract icon from the executable
+        const iconImg = nativeImage.createFromPath(app.path);
+        if (!iconImg.isEmpty()) {
+          app.icon = iconImg.toDataURL();
+        }
+      } catch (iconErr) {
+        // Ignore icon extraction errors
+      }
+      console.log(`[scanInstalledApps] Adding system app: ${app.name} -> ${app.path}`);
+      results.push(app);
+    } else {
+      console.log(`[scanInstalledApps] System app not found: ${app.name} -> ${app.path}`);
+    }
+  }
+
   async function scanDir(dir) {
     try {
       const entries = await fsPromises.readdir(dir, { withFileTypes: true });
@@ -2446,13 +2541,21 @@ async function scanInstalledApps() {
                 // Ignore icon extraction errors
               }
             }
-            results.push({
-              name: path.basename(entry.name, '.lnk'),
-              path: shortcut.target,
-              args: shortcut.args || '',
-              icon: iconDataUrl,
-              lnk: fullPath,
-            });
+            
+            // Only add if we have a valid target path
+            if (shortcut && shortcut.target && fs.existsSync(shortcut.target)) {
+              const appName = path.basename(entry.name, '.lnk');
+              console.log(`[scanInstalledApps] Adding shortcut: ${appName} -> ${shortcut.target}`);
+              results.push({
+                name: appName,
+                path: shortcut.target,
+                args: shortcut.args || '',
+                icon: iconDataUrl,
+                lnk: fullPath,
+              });
+            } else if (shortcut && shortcut.target) {
+              console.log(`[scanInstalledApps] Shortcut target not found: ${path.basename(entry.name, '.lnk')} -> ${shortcut.target}`);
+            }
           } catch (e) {
             // Ignore broken shortcuts
           }
