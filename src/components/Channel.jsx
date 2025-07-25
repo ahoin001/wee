@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
@@ -26,6 +26,8 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   const [showImageSearch, setShowImageSearch] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [mp4Preview, setMp4Preview] = useState(null);
+  const [imageError, setImageError] = useState(false);
+  const [fallbackIcon, setFallbackIcon] = useState(null);
   const videoRef = useRef(null);
   const previewVideoRef = useRef(null);
   const previewCanvasRef = useRef(null);
@@ -45,6 +47,31 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     : globalKenBurnsMode;
   
   // console.log('Channel', id, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover, 'globalAnimatedOnHover:', globalAnimatedOnHover, 'channelConfig:', channelConfig);
+
+  // Handle image loading errors
+  const handleImageError = useCallback((e) => {
+    console.warn('Channel image failed to load:', media?.url, 'for channel:', id);
+    setImageError(true);
+    
+    // Try to use fallback icon if available
+    if (icon && icon !== media?.url) {
+      setFallbackIcon(icon);
+    }
+    
+    // Prevent default broken image display
+    e.target.style.display = 'none';
+  }, [media?.url, icon, id]);
+
+  const handleImageLoad = useCallback(() => {
+    setImageError(false);
+    setFallbackIcon(null);
+  }, []);
+
+  // Reset error state when media changes
+  useEffect(() => {
+    setImageError(false);
+    setFallbackIcon(null);
+  }, [media?.url]);
 
   // Generate static preview for MP4s on mount or when media changes
   useEffect(() => {
@@ -443,7 +470,16 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         );
       } else {
         // Regular static image without Ken Burns
-        mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;
+        mediaPreview = (
+          <img 
+            src={media.url} 
+            alt="Channel media" 
+            className="channel-media" 
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+            style={{ display: imageError ? 'none' : 'block' }}
+          />
+        );
       }
     }
   }
@@ -459,7 +495,34 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       role="button"
       onContextMenu={handleRightClick}
     >
-      {mediaPreview || (icon && icon.trim() ? <img src={icon} alt="" className="channel-media" /> : null)}
+      {/* Show media preview if available and no error */}
+      {!imageError && mediaPreview}
+      
+      {/* Show fallback icon if main media failed */}
+      {imageError && fallbackIcon && (
+        <img 
+          src={fallbackIcon} 
+          alt="Channel fallback" 
+          className="channel-media" 
+          onError={(e) => {
+            console.warn('Fallback icon also failed to load:', fallbackIcon);
+            e.target.style.display = 'none';
+          }}
+        />
+      )}
+      
+      {/* Show original icon if no media or as final fallback */}
+      {!mediaPreview && !imageError && icon && icon.trim() && (
+        <img 
+          src={icon} 
+          alt="" 
+          className="channel-media"
+          onError={(e) => {
+            console.warn('Channel icon failed to load:', icon);
+            e.target.style.display = 'none';
+          }}
+        />
+      )}
     </div>
   );
 

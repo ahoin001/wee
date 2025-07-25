@@ -1741,36 +1741,58 @@ if (app.isPackaged) {
   
   // Register userdata:// protocol for wallpapers, sounds, channel-hover-sounds, and icons
   protocol.registerFileProtocol('userdata', async (request, callback) => {
-    const url = decodeURIComponent(request.url.replace('userdata://', ''));
-    console.log('[Protocol] Requested URL:', request.url);
-    console.log('[Protocol] Parsed URL (decoded):', url);
-    let filePath;
-    if (url.startsWith('wallpapers/')) {
-      filePath = path.join(userWallpapersPath, url.replace(/^wallpapers[\\\/]/, ''));
-    } else if (url.startsWith('sounds/')) {
-      filePath = path.join(userSoundsPath, url.replace(/^sounds[\\\/]/, ''));
-    } else if (url.startsWith('channel-hover-sounds/')) {
-      filePath = path.join(userChannelHoverSoundsPath, url.replace(/^channel-hover-sounds[\\\/]/, ''));
-    } else if (url.startsWith('icons/')) {
-      filePath = path.join(userIconsPath, url.replace(/^icons[\\\/]/, ''));
-    } else {
-      // Block access to other paths
-      console.log('[Protocol] Blocked access to:', url);
-      return callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
-    }
-    console.log('[Protocol] Resolved file path:', filePath);
-    console.log('[Protocol] User channel hover sounds path:', userChannelHoverSoundsPath);
-    
-    // Check if file exists
     try {
-      await fsPromises.access(filePath);
-      console.log('[Protocol] File exists:', filePath);
-    } catch (error) {
-      console.log('[Protocol] File does not exist:', filePath);
-      console.log('[Protocol] Error:', error.message);
+      const url = decodeURIComponent(request.url.replace('userdata://', ''));
+      console.log('[Protocol] Requested URL:', request.url);
+      console.log('[Protocol] Parsed URL (decoded):', url);
+      
+      let filePath;
+      if (url.startsWith('wallpapers/')) {
+        filePath = path.join(userWallpapersPath, url.replace(/^wallpapers[\\\/]/, ''));
+      } else if (url.startsWith('sounds/')) {
+        filePath = path.join(userSoundsPath, url.replace(/^sounds[\\\/]/, ''));
+      } else if (url.startsWith('channel-hover-sounds/')) {
+        filePath = path.join(userChannelHoverSoundsPath, url.replace(/^channel-hover-sounds[\\\/]/, ''));
+      } else if (url.startsWith('icons/')) {
+        filePath = path.join(userIconsPath, url.replace(/^icons[\\\/]/, ''));
+      } else {
+        // Block access to other paths
+        console.warn('[Protocol] Blocked access to invalid path:', url);
+        return callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
+      }
+      
+      console.log('[Protocol] Resolved file path:', filePath);
+      
+      // Check if file exists before serving
+      try {
+        await fsPromises.access(filePath, fsPromises.constants.F_OK);
+        console.log('[Protocol] File exists and is accessible:', filePath);
+        
+        // Additional check for file readability
+        await fsPromises.access(filePath, fsPromises.constants.R_OK);
+        callback({ path: filePath });
+        
+      } catch (error) {
+        console.warn('[Protocol] File access failed:', filePath, error.message);
+        
+        // Return specific error codes based on the type of failure
+        if (error.code === 'ENOENT') {
+          // File not found
+          callback({ error: -6 }); // net::ERR_FILE_NOT_FOUND
+        } else if (error.code === 'EACCES') {
+          // Permission denied
+          callback({ error: -13 }); // net::ERR_ACCESS_DENIED
+        } else {
+          // Other file system errors
+          callback({ error: -2 }); // net::ERR_FAILED
+        }
+        return;
+      }
+      
+    } catch (protocolError) {
+      console.error('[Protocol] Protocol handler error:', protocolError);
+      callback({ error: -2 }); // net::ERR_FAILED
     }
-    
-    callback({ path: filePath });
   });
   
   // Installer functions

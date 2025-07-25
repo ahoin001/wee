@@ -68,6 +68,7 @@ const KenBurnsImage = ({
   const [imageLoadAttempts, setImageLoadAttempts] = useState(0); // Prevent infinite loops
   const [isTransitioning, setIsTransitioning] = useState(false); // Track transition state
   const [imageErrorCounter, setImageErrorCounter] = useState(0); // Force re-render when images fail
+  const [allImagesFailed, setAllImagesFailed] = useState(false); // Track if all images have failed
 
   // Refs
   const containerRef = useRef(null);
@@ -291,11 +292,25 @@ const KenBurnsImage = ({
     brokenImagesRef.current = new Set();
     setImageLoadAttempts(0);
     setImageErrorCounter(0);
+    setAllImagesFailed(false);
     // Reset indices for slideshow
     setCurrentImageIndex(0);
     setNextImageIndex(1);
     setIsTransitioning(false);
   }, [images, src]);
+
+  // Check if all available images have failed
+  useEffect(() => {
+    const totalImages = images.length || (src ? 1 : 0);
+    const failedImages = brokenImagesRef.current.size;
+    
+    if (totalImages > 0 && failedImages >= totalImages) {
+      console.warn('All KenBurns images have failed to load');
+      setAllImagesFailed(true);
+    } else {
+      setAllImagesFailed(false);
+    }
+  }, [imageErrorCounter, images.length, src]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -466,7 +481,30 @@ const KenBurnsImage = ({
       onMouseLeave={handleMouseLeave}
       {...props}
     >
-              {/* Current Image - Never changes key to avoid re-renders */}
+      {/* Fallback display when all images fail */}
+      {allImagesFailed && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f5f5f5',
+            color: '#666',
+            fontSize: '14px',
+            borderRadius,
+            zIndex: 10
+          }}
+        >
+          <span>📷 Image unavailable</span>
+        </div>
+      )}
+
+      {/* Current Image - Never changes key to avoid re-renders */}
         <img
           ref={currentImageRef}
           src={currentImageSrc || ''}

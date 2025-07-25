@@ -491,6 +491,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       setShowError(true);
       return;
     }
+    
+    // Warn about temporary URLs that may not persist after app restart
+    if (media && (media.url?.startsWith('blob:') || media.temporary)) {
+      console.warn('Saving channel with temporary media URL that may not persist after app restart:', media.url);
+    }
+    
     setShowError(false);
     
     // Prepare media object (single image only - gallery not ready)
@@ -636,11 +642,49 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           <>
             {media ? (
               <div className="image-preview">
-                {media && typeof media.type === 'string' && media.type.startsWith('image/') ? (
-                <img src={media.url} alt="Channel preview" />
-                ) : media && typeof media.type === 'string' && media.type.startsWith('video/') ? (
-                  <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
-                ) : null}
+                {media.loading ? (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    minHeight: 120, 
+                    backgroundColor: '#f5f5f5', 
+                    borderRadius: 8, 
+                    color: '#666',
+                    fontSize: 14
+                  }}>
+                    <span>⏳ Processing image...</span>
+                  </div>
+                ) : media.temporary ? (
+                  <div style={{ position: 'relative' }}>
+                    {media && typeof media.type === 'string' && media.type.startsWith('image/') ? (
+                      <img src={media.url} alt="Channel preview" />
+                    ) : media && typeof media.type === 'string' && media.type.startsWith('video/') ? (
+                      <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
+                    ) : null}
+                    <div style={{
+                      position: 'absolute',
+                      top: 5,
+                      right: 5,
+                      backgroundColor: 'rgba(255, 165, 0, 0.9)',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontSize: 12,
+                      fontWeight: 500
+                    }}>
+                      ⚠️ Temporary
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {media && typeof media.type === 'string' && media.type.startsWith('image/') ? (
+                      <img src={media.url} alt="Channel preview" />
+                    ) : media && typeof media.type === 'string' && media.type.startsWith('video/') ? (
+                      <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
+                    ) : null}
+                  </>
+                )}
                 <button className="remove-image-button" onClick={handleRemoveImage}>
                   Remove
                 </button>

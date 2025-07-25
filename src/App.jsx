@@ -438,6 +438,30 @@ function App() {
       setSlideEasing(wallpaperData?.cyclingSettings?.slideEasing ?? 'ease-out');
       // Note: Time-related settings are now loaded from general settings API in loadSettings()
       // to avoid conflicts with ribbon button configs and other general settings
+      
+      // Utility function to validate media URLs
+      const validateMediaUrl = (media) => {
+        if (!media || !media.url) return null;
+        
+        // Check for invalid blob URLs (should not persist after restart)
+        if (media.url.startsWith('blob:')) {
+          console.warn('Found invalid blob URL in saved channel data:', media.url);
+          return null;
+        }
+        
+        // Validate userdata URLs format
+        if (media.url.startsWith('userdata://')) {
+          const validPrefixes = ['userdata://wallpapers/', 'userdata://sounds/', 'userdata://icons/'];
+          const isValidPrefix = validPrefixes.some(prefix => media.url.startsWith(prefix));
+          if (!isValidPrefix) {
+            console.warn('Found invalid userdata URL format:', media.url);
+            return null;
+          }
+        }
+        
+        return media;
+      };
+      
       // Load channels
       const channelData = await channelsApi.get();
       // Always show 12 channels
@@ -446,6 +470,18 @@ function App() {
         const id = `channel-${i}`;
         if (channelData && channelData[id]) {
           let config = { ...channelData[id] };
+          
+          // Validate and clean media URLs
+          if (config.media) {
+            const validatedMedia = validateMediaUrl(config.media);
+            if (!validatedMedia) {
+              console.warn(`Removing invalid media URL from channel ${id}:`, config.media?.url);
+              config.media = null;
+            } else {
+              config.media = validatedMedia;
+            }
+          }
+          
           // Ensure type is present
           if (!config.type) {
             config.type = inferChannelType(config.path);
@@ -461,6 +497,18 @@ function App() {
       const processedConfigs = {};
       Object.entries(channelData || {}).forEach(([channelId, config]) => {
         let processedConfig = { ...config };
+        
+        // Validate and clean media URLs
+        if (processedConfig.media) {
+          const validatedMedia = validateMediaUrl(processedConfig.media);
+          if (!validatedMedia) {
+            console.warn(`Removing invalid media URL from channel config ${channelId}:`, processedConfig.media?.url);
+            processedConfig.media = null;
+          } else {
+            processedConfig.media = validatedMedia;
+          }
+        }
+        
         // Ensure type is present
         if (!processedConfig.type) {
           processedConfig.type = inferChannelType(processedConfig.path);
