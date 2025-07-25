@@ -487,8 +487,21 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               )}
           </div>
 
-          <div className="button-container left absolute w-[120px] left-0 z-10 ml-[-30px] pl-[120px] py-4 bg-white/20 rounded-r-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
-              <WiiStyleButton
+          <div className="button-container left" style={{ 
+            position: 'absolute',
+            left: '10px',
+            top: '82px',
+            width: '200px',
+            zIndex: 10,
+            marginLeft: '-30px',
+            paddingLeft: '72px',
+            paddingTop: '1rem',
+            paddingBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+              <div className="relative ml-4">
+                  <WiiStyleButton
                 onContextMenu={e => handleButtonContextMenu(0, e)}
                 onClick={() => handleButtonClick(0)}
                 useAdaptiveColor={buttonConfigs[0]?.useAdaptiveColor}
@@ -541,6 +554,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                   <span className="text-wii-gray-dark font-bold text-sm">Wii</span>
                 )}
               </WiiStyleButton>
+              </div>
           </div>
           {/* Restore settings button to original absolute position with glass effect */}
           <div 
@@ -625,7 +639,19 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
             </WiiStyleButton>
           )}
 
-          <div className="button-container right absolute w-[120px] right-0 z-10 mr-[-30px] pr-[120px] py-4 bg-white/20 rounded-l-[6rem] flex items-center shadow-lg" style={{ top: '82px' }}>
+          <div className="button-container right" style={{ 
+            position: 'absolute',
+            right: '0px',
+            top: '82px',
+            width: '200px',
+            zIndex: 10,
+            marginRight: '-30px',
+            paddingRight: '120px',
+            paddingTop: '1rem',
+            paddingBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
               <div className="relative ml-4">
                   <WiiStyleButton
                     onContextMenu={e => handleButtonContextMenu(1, e)}
