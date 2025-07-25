@@ -23,7 +23,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   
   // Multi-image gallery state for Ken Burns slideshow
   const [imageGallery, setImageGallery] = useState(currentMedia?.gallery || []);
-  const [galleryMode, setGalleryMode] = useState(currentMedia?.useGallery || false);
+  const [galleryMode, setGalleryMode] = useState(false); // FEATURE NOT READY: Gallery disabled
   const [asAdmin, setAsAdmin] = useState(currentAsAdmin);
   const fileInputRef = useRef();
   const galleryFileInputRef = useRef();
@@ -42,7 +42,10 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   
   // Ken Burns settings
   const [kenBurnsEnabled, setKenBurnsEnabled] = useState(currentKenBurnsEnabled);
-  const [kenBurnsMode, setKenBurnsMode] = useState(currentKenBurnsMode);
+  // FEATURE NOT READY: If slideshow mode was set, default to hover for better single image experience
+  const [kenBurnsMode, setKenBurnsMode] = useState(
+    currentKenBurnsMode === 'slideshow' ? 'hover' : currentKenBurnsMode
+  );
   
   const [gameQuery, setGameQuery] = useState('');
   const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
@@ -206,15 +209,109 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
 
-  const handleGalleryFilesSelect = (files) => {
+  const handleGalleryFilesSelect = async (files) => {
     if (files && files.length > 0) {
-      const newImages = Array.from(files).map(file => ({
-        url: URL.createObjectURL(file),
-        type: file.type,
-        name: file.name,
-        id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      }));
-      setImageGallery(prev => [...prev, ...newImages]);
+      try {
+        // Convert FileList to Array
+        const fileArray = Array.from(files);
+        
+        // Create temporary entries with loading state
+        const tempImages = fileArray.map(file => ({
+          url: URL.createObjectURL(file), // Temporary URL for preview
+          type: file.type,
+          name: file.name,
+          id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          loading: true // Indicate this is being processed
+        }));
+        
+        // Add temporary images to gallery for immediate preview
+        setImageGallery(prev => [...prev, ...tempImages]);
+        
+        // Convert files to base64 and save to persistent storage
+        const persistentImages = [];
+        for (let i = 0; i < fileArray.length; i++) {
+          const file = fileArray[i];
+          const tempImage = tempImages[i];
+          
+          try {
+            // Convert file to base64
+            const base64Data = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                // Remove the "data:image/xxx;base64," prefix
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+            
+            // Save to persistent storage using wallpapers API
+            const result = await window.api.wallpapers.saveFile({ 
+              filename: file.name,
+              data: base64Data
+            });
+            
+            if (result.success) {
+              persistentImages.push({
+                url: result.url, // userdata:// URL
+                type: file.type,
+                name: file.name,
+                id: tempImage.id,
+                loading: false
+              });
+            } else {
+              console.error('Failed to save gallery image:', result.error);
+              // Keep the blob URL as fallback
+              persistentImages.push({
+                ...tempImage,
+                loading: false,
+                error: 'Failed to save'
+              });
+            }
+          } catch (error) {
+            console.error('Error saving gallery image:', error);
+            // Keep the blob URL as fallback
+            persistentImages.push({
+              ...tempImage,
+              loading: false,
+              error: error.message
+            });
+          }
+        }
+        
+        // Replace temporary images with persistent ones
+        setImageGallery(prev => {
+          const newGallery = [...prev];
+          // Remove the temporary images and add persistent ones
+          tempImages.forEach(tempImg => {
+            const index = newGallery.findIndex(img => img.id === tempImg.id);
+            if (index !== -1) {
+              const persistentImg = persistentImages.find(img => img.id === tempImg.id);
+              if (persistentImg) {
+                newGallery[index] = persistentImg;
+                // Clean up blob URL
+                if (tempImg.url.startsWith('blob:')) {
+                  URL.revokeObjectURL(tempImg.url);
+                }
+              }
+            }
+          });
+          return newGallery;
+        });
+        
+      } catch (error) {
+        console.error('Error processing gallery files:', error);
+        // Fallback to blob URLs
+        const newImages = Array.from(files).map(file => ({
+          url: URL.createObjectURL(file),
+          type: file.type,
+          name: file.name,
+          id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          error: 'Could not save persistently'
+        }));
+        setImageGallery(prev => [...prev, ...newImages]);
+      }
     }
   };
 
@@ -354,17 +451,16 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   // On save, use channelsApi.set and reload state
   const handleSave = async (handleClose) => {
-    // Validate path before saving
-    if (!validatePath() || !media || !path.trim()) {
+    // Validate that we have single media (gallery feature not ready)
+    const hasMedia = media;
+    if (!validatePath() || !hasMedia || !path.trim()) {
       setShowError(true);
       return;
     }
     setShowError(false);
-    // Only save if both media and path are provided
-    // Prepare media object with gallery support
-    const mediaObject = galleryMode && imageGallery.length > 0 
-      ? { ...media, useGallery: true, gallery: imageGallery }
-      : media;
+    
+    // Prepare media object (single image only - gallery not ready)
+    const mediaObject = media;
       
     const newChannel = {
         media: mediaObject,
@@ -447,11 +543,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   const renderImageSection = () => {
     // Determine if we should show gallery mode option
-    const showGalleryOption = kenBurnsEnabled === true;
+    // FEATURE NOT READY: Gallery mode is temporarily disabled
+    const showGalleryOption = false;
     
     return (
       <div className="image-section">
-        {/* Gallery Mode Toggle - only show when Ken Burns is enabled and in slideshow mode */}
+        {/* Gallery Mode Toggle - only show when Ken Burns is enabled */}
         {showGalleryOption && (
           <div style={{ marginBottom: 16 }}>
             <Text as="label" size="md" weight={600} style={{ display: 'block', marginBottom: 8 }}>
@@ -479,8 +576,23 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             </div>
             <Text variant="help" style={{ marginTop: 8 }}>
               {galleryMode 
-                ? 'Upload multiple images for Ken Burns slideshow effect.'
+                ? 'Upload multiple images for Ken Burns slideshow effect. Make sure Ken Burns mode is set to "Always Active" for best results.'
                 : 'Use a single image with Ken Burns animation.'}
+            </Text>
+          </div>
+        )}
+
+        {/* Gallery Feature Notice */}
+        {!showGalleryOption && (
+          <div style={{ 
+            background: '#fff3cd', 
+            border: '1px solid #ffeaa7', 
+            borderRadius: 8, 
+            padding: 12, 
+            marginBottom: 16 
+          }}>
+            <Text size="sm" color="#856404">
+              🚧 <strong>Multi-image gallery feature is not ready yet.</strong> Currently focusing on perfecting the single image experience with Ken Burns effects.
             </Text>
           </div>
         )}
@@ -507,8 +619,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           </>
         )}
 
-        {/* Gallery Mode */}
-        {galleryMode && (
+        {/* Gallery Mode - FEATURE NOT READY: Disabled */}
+        {false && galleryMode && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Gallery Grid */}
             {imageGallery.length > 0 && (
@@ -528,7 +640,35 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                       border: '2px solid #e0e0e6',
                       background: '#f5f5f5'
                     }}>
-                      {image.type.startsWith('image/') ? (
+                      {image.loading ? (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: '#f0f0f0',
+                          color: '#666',
+                          fontSize: 12
+                        }}>
+                          Saving...
+                        </div>
+                      ) : image.error ? (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: '#ffe6e6',
+                          color: '#cc0000',
+                          fontSize: 11,
+                          textAlign: 'center',
+                          padding: 4
+                        }}>
+                          {image.error}
+                        </div>
+                      ) : image.type.startsWith('image/') ? (
                         <img 
                           src={image.url} 
                           alt={`Gallery ${index + 1}`}
@@ -1152,15 +1292,16 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               />
               Always active (override)
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: 0.5 }}>
               <input
                 type="radio"
                 name="kenBurnsMode"
                 value="slideshow"
                 checked={kenBurnsMode === 'slideshow'}
                 onChange={() => setKenBurnsMode('slideshow')}
+                disabled
               />
-              Slideshow mode (override)
+              Slideshow mode (override) <span style={{ color: '#dc3545', fontSize: '11px' }}>- Not Ready</span>
             </label>
           </div>
         </div>
@@ -1169,7 +1310,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       {/* Helper text */}
       <Text variant="help">
         {kenBurnsEnabled === true 
-          ? 'Ken Burns adds cinematic zoom and pan effects to images. Use slideshow mode for multi-image galleries.'
+          ? 'Ken Burns adds cinematic zoom and pan effects to images. Perfect for creating dynamic single-image channels.'
           : kenBurnsEnabled === false
           ? 'Ken Burns effect is disabled for this channel, even if enabled globally.'
           : 'This channel will follow the global Ken Burns setting.'}

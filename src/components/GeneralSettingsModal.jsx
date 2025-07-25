@@ -22,12 +22,25 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   // Advanced Ken Burns controls
   const [kenBurnsHoverScale, setKenBurnsHoverScale] = useState(props.kenBurnsHoverScale ?? 1.1);
   const [kenBurnsAutoplayScale, setKenBurnsAutoplayScale] = useState(props.kenBurnsAutoplayScale ?? 1.15);
-  const [kenBurnsSlideshowScale, setKenBurnsSlideshowScale] = useState(props.kenBurnsSlideshowScale ?? 1.2);
+  const [kenBurnsSlideshowScale, setKenBurnsSlideshowScale] = useState(props.kenBurnsSlideshowScale ?? 1.08);
   const [kenBurnsHoverDuration, setKenBurnsHoverDuration] = useState(props.kenBurnsHoverDuration ?? 8000);
   const [kenBurnsAutoplayDuration, setKenBurnsAutoplayDuration] = useState(props.kenBurnsAutoplayDuration ?? 12000);
   const [kenBurnsSlideshowDuration, setKenBurnsSlideshowDuration] = useState(props.kenBurnsSlideshowDuration ?? 10000);
   const [kenBurnsCrossfadeDuration, setKenBurnsCrossfadeDuration] = useState(props.kenBurnsCrossfadeDuration ?? 1000);
   const [showAdvancedKenBurns, setShowAdvancedKenBurns] = useState(false);
+  
+  // Ken Burns media type support
+  const [kenBurnsForGifs, setKenBurnsForGifs] = useState(props.kenBurnsForGifs ?? false);
+  const [kenBurnsForVideos, setKenBurnsForVideos] = useState(props.kenBurnsForVideos ?? false);
+  
+  // Ken Burns animation easing
+  const [kenBurnsEasing, setKenBurnsEasing] = useState(props.kenBurnsEasing || 'ease-out');
+  const [kenBurnsAnimationType, setKenBurnsAnimationType] = useState(props.kenBurnsAnimationType || 'both');
+  const [kenBurnsCrossfadeReturn, setKenBurnsCrossfadeReturn] = useState(props.kenBurnsCrossfadeReturn !== false);
+  const [kenBurnsTransitionType, setKenBurnsTransitionType] = useState(props.kenBurnsTransitionType || 'cross-dissolve');
+  
+  // Always show advanced controls when Ken Burns is enabled
+  const shouldShowAdvanced = kenBurnsEnabled && (showAdvancedKenBurns || kenBurnsEnabled);
 
   useEffect(() => {
     if (window.api && window.api.getAutoLaunch) {
@@ -52,7 +65,13 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
         kenBurnsHoverDuration,
         kenBurnsAutoplayDuration,
         kenBurnsSlideshowDuration,
-        kenBurnsCrossfadeDuration
+        kenBurnsCrossfadeDuration,
+        kenBurnsForGifs,
+        kenBurnsForVideos,
+        kenBurnsEasing,
+        kenBurnsAnimationType,
+        kenBurnsCrossfadeReturn,
+        kenBurnsTransitionType
       });
     }
     handleClose();
@@ -259,18 +278,8 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                     : 'Ken Burns effect will continuously play on all channels.'}
                 </Text>
 
-                {/* Advanced Controls Toggle */}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowAdvancedKenBurns(!showAdvancedKenBurns)}
-                  style={{ marginBottom: showAdvancedKenBurns ? 16 : 0 }}
-                >
-                  {showAdvancedKenBurns ? 'Hide' : 'Show'} Advanced Controls
-                </Button>
-
-                {/* Advanced Controls Section */}
-                {showAdvancedKenBurns && (
+                {/* Advanced Controls Section - Always visible when Ken Burns enabled */}
+                {shouldShowAdvanced && (
                   <div style={{ 
                     background: '#f8f9fa', 
                     padding: 16, 
@@ -284,15 +293,36 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
 
                     {/* Scale Controls */}
                     <div style={{ marginBottom: 16 }}>
-                      <Text as="label" size="sm" weight={500} style={{ display: 'block', marginBottom: 8 }}>
-                        Zoom Scale Levels
-                      </Text>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Text as="label" size="sm" weight={500}>
+                          Zoom Scale Levels
+                        </Text>
+                        <span style={{ 
+                          color: '#6c757d', 
+                          fontSize: '12px', 
+                          background: '#f8f9fa', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px',
+                          border: '1px solid #e9ecef'
+                        }}>
+                          How much the image zooms during animation
+                        </span>
+                      </div>
                       
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                         <div>
-                          <Text as="label" size="xs" style={{ display: 'block', marginBottom: 4, color: '#666' }}>
-                            Hover Scale
-                          </Text>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <Text as="label" size="xs" style={{ color: '#666', fontWeight: 500 }}>
+                              Hover Scale
+                            </Text>
+                            <span style={{ 
+                              color: '#8e9aaf', 
+                              fontSize: '10px',
+                              cursor: 'help'
+                            }} title="Controls how much the image zooms when you hover over a channel. 1.1× = subtle effect, 1.3× = noticeable zoom, 1.5× = dramatic cinematic effect. Higher values create more dramatic visual impact.">
+                              ?
+                            </span>
+                          </div>
                           <input
                             type="range"
                             min="1.0"
@@ -302,13 +332,22 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                             onChange={e => setKenBurnsHoverScale(parseFloat(e.target.value))}
                             style={{ width: '100%', marginBottom: 4 }}
                           />
-                          <Text size="xs" color="#888">{kenBurnsHoverScale}×</Text>
+                          <Text size="xs" color="#888">{kenBurnsHoverScale}× zoom</Text>
                         </div>
                         
                         <div>
-                          <Text as="label" size="xs" style={{ display: 'block', marginBottom: 4, color: '#666' }}>
-                            Autoplay Scale
-                          </Text>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <Text as="label" size="xs" style={{ color: '#666', fontWeight: 500 }}>
+                              Autoplay Scale
+                            </Text>
+                            <span style={{ 
+                              color: '#8e9aaf', 
+                              fontSize: '10px',
+                              cursor: 'help'
+                            }} title="Controls zoom level when Ken Burns mode is set to 'Always Active'. This creates continuous slow-motion zoom effects even when not hovering. Use lower values (1.1-1.2×) for subtle background animation or higher (1.4-1.6×) for eye-catching movement.">
+                              ?
+                            </span>
+                          </div>
                           <input
                             type="range"
                             min="1.0"
@@ -318,13 +357,22 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                             onChange={e => setKenBurnsAutoplayScale(parseFloat(e.target.value))}
                             style={{ width: '100%', marginBottom: 4 }}
                           />
-                          <Text size="xs" color="#888">{kenBurnsAutoplayScale}×</Text>
+                          <Text size="xs" color="#888">{kenBurnsAutoplayScale}× zoom</Text>
                         </div>
                         
                         <div>
-                          <Text as="label" size="xs" style={{ display: 'block', marginBottom: 4, color: '#666' }}>
-                            Slideshow Scale
-                          </Text>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <Text as="label" size="xs" style={{ color: '#666', fontWeight: 500 }}>
+                              Slideshow Scale
+                            </Text>
+                            <span style={{ 
+                              color: '#8e9aaf', 
+                              fontSize: '10px',
+                              cursor: 'help'
+                            }} title="[FEATURE NOT READY] Controls zoom level for multi-image gallery slideshows. Currently only affects single images. Gallery feature is being perfected.">
+                              ?
+                            </span>
+                          </div>
                           <input
                             type="range"
                             min="1.0"
@@ -334,22 +382,46 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                             onChange={e => setKenBurnsSlideshowScale(parseFloat(e.target.value))}
                             style={{ width: '100%', marginBottom: 4 }}
                           />
-                          <Text size="xs" color="#888">{kenBurnsSlideshowScale}×</Text>
+                          <Text size="xs" color="#888">{kenBurnsSlideshowScale}× zoom</Text>
                         </div>
                       </div>
+                      <Text as="p" size="xs" color="#6c757d" style={{ marginTop: 8, fontStyle: 'italic' }}>
+                        💡 <strong>1.0×</strong> = no zoom, <strong>1.1×</strong> = subtle, <strong>1.5×</strong> = dramatic
+                      </Text>
                     </div>
 
                     {/* Duration Controls */}
                     <div style={{ marginBottom: 16 }}>
-                      <Text as="label" size="sm" weight={500} style={{ display: 'block', marginBottom: 8 }}>
-                        Animation Durations
-                      </Text>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Text as="label" size="sm" weight={500}>
+                          Animation Durations
+                        </Text>
+                        <span style={{ 
+                          color: '#6c757d', 
+                          fontSize: '12px', 
+                          background: '#f8f9fa', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px',
+                          border: '1px solid #e9ecef'
+                        }}>
+                          How long each animation takes to complete
+                        </span>
+                      </div>
                       
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
-                          <Text as="label" size="xs" style={{ display: 'block', marginBottom: 4, color: '#666' }}>
-                            Hover Duration
-                          </Text>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <Text as="label" size="xs" style={{ color: '#666', fontWeight: 500 }}>
+                              Hover Duration
+                            </Text>
+                            <span style={{ 
+                              color: '#8e9aaf', 
+                              fontSize: '10px',
+                              cursor: 'help'
+                            }} title="Duration of the zoom animation when hovering over a channel. Shorter times (2-5s) feel responsive and snappy, medium times (6-10s) provide smooth cinematic feel, longer times (15-20s) create slow, dramatic effects. Consider user patience vs visual impact.">
+                              ?
+                            </span>
+                          </div>
                           <input
                             type="range"
                             min="2000"
@@ -359,13 +431,22 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                             onChange={e => setKenBurnsHoverDuration(parseInt(e.target.value))}
                             style={{ width: '100%', marginBottom: 4 }}
                           />
-                          <Text size="xs" color="#888">{kenBurnsHoverDuration / 1000}s</Text>
+                          <Text size="xs" color="#888">{kenBurnsHoverDuration / 1000}s duration</Text>
                         </div>
                         
                         <div>
-                          <Text as="label" size="xs" style={{ display: 'block', marginBottom: 4, color: '#666' }}>
-                            Autoplay Duration
-                          </Text>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <Text as="label" size="xs" style={{ color: '#666', fontWeight: 500 }}>
+                              Autoplay Duration
+                            </Text>
+                            <span style={{ 
+                              color: '#8e9aaf', 
+                              fontSize: '10px',
+                              cursor: 'help'
+                            }} title="Duration of each zoom cycle when Ken Burns is 'Always Active'. This controls how long it takes to complete one full zoom in-and-out cycle. Shorter cycles (5-10s) create energetic backgrounds, longer cycles (15-30s) provide subtle, ambient movement that won't distract from other content.">
+                              ?
+                            </span>
+                          </div>
                           <input
                             type="range"
                             min="5000"
@@ -375,13 +456,22 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                             onChange={e => setKenBurnsAutoplayDuration(parseInt(e.target.value))}
                             style={{ width: '100%', marginBottom: 4 }}
                           />
-                          <Text size="xs" color="#888">{kenBurnsAutoplayDuration / 1000}s</Text>
+                          <Text size="xs" color="#888">{kenBurnsAutoplayDuration / 1000}s cycle</Text>
                         </div>
                         
                         <div>
-                          <Text as="label" size="xs" style={{ display: 'block', marginBottom: 4, color: '#666' }}>
-                            Slideshow Duration
-                          </Text>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <Text as="label" size="xs" style={{ color: '#666', fontWeight: 500 }}>
+                              Slideshow Duration
+                            </Text>
+                            <span style={{ 
+                              color: '#8e9aaf', 
+                              fontSize: '10px',
+                              cursor: 'help'
+                            }} title="[FEATURE NOT READY] How long each image displays in multi-image gallery slideshows. Currently only affects single image autoplay. Gallery feature is being perfected.">
+                              ?
+                            </span>
+                          </div>
                           <input
                             type="range"
                             min="5000"
@@ -391,13 +481,22 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                             onChange={e => setKenBurnsSlideshowDuration(parseInt(e.target.value))}
                             style={{ width: '100%', marginBottom: 4 }}
                           />
-                          <Text size="xs" color="#888">{kenBurnsSlideshowDuration / 1000}s</Text>
+                          <Text size="xs" color="#888">{kenBurnsSlideshowDuration / 1000}s per image</Text>
                         </div>
                         
                         <div>
-                          <Text as="label" size="xs" style={{ display: 'block', marginBottom: 4, color: '#666' }}>
-                            Crossfade Duration
-                          </Text>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <Text as="label" size="xs" style={{ color: '#666', fontWeight: 500 }}>
+                              Crossfade Duration
+                            </Text>
+                            <span style={{ 
+                              color: '#8e9aaf', 
+                              fontSize: '10px',
+                              cursor: 'help'
+                            }} title="[FEATURE NOT READY] Duration of the fade transition between images in gallery slideshows. Currently only affects single image crossfade returns. Gallery feature is being perfected.">
+                              ?
+                            </span>
+                          </div>
                           <input
                             type="range"
                             min="500"
@@ -407,8 +506,276 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                             onChange={e => setKenBurnsCrossfadeDuration(parseInt(e.target.value))}
                             style={{ width: '100%', marginBottom: 4 }}
                           />
-                          <Text size="xs" color="#888">{kenBurnsCrossfadeDuration / 1000}s</Text>
+                          <Text size="xs" color="#888">{kenBurnsCrossfadeDuration / 1000}s transition</Text>
                         </div>
+                      </div>
+                      <Text as="p" size="xs" color="#6c757d" style={{ marginTop: 8, fontStyle: 'italic' }}>
+                        ⏱️ <strong>Shorter</strong> = snappy and energetic, <strong>Longer</strong> = smooth and cinematic
+                      </Text>
+                    </div>
+
+                    {/* Animation Timing */}
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Text as="label" size="sm" weight={500}>
+                          Animation Style
+                        </Text>
+                        <span style={{ 
+                          color: '#6c757d', 
+                          fontSize: '12px', 
+                          background: '#f8f9fa', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px',
+                          border: '1px solid #e9ecef'
+                        }}>
+                          How the animation accelerates and decelerates
+                        </span>
+                      </div>
+                      
+                      <select
+                        value={kenBurnsEasing}
+                        onChange={e => setKenBurnsEasing(e.target.value)}
+                        style={{ 
+                          fontSize: 15, 
+                          padding: '8px 12px', 
+                          borderRadius: 8, 
+                          border: '1.5px solid #ccc', 
+                          marginBottom: 8,
+                          width: '250px'
+                        }}
+                      >
+                        <option value="linear">📏 Linear - Constant speed</option>
+                        <option value="ease-out">🎯 Ease Out - Slow ending (Recommended)</option>
+                        <option value="ease-in-out">🌊 Ease In-Out - Smooth curve</option>
+                        <option value="ease">⚡ Ease - Natural acceleration</option>
+                        <option value="material">🚀 Material Design - Fast ending</option>
+                      </select>
+                      
+                      <div style={{ 
+                        background: '#f8f9fa', 
+                        padding: '8px 12px', 
+                        borderRadius: '6px', 
+                        border: '1px solid #e9ecef' 
+                      }}>
+                        <Text as="p" size="xs" color="#495057" style={{ fontWeight: 500 }}>
+                          {kenBurnsEasing === 'linear' && '📏 Moves at constant speed throughout - mechanical but predictable.'}
+                          {kenBurnsEasing === 'ease-out' && '🎯 Starts fast and slows down gracefully - most natural and recommended.'}
+                          {kenBurnsEasing === 'ease-in-out' && '🌊 Starts slow, speeds up, then slows down - creates smooth wave-like motion.'}
+                          {kenBurnsEasing === 'ease' && '⚡ Standard browser easing with gentle acceleration - classic and reliable.'}
+                          {kenBurnsEasing === 'material' && '🚀 Material Design curve that accelerates toward the end - modern but can feel rushed.'}
+                        </Text>
+                      </div>
+                    </div>
+
+                    {/* Animation Type */}
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Text as="label" size="sm" weight={500}>
+                          Animation Type
+                        </Text>
+                        <span style={{ 
+                          color: '#6c757d', 
+                          fontSize: '12px', 
+                          background: '#f8f9fa', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px',
+                          border: '1px solid #e9ecef'
+                        }}>
+                          Choose between zoom, pan, or both effects
+                        </span>
+                      </div>
+                      
+                      <select
+                        value={kenBurnsAnimationType || 'both'}
+                        onChange={e => setKenBurnsAnimationType(e.target.value)}
+                        style={{ 
+                          fontSize: 15, 
+                          padding: '8px 12px', 
+                          borderRadius: 8, 
+                          border: '1.5px solid #ccc', 
+                          marginBottom: 8,
+                          width: '250px'
+                        }}
+                      >
+                        <option value="both">🎭 Both - Zoom + Pan (Classic)</option>
+                        <option value="zoom">🔍 Zoom Only - Scaling effect</option>
+                        <option value="pan">📷 Pan Only - Movement effect</option>
+                      </select>
+                      
+                      <div style={{ 
+                        background: '#f8f9fa', 
+                        padding: '8px 12px', 
+                        borderRadius: '6px', 
+                        border: '1px solid #e9ecef' 
+                      }}>
+                        <Text as="p" size="xs" color="#495057" style={{ fontWeight: 500 }}>
+                          {(kenBurnsAnimationType || 'both') === 'both' && '🎭 Classic Ken Burns with both zooming and panning - creates the most dynamic and cinematic effect.'}
+                          {kenBurnsAnimationType === 'zoom' && '🔍 Only scales the image larger without movement - subtle and elegant, great for portraits.'}
+                          {kenBurnsAnimationType === 'pan' && '📷 Only moves across the image without scaling - smooth and gentle, ideal for landscapes.'}
+                        </Text>
+                      </div>
+                    </div>
+
+                    {/* Transition Type */}
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Text as="label" size="sm" weight={500}>
+                          Slideshow Transition <span style={{ color: '#dc3545', fontSize: '11px' }}>(Not Ready)</span>
+                        </Text>
+                        <span style={{ 
+                          color: '#6c757d', 
+                          fontSize: '12px', 
+                          background: '#f8f9fa', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px',
+                          border: '1px solid #e9ecef'
+                        }}>
+                          How images blend together in gallery mode
+                        </span>
+                      </div>
+                      
+                      <select
+                        value={kenBurnsTransitionType}
+                        onChange={e => setKenBurnsTransitionType(e.target.value)}
+                        style={{ 
+                          fontSize: 15, 
+                          padding: '8px 12px', 
+                          borderRadius: 8, 
+                          border: '1.5px solid #ccc', 
+                          marginBottom: 8,
+                          width: '300px'
+                        }}
+                      >
+                        <option value="cross-dissolve">✨ Cross-Dissolve - Classic fade blend</option>
+                        <option value="morph-blur">🌊 Morph-Blur - Dreamy blur transition</option>
+                        <option value="push-zoom">🔍 Push-Zoom - Scale & reveal effect</option>
+                        <option value="swirl-fade">🌪️ Swirl-Fade - Gentle rotation blend</option>
+                        <option value="slide-dissolve">📱 Slide-Dissolve - Smooth slide transition</option>
+                      </select>
+                      
+                      <div style={{ 
+                        background: '#f8f9fa', 
+                        padding: '8px 12px', 
+                        borderRadius: '6px', 
+                        border: '1px solid #e9ecef' 
+                      }}>
+                        <Text as="p" size="xs" color="#495057" style={{ fontWeight: 500 }}>
+                          {kenBurnsTransitionType === 'cross-dissolve' && '✨ Classic crossfade - one image gently fades into the next with smooth opacity blending.'}
+                          {kenBurnsTransitionType === 'morph-blur' && '🌊 Dreamy morph effect - images blur and scale during transition for an ethereal, soft blend.'}
+                          {kenBurnsTransitionType === 'push-zoom' && '🔍 Dynamic reveal - current image shrinks as next image scales up from behind, creating depth.'}
+                          {kenBurnsTransitionType === 'swirl-fade' && '🌪️ Subtle rotation - images gently rotate and scale while fading for organic movement.'}
+                          {kenBurnsTransitionType === 'slide-dissolve' && '📱 Modern slide - images slide horizontally while cross-fading, like modern photo apps.'}
+                        </Text>
+                      </div>
+                    </div>
+
+                    {/* Crossfade Return */}
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 8, 
+                        fontSize: 14,
+                        padding: '8px 12px',
+                        background: '#f8f9fa',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={kenBurnsCrossfadeReturn !== false}
+                          onChange={e => setKenBurnsCrossfadeReturn(e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          🔄 <strong>Crossfade Return</strong>
+                        </span>
+                      </label>
+                      <Text as="p" size="xs" color="#6c757d" style={{ marginTop: 4, paddingLeft: 20 }}>
+                        For single images: fade back to original position before repeating effect (not used in slideshows)
+                      </Text>
+                    </div>
+
+                    {/* Media Type Support */}
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Text as="label" size="sm" weight={500}>
+                          Media Type Support
+                        </Text>
+                        <span style={{ 
+                          color: '#6c757d', 
+                          fontSize: '12px', 
+                          background: '#f8f9fa', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px',
+                          border: '1px solid #e9ecef'
+                        }}>
+                          Which file types can use Ken Burns effects
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <label style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 8, 
+                          fontSize: 14,
+                          padding: '8px 12px',
+                          background: '#f8f9fa',
+                          borderRadius: '6px',
+                          border: '1px solid #e9ecef',
+                          cursor: 'pointer'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={kenBurnsForGifs}
+                            onChange={e => setKenBurnsForGifs(e.target.checked)}
+                            style={{ margin: 0 }}
+                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ fontWeight: 500 }}>🎞️ Enable Ken Burns for GIF images</span>
+                            <span style={{ fontSize: '12px', color: '#6c757d' }}>
+                              Adds zoom and pan effects to animated GIFs
+                            </span>
+                          </div>
+                        </label>
+                        
+                        <label style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 8, 
+                          fontSize: 14,
+                          padding: '8px 12px',
+                          background: '#f8f9fa',
+                          borderRadius: '6px',
+                          border: '1px solid #e9ecef',
+                          cursor: 'pointer'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={kenBurnsForVideos}
+                            onChange={e => setKenBurnsForVideos(e.target.checked)}
+                            style={{ margin: 0 }}
+                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ fontWeight: 500 }}>🎬 Enable Ken Burns for MP4 videos</span>
+                            <span style={{ fontSize: '12px', color: '#6c757d' }}>
+                              Adds cinematic effects on top of video content
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                      
+                      <div style={{ 
+                        background: '#e7f3ff', 
+                        padding: '8px 12px', 
+                        borderRadius: '6px', 
+                        border: '1px solid #b3d9ff',
+                        marginTop: 10
+                      }}>
+                        <Text as="p" size="xs" color="#0066cc" style={{ fontWeight: 500 }}>
+                          ℹ️ By default, Ken Burns only applies to static images (JPG, PNG). These options extend the effect to animated content for more dynamic channels.
+                        </Text>
                       </div>
                     </div>
 
@@ -451,6 +818,9 @@ GeneralSettingsModal.propTypes = {
   kenBurnsAutoplayDuration: PropTypes.number,
   kenBurnsSlideshowDuration: PropTypes.number,
   kenBurnsCrossfadeDuration: PropTypes.number,
+  kenBurnsForGifs: PropTypes.bool,
+  kenBurnsForVideos: PropTypes.bool,
+  kenBurnsEasing: PropTypes.string,
 };
 
 export default GeneralSettingsModal; 

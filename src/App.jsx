@@ -207,11 +207,21 @@ function App() {
   // Advanced Ken Burns settings
   const [kenBurnsHoverScale, setKenBurnsHoverScale] = useState(1.1);
   const [kenBurnsAutoplayScale, setKenBurnsAutoplayScale] = useState(1.15);
-  const [kenBurnsSlideshowScale, setKenBurnsSlideshowScale] = useState(1.2);
+  const [kenBurnsSlideshowScale, setKenBurnsSlideshowScale] = useState(1.08);
   const [kenBurnsHoverDuration, setKenBurnsHoverDuration] = useState(8000);
   const [kenBurnsAutoplayDuration, setKenBurnsAutoplayDuration] = useState(12000);
   const [kenBurnsSlideshowDuration, setKenBurnsSlideshowDuration] = useState(10000);
   const [kenBurnsCrossfadeDuration, setKenBurnsCrossfadeDuration] = useState(1000);
+  
+  // Ken Burns media type support
+  const [kenBurnsForGifs, setKenBurnsForGifs] = useState(false);
+  const [kenBurnsForVideos, setKenBurnsForVideos] = useState(false);
+  
+  // Ken Burns animation easing
+  const [kenBurnsEasing, setKenBurnsEasing] = useState('ease-out');
+  const [kenBurnsAnimationType, setKenBurnsAnimationType] = useState('both');
+  const [kenBurnsCrossfadeReturn, setKenBurnsCrossfadeReturn] = useState(true);
+  const [kenBurnsTransitionType, setKenBurnsTransitionType] = useState('cross-dissolve');
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   // showPresetsModal now managed by useUIStore
@@ -558,11 +568,17 @@ function App() {
     // Load advanced Ken Burns settings
     setKenBurnsHoverScale(settings.kenBurnsHoverScale ?? 1.1);
     setKenBurnsAutoplayScale(settings.kenBurnsAutoplayScale ?? 1.15);
-    setKenBurnsSlideshowScale(settings.kenBurnsSlideshowScale ?? 1.2);
+          setKenBurnsSlideshowScale(settings.kenBurnsSlideshowScale ?? 1.08);
     setKenBurnsHoverDuration(settings.kenBurnsHoverDuration ?? 8000);
     setKenBurnsAutoplayDuration(settings.kenBurnsAutoplayDuration ?? 12000);
     setKenBurnsSlideshowDuration(settings.kenBurnsSlideshowDuration ?? 10000);
     setKenBurnsCrossfadeDuration(settings.kenBurnsCrossfadeDuration ?? 1000);
+    setKenBurnsForGifs(settings.kenBurnsForGifs ?? false);
+    setKenBurnsForVideos(settings.kenBurnsForVideos ?? false);
+    setKenBurnsEasing(settings.kenBurnsEasing || 'ease-out');
+    setKenBurnsAnimationType(settings.kenBurnsAnimationType || 'both');
+    setKenBurnsCrossfadeReturn(settings.kenBurnsCrossfadeReturn !== false);
+    setKenBurnsTransitionType(settings.kenBurnsTransitionType || 'cross-dissolve');
         
         // Load ribbonButtonConfigs to ensure they're preserved during persistence
         if (settings.ribbonButtonConfigs) {
@@ -674,6 +690,12 @@ function App() {
         kenBurnsAutoplayDuration, // Persist Ken Burns autoplay duration
         kenBurnsSlideshowDuration, // Persist Ken Burns slideshow duration
         kenBurnsCrossfadeDuration, // Persist Ken Burns crossfade duration
+        kenBurnsForGifs, // Persist Ken Burns for GIFs setting
+        kenBurnsForVideos, // Persist Ken Burns for videos setting
+        kenBurnsEasing, // Persist Ken Burns animation easing
+        kenBurnsAnimationType, // Persist Ken Burns animation type
+        kenBurnsCrossfadeReturn, // Persist Ken Burns crossfade return
+        kenBurnsTransitionType, // Persist Ken Burns transition type
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -688,7 +710,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -1004,6 +1026,24 @@ function App() {
     if (newSettings.kenBurnsCrossfadeDuration !== undefined) {
       setKenBurnsCrossfadeDuration(newSettings.kenBurnsCrossfadeDuration);
     }
+    if (newSettings.kenBurnsForGifs !== undefined) {
+      setKenBurnsForGifs(newSettings.kenBurnsForGifs);
+    }
+    if (newSettings.kenBurnsForVideos !== undefined) {
+      setKenBurnsForVideos(newSettings.kenBurnsForVideos);
+    }
+    if (newSettings.kenBurnsEasing !== undefined) {
+      setKenBurnsEasing(newSettings.kenBurnsEasing);
+    }
+    if (newSettings.kenBurnsAnimationType !== undefined) {
+      setKenBurnsAnimationType(newSettings.kenBurnsAnimationType);
+    }
+    if (newSettings.kenBurnsCrossfadeReturn !== undefined) {
+      setKenBurnsCrossfadeReturn(newSettings.kenBurnsCrossfadeReturn);
+    }
+    if (newSettings.kenBurnsTransitionType !== undefined) {
+      setKenBurnsTransitionType(newSettings.kenBurnsTransitionType);
+    }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
     // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
@@ -1057,6 +1097,12 @@ function App() {
     kenBurnsAutoplayDuration,
     kenBurnsSlideshowDuration,
     kenBurnsCrossfadeDuration,
+    kenBurnsForGifs,
+    kenBurnsForVideos,
+    kenBurnsEasing,
+    kenBurnsAnimationType,
+    kenBurnsCrossfadeReturn,
+    kenBurnsTransitionType,
   };
 
   // Memoize expensive calculations

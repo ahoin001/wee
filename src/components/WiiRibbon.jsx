@@ -887,6 +887,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           kenBurnsAutoplayDuration={window.settings?.kenBurnsAutoplayDuration}
           kenBurnsSlideshowDuration={window.settings?.kenBurnsSlideshowDuration}
           kenBurnsCrossfadeDuration={window.settings?.kenBurnsCrossfadeDuration}
+          kenBurnsForGifs={window.settings?.kenBurnsForGifs}
+          kenBurnsForVideos={window.settings?.kenBurnsForVideos}
+          kenBurnsEasing={window.settings?.kenBurnsEasing}
+          kenBurnsAnimationType={window.settings?.kenBurnsAnimationType}
+          kenBurnsCrossfadeReturn={window.settings?.kenBurnsCrossfadeReturn}
+          kenBurnsTransitionType={window.settings?.kenBurnsTransitionType}
           onSettingsChange={onSettingsChange}
         />
       )}

@@ -240,10 +240,48 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   if (media && media.url && media.url.trim()) {
     // Check for GIFs first (before general image types)
     if (media.type === 'image/gif' || media.url.match(/\.gif$/i)) {
-      // console.log('GIF detected:', media.url, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover);
-      if (effectiveAnimatedOnHover) {
+      // Check if Ken Burns is enabled for GIFs
+      const kenBurnsForGifsEnabled = window.settings?.kenBurnsForGifs ?? false;
+      
+      if (effectiveKenBurnsEnabled && kenBurnsForGifsEnabled) {
+        // Use Ken Burns effect for GIFs
+        const kenBurnsProps = {
+          mode: effectiveKenBurnsMode,
+          width: "100%",
+          height: "100%",
+          borderRadius: "12px",
+          objectFit: "cover",
+          alt: media.name || 'Channel GIF',
+          
+          // Use advanced settings from global configuration
+          hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
+          hoverScale: window.settings?.kenBurnsHoverScale ?? 1.1,
+          autoplayDuration: window.settings?.kenBurnsAutoplayDuration ?? 12000,
+          autoplayScale: window.settings?.kenBurnsAutoplayScale ?? 1.15,
+          slideshowDuration: window.settings?.kenBurnsSlideshowDuration ?? 10000,
+          slideshowScale: window.settings?.kenBurnsSlideshowScale ?? 1.2,
+          crossfadeDuration: window.settings?.kenBurnsCrossfadeDuration ?? 1000,
+          
+          // Animation easing
+          easing: window.settings?.kenBurnsEasing || 'ease-out',
+          
+          // Animation type and effects
+          animationType: window.settings?.kenBurnsAnimationType || 'both',
+          enableCrossfadeReturn: window.settings?.kenBurnsCrossfadeReturn !== false,
+          transitionType: window.settings?.kenBurnsTransitionType || 'cross-dissolve',
+          
+          // Performance settings
+          enableIntersectionObserver: true
+        };
+
+        mediaPreview = (
+          <KenBurnsImage
+            {...kenBurnsProps}
+            src={media.url}
+          />
+        );
+      } else if (effectiveAnimatedOnHover) {
         // Use ReactFreezeframe for GIFs when hover animation is enabled
-        // console.log('Using ReactFreezeframe for GIF with hover trigger');
         mediaPreview = (
           <ReactFreezeframe
             key={media.url} // Force re-render when URL changes
@@ -265,7 +303,6 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         );
       } else {
         // Show normal GIF (always animated) when hover animation is disabled
-        // console.log('Using normal img tag for GIF (always animated)');
         mediaPreview = (
           <img
             src={media.url}
@@ -276,7 +313,47 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         );
       }
     } else if (media.type.startsWith('video/')) {
-      if (effectiveAnimatedOnHover) {
+      // Check if Ken Burns is enabled for videos
+      const kenBurnsForVideosEnabled = window.settings?.kenBurnsForVideos ?? false;
+      
+      if (effectiveKenBurnsEnabled && kenBurnsForVideosEnabled) {
+        // Use Ken Burns effect for videos
+        const kenBurnsProps = {
+          mode: effectiveKenBurnsMode,
+          width: "100%",
+          height: "100%",
+          borderRadius: "12px",
+          objectFit: "cover",
+          alt: media.name || 'Channel Video',
+          
+          // Use advanced settings from global configuration
+          hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
+          hoverScale: window.settings?.kenBurnsHoverScale ?? 1.1,
+          autoplayDuration: window.settings?.kenBurnsAutoplayDuration ?? 12000,
+          autoplayScale: window.settings?.kenBurnsAutoplayScale ?? 1.15,
+          slideshowDuration: window.settings?.kenBurnsSlideshowDuration ?? 10000,
+          slideshowScale: window.settings?.kenBurnsSlideshowScale ?? 1.2,
+          crossfadeDuration: window.settings?.kenBurnsCrossfadeDuration ?? 1000,
+          
+          // Animation easing
+          easing: window.settings?.kenBurnsEasing || 'ease-out',
+          
+          // Animation type and effects
+          animationType: window.settings?.kenBurnsAnimationType || 'both',
+          enableCrossfadeReturn: window.settings?.kenBurnsCrossfadeReturn !== false,
+          transitionType: window.settings?.kenBurnsTransitionType || 'cross-dissolve',
+          
+          // Performance settings
+          enableIntersectionObserver: true
+        };
+
+        mediaPreview = (
+          <KenBurnsImage
+            {...kenBurnsProps}
+            src={media.url}
+          />
+        );
+      } else if (effectiveAnimatedOnHover) {
         if (!isHovered && mp4Preview) {
           // Show static preview image
           mediaPreview = (
@@ -344,29 +421,26 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           slideshowScale: window.settings?.kenBurnsSlideshowScale ?? 1.2,
           crossfadeDuration: window.settings?.kenBurnsCrossfadeDuration ?? 1000,
           
+          // Animation easing
+          easing: window.settings?.kenBurnsEasing || 'ease-out',
+          
+          // Animation type and effects
+          animationType: window.settings?.kenBurnsAnimationType || 'both',
+          enableCrossfadeReturn: window.settings?.kenBurnsCrossfadeReturn !== false,
+          transitionType: window.settings?.kenBurnsTransitionType || 'cross-dissolve',
+          
           // Performance settings
           enableIntersectionObserver: true
         };
 
-        // Check if this is a gallery (slideshow mode with multiple images)
-        if (media.useGallery && media.gallery && media.gallery.length > 0) {
-          // Use gallery images for slideshow
-          mediaPreview = (
-            <KenBurnsImage
-              {...kenBurnsProps}
-              images={media.gallery.map(img => img.url)}
-              mode="slideshow"
-            />
-          );
-        } else {
-          // Single image Ken Burns
-          mediaPreview = (
-            <KenBurnsImage
-              {...kenBurnsProps}
-              src={media.url}
-            />
-          );
-        }
+        // FEATURE NOT READY: Gallery mode disabled, only single images
+        // Single image Ken Burns (gallery feature not ready)
+        mediaPreview = (
+          <KenBurnsImage
+            {...kenBurnsProps}
+            src={media.url}
+          />
+        );
       } else {
         // Regular static image without Ken Burns
         mediaPreview = <img src={media.url} alt="Channel media" className="channel-media" />;

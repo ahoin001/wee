@@ -386,9 +386,20 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
               placeholder="Preset name"
               value={newPresetName}
               onChange={e => { setNewPresetName(e.target.value); setError(''); }}
-              style={{ flex: 1, padding: 8, borderRadius: 6, border: '1.5px solid #bbb', fontSize: 15, background: '#fff', color: '#222' }}
+              style={{ 
+                flex: 1, 
+                padding: 8, 
+                borderRadius: 6, 
+                border: '1.5px solid #bbb', 
+                fontSize: 15, 
+                background: '#fff', 
+                color: '#222',
+                cursor: presets.length >= 6 ? 'not-allowed' : 'text',
+                opacity: presets.length >= 6 ? 0.6 : 1
+              }}
               maxLength={32}
-              disabled={presets.length >= 6}
+              
+              tabIndex={presets.length >= 6 ? -1 : 0}
             />
             <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.length >= 6}>
               Save Preset
@@ -571,7 +582,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                       value={editName}
                       onChange={e => setEditName(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      style={{ fontSize: 16, padding: '6px 10px', borderRadius: 6, border: '1.5px solid #ccc', marginRight: 8, flex: 1, background: '#fff' }}
+                      style={{ fontSize: 16, padding: '6px 10px', borderRadius: 6, border: '1.5px solid #ccc', marginRight: 8, flex: 1, background: '#fff', color: '#222' }}
                       autoFocus
                     />
                     <Button style={{ minWidth: 70, marginRight: 8 }} onClick={handleSaveEdit}>Save</Button>
