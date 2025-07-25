@@ -18,6 +18,8 @@ function getAutoToggleColors(disabled) {
 
 export default function Toggle({ checked, onChange, label, disabled = false, style, ...props }) {
   const { track, trackChecked, thumb, border } = getAutoToggleColors(disabled);
+  const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: disabled ? 'not-allowed' : 'pointer', ...style }}>
       <span style={{

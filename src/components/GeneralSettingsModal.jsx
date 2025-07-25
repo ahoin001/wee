@@ -222,9 +222,9 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, the app will launch automatically when your computer starts.</div>
         </div>
-        <div className="wee-card" style={{ marginBottom: 18 }}>
+        {/* <div className="wee-card" style={{ marginBottom: 18 }}>
           <div className="wee-card-header">
-            <Text as="span" size="lg" weight={700} className="wee-card-title">Channel Animations</Text>
+            <Text as="span" size="lg" weight={700} className="wee-card-title">Channel Animations (This Version is on hold, use idle animations instead)</Text>
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">
@@ -259,20 +259,16 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
             </select>
             <Text as="p" size="sm" color="#888">Choose how your channel icons animate on the home screen. No hover needed—animations will play automatically.</Text>
           </div>
-        </div>
+        </div> */}
 
         {/* Idle Channel Animations */}
         <div className="wee-card" style={{ marginBottom: 18 }}>
           <div className="wee-card-header">
             <Text as="span" size="lg" weight={700} className="wee-card-title">Idle Channel Animations</Text>
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input 
-                type="checkbox" 
-                checked={idleAnimationEnabled} 
-                onChange={e => setIdleAnimationEnabled(e.target.checked)} 
-              />
-              <span className="toggle-slider round"></span>
-            </label>
+            <Toggle
+              checked={idleAnimationEnabled}
+              onChange={setIdleAnimationEnabled}
+            />
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">
@@ -327,8 +323,8 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                   </Text>
                   <input
                     type="range"
-                    min="6"
-                    max="30"
+                    min="2"
+                    max="45"
                     step="1"
                     value={idleAnimationInterval}
                     onChange={(e) => setIdleAnimationInterval(parseInt(e.target.value))}
@@ -360,14 +356,10 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
         <div className="wee-card" style={{ marginBottom: 18 }}>
           <div className="wee-card-header">
             <Text as="span" size="lg" weight={700} className="wee-card-title">Ken Burns Effect</Text>
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={kenBurnsEnabled}
-                onChange={e => setKenBurnsEnabled(e.target.checked)}
-              />
-              <span className="slider" />
-            </label>
+            <Toggle
+              checked={kenBurnsEnabled}
+              onChange={setKenBurnsEnabled}
+            />
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">

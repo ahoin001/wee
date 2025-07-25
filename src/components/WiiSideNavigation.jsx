@@ -18,40 +18,89 @@ const WiiSideNavigation = () => {
   const [leftIcon, setLeftIcon] = useState(null);
   const [rightIcon, setRightIcon] = useState(null);
   
+  // Glass effect state management
+  const [leftGlassSettings, setLeftGlassSettings] = useState({
+    enabled: false,
+    opacity: 0.18,
+    blur: 2.5,
+    borderOpacity: 0.5,
+    shineOpacity: 0.7
+  });
+  const [rightGlassSettings, setRightGlassSettings] = useState({
+    enabled: false,
+    opacity: 0.18,
+    blur: 2.5,
+    borderOpacity: 0.5,
+    shineOpacity: 0.7
+  });
+  
   // Modal state from Zustand
   const { openModal } = useNavigationModalStore();
 
-  // Load saved icons on component mount
+  // Load saved icons and glass settings on component mount
   useEffect(() => {
-    const loadSavedIcons = async () => {
+    const loadSavedSettings = async () => {
       if (window.api?.settings?.get) {
         try {
           const settings = await window.api.settings.get();
+          
+          // Load icons
           if (settings.navigationIcons) {
             setLeftIcon(settings.navigationIcons.left || null);
             setRightIcon(settings.navigationIcons.right || null);
           }
+          
+          // Load glass settings
+          if (settings.navigationGlassEffect) {
+            const leftGlass = settings.navigationGlassEffect.left;
+            const rightGlass = settings.navigationGlassEffect.right;
+            
+            if (leftGlass) {
+              setLeftGlassSettings(leftGlass);
+            }
+            if (rightGlass) {
+              setRightGlassSettings(rightGlass);
+            }
+          }
         } catch (error) {
-          console.warn('Failed to load navigation icons:', error);
+          console.warn('Failed to load navigation settings:', error);
         }
       }
     };
-    loadSavedIcons();
+    loadSavedSettings();
 
-    // Listen for icon changes from the modal
-    const handleIconChange = (event) => {
-      const { side, iconUrl } = event.detail;
+    // Listen for settings changes from the modal
+    const handleSettingsChange = (event) => {
+      const { side, iconUrl, glassSettings } = event.detail;
       if (side === 'left') {
         setLeftIcon(iconUrl);
+        if (glassSettings) {
+          setLeftGlassSettings(glassSettings);
+        }
       } else if (side === 'right') {
         setRightIcon(iconUrl);
+        if (glassSettings) {
+          setRightGlassSettings(glassSettings);
+        }
       }
     };
 
-    window.addEventListener('navigationIconChanged', handleIconChange);
+    // Listen for glass effect preview changes
+    const handleGlassPreview = (event) => {
+      const { side, glassSettings } = event.detail;
+      if (side === 'left') {
+        setLeftGlassSettings(glassSettings);
+      } else if (side === 'right') {
+        setRightGlassSettings(glassSettings);
+      }
+    };
+
+    window.addEventListener('navigationSettingsChanged', handleSettingsChange);
+    window.addEventListener('navigationGlassPreview', handleGlassPreview);
     
     return () => {
-      window.removeEventListener('navigationIconChanged', handleIconChange);
+      window.removeEventListener('navigationSettingsChanged', handleSettingsChange);
+      window.removeEventListener('navigationGlassPreview', handleGlassPreview);
     };
   }, []);
 
@@ -62,6 +111,21 @@ const WiiSideNavigation = () => {
     event.preventDefault();
     const currentIcon = side === 'left' ? leftIcon : rightIcon;
     openModal(side, currentIcon);
+  };
+
+  // Generate glass effect styles
+  const getGlassStyles = (glassSettings) => {
+    if (!glassSettings.enabled) return {};
+    
+    return {
+      background: `rgba(255, 255, 255, ${glassSettings.opacity})`,
+      backdropFilter: `blur(${glassSettings.blur}px)`,
+      border: `1px solid rgba(255, 255, 255, ${glassSettings.borderOpacity})`,
+      boxShadow: `
+        0 8px 32px rgba(31, 38, 135, 0.37),
+        inset 0 1px 0 rgba(255, 255, 255, ${glassSettings.shineOpacity})
+      `,
+    };
   };
 
   // Default icon component
@@ -178,7 +242,10 @@ const WiiSideNavigation = () => {
           disabled={isAnimating}
           title="Previous page (Right-click to customize)"
         >
-          <div className="wii-button-surface">
+          <div 
+            className="wii-button-surface"
+            style={getGlassStyles(leftGlassSettings)}
+          >
             <div className="wii-button-content">
               {renderIcon(leftIcon, DefaultLeftIcon)}
             </div>
@@ -195,7 +262,10 @@ const WiiSideNavigation = () => {
           disabled={isAnimating}
           title="Next page (Right-click to customize)"
         >
-          <div className="wii-button-surface">
+          <div 
+            className="wii-button-surface"
+            style={getGlassStyles(rightGlassSettings)}
+          >
             <div className="wii-button-content">
               {renderIcon(rightIcon, DefaultRightIcon)}
             </div>

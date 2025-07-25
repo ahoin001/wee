@@ -13,11 +13,14 @@ const useIdleChannelAnimations = (
   // Get channels that have content (not empty)
   const getChannelsWithContent = () => {
     return channels.filter(channel => 
-      channel && (
-        channel.name || 
+      channel && !channel.empty && (
+        channel.title || 
         channel.path || 
         channel.media || 
-        channel.imageGallery?.length > 0
+        channel.imageGallery?.length > 0 ||
+        channel.type === 'steam' ||
+        channel.type === 'url' ||
+        (channel.type === 'exe' && channel.path)
       )
     );
   };
@@ -73,8 +76,14 @@ const useIdleChannelAnimations = (
     const channelsWithContent = getChannelsWithContent();
     
     if (channelsWithContent.length === 0 || animationTypes.length === 0) {
+      if (channelsWithContent.length === 0) {
+        console.log(`[IdleAnimation] No channels with content found. Total channels: ${channels.length}, Channels checked:`, channels.slice(0, 3).map(c => ({id: c.id, empty: c.empty, title: c.title, path: c.path, media: c.media})));
+      }
       return;
     }
+
+    console.log(`[IdleAnimation] Found ${channelsWithContent.length} channels with content out of ${channels.length} total`);
+    console.log(`[IdleAnimation] Channels with content:`, channelsWithContent.map(c => ({id: c.id, title: c.title, media: !!c.media, path: !!c.path})));
 
     // Pick a random channel with content
     const randomChannel = channelsWithContent[Math.floor(Math.random() * channelsWithContent.length)];
@@ -86,10 +95,11 @@ const useIdleChannelAnimations = (
     // Don't start if this channel is already animating
     const animationKey = `${channelId}-${randomAnimationType}`;
     if (activeAnimations.has(animationKey)) {
+      console.log(`[IdleAnimation] Channel ${channelId} already animating with ${randomAnimationType}`);
       return;
     }
 
-    console.log(`[IdleAnimation] Starting ${randomAnimationType} animation for channel:`, channelId);
+    console.log(`[IdleAnimation] Starting ${randomAnimationType} animation for channel:`, channelId, randomChannel);
     startAnimation(channelId, randomAnimationType);
   };
 
@@ -145,7 +155,12 @@ const useIdleChannelAnimations = (
       }
     }
     
-    return animations.join(' ');
+    const result = animations.join(' ');
+    if (result) {
+      console.log(`[IdleAnimation] Channel ${channelId} applying classes: ${result}`);
+    }
+    
+    return result;
   };
 
   // Check if a specific channel is currently animating

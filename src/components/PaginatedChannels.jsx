@@ -35,15 +35,7 @@ const PaginatedChannels = ({
     ensurePageExists
   } = usePageNavigationStore();
 
-  // Idle animation system
-  const { getChannelAnimationClass, isChannelAnimating } = useIdleChannelAnimations(
-    idleAnimationEnabled,
-    idleAnimationTypes,
-    idleAnimationInterval,
-    allChannels
-  );
-
-  // Calculate total channels needed and update total pages
+  // Calculate total channels needed first
   const totalChannelsNeeded = useMemo(() => {
     // Find the highest configured channel index
     let highestIndex = -1;
@@ -74,36 +66,10 @@ const PaginatedChannels = ({
     return result;
   }, [channelConfigs, channelsPerPage]);
 
-  // Update total pages when needed
-  useEffect(() => {
-    const requiredPages = Math.ceil(totalChannelsNeeded / channelsPerPage);
-    const targetPages = Math.max(3, requiredPages); // Ensure minimum 3 pages
-    
-    // console.log('PaginatedChannels: useEffect updating pages', {
-    //   totalChannelsNeeded,
-    //   channelsPerPage,
-    //   requiredPages,
-    //   targetPages,
-    //   currentTotalPages: totalPages
-    // });
-    
-    if (targetPages !== totalPages) {
-      // console.log('PaginatedChannels: Setting total pages from', totalPages, 'to', targetPages);
-      setTotalPages(targetPages);
-    }
-  }, [totalChannelsNeeded, channelsPerPage, totalPages, setTotalPages]);
-
-  // Generate all channels for all pages
+  // Generate all channels for all pages (with full configuration data)
   const allPagesChannels = useMemo(() => {
     const totalChannels = getTotalChannelsCount();
     const channels = [];
-    
-    // console.log('PaginatedChannels: Generating channels', { 
-    //   totalChannels, 
-    //   totalPages, 
-    //   channelsPerPage,
-    //   totalChannelsNeeded 
-    // });
     
     for (let i = 0; i < totalChannels; i++) {
       const channelId = `channel-${i}`;
@@ -124,9 +90,47 @@ const PaginatedChannels = ({
       });
     }
     
-    // console.log('PaginatedChannels: Generated channels', channels.length, channels.slice(0, 5));
+    // Debug: Show first few channels with their full data
+    console.log('[PaginatedChannels] Generated channels for idle animations:', channels.slice(0, 3).map(c => ({
+      id: c.id,
+      empty: c.empty,
+      media: c.media,
+      path: c.path,
+      title: c.title,
+      type: c.type
+    })));
+    
     return channels;
   }, [getTotalChannelsCount, channelConfigs, mediaMap, appPathMap, totalPages, channelsPerPage, totalChannelsNeeded]);
+
+  // Idle animation system (now using processed channels with full data)
+  const { getChannelAnimationClass, isChannelAnimating } = useIdleChannelAnimations(
+    idleAnimationEnabled,
+    idleAnimationTypes,
+    idleAnimationInterval,
+    allPagesChannels
+  );
+
+  // Update total pages when needed
+  useEffect(() => {
+    const requiredPages = Math.ceil(totalChannelsNeeded / channelsPerPage);
+    const targetPages = Math.max(3, requiredPages); // Ensure minimum 3 pages
+    
+    // console.log('PaginatedChannels: useEffect updating pages', {
+    //   totalChannelsNeeded,
+    //   channelsPerPage,
+    //   requiredPages,
+    //   targetPages,
+    //   currentTotalPages: totalPages
+    // });
+    
+    if (targetPages !== totalPages) {
+      // console.log('PaginatedChannels: Setting total pages from', totalPages, 'to', targetPages);
+      setTotalPages(targetPages);
+    }
+  }, [totalChannelsNeeded, channelsPerPage, totalPages, setTotalPages]);
+
+
 
   // Get channels for each page
   const pageChannels = useMemo(() => {

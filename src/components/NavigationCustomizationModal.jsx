@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import Card from '../ui/Card';
+import Toggle from '../ui/Toggle';
 import useNavigationModalStore from '../utils/useNavigationModalStore';
 
 function NavigationCustomizationModal() {
@@ -18,17 +19,54 @@ function NavigationCustomizationModal() {
   const [glassBorderOpacity, setGlassBorderOpacity] = useState(0.5);
   const [glassShineOpacity, setGlassShineOpacity] = useState(0.7);
 
+  // Real-time glass effect preview
+  useEffect(() => {
+    if (isOpen && useGlassEffect) {
+      const previewGlassSettings = {
+        enabled: useGlassEffect,
+        opacity: glassOpacity,
+        blur: glassBlur,
+        borderOpacity: glassBorderOpacity,
+        shineOpacity: glassShineOpacity
+      };
+      
+      // Dispatch preview event for real-time updates
+      window.dispatchEvent(new CustomEvent('navigationGlassPreview', {
+        detail: { side, glassSettings: previewGlassSettings }
+      }));
+    }
+  }, [useGlassEffect, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, side, isOpen]);
+
   // Update selected icon when currentIcon changes
   useEffect(() => {
     setSelectedIcon(currentIcon);
   }, [currentIcon]);
 
-  // Fetch saved icons on open
+  // Fetch saved icons and glass settings on open
   useEffect(() => {
     if (isOpen && window.api?.icons?.list) {
       refreshSavedIcons();
+      loadGlassSettings();
     }
   }, [isOpen]);
+
+  // Load glass effect settings
+  const loadGlassSettings = async () => {
+    if (window.api?.settings?.get) {
+      try {
+        const settings = await window.api.settings.get();
+        const glassSettings = settings.navigationGlassEffect?.[side] || {};
+        
+        setUseGlassEffect(glassSettings.enabled || false);
+        setGlassOpacity(glassSettings.opacity || 0.18);
+        setGlassBlur(glassSettings.blur || 2.5);
+        setGlassBorderOpacity(glassSettings.borderOpacity || 0.5);
+        setGlassShineOpacity(glassSettings.shineOpacity || 0.7);
+      } catch (error) {
+        console.error('Failed to load glass settings:', error);
+      }
+    }
+  };
 
   const refreshSavedIcons = async () => {
     setLoadingIcons(true);
@@ -89,37 +127,63 @@ function NavigationCustomizationModal() {
     }
   };
 
-  // Save icons to settings and trigger component updates
-  const saveIconSettings = async (side, iconUrl) => {
+  // Save icons and glass settings to settings and trigger component updates
+  const saveSettings = async (side, iconUrl, glassSettings) => {
     if (window.api?.settings?.get && window.api?.settings?.set) {
       try {
         const settings = await window.api.settings.get();
+        
+        // Save icon settings
         const navigationIcons = settings.navigationIcons || {};
         navigationIcons[side] = iconUrl;
         
+        // Save glass effect settings
+        const navigationGlassEffect = settings.navigationGlassEffect || {};
+        navigationGlassEffect[side] = glassSettings;
+        
         await window.api.settings.set({
           ...settings,
-          navigationIcons
+          navigationIcons,
+          navigationGlassEffect
         });
         
         // Dispatch a custom event to notify WiiSideNavigation of the change
-        window.dispatchEvent(new CustomEvent('navigationIconChanged', {
-          detail: { side, iconUrl }
+        window.dispatchEvent(new CustomEvent('navigationSettingsChanged', {
+          detail: { side, iconUrl, glassSettings }
         }));
       } catch (error) {
-        console.error('Failed to save navigation icons:', error);
+        console.error('Failed to save navigation settings:', error);
       }
     }
   };
 
   const handleSave = async () => {
-    await saveIconSettings(side, selectedIcon);
+    const glassSettings = {
+      enabled: useGlassEffect,
+      opacity: glassOpacity,
+      blur: glassBlur,
+      borderOpacity: glassBorderOpacity,
+      shineOpacity: glassShineOpacity
+    };
+    await saveSettings(side, selectedIcon, glassSettings);
     closeModal();
   };
 
   const handleReset = async () => {
-    await saveIconSettings(side, null);
+    const defaultGlassSettings = {
+      enabled: false,
+      opacity: 0.18,
+      blur: 2.5,
+      borderOpacity: 0.5,
+      shineOpacity: 0.7
+    };
+    await saveSettings(side, null, defaultGlassSettings);
     setSelectedIcon(null);
+    setUseGlassEffect(false);
+    setGlassOpacity(0.18);
+    setGlassBlur(2.5);
+    setGlassBorderOpacity(0.5);
+    setGlassShineOpacity(0.7);
     closeModal();
   };
 
@@ -441,15 +505,11 @@ function NavigationCustomizationModal() {
         title="Glass Effect"
         separator={true}
         headerActions={
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={useGlassEffect}
-              onChange={(e) => setUseGlassEffect(e.target.checked)}
-              style={{ marginRight: '8px' }}
-            />
-            <span style={{ fontSize: '14px', color: '#374151' }}>Enable</span>
-          </label>
+          <Toggle
+            checked={useGlassEffect}
+            onChange={setUseGlassEffect}
+            label="Enable"
+          />
         }
       >
         <div style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>
