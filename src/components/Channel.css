@@ -35,6 +35,18 @@
   cursor: default;
 }
 
+.channel.empty.adaptive {
+  border: 2px solid transparent !important;
+  background: var(--adaptive-bg-color) !important;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.channel.empty.adaptive:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
 /* Channel content */
 .channel-content {
   width: 100%;

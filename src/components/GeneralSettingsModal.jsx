@@ -14,6 +14,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   const [showPresets, setShowPresets] = useState(showPresetsButton);
   const [startOnBoot, setStartOnBoot] = useState(false);
   const [channelAnimation, setChannelAnimation] = useState(props.channelAnimation || 'none');
+  const [adaptiveEmptyChannels, setAdaptiveEmptyChannels] = useState(props.adaptiveEmptyChannels ?? true);
   
   // Ken Burns settings
   const [kenBurnsEnabled, setKenBurnsEnabled] = useState(props.kenBurnsEnabled ?? false);
@@ -57,6 +58,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
     if (onSettingsChange) {
       onSettingsChange({ 
         channelAnimation,
+        adaptiveEmptyChannels,
         kenBurnsEnabled,
         kenBurnsMode,
         kenBurnsHoverScale,
@@ -133,6 +135,22 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">Adds a frosted glass effect to the Wii Ribbon for a more modern look.</div>
+        </div>
+        {/* Adaptive Empty Channel Backgrounds */}
+        <div className="wee-card">
+          <div className="wee-card-header">
+            <span className="wee-card-title">Adaptive Empty Channel Backgrounds</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={adaptiveEmptyChannels}
+                onChange={e => setAdaptiveEmptyChannels(e.target.checked)}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">When enabled, empty channels will use the same background color as the ribbon for a cohesive look.</div>
         </div>
         {/* Only play channel animations on hover */}
         <div className="wee-card">

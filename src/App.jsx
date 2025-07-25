@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Channel from './components/Channel';
 import ChannelModal from './components/ChannelModal';
+import PaginatedChannels from './components/PaginatedChannels';
+import PageNavigation from './components/PageNavigation';
 import HomeButton from './components/HomeButton';
 import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
@@ -199,6 +201,7 @@ function App() {
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
   const [timeFont, setTimeFont] = useState('default'); // Add this to state
   const [channelAnimation, setChannelAnimation] = useState(null); // Add to app state
+  const [adaptiveEmptyChannels, setAdaptiveEmptyChannels] = useState(true);
   
   // Ken Burns settings
   const [kenBurnsEnabled, setKenBurnsEnabled] = useState(false);
@@ -462,34 +465,14 @@ function App() {
         return media;
       };
       
-      // Load channels
+      // Load channels - no hardcoded limit, let PaginatedChannels handle dynamic generation
       const channelData = await channelsApi.get();
-      // Always show 12 channels
+      
+      // Create a minimal channels array for backward compatibility (not used by PaginatedChannels)
       const gridChannels = [];
       for (let i = 0; i < 12; i++) {
         const id = `channel-${i}`;
-        if (channelData && channelData[id]) {
-          let config = { ...channelData[id] };
-          
-          // Validate and clean media URLs
-          if (config.media) {
-            const validatedMedia = validateMediaUrl(config.media);
-            if (!validatedMedia) {
-              console.warn(`Removing invalid media URL from channel ${id}:`, config.media?.url);
-              config.media = null;
-            } else {
-              config.media = validatedMedia;
-            }
-          }
-          
-          // Ensure type is present
-          if (!config.type) {
-            config.type = inferChannelType(config.path);
-          }
-          gridChannels.push({ id, ...config, empty: !(config.media || config.path) });
-        } else {
-          gridChannels.push({ id, empty: true });
-        }
+        gridChannels.push({ id, empty: true });
       }
       setChannels(gridChannels);
       
@@ -608,6 +591,7 @@ function App() {
         currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
         setTimeFont(settings.timeFont || 'default');
         setChannelAnimation(settings.channelAnimation || 'none'); // Load channelAnimation
+        setAdaptiveEmptyChannels(settings.adaptiveEmptyChannels ?? true);
         
         // Load Ken Burns settings
             setKenBurnsEnabled(settings.kenBurnsEnabled ?? false);
@@ -729,6 +713,7 @@ function App() {
         showPresetsButton, // Persist show presets button setting
         timeFont, // Persist timeFont
         channelAnimation, // Persist channelAnimation
+        adaptiveEmptyChannels, // Persist adaptive empty channels setting
         kenBurnsEnabled, // Persist Ken Burns enabled setting
         kenBurnsMode, // Persist Ken Burns mode setting
         kenBurnsHoverScale, // Persist Ken Burns hover scale
@@ -758,7 +743,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -928,6 +913,21 @@ function App() {
         [channelId]: channelData.path
       }));
     }
+    
+    // Navigate to the appropriate page for this channel
+    if (channelId) {
+      const match = channelId.match(/channel-(\d+)/);
+      if (match) {
+        const channelIndex = parseInt(match[1]);
+        // Import the store dynamically to avoid circular dependencies
+        import('./utils/usePageNavigationStore').then(({ default: usePageNavigationStore }) => {
+          const { goToPage, getPageForChannelIndex, ensurePageExists } = usePageNavigationStore.getState();
+          ensurePageExists(channelIndex);
+          const targetPage = getPageForChannelIndex(channelIndex);
+          goToPage(targetPage);
+        });
+      }
+    }
   };
 
   const handleSettingsClick = () => {
@@ -1045,6 +1045,9 @@ function App() {
     if (newSettings.channelAnimation !== undefined) {
       setChannelAnimation(newSettings.channelAnimation);
     }
+    if (newSettings.adaptiveEmptyChannels !== undefined) {
+      setAdaptiveEmptyChannels(newSettings.adaptiveEmptyChannels);
+    }
     if (newSettings.kenBurnsEnabled !== undefined) {
       setKenBurnsEnabled(newSettings.kenBurnsEnabled);
     }
@@ -1136,6 +1139,7 @@ function App() {
     wallpaperBlur,
     timeFont,
     channelAnimation,
+    adaptiveEmptyChannels,
     kenBurnsEnabled,
     kenBurnsMode,
     kenBurnsHoverScale,
@@ -1634,37 +1638,23 @@ function App() {
         {showDragRegion && (
           <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
         )}
-        <div className="channels-grid" style={{ opacity: channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
-          {channels.map((channel) => {
-            const config = channelConfigs[channel.id];
-            if (config && !config.type) {
-              console.warn('[WARNING] Channel config missing type:', channel.id, config);
-            }
-            const isConfigured = config && (config.media || config.path);
-            return (
-              <Channel
-                key={channel.id}
-                {...channel}
-                empty={!isConfigured}
-                media={mediaMap[channel.id]}
-                path={appPathMap[channel.id]}
-                type={config?.type}
-                title={config?.title}
-                hoverSound={config?.hoverSound}
-                asAdmin={config?.asAdmin}
-                onMediaChange={handleMediaChange}
-                onAppPathChange={handleAppPathChange}
-                onChannelSave={handleChannelSave}
-                animatedOnHover={animatedOnHover}
-                channelConfig={config}
-                onHover={handleChannelHover}
-                onOpenModal={() => setOpenChannelModal(channel.id)}
-                animationStyle={channelAnimation}
-                kenBurnsEnabled={kenBurnsEnabled}
-                kenBurnsMode={kenBurnsMode}
-              />
-            );
-          })}
+        <div style={{ opacity: channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
+          <PaginatedChannels
+            allChannels={channels}
+            channelConfigs={channelConfigs}
+            mediaMap={mediaMap}
+            appPathMap={appPathMap}
+            animatedOnHover={animatedOnHover}
+            adaptiveEmptyChannels={adaptiveEmptyChannels}
+            kenBurnsEnabled={kenBurnsEnabled}
+            kenBurnsMode={kenBurnsMode}
+            onMediaChange={handleMediaChange}
+            onAppPathChange={handleAppPathChange}
+            onChannelSave={handleChannelSave}
+            onChannelHover={handleChannelHover}
+            onOpenModal={setOpenChannelModal}
+          />
+          <PageNavigation position="bottom" />
         </div>
         <WiiRibbon
           onSettingsClick={handleSettingsClick}

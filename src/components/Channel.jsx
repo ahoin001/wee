@@ -20,7 +20,7 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode }) => {
+const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle, adaptiveEmptyChannels, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode }) => {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -486,7 +486,11 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
 
   const channelContent = (
     <div
-      className={empty && !media ? "channel empty" : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}`}
+      className={
+        empty && !media 
+          ? `channel empty${adaptiveEmptyChannels && window.settings?.ribbonColor ? ' adaptive' : ''}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}`
+      }
       data-channel-id={id}
       onClick={handleClick}
       onMouseEnter={e => { handleMouseEnter(e); setIsHovered(true); }}
@@ -494,6 +498,11 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       tabIndex={0}
       role="button"
       onContextMenu={handleRightClick}
+      style={{
+        ...(empty && !media && adaptiveEmptyChannels && window.settings?.ribbonColor && {
+          '--adaptive-bg-color': window.settings.ribbonColor,
+        })
+      }}
     >
       {/* Show media preview if available and no error */}
       {!imageError && mediaPreview}
@@ -590,6 +599,7 @@ Channel.propTypes = {
   onHover: PropTypes.func,
   onOpenModal: PropTypes.func,
   animationStyle: PropTypes.oneOf(['none', 'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'random']),
+  adaptiveEmptyChannels: PropTypes.bool,
   kenBurnsEnabled: PropTypes.bool,
   kenBurnsMode: PropTypes.oneOf(['hover', 'autoplay']),
 };

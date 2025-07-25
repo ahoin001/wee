@@ -1,0 +1,118 @@
+/* Paginated Channels Component Styles */
+
+.paginated-channels {
+  width: 100vw;
+  max-width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+.pages-container {
+  display: flex;
+  width: 100%;
+  will-change: transform;
+  position: relative;
+}
+
+.channels-page {
+  flex: 0 0 100%;
+  width: 100%;
+  min-height: 100%;
+  position: relative;
+}
+
+.channels-page .channels-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2rem;
+  padding: 2rem 2vw;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  min-height: 400px; /* Ensure consistent height */
+}
+
+/* Animation States */
+.pages-container.animating {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pages-container.slide-left {
+  /* Additional styles for left slide animation if needed */
+}
+
+.pages-container.slide-right {
+  /* Additional styles for right slide animation if needed */
+}
+
+/* Performance optimizations */
+.channels-page {
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.channels-page:not(.active) {
+  pointer-events: none; /* Prevent interaction with off-screen pages */
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .channels-page .channels-grid {
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+    grid-template-rows: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .channels-page .channels-grid {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    grid-template-rows: repeat(6, 1fr);
+    gap: 1.25rem;
+    padding: 1.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .channels-page .channels-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 1rem;
+    padding: 1rem 0.5rem;
+  }
+}
+
+/* Ensure smooth transitions */
+* {
+  box-sizing: border-box;
+}
+
+/* Loading state */
+.channels-page.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.channels-page.loading .channels-grid {
+  filter: blur(1px);
+}
+
+/* Error state */
+.channels-page.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.channels-page.error .error-message {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+  text-align: center;
+  background: rgba(255, 0, 0, 0.1);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 0, 0, 0.2);
+} 
