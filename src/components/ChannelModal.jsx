@@ -202,10 +202,44 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = async (file) => {
     if (file) {
-      const url = URL.createObjectURL(file);
-      setMedia({ url, type: file.type, name: file.name });
+      // Create temporary blob URL for immediate preview
+      const tempUrl = URL.createObjectURL(file);
+      setMedia({ url: tempUrl, type: file.type, name: file.name, loading: true });
+      
+      try {
+        // Convert file to base64 and save to persistent storage
+        const base64Data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        // Save to persistent storage using wallpapers API
+        const result = await window.api.wallpapers.saveFile({ 
+          filename: file.name,
+          data: base64Data
+        });
+        
+        if (result.success) {
+          // Update with persistent URL and clean up temp URL
+          setMedia({ url: result.url, type: file.type, name: file.name, loading: false });
+          URL.revokeObjectURL(tempUrl);
+        } else {
+          console.error('Failed to save media file:', result.error);
+          // Keep blob URL as fallback but mark as temporary
+          setMedia({ url: tempUrl, type: file.type, name: file.name, loading: false, temporary: true });
+        }
+      } catch (error) {
+        console.error('Error saving media file:', error);
+        // Keep blob URL as fallback but mark as temporary
+        setMedia({ url: tempUrl, type: file.type, name: file.name, loading: false, temporary: true });
+      }
     }
   };
 
