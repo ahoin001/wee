@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import usePageNavigationStore from '../utils/usePageNavigationStore';
+import useNavigationModalStore from '../utils/useNavigationModalStore';
 import './WiiSideNavigation.css';
 
 const WiiSideNavigation = () => {
@@ -13,8 +14,110 @@ const WiiSideNavigation = () => {
     finishAnimation
   } = usePageNavigationStore();
 
-  const [leftHovered, setLeftHovered] = useState(false);
-  const [rightHovered, setRightHovered] = useState(false);
+  // Icon state management
+  const [leftIcon, setLeftIcon] = useState(null);
+  const [rightIcon, setRightIcon] = useState(null);
+  
+  // Modal state from Zustand
+  const { openModal } = useNavigationModalStore();
+
+  // Load saved icons on component mount
+  useEffect(() => {
+    const loadSavedIcons = async () => {
+      if (window.api?.settings?.get) {
+        try {
+          const settings = await window.api.settings.get();
+          if (settings.navigationIcons) {
+            setLeftIcon(settings.navigationIcons.left || null);
+            setRightIcon(settings.navigationIcons.right || null);
+          }
+        } catch (error) {
+          console.warn('Failed to load navigation icons:', error);
+        }
+      }
+    };
+    loadSavedIcons();
+
+    // Listen for icon changes from the modal
+    const handleIconChange = (event) => {
+      const { side, iconUrl } = event.detail;
+      if (side === 'left') {
+        setLeftIcon(iconUrl);
+      } else if (side === 'right') {
+        setRightIcon(iconUrl);
+      }
+    };
+
+    window.addEventListener('navigationIconChanged', handleIconChange);
+    
+    return () => {
+      window.removeEventListener('navigationIconChanged', handleIconChange);
+    };
+  }, []);
+
+
+
+  // Handle right-click to open modal
+  const handleContextMenu = (event, side) => {
+    event.preventDefault();
+    const currentIcon = side === 'left' ? leftIcon : rightIcon;
+    openModal(side, currentIcon);
+  };
+
+  // Default icon component
+  const DefaultLeftIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path 
+        d="M12 6 L8 10 L12 14" 
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+
+  const DefaultRightIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path 
+        d="M8 6 L12 10 L8 14" 
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+
+  // Icon renderer with fallback
+  const renderIcon = (customIcon, DefaultIcon) => {
+    if (customIcon) {
+      return (
+        <img 
+          src={customIcon} 
+          alt="navigation icon" 
+          style={{ 
+            width: 20, 
+            height: 20,
+            objectFit: 'contain'
+          }}
+          onError={(e) => {
+            console.warn('Navigation icon failed to load, falling back to default:', customIcon);
+            // Reset the custom icon if it fails to load
+            // We need to identify which side this icon belongs to
+            if (customIcon === leftIcon) {
+              setLeftIcon(null);
+              saveIconSettings('left', null);
+            } else if (customIcon === rightIcon) {
+              setRightIcon(null);
+              saveIconSettings('right', null);
+            }
+          }}
+        />
+      );
+    }
+    return <DefaultIcon />;
+  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -66,99 +169,41 @@ const WiiSideNavigation = () => {
 
   return (
     <>
-      {/* Left Navigation Arrow */}
+      {/* Left Navigation Button */}
       {canGoLeft && (
-        <div 
-          className="wii-side-nav wii-side-nav-left"
-          onMouseEnter={() => setLeftHovered(true)}
-          onMouseLeave={() => setLeftHovered(false)}
+        <button
+          className="wii-peek-button wii-peek-button-left"
+          onClick={goToPreviousPage}
+          onContextMenu={(e) => handleContextMenu(e, 'left')}
+          disabled={isAnimating}
+          title="Previous page (Right-click to customize)"
         >
-          {/* Triangular Arrow */}
-          <div className="wii-arrow wii-arrow-left">
-            <svg width="40" height="60" viewBox="0 0 40 60" fill="none">
-              <path 
-                d="M35 5 L5 30 L35 55 Z" 
-                fill="url(#leftArrowGradient)"
-                stroke="#1e3a8a"
-                strokeWidth="2"
-                strokeLinejoin="round"
-              />
-              <defs>
-                <linearGradient id="leftArrowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#60a5fa" />
-                  <stop offset="100%" stopColor="#3b82f6" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-
-          {/* Circular Button that grows out */}
-          <button
-            className={`wii-nav-button wii-nav-button-left ${leftHovered ? 'visible' : ''}`}
-            onClick={goToPreviousPage}
-            disabled={isAnimating}
-            title="Previous page"
-          >
-            <div className="wii-button-circle">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path 
-                  d="M5 10 L15 10" 
-                  stroke="#6b7280"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+          <div className="wii-button-surface">
+            <div className="wii-button-content">
+              {renderIcon(leftIcon, DefaultLeftIcon)}
             </div>
-          </button>
-        </div>
+          </div>
+        </button>
       )}
 
-      {/* Right Navigation Arrow */}
+      {/* Right Navigation Button */}
       {canGoRight && (
-        <div 
-          className="wii-side-nav wii-side-nav-right"
-          onMouseEnter={() => setRightHovered(true)}
-          onMouseLeave={() => setRightHovered(false)}
+        <button
+          className="wii-peek-button wii-peek-button-right"
+          onClick={goToNextPage}
+          onContextMenu={(e) => handleContextMenu(e, 'right')}
+          disabled={isAnimating}
+          title="Next page (Right-click to customize)"
         >
-          {/* Triangular Arrow */}
-          <div className="wii-arrow wii-arrow-right">
-            <svg width="40" height="60" viewBox="0 0 40 60" fill="none">
-              <path 
-                d="M5 5 L35 30 L5 55 Z" 
-                fill="url(#rightArrowGradient)"
-                stroke="#1e3a8a"
-                strokeWidth="2"
-                strokeLinejoin="round"
-              />
-              <defs>
-                <linearGradient id="rightArrowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#60a5fa" />
-                  <stop offset="100%" stopColor="#3b82f6" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-
-          {/* Circular Button that grows out */}
-          <button
-            className={`wii-nav-button wii-nav-button-right ${rightHovered ? 'visible' : ''}`}
-            onClick={goToNextPage}
-            disabled={isAnimating}
-            title="Next page"
-          >
-            <div className="wii-button-circle">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path 
-                  d="M10 5 L10 15 M5 10 L15 10" 
-                  stroke="#6b7280"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+          <div className="wii-button-surface">
+            <div className="wii-button-content">
+              {renderIcon(rightIcon, DefaultRightIcon)}
             </div>
-          </button>
-        </div>
+          </div>
+        </button>
       )}
+
+
     </>
   );
 };

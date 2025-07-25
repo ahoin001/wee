@@ -1,212 +1,188 @@
-/* Wii-Style Side Navigation */
 
-.wii-side-nav {
+.wii-peek-button {
   position: fixed;
   top: 50%;
-  transform: translateY(-50%);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  pointer-events: auto;
-  user-select: none;
-}
-
-.wii-side-nav-left {
-  left: 20px;
-  flex-direction: row;
-}
-
-.wii-side-nav-right {
-  right: 20px;
-  flex-direction: row-reverse;
-}
-
-/* Triangular Arrows */
-.wii-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-}
-
-.wii-arrow:hover {
-  transform: scale(1.05);
-  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
-}
-
-.wii-arrow svg {
-  width: 40px;
-  height: 60px;
-}
-
-/* Circular Navigation Buttons */
-.wii-nav-button {
-  position: absolute;
-  width: 60px;
+  width: 80px;
   height: 60px;
   border: none;
   background: transparent;
   cursor: pointer;
   padding: 0;
-  opacity: 0;
-  transform: scale(0);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+  outline: none;
+  /* MODIFICATION: Transition only transform property for performance */
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* MODIFICATION: Use transform for positioning instead of left/right */
+.wii-peek-button-left {
+  left: 0;
+  border-radius: 0 30px 30px 0;
+  /* Initially peeking out by 30px */
+  transform: translateX(-50px) translateY(-50%);
+}
+
+.wii-peek-button-right {
+  right: 0;
+  border-radius: 30px 0 0 30px;
+  /* Initially peeking out by 30px */
+  transform: translateX(50px) translateY(-50%);
+}
+
+/* MODIFICATION: Hover state now animates transform */
+.wii-peek-button-left:hover {
+  /* Slides out to reveal more */
+  transform: translateX(-10px) translateY(-50%);
+}
+
+.wii-peek-button-right:hover {
+  /* Slides out to reveal more */
+  transform: translateX(10px) translateY(-50%);
+}
+
+/* Glossy Button Surface */
+.wii-button-surface {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  border: 3px solid #0ea5e9;
+  border-radius: inherit;
+  overflow: hidden;
+  box-shadow: 
+    0 6px 20px rgba(14, 165, 233, 0.4),
+    inset 0 3px 10px rgba(255, 255, 255, 0.7),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Watery highlight effect */
+.wii-button-surface::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(255, 255, 255, 0.5) 50%, 
+    rgba(255, 255, 255, 0) 100%);
+  border-radius: inherit;
   pointer-events: none;
 }
 
-.wii-nav-button.visible {
-  opacity: 1;
-  transform: scale(1);
-  pointer-events: auto;
-}
-
-.wii-nav-button-left {
-  left: 50px; /* Position to the right of the left arrow */
-}
-
-.wii-nav-button-right {
-  right: 50px; /* Position to the left of the right arrow */
-}
-
-.wii-button-circle {
-  width: 60px;
-  height: 60px;
+/* Animated ripple effect on hover */
+.wii-button-surface::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, transparent 70%);
   border-radius: 50%;
-  background: linear-gradient(145deg, #f3f4f6, #e5e7eb);
-  border: 3px solid #3b82f6;
+  transform: translate(-50%, -50%);
+  transition: all 0.4s ease;
+  pointer-events: none;
+}
+
+/* Button Content */
+.wii-button-content {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.2),
-    inset 0 2px 4px rgba(255, 255, 255, 0.3),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #475569;
   position: relative;
-  overflow: hidden;
+  z-index: 2;
+  transition: color 0.3s ease;
 }
 
-.wii-nav-button:hover .wii-button-circle {
-  background: linear-gradient(145deg, #ffffff, #f3f4f6);
-  border-color: #60a5fa;
+/* Hover Effects */
+.wii-peek-button:hover .wii-button-surface {
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%);
+  border-color: #0284c7;
   box-shadow: 
-    0 6px 16px rgba(0, 0, 0, 0.25),
-    inset 0 2px 6px rgba(255, 255, 255, 0.4),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.15);
-  transform: scale(1.05);
+    0 8px 25px rgba(14, 165, 233, 0.5),
+    inset 0 4px 12px rgba(255, 255, 255, 0.8),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.15);
+  transform: scale(1.05); /* This scale is on the surface, not the main button */
 }
 
-.wii-nav-button:active .wii-button-circle {
+.wii-peek-button:hover .wii-button-surface::after {
+  width: 80px;
+  height: 80px;
+}
+
+.wii-peek-button:hover .wii-button-content {
+  color: #334155;
+}
+
+/* Active/Press State */
+.wii-peek-button:active .wii-button-surface {
   transform: scale(0.95);
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    0 4px 15px rgba(14, 165, 233, 0.6),
+    inset 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Button Icons */
-.wii-button-circle svg {
-  width: 20px;
-  height: 20px;
-  z-index: 1;
+/* MODIFICATION: Bounce animation now only modifies translateX */
+@keyframes playfulBounceLeft {
+  0%, 100% { transform: translateX(0px); }
+  25% { transform: translateX(3px); }
+  50% { transform: translateX(1px); }
+  75% { transform: translateX(-1px); }
 }
 
-/* Subtle glow effect on hover */
-.wii-nav-button:hover .wii-button-circle::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 50%;
-  background: linear-gradient(45deg, #60a5fa, #3b82f6);
-  z-index: -1;
+@keyframes playfulBounceRight {
+  0%, 100% { transform: translateX(0px); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+/* The bounce is applied to the inner surface, not the main button, to avoid conflict */
+.wii-peek-button-left:not(:hover) .wii-button-surface {
+  animation: playfulBounceLeft 4s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+.wii-peek-button-right:not(:hover) .wii-button-surface {
+  animation: playfulBounceRight 4s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+/* MODIFICATION: Removed slide-in animation as it also conflicts. 
+   A fade-in on load would be a better approach if desired. */
+
+/* Disabled state */
+.wii-peek-button:disabled {
   opacity: 0.6;
-  filter: blur(4px);
+  cursor: not-allowed;
+  animation: none !important;
 }
 
-/* Animation timing adjustments */
-.wii-side-nav:hover .wii-nav-button {
-  transition-delay: 0.1s;
+.wii-peek-button:disabled .wii-button-surface {
+  animation: none !important;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .wii-side-nav-left {
-    left: 10px;
-  }
-  
-  .wii-side-nav-right {
-    right: 10px;
-  }
-  
-  .wii-arrow svg {
-    width: 32px;
-    height: 48px;
-  }
-  
-  .wii-nav-button {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .wii-button-circle {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .wii-nav-button-left {
-    left: 40px;
-  }
-  
-  .wii-nav-button-right {
-    right: 40px;
-  }
-}
-
-/* Accessibility improvements */
-.wii-nav-button:focus-visible {
-  outline: 2px solid #60a5fa;
+/* Accessibility */
+.wii-peek-button:focus-visible {
+  outline: 3px solid #0ea5e9;
   outline-offset: 4px;
+  /* Make sure focused button is visible */
+  transform: translateX(0) translateY(-50%);
 }
 
-/* Ensure arrows don't interfere with channel interactions */
-.wii-side-nav {
-  pointer-events: none;
+/* Navigation customization is now handled by the modal */
+
+/* Custom icon styling in buttons */
+.wii-button-content img {
+  transition: transform 0.2s ease;
 }
 
-.wii-arrow,
-.wii-nav-button {
-  pointer-events: auto;
-}
-
-/* Smooth fade-in animation when arrows appear */
-.wii-side-nav {
-  animation: fadeInNav 0.3s ease-out;
-}
-
-@keyframes fadeInNav {
-  from {
-    opacity: 0;
-    transform: translateY(-50%) scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(-50%) scale(1);
-  }
-}
-
-/* Enhanced button grow-out animation */
-.wii-nav-button {
-  transform-origin: center;
-}
-
-.wii-nav-button-left {
-  transform-origin: left center;
-}
-
-.wii-nav-button-right {
-  transform-origin: right center;
+.wii-peek-button:hover .wii-button-content img {
+  transform: scale(1.1);
 }

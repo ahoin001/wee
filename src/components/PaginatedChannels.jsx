@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import usePageNavigationStore from '../utils/usePageNavigationStore';
+import useIdleChannelAnimations from '../utils/useIdleChannelAnimations';
 import Channel from './Channel';
 import './PaginatedChannels.css';
 
@@ -13,6 +14,9 @@ const PaginatedChannels = ({
   adaptiveEmptyChannels,
   kenBurnsEnabled,
   kenBurnsMode,
+  idleAnimationEnabled,
+  idleAnimationTypes,
+  idleAnimationInterval,
   onMediaChange,
   onAppPathChange,
   onChannelSave,
@@ -30,6 +34,14 @@ const PaginatedChannels = ({
     setTotalPages,
     ensurePageExists
   } = usePageNavigationStore();
+
+  // Idle animation system
+  const { getChannelAnimationClass, isChannelAnimating } = useIdleChannelAnimations(
+    idleAnimationEnabled,
+    idleAnimationTypes,
+    idleAnimationInterval,
+    allChannels
+  );
 
   // Calculate total channels needed and update total pages
   const totalChannelsNeeded = useMemo(() => {
@@ -169,6 +181,8 @@ const PaginatedChannels = ({
                   adaptiveEmptyChannels={adaptiveEmptyChannels}
                   kenBurnsEnabled={kenBurnsEnabled}
                   kenBurnsMode={kenBurnsMode}
+                  idleAnimationClass={getChannelAnimationClass(channel.id)}
+                  isIdleAnimating={isChannelAnimating(channel.id)}
                 />
               ))}
             </div>
@@ -188,6 +202,9 @@ PaginatedChannels.propTypes = {
   adaptiveEmptyChannels: PropTypes.bool,
   kenBurnsEnabled: PropTypes.bool,
   kenBurnsMode: PropTypes.string,
+  idleAnimationEnabled: PropTypes.bool,
+  idleAnimationTypes: PropTypes.array,
+  idleAnimationInterval: PropTypes.number,
   onMediaChange: PropTypes.func.isRequired,
   onAppPathChange: PropTypes.func.isRequired,
   onChannelSave: PropTypes.func.isRequired,

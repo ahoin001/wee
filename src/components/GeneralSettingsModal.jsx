@@ -16,6 +16,11 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   const [channelAnimation, setChannelAnimation] = useState(props.channelAnimation || 'none');
   const [adaptiveEmptyChannels, setAdaptiveEmptyChannels] = useState(props.adaptiveEmptyChannels ?? true);
   
+  // Idle channel animation settings
+  const [idleAnimationEnabled, setIdleAnimationEnabled] = useState(props.idleAnimationEnabled ?? false);
+  const [idleAnimationTypes, setIdleAnimationTypes] = useState(props.idleAnimationTypes || ['pulse', 'bounce', 'glow']);
+  const [idleAnimationInterval, setIdleAnimationInterval] = useState(props.idleAnimationInterval ?? 8);
+  
   // Ken Burns settings
   const [kenBurnsEnabled, setKenBurnsEnabled] = useState(props.kenBurnsEnabled ?? false);
   const [kenBurnsMode, setKenBurnsMode] = useState(props.kenBurnsMode || 'hover');
@@ -59,6 +64,9 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
       onSettingsChange({ 
         channelAnimation,
         adaptiveEmptyChannels,
+        idleAnimationEnabled,
+        idleAnimationTypes,
+        idleAnimationInterval,
         kenBurnsEnabled,
         kenBurnsMode,
         kenBurnsHoverScale,
@@ -250,6 +258,101 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
               <option value="fullrandom">Full Random (cycle animations)</option>
             </select>
             <Text as="p" size="sm" color="#888">Choose how your channel icons animate on the home screen. No hover needed—animations will play automatically.</Text>
+          </div>
+        </div>
+
+        {/* Idle Channel Animations */}
+        <div className="wee-card" style={{ marginBottom: 18 }}>
+          <div className="wee-card-header">
+            <Text as="span" size="lg" weight={700} className="wee-card-title">Idle Channel Animations</Text>
+            <label className="toggle-switch" style={{ margin: 0 }}>
+              <input 
+                type="checkbox" 
+                checked={idleAnimationEnabled} 
+                onChange={e => setIdleAnimationEnabled(e.target.checked)} 
+              />
+              <span className="toggle-slider round"></span>
+            </label>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            <Text as="p" size="sm" color="#888" style={{ marginBottom: 16 }}>
+              When enabled, channels with content will randomly perform playful animations inspired by the Wii Side Navigation. Only applies to channels that have content (apps, games, or media).
+            </Text>
+            
+            {idleAnimationEnabled && (
+              <div style={{ marginLeft: 12, paddingLeft: 12, borderLeft: '3px solid #0ea5e9' }}>
+                <Text as="label" size="md" weight={500} style={{ display: 'block', marginBottom: 12 }}>
+                  Animation Types to Use
+                </Text>
+                
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+                  gap: '8px',
+                  marginBottom: 16
+                }}>
+                  {[
+                    'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'flip', 
+                    'swing', 'shake', 'pop', 'slide', 'colorcycle', 'sparkle',
+                    'heartbeat', 'orbit', 'wave', 'jelly', 'zoom', 'rotate', 'glowtrail'
+                  ].map(animType => (
+                    <label key={animType} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      gap: '6px'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={idleAnimationTypes.includes(animType)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setIdleAnimationTypes([...idleAnimationTypes, animType]);
+                          } else {
+                            setIdleAnimationTypes(idleAnimationTypes.filter(t => t !== animType));
+                          }
+                        }}
+                        style={{ marginRight: 0 }}
+                      />
+                      <span style={{ textTransform: 'capitalize' }}>{animType}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <Text as="label" size="md" weight={500} style={{ display: 'block', marginBottom: 8 }}>
+                    Animation Frequency: Every {idleAnimationInterval} seconds
+                  </Text>
+                  <input
+                    type="range"
+                    min="6"
+                    max="30"
+                    step="1"
+                    value={idleAnimationInterval}
+                    onChange={(e) => setIdleAnimationInterval(parseInt(e.target.value))}
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                  <Text as="p" size="xs" color="#888">
+                    How often random channels will trigger animations. Minimum 6 seconds to avoid overwhelming the interface.
+                  </Text>
+                </div>
+
+                <div style={{ 
+                  background: '#f0f8ff', 
+                  padding: '12px', 
+                  borderRadius: '8px',
+                  border: '1px solid #0ea5e9'
+                }}>
+                  <Text as="p" size="sm" style={{ margin: 0, color: '#0284c7' }}>
+                    <strong>💡 Tip:</strong> Select multiple animation types for variety! Each time a channel animates, 
+                    it will randomly choose from your selected types. This creates a living, dynamic interface 
+                    similar to the playful Wii Side Navigation buttons.
+                  </Text>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -827,6 +930,9 @@ GeneralSettingsModal.propTypes = {
   setShowPresetsButton: PropTypes.func,
   onSettingsChange: PropTypes.func,
   channelAnimation: PropTypes.string,
+  idleAnimationEnabled: PropTypes.bool,
+  idleAnimationTypes: PropTypes.array,
+  idleAnimationInterval: PropTypes.number,
   kenBurnsEnabled: PropTypes.bool,
   kenBurnsMode: PropTypes.string,
   kenBurnsHoverScale: PropTypes.number,

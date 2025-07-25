@@ -11,6 +11,7 @@ import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
 import WiiRibbon from './components/WiiRibbon';
 import WallpaperModal from './components/WallpaperModal';
+import NavigationCustomizationModal from './components/NavigationCustomizationModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
@@ -204,6 +205,11 @@ function App() {
   const [timeFont, setTimeFont] = useState('default'); // Add this to state
   const [channelAnimation, setChannelAnimation] = useState(null); // Add to app state
   const [adaptiveEmptyChannels, setAdaptiveEmptyChannels] = useState(true);
+  
+  // Idle channel animation settings
+  const [idleAnimationEnabled, setIdleAnimationEnabled] = useState(false);
+  const [idleAnimationTypes, setIdleAnimationTypes] = useState(['pulse', 'bounce', 'glow']);
+  const [idleAnimationInterval, setIdleAnimationInterval] = useState(8);
   
   // Ken Burns settings
   const [kenBurnsEnabled, setKenBurnsEnabled] = useState(false);
@@ -600,8 +606,13 @@ function App() {
         currentTimeColorRef.current = settings.timeColor || '#ffffff';
         currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
         setTimeFont(settings.timeFont || 'default');
-        setChannelAnimation(settings.channelAnimation || 'none'); // Load channelAnimation
-        setAdaptiveEmptyChannels(settings.adaptiveEmptyChannels ?? true);
+              setChannelAnimation(settings.channelAnimation || 'none'); // Load channelAnimation
+      setAdaptiveEmptyChannels(settings.adaptiveEmptyChannels ?? true);
+      
+      // Load idle animation settings
+      setIdleAnimationEnabled(settings.idleAnimationEnabled ?? false);
+      setIdleAnimationTypes(settings.idleAnimationTypes || ['pulse', 'bounce', 'glow']);
+      setIdleAnimationInterval(settings.idleAnimationInterval ?? 8);
         
         // Load Ken Burns settings
             setKenBurnsEnabled(settings.kenBurnsEnabled ?? false);
@@ -723,7 +734,10 @@ function App() {
         showPresetsButton, // Persist show presets button setting
         timeFont, // Persist timeFont
         channelAnimation, // Persist channelAnimation
-        adaptiveEmptyChannels, // Persist adaptive empty channels setting
+        adaptiveEmptyChannels,
+        idleAnimationEnabled,
+        idleAnimationTypes,
+        idleAnimationInterval, // Persist adaptive empty channels setting
         kenBurnsEnabled, // Persist Ken Burns enabled setting
         kenBurnsMode, // Persist Ken Burns mode setting
         kenBurnsHoverScale, // Persist Ken Burns hover scale
@@ -1058,6 +1072,17 @@ function App() {
     if (newSettings.adaptiveEmptyChannels !== undefined) {
       setAdaptiveEmptyChannels(newSettings.adaptiveEmptyChannels);
     }
+    
+    // Handle idle animation settings
+    if (newSettings.idleAnimationEnabled !== undefined) {
+      setIdleAnimationEnabled(newSettings.idleAnimationEnabled);
+    }
+    if (newSettings.idleAnimationTypes !== undefined) {
+      setIdleAnimationTypes(newSettings.idleAnimationTypes);
+    }
+    if (newSettings.idleAnimationInterval !== undefined) {
+      setIdleAnimationInterval(newSettings.idleAnimationInterval);
+    }
     if (newSettings.kenBurnsEnabled !== undefined) {
       setKenBurnsEnabled(newSettings.kenBurnsEnabled);
     }
@@ -1148,8 +1173,11 @@ function App() {
     ribbonDockOpacity,
     wallpaperBlur,
     timeFont,
-    channelAnimation,
-    adaptiveEmptyChannels,
+          channelAnimation,
+      adaptiveEmptyChannels,
+      idleAnimationEnabled,
+      idleAnimationTypes,
+      idleAnimationInterval,
     kenBurnsEnabled,
     kenBurnsMode,
     kenBurnsHoverScale,
@@ -1658,6 +1686,9 @@ function App() {
             adaptiveEmptyChannels={adaptiveEmptyChannels}
             kenBurnsEnabled={kenBurnsEnabled}
             kenBurnsMode={kenBurnsMode}
+            idleAnimationEnabled={idleAnimationEnabled}
+            idleAnimationTypes={idleAnimationTypes}
+            idleAnimationInterval={idleAnimationInterval}
             onMediaChange={handleMediaChange}
             onAppPathChange={handleAppPathChange}
             onChannelSave={handleChannelSave}
@@ -1734,6 +1765,7 @@ function App() {
           onImportPresets={handleImportPresets}
           onReorderPresets={handleReorderPresets}
         />
+        <NavigationCustomizationModal />
         <WallpaperModal
           isOpen={showWallpaperModal}
           onClose={closeWallpaperModal}

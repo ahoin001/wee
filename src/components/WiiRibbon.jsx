@@ -905,6 +905,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           setShowPresetsButton={val => onSettingsChange({ showPresetsButton: val })}
           channelAnimation={window.settings?.channelAnimation}
           adaptiveEmptyChannels={window.settings?.adaptiveEmptyChannels}
+          idleAnimationEnabled={window.settings?.idleAnimationEnabled}
+          idleAnimationTypes={window.settings?.idleAnimationTypes}
+          idleAnimationInterval={window.settings?.idleAnimationInterval}
           kenBurnsEnabled={window.settings?.kenBurnsEnabled}
           kenBurnsMode={window.settings?.kenBurnsMode}
           kenBurnsHoverScale={window.settings?.kenBurnsHoverScale}

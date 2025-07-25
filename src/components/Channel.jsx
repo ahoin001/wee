@@ -20,7 +20,7 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle, adaptiveEmptyChannels, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode }) => {
+const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle, adaptiveEmptyChannels, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode, idleAnimationClass, isIdleAnimating }) => {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -488,8 +488,8 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     <div
       className={
         empty && !media 
-          ? `channel empty${adaptiveEmptyChannels && window.settings?.ribbonColor ? ' adaptive' : ''}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}`
+          ? `channel empty${adaptiveEmptyChannels && window.settings?.ribbonColor ? ' adaptive' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}`
       }
       data-channel-id={id}
       onClick={handleClick}
@@ -602,6 +602,8 @@ Channel.propTypes = {
   adaptiveEmptyChannels: PropTypes.bool,
   kenBurnsEnabled: PropTypes.bool,
   kenBurnsMode: PropTypes.oneOf(['hover', 'autoplay']),
+  idleAnimationClass: PropTypes.string,
+  isIdleAnimating: PropTypes.bool,
 };
 
 export default Channel;
