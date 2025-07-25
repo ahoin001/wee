@@ -81,7 +81,7 @@ const PageNavigation = ({ position = 'bottom' }) => {
       className={`page-navigation page-navigation-${position} minimal`}
       style={{ 
         position: 'fixed',
-        bottom: '20px',
+        bottom: '180px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 1000,

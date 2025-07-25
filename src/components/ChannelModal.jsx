@@ -416,6 +416,15 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         setPathError('Please enter a valid Steam URI (e.g., steam://rungameid/252950) or AppID (e.g., 252950)');
         return false;
       }
+    } else if (type === 'epic') {
+      // Validate Epic URI format
+      if (path.trim().startsWith('com.epicgames.launcher://apps/')) {
+        setPathError('');
+        return true;
+      } else {
+        setPathError('Please enter a valid Epic URI (e.g., com.epicgames.launcher://apps/Fortnite?action=launch&silent=true)');
+        return false;
+      }
     } else if (type === 'microsoftstore') {
       // Accept any AppID containing an exclamation mark
       if (typeof path === 'string' && path.includes('!')) {
@@ -442,12 +451,21 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   };
 
   const handleGameResultClick = (game) => {
+    console.log('[ChannelModal] handleGameResultClick called with game:', game);
+    console.log('[ChannelModal] gameType:', gameType);
+    
     let uri = '';
     if (gameType === 'steam') {
       uri = `steam://rungameid/${game.appid}`;
+      console.log('[ChannelModal] Generated Steam URI:', uri);
     } else if (gameType === 'epic') {
+      // Epic Games Launcher URI format: com.epicgames.launcher://apps/[AppName]?action=launch&silent=true
+      // Alternative format: com.epicgames.launcher://apps/[AppName]?action=launch
       uri = `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`;
+      console.log('[ChannelModal] Generated Epic URI:', uri);
     }
+    
+    console.log('[ChannelModal] Setting path to:', uri);
     setPath(uri);
     setGameQuery(game.name);
     setGameDropdownOpen(false);

@@ -1462,6 +1462,11 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
     shell.openExternal(appPath).catch(err => {
       console.error('Failed to open Steam URI:', err);
     });
+  } else if (type === 'epic' || (typeof appPath === 'string' && appPath.startsWith('com.epicgames.launcher://'))) {
+    console.log('Launching Epic URI:', appPath);
+    shell.openExternal(appPath).catch(err => {
+      console.error('Failed to open Epic URI:', err);
+    });
   } else if (type === 'microsoftstore') {
     // Launch Microsoft Store (UWP) app using the start command
     try {
@@ -2394,13 +2399,17 @@ async function getInstalledEpicGames() {
         const appName = manifest.AppName;
         const image = manifest.DisplayImage || manifest.ImageUrl || null;
         if (name && appName) {
+          console.log(`[EpicScan] Found game: ${name} (appName: ${appName})`);
           games.push({ name, appName, image });
+        } else {
+          console.log(`[EpicScan] Skipping game with missing data:`, { name, appName });
         }
       } catch (err) {
         console.warn('[EpicScan] Failed to parse', file, err);
       }
     }
     console.log(`[EpicScan] Found ${games.length} installed Epic games.`);
+    console.log('[EpicScan] Games data:', games);
     return { games };
   } catch (err) {
     console.error('[EpicScan] Error scanning Epic games:', err);
