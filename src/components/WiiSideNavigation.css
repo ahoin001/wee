@@ -1,0 +1,212 @@
+/* Wii-Style Side Navigation */
+
+.wii-side-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.wii-side-nav-left {
+  left: 20px;
+  flex-direction: row;
+}
+
+.wii-side-nav-right {
+  right: 20px;
+  flex-direction: row-reverse;
+}
+
+/* Triangular Arrows */
+.wii-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.wii-arrow:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+}
+
+.wii-arrow svg {
+  width: 40px;
+  height: 60px;
+}
+
+/* Circular Navigation Buttons */
+.wii-nav-button {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.wii-nav-button.visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.wii-nav-button-left {
+  left: 50px; /* Position to the right of the left arrow */
+}
+
+.wii-nav-button-right {
+  right: 50px; /* Position to the left of the right arrow */
+}
+
+.wii-button-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f3f4f6, #e5e7eb);
+  border: 3px solid #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.wii-nav-button:hover .wii-button-circle {
+  background: linear-gradient(145deg, #ffffff, #f3f4f6);
+  border-color: #60a5fa;
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.25),
+    inset 0 2px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
+}
+
+.wii-nav-button:active .wii-button-circle {
+  transform: scale(0.95);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Button Icons */
+.wii-button-circle svg {
+  width: 20px;
+  height: 20px;
+  z-index: 1;
+}
+
+/* Subtle glow effect on hover */
+.wii-nav-button:hover .wii-button-circle::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #60a5fa, #3b82f6);
+  z-index: -1;
+  opacity: 0.6;
+  filter: blur(4px);
+}
+
+/* Animation timing adjustments */
+.wii-side-nav:hover .wii-nav-button {
+  transition-delay: 0.1s;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .wii-side-nav-left {
+    left: 10px;
+  }
+  
+  .wii-side-nav-right {
+    right: 10px;
+  }
+  
+  .wii-arrow svg {
+    width: 32px;
+    height: 48px;
+  }
+  
+  .wii-nav-button {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .wii-button-circle {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .wii-nav-button-left {
+    left: 40px;
+  }
+  
+  .wii-nav-button-right {
+    right: 40px;
+  }
+}
+
+/* Accessibility improvements */
+.wii-nav-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 4px;
+}
+
+/* Ensure arrows don't interfere with channel interactions */
+.wii-side-nav {
+  pointer-events: none;
+}
+
+.wii-arrow,
+.wii-nav-button {
+  pointer-events: auto;
+}
+
+/* Smooth fade-in animation when arrows appear */
+.wii-side-nav {
+  animation: fadeInNav 0.3s ease-out;
+}
+
+@keyframes fadeInNav {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* Enhanced button grow-out animation */
+.wii-nav-button {
+  transform-origin: center;
+}
+
+.wii-nav-button-left {
+  transform-origin: left center;
+}
+
+.wii-nav-button-right {
+  transform-origin: right center;
+}

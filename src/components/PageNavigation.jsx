@@ -14,6 +14,8 @@ const PageNavigation = ({ position = 'bottom' }) => {
     finishAnimation
   } = usePageNavigationStore();
 
+  // Minimal page indicator component - mouse navigation is handled globally
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -56,6 +58,9 @@ const PageNavigation = ({ position = 'bottom' }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToNextPage, goToPreviousPage, goToPage, totalPages]);
 
+  // Mouse navigation is now handled globally in the Zustand store
+  // No need for component-level event listeners
+
   // Auto-finish animation after transition duration
   useEffect(() => {
     if (isAnimating) {
@@ -66,33 +71,31 @@ const PageNavigation = ({ position = 'bottom' }) => {
     }
   }, [isAnimating, finishAnimation]);
 
-  // Don't show navigation if there's only one page
+  // Only show minimal UI (just dots) when there are multiple pages
   if (totalPages <= 1) {
     return null;
   }
 
   return (
-    <div className={`page-navigation page-navigation-${position}`}>
-      {/* Left Arrow */}
-      <button
-        className={`nav-arrow nav-arrow-left ${currentPage === 0 ? 'disabled' : ''}`}
-        onClick={goToPreviousPage}
-        disabled={currentPage === 0 || isAnimating}
-        title="Previous page (Arrow Left)"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path 
-            d="M15 18L9 12L15 6" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-
-      {/* Page Indicators */}
-      <div className="page-indicators">
+    <div 
+      className={`page-navigation page-navigation-${position} minimal`}
+      style={{ 
+        position: 'fixed',
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        background: 'rgba(0, 0, 0, 0.3)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '20px',
+        padding: '8px 16px',
+        display: 'flex',
+        gap: '8px',
+        alignItems: 'center'
+      }}
+    >
+      {/* Page Indicators Only - Minimal Design */}
+      <div className="page-indicators" style={{ display: 'flex', gap: '6px' }}>
         {Array.from({ length: totalPages }, (_, index) => (
           <button
             key={index}
@@ -100,57 +103,20 @@ const PageNavigation = ({ position = 'bottom' }) => {
             onClick={() => goToPage(index)}
             disabled={isAnimating}
             title={`Go to page ${index + 1}`}
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              border: 'none',
+              background: index === currentPage ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              padding: 0
+            }}
           >
-            <span className="page-dot"></span>
           </button>
         ))}
       </div>
-
-      {/* Right Arrow */}
-      <button
-        className={`nav-arrow nav-arrow-right ${currentPage === totalPages - 1 ? 'disabled' : ''}`}
-        onClick={goToNextPage}
-        disabled={currentPage === totalPages - 1 || isAnimating}
-        title="Next page (Arrow Right)"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path 
-            d="M9 18L15 12L9 6" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-
-      {/* Page Info Text */}
-      <div className="page-info">
-        <span>Page {currentPage + 1} of {totalPages}</span>
-      </div>
-
-      {/* Add Page Button */}
-      {totalPages < 10 && (
-        <button
-          className="add-page-btn"
-          onClick={() => {
-            const { setTotalPages } = usePageNavigationStore.getState();
-            setTotalPages(totalPages + 1);
-          }}
-          disabled={isAnimating}
-          title="Add a new page (more channels)"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path 
-              d="M12 5V19M5 12H19" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      )}
     </div>
   );
 };

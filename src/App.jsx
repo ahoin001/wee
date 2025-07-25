@@ -4,6 +4,8 @@ import Channel from './components/Channel';
 import ChannelModal from './components/ChannelModal';
 import PaginatedChannels from './components/PaginatedChannels';
 import PageNavigation from './components/PageNavigation';
+import usePageNavigationStore from './utils/usePageNavigationStore';
+import WiiSideNavigation from './components/WiiSideNavigation';
 import HomeButton from './components/HomeButton';
 import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
@@ -516,6 +518,14 @@ function App() {
       }, 800); // match fade-out duration
     }
     loadAll();
+  }, []);
+
+  // Initialize global mouse navigation
+  useEffect(() => {
+    console.log('App: Initializing global mouse navigation');
+    const cleanup = usePageNavigationStore.getState().initializeGlobalNavigation();
+    
+    return cleanup; // This will clean up the event listeners when component unmounts
   }, []);
 
   // Helper function to infer channel type from path
@@ -1654,7 +1664,8 @@ function App() {
             onChannelHover={handleChannelHover}
             onOpenModal={setOpenChannelModal}
           />
-          <PageNavigation position="bottom" />
+          <PageNavigation />
+          <WiiSideNavigation />
         </div>
         <WiiRibbon
           onSettingsClick={handleSettingsClick}
