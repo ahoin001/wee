@@ -3,14 +3,24 @@ import BaseModal from './BaseModal';
 import Card from '../ui/Card';
 import Toggle from '../ui/Toggle';
 import useNavigationModalStore from '../utils/useNavigationModalStore';
+import useIconsStore from '../utils/useIconsStore';
 
 function NavigationCustomizationModal() {
   const { isOpen, selectedSide: side, currentIcon, closeModal } = useNavigationModalStore();
-  const [savedIcons, setSavedIcons] = useState([]);
-  const [loadingIcons, setLoadingIcons] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
   const [selectedIcon, setSelectedIcon] = useState(currentIcon);
+  
+  // Icons store
+  const {
+    savedIcons,
+    loading: iconsLoading,
+    error: iconsError,
+    uploading: iconsUploading,
+    uploadError: iconsUploadError,
+    fetchIcons,
+    uploadIcon,
+    deleteIcon,
+    clearError: clearIconsError
+  } = useIconsStore();
   
   // Glass effect settings
   const [useGlassEffect, setUseGlassEffect] = useState(false);
@@ -44,11 +54,11 @@ function NavigationCustomizationModal() {
 
   // Fetch saved icons and glass settings on open
   useEffect(() => {
-    if (isOpen && window.api?.icons?.list) {
-      refreshSavedIcons();
+    if (isOpen) {
+      fetchIcons();
       loadGlassSettings();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchIcons]);
 
   // Load glass effect settings
   const loadGlassSettings = async () => {
@@ -68,62 +78,17 @@ function NavigationCustomizationModal() {
     }
   };
 
-  const refreshSavedIcons = async () => {
-    setLoadingIcons(true);
-    try {
-      const result = await window.api.icons.list();
-      if (result.success) {
-        setSavedIcons(result.icons);
-      }
-    } catch (error) {
-      console.error('Failed to fetch saved icons:', error);
-    } finally {
-      setLoadingIcons(false);
-    }
-  };
-
   const handleIconUpload = async () => {
-    if (uploading) return;
-    
-    setUploading(true);
-    setUploadError('');
-    
-    try {
-      const result = await window.api.selectIconFile();
-      if (result.success && result.file) {
-        // Copy icon to user directory
-        const copyResult = await window.api.icons.add({
-          filePath: result.file.path,
-          filename: `nav-${side}-${Date.now()}.png`
-        });
-        
-        if (copyResult.success) {
-          await refreshSavedIcons();
-          setSelectedIcon(copyResult.icon.url);
-        } else {
-          setUploadError('Failed to save icon file');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to upload icon:', error);
-      setUploadError('Failed to upload icon: ' + error.message);
-    } finally {
-      setUploading(false);
+    const result = await uploadIcon();
+    if (result.success) {
+      setSelectedIcon(result.icon.url);
     }
   };
 
   const handleDeleteIcon = async (iconUrl) => {
-    try {
-      const result = await window.api.icons.delete({ url: iconUrl });
-      if (result.success) {
-        await refreshSavedIcons();
-        // If the deleted icon was selected, clear selection
-        if (selectedIcon === iconUrl) {
-          setSelectedIcon(null);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to delete icon:', error);
+    const result = await deleteIcon(iconUrl);
+    if (result.success && selectedIcon === iconUrl) {
+      setSelectedIcon(null);
     }
   };
 
@@ -359,23 +324,23 @@ function NavigationCustomizationModal() {
         <div style={{ marginBottom: 20 }}>
           <button
             onClick={handleIconUpload}
-            disabled={uploading}
+            disabled={iconsUploading}
             style={{
               width: '100%',
               padding: '10px 16px',
-              background: uploading ? '#9ca3af' : '#0ea5e9',
+              background: iconsUploading ? '#9ca3af' : '#0ea5e9',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
               fontSize: '14px',
-              cursor: uploading ? 'not-allowed' : 'pointer'
+              cursor: iconsUploading ? 'not-allowed' : 'pointer'
             }}
           >
-            {uploading ? '🔄 Uploading...' : '🎨 Upload Custom Icon'}
+            {iconsUploading ? '🔄 Uploading...' : '🎨 Upload Custom Icon'}
           </button>
-          {uploadError && (
+          {iconsUploadError && (
             <div style={{ color: '#dc3545', fontSize: '13px', marginTop: '8px' }}>
-              {uploadError}
+              {iconsUploadError}
             </div>
           )}
           <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
@@ -393,22 +358,22 @@ function NavigationCustomizationModal() {
           }}>
             <div style={{ fontWeight: 500, color: '#1f2937' }}>Your Icons</div>
             <button
-              onClick={refreshSavedIcons}
-              disabled={loadingIcons}
+              onClick={fetchIcons}
+              disabled={iconsLoading}
               style={{
                 background: 'none',
                 border: 'none',
                 color: '#0ea5e9',
-                cursor: loadingIcons ? 'not-allowed' : 'pointer',
+                cursor: iconsLoading ? 'not-allowed' : 'pointer',
                 fontSize: '14px',
                 fontWeight: 500
               }}
             >
-              {loadingIcons ? '🔄' : '↻'} Refresh
+              {iconsLoading ? '🔄' : '↻'} Refresh
             </button>
           </div>
 
-          {loadingIcons ? (
+          {iconsLoading ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: '#6b7280' }}>
               Loading your icons...
             </div>

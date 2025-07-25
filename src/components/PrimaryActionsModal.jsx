@@ -3,6 +3,7 @@ import BaseModal from './BaseModal';
 import AppPathSectionCard from './AppPathSectionCard';
 import Button from '../ui/Button';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
+import useIconsStore from '../utils/useIconsStore';
 
 function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [], ribbonGlowColor = '#0099ff' }) {
   const [type, setType] = useState(config?.type || 'text');
@@ -11,10 +12,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [actionType, setActionType] = useState(config?.actionType || 'none');
   const [action, setAction] = useState(config?.action || '');
   const [pathError, setPathError] = useState('');
-  const [savedIcons, setSavedIcons] = useState([]);
-  const [loadingIcons, setLoadingIcons] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
   const [useAdaptiveColor, setUseAdaptiveColor] = useState(config?.useAdaptiveColor || false);
   const [useGlowEffect, setUseGlowEffect] = useState(config?.useGlowEffect || false);
@@ -45,6 +42,19 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     uwpApps, uwpLoading, uwpError, fetchUwpApps, rescanUwpApps,
     customSteamPath, setCustomSteamPath
   } = useAppLibraryStore();
+
+  // Icons store
+  const {
+    savedIcons,
+    loading: iconsLoading,
+    error: iconsError,
+    uploading: iconsUploading,
+    uploadError: iconsUploadError,
+    fetchIcons,
+    uploadIcon,
+    deleteIcon,
+    clearError: clearIconsError
+  } = useIconsStore();
 
   // Fuzzy search for apps
   const appResults = (gameType === 'exe' && appQuery && installedApps.length > 0)
@@ -88,11 +98,10 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
 
   // Fetch saved icons on open
   useEffect(() => {
-    if (isOpen && window.api?.icons?.list) {
-      refreshSavedIcons();
+    if (isOpen) {
+      fetchIcons();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, fetchIcons]);
 
   // Fetch app library data when modal opens
   useEffect(() => {
@@ -138,87 +147,18 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     }
   }, [gameType, uwpQuery, filteredUwpApps.length]);
 
-  useEffect(() => {
-    if (savedIcons && savedIcons.length > 0) {
-      console.log('Saved icons:', savedIcons);
-      savedIcons.forEach(icon => console.log('Icon URL:', icon.url));
-    }
-  }, [savedIcons]);
-
-  const refreshSavedIcons = () => {
-    console.log('refreshSavedIcons called');
-    if (window.api?.icons?.list) {
-      console.log('window.api.icons.list is available');
-      setLoadingIcons(true);
-      window.api.icons.list().then(res => {
-        console.log('Icons list response:', res);
-        if (res && res.success) {
-          console.log('Setting saved icons:', res.icons);
-          setSavedIcons(res.icons);
-        } else {
-          console.error('Failed to get icons:', res?.error);
-        }
-        setLoadingIcons(false);
-      }).catch(err => {
-        console.error('Error fetching icons:', err);
-        setLoadingIcons(false);
-      });
-    } else {
-      console.error('window.api.icons.list is not available');
-    }
-  };
-
   // Upload and save icon immediately
   const handleUploadIcon = async () => {
-    console.log('handleUploadIcon called');
-    setUploadError('');
-    if (!window.api?.selectIconFile) {
-      console.error('Icon file picker is not available');
-      setUploadError('Icon file picker is not available.');
-      return;
-    }
-    setUploading(true);
-    try {
-      console.log('Opening file picker...');
-      const fileResult = await window.api.selectIconFile();
-      console.log('File picker result:', fileResult);
-      if (!fileResult.success) {
-        setUploadError(fileResult.error || 'File selection cancelled.');
-        setUploading(false);
-        return;
-      }
-      const file = fileResult.file;
-      console.log('Selected file:', file);
-      console.log('Adding icon with path:', file.path, 'filename:', file.name);
-      const addResult = await window.api.icons.add({ filePath: file.path, filename: file.name });
-      console.log('Add icon result:', addResult);
-      if (!addResult.success) {
-        setUploadError(addResult.error || 'Failed to add icon.');
-        setUploading(false);
-        return;
-      }
-      console.log('Icon added successfully, URL:', addResult.icon.url);
-      setIcon(addResult.icon.url);
-      console.log('Refreshing saved icons...');
-      refreshSavedIcons();
-    } catch (err) {
-      console.error('Upload error:', err);
-      setUploadError('Upload failed: ' + err.message);
-    } finally {
-      setUploading(false);
+    const result = await uploadIcon();
+    if (result.success) {
+      setIcon(result.icon.url);
     }
   };
 
-  const handleDeleteSavedIcon = (iconUrl) => {
-    if (window.api?.icons?.delete) {
-      window.api.icons.delete(iconUrl).then(res => {
-        if (res && res.success) {
-          if (icon === iconUrl) setIcon(null);
-          refreshSavedIcons();
-        } else {
-          setUploadError('Failed to delete icon: ' + (res?.error || 'Unknown error'));
-        }
-      });
+  const handleDeleteSavedIcon = async (iconUrl) => {
+    const result = await deleteIcon(iconUrl);
+    if (result.success && icon === iconUrl) {
+      setIcon(null);
     }
   };
 
@@ -399,19 +339,19 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             {/* Upload New Icon Button */}
             <button
               className="file-button"
-              style={{ marginBottom: 18, fontWeight: 500, padding: '8px 18px', fontSize: 15, background: uploading ? '#bbb' : '#0099ff', color: '#fff', cursor: uploading ? 'not-allowed' : 'pointer' }}
+              style={{ marginBottom: 18, fontWeight: 500, padding: '8px 18px', fontSize: 15, background: iconsUploading ? '#bbb' : '#0099ff', color: '#fff', cursor: iconsUploading ? 'not-allowed' : 'pointer' }}
               onClick={handleUploadIcon}
-              disabled={uploading}
+              disabled={iconsUploading}
             >
-              {uploading ? 'Uploading...' : 'Upload New Icon'}
+              {iconsUploading ? 'Uploading...' : 'Upload New Icon'}
             </button>
-            {uploadError && (
-              <div style={{ color: '#dc3545', fontSize: 13, marginBottom: 6 }}>{uploadError}</div>
+            {iconsUploadError && (
+              <div style={{ color: '#dc3545', fontSize: 13, marginBottom: 6 }}>{iconsUploadError}</div>
             )}
             {/* Saved Icons Section */}
             <div style={{ marginBottom: 10 }}>
               <div style={{ fontWeight: 500, marginBottom: 6 }}>Your saved icons:</div>
-              {loadingIcons ? (
+              {iconsLoading ? (
                 <div style={{ color: '#888', marginBottom: 10 }}>Loading saved icons...</div>
               ) : savedIcons.length > 0 ? (
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

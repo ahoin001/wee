@@ -394,7 +394,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 fontSize: 15, 
                 background: '#fff', 
                 color: '#222',
-                cursor: presets.length >= 6 ? 'not-allowed' : 'text',
+              
                 opacity: presets.length >= 6 ? 0.6 : 1
               }}
               maxLength={32}
