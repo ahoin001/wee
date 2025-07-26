@@ -196,6 +196,33 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
         setPathError('Please enter a valid URL (e.g., https://example.com)');
         return false;
       }
+    } else if (gameType === 'steam') {
+      // Validate Steam URI/AppID format
+      if (path.trim().startsWith('steam://') || path.trim().startsWith('steam://rungameid/') || path.trim().startsWith('steam://launch/')) {
+        setPathError('');
+        return true;
+      } else {
+        setPathError('Please enter a valid Steam URI (e.g., steam://rungameid/252950) or AppID (e.g., 252950)');
+        return false;
+      }
+    } else if (gameType === 'epic') {
+      // Validate Epic URI format
+      if (path.trim().startsWith('com.epicgames.launcher://apps/')) {
+        setPathError('');
+        return true;
+      } else {
+        setPathError('Please enter a valid Epic URI (e.g., com.epicgames.launcher://apps/Fortnite?action=launch&silent=true)');
+        return false;
+      }
+    } else if (gameType === 'microsoftstore') {
+      // Accept any AppID containing an exclamation mark
+      if (typeof path === 'string' && path.includes('!')) {
+        setPathError('');
+        return true;
+      } else {
+        setPathError('Please enter a valid Microsoft Store AppID (e.g., ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr!App)');
+        return false;
+      }
     } else if (gameType === 'exe') {
       // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
       const trimmedPath = path.trim();
@@ -533,7 +560,15 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   };
 
   const handleGameResultClick = (game) => {
-    const newPath = gameType === 'steam' ? `steam://rungameid/${game.appid}` : game.appName;
+    let newPath = '';
+    if (gameType === 'steam') {
+      newPath = `steam://rungameid/${game.appid}`;
+    } else if (gameType === 'epic') {
+      // Epic Games Launcher URI format: com.epicgames.launcher://apps/[AppName]?action=launch&silent=true
+      newPath = `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`;
+    } else {
+      newPath = game.appName;
+    }
     setPath(newPath);
     setAction(newPath); // Also update action for saving
     setGameQuery(game.name);
