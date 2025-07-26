@@ -11,7 +11,6 @@ import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 import intervalManager from '../utils/IntervalManager';
 import useUIStore from '../utils/useUIStore';
-import useSettingsMenuStore from '../utils/useSettingsMenuStore';
 // import more icons as needed
 
 // Add a helper function to convert opacity to hex alpha if needed
@@ -286,8 +285,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   };
 
   const handleSettingsClick = () => {
-    const { openMenu } = useSettingsMenuStore.getState();
-    openMenu();
+    const { openSettingsMenu } = useUIStore.getState();
+    openSettingsMenu();
   };
 
 

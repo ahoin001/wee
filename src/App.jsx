@@ -24,7 +24,7 @@ import audioManager from './utils/AudioManager';
 import intervalManager from './utils/IntervalManager';
 import useAppLibraryStore from './utils/useAppLibraryStore';
 import useUIStore from './utils/useUIStore';
-import useSettingsMenuStore from './utils/useSettingsMenuStore';
+
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -1786,8 +1786,8 @@ function App() {
               cursor: 'pointer'
             }}
             onClick={() => {
-              const { openMenu } = useSettingsMenuStore.getState();
-              openMenu();
+              const { openSettingsMenu } = useUIStore.getState();
+              openSettingsMenu();
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'scale(1.1)';
@@ -1934,7 +1934,7 @@ function App() {
                 style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
               >
                 {/* Appearance Group */}
-                <div className="settings-menu-group-label">Appearance</div>
+                <div className="settings-menu-group-label">Appearance sss</div>
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openWallpaperModal(); closeSettingsMenu(); }}>
                   Change Wallpaper
                 </div>

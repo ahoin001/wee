@@ -1,42 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import * as ContextMenu from '@radix-ui/react-context-menu';
-import SoundModal from './SoundModal';
-import WallpaperModal from './WallpaperModal';
-import GeneralSettingsModal from './GeneralSettingsModal';
-import ResourceUsageIndicator from './ResourceUsageIndicator';
-import performanceMonitor from '../utils/PerformanceMonitor';
-import useSettingsMenuStore from '../utils/useSettingsMenuStore';
+import useUIStore from '../utils/useUIStore';
 import './SettingsButton.css';
 
 function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType = 'default', onBarTypeChange = () => {}, defaultBarType = 'default', onDefaultBarTypeChange = () => {}, glassWiiRibbon = false, onGlassWiiRibbonChange = () => {} }) {
-  // Use Zustand store for menu state
-  const { 
-    isOpen: showMenu, 
-    isFading: showMenuFade, 
-    openMenu, 
-    closeMenu,
-    showSoundModal,
-    showWallpaperModal,
-    showGeneralModal,
-    openSoundModal,
-    closeSoundModal,
-    openWallpaperModal,
-    closeWallpaperModal,
-    openGeneralModal,
-    closeGeneralModal
-  } = useSettingsMenuStore();
+  // Use UI store for menu state
+  const { openSettingsMenu } = useUIStore();
   
-  const [isFullscreen, setIsFullscreen] = useState(undefined); // undefined until loaded
-  const [isFrameless, setIsFrameless] = useState(true);
-  const [immersivePip, setImmersivePip] = useState(() => {
-    // Try to load from localStorage or default to false
-    try {
-      return JSON.parse(localStorage.getItem('immersivePip')) || false;
-    } catch {
-      return false;
-    }
-  });
   const [isHovered, setIsHovered] = useState(false);
   
   const defaultIcon = (
@@ -47,259 +17,58 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
   );
 
   const handleButtonClick = () => {
-    openMenu();
+    openSettingsMenu();
   };
-
-  const handleMenuClose = () => {
-    closeMenu();
-  };
-
-  // Guard for window.api to prevent errors in browser
-  const api = window.api || {
-    toggleFullscreen: () => {},
-    toggleFrame: () => {},
-    minimize: () => {},
-    close: () => {},
-    onFullscreenState: () => {},
-    onFrameState: () => {},
-    getFullscreenState: () => Promise.resolve(false), // Default to false
-  };
-
-  useEffect(() => {
-    let isMounted = true;
-    // Query the current fullscreen state on mount
-    if (api.getFullscreenState) {
-      api.getFullscreenState().then(val => {
-        if (isMounted) setIsFullscreen(val);
-      });
-    } else {
-      // Fallback: assume not fullscreen
-      setIsFullscreen(false);
-    }
-    if (api.onFullscreenState) {
-      api.onFullscreenState((val) => {
-        if (isMounted) setIsFullscreen(val);
-      });
-    }
-    if (api.onFrameState) {
-      api.onFrameState((val) => setIsFrameless(!val));
-    }
-    // Listen for direct fullscreen-state events from main process
-    const handler = (event, val) => { if (isMounted) setIsFullscreen(val); };
-    if (window.electron && window.electron.ipcRenderer) {
-      window.electron.ipcRenderer.on('fullscreen-state', handler);
-    } else if (window.require) {
-      // Fallback for Electron context
-      try {
-        const { ipcRenderer } = window.require('electron');
-        ipcRenderer.on('fullscreen-state', handler);
-      } catch {}
-    }
-    return () => {
-      isMounted = false;
-      if (window.electron && window.electron.ipcRenderer) {
-        window.electron.ipcRenderer.removeListener('fullscreen-state', handler);
-      } else if (window.require) {
-        try {
-          const { ipcRenderer } = window.require('electron');
-          ipcRenderer.removeListener('fullscreen-state', handler);
-        } catch {}
-      }
-    };
-  }, []);
 
   return (
-    <>
-      <div style={{ position: 'relative' }}>
-        <button 
-          className={`circular-button settings-button ${isActive ? 'active' : ''}${glassWiiRibbon ? ' glass' : ''}`}
-          onClick={handleButtonClick}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          style={glassWiiRibbon ? {
-            position: 'relative',
-            overflow: 'hidden',
-            background: 'rgba(255,255,255,0.18)',
-            boxShadow: isHovered ? '0 8px 32px 0 rgba(31, 38, 135, 0.25)' : '0 4px 16px 0 rgba(31, 38, 135, 0.18)',
-            border: '1.5px solid rgba(255,255,255,0.35)',
-            backdropFilter: isHovered ? 'blur(10px) saturate(1.5)' : 'blur(7px) saturate(1.2)',
-            WebkitBackdropFilter: isHovered ? 'blur(10px) saturate(1.5)' : 'blur(7px) saturate(1.2)',
-            transition: 'box-shadow 0.18s, backdrop-filter 0.18s, background 0.18s',
-          } : {}}
-        >
-          {/* Glass shine pseudo-element */}
-          {glassWiiRibbon && (
-            <span
-              style={{
-                pointerEvents: 'none',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                borderRadius: '50%',
-                background: isHovered
-                  ? 'linear-gradient(120deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.18) 60%, rgba(255,255,255,0.08) 100%)'
-                  : 'linear-gradient(120deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 60%, rgba(255,255,255,0.04) 100%)',
-                boxShadow: isHovered
-                  ? '0 0 32px 8px rgba(255,255,255,0.18)'
-                  : '0 0 16px 4px rgba(255,255,255,0.10)',
-                transition: 'background 0.18s, box-shadow 0.18s',
-                zIndex: 1,
-              }}
-            />
-          )}
-          {CustomIcon || defaultIcon}
-        </button>
-        
-        {showMenu && (
-          <div className="settings-menu">
-            <div
-              className={`context-menu-content settings-menu-fade${showMenuFade ? ' in' : ''}`}
-              style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
-            >
-              {/* Appearance Group */}
-              <div className="settings-menu-group-label">Appearance</div>
-              <div className="context-menu-item" onClick={() => { setShowWallpaperModal(true); handleMenuClose(); }}>
-                Change Wallpaper
-              </div>
-              <div className="context-menu-item" onClick={() => { onToggleDarkMode(); handleMenuClose(); }}>
-                Toggle Dark Mode
-              </div>
-              <div className="context-menu-item" onClick={() => { onToggleCursor(); handleMenuClose(); }}>
-                {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
-              </div>
-              <div className="settings-menu-separator" />
-              {/* Window Group */}
-              <div className="settings-menu-group-label">Window</div>
-              <div className="context-menu-item" onClick={() => { api.toggleFullscreen(); handleMenuClose(); }}>
-                {isFullscreen === undefined ? '...' : (isFullscreen ? 'Windowed Mode' : 'Fullscreen Mode')}
-              </div>
-              <div className="context-menu-item" onClick={() => { api.minimize(); handleMenuClose(); }}>
-                Minimize Window
-              </div>
-              <div className="settings-menu-separator" />
-              {/* System Group */}
-              <div className="settings-menu-group-label">System</div>
-              <div className="context-menu-item" onClick={() => { openSoundModal(); handleMenuClose(); }}>
-                Change Sounds
-              </div>
-              <div className="context-menu-item" style={{ color: '#dc3545', fontWeight: 600 }}
-                onClick={async () => {
-                  handleMenuClose();
-                  if (window.confirm('Are you sure you want to reset all settings, channels, sounds, and wallpapers to default? This cannot be undone.')) {
-                    if (window.api && window.api.resetToDefault) {
-                      const result = await window.api.resetToDefault();
-                      if (result && result.success) {
-                        window.location.reload();
-                      } else {
-                        alert('Failed to reset to default: ' + (result?.error || 'Unknown error'));
-                      }
-                    }
-                  }
-                }}
-              >
-                Reset to Default
-              </div>
-              <div className="context-menu-item" onClick={() => { api.close(); handleMenuClose(); }}>
-                Close App
-              </div>
-              <div className="settings-menu-separator" />
-              {/* General Group */}
-              <div className="settings-menu-group-label">General</div>
-              <div className="context-menu-item" onClick={() => { openGeneralModal(); handleMenuClose(); }}>
-                General Settings
-              </div>
-              <div className="context-menu-item" onClick={() => { 
-                performanceMonitor.logPerformanceReport();
-                const status = performanceMonitor.getPerformanceStatus();
-                const recommendations = performanceMonitor.getRecommendations();
-                
-                let message = `Performance Status: ${status.status.toUpperCase()}\n\n`;
-                message += `FPS: ${status.metrics.fps.toFixed(1)}\n`;
-                message += `Memory: ${status.metrics.memory.toFixed(1)}MB\n`;
-                message += `Video Elements: ${status.metrics.videoElements}\n`;
-                message += `Audio Elements: ${status.metrics.audioElements}\n`;
-                message += `Intervals: ${status.metrics.intervals}\n`;
-                
-                if (status.issues.length > 0) {
-                  message += `\nIssues:\n${status.issues.join('\n')}\n`;
-                }
-                
-                if (recommendations.length > 0) {
-                  message += `\nRecommendations:\n${recommendations.map(r => `• ${r.message}`).join('\n')}`;
-                }
-                
-                alert(message);
-                handleMenuClose(); 
-              }}>
-                <ResourceUsageIndicator level="low" tooltip="Check current system performance and get optimization recommendations">
-                  Performance Monitor
-                </ResourceUsageIndicator>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Click outside to close */}
-        {showMenu && (
-          <div 
-            style={{ 
-              position: 'fixed', 
-              top: 0, 
-              left: 0, 
-              right: 0, 
-              bottom: 0, 
-              zIndex: 999 
-            }} 
-            onClick={handleMenuClose}
+    <div style={{ position: 'relative' }}>
+      <button 
+        className={`circular-button settings-button ${isActive ? 'active' : ''}${glassWiiRibbon ? ' glass' : ''}`}
+        onClick={handleButtonClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        style={glassWiiRibbon ? {
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'rgba(255,255,255,0.18)',
+          boxShadow: isHovered ? '0 8px 32px 0 rgba(31, 38, 135, 0.25)' : '0 4px 16px 0 rgba(31, 38, 135, 0.18)',
+          border: '1.5px solid rgba(255,255,255,0.35)',
+          backdropFilter: isHovered ? 'blur(10px) saturate(1.5)' : 'blur(7px) saturate(1.2)',
+          WebkitBackdropFilter: isHovered ? 'blur(10px) saturate(1.5)' : 'blur(7px) saturate(1.2)',
+          transition: 'box-shadow 0.18s, backdrop-filter 0.18s, background 0.18s',
+        } : {}}
+      >
+        {/* Glass shine pseudo-element */}
+        {glassWiiRibbon && (
+          <span
+            style={{
+              pointerEvents: 'none',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              background: isHovered
+                ? 'linear-gradient(120deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.18) 60%, rgba(255,255,255,0.08) 100%)'
+                : 'linear-gradient(120deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 60%, rgba(255,255,255,0.04) 100%)',
+              boxShadow: isHovered
+                ? '0 0 32px 8px rgba(255,255,255,0.18)'
+                : '0 0 16px 4px rgba(255,255,255,0.10)',
+              transition: 'background 0.18s, box-shadow 0.18s',
+              zIndex: 1,
+            }}
           />
         )}
-      </div>
-
-        <SoundModal 
-        isOpen={showSoundModal}
-          onClose={closeSoundModal}
-        onSettingsChange={onSettingsChange}
-      />
-      {/* Wallpaper Modal */}
-      {showWallpaperModal && (
-        <WallpaperModal
-          isOpen={showWallpaperModal}
-          onClose={closeWallpaperModal}
-          onSettingsChange={onSettingsChange}
-          currentWallpaper={window.settings?.wallpaper}
-          currentOpacity={window.settings?.wallpaperOpacity}
-          savedWallpapers={window.settings?.savedWallpapers || []}
-          likedWallpapers={window.settings?.likedWallpapers || []}
-          cycleWallpapers={window.settings?.cycleWallpapers}
-          cycleInterval={window.settings?.cycleInterval}
-          cycleAnimation={window.settings?.cycleAnimation}
-        />
-      )}
-      {/* General Settings Modal */}
-      {showGeneralModal && (
-        <GeneralSettingsModal 
-          isOpen={showGeneralModal} 
-          onClose={closeGeneralModal} 
-          immersivePip={immersivePip} 
-          setImmersivePip={val => {
-            setImmersivePip(val);
-            localStorage.setItem('immersivePip', JSON.stringify(val));
-          }}
-          defaultBarType={defaultBarType}
-          setDefaultBarType={onDefaultBarTypeChange}
-          glassWiiRibbon={glassWiiRibbon}
-          setGlassWiiRibbon={onGlassWiiRibbonChange}
-        />
-      )}
-    </>
+        {CustomIcon || defaultIcon}
+      </button>
+    </div>
   );
 }
 
 SettingsButton.propTypes = {
   icon: PropTypes.element,
-  onClick: PropTypes.func.isRequired,
+  onClick: PropTypes.func,
   isActive: PropTypes.bool,
   onToggleDarkMode: PropTypes.func,
   onToggleCursor: PropTypes.func,
