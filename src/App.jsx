@@ -1934,7 +1934,7 @@ function App() {
             <div className="settings-menu">
               <div
                 className={`context-menu-content settings-menu-fade${settingsMenuFadeIn ? ' in' : ''}`}
-                style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+                style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1002 }}
               >
                 {/* Appearance Group */}
                 <div className="settings-menu-group-label">Appearance</div>
@@ -2074,7 +2074,7 @@ function App() {
                 left: 0, 
                 right: 0, 
                 bottom: 0, 
-                zIndex: 999 
+                zIndex: 1001 
               }} 
               onClick={closeSettingsMenu}
             />

@@ -304,13 +304,17 @@ body, #root {
 }
 
 .context-menu-item:hover {
-  background: #f3f4f6;
+  background: #e6f3ff;
   color: #111827;
+  border: 1.5px solid #0099ff;
+  box-shadow: 0 1.5px 6px #0099ff08;
 }
 
 .context-menu-item:focus {
-  background: #f3f4f6;
+  background: #e6f3ff;
   color: #111827;
+  border: 1.5px solid #0099ff;
+  box-shadow: 0 1.5px 6px #0099ff08;
 }
 
 .context-menu-separator {
@@ -359,8 +363,10 @@ body, #root {
 
 .dark-mode .context-menu-item:hover,
 .dark-mode .context-menu-item:focus {
-  background: hsl(var(--state-hover));
-  color: hsl(var(--text-primary));
+  background: #e6f3ff;
+  color: #111827;
+  border: 1.5px solid #0099ff;
+  box-shadow: 0 1.5px 6px #0099ff08;
 }
 
 /* Wii-style cursor */
