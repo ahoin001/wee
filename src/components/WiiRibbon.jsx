@@ -23,12 +23,8 @@ function hexAlpha(opacity) {
 const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
-  // Use Zustand store for settings menu and modal states
+  // Use Zustand store for modal states
   const { 
-    showSettingsMenu, 
-    settingsMenuFadeIn, 
-    openSettingsMenu, 
-    closeSettingsMenu,
     showSoundModal,
     showWallpaperModal,
     showPresetsModal,
@@ -257,9 +253,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     openSettingsMenu();
   };
 
-  const handleMenuClose = () => {
-    closeSettingsMenu();
-  };
+
 
   // Guard for window.api to prevent errors in browser
   const api = window.api || {
@@ -708,157 +702,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               </div>
           </div>
 
-          {/* Settings Menu */}
-          {showSettingsMenu && (
-            <div className="settings-menu">
-              <div
-                className={`context-menu-content settings-menu-fade${settingsMenuFadeIn ? ' in' : ''}`}
-                style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
-              >
-                {/* Appearance Group */}
-                <div className="settings-menu-group-label">Appearance</div>
-                <div className="context-menu-item" onClick={() => { openWallpaperModal(); handleMenuClose(); }}>
-                  Change Wallpaper
-                </div>
-                <div className="context-menu-item" onClick={() => { setShowTimeSettingsModal(true); handleMenuClose(); }}>
-                  Customize Time
-                </div>
-                <div className="context-menu-item" onClick={() => { setShowRibbonSettingsModal(true); handleMenuClose(); }}>
-                  Customize Ribbon
-                </div>
-                <div className="context-menu-item" onClick={() => { onToggleDarkMode(); handleMenuClose(); }}>
-                  Toggle Dark Mode
-                </div>
-                <div className="context-menu-item" onClick={() => { onToggleCursor(); handleMenuClose(); }}>
-                  {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
-                </div>
-                {/* <div className="context-menu-item" onClick={() => { 
-                  if (barType === 'flat') {
-                    onBarTypeChange('wii-ribbon');
-                  } else if (barType === 'wii-ribbon') {
-                    onBarTypeChange('wii');
-                  } else {
-                    onBarTypeChange('flat');
-                  }
-                  handleMenuClose(); 
-                }}>
-                  {barType === 'flat' ? 'Switch to Wii Ribbon' : 
-                   barType === 'wii-ribbon' ? 'Switch to Wii Bar' : 
-                   'Switch to Flat Bar'}
-                </div> */}
-                <div className="context-menu-item" onClick={() => { openPresetsModal(); handleMenuClose(); }}>
-                  🎨 Presets
-                </div>
-                <div className="settings-menu-separator" />
-                {/* Window Group */}
-                <div className="settings-menu-group-label">Window</div>
-                <div className="context-menu-item" onClick={() => { api.toggleFullscreen(); handleMenuClose(); }}>
-                  {isFullscreen ? 'Window Mode' : 'Fullscreen Mode'}
-                </div>
-                <div className="context-menu-item" onClick={() => { api.minimize(); handleMenuClose(); }}>
-                  Minimize Window
-                </div>
-                <div className="settings-menu-separator" />
-                {/* System Group */}
-                <div className="settings-menu-group-label">System</div>
-                
-                <div className="context-menu-item" onClick={() => { setShowGeneralModal(true); handleMenuClose(); }}>
-                  General Settings
-                </div>
-                <div className="context-menu-item" onClick={() => { openSoundModal(); handleMenuClose(); }}>
-                  Change Sounds
-                </div>
-                <div className="context-menu-item" onClick={() => { setShowUpdateModal(true); handleMenuClose(); }}>
-                  🔄 Check for Updates
-                  {updateAvailable && (
-                    <span style={{
-                      backgroundColor: '#ff4444',
-                      color: 'white',
-                      borderRadius: '50%',
-                      width: '8px',
-                      height: '8px',
-                      display: 'inline-block',
-                      marginLeft: '8px',
-                      animation: 'pulse 2s infinite'
-                    }} />
-                  )}
-                </div>
-                <div className="context-menu-item" onClick={() => { api.close(); handleMenuClose(); }}>
-                  Close App
-                </div>
-                <div className="settings-menu-separator" />
-                {/* General Group */}
-                {/* <div className="settings-menu-group-label">General</div> */}
-                <div className="context-menu-item" style={{ color: '#dc3545', fontWeight: 600 }}
-                  onClick={async () => {
-                    handleMenuClose();
-                    if (window.confirm('Are you sure you want to reset all appearance settings to default? This will not affect your saved presets.')) {
-                      // Reset all visual/cosmetic settings to their original first-time user defaults
-                      if (typeof onSettingsChange === 'function') {
-                        onSettingsChange({
-                          // Ribbon & Glow
-                          ribbonColor: '#e0e6ef',
-                          ribbonGlowColor: '#0099ff',
-                          ribbonGlowStrength: 20,
-                          ribbonGlowStrengthHover: 28,
-                          ribbonDockOpacity: 1,
-                          glassWiiRibbon: false,
-                          glassOpacity: 0.18,
-                          glassBlur: 2.5,
-                          glassBorderOpacity: 0.5,
-                          glassShineOpacity: 0.7,
-                          recentRibbonColors: [],
-                          recentRibbonGlowColors: [],
-                          // Time & Pill
-                          timeColor: '#ffffff',
-                          timeFormat24hr: true,
-                          enableTimePill: true,
-                          timePillBlur: 8,
-                          timePillOpacity: 0.05,
-                          timeFont: 'default',
-                          // Wallpaper & Effects
-                          wallpaper: null,
-                          wallpaperOpacity: 1,
-                          wallpaperBlur: 0,
-                          savedWallpapers: [],
-                          likedWallpapers: [],
-                          cycleWallpapers: false,
-                          cycleInterval: 30,
-                          cycleAnimation: 'fade',
-                          slideDirection: 'right',
-                          crossfadeDuration: 1.2,
-                          crossfadeEasing: 'ease-out',
-                          slideRandomDirection: false,
-                          slideDuration: 1.5,
-                          slideEasing: 'ease-out',
-                          channelAutoFadeTimeout: 5,
-                          ribbonButtonConfigs: [{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]
-                        });
-                      }
-                      // Do NOT reset presets
-                    }
-                  }}
-                >
-                  Reset Appearance
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Click outside to close */}
-          {showSettingsMenu && (
-            <div 
-              style={{ 
-                position: 'fixed', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                bottom: 0, 
-                zIndex: 999 
-              }} 
-              onClick={handleMenuClose}
-            />
-          )}
+
       </footer>
 
       <SoundModal 
@@ -903,6 +747,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           setStartInFullscreen={setStartInFullscreen}
           showPresetsButton={showPresetsButton}
           setShowPresetsButton={val => onSettingsChange({ showPresetsButton: val })}
+          showDock={window.settings?.showDock ?? true}
+          setShowDock={val => onSettingsChange({ showDock: val })}
           channelAnimation={window.settings?.channelAnimation}
           adaptiveEmptyChannels={window.settings?.adaptiveEmptyChannels}
           idleAnimationEnabled={window.settings?.idleAnimationEnabled}

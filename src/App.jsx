@@ -13,6 +13,10 @@ import WiiRibbon from './components/WiiRibbon';
 import WallpaperModal from './components/WallpaperModal';
 import WallpaperOverlay from './components/WallpaperOverlay';
 import NavigationCustomizationModal from './components/NavigationCustomizationModal';
+import GeneralSettingsModal from './components/GeneralSettingsModal';
+import TimeSettingsModal from './components/TimeSettingsModal';
+import RibbonSettingsModal from './components/RibbonSettingsModal';
+import UpdateModal from './components/UpdateModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
@@ -184,6 +188,15 @@ function App() {
   const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
   const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
+  const [showDock, setShowDock] = useState(true); // Show/hide the Wii Ribbon dock
+  
+  // Modal states for when dock is hidden
+  const [showGeneralModal, setShowGeneralModal] = useState(false);
+  const [showTimeSettingsModal, setShowTimeSettingsModal] = useState(false);
+  const [showRibbonSettingsModal, setShowRibbonSettingsModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  
   const currentTimeColorRef = useRef('#ffffff');
   const currentTimeFormatRef = useRef(true);
   const [lastChannelHoverTime, setLastChannelHoverTime] = useState(Date.now());
@@ -465,6 +478,9 @@ function App() {
       setOverlaySpeed(wallpaperData?.overlaySpeed ?? 1);
       setOverlayWind(wallpaperData?.overlayWind ?? 0.02);
       setOverlayGravity(wallpaperData?.overlayGravity ?? 0.1);
+      
+      // Load dock visibility setting
+      setShowDock(wallpaperData?.showDock ?? true);
       // Note: Time-related settings are now loaded from general settings API in loadSettings()
       // to avoid conflicts with ribbon button configs and other general settings
       
@@ -973,7 +989,24 @@ function App() {
   };
 
   const handleSettingsClick = () => {
-    setIsEditMode(!isEditMode);
+    useUIStore.getState().openSettingsMenu();
+  };
+  
+  // Modal handlers for when dock is hidden
+  const handleOpenGeneralModal = () => {
+    setShowGeneralModal(true);
+  };
+  
+  const handleOpenTimeSettingsModal = () => {
+    setShowTimeSettingsModal(true);
+  };
+  
+  const handleOpenRibbonSettingsModal = () => {
+    setShowRibbonSettingsModal(true);
+  };
+  
+  const handleOpenUpdateModal = () => {
+    setShowUpdateModal(true);
   };
 
   const handleToggleDarkMode = () => {
@@ -1104,6 +1137,9 @@ function App() {
     if (newSettings.overlayGravity !== undefined) {
       setOverlayGravity(newSettings.overlayGravity);
     }
+    if (newSettings.showDock !== undefined) {
+      setShowDock(newSettings.showDock);
+    }
     if (newSettings.channelAnimation !== undefined) {
       setChannelAnimation(newSettings.channelAnimation);
     }
@@ -1218,6 +1254,9 @@ function App() {
     overlaySpeed,
     overlayWind,
     overlayGravity,
+    
+    // Dock visibility
+    showDock,
     
     timeFont,
     channelAnimation,
@@ -1756,40 +1795,239 @@ function App() {
           <PageNavigation />
           <WiiSideNavigation />
         </div>
-        <WiiRibbon
-          onSettingsClick={handleSettingsClick}
-          onSettingsChange={handleSettingsChange}
-          onToggleDarkMode={handleToggleDarkMode}
-          onToggleCursor={handleToggleCursor}
-          useCustomCursor={useCustomCursor}
-          glassWiiRibbon={glassWiiRibbon}
-          onGlassWiiRibbonChange={setGlassWiiRibbon}
-          animatedOnHover={animatedOnHover}
-          setAnimatedOnHover={setAnimatedOnHover}
-          startInFullscreen={startInFullscreen}
-          setStartInFullscreen={setStartInFullscreen}
-          ribbonColor={ribbonColor}
-          onRibbonColorChange={setRibbonColor}
-          recentRibbonColors={recentRibbonColors}
-          onRecentRibbonColorChange={setRecentRibbonColors}
-          ribbonGlowColor={ribbonGlowColor}
-          onRibbonGlowColorChange={setRibbonGlowColor}
-          recentRibbonGlowColors={recentRibbonGlowColors}
-          onRecentRibbonGlowColorChange={setRecentRibbonGlowColors}
-          ribbonGlowStrength={ribbonGlowStrength}
-          ribbonGlowStrengthHover={ribbonGlowStrengthHover}
-          setShowPresetsModal={useUIStore.getState().openPresetsModal}
-          ribbonDockOpacity={ribbonDockOpacity}
-          onRibbonDockOpacityChange={setRibbonDockOpacity}
-          timeColor={timeColor}
-          timeFormat24hr={timeFormat24hr}
-          enableTimePill={enableTimePill}
-          timePillBlur={timePillBlur}
-          timePillOpacity={timePillOpacity}
-          timeFont={timeFont}
-          presetsButtonConfig={presetsButtonConfig}
-          showPresetsButton={showPresetsButton}
-        />
+        {showDock && (
+          <WiiRibbon
+            onSettingsClick={handleSettingsClick}
+            onSettingsChange={handleSettingsChange}
+            onToggleDarkMode={handleToggleDarkMode}
+            onToggleCursor={handleToggleCursor}
+            useCustomCursor={useCustomCursor}
+            glassWiiRibbon={glassWiiRibbon}
+            onGlassWiiRibbonChange={setGlassWiiRibbon}
+            animatedOnHover={animatedOnHover}
+            setAnimatedOnHover={setAnimatedOnHover}
+            startInFullscreen={startInFullscreen}
+            setStartInFullscreen={setStartInFullscreen}
+            ribbonColor={ribbonColor}
+            onRibbonColorChange={setRibbonColor}
+            recentRibbonColors={recentRibbonColors}
+            onRecentRibbonColorChange={setRecentRibbonColors}
+            ribbonGlowColor={ribbonGlowColor}
+            onRibbonGlowColorChange={setRibbonGlowColor}
+            recentRibbonGlowColors={recentRibbonGlowColors}
+            onRecentRibbonGlowColorChange={setRecentRibbonGlowColors}
+            ribbonGlowStrength={ribbonGlowStrength}
+            ribbonGlowStrengthHover={ribbonGlowStrengthHover}
+            setShowPresetsModal={useUIStore.getState().openPresetsModal}
+            ribbonDockOpacity={ribbonDockOpacity}
+            onRibbonDockOpacityChange={setRibbonDockOpacity}
+            timeColor={timeColor}
+            timeFormat24hr={timeFormat24hr}
+            enableTimePill={enableTimePill}
+            timePillBlur={timePillBlur}
+            timePillOpacity={timePillOpacity}
+            timeFont={timeFont}
+            presetsButtonConfig={presetsButtonConfig}
+            showPresetsButton={showPresetsButton}
+          />
+        )}
+        
+        {/* Floating Settings Button when dock is hidden */}
+        {!showDock && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: '20px',
+              right: '20px',
+              zIndex: 1000,
+              cursor: 'pointer'
+            }}
+            onClick={handleSettingsClick}
+            title="Settings (Dock is hidden)"
+          >
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" style={{ color: '#666' }}>
+                <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+              </svg>
+            </div>
+          </div>
+        )}
+        
+        {/* Global Settings Menu - rendered at app level so it works when dock is hidden */}
+        {(() => {
+          const { showSettingsMenu, settingsMenuFadeIn, closeSettingsMenu } = useUIStore.getState();
+          if (!showSettingsMenu) return null;
+          
+          return (
+            <div className="settings-menu">
+              <div
+                className={`context-menu-content settings-menu-fade${settingsMenuFadeIn ? ' in' : ''}`}
+                style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}
+              >
+                {/* Appearance Group */}
+                <div className="settings-menu-group-label">Appearance</div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openWallpaperModal(); closeSettingsMenu(); }}>
+                  Change Wallpaper
+                </div>
+                <div className="context-menu-item" onClick={() => { 
+                  handleOpenTimeSettingsModal();
+                  closeSettingsMenu(); 
+                }}>
+                  Customize Time
+                </div>
+                <div className="context-menu-item" onClick={() => { 
+                  handleOpenRibbonSettingsModal();
+                  closeSettingsMenu(); 
+                }}>
+                  Customize Ribbon
+                </div>
+                <div className="context-menu-item" onClick={() => { handleToggleDarkMode(); closeSettingsMenu(); }}>
+                  Toggle Dark Mode
+                </div>
+                <div className="context-menu-item" onClick={() => { handleToggleCursor(); closeSettingsMenu(); }}>
+                  {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
+                </div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
+                  🎨 Presets
+                </div>
+                <div className="settings-menu-separator" />
+                {/* Window Group */}
+                <div className="settings-menu-group-label">Window</div>
+                <div className="context-menu-item" onClick={() => { 
+                  if (window.api?.toggleFullscreen) window.api.toggleFullscreen(); 
+                  closeSettingsMenu(); 
+                }}>
+                  Toggle Fullscreen
+                </div>
+                <div className="context-menu-item" onClick={() => { 
+                  if (window.api?.minimize) window.api.minimize(); 
+                  closeSettingsMenu(); 
+                }}>
+                  Minimize Window
+                </div>
+                <div className="settings-menu-separator" />
+                {/* System Group */}
+                <div className="settings-menu-group-label">System</div>
+                <div className="context-menu-item" onClick={() => { 
+                  handleOpenGeneralModal();
+                  closeSettingsMenu(); 
+                }}>
+                  General Settings
+                </div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
+                  Change Sounds
+                </div>
+                <div className="context-menu-item" onClick={() => { 
+                  handleOpenUpdateModal();
+                  closeSettingsMenu(); 
+                }}>
+                  🔄 Check for Updates
+                </div>
+                <div className="context-menu-item" onClick={() => { 
+                  if (window.api?.close) window.api.close(); 
+                  closeSettingsMenu(); 
+                }}>
+                  Close App
+                </div>
+                <div className="settings-menu-separator" />
+                <div className="context-menu-item" style={{ color: '#dc3545', fontWeight: 600 }}
+                  onClick={async () => {
+                    closeSettingsMenu();
+                    if (window.confirm('Are you sure you want to reset all appearance settings to default? This will not affect your saved presets.')) {
+                      // Reset all visual/cosmetic settings to their original first-time user defaults
+                      if (typeof handleSettingsChange === 'function') {
+                        handleSettingsChange({
+                          // Ribbon & Glow
+                          ribbonColor: '#e0e6ef',
+                          ribbonGlowColor: '#0099ff',
+                          ribbonGlowStrength: 20,
+                          ribbonGlowStrengthHover: 28,
+                          ribbonDockOpacity: 1,
+                          glassWiiRibbon: false,
+                          glassOpacity: 0.18,
+                          glassBlur: 2.5,
+                          glassBorderOpacity: 0.5,
+                          glassShineOpacity: 0.7,
+                          recentRibbonColors: [],
+                          recentRibbonGlowColors: [],
+                          // Time & Pill
+                          timeColor: '#ffffff',
+                          timeFormat24hr: true,
+                          enableTimePill: true,
+                          timePillBlur: 8,
+                          timePillOpacity: 0.05,
+                          timeFont: 'default',
+                          // Wallpaper & Effects
+                          wallpaper: null,
+                          wallpaperOpacity: 1,
+                          wallpaperBlur: 0,
+                          savedWallpapers: [],
+                          likedWallpapers: [],
+                          cycleWallpapers: false,
+                          cycleInterval: 30,
+                          cycleAnimation: 'fade',
+                          slideDirection: 'right',
+                          crossfadeDuration: 1.2,
+                          crossfadeEasing: 'ease-out',
+                          slideRandomDirection: false,
+                          slideDuration: 1.5,
+                          slideEasing: 'ease-out',
+                          channelAutoFadeTimeout: 5,
+                          ribbonButtonConfigs: [{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]
+                        });
+                      }
+                      // Do NOT reset presets
+                    }
+                  }}
+                >
+                  Reset Appearance
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+        
+        {/* Click outside to close settings menu */}
+        {(() => {
+          const { showSettingsMenu, closeSettingsMenu } = useUIStore.getState();
+          if (!showSettingsMenu) return null;
+          
+          return (
+            <div 
+              style={{ 
+                position: 'fixed', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                bottom: 0, 
+                zIndex: 999 
+              }} 
+              onClick={closeSettingsMenu}
+            />
+          );
+        })()}
         {/* Channel Modal - rendered at top level for proper z-index */}
         {openChannelModal && (
           (() => {
@@ -1829,6 +2067,75 @@ function App() {
           onClose={closeWallpaperModal}
           onSettingsChange={handleSettingsChange}
         />
+        
+        {/* Additional modals for when dock is hidden */}
+        {showGeneralModal && (
+          <GeneralSettingsModal 
+            isOpen={showGeneralModal} 
+            onClose={() => setShowGeneralModal(false)} 
+            immersivePip={window.settings?.immersivePip ?? false}
+            setImmersivePip={val => {
+              localStorage.setItem('immersivePip', JSON.stringify(val));
+              handleSettingsChange({ immersivePip: val });
+            }}
+            glassWiiRibbon={glassWiiRibbon}
+            setGlassWiiRibbon={setGlassWiiRibbon}
+            animatedOnHover={animatedOnHover}
+            setAnimatedOnHover={setAnimatedOnHover}
+            startInFullscreen={startInFullscreen}
+            setStartInFullscreen={setStartInFullscreen}
+            showPresetsButton={showPresetsButton}
+            setShowPresetsButton={val => handleSettingsChange({ showPresetsButton: val })}
+            showDock={showDock}
+            setShowDock={setShowDock}
+            channelAnimation={window.settings?.channelAnimation}
+            adaptiveEmptyChannels={window.settings?.adaptiveEmptyChannels}
+            idleAnimationEnabled={window.settings?.idleAnimationEnabled}
+            idleAnimationTypes={window.settings?.idleAnimationTypes}
+            idleAnimationInterval={window.settings?.idleAnimationInterval}
+            kenBurnsEnabled={window.settings?.kenBurnsEnabled}
+            kenBurnsMode={window.settings?.kenBurnsMode}
+            kenBurnsHoverScale={window.settings?.kenBurnsHoverScale}
+            kenBurnsAutoplayScale={window.settings?.kenBurnsAutoplayScale}
+            kenBurnsSlideshowScale={window.settings?.kenBurnsSlideshowScale}
+            kenBurnsHoverDuration={window.settings?.kenBurnsHoverDuration}
+            kenBurnsAutoplayDuration={window.settings?.kenBurnsAutoplayDuration}
+            kenBurnsSlideshowDuration={window.settings?.kenBurnsSlideshowDuration}
+            kenBurnsCrossfadeDuration={window.settings?.kenBurnsCrossfadeDuration}
+            kenBurnsForGifs={window.settings?.kenBurnsForGifs}
+            kenBurnsForVideos={window.settings?.kenBurnsForVideos}
+            kenBurnsEasing={window.settings?.kenBurnsEasing}
+            kenBurnsAnimationType={window.settings?.kenBurnsAnimationType}
+            kenBurnsCrossfadeReturn={window.settings?.kenBurnsCrossfadeReturn}
+            kenBurnsTransitionType={window.settings?.kenBurnsTransitionType}
+            onSettingsChange={handleSettingsChange}
+          />
+        )}
+        
+        {showTimeSettingsModal && (
+          <TimeSettingsModal
+            isOpen={showTimeSettingsModal}
+            onClose={() => setShowTimeSettingsModal(false)}
+            onSettingsChange={handleSettingsChange}
+          />
+        )}
+        
+        {showRibbonSettingsModal && (
+          <RibbonSettingsModal
+            isOpen={showRibbonSettingsModal}
+            onClose={() => setShowRibbonSettingsModal(false)}
+            onSettingsChange={handleSettingsChange}
+            glassWiiRibbon={glassWiiRibbon}
+            setGlassWiiRibbon={setGlassWiiRibbon}
+          />
+        )}
+        
+        {showUpdateModal && (
+          <UpdateModal 
+            isOpen={showUpdateModal}
+            onClose={() => setShowUpdateModal(false)}
+          />
+        )}
       </div>
     </>
   );

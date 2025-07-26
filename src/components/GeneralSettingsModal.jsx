@@ -6,12 +6,13 @@ import Toggle from '../ui/Toggle';
 import Text from '../ui/Text';
 import Button from '../ui/Button';
 
-function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, onSettingsChange, ...props }) {
+function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, showDock, setShowDock, onSettingsChange, ...props }) {
   const [pip, setPip] = useState(immersivePip);
   const [glassRibbon, setGlassRibbon] = useState(glassWiiRibbon);
   const [hoverAnim, setHoverAnim] = useState(animatedOnHover);
   const [fullscreen, setFullscreen] = useState(startInFullscreen);
   const [showPresets, setShowPresets] = useState(showPresetsButton);
+  const [showDockState, setShowDockState] = useState(showDock ?? true);
   const [startOnBoot, setStartOnBoot] = useState(false);
   const [channelAnimation, setChannelAnimation] = useState(props.channelAnimation || 'none');
   const [adaptiveEmptyChannels, setAdaptiveEmptyChannels] = useState(props.adaptiveEmptyChannels ?? true);
@@ -60,6 +61,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
     setAnimatedOnHover(hoverAnim);
     setStartInFullscreen(fullscreen);
     setShowPresetsButton(showPresets);
+    setShowDock(showDockState);
     if (onSettingsChange) {
       onSettingsChange({ 
         channelAnimation,
@@ -143,6 +145,22 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">Adds a frosted glass effect to the Wii Ribbon for a more modern look.</div>
+        </div>
+        {/* Show Dock */}
+        <div className="wee-card">
+          <div className="wee-card-header">
+            <span className="wee-card-title">Show Dock</span>
+            <label className="toggle-switch" style={{ margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={showDockState}
+                onChange={e => setShowDockState(e.target.checked)}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">When enabled, the Wii Ribbon dock will be visible at the bottom of the screen. When disabled, the dock will be hidden for a cleaner look.</div>
         </div>
         {/* Adaptive Empty Channel Backgrounds */}
         <div className="wee-card">
