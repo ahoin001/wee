@@ -16,6 +16,7 @@ import GeneralSettingsModal from './components/GeneralSettingsModal';
 import TimeSettingsModal from './components/TimeSettingsModal';
 import RibbonSettingsModal from './components/RibbonSettingsModal';
 import UpdateModal from './components/UpdateModal';
+import ChannelSettingsModal from './components/ChannelSettingsModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
@@ -126,9 +127,11 @@ function App() {
     showPresetsModal,
     showWallpaperModal, 
     showSoundModal,
+    showChannelSettingsModal,
     closePresetsModal,
     closeWallpaperModal,
-    closeSoundModal
+    closeSoundModal,
+    closeChannelSettingsModal
   } = useUIStore();
   
   const [mediaMap, setMediaMap] = useState({});
@@ -1703,7 +1706,9 @@ function App() {
     
     if (!isInteractiveElement) {
       e.preventDefault();
-              // wallpaper modal opening now handled by keyboard shortcut or ribbon
+      e.stopPropagation();
+      // Open wallpaper modal on right-click
+      useUIStore.getState().openWallpaperModal();
     }
   };
 
@@ -1935,17 +1940,23 @@ function App() {
               >
                 {/* Appearance Group */}
                 <div className="settings-menu-group-label">Appearance</div>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openWallpaperModal(); closeSettingsMenu(); }}>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
+                  🎨 Presets (Ctrl+P)
+                </div>
+                {/* <div className="context-menu-item" onClick={() => { useUIStore.getState().openWallpaperModal(); closeSettingsMenu(); }}>
                   Change Wallpaper
+                </div> */}
+                <div className="context-menu-item" onClick={() => { 
+                  useUIStore.getState().openChannelSettingsModal();
+                  closeSettingsMenu(); 
+                }}>
+                  Channel Settings
                 </div>
                 <div className="context-menu-item" onClick={() => { handleToggleDarkMode(); closeSettingsMenu(); }}>
                   Toggle Dark Mode
                 </div>
                 <div className="context-menu-item" onClick={() => { handleToggleCursor(); closeSettingsMenu(); }}>
                   {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
-                </div>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
-                  🎨 Presets (Ctrl+P)
                 </div>
                 <div className="context-menu-item" onClick={async () => {
                   const newShowDock = !showDock;
@@ -2109,6 +2120,31 @@ function App() {
           isOpen={showWallpaperModal}
           onClose={closeWallpaperModal}
           onSettingsChange={handleSettingsChange}
+        />
+        <ChannelSettingsModal
+          isOpen={showChannelSettingsModal}
+          onClose={closeChannelSettingsModal}
+          onSettingsChange={handleSettingsChange}
+          adaptiveEmptyChannels={adaptiveEmptyChannels}
+          channelAnimation={channelAnimation}
+          idleAnimationEnabled={idleAnimationEnabled}
+          idleAnimationTypes={idleAnimationTypes}
+          idleAnimationInterval={idleAnimationInterval}
+          kenBurnsEnabled={kenBurnsEnabled}
+          kenBurnsMode={kenBurnsMode}
+          kenBurnsHoverScale={kenBurnsHoverScale}
+          kenBurnsAutoplayScale={kenBurnsAutoplayScale}
+          kenBurnsSlideshowScale={kenBurnsSlideshowScale}
+          kenBurnsHoverDuration={kenBurnsHoverDuration}
+          kenBurnsAutoplayDuration={kenBurnsAutoplayDuration}
+          kenBurnsSlideshowDuration={kenBurnsSlideshowDuration}
+          kenBurnsCrossfadeDuration={kenBurnsCrossfadeDuration}
+          kenBurnsForGifs={kenBurnsForGifs}
+          kenBurnsForVideos={kenBurnsForVideos}
+          kenBurnsEasing={kenBurnsEasing}
+          kenBurnsAnimationType={kenBurnsAnimationType}
+          kenBurnsCrossfadeReturn={kenBurnsCrossfadeReturn}
+          kenBurnsTransitionType={kenBurnsTransitionType}
         />
         
         {/* Additional modals for when dock is hidden */}

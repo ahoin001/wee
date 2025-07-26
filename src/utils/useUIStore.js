@@ -9,6 +9,7 @@ const useUIStore = create((set, get) => ({
   showPresetsModal: false,
   showWallpaperModal: false,
   showSoundModal: false,
+  showChannelSettingsModal: false,
   
   // Actions
   openSettingsMenu: () => {
@@ -54,9 +55,16 @@ const useUIStore = create((set, get) => ({
     set({ showSoundModal: !showSoundModal });
   },
   
+  openChannelSettingsModal: () => set({ showChannelSettingsModal: true }),
+  closeChannelSettingsModal: () => set({ showChannelSettingsModal: false }),
+  toggleChannelSettingsModal: () => {
+    const { showChannelSettingsModal } = get();
+    set({ showChannelSettingsModal: !showChannelSettingsModal });
+  },
+  
   // Global keyboard shortcuts handler
   handleGlobalKeyPress: (event) => {
-    const { showSettingsMenu, showPresetsModal, showWallpaperModal, showSoundModal } = get();
+    const { showSettingsMenu, showPresetsModal, showWallpaperModal, showSoundModal, showChannelSettingsModal } = get();
     
     // Handle Ctrl+key combinations
     if (event.ctrlKey) {
@@ -91,6 +99,16 @@ const useUIStore = create((set, get) => ({
             get().openSoundModal();
           }
           break;
+        case 'c':
+          event.preventDefault(); // Prevent browser copy
+          if (showChannelSettingsModal) {
+            // Modal is open, simulate escape key to trigger proper closing animation
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+          } else {
+            get().openChannelSettingsModal();
+          }
+          break;
         default:
           break;
       }
@@ -101,7 +119,7 @@ const useUIStore = create((set, get) => ({
     switch (event.key) {
       case 'Escape':
         // Check if any of our managed modals are open first
-        if (showPresetsModal || showWallpaperModal || showSoundModal) {
+        if (showPresetsModal || showWallpaperModal || showSoundModal || showChannelSettingsModal) {
           // Let the modal handle the escape key itself, don't interfere
           return;
         }

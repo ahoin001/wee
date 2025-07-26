@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import SoundModal from './SoundModal';
-import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
 import PrimaryActionsModal from './PrimaryActionsModal';
 import TimeSettingsModal from './TimeSettingsModal';
@@ -26,12 +25,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   // Use Zustand store for modal states
   const { 
     showSoundModal,
-    showWallpaperModal,
     showPresetsModal,
     openSoundModal,
     closeSoundModal,
-    openWallpaperModal,
-    closeWallpaperModal,
     openPresetsModal,
     closePresetsModal
   } = useUIStore();
@@ -857,21 +853,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         isOpen={showUpdateModal}
         onClose={() => setShowUpdateModal(false)}
       />
-      {/* Wallpaper Modal */}
-      {showWallpaperModal && (
-        <WallpaperModal
-          isOpen={showWallpaperModal}
-          onClose={closeWallpaperModal}
-          onSettingsChange={onSettingsChange}
-          currentWallpaper={window.settings?.wallpaper}
-          currentOpacity={window.settings?.wallpaperOpacity}
-          savedWallpapers={window.settings?.savedWallpapers || []}
-          likedWallpapers={window.settings?.likedWallpapers || []}
-          cycleWallpapers={window.settings?.cycleWallpapers}
-          cycleInterval={window.settings?.cycleInterval}
-          cycleAnimation={window.settings?.cycleAnimation}
-        />
-      )}
+
       {/* General Settings Modal */}
       {showGeneralModal && (
         <GeneralSettingsModal 
