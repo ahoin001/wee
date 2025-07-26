@@ -69,7 +69,7 @@ const powerActionsList = [
 ];
 
 
-const categories = [...new Set(powerActionsList.map(action => action.category))];
+const categories = [...new Set(powerActionsList.map(action => action.category)), 'Custom'];
 
 function AdminPanel({ isOpen, onClose, onSave, config }) {
   const [powerActions, setPowerActions] = useState(config?.powerActions || []);
@@ -79,6 +79,14 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
   const [recentlyAdded, setRecentlyAdded] = useState(null);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customAction, setCustomAction] = useState({
+    name: '',
+    command: '',
+    icon: '⚙️',
+    category: 'Custom'
+  });
+  const [customActionError, setCustomActionError] = useState('');
   
   // Use ref to track powerActions to prevent stale closures
   const powerActionsRef = useRef(powerActions);
@@ -109,7 +117,13 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
     }
   }, [config, isOpen]);
 
-  const filteredActions = powerActionsList.filter(action => {
+  // Get custom actions from powerActions
+  const customActions = powerActions.filter(action => action.category === 'Custom');
+  
+  // Combine built-in actions with custom actions
+  const allActions = [...powerActionsList, ...customActions];
+  
+  const filteredActions = allActions.filter(action => {
     const matchesSearch = action.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          action.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || action.category === selectedCategory;
@@ -121,7 +135,12 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
     const currentActions = powerActionsRef.current;
     console.log('Current actions before adding:', currentActions.length, currentActions.map(a => a.name));
     
-    if (!currentActions.find(pa => pa.id === action.id)) {
+    // For built-in actions, check by ID. For custom actions, check by name to avoid duplicates
+    const existingAction = action.category === 'Custom' 
+      ? currentActions.find(pa => pa.name.toLowerCase() === action.name.toLowerCase())
+      : currentActions.find(pa => pa.id === action.id);
+    
+    if (!existingAction) {
       const newPowerActions = [...currentActions, action];
       console.log('Setting new powerActions:', newPowerActions.length, newPowerActions.map(a => a.name));
       setPowerActions(newPowerActions);
@@ -172,6 +191,70 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
     if (window.api && window.api.executeCommand) {
       window.api.executeCommand(action.command);
     }
+  };
+
+  const handleAddCustomAction = () => {
+    setCustomActionError('');
+    
+    if (!customAction.name.trim()) {
+      setCustomActionError('Please enter a name for the action');
+      return;
+    }
+    
+    if (!customAction.command.trim()) {
+      setCustomActionError('Please enter a command');
+      return;
+    }
+    
+    // Check if action with same name already exists
+    const existingAction = powerActions.find(pa => pa.name.toLowerCase() === customAction.name.toLowerCase());
+    if (existingAction) {
+      setCustomActionError('An action with this name already exists');
+      return;
+    }
+    
+    // Create new custom action with unique ID
+    const newCustomAction = {
+      ...customAction,
+      id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: customAction.name.trim(),
+      command: customAction.command.trim()
+    };
+    
+    // Add to power actions
+    const newPowerActions = [...powerActions, newCustomAction];
+    setPowerActions(newPowerActions);
+    
+    // Reset form
+    setCustomAction({
+      name: '',
+      command: '',
+      icon: '⚙️',
+      category: 'Custom'
+    });
+    setShowCustomForm(false);
+    setCustomActionError('');
+    
+    // Show success notification
+    setNotificationMessage(`Added custom action "${newCustomAction.name}"`);
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 3000);
+  };
+
+  const handleCustomActionChange = (field, value) => {
+    setCustomAction(prev => ({ ...prev, [field]: value }));
+    if (customActionError) setCustomActionError('');
+  };
+
+  const handleCancelCustomAction = () => {
+    setCustomAction({
+      name: '',
+      command: '',
+      icon: '⚙️',
+      category: 'Custom'
+    });
+    setShowCustomForm(false);
+    setCustomActionError('');
   };
 
   if (!isOpen) return null;
@@ -250,13 +333,178 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
             </select>
           </div>
 
+          {/* Add Custom Action Button */}
+          <div style={{ marginBottom: 16 }}>
+            <button
+              type="button"
+              onClick={() => setShowCustomForm(true)}
+              style={{
+                width: '100%',
+                background: '#0099ff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '10px 16px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#007acc';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#0099ff';
+              }}
+            >
+              <span>➕</span>
+              Add Custom Action
+            </button>
+          </div>
+
+          {/* Custom Action Form */}
+          {showCustomForm && (
+            <div style={{ 
+              marginBottom: 16, 
+              padding: '16px', 
+              border: '1px solid #ddd', 
+              borderRadius: '8px',
+              background: '#f9f9f9'
+            }}>
+              <div style={{ fontWeight: '600', marginBottom: '12px', color: '#333' }}>
+                Add Custom Action
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: '#666' }}>
+                  Action Name *
+                </label>
+                <input
+                  type="text"
+                  className="text-input"
+                  placeholder="e.g., Time & Language Settings"
+                  value={customAction.name}
+                  onChange={e => handleCustomActionChange('name', e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: '#666' }}>
+                  Command *
+                </label>
+                <input
+                  type="text"
+                  className="text-input"
+                  placeholder="e.g., start ms-settings:dateandtime"
+                  value={customAction.command}
+                  onChange={e => handleCustomActionChange('command', e.target.value)}
+                  style={{ width: '100%' }}
+                />
+                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  Common commands: <code>start [program]</code>, <code>cmd /c [command]</code>, <code>powershell -Command [script]</code>
+                </div>
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: '#666' }}>
+                  Icon
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {['⚙️', '🕐', '🔧', '🎛️', '📁', '💻', '🔍', '⚡', '🎮', '🔊', '🌐', '🔒'].map(icon => (
+                    <button
+                      key={icon}
+                      type="button"
+                      onClick={() => handleCustomActionChange('icon', icon)}
+                      style={{
+                        fontSize: '20px',
+                        padding: '8px',
+                        border: customAction.icon === icon ? '2px solid #0099ff' : '1px solid #ccc',
+                        borderRadius: '6px',
+                        background: customAction.icon === icon ? '#e6f3ff' : '#fff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {customActionError && (
+                <div style={{ 
+                  color: '#dc3545', 
+                  fontSize: '13px', 
+                  marginBottom: '12px',
+                  padding: '8px',
+                  background: '#ffeaea',
+                  borderRadius: '4px',
+                  border: '1px solid #ffcccc'
+                }}>
+                  {customActionError}
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleAddCustomAction}
+                  style={{
+                    background: '#28a745',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = '#218838';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = '#28a745';
+                  }}
+                >
+                  Add Action
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelCustomAction}
+                  style={{
+                    background: '#6c757d',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = '#5a6268';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = '#6c757d';
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Actions List */}
           <div style={{ 
             flex: 1, 
             overflowY: 'auto', 
             border: '1px solid #ddd', 
             borderRadius: 8,
-            padding: 8
+            padding: 8,
+            maxHeight: '400px'
           }}>
             {filteredActions.map(action => {
               const isAdded = powerActions.find(pa => pa.id === action.id);
@@ -281,14 +529,18 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
                   onClick={() => !isAdded && handleAddAction(action)}
                   onMouseEnter={e => {
                     if (!isAdded) {
+                      e.currentTarget.style.background = '#e6f3ff';
+                      e.currentTarget.style.border = '1.5px solid #0099ff';
+                      e.currentTarget.style.boxShadow = '0 1.5px 6px #0099ff08';
                       e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                     }
                   }}
                   onMouseLeave={e => {
                     if (!isAdded) {
-                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.background = '#fff';
+                      e.currentTarget.style.border = '1px solid #e0e0e0';
                       e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }
                   }}
                 >
@@ -323,13 +575,16 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
                     borderRadius: '4px',
                     padding: '4px 8px',
                     fontSize: '12px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.background = '#007acc';
+                    e.currentTarget.style.transform = 'scale(1.05)';
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.background = '#0099ff';
+                    e.currentTarget.style.transform = 'scale(1)';
                   }}
                 >
                   Run
@@ -372,7 +627,8 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
             borderRadius: 8, 
             padding: 8,
             background: '#f9f9f9',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            maxHeight: '400px'
           }}>
             {powerActions.length === 0 ? (
               <div style={{ 
@@ -419,12 +675,16 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
                     transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={e => {
+                    e.currentTarget.style.background = '#e6f3ff';
+                    e.currentTarget.style.border = '1.5px solid #0099ff';
+                    e.currentTarget.style.boxShadow = '0 1.5px 6px #0099ff08';
                     e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.background = '#fff';
+                    e.currentTarget.style.border = '1px solid #e0e0e0';
                     e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
                   <span style={{ fontSize: '18px' }}>{action.icon}</span>
@@ -448,13 +708,16 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
                       cursor: 'pointer',
                       padding: '4px',
                       borderRadius: '4px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.background = '#ffeaea';
+                      e.currentTarget.style.transform = 'scale(1.1)';
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.background = 'none';
+                      e.currentTarget.style.transform = 'scale(1)';
                     }}
                   >
                     ✕
