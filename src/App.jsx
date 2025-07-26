@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import Channel from './components/Channel';
 import ChannelModal from './components/ChannelModal';
 import PaginatedChannels from './components/PaginatedChannels';
 import PageNavigation from './components/PageNavigation';
 import usePageNavigationStore from './utils/usePageNavigationStore';
 import WiiSideNavigation from './components/WiiSideNavigation';
 import HomeButton from './components/HomeButton';
-import SettingsButton from './components/SettingsButton';
 import NotificationsButton from './components/NotificationsButton';
 import WiiRibbon from './components/WiiRibbon';
 import WallpaperModal from './components/WallpaperModal';
@@ -2213,14 +2211,6 @@ function App() {
             onClose={() => setShowUpdateModal(false)}
           />
         )}
-        
-        {/* Settings Button for floating menu when dock is hidden */}
-        <SettingsButton
-          onClick={() => {}}
-          onSettingsChange={handleSettingsChange}
-          glassWiiRibbon={glassWiiRibbon}
-          onGlassWiiRibbonChange={setGlassWiiRibbon}
-        />
       </div>
     </>
   );
