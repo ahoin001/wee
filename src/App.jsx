@@ -15,6 +15,7 @@ import TimeSettingsModal from './components/TimeSettingsModal';
 import RibbonSettingsModal from './components/RibbonSettingsModal';
 import UpdateModal from './components/UpdateModal';
 import ChannelSettingsModal from './components/ChannelSettingsModal';
+import AppShortcutsModal from './components/AppShortcutsModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
@@ -127,10 +128,13 @@ function App() {
     showWallpaperModal, 
     showSoundModal,
     showChannelSettingsModal,
+    showAppShortcutsModal,
     closePresetsModal,
     closeWallpaperModal,
     closeSoundModal,
-    closeChannelSettingsModal
+    closeChannelSettingsModal,
+    closeAppShortcutsModal,
+    loadKeyboardShortcuts
   } = useUIStore();
   
   const [mediaMap, setMediaMap] = useState({});
@@ -700,6 +704,11 @@ function App() {
         setShowPresetsButton(settings.showPresetsButton ?? false);
         setShowDock(settings.showDock ?? true);
         setWallpaperBlur(settings.wallpaperBlur ?? 0);
+        
+        // Load keyboard shortcuts
+        if (settings.keyboardShortcuts) {
+          loadKeyboardShortcuts(settings.keyboardShortcuts);
+        }
       }
       // Mark as initialized after loading settings
       setHasInitialized(true);
@@ -805,6 +814,32 @@ function App() {
     }
     persistSettings();
   }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock]);
+
+  // Persist keyboard shortcuts when they change
+  useEffect(() => {
+    if (hasInitialized) {
+      const unsubscribe = useUIStore.subscribe(
+        (state) => state.keyboardShortcuts,
+        async (keyboardShortcuts) => {
+          const persistKeyboardShortcuts = async () => {
+            let current = await settingsApi?.get();
+            if (!current) current = {};
+            
+            const updated = {
+              ...current,
+              keyboardShortcuts
+            };
+            
+            await settingsApi?.set(updated);
+          };
+          
+          persistKeyboardShortcuts();
+        }
+      );
+      
+      return unsubscribe;
+    }
+  }, [hasInitialized]);
 
   // Update refs when time settings change
   useEffect(() => {
@@ -1206,6 +1241,11 @@ function App() {
     }
     if (newSettings.kenBurnsTransitionType !== undefined) {
       setKenBurnsTransitionType(newSettings.kenBurnsTransitionType);
+    }
+    
+    // Handle keyboard shortcuts
+    if (newSettings.keyboardShortcuts !== undefined) {
+      loadKeyboardShortcuts(newSettings.keyboardShortcuts);
     }
     
     // Note: Settings are automatically persisted by the main persistSettings useEffect
@@ -1995,6 +2035,12 @@ function App() {
                 }}>
                   General Settings
                 </div>
+                <div className="context-menu-item" onClick={() => { 
+                  useUIStore.getState().openAppShortcutsModal();
+                  closeSettingsMenu(); 
+                }}>
+                  📱 App Shortcuts
+                </div>
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
                   Change Sounds
                 </div>
@@ -2151,6 +2197,13 @@ function App() {
           kenBurnsCrossfadeReturn={kenBurnsCrossfadeReturn}
           kenBurnsTransitionType={kenBurnsTransitionType}
         />
+        
+        {showAppShortcutsModal && (
+          <AppShortcutsModal
+            isOpen={showAppShortcutsModal}
+            onClose={closeAppShortcutsModal}
+          />
+        )}
         
         {/* Additional modals for when dock is hidden */}
         {showGeneralModal && (

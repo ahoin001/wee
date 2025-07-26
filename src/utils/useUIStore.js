@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { DEFAULT_SHORTCUTS, parseShortcut, validateShortcut, checkShortcutConflict } from './keyboardShortcuts';
 
 const useUIStore = create((set, get) => ({
   // Settings menu state
@@ -10,6 +11,15 @@ const useUIStore = create((set, get) => ({
   showWallpaperModal: false,
   showSoundModal: false,
   showChannelSettingsModal: false,
+  showAppShortcutsModal: false,
+  
+  // Keyboard shortcuts state
+  keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
+    ...shortcut,
+    key: shortcut.defaultKey,
+    modifier: shortcut.defaultModifier,
+    enabled: true
+  })),
   
   // Actions
   openSettingsMenu: () => {
@@ -62,83 +72,134 @@ const useUIStore = create((set, get) => ({
     set({ showChannelSettingsModal: !showChannelSettingsModal });
   },
   
+  openAppShortcutsModal: () => set({ showAppShortcutsModal: true }),
+  closeAppShortcutsModal: () => set({ showAppShortcutsModal: false }),
+  toggleAppShortcutsModal: () => {
+    const { showAppShortcutsModal } = get();
+    set({ showAppShortcutsModal: !showAppShortcutsModal });
+  },
+  
+  // Keyboard shortcuts actions
+  updateKeyboardShortcut: (shortcutId, updates) => {
+    const { keyboardShortcuts } = get();
+    const updatedShortcuts = keyboardShortcuts.map(shortcut => 
+      shortcut.id === shortcutId ? { ...shortcut, ...updates } : shortcut
+    );
+    set({ keyboardShortcuts: updatedShortcuts });
+  },
+  
+  resetKeyboardShortcuts: () => {
+    const resetShortcuts = DEFAULT_SHORTCUTS.map(shortcut => ({
+      ...shortcut,
+      key: shortcut.defaultKey,
+      modifier: shortcut.defaultModifier,
+      enabled: true
+    }));
+    set({ keyboardShortcuts: resetShortcuts });
+  },
+  
+  loadKeyboardShortcuts: (shortcuts) => {
+    set({ keyboardShortcuts: shortcuts });
+  },
+  
   // Global keyboard shortcuts handler
   handleGlobalKeyPress: (event) => {
-    const { showSettingsMenu, showPresetsModal, showWallpaperModal, showSoundModal, showChannelSettingsModal } = get();
+    const { 
+      showSettingsMenu, 
+      showPresetsModal, 
+      showWallpaperModal, 
+      showSoundModal, 
+      showChannelSettingsModal, 
+      showAppShortcutsModal,
+      keyboardShortcuts 
+    } = get();
     
-    // Handle Ctrl+key combinations
-    if (event.ctrlKey) {
-      switch (event.key.toLowerCase()) {
-        case 'p':
-          event.preventDefault(); // Prevent browser print dialog
+    // Check if any modal is open that should handle its own keyboard events
+    const modalsOpen = showPresetsModal || showWallpaperModal || showSoundModal || 
+                      showChannelSettingsModal || showAppShortcutsModal;
+    
+    // Get the current key and modifier
+    const key = event.key.toLowerCase();
+    const modifier = event.ctrlKey ? 'ctrl' : 
+                    event.altKey ? 'alt' : 
+                    event.shiftKey ? 'shift' : 
+                    event.metaKey ? 'meta' : 'none';
+    
+    // Find matching shortcut
+    const matchingShortcut = keyboardShortcuts.find(shortcut => 
+      shortcut.enabled && 
+      shortcut.key.toLowerCase() === key && 
+      shortcut.modifier === modifier
+    );
+    
+    if (matchingShortcut) {
+      event.preventDefault();
+      
+      // Handle modal-specific shortcuts (close if open, open if closed)
+      const modalActions = {
+        'openPresetsModal': () => {
           if (showPresetsModal) {
-            // Modal is open, simulate escape key to trigger proper closing animation
             const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
             document.dispatchEvent(escapeEvent);
           } else {
             get().openPresetsModal();
           }
-          break;
-        case 'w':
-          event.preventDefault(); // Prevent browser close tab
+        },
+        'openWallpaperModal': () => {
           if (showWallpaperModal) {
-            // Modal is open, simulate escape key to trigger proper closing animation
             const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
             document.dispatchEvent(escapeEvent);
           } else {
             get().openWallpaperModal();
           }
-          break;
-        case 's':
-          event.preventDefault(); // Prevent browser save dialog
+        },
+        'openSoundModal': () => {
           if (showSoundModal) {
-            // Modal is open, simulate escape key to trigger proper closing animation
             const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
             document.dispatchEvent(escapeEvent);
           } else {
             get().openSoundModal();
           }
-          break;
-        case 'c':
-          event.preventDefault(); // Prevent browser copy
+        },
+        'openChannelSettingsModal': () => {
           if (showChannelSettingsModal) {
-            // Modal is open, simulate escape key to trigger proper closing animation
             const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
             document.dispatchEvent(escapeEvent);
           } else {
             get().openChannelSettingsModal();
           }
-          break;
-        default:
-          break;
-      }
-      return;
-    }
-    
-    // Handle other keys
-    switch (event.key) {
-      case 'Escape':
-        // Check if any of our managed modals are open first
-        if (showPresetsModal || showWallpaperModal || showSoundModal || showChannelSettingsModal) {
-          // Let the modal handle the escape key itself, don't interfere
-          return;
-        }
-        
-        if (showSettingsMenu) {
-          // If settings menu is open, close it
-          get().closeSettingsMenu();
-        } else {
-          // Check if any other modals are open by looking for elements with modal-related classes
-          const modalsOpen = document.querySelector('.modal-overlay, .base-modal, [role="dialog"]');
+        },
+        'openAppShortcutsModal': () => {
+          if (showAppShortcutsModal) {
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+          } else {
+            get().openAppShortcutsModal();
+          }
+        },
+        'toggleSettingsMenu': () => {
+          if (modalsOpen) {
+            // If any modal is open, let it handle the key
+            return;
+          }
           
-          if (!modalsOpen) {
-            // Only open settings menu if no modals are currently open
-            get().openSettingsMenu();
+          if (showSettingsMenu) {
+            get().closeSettingsMenu();
+          } else {
+            // Check if any other modals are open by looking for elements with modal-related classes
+            const otherModalsOpen = document.querySelector('.modal-overlay, .base-modal, [role="dialog"]');
+            
+            if (!otherModalsOpen) {
+              get().openSettingsMenu();
+            }
           }
         }
-        break;
-      default:
-        break;
+      };
+      
+      const action = modalActions[matchingShortcut.action];
+      if (action) {
+        action();
+      }
     }
   },
 }));
