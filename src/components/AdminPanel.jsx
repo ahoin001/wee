@@ -10,34 +10,34 @@ const powerActionsList = [
   { id: 'sleep', name: 'Sleep', command: 'rundll32.exe powrprof.dll,SetSuspendState 0,1,0', icon: '😴', category: 'Power' },
   { id: 'hibernate', name: 'Hibernate', command: 'shutdown /h', icon: '💤', category: 'Power' },
   { id: 'lock', name: 'Lock Computer', command: 'rundll32.exe user32.dll,LockWorkStation', icon: '🔒', category: 'Power' },
-  
+
   // System Tools
-  { id: 'taskmgr', name: 'Task Manager', command: 'taskmgr', icon: '⚙️', category: 'System' },
-  { id: 'control', name: 'Control Panel', command: 'control', icon: '🎛️', category: 'System' },
-  { id: 'devmgmt', name: 'Device Manager', command: 'devmgmt.msc', icon: '🔧', category: 'System' },
-  { id: 'services', name: 'Services', command: 'services.msc', icon: '🛠️', category: 'System' },
-  { id: 'regedit', name: 'Registry Editor', command: 'regedit', icon: '📝', category: 'System' },
-  { id: 'about', name: 'About Windows', command: 'ms-settings:about', icon: 'ℹ️', category: 'System' },
-  
+  { id: 'taskmgr', name: 'Task Manager', command: 'start taskmgr', icon: '⚙️', category: 'System' },
+  { id: 'control', name: 'Control Panel', command: 'start control', icon: '🎛️', category: 'System' },
+  { id: 'devmgmt', name: 'Device Manager', command: 'start devmgmt.msc', icon: '🔧', category: 'System' },
+  { id: 'services', name: 'Services', command: 'start services.msc', icon: '🛠️', category: 'System' },
+  { id: 'regedit', name: 'Registry Editor', command: 'start regedit', icon: '📝', category: 'System' },
+  { id: 'about', name: 'About Windows', command: 'start ms-settings:about', icon: 'ℹ️', category: 'System' },
+
   // Command Line Tools
-  { id: 'cmd', name: 'Command Prompt', command: 'cmd', icon: '💻', category: 'Tools' },
-  { id: 'powershell', name: 'PowerShell', command: 'powershell', icon: '⚡', category: 'Tools' },
-  
+  { id: 'cmd', name: 'Command Prompt', command: 'start cmd', icon: '💻', category: 'Tools' },
+  { id: 'powershell', name: 'PowerShell', command: 'start powershell', icon: '⚡', category: 'Tools' },
+
   // File Management
-  { id: 'explorer', name: 'File Explorer', command: 'explorer', icon: '📁', category: 'File' },
-  { id: 'desktop', name: 'Show Desktop', command: 'explorer shell:::{3080F90D-D7AD-11D9-BD98-0000947B0257}', icon: '🖥️', category: 'File' },
-  { id: 'recycle', name: 'Recycle Bin', command: 'explorer shell:::{645FF040-5081-101B-9F08-00AA002F954E}', icon: '🗑️', category: 'File' },
-  
+  { id: 'explorer', name: 'File Explorer', command: 'start explorer', icon: '📁', category: 'File' },
+  { id: 'desktop', name: 'Show Desktop', command: 'start explorer shell:::{3080F90D-D7AD-11D9-BD98-0000947B0257}', icon: '🖥️', category: 'File' },
+  { id: 'recycle', name: 'Recycle Bin', command: 'start explorer shell:::{645FF040-5081-101B-9F08-00AA002F954E}', icon: '🗑️', category: 'File' },
+
   // Classic Control Panel Items
-  { id: 'network', name: 'Network Connections', command: 'ncpa.cpl', icon: '🌐', category: 'Settings' },
-  { id: 'sound', name: 'Sound Settings', command: 'mmsys.cpl', icon: '🔊', category: 'Settings' },
-  { id: 'display', name: 'Display Settings', command: 'desk.cpl', icon: '🖼️', category: 'Settings' },
-  { id: 'keyboard', name: 'Keyboard Settings', command: 'main.cpl keyboard', icon: '⌨️', category: 'Settings' },
-  { id: 'mouse', name: 'Mouse Settings', command: 'main.cpl', icon: '🖱️', category: 'Settings' },
-  { id: 'system', name: 'System Properties', command: 'sysdm.cpl', icon: '💻', category: 'Settings' },
-  { id: 'users', name: 'User Accounts', command: 'nusrmgr.cpl', icon: '👤', category: 'Settings' },
-  { id: 'firewall', name: 'Windows Firewall', command: 'firewall.cpl', icon: '🔥', category: 'Security' },
-  
+  { id: 'network', name: 'Network Connections', command: 'start ncpa.cpl', icon: '🌐', category: 'Settings' },
+  { id: 'sound', name: 'Sound Settings', command: 'start mmsys.cpl', icon: '🔊', category: 'Settings' },
+  { id: 'display', name: 'Display Settings', command: 'start desk.cpl', icon: '🖼️', category: 'Settings' },
+  { id: 'keyboard', name: 'Keyboard Settings', command: 'start main.cpl keyboard', icon: '⌨️', category: 'Settings' },
+  { id: 'mouse', name: 'Mouse Settings', command: 'start main.cpl', icon: '🖱️', category: 'Settings' },
+  { id: 'system', name: 'System Properties', command: 'start sysdm.cpl', icon: '💻', category: 'Settings' },
+  { id: 'users', name: 'User Accounts', command: 'start nusrmgr.cpl', icon: '👤', category: 'Settings' },
+  { id: 'firewall', name: 'Windows Firewall', command: 'start firewall.cpl', icon: '🔥', category: 'Security' },
+
   // Modern Settings (Windows 10/11)
   { id: 'volume-mixer', name: 'Volume Settings', command: 'start ms-settings:sound', icon: '🔊', category: 'Settings' },
   { id: 'update', name: 'Windows Update', command: 'start ms-settings:windowsupdate', icon: '🔄', category: 'Settings' },
@@ -67,6 +67,7 @@ const powerActionsList = [
   { id: 'multitask', name: 'Multitasking', command: 'start ms-settings:multitasking', icon: '🔄', category: 'Settings' },
   { id: 'tablet', name: 'Tablet Mode', command: 'start ms-settings:tabletmode', icon: '📱', category: 'Settings' },
 ];
+
 
 const categories = [...new Set(powerActionsList.map(action => action.category))];
 
