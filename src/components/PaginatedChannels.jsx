@@ -91,14 +91,14 @@ const PaginatedChannels = ({
     }
     
     // Debug: Show first few channels with their full data
-    console.log('[PaginatedChannels] Generated channels for idle animations:', channels.slice(0, 3).map(c => ({
-      id: c.id,
-      empty: c.empty,
-      media: c.media,
-      path: c.path,
-      title: c.title,
-      type: c.type
-    })));
+    // console.log('[PaginatedChannels] Generated channels for idle animations:', channels.slice(0, 3).map(c => ({
+    //   id: c.id,
+    //   empty: c.empty,
+    //   media: c.media,
+    //   path: c.path,
+    //   title: c.title,
+    //   type: c.type
+    // })));
     
     return channels;
   }, [getTotalChannelsCount, channelConfigs, mediaMap, appPathMap, totalPages, channelsPerPage, totalChannelsNeeded]);

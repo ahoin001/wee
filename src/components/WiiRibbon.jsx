@@ -11,6 +11,7 @@ import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 import intervalManager from '../utils/IntervalManager';
 import useUIStore from '../utils/useUIStore';
+import useSettingsMenuStore from '../utils/useSettingsMenuStore';
 // import more icons as needed
 
 // Add a helper function to convert opacity to hex alpha if needed
@@ -58,6 +59,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
   const [showPresetsButtonModal, setShowPresetsButtonModal] = useState(false);
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
 
   // Load configs from settings on mount
   useEffect(() => {
@@ -67,6 +69,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         console.log('WiiRibbon: Loading settings:', settings);
         if (settings && settings.ribbonButtonConfigs) {
           console.log('WiiRibbon: Found ribbonButtonConfigs:', settings.ribbonButtonConfigs);
+          console.log('PowerActions in loaded configs:', settings.ribbonButtonConfigs.map((config, index) => ({ 
+            index, 
+            powerActions: config.powerActions?.length || 0,
+            names: config.powerActions?.map(a => a.name) || []
+          })));
+          
           // Ensure each button config has all required properties
           const configsWithAdaptiveColor = settings.ribbonButtonConfigs.map(config => ({
             ...config,
@@ -90,10 +98,20 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   // Save configs to settings
   const saveButtonConfigs = async (configs) => {
+    console.log('WiiRibbon saveButtonConfigs called');
+    console.log('Configs to save:', configs);
+    console.log('PowerActions in configs:', configs.map((config, index) => ({ 
+      index, 
+      powerActions: config.powerActions?.length || 0,
+      names: config.powerActions?.map(a => a.name) || []
+    })));
+    
     setButtonConfigs(configs);
     if (window.api?.settings?.get && window.api?.settings?.set) {
       const settings = await window.api.settings.get();
+      console.log('Current settings before save:', settings);
       await window.api.settings.set({ ...settings, ribbonButtonConfigs: configs });
+      console.log('Settings saved with ribbonButtonConfigs');
       
       // Notify parent component of the change
       if (onSettingsChange) {
@@ -121,8 +139,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   };
 
   const handlePrimaryActionsSave = (newConfig) => {
+    console.log('WiiRibbon handlePrimaryActionsSave called');
+    console.log('New config received:', newConfig);
+    console.log('PowerActions in new config:', newConfig.powerActions?.length || 0, newConfig.powerActions?.map(a => a.name) || []);
+    
     const newConfigs = [...buttonConfigs];
     newConfigs[activeButtonIndex] = newConfig;
+    console.log('Saving button configs with powerActions:', newConfigs[activeButtonIndex].powerActions?.length || 0);
     saveButtonConfigs(newConfigs);
     setShowPrimaryActionsModal(false);
   };
@@ -233,6 +256,19 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     };
   }, []);
 
+  // Handle Escape key to close admin menu
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && showAdminMenu) {
+        console.log('Escape key pressed, closing admin menu');
+        setShowAdminMenu(false);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showAdminMenu]);
+
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
       hour12: !timeFormat24hr,
@@ -250,7 +286,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   };
 
   const handleSettingsClick = () => {
-    openSettingsMenu();
+    const { openMenu } = useSettingsMenuStore.getState();
+    openMenu();
   };
 
 
@@ -282,6 +319,16 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   const handleButtonClick = (index) => {
     const config = buttonConfigs[index];
+    console.log('Button clicked:', index, 'Config:', config);
+    
+    // Handle admin mode for left button (index 0)
+    if (index === 0 && config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
+      console.log('Opening admin menu with actions:', config.powerActions.length, config.powerActions.map(a => a.name));
+      setShowAdminMenu(true);
+      return;
+    }
+    
+    // Handle regular button actions
     if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
     if (window.api && window.api.launchApp) {
       if (config.actionType === 'exe') {
@@ -295,6 +342,16 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         window.open(config.action, '_blank');
       }
     }
+  };
+
+  const handleAdminActionClick = (action) => {
+    if (window.api && window.api.executeCommand) {
+      window.api.executeCommand(action.command);
+    } else {
+      // Fallback for development/testing
+      console.log('Would execute command:', action.command);
+    }
+    setShowAdminMenu(false);
   };
 
   return (
@@ -703,7 +760,94 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           </div>
 
 
-      </footer>
+              </footer>
+
+        {/* Admin Menu */}
+        {showAdminMenu && (
+          <div className="admin-menu">
+            {console.log('Rendering admin menu with actions:', buttonConfigs[0]?.powerActions?.length || 0, buttonConfigs[0]?.powerActions?.map(a => a.name) || [])}
+            <div
+              className="context-menu-content"
+              style={{ 
+                position: 'absolute', 
+                bottom: '120px', // Position above the button instead of below
+                left: '250px', // Position next to the left button (approximately where the first button is)
+                zIndex: 1000,
+                minWidth: '280px',
+                maxWidth: '400px',
+                background: '#fff',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                overflow: 'hidden'
+              }}
+            >
+              <div className="settings-menu-group-label" style={{ 
+                padding: '12px 16px 8px 16px',
+                background: '#f5f5f5',
+                borderBottom: '1px solid #e0e0e0',
+                fontWeight: '600',
+                color: '#333'
+              }}>
+                Admin Actions
+              </div>
+              {buttonConfigs[0]?.powerActions?.map((action, index) => (
+                <div
+                  key={action.id}
+                  className="context-menu-item"
+                  onClick={() => handleAdminActionClick(action)}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px',
+                    padding: '12px 16px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease',
+                    borderBottom: index < buttonConfigs[0].powerActions.length - 1 ? '1px solid #f0f0f0' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>{action.icon}</span>
+                  <div>
+                    <div style={{ fontWeight: '500' }}>{action.name}</div>
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#666',
+                      fontFamily: 'monospace',
+                      marginTop: '2px'
+                    }}>
+                      {action.command}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Click outside to close admin menu */}
+        {showAdminMenu && (
+          <div 
+            style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              zIndex: 999,
+              background: 'transparent'
+            }} 
+            onClick={() => {
+              console.log('Clicking outside to close admin menu');
+              setShowAdminMenu(false);
+            }}
+          />
+        )}
 
       <SoundModal 
         isOpen={showSoundModal}

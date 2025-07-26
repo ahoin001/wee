@@ -845,7 +845,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                         </span>
                       </div>
                       
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {/* <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         <label style={{ 
                           display: 'flex', 
                           alignItems: 'center', 
@@ -895,7 +895,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                             </span>
                           </div>
                         </label>
-                      </div>
+                      </div> */}
                       
                       <div style={{ 
                         background: '#e7f3ff', 
@@ -905,7 +905,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
                         marginTop: 10
                       }}>
                         <Text as="p" size="xs" color="#0066cc" style={{ fontWeight: 500 }}>
-                          ℹ️ By default, Ken Burns only applies to static images (JPG, PNG). These options extend the effect to animated content for more dynamic channels.
+                          ℹ️ By default, Ken Burns only applies to static images (JPG, PNG). 
                         </Text>
                       </div>
                     </div>

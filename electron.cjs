@@ -2665,3 +2665,18 @@ ipcMain.handle('uwp:launch', async (event, appId) => {
     });
   });
 });
+
+// IPC: Execute command for admin actions
+ipcMain.handle('execute-command', async (event, command) => {
+  return new Promise((resolve) => {
+    if (!command) return resolve({ success: false, error: 'No command provided' });
+    exec(`cmd /c ${command}`, (err, stdout, stderr) => {
+      if (err) {
+        console.error('Error executing command:', err);
+        return resolve({ success: false, error: err.message });
+      }
+      console.log('Command executed successfully:', command);
+      resolve({ success: true, stdout, stderr });
+    });
+  });
+});

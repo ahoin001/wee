@@ -6,7 +6,7 @@ const useAppLibraryStore = create((set, get) => ({
   appsLoading: false,
   appsError: '',
   fetchInstalledApps: async () => {
-    console.log('[Zustand] fetchInstalledApps called');
+    // console.log('[Zustand] fetchInstalledApps called');
     set({ appsLoading: true, appsError: '' });
     try {
       const api = window.api?.apps;
@@ -23,7 +23,7 @@ const useAppLibraryStore = create((set, get) => ({
     try {
       const api = window.api?.apps;
       const apps = await api?.rescanInstalled();
-      console.log('[Zustand] rescanInstalledApps result:', apps);
+      // console.log('[Zustand] rescanInstalledApps result:', apps);
       set({ installedApps: apps || [], appsLoading: false });
     } catch (err) {
       console.log('[Zustand] rescanInstalledApps error:', err);
@@ -36,7 +36,7 @@ const useAppLibraryStore = create((set, get) => ({
   steamLoading: false,
   steamError: '',
   fetchSteamGames: async (customSteamPath) => {
-    console.log('[Zustand] fetchSteamGames called', customSteamPath);
+    // console.log('[Zustand] fetchSteamGames called', customSteamPath);
     set({ steamLoading: true, steamError: '' });
     try {
       const api = window.api?.steam;

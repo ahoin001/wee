@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import AppPathSectionCard from './AppPathSectionCard';
 import Button from '../ui/Button';
+import Toggle from '../ui/Toggle';
+import AdminPanel from './AdminPanel';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import useIconsStore from '../utils/useIconsStore';
 
@@ -23,6 +25,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [glassShineOpacity, setGlassShineOpacity] = useState(config?.glassShineOpacity || 0.7);
   const [textFont, setTextFont] = useState(config?.textFont || 'default');
   const [path, setPath] = useState('');
+  const [adminMode, setAdminMode] = useState(config?.adminMode || false);
+  const [powerActions, setPowerActions] = useState(config?.powerActions || []);
   
   // App/game path logic state
   const [gameType, setGameType] = useState('exe');
@@ -75,7 +79,14 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   
   // Update state when config changes (important for when modal reopens)
   useEffect(() => {
+    console.log('PrimaryActionsModal useEffect triggered:', { 
+      hasConfig: !!config, 
+      buttonIndex,
+      configPowerActions: config?.powerActions?.length || 0
+    });
+    
     if (config) {
+      console.log('PrimaryActionsModal loading config:', config);
       setType(config.type || 'text');
       setText(config.text || (buttonIndex === 0 ? 'Wii' : ''));
       setIcon(config.icon || null);
@@ -93,6 +104,9 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       setGlassBorderOpacity(config.glassBorderOpacity || 0.5);
       setGlassShineOpacity(config.glassShineOpacity || 0.7);
       setTextFont(config.textFont || 'default');
+      setAdminMode(config.adminMode || false);
+      console.log('Setting powerActions from config:', config.powerActions?.length || 0, config.powerActions?.map(a => a.name) || []);
+      setPowerActions(config.powerActions || []);
     }
   }, [config, buttonIndex]);
 
@@ -201,6 +215,9 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   };
 
   const handleSave = () => {
+    console.log('PrimaryActionsModal handleSave called');
+    console.log('Current powerActions at save time:', powerActions.length, powerActions.map(a => a.name));
+    
     // Check if this is for the presets button
     const isPresetsButton = buttonIndex === "presets";
     
@@ -222,11 +239,19 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       glassBorderOpacity,
       glassShineOpacity,
       textFont: type === 'text' ? textFont : 'default', // Include font in save
+      adminMode,
+      powerActions,
     };
+    
+    console.log('PrimaryActionsModal saveData:', saveData);
+    console.log('Calling onSave with powerActions:', saveData.powerActions?.length || 0);
     onSave(saveData);
   };
 
   // --- Section Renderers ---
+  
+
+
   function renderIconSection() {
     return (
       <>
@@ -427,6 +452,17 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     );
   }
 
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+  const handleAdminPanelSave = (adminConfig) => {
+    console.log('PrimaryActionsModal handleAdminPanelSave called');
+    console.log('Received adminConfig:', adminConfig);
+    console.log('Current powerActions before update:', powerActions.length, powerActions.map(a => a.name));
+    console.log('New powerActions from adminConfig:', adminConfig.powerActions?.length || 0, adminConfig.powerActions?.map(a => a.name) || []);
+    setPowerActions(adminConfig.powerActions || []);
+    console.log('PrimaryActionsModal powerActions state updated');
+  };
+
   // Replace the renderAppPathSection function with the robust version from ChannelModal, adapting variable names for PrimaryActionsModal context.
   const renderAppPathSection = () => {
     // Gather all relevant state for AppPathSectionCard
@@ -597,8 +633,97 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       )}
-       {/* App Path/URL Card - Only show for non-presets buttons */}
-      {!isPresetsButton && (
+       {/* Admin Mode Toggle - Only show for left button (index 0) */}
+      {buttonIndex === 0 && !isPresetsButton && (
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">Admin Mode</span>
+            <Toggle
+              checked={adminMode}
+              onChange={setAdminMode}
+            />
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            When enabled, this button becomes a powerful admin menu with Windows system actions instead of launching a single app.
+          </div>
+        </div>
+      )}
+
+      {/* Power Actions Card - Show when admin mode is enabled */}
+      {adminMode && buttonIndex === 0 && !isPresetsButton && (
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">Power Actions</span>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            Configure Windows system actions for your admin menu.
+            <div style={{ marginTop: 14 }}>
+              <button
+                type="button"
+                onClick={() => setShowAdminPanel(true)}
+                style={{
+                  background: '#0099ff',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 16px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#007acc';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#0099ff';
+                }}
+              >
+                Open Admin Panel
+              </button>
+              {powerActions.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: '13px', color: '#666', marginBottom: 6 }}>
+                    Selected actions: {powerActions.length}
+                  </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '4px',
+                    maxHeight: '60px',
+                    overflowY: 'auto'
+                  }}>
+                    {powerActions.slice(0, 5).map(action => (
+                      <span
+                        key={action.id}
+                        style={{
+                          background: '#f0f8ff',
+                          color: '#0099ff',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          border: '1px solid #e0f0ff'
+                        }}
+                      >
+                        {action.icon} {action.name}
+                      </span>
+                    ))}
+                    {powerActions.length > 5 && (
+                      <span style={{ color: '#666', fontSize: '11px', padding: '2px 6px' }}>
+                        +{powerActions.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* App Path/URL Card - Only show for non-presets buttons when not in admin mode */}
+      {!isPresetsButton && !adminMode && (
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
             <span className="wee-card-title">App Path or URL</span>
@@ -773,6 +898,14 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           )}
         </div>
       </div>
+
+      {/* Admin Panel Modal */}
+      <AdminPanel
+        isOpen={showAdminPanel}
+        onClose={() => setShowAdminPanel(false)}
+        onSave={handleAdminPanelSave}
+        config={{ powerActions }}
+      />
     </BaseModal>
   );
 }

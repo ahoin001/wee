@@ -102,11 +102,11 @@ const usePageNavigationStore = create((set, get) => ({
   initializeGlobalNavigation: () => {
     // Mouse side button navigation (back/forward buttons)
     const handleMouseUp = (event) => {
-      console.log('PageNavigation: Global mouse button event detected', {
-        button: event.button,
-        buttons: event.buttons,
-        target: event.target.tagName
-      });
+      // console.log('PageNavigation: Global mouse button event detected', {
+      //   button: event.button,
+      //   buttons: event.buttons,
+      //   target: event.target.tagName
+      // });
 
       // Only handle navigation when not in a modal or input field
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
@@ -128,7 +128,7 @@ const usePageNavigationStore = create((set, get) => ({
           goToNextPage();
           break;
         default:
-          console.log('PageNavigation: Mouse button not handled:', event.button);
+          // console.log('PageNavigation: Mouse button not handled:', event.button);
           break;
       }
     };

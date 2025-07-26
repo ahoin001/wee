@@ -6,16 +6,29 @@ import WallpaperModal from './WallpaperModal';
 import GeneralSettingsModal from './GeneralSettingsModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import performanceMonitor from '../utils/PerformanceMonitor';
+import useSettingsMenuStore from '../utils/useSettingsMenuStore';
 import './SettingsButton.css';
 
-function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType, onBarTypeChange, defaultBarType, onDefaultBarTypeChange, glassWiiRibbon, onGlassWiiRibbonChange }) {
-  const [showMenu, setShowMenu] = useState(false);
-  const [showMenuFade, setShowMenuFade] = useState(false);
-  const [showSoundModal, setShowSoundModal] = useState(false);
-  const [showWallpaperModal, setShowWallpaperModal] = useState(false);
+function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType = 'default', onBarTypeChange = () => {}, defaultBarType = 'default', onDefaultBarTypeChange = () => {}, glassWiiRibbon = false, onGlassWiiRibbonChange = () => {} }) {
+  // Use Zustand store for menu state
+  const { 
+    isOpen: showMenu, 
+    isFading: showMenuFade, 
+    openMenu, 
+    closeMenu,
+    showSoundModal,
+    showWallpaperModal,
+    showGeneralModal,
+    openSoundModal,
+    closeSoundModal,
+    openWallpaperModal,
+    closeWallpaperModal,
+    openGeneralModal,
+    closeGeneralModal
+  } = useSettingsMenuStore();
+  
   const [isFullscreen, setIsFullscreen] = useState(undefined); // undefined until loaded
   const [isFrameless, setIsFrameless] = useState(true);
-  const [showGeneralModal, setShowGeneralModal] = useState(false);
   const [immersivePip, setImmersivePip] = useState(() => {
     // Try to load from localStorage or default to false
     try {
@@ -34,13 +47,11 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
   );
 
   const handleButtonClick = () => {
-    setShowMenu(true);
-    setTimeout(() => setShowMenuFade(true), 10); // trigger fade-in
+    openMenu();
   };
 
   const handleMenuClose = () => {
-    setShowMenuFade(false);
-    setTimeout(() => setShowMenu(false), 200); // match fade-out duration
+    closeMenu();
   };
 
   // Guard for window.api to prevent errors in browser
@@ -170,7 +181,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div className="settings-menu-separator" />
               {/* System Group */}
               <div className="settings-menu-group-label">System</div>
-              <div className="context-menu-item" onClick={() => { setShowSoundModal(true); handleMenuClose(); }}>
+              <div className="context-menu-item" onClick={() => { openSoundModal(); handleMenuClose(); }}>
                 Change Sounds
               </div>
               <div className="context-menu-item" style={{ color: '#dc3545', fontWeight: 600 }}
@@ -196,7 +207,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
               <div className="settings-menu-separator" />
               {/* General Group */}
               <div className="settings-menu-group-label">General</div>
-              <div className="context-menu-item" onClick={() => { setShowGeneralModal(true); handleMenuClose(); }}>
+              <div className="context-menu-item" onClick={() => { openGeneralModal(); handleMenuClose(); }}>
                 General Settings
               </div>
               <div className="context-menu-item" onClick={() => { 
@@ -248,14 +259,14 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
 
         <SoundModal 
         isOpen={showSoundModal}
-          onClose={() => setShowSoundModal(false)}
+          onClose={closeSoundModal}
         onSettingsChange={onSettingsChange}
       />
       {/* Wallpaper Modal */}
       {showWallpaperModal && (
         <WallpaperModal
           isOpen={showWallpaperModal}
-          onClose={() => setShowWallpaperModal(false)}
+          onClose={closeWallpaperModal}
           onSettingsChange={onSettingsChange}
           currentWallpaper={window.settings?.wallpaper}
           currentOpacity={window.settings?.wallpaperOpacity}
@@ -270,7 +281,7 @@ function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode,
       {showGeneralModal && (
         <GeneralSettingsModal 
           isOpen={showGeneralModal} 
-          onClose={() => setShowGeneralModal(false)} 
+          onClose={closeGeneralModal} 
           immersivePip={immersivePip} 
           setImmersivePip={val => {
             setImmersivePip(val);

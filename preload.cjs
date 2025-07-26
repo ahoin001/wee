@@ -84,4 +84,5 @@ contextBridge.exposeInMainWorld('api', {
     listApps: () => ipcRenderer.invoke('uwp:list-apps'),
     launch: (appId) => ipcRenderer.invoke('uwp:launch', appId),
   },
+  executeCommand: (command) => ipcRenderer.invoke('execute-command', command),
 });

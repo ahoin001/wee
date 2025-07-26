@@ -82,8 +82,8 @@ const useIdleChannelAnimations = (
       return;
     }
 
-    console.log(`[IdleAnimation] Found ${channelsWithContent.length} channels with content out of ${channels.length} total`);
-    console.log(`[IdleAnimation] Channels with content:`, channelsWithContent.map(c => ({id: c.id, title: c.title, media: !!c.media, path: !!c.path})));
+    // console.log(`[IdleAnimation] Found ${channelsWithContent.length} channels with content out of ${channels.length} total`);
+    // console.log(`[IdleAnimation] Channels with content:`, channelsWithContent.map(c => ({id: c.id, title: c.title, media: !!c.media, path: !!c.path})));
 
     // Pick a random channel with content
     const randomChannel = channelsWithContent[Math.floor(Math.random() * channelsWithContent.length)];
@@ -99,7 +99,7 @@ const useIdleChannelAnimations = (
       return;
     }
 
-    console.log(`[IdleAnimation] Starting ${randomAnimationType} animation for channel:`, channelId, randomChannel);
+    // console.log(`[IdleAnimation] Starting ${randomAnimationType} animation for channel:`, channelId, randomChannel);
     startAnimation(channelId, randomAnimationType);
   };
 
@@ -156,9 +156,9 @@ const useIdleChannelAnimations = (
     }
     
     const result = animations.join(' ');
-    if (result) {
-      console.log(`[IdleAnimation] Channel ${channelId} applying classes: ${result}`);
-    }
+    // if (result) {
+    //   console.log(`[IdleAnimation] Channel ${channelId} applying classes: ${result}`);
+    // }
     
     return result;
   };
