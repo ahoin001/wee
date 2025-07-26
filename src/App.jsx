@@ -22,6 +22,7 @@ import audioManager from './utils/AudioManager';
 import intervalManager from './utils/IntervalManager';
 import useAppLibraryStore from './utils/useAppLibraryStore';
 import useUIStore from './utils/useUIStore';
+import Text from './ui/Text';
 
 
 // Safe fallback for modular APIs
@@ -1937,7 +1938,9 @@ function App() {
                 style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1002 }}
               >
                 {/* Appearance Group */}
-                <div className="settings-menu-group-label">Appearance</div>
+                <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
+                  Appearance
+                </Text>
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
                   🎨 Presets (Ctrl+P)
                 </div>
@@ -1966,7 +1969,9 @@ function App() {
                 </div>
                 <div className="settings-menu-separator" />
                 {/* Window Group */}
-                <div className="settings-menu-group-label">Window</div>
+                <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
+                  Window
+                </Text>
                 <div className="context-menu-item" onClick={() => { 
                   if (window.api?.toggleFullscreen) window.api.toggleFullscreen(); 
                   closeSettingsMenu(); 
@@ -1981,7 +1986,9 @@ function App() {
                 </div>
                 <div className="settings-menu-separator" />
                 {/* System Group */}
-                <div className="settings-menu-group-label">System</div>
+                <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
+                  System
+                </Text>
                 <div className="context-menu-item" onClick={() => { 
                   handleOpenGeneralModal();
                   closeSettingsMenu(); 
