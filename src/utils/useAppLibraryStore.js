@@ -11,7 +11,7 @@ const useAppLibraryStore = create((set, get) => ({
     try {
       const api = window.api?.apps;
       const apps = await api?.getInstalled();
-      console.log('[Zustand] fetchInstalledApps result:', apps);
+      // console.log('[Zustand] fetchInstalledApps result:', apps);
       set({ installedApps: apps || [], appsLoading: false });
     } catch (err) {
       console.log('[Zustand] fetchInstalledApps error:', err);
@@ -62,7 +62,7 @@ const useAppLibraryStore = create((set, get) => ({
   epicLoading: false,
   epicError: '',
   fetchEpicGames: async () => {
-    console.log('[Zustand] fetchEpicGames called');
+    // console.log('[Zustand] fetchEpicGames called');
     set({ epicLoading: true, epicError: '' });
     try {
       const api = window.api?.epic;
@@ -87,7 +87,7 @@ const useAppLibraryStore = create((set, get) => ({
   uwpLoading: false,
   uwpError: '',
   fetchUwpApps: async () => {
-    console.log('[Zustand] fetchUwpApps called');
+    // console.log('[Zustand] fetchUwpApps called');
     set({ uwpLoading: true, uwpError: '' });
     try {
       const api = window.api?.uwp;

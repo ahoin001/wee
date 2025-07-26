@@ -183,13 +183,13 @@ const usePageNavigationStore = create((set, get) => ({
     };
 
     // Add global event listeners
-    console.log('PageNavigation: Adding global mouse navigation event listeners');
+    // console.log('PageNavigation: Adding global mouse navigation event listeners');
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('wheel', handleWheel, { passive: false });
 
     // Return cleanup function
     return () => {
-      console.log('PageNavigation: Removing global mouse navigation event listeners');
+      // console.log('PageNavigation: Removing global mouse navigation event listeners');
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('wheel', handleWheel);
     };
