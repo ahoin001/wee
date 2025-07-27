@@ -2123,7 +2123,7 @@ function App() {
                   📱 App Shortcuts
                 </div>
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
-                  Change Sounds
+                  🎵 Change Sounds
                 </div>
                 <div className="context-menu-item" onClick={() => { 
                   handleOpenUpdateModal();
