@@ -2436,7 +2436,7 @@ ipcMain.handle('steam:pickLibraryFolder', async () => {
 // --- App Scanning Cache ---
 let appsCache = null;
 let appsCacheTime = 0;
-const APPS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const APPS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours (matches frontend cache)
 
 async function scanInstalledApps() {
   // Scan Start Menu shortcuts for installed apps

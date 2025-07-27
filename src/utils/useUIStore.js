@@ -12,6 +12,11 @@ const useUIStore = create((set, get) => ({
   showSoundModal: false,
   showChannelSettingsModal: false,
   showAppShortcutsModal: false,
+  showGeneralSettingsModal: false,
+  showTimeSettingsModal: false,
+  showRibbonSettingsModal: false,
+  showUpdateModal: false,
+  showPrimaryActionsModal: false,
   
   // Keyboard shortcuts state
   keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
@@ -79,6 +84,41 @@ const useUIStore = create((set, get) => ({
     set({ showAppShortcutsModal: !showAppShortcutsModal });
   },
   
+  openGeneralSettingsModal: () => set({ showGeneralSettingsModal: true }),
+  closeGeneralSettingsModal: () => set({ showGeneralSettingsModal: false }),
+  toggleGeneralSettingsModal: () => {
+    const { showGeneralSettingsModal } = get();
+    set({ showGeneralSettingsModal: !showGeneralSettingsModal });
+  },
+  
+  openTimeSettingsModal: () => set({ showTimeSettingsModal: true }),
+  closeTimeSettingsModal: () => set({ showTimeSettingsModal: false }),
+  toggleTimeSettingsModal: () => {
+    const { showTimeSettingsModal } = get();
+    set({ showTimeSettingsModal: !showTimeSettingsModal });
+  },
+  
+  openRibbonSettingsModal: () => set({ showRibbonSettingsModal: true }),
+  closeRibbonSettingsModal: () => set({ showRibbonSettingsModal: false }),
+  toggleRibbonSettingsModal: () => {
+    const { showRibbonSettingsModal } = get();
+    set({ showRibbonSettingsModal: !showRibbonSettingsModal });
+  },
+  
+  openUpdateModal: () => set({ showUpdateModal: true }),
+  closeUpdateModal: () => set({ showUpdateModal: false }),
+  toggleUpdateModal: () => {
+    const { showUpdateModal } = get();
+    set({ showUpdateModal: !showUpdateModal });
+  },
+  
+  openPrimaryActionsModal: () => set({ showPrimaryActionsModal: true }),
+  closePrimaryActionsModal: () => set({ showPrimaryActionsModal: false }),
+  togglePrimaryActionsModal: () => {
+    const { showPrimaryActionsModal } = get();
+    set({ showPrimaryActionsModal: !showPrimaryActionsModal });
+  },
+  
   // Keyboard shortcuts actions
   updateKeyboardShortcut: (shortcutId, updates) => {
     const { keyboardShortcuts } = get();
@@ -111,12 +151,19 @@ const useUIStore = create((set, get) => ({
       showSoundModal, 
       showChannelSettingsModal, 
       showAppShortcutsModal,
+      showGeneralSettingsModal,
+      showTimeSettingsModal,
+      showRibbonSettingsModal,
+      showUpdateModal,
+      showPrimaryActionsModal,
       keyboardShortcuts 
     } = get();
     
     // Check if any modal is open that should handle its own keyboard events
     const modalsOpen = showPresetsModal || showWallpaperModal || showSoundModal || 
-                      showChannelSettingsModal || showAppShortcutsModal;
+                      showChannelSettingsModal || showAppShortcutsModal ||
+                      showGeneralSettingsModal || showTimeSettingsModal ||
+                      showRibbonSettingsModal || showUpdateModal || showPrimaryActionsModal;
     
     // Get the current key and modifier
     const key = event.key.toLowerCase();
@@ -175,6 +222,46 @@ const useUIStore = create((set, get) => ({
             document.dispatchEvent(escapeEvent);
           } else {
             get().openAppShortcutsModal();
+          }
+        },
+        'openGeneralSettingsModal': () => {
+          if (showGeneralSettingsModal) {
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+          } else {
+            get().openGeneralSettingsModal();
+          }
+        },
+        'openTimeSettingsModal': () => {
+          if (showTimeSettingsModal) {
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+          } else {
+            get().openTimeSettingsModal();
+          }
+        },
+        'openRibbonSettingsModal': () => {
+          if (showRibbonSettingsModal) {
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+          } else {
+            get().openRibbonSettingsModal();
+          }
+        },
+        'openUpdateModal': () => {
+          if (showUpdateModal) {
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+          } else {
+            get().openUpdateModal();
+          }
+        },
+        'openPrimaryActionsModal': () => {
+          if (showPrimaryActionsModal) {
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+          } else {
+            get().openPrimaryActionsModal();
           }
         },
         'toggleSettingsMenu': () => {

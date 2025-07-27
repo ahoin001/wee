@@ -9,7 +9,7 @@ export default function AppPathSectionCard({
   onRescanInstalledApps,
   onGameResultClick,
   handlePickSteamFolder,
-  fetchSteamGames,
+  handleGameRefresh,
   ...rest
 }) {
   const {

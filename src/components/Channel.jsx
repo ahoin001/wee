@@ -33,6 +33,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   const previewCanvasRef = useRef(null);
 
   // Determine which animatedOnHover setting to use
+  // Note: animatedOnHover = true means "only play on hover", false means "autoplay"
   const effectiveAnimatedOnHover = (channelConfig && channelConfig.animatedOnHover !== undefined)
     ? channelConfig.animatedOnHover
     : globalAnimatedOnHover;

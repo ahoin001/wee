@@ -51,6 +51,56 @@ export const DEFAULT_SHORTCUTS = [
     icon: '📱'
   },
   {
+    id: 'open-general-settings-modal',
+    name: 'Open General Settings Modal',
+    description: 'Open the general settings modal',
+    defaultKey: '',
+    defaultModifier: 'none',
+    action: 'openGeneralSettingsModal',
+    category: 'Modals',
+    icon: '⚙️'
+  },
+  {
+    id: 'open-time-settings-modal',
+    name: 'Open Time Settings Modal',
+    description: 'Open the time and date settings modal',
+    defaultKey: '',
+    defaultModifier: 'none',
+    action: 'openTimeSettingsModal',
+    category: 'Modals',
+    icon: '🕐'
+  },
+  {
+    id: 'open-ribbon-settings-modal',
+    name: 'Open Ribbon Settings Modal',
+    description: 'Open the ribbon customization settings modal',
+    defaultKey: '',
+    defaultModifier: 'none',
+    action: 'openRibbonSettingsModal',
+    category: 'Modals',
+    icon: '🎨'
+  },
+  {
+    id: 'open-update-modal',
+    name: 'Open Update Modal',
+    description: 'Open the app update modal',
+    defaultKey: '',
+    defaultModifier: 'none',
+    action: 'openUpdateModal',
+    category: 'Modals',
+    icon: '🔄'
+  },
+  {
+    id: 'open-primary-actions-modal',
+    name: 'Open Primary Actions Modal',
+    description: 'Open the primary actions configuration modal',
+    defaultKey: '',
+    defaultModifier: 'none',
+    action: 'openPrimaryActionsModal',
+    category: 'Modals',
+    icon: '⚙️'
+  },
+  {
     id: 'toggle-settings-menu',
     name: 'Toggle Settings Menu',
     description: 'Open or close the settings menu',
