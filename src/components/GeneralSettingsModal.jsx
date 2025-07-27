@@ -6,10 +6,9 @@ import Toggle from '../ui/Toggle';
 import Text from '../ui/Text';
 import Button from '../ui/Button';
 
-function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, animatedOnHover, setAnimatedOnHover, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, onSettingsChange, ...props }) {
+function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, onSettingsChange, ...props }) {
   const [pip, setPip] = useState(immersivePip);
   const [glassRibbon, setGlassRibbon] = useState(glassWiiRibbon);
-  const [hoverAnim, setHoverAnim] = useState(animatedOnHover);
   const [fullscreen, setFullscreen] = useState(startInFullscreen);
   const [showPresets, setShowPresets] = useState(showPresetsButton);
   const [startOnBoot, setStartOnBoot] = useState(false);
@@ -23,7 +22,6 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   const handleSave = (handleClose) => {
     setImmersivePip(pip);
     setGlassWiiRibbon(glassRibbon);
-    setAnimatedOnHover(hoverAnim);
     setStartInFullscreen(fullscreen);
     setShowPresetsButton(showPresets);
     if (onSettingsChange) {
@@ -72,23 +70,6 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, video overlays will use immersive PiP mode for a more cinematic experience.</div>
-        </div>
-
-        {/* Glass Wii Ribbon */}
-        <div className="wee-card">
-          <div className="wee-card-header">
-            <span className="wee-card-title">Glass Wii Ribbon</span>
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={glassRibbon}
-                onChange={e => setGlassRibbon(e.target.checked)}
-              />
-              <span className="slider" />
-            </label>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">When enabled, the Wii Ribbon will have a glass-like appearance with transparency and blur effects.</div>
         </div>
 
         {/* Start in Fullscreen */}
@@ -153,8 +134,6 @@ GeneralSettingsModal.propTypes = {
   setImmersivePip: PropTypes.func,
   glassWiiRibbon: PropTypes.bool,
   setGlassWiiRibbon: PropTypes.func,
-  animatedOnHover: PropTypes.bool,
-  setAnimatedOnHover: PropTypes.func,
   startInFullscreen: PropTypes.bool,
   setStartInFullscreen: PropTypes.func,
   showPresetsButton: PropTypes.bool,

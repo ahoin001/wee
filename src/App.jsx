@@ -7,6 +7,8 @@ import WiiSideNavigation from './components/WiiSideNavigation';
 import HomeButton from './components/HomeButton';
 import NotificationsButton from './components/NotificationsButton';
 import WiiRibbon from './components/WiiRibbon';
+import ClassicWiiDock from './components/ClassicWiiDock';
+import PrimaryActionsModal from './components/PrimaryActionsModal';
 import WallpaperModal from './components/WallpaperModal';
 import WallpaperOverlay from './components/WallpaperOverlay';
 import NavigationCustomizationModal from './components/NavigationCustomizationModal';
@@ -129,11 +131,21 @@ function App() {
     showSoundModal,
     showChannelSettingsModal,
     showAppShortcutsModal,
+    showGeneralSettingsModal,
+    showTimeSettingsModal,
+    showRibbonSettingsModal,
+    showUpdateModal,
+    showPrimaryActionsModal,
     closePresetsModal,
     closeWallpaperModal,
     closeSoundModal,
     closeChannelSettingsModal,
     closeAppShortcutsModal,
+    closeGeneralSettingsModal,
+    closeTimeSettingsModal,
+    closeRibbonSettingsModal,
+    closeUpdateModal,
+    closePrimaryActionsModal,
     loadKeyboardShortcuts
   } = useUIStore();
   
@@ -195,12 +207,15 @@ function App() {
   const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
   const [showDock, setShowDock] = useState(true); // Show/hide the Wii Ribbon dock
+  const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
   
   // Modal states for when dock is hidden
-  const [showGeneralModal, setShowGeneralModal] = useState(false);
-  const [showTimeSettingsModal, setShowTimeSettingsModal] = useState(false);
-  const [showRibbonSettingsModal, setShowRibbonSettingsModal] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  // These modals are now managed by Zustand store
+  // const [showGeneralModal, setShowGeneralModal] = useState(false);
+  // const [showTimeSettingsModal, setShowTimeSettingsModal] = useState(false);
+  // const [showRibbonSettingsModal, setShowRibbonSettingsModal] = useState(false);
+  // const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   
   const currentTimeColorRef = useRef('#ffffff');
@@ -619,6 +634,7 @@ function App() {
         setIsDarkMode(settings.isDarkMode ?? false);
         setUseCustomCursor(settings.useCustomCursor ?? true);
         setGlassWiiRibbon(settings.glassWiiRibbon ?? false);
+        setClassicMode(settings.classicMode ?? false);
         setGlassOpacity(settings.glassOpacity ?? 0.18);
         setGlassBlur(settings.glassBlur ?? 2.5);
         setGlassBorderOpacity(settings.glassBorderOpacity ?? 0.5);
@@ -751,6 +767,7 @@ function App() {
         isDarkMode,
         useCustomCursor,
         glassWiiRibbon,
+        classicMode,
         glassOpacity,
         glassBlur,
         glassBorderOpacity,
@@ -926,19 +943,21 @@ function App() {
     }
   }, []);
 
-  // Prefetch app/game/UWP lists on app launch
+  // Load cached data and prefetch app/game/UWP lists on app launch
   useEffect(() => {
     const {
-      installedApps, fetchInstalledApps,
-      steamGames, fetchSteamGames,
-      epicGames, fetchEpicGames,
-      uwpApps, fetchUwpApps
+      fetchInstalledApps,
+      fetchSteamGames,
+      fetchEpicGames,
+      fetchUwpApps
     } = useAppLibraryStore.getState();
 
-    if (installedApps.length === 0) fetchInstalledApps();
-    if (steamGames.length === 0) fetchSteamGames();
-    if (epicGames.length === 0) fetchEpicGames();
-    if (uwpApps.length === 0) fetchUwpApps();
+    // Fetch data only if cache is expired or missing
+    // The fetch functions now check cache validity internally
+    fetchInstalledApps();
+    fetchSteamGames();
+    fetchEpicGames();
+    fetchUwpApps();
   }, []);
 
   const handleMediaChange = (id, file) => {
@@ -1031,20 +1050,20 @@ function App() {
   };
   
   // Modal handlers for when dock is hidden
-  const handleOpenGeneralModal = () => {
-    setShowGeneralModal(true);
+    const handleOpenGeneralModal = () => {
+    useUIStore.getState().openGeneralSettingsModal();
   };
-  
+
   const handleOpenTimeSettingsModal = () => {
-    setShowTimeSettingsModal(true);
+    useUIStore.getState().openTimeSettingsModal();
   };
-  
+
   const handleOpenRibbonSettingsModal = () => {
-    setShowRibbonSettingsModal(true);
+    useUIStore.getState().openRibbonSettingsModal();
   };
-  
+
   const handleOpenUpdateModal = () => {
-    setShowUpdateModal(true);
+    useUIStore.getState().openUpdateModal();
   };
 
   const handleToggleDarkMode = () => {
@@ -1053,6 +1072,41 @@ function App() {
 
   const handleToggleCursor = () => {
     setUseCustomCursor(!useCustomCursor);
+  };
+
+  // Button handlers for ClassicWiiDock
+  const handleClassicButtonContextMenu = (index, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveButtonIndex(index);
+    setShowPrimaryActionsModal(true);
+  };
+
+  const handleClassicButtonClick = (index) => {
+    const config = ribbonButtonConfigs[index];
+    console.log('Classic button clicked:', index, 'Config:', config);
+    
+    // Handle admin mode for left button (index 0)
+    if (index === 0 && config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
+      console.log('Opening admin menu with actions:', config.powerActions.length, config.powerActions.map(a => a.name));
+      setShowAdminMenu(true);
+      return;
+    }
+    
+    // Handle regular button actions
+    if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
+    if (window.api && window.api.launchApp) {
+      if (config.actionType === 'exe') {
+        window.api.launchApp({ type: 'exe', path: config.action });
+      } else if (config.actionType === 'url') {
+        window.api.launchApp({ type: 'url', path: config.action });
+      }
+    } else {
+      // Fallback: try window.open for URLs
+      if (config.actionType === 'url') {
+        window.open(config.action, '_blank');
+      }
+    }
   };
 
   // Handler for settings changes from WallpaperModal or SoundModal
@@ -1175,9 +1229,12 @@ function App() {
     if (newSettings.overlayGravity !== undefined) {
       setOverlayGravity(newSettings.overlayGravity);
     }
-          if (newSettings.showDock !== undefined) {
-        setShowDock(newSettings.showDock);
-      }
+              if (newSettings.showDock !== undefined) {
+      setShowDock(newSettings.showDock);
+    }
+    if (newSettings.classicMode !== undefined) {
+      setClassicMode(newSettings.classicMode);
+    }
     if (newSettings.channelAnimation !== undefined) {
       setChannelAnimation(newSettings.channelAnimation);
     }
@@ -1886,7 +1943,7 @@ function App() {
           <PageNavigation />
           <WiiSideNavigation />
         </div>
-                    {showDock && (
+                    {showDock && !classicMode && (
           <WiiRibbon
             onSettingsClick={handleSettingsClick}
             onSettingsChange={handleSettingsChange}
@@ -1920,6 +1977,22 @@ function App() {
             timeFont={timeFont}
             presetsButtonConfig={presetsButtonConfig}
             showPresetsButton={showPresetsButton}
+          />
+        )}
+        {showDock && classicMode && (
+          <ClassicWiiDock
+            onSettingsClick={handleSettingsClick}
+            onSettingsChange={handleSettingsChange}
+            buttonConfigs={ribbonButtonConfigs}
+            onButtonContextMenu={handleClassicButtonContextMenu}
+            onButtonClick={handleClassicButtonClick}
+            timeColor={timeColor}
+            timeFormat24hr={timeFormat24hr}
+            timeFont={timeFont}
+            ribbonGlowColor={ribbonGlowColor}
+            showPresetsButton={showPresetsButton}
+            presetsButtonConfig={presetsButtonConfig}
+            openPresetsModal={useUIStore.getState().openPresetsModal}
           />
         )}
         
@@ -2006,6 +2079,14 @@ function App() {
                   closeSettingsMenu();
                 }}>
                   {showDock ? 'Hide Ribbon (Dock)' : 'Show Ribbon'}
+                </div>
+                <div className="context-menu-item" onClick={async () => {
+                  const newClassicMode = !classicMode;
+                  setClassicMode(newClassicMode);
+                  await handleSettingsChange({ classicMode: newClassicMode });
+                  closeSettingsMenu();
+                }}>
+                  {classicMode ? 'Switch to Modern Mode' : 'Switch to Classic Mode'}
                 </div>
                 <div className="settings-menu-separator" />
                 {/* Window Group */}
@@ -2178,6 +2259,7 @@ function App() {
           onSettingsChange={handleSettingsChange}
           adaptiveEmptyChannels={adaptiveEmptyChannels}
           channelAnimation={channelAnimation}
+          animatedOnHover={animatedOnHover}
           idleAnimationEnabled={idleAnimationEnabled}
           idleAnimationTypes={idleAnimationTypes}
           idleAnimationInterval={idleAnimationInterval}
@@ -2206,10 +2288,10 @@ function App() {
         )}
         
         {/* Additional modals for when dock is hidden */}
-        {showGeneralModal && (
+        {showGeneralSettingsModal && (
           <GeneralSettingsModal 
-            isOpen={showGeneralModal} 
-            onClose={() => setShowGeneralModal(false)} 
+            isOpen={showGeneralSettingsModal} 
+            onClose={closeGeneralSettingsModal}
             immersivePip={window.settings?.immersivePip ?? false}
             setImmersivePip={val => {
               localStorage.setItem('immersivePip', JSON.stringify(val));
@@ -2217,8 +2299,6 @@ function App() {
             }}
             glassWiiRibbon={glassWiiRibbon}
             setGlassWiiRibbon={setGlassWiiRibbon}
-            animatedOnHover={animatedOnHover}
-            setAnimatedOnHover={setAnimatedOnHover}
             startInFullscreen={startInFullscreen}
             setStartInFullscreen={setStartInFullscreen}
             showPresetsButton={showPresetsButton}
@@ -2250,7 +2330,7 @@ function App() {
         {showTimeSettingsModal && (
           <TimeSettingsModal
             isOpen={showTimeSettingsModal}
-            onClose={() => setShowTimeSettingsModal(false)}
+            onClose={closeTimeSettingsModal}
             onSettingsChange={handleSettingsChange}
           />
         )}
@@ -2258,17 +2338,126 @@ function App() {
         {showRibbonSettingsModal && (
           <RibbonSettingsModal
             isOpen={showRibbonSettingsModal}
-            onClose={() => setShowRibbonSettingsModal(false)}
+            onClose={closeRibbonSettingsModal}
             onSettingsChange={handleSettingsChange}
             glassWiiRibbon={glassWiiRibbon}
             setGlassWiiRibbon={setGlassWiiRibbon}
           />
         )}
         
-        {showUpdateModal && (
-          <UpdateModal 
+                {showUpdateModal && (
+          <UpdateModal
             isOpen={showUpdateModal}
-            onClose={() => setShowUpdateModal(false)}
+            onClose={closeUpdateModal}
+          />
+        )}
+
+        {/* PrimaryActionsModal for ClassicWiiDock */}
+        {showPrimaryActionsModal && (
+          <PrimaryActionsModal
+            isOpen={showPrimaryActionsModal}
+            onClose={() => setShowPrimaryActionsModal(false)}
+            onSave={(newConfig) => {
+              const newConfigs = [...ribbonButtonConfigs];
+              newConfigs[activeButtonIndex] = newConfig;
+              setRibbonButtonConfigs(newConfigs);
+              handleSettingsChange({ ribbonButtonConfigs: newConfigs });
+              setShowPrimaryActionsModal(false);
+            }}
+            config={ribbonButtonConfigs[activeButtonIndex]}
+            buttonIndex={activeButtonIndex}
+            preavailableIcons={[]}
+            ribbonGlowColor={ribbonGlowColor}
+          />
+        )}
+
+        {/* Admin Menu for ClassicWiiDock */}
+        {showAdminMenu && (
+          <div className="admin-menu">
+            <div
+              className="context-menu-content"
+              style={{ 
+                position: 'absolute', 
+                bottom: '120px',
+                left: '250px',
+                zIndex: 1000,
+                minWidth: '280px',
+                maxWidth: '400px',
+                background: '#fff',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                overflow: 'hidden'
+              }}
+            >
+              <div className="settings-menu-group-label" style={{ 
+                padding: '12px 16px 8px 16px',
+                background: '#f5f5f5',
+                borderBottom: '1px solid #e0e0e0',
+                fontWeight: '600',
+                color: '#333'
+              }}>
+                Admin Actions
+              </div>
+              {ribbonButtonConfigs[0]?.powerActions?.map((action, index) => (
+                <div
+                  key={action.id}
+                  className="context-menu-item"
+                  onClick={() => {
+                    if (window.api && window.api.executeCommand) {
+                      window.api.executeCommand(action.command);
+                    } else {
+                      console.log('Would execute command:', action.command);
+                    }
+                    setShowAdminMenu(false);
+                  }}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px',
+                    padding: '12px 16px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease',
+                    borderBottom: index < ribbonButtonConfigs[0].powerActions.length - 1 ? '1px solid #f0f0f0' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>{action.icon}</span>
+                  <div>
+                    <div style={{ fontWeight: '500' }}>{action.name}</div>
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#666',
+                      fontFamily: 'monospace',
+                      marginTop: '2px'
+                    }}>
+                      {action.command}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Click outside to close admin menu */}
+        {showAdminMenu && (
+          <div 
+            style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              zIndex: 999,
+              background: 'transparent'
+            }} 
+            onClick={() => setShowAdminMenu(false)}
           />
         )}
       </div>

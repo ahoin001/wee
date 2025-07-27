@@ -9,6 +9,7 @@ const ChannelSettingsModal = ({
   onSettingsChange,
   adaptiveEmptyChannels,
   channelAnimation,
+  animatedOnHover,
   idleAnimationEnabled,
   idleAnimationTypes,
   idleAnimationInterval,
@@ -30,6 +31,7 @@ const ChannelSettingsModal = ({
 }) => {
   const [localAdaptiveEmptyChannels, setLocalAdaptiveEmptyChannels] = useState(adaptiveEmptyChannels ?? true);
   const [localChannelAnimation, setLocalChannelAnimation] = useState(channelAnimation || 'none');
+  const [localAnimatedOnHover, setLocalAnimatedOnHover] = useState(animatedOnHover ?? false);
   const [localIdleAnimationEnabled, setLocalIdleAnimationEnabled] = useState(idleAnimationEnabled ?? false);
   const [localIdleAnimationTypes, setLocalIdleAnimationTypes] = useState(idleAnimationTypes || ['pulse', 'bounce', 'glow']);
   const [localIdleAnimationInterval, setLocalIdleAnimationInterval] = useState(idleAnimationInterval ?? 8);
@@ -53,6 +55,7 @@ const ChannelSettingsModal = ({
   useEffect(() => {
     setLocalAdaptiveEmptyChannels(adaptiveEmptyChannels ?? true);
     setLocalChannelAnimation(channelAnimation || 'none');
+    setLocalAnimatedOnHover(animatedOnHover ?? false);
     setLocalIdleAnimationEnabled(idleAnimationEnabled ?? false);
     setLocalIdleAnimationTypes(idleAnimationTypes || ['pulse', 'bounce', 'glow']);
     setLocalIdleAnimationInterval(idleAnimationInterval ?? 8);
@@ -71,13 +74,14 @@ const ChannelSettingsModal = ({
     setLocalKenBurnsAnimationType(kenBurnsAnimationType || 'both');
     setLocalKenBurnsCrossfadeReturn(kenBurnsCrossfadeReturn !== false);
     setLocalKenBurnsTransitionType(kenBurnsTransitionType || 'cross-dissolve');
-  }, [adaptiveEmptyChannels, channelAnimation, idleAnimationEnabled, idleAnimationTypes, idleAnimationInterval, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType]);
+  }, [adaptiveEmptyChannels, channelAnimation, animatedOnHover, idleAnimationEnabled, idleAnimationTypes, idleAnimationInterval, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType]);
 
   const handleSave = () => {
     if (onSettingsChange) {
       onSettingsChange({
         adaptiveEmptyChannels: localAdaptiveEmptyChannels,
         channelAnimation: localChannelAnimation,
+        animatedOnHover: localAnimatedOnHover,
         idleAnimationEnabled: localIdleAnimationEnabled,
         idleAnimationTypes: localIdleAnimationTypes,
         idleAnimationInterval: localIdleAnimationInterval,
@@ -141,7 +145,7 @@ const ChannelSettingsModal = ({
       </div>
 
       {/* Channel Animation */}
-      {/* <div className="wee-card">
+      <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Channel Animation</span>
         </div>
@@ -162,7 +166,24 @@ const ChannelSettingsModal = ({
             <option value="wiggle">Wiggle</option>
           </select>
         </div>
-      </div> */}
+      </div>
+
+      {/* Only play channel animations on hover */}
+      <div className="wee-card">
+        <div className="wee-card-header">
+          <span className="wee-card-title">Only play channel animations on hover</span>
+          <label className="toggle-switch" style={{ margin: 0 }}>
+            <input
+              type="checkbox"
+              checked={localAnimatedOnHover}
+              onChange={e => setLocalAnimatedOnHover(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel. When disabled, animations will play automatically.</div>
+      </div>
 
       {/* Idle Channel Animations */}
       <div className="wee-card">
@@ -372,6 +393,7 @@ ChannelSettingsModal.propTypes = {
   onSettingsChange: PropTypes.func.isRequired,
   adaptiveEmptyChannels: PropTypes.bool,
   channelAnimation: PropTypes.string,
+  animatedOnHover: PropTypes.bool,
   idleAnimationEnabled: PropTypes.bool,
   idleAnimationTypes: PropTypes.array,
   idleAnimationInterval: PropTypes.number,
