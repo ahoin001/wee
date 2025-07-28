@@ -2380,6 +2380,7 @@ function App() {
           kenBurnsAnimationType={kenBurnsAnimationType}
           kenBurnsCrossfadeReturn={kenBurnsCrossfadeReturn}
           kenBurnsTransitionType={kenBurnsTransitionType}
+          channelAutoFadeTimeout={channelAutoFadeTimeout}
         />
         
         {showAppShortcutsModal && (

@@ -4,81 +4,198 @@ import BaseModal from './BaseModal';
 
 function UpdateModal({ isOpen, onClose }) {
   const [updateStatus, setUpdateStatus] = useState(null);
-  const [isChecking, setIsChecking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [error, setError] = useState(null);
-  const [appVersion, setAppVersion] = useState('1.9.4');
+  const [appVersion, setAppVersion] = useState('');
+  const [showFullChangelog, setShowFullChangelog] = useState(false);
+  const [changelogData, setChangelogData] = useState(null);
 
+  // Load app version
+  const loadAppVersion = async () => {
+    try {
+      const version = await window.api.getAppVersion();
+      setAppVersion(version);
+    } catch (error) {
+      console.error('Failed to load app version:', error);
+      setAppVersion('Unknown');
+    }
+  };
+
+  // Handle update status changes
+  const handleUpdateStatus = (data) => {
+    console.log('[UpdateModal] Received update status:', data);
+    setUpdateStatus(data);
+    
+    if (data.status === 'downloading') {
+      setIsDownloading(true);
+    } else if (data.status === 'downloaded' || data.status === 'error') {
+      setIsDownloading(false);
+    }
+  };
+
+  // Load changelog data
+  const loadChangelogData = async () => {
+    try {
+      // For now, we'll use a simple changelog structure
+      // In a real implementation, this could fetch from a remote API or local file
+      const changelog = {
+        currentVersion: appVersion,
+        latestVersion: updateStatus?.version,
+        releases: [
+          {
+            version: updateStatus?.version,
+            date: updateStatus?.releaseDate,
+            notes: updateStatus?.releaseNotes,
+            type: 'latest'
+          },
+          {
+            version: '1.9.1',
+            date: '2024-01-XX',
+            notes: `### Added
+- Auto-update system with background checking
+- Update notification badges
+- Enhanced update modal with changelog support
+- Sound settings in presets
+- Channel data in presets
+- Improved preset system with visual indicators
+
+### Changed
+- Moved "Check for Updates" from General Settings to main settings menu
+- Enhanced update modal UI with better error handling
+- Improved sound volume synchronization
+- Better memory management and performance optimizations
+
+### Fixed
+- Sound volume changes not taking effect immediately
+- Sound stopping after saving volume changes
+- Volume reverting on window focus
+- Preset system not properly saving/restoring channel data
+- Update modal opening automatically on app start
+- Endless loading spinner in update check
+
+### Security
+- Enhanced event listener cleanup to prevent memory leaks`,
+            type: 'previous'
+          },
+          {
+            version: '1.9.0',
+            date: '2024-01-XX',
+            notes: `### Added
+- Classic Wii Dock mode
+- Keyboard shortcuts system
+- Admin panel with custom commands
+- Wallpaper cycling with multiple transition types
+- Channel autoplay settings
+- Music icon in settings menu
+
+### Changed
+- Improved wallpaper fade transitions
+- Enhanced UI with blue hover states
+- Better performance optimizations
+
+### Fixed
+- Settings menu closing issues
+- App scanning on every startup
+- Various UI and performance bugs`,
+            type: 'previous'
+          }
+        ]
+      };
+      setChangelogData(changelog);
+    } catch (error) {
+      console.error('Failed to load changelog:', error);
+    }
+  };
+
+  // Check for updates
+  const handleCheckForUpdates = async () => {
+    try {
+      console.log('[UpdateModal] Checking for updates...');
+      setUpdateStatus({ status: 'checking' });
+      
+      const result = await window.api.updater.checkForUpdates();
+      console.log('[UpdateModal] Update check result:', result);
+      
+      if (!result.success) {
+        setUpdateStatus({ 
+          status: 'error', 
+          error: result.error || 'Failed to check for updates' 
+        });
+        return;
+      }
+      
+      if (result.status === 'no-update') {
+        setUpdateStatus({ 
+          status: 'not-available',
+          message: result.message || 'No updates available'
+        });
+        return;
+      }
+      
+      // If no specific status returned, assume no updates available
+      console.log('[UpdateModal] No status events received, assuming no updates available');
+      setUpdateStatus({ status: 'not-available' });
+      
+    } catch (error) {
+      console.error('[UpdateModal] Error checking for updates:', error);
+      setUpdateStatus({ 
+        status: 'error', 
+        error: error.message || 'Failed to check for updates' 
+      });
+    }
+  };
+
+  // Download update
+  const handleDownloadUpdate = async () => {
+    try {
+      setIsDownloading(true);
+      const result = await window.api.updater.downloadUpdate();
+      
+      if (!result.success) {
+        console.error('[UpdateModal] Download failed:', result.error);
+        setUpdateStatus({ 
+          status: 'error', 
+          error: result.error || 'Failed to download update' 
+        });
+      }
+    } catch (error) {
+      console.error('[UpdateModal] Error downloading update:', error);
+      setUpdateStatus({ 
+        status: 'error', 
+        error: error.message || 'Failed to download update' 
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Install update
+  const handleInstallUpdate = async () => {
+    try {
+      await window.api.updater.installUpdate();
+    } catch (error) {
+      console.error('[UpdateModal] Error installing update:', error);
+      setUpdateStatus({ 
+        status: 'error', 
+        error: error.message || 'Failed to install update' 
+      });
+    }
+  };
+
+  // Load app version and set up update status listener
   useEffect(() => {
     if (!isOpen) {
       // Reset state when modal closes
       setUpdateStatus(null);
-      setIsChecking(false);
       setIsDownloading(false);
-      setDownloadProgress(0);
-      setError(null);
+      setShowFullChangelog(false);
+      setChangelogData(null);
       return;
     }
 
     // Load app version when modal opens
-    const loadAppVersion = async () => {
-      try {
-        if (window.api && window.api.getAppVersion) {
-          const version = await window.api.getAppVersion();
-          setAppVersion(version);
-        }
-      } catch (err) {
-        console.warn('Failed to get app version:', err);
-        // Keep default version if API fails
-      }
-    };
     loadAppVersion();
 
-    const handleUpdateStatus = (data) => {
-      console.log('[UpdateModal] Update status received:', data);
-      setUpdateStatus(data);
-      
-      switch (data.status) {
-        case 'checking':
-          setIsChecking(true);
-          setError(null);
-          break;
-        case 'available':
-          setIsChecking(false);
-          setError(null);
-          break;
-        case 'not-available':
-          console.log('[UpdateModal] No updates available, stopping check');
-          setIsChecking(false);
-          setError(null);
-          break;
-        case 'downloading':
-          setIsDownloading(true);
-          setDownloadProgress(data.progress || 0);
-          setError(null);
-          break;
-        case 'downloaded':
-          setIsDownloading(false);
-          setDownloadProgress(100);
-          setError(null);
-          break;
-        case 'error':
-          console.log('[UpdateModal] Update error received:', data.error);
-          setIsChecking(false);
-          setIsDownloading(false);
-          setError(data.error || 'An unknown error occurred');
-          break;
-        default:
-          console.log('[UpdateModal] Unknown status received:', data.status);
-          // For any other status, ensure checking state is cleared
-          if (data.status !== 'checking') {
-            setIsChecking(false);
-          }
-          break;
-      }
-    };
-
+    // Set up update status listener
     window.api.updater.onUpdateStatus(handleUpdateStatus);
 
     return () => {
@@ -86,97 +203,13 @@ function UpdateModal({ isOpen, onClose }) {
     };
   }, [isOpen]);
 
-  const handleCheckForUpdates = async () => {
-    console.log('[UpdateModal] Starting update check...');
-    setIsChecking(true);
-    setError(null);
-    setUpdateStatus(null);
-    
-    try {
-      // First, let's test if the API is available
-      if (!window.api || !window.api.updater) {
-        throw new Error('Update API not available');
-      }
-      
-      // Set a timeout to ensure we always get a result
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Update check timed out')), 8000);
-      });
-      
-      // Try to check for updates with a timeout
-      const result = await Promise.race([
-        window.api.updater.checkForUpdates(),
-        timeoutPromise
-      ]);
-      
-      console.log('[UpdateModal] Update check result:', result);
-      if (!result.success) {
-        setError(result.error || 'Failed to check for updates');
-        setIsChecking(false);
-        return;
-      }
-      
-      // Handle immediate responses (like development mode or no update config)
-      if (result.status === 'no-update') {
-        setUpdateStatus({
-          status: 'not-available',
-          message: result.message || 'No updates available'
-        });
-        setIsChecking(false);
-        return;
-      }
-      
-      // If we get here, the check was successful but we need to wait for status events
-      // Set a shorter timeout to prevent endless spinning
-      setTimeout(() => {
-        console.log('[UpdateModal] No status events received, assuming no updates available');
-        if (isChecking && !updateStatus) {
-          setUpdateStatus({ status: 'not-available' });
-          setIsChecking(false);
-        }
-      }, 3000); // 3 second timeout for better UX
-      
-    } catch (err) {
-      console.error('[UpdateModal] Update check error:', err);
-      if (err.message === 'Update check timed out') {
-        setError('Update check timed out. Please try again later.');
-      } else {
-        setError(err.message || 'Failed to check for updates');
-      }
-      setIsChecking(false);
-    }
-  };
-
-  const handleDownloadUpdate = async () => {
-    setIsDownloading(true);
-    setError(null);
-    
-    try {
-      const result = await window.api.updater.downloadUpdate();
-      if (!result.success) {
-        setError(result.error || 'Failed to download update');
-        setIsDownloading(false);
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to download update');
-      setIsDownloading(false);
-    }
-  };
-
-  const handleInstallUpdate = async () => {
-    try {
-      await window.api.updater.installUpdate();
-    } catch (err) {
-      setError(err.message || 'Failed to install update');
-    }
-  };
-
+  // Render status content
   const renderStatusContent = () => {
-    if (isChecking) {
+    if (updateStatus?.status === 'checking') {
       return (
         <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{ fontSize: '16px', marginBottom: '10px', color: '#666' }}>
-            Checking for updates...
+          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#007bff' }}>
+            🔍 Checking for Updates...
           </div>
           <div style={{ width: '40px', height: '40px', border: '3px solid #f3f3f3', borderTop: '3px solid #007bff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }}></div>
         </div>
@@ -196,6 +229,8 @@ function UpdateModal({ isOpen, onClose }) {
               <div><strong>Release Date:</strong> {new Date(updateStatus.releaseDate).toLocaleDateString()}</div>
             )}
           </div>
+          
+          {/* Release Notes Section */}
           {updateStatus.releaseNotes && (
             <div style={{ marginBottom: '15px' }}>
               <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>📋 What's New:</div>
@@ -212,8 +247,38 @@ function UpdateModal({ isOpen, onClose }) {
               }}>
                 {updateStatus.releaseNotes}
               </div>
+              
+              {/* View Full Changelog Button */}
+              <button
+                onClick={() => {
+                  loadChangelogData();
+                  setShowFullChangelog(true);
+                }}
+                style={{
+                  backgroundColor: '#f8f9fa',
+                  color: '#007bff',
+                  border: '1px solid #007bff',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  marginTop: '8px',
+                  transition: 'background 0.2s, color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#007bff';
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.color = '#007bff';
+                }}
+              >
+                📜 View Full Changelog
+              </button>
             </div>
           )}
+          
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={handleDownloadUpdate}
@@ -277,22 +342,22 @@ function UpdateModal({ isOpen, onClose }) {
           <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
             ✓ Up to Date
           </div>
-          <div style={{ color: '#666', marginBottom: '15px' }}>
-            {updateStatus.message || 'You\'re running the latest version of WiiDesktop Launcher.'}
+          <div style={{ color: '#666', marginBottom: '20px' }}>
+            You're running the latest version ({appVersion})
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCheckForUpdates}
             style={{
-              backgroundColor: '#6c757d',
+              backgroundColor: '#007bff',
               color: 'white',
               border: 'none',
-              padding: '10px 20px',
-              borderRadius: '5px',
+              padding: '12px 24px',
+              borderRadius: '6px',
               cursor: 'pointer',
               fontSize: '14px'
             }}
           >
-            Close
+            🔄 Check Again
           </button>
         </div>
       );
@@ -300,22 +365,24 @@ function UpdateModal({ isOpen, onClose }) {
 
     if (updateStatus?.status === 'downloading') {
       return (
-        <div style={{ padding: '20px' }}>
-          <div style={{ fontSize: '16px', marginBottom: '15px', color: '#666' }}>
-            Downloading Update...
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#007bff' }}>
+            ⏳ Downloading Update...
           </div>
-          <div style={{ width: '100%', backgroundColor: '#f3f3f3', borderRadius: '10px', overflow: 'hidden', marginBottom: '10px' }}>
-            <div
-              style={{
-                width: `${downloadProgress}%`,
-                height: '20px',
-                backgroundColor: '#007bff',
-                transition: 'width 0.3s ease'
-              }}
-            />
-          </div>
-          <div style={{ textAlign: 'center', color: '#666', fontSize: '14px' }}>
-            {Math.round(downloadProgress)}%
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ width: '100%', height: '8px', backgroundColor: '#e9ecef', borderRadius: '4px', overflow: 'hidden' }}>
+              <div 
+                style={{ 
+                  width: `${updateStatus.progress || 0}%`, 
+                  height: '100%', 
+                  backgroundColor: '#007bff',
+                  transition: 'width 0.3s ease'
+                }}
+              />
+            </div>
+            <div style={{ fontSize: '14px', color: '#666', marginTop: '8px' }}>
+              {Math.round(updateStatus.progress || 0)}% Complete
+            </div>
           </div>
         </div>
       );
@@ -323,38 +390,103 @@ function UpdateModal({ isOpen, onClose }) {
 
     if (updateStatus?.status === 'downloaded') {
       return (
-        <div style={{ padding: '20px' }}>
+        <div style={{ textAlign: 'center', padding: '20px' }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
-            Update Downloaded!
+            ✅ Update Downloaded!
           </div>
-          <div style={{ marginBottom: '15px', color: '#666' }}>
-            Version {updateStatus.version} has been downloaded and is ready to install.
+          <div style={{ color: '#666', marginBottom: '20px' }}>
+            Version {updateStatus.version} is ready to install
           </div>
-          <div style={{ marginBottom: '15px', fontSize: '14px', color: '#dc3545' }}>
-            ⚠️ The app will restart to install the update.
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              onClick={handleInstallUpdate}
+              style={{
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              🔄 Install & Restart
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Later
+            </button>
           </div>
-          <button
-            onClick={handleInstallUpdate}
-            style={{
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Install & Restart
-          </button>
         </div>
       );
     }
 
+    if (updateStatus?.status === 'error') {
+      return (
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#dc3545' }}>
+            ❌ Update Error
+          </div>
+          <div style={{ color: '#666', marginBottom: '20px' }}>
+            {updateStatus.error || 'An error occurred while checking for updates'}
+          </div>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              onClick={handleCheckForUpdates}
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              🔄 Try Again
+            </button>
+            <a
+              href="https://github.com/ahoin001/WiiDesktopLauncher/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-block',
+                backgroundColor: '#f7fafd',
+                color: '#007bff',
+                border: '1px solid #b0c4d8',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              📦 Manual Download
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    // Default state - show check for updates
     return (
       <div style={{ textAlign: 'center', padding: '20px' }}>
-        <div style={{ fontSize: '16px', marginBottom: '15px', color: '#666' }}>
-          Check for updates to get the latest features and improvements.
+        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#333' }}>
+          🔄 Check for Updates
+        </div>
+        <div style={{ color: '#666', marginBottom: '20px' }}>
+          Current version: {appVersion}
         </div>
         <button
           onClick={handleCheckForUpdates}
@@ -362,37 +494,97 @@ function UpdateModal({ isOpen, onClose }) {
             backgroundColor: '#007bff',
             color: 'white',
             border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
+            padding: '12px 24px',
+            borderRadius: '6px',
             cursor: 'pointer',
             fontSize: '14px'
           }}
         >
-          Check for Updates
+          🔍 Check for Updates
         </button>
-        <a
-          href="https://github.com/ahoin001/WiiDesktopLauncher/releases/latest"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'inline-block',
-            backgroundColor: '#f7fafd',
-            color: '#007bff',
-            border: '1px solid #b0c4d8',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: '500',
-            marginLeft: 10,
-            marginTop: 10
-          }}
-        >
-          📦 Download from Release Page
-        </a>
-        <div style={{ marginTop: '10px', fontSize: '12px', color: '#999' }}>
-          Current version: {appVersion}
+      </div>
+    );
+  };
+
+  // Render full changelog
+  const renderFullChangelog = () => {
+    if (!changelogData) return null;
+
+    return (
+      <div style={{ padding: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '20px',
+          borderBottom: '1px solid #e9ecef',
+          paddingBottom: '10px'
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#333' }}>
+            📜 Full Changelog
+          </div>
+          <button
+            onClick={() => setShowFullChangelog(false)}
+            style={{
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '13px'
+            }}
+          >
+            ✕ Close
+          </button>
         </div>
+        
+        <div style={{ marginBottom: '20px', color: '#666' }}>
+          <div><strong>Current Version:</strong> {changelogData.currentVersion}</div>
+          {changelogData.latestVersion && (
+            <div><strong>Latest Version:</strong> {changelogData.latestVersion}</div>
+          )}
+        </div>
+        
+        {changelogData.releases.map((release, index) => (
+          <div key={index} style={{ 
+            marginBottom: '20px',
+            padding: '15px',
+            backgroundColor: release.type === 'latest' ? '#f8f9fa' : '#fff',
+            borderRadius: '8px',
+            border: release.type === 'latest' ? '2px solid #007bff' : '1px solid #e9ecef'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '10px'
+            }}>
+              <div style={{ 
+                fontSize: '16px', 
+                fontWeight: 'bold', 
+                color: release.type === 'latest' ? '#007bff' : '#333'
+              }}>
+                Version {release.version}
+                {release.type === 'latest' && <span style={{ marginLeft: '8px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>LATEST</span>}
+              </div>
+              {release.date && (
+                <div style={{ fontSize: '13px', color: '#666' }}>
+                  {new Date(release.date).toLocaleDateString()}
+                </div>
+              )}
+            </div>
+            
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#666', 
+              lineHeight: '1.6',
+              whiteSpace: 'pre-line'
+            }}>
+              {release.notes}
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
@@ -402,36 +594,8 @@ function UpdateModal({ isOpen, onClose }) {
   return (
     <BaseModal onClose={onClose} title="Check for Updates">
       <div style={{ minHeight: '200px' }}>
-        {error && (
-          <div style={{ 
-            backgroundColor: '#f8d7da', 
-            color: '#721c24', 
-            padding: '10px', 
-            borderRadius: '5px', 
-            marginBottom: '15px',
-            fontSize: '14px'
-          }}>
-            <div style={{ marginBottom: '10px' }}>Error: {error}</div>
-            <button
-              onClick={() => {
-                setError(null);
-                handleCheckForUpdates();
-              }}
-              style={{
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                padding: '5px 10px',
-                borderRadius: '3px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              Try Again
-            </button>
-          </div>
-        )}
         {renderStatusContent()}
+        {showFullChangelog && renderFullChangelog()}
       </div>
       <style jsx>{`
         @keyframes spin {

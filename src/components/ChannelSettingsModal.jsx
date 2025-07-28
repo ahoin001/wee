@@ -27,7 +27,8 @@ const ChannelSettingsModal = ({
   kenBurnsEasing,
   kenBurnsAnimationType,
   kenBurnsCrossfadeReturn,
-  kenBurnsTransitionType
+  kenBurnsTransitionType,
+  channelAutoFadeTimeout
 }) => {
   const [localAdaptiveEmptyChannels, setLocalAdaptiveEmptyChannels] = useState(adaptiveEmptyChannels ?? true);
   const [localChannelAnimation, setLocalChannelAnimation] = useState(channelAnimation || 'none');
@@ -50,6 +51,7 @@ const ChannelSettingsModal = ({
   const [localKenBurnsAnimationType, setLocalKenBurnsAnimationType] = useState(kenBurnsAnimationType || 'both');
   const [localKenBurnsCrossfadeReturn, setLocalKenBurnsCrossfadeReturn] = useState(kenBurnsCrossfadeReturn !== false);
   const [localKenBurnsTransitionType, setLocalKenBurnsTransitionType] = useState(kenBurnsTransitionType || 'cross-dissolve');
+  const [localChannelAutoFadeTimeout, setLocalChannelAutoFadeTimeout] = useState(channelAutoFadeTimeout ?? 5);
 
   // Update local state when props change
   useEffect(() => {
@@ -74,7 +76,8 @@ const ChannelSettingsModal = ({
     setLocalKenBurnsAnimationType(kenBurnsAnimationType || 'both');
     setLocalKenBurnsCrossfadeReturn(kenBurnsCrossfadeReturn !== false);
     setLocalKenBurnsTransitionType(kenBurnsTransitionType || 'cross-dissolve');
-  }, [adaptiveEmptyChannels, channelAnimation, animatedOnHover, idleAnimationEnabled, idleAnimationTypes, idleAnimationInterval, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType]);
+    setLocalChannelAutoFadeTimeout(channelAutoFadeTimeout ?? 5);
+  }, [adaptiveEmptyChannels, channelAnimation, animatedOnHover, idleAnimationEnabled, idleAnimationTypes, idleAnimationInterval, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, channelAutoFadeTimeout]);
 
   const handleSave = () => {
     if (onSettingsChange) {
@@ -100,6 +103,7 @@ const ChannelSettingsModal = ({
         kenBurnsAnimationType: localKenBurnsAnimationType,
         kenBurnsCrossfadeReturn: localKenBurnsCrossfadeReturn,
         kenBurnsTransitionType: localKenBurnsTransitionType,
+        channelAutoFadeTimeout: localChannelAutoFadeTimeout,
       });
     }
     onClose();
@@ -128,7 +132,7 @@ const ChannelSettingsModal = ({
       )}
     >
       {/* Adaptive Empty Channel Backgrounds */}
-      <div className="wee-card">
+      {/* <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Adaptive Empty Channel Backgrounds</span>
           <label className="toggle-switch" style={{ margin: 0 }}>
@@ -142,10 +146,10 @@ const ChannelSettingsModal = ({
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">When enabled, empty channel slots will automatically adapt their background to match the current wallpaper, creating a more cohesive visual experience.</div>
-      </div>
+      </div> */}
 
       {/* Channel Animation */}
-      <div className="wee-card">
+      {/* <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Channel Animation</span>
         </div>
@@ -166,7 +170,7 @@ const ChannelSettingsModal = ({
             <option value="wiggle">Wiggle</option>
           </select>
         </div>
-      </div>
+      </div> */}
 
       {/* Only play channel animations on hover */}
       <div className="wee-card">
@@ -383,6 +387,41 @@ const ChannelSettingsModal = ({
           </>
         )}
       </div>
+
+      {/* Channel Auto-Fade */}
+      <div className="wee-card">
+        <div className="wee-card-header">
+          <span className="wee-card-title">Channel Auto-Fade</span>
+          <label className="toggle-switch" style={{ margin: 0 }}>
+            <input
+              type="checkbox"
+              checked={localChannelAutoFadeTimeout > 0}
+              onChange={e => setLocalChannelAutoFadeTimeout(e.target.checked ? 5 : 0)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity.</div>
+        
+        {localChannelAutoFadeTimeout > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontWeight: 500, marginBottom: 8 }}>Fade Timeout: {localChannelAutoFadeTimeout}s</div>
+            <input
+              type="range"
+              min={1}
+              max={30}
+              step={1}
+              value={localChannelAutoFadeTimeout}
+              onChange={e => setLocalChannelAutoFadeTimeout(Number(e.target.value))}
+              style={{ width: '100%' }}
+            />
+            <div style={{ fontSize: 13, color: '#666', marginTop: 8 }}>
+              <strong>Fade Timeout:</strong> The time in seconds before channels start to fade out when not hovered.
+            </div>
+          </div>
+        )}
+      </div>
     </BaseModal>
   );
 };
@@ -412,6 +451,7 @@ ChannelSettingsModal.propTypes = {
   kenBurnsAnimationType: PropTypes.string,
   kenBurnsCrossfadeReturn: PropTypes.bool,
   kenBurnsTransitionType: PropTypes.string,
+  channelAutoFadeTimeout: PropTypes.number,
 };
 
 export default ChannelSettingsModal; 

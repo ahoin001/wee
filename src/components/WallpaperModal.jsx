@@ -35,7 +35,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
 
   const [selectedWallpaper, setSelectedWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
-  const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Default 5 seconds
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
   
   // Overlay effect settings
@@ -65,7 +64,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setSlideDuration(data.cyclingSettings?.slideDuration ?? 1.5);
       setSlideEasing(data.cyclingSettings?.slideEasing ?? 'ease-out');
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
-      setChannelAutoFadeTimeout(data.channelAutoFadeTimeout ?? 5); // Load channel auto-fade timeout setting
       setWallpaperBlur(data.wallpaperBlur ?? 0);
       
       // Load overlay settings
@@ -270,7 +268,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       // This will trigger the main App's settings persistence which preserves ribbonButtonConfigs
       if (onSettingsChange) {
         onSettingsChange({
-          channelAutoFadeTimeout: channelAutoFadeTimeout,
           wallpaperOpacity: wallpaperOpacity,
           wallpaperBlur: wallpaperBlur,
           overlayEnabled: overlayEnabled,
@@ -498,7 +495,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           <Toggle
             checked={cycling}
             onChange={setCycling}
-            label="Enable"
+          
           />
         }
         actions={
@@ -864,32 +861,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 </div>
               </>
             )}
-          </>
-        }
-      />
-      {/* Channel Auto-Fade Configuration Card */}
-      <Card
-        title="Channel Auto-Fade"
-        separator
-        desc="Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity."
-        actions={
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
-              <span style={{ fontWeight: 500, minWidth: 120 }}>Fade Timeout</span>
-                <input
-                  type="range"
-                  min={0}
-              max={30}
-                  step={1}
-              value={channelAutoFadeTimeout}
-              onChange={e => setChannelAutoFadeTimeout(Number(e.target.value))}
-                  style={{ flex: 1 }}
-                />
-            <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{channelAutoFadeTimeout === 0 ? 'Off' : `${channelAutoFadeTimeout}s`}</span>
-              </div>
-              <div style={{ fontSize: 14, color: '#666', marginTop: 12 }}>
-            <strong>Fade Timeout:</strong> The time in seconds before channels start to fade out when not hovered. Set to 0 to disable auto-fade completely.
-              </div>
           </>
         }
       />
