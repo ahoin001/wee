@@ -682,66 +682,66 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           <div className="wee-card-desc">
             When enabled, this button becomes a powerful admin menu with Windows system actions instead of launching a single app.
             {adminMode && (
-              <div style={{ marginTop: 14 }}>
+            <div style={{ marginTop: 14 }}>
                 <div style={{ fontWeight: 500, marginBottom: 8 }}>Configure Windows system actions for your admin menu:</div>
-                <button
-                  type="button"
-                  onClick={() => setShowAdminPanel(true)}
-                  style={{
-                    background: '#0099ff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '10px 16px',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = '#007acc';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = '#0099ff';
-                  }}
-                >
-                  Open Admin Panel
-                </button>
-                {powerActions.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: '13px', color: '#666', marginBottom: 6 }}>
-                      Selected actions: {powerActions.length}
-                    </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      flexWrap: 'wrap', 
-                      gap: '4px',
-                      maxHeight: '60px',
-                      overflowY: 'auto'
-                    }}>
-                      {powerActions.slice(0, 5).map(action => (
-                        <span
-                          key={action.id}
-                          style={{
-                            background: '#f0f8ff',
-                            color: '#0099ff',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            border: '1px solid #e0f0ff'
-                          }}
-                        >
-                          {action.icon} {action.name}
-                        </span>
-                      ))}
-                      {powerActions.length > 5 && (
-                        <span style={{ color: '#666', fontSize: '11px', padding: '2px 6px' }}>
-                          +{powerActions.length - 5} more
-                        </span>
-                      )}
-                    </div>
+              <button
+                type="button"
+                onClick={() => setShowAdminPanel(true)}
+                style={{
+                  background: '#0099ff',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 16px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#007acc';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#0099ff';
+                }}
+              >
+                Open Admin Panel
+              </button>
+              {powerActions.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: '13px', color: '#666', marginBottom: 6 }}>
+                    Selected actions: {powerActions.length}
                   </div>
-                )}
-              </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '4px',
+                    maxHeight: '60px',
+                    overflowY: 'auto'
+                  }}>
+                    {powerActions.slice(0, 5).map(action => (
+                      <span
+                        key={action.id}
+                        style={{
+                          background: '#f0f8ff',
+                          color: '#0099ff',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          border: '1px solid #e0f0ff'
+                        }}
+                      >
+                        {action.icon} {action.name}
+                      </span>
+                    ))}
+                    {powerActions.length > 5 && (
+                      <span style={{ color: '#666', fontSize: '11px', padding: '2px 6px' }}>
+                        +{powerActions.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             )}
           </div>
         </div>

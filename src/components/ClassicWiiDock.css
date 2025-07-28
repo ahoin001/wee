@@ -55,6 +55,12 @@
   width: 15.9%;
   height: auto;
   transform: translateY(-50%);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform-origin: center;
+}
+
+.wii-left-pod:hover {
+  transform: translateY(-50%) translateX(15px);
 }
 
 .wii-right-pod {
@@ -64,6 +70,12 @@
   width: 15.9%;
   height: auto;
   transform: translateY(-50%);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform-origin: center;
+}
+
+.wii-right-pod:hover {
+  transform: translateY(-50%) translateX(-15px);
 }
 
 .wii-pod-svg {

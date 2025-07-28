@@ -46,6 +46,22 @@ const LayoutManagerModal = ({
     onClose();
   };
 
+  // Reset to default layout settings
+  const resetToDefaults = () => {
+    const defaultSettings = {
+      rowGap: 16,
+      columnGap: 16,
+      gridPosition: 'center',
+      responsiveRows: 3, // Original default: 3 rows
+      responsiveColumns: 4, // Original default: 4 columns
+      hiddenChannels: [],
+      gridAlignment: 'start',
+      gridJustification: 'center',
+    };
+    
+    setLocalGridSettings(defaultSettings);
+  };
+
   // Direct toggle for channel visibility
   const toggleChannelVisibility = (channelId) => {
     console.log('Toggling channel visibility:', {
@@ -115,9 +131,37 @@ const LayoutManagerModal = ({
       onClose={onClose}
       maxWidth="1200px"
       footerContent={({ handleClose }) => (
-        <div style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={handleSave} style={{ minWidth: 90 }}>Save</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button
+            className="reset-button"
+            onClick={resetToDefaults}
+            title="Reset all layout settings to their default values (4x3 grid, 16px spacing, center alignment, ~460x215 channel size)"
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              border: '2px solid #0099ff',
+              background: 'transparent',
+              color: '#0099ff',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#0099ff';
+              e.target.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'transparent';
+              e.target.style.color = '#0099ff';
+            }}
+          >
+            Reset to Defaults
+          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="cancel-button" onClick={handleClose}>Cancel</button>
+            <button className="save-button" onClick={handleSave} style={{ minWidth: 90 }}>Save</button>
+          </div>
         </div>
       )}
     >

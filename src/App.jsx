@@ -8,6 +8,7 @@ import HomeButton from './components/HomeButton';
 import NotificationsButton from './components/NotificationsButton';
 import WiiRibbon from './components/WiiRibbon';
 import ClassicWiiDock from './components/ClassicWiiDock';
+import ClassicDockSettingsModal from './components/ClassicDockSettingsModal';
 import PrimaryActionsModal from './components/PrimaryActionsModal';
 import WallpaperModal from './components/WallpaperModal';
 import WallpaperOverlay from './components/WallpaperOverlay';
@@ -210,8 +211,8 @@ function App() {
     rowGap: 16,
     columnGap: 16,
     gridPosition: 'center',
-    responsiveRows: 3,
-    responsiveColumns: 4,
+    responsiveRows: 3, // Original default: 3 rows
+    responsiveColumns: 4, // Original default: 4 columns
     hiddenChannels: [],
     gridAlignment: 'start',
     gridJustification: 'center'
@@ -222,6 +223,37 @@ function App() {
   const [showDock, setShowDock] = useState(true); // Show/hide the Wii Ribbon dock
   const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  
+  // Classic Dock Settings
+  const [dockSettings, setDockSettings] = useState({
+    dockBaseGradientStart: '#BDBEC2',
+    dockBaseGradientEnd: '#DADDE6',
+    dockAccentColor: '#33BEED',
+    sdCardBodyColor: '#B9E1F2',
+    sdCardBorderColor: '#33BEED',
+    sdCardLabelColor: 'white',
+    sdCardLabelBorderColor: '#F4F0EE',
+    sdCardBottomColor: '#31BEED',
+    leftPodBaseColor: '#D2D3DA',
+    leftPodAccentColor: '#B6B6BB',
+    leftPodDetailColor: '#D7D8DA',
+    rightPodBaseColor: '#DCDCDF',
+    rightPodAccentColor: '#E4E4E4',
+    rightPodDetailColor: '#B6B6BB',
+    buttonBorderColor: '#22BEF3',
+    buttonGradientStart: '#E0DCDC',
+    buttonGradientEnd: '#CBCBCB',
+    buttonIconColor: '#979796',
+    rightButtonIconColor: '#A4A4A4',
+    glassEnabled: false,
+    glassOpacity: 0.18,
+    glassBlur: 2.5,
+    glassBorderOpacity: 0.5,
+    glassShineOpacity: 0.7,
+    recentDockColors: [],
+    recentAccentColors: [],
+  });
+  const [showClassicDockSettingsModal, setShowClassicDockSettingsModal] = useState(false);
   
   // Modal states for when dock is hidden
   // These modals are now managed by Zustand store
@@ -675,8 +707,8 @@ function App() {
           rowGap: 16,
           columnGap: 16,
           gridPosition: 'center',
-          responsiveRows: 3,
-          responsiveColumns: 4,
+          responsiveRows: 3, // Original default: 3 rows
+          responsiveColumns: 4, // Original default: 4 columns
           hiddenChannels: [],
           gridAlignment: 'start',
           gridJustification: 'center'
@@ -747,6 +779,12 @@ function App() {
         // Load keyboard shortcuts
         if (settings.keyboardShortcuts) {
           loadKeyboardShortcuts(settings.keyboardShortcuts);
+        }
+        
+        // Load dock settings
+        if (settings.dockSettings) {
+          console.log('App: Loaded dockSettings:', settings.dockSettings);
+          setDockSettings(settings.dockSettings);
         }
       }
       // Mark as initialized after loading settings
@@ -841,6 +879,7 @@ function App() {
         kenBurnsCrossfadeReturn, // Persist Ken Burns crossfade return
         kenBurnsTransitionType, // Persist Ken Burns transition type
         showDock, // Persist showDock setting
+        dockSettings, // Persist dock settings
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -855,7 +894,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, gridSettings, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, gridSettings, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings]);
 
   // Persist keyboard shortcuts when they change
   useEffect(() => {
@@ -1131,6 +1170,31 @@ function App() {
       if (config.actionType === 'url') {
         window.open(config.action, '_blank');
       }
+    }
+  };
+
+  // Classic Dock context menu handler
+  const handleDockContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowClassicDockSettingsModal(true);
+  };
+
+  const handleSdCardContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowClassicDockSettingsModal(true);
+  };
+
+  // Classic Dock settings change handler
+  const handleDockSettingsChange = async (newDockSettings) => {
+    setDockSettings(newDockSettings);
+    
+    try {
+      const settings = await window.api.settings.get();
+      await window.api.settings.set({ ...settings, dockSettings: newDockSettings });
+    } catch (error) {
+      console.error('Error saving dock settings:', error);
     }
   };
 
@@ -2127,6 +2191,9 @@ function App() {
             showPresetsButton={showPresetsButton}
             presetsButtonConfig={presetsButtonConfig}
             openPresetsModal={useUIStore.getState().openPresetsModal}
+            dockSettings={dockSettings}
+            onDockContextMenu={handleDockContextMenu}
+            onSdCardContextMenu={handleSdCardContextMenu}
           />
         )}
         
@@ -2325,8 +2392,8 @@ function App() {
                             rowGap: 16,
                             columnGap: 16,
                             gridPosition: 'center',
-                            responsiveRows: 3,
-                            responsiveColumns: 4,
+                            responsiveRows: 3, // Original default: 3 rows
+                            responsiveColumns: 4, // Original default: 4 columns
                             hiddenChannels: [],
                             gridAlignment: 'start',
                             gridJustification: 'center'
@@ -2501,6 +2568,15 @@ function App() {
             onSettingsChange={handleSettingsChange}
             glassWiiRibbon={glassWiiRibbon}
             setGlassWiiRibbon={setGlassWiiRibbon}
+          />
+        )}
+        
+        {showClassicDockSettingsModal && (
+          <ClassicDockSettingsModal
+            isOpen={showClassicDockSettingsModal}
+            onClose={() => setShowClassicDockSettingsModal(false)}
+            onSettingsChange={handleDockSettingsChange}
+            dockSettings={dockSettings}
           />
         )}
         
