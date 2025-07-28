@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import './BaseModal.css';
@@ -48,6 +48,12 @@ const LayoutManagerModal = ({
 
   // Direct toggle for channel visibility
   const toggleChannelVisibility = (channelId) => {
+    console.log('Toggling channel visibility:', {
+      channelId,
+      currentHidden: localGridSettings.hiddenChannels,
+      willBeHidden: !localGridSettings.hiddenChannels.includes(channelId)
+    });
+    
     setLocalGridSettings(prev => ({
       ...prev,
       hiddenChannels: prev.hiddenChannels.includes(channelId)
@@ -57,27 +63,32 @@ const LayoutManagerModal = ({
   };
 
   // Generate preview channels for the live grid
-  const generatePreviewChannels = () => {
+  const previewChannels = useMemo(() => {
     const totalChannels = localGridSettings.responsiveRows * localGridSettings.responsiveColumns;
     const previewChannels = [];
     
     for (let i = 0; i < totalChannels; i++) {
-      const channelId = `preview-channel-${i}`;
+      const channelId = `channel-${i}`; // Use actual channel IDs
       const isHidden = localGridSettings.hiddenChannels.includes(channelId);
+      const actualChannel = channels.find(ch => ch.id === channelId); // Get actual channel data
       
       previewChannels.push({
         id: channelId,
-        name: `Channel ${i + 1}`,
-        icon: '📺',
+        name: actualChannel?.name || `Channel ${i + 1}`,
+        icon: actualChannel?.icon || '📺',
         background: isHidden ? 'transparent' : '#f0f0f0',
         isHidden
       });
     }
     
+    console.log('Preview channels generated:', {
+      totalChannels,
+      hiddenChannels: localGridSettings.hiddenChannels,
+      previewChannels: previewChannels.map(p => ({ id: p.id, isHidden: p.isHidden }))
+    });
+    
     return previewChannels;
-  };
-
-  const previewChannels = generatePreviewChannels();
+  }, [localGridSettings.responsiveRows, localGridSettings.responsiveColumns, localGridSettings.hiddenChannels, channels]);
 
   // Get grid container styles for preview
   const getPreviewGridStyles = () => {
@@ -115,9 +126,7 @@ const LayoutManagerModal = ({
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: '1fr 1fr', 
-          gap: '16px',
-          maxHeight: '300px',
-          overflowY: 'auto'
+          gap: '16px'
         }}>
           {/* Grid Spacing */}
           <div className="wee-card">
@@ -159,7 +168,7 @@ const LayoutManagerModal = ({
           </div>
 
           {/* Grid Position */}
-          <div className="wee-card">
+          {/* <div className="wee-card">
             <div className="wee-card-header">
               <span className="wee-card-title">Grid Position</span>
             </div>
@@ -196,10 +205,10 @@ const LayoutManagerModal = ({
                 </select>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Grid Size */}
-          <div className="wee-card">
+          {/* <div className="wee-card">
             <div className="wee-card-header">
               <span className="wee-card-title">Grid Size</span>
             </div>
@@ -235,7 +244,7 @@ const LayoutManagerModal = ({
                 <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{localGridSettings.responsiveColumns}</span>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Quick Actions */}
           <div className="wee-card">
@@ -263,6 +272,7 @@ const LayoutManagerModal = ({
               <button
                 onClick={() => {
                   const allChannelIds = previewChannels.map(ch => ch.id);
+                  console.log('Hiding all channels:', allChannelIds);
                   setLocalGridSettings(prev => ({ ...prev, hiddenChannels: allChannelIds }));
                 }}
                 style={{
