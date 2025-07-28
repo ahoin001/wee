@@ -4,6 +4,7 @@ import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import './BaseModal.css';
 import Card from '../ui/Card';
+import Toggle from '../ui/Toggle';
 
 const WALLPAPER_ANIMATIONS = [
   { value: 'none', label: 'None' },
@@ -293,7 +294,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       onClose={onClose}
       maxWidth="900px"
       footerContent={({ handleClose }) => (
-        <div style={{ marginTop: 18, textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button className="cancel-button" onClick={handleClose}>Cancel</button>
           <button className="save-button" onClick={() => handleSaveAll(handleClose)} style={{ minWidth: 90 }}>Save</button>
         </div>
@@ -493,6 +494,13 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         title="Enable Wallpaper Cycling"
         separator
         desc="When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below."
+        headerActions={
+          <Toggle
+            checked={cycling}
+            onChange={setCycling}
+            label="Enable"
+          />
+        }
         actions={
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
@@ -514,8 +522,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 onChange={e => setCycleAnimation(e.target.value)}
                 style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
               >
-                <option value="fade">Fade</option>
-                <option value="slide">Slide</option>
+                <option value="fade">Fade - Smooth crossfade between wallpapers</option>
+                <option value="slide">Slide - Slide one wallpaper out while sliding the next in</option>
+                <option value="zoom">Zoom - Zoom out current wallpaper while zooming in the next</option>
+                <option value="ken-burns">Ken Burns - Classic documentary-style pan and zoom effect</option>
+                <option value="dissolve">Dissolve - Pixel-based dissolve transition</option>
+                <option value="wipe">Wipe - Clean wipe transition in the selected direction</option>
               </select>
             </div>
             
@@ -524,6 +536,102 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
                   <span style={{ fontWeight: 500, minWidth: 120 }}>Crossfade Duration</span>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={3.0}
+                    step={0.1}
+                    value={crossfadeDuration}
+                    onChange={e => setCrossfadeDuration(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
+                  <select
+                    value={crossfadeEasing}
+                    onChange={e => setCrossfadeEasing(e.target.value)}
+                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                  >
+                    <option value="ease-out">Ease Out (Smooth)</option>
+                    <option value="ease-in">Ease In (Accelerate)</option>
+                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
+                    <option value="linear">Linear (Constant)</option>
+                  </select>
+                </div>
+              </>
+            )}
+            
+            {/* Zoom Animation Parameters */}
+            {cycleAnimation === 'zoom' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Zoom Duration</span>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={3.0}
+                    step={0.1}
+                    value={crossfadeDuration}
+                    onChange={e => setCrossfadeDuration(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
+                  <select
+                    value={crossfadeEasing}
+                    onChange={e => setCrossfadeEasing(e.target.value)}
+                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                  >
+                    <option value="ease-out">Ease Out (Smooth)</option>
+                    <option value="ease-in">Ease In (Accelerate)</option>
+                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
+                    <option value="linear">Linear (Constant)</option>
+                  </select>
+                </div>
+              </>
+            )}
+            
+            {/* Ken Burns Animation Parameters */}
+            {cycleAnimation === 'ken-burns' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Ken Burns Duration</span>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={3.0}
+                    step={0.1}
+                    value={crossfadeDuration}
+                    onChange={e => setCrossfadeDuration(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
+                  <select
+                    value={crossfadeEasing}
+                    onChange={e => setCrossfadeEasing(e.target.value)}
+                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                  >
+                    <option value="ease-out">Ease Out (Smooth)</option>
+                    <option value="ease-in">Ease In (Accelerate)</option>
+                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
+                    <option value="linear">Linear (Constant)</option>
+                  </select>
+                </div>
+              </>
+            )}
+            
+            {/* Dissolve Animation Parameters */}
+            {cycleAnimation === 'dissolve' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
+                  <span style={{ fontWeight: 500, minWidth: 120 }}>Dissolve Duration</span>
                   <input
                     type="range"
                     min={0.5}

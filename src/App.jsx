@@ -1383,8 +1383,12 @@ function App() {
 
   // Memoize expensive calculations
   const getTransitionType = useCallback(() => {
-    if (cycleAnimation === 'crossfade') return 'crossfade';
+    if (cycleAnimation === 'fade') return 'crossfade';
     if (cycleAnimation === 'slide') return 'slide';
+    if (cycleAnimation === 'zoom') return 'zoom';
+    if (cycleAnimation === 'ken-burns') return 'ken-burns';
+    if (cycleAnimation === 'dissolve') return 'dissolve';
+    if (cycleAnimation === 'wipe') return 'wipe';
     return 'fade';
   }, [cycleAnimation]);
 
@@ -1490,7 +1494,7 @@ function App() {
         
         if (progress < 1) {
           requestAnimationFrame(animate);
-              } else {
+        } else {
           setWallpaper(nextWallpaperItem);
           setNextWallpaper(null);
           setIsTransitioning(false);
@@ -1499,7 +1503,7 @@ function App() {
       };
       
       requestAnimationFrame(animate);
-            } else if (getTransitionType() === 'slide') {
+    } else if (getTransitionType() === 'slide') {
       setSlideProgress(0);
       const startTime = Date.now();
       const duration = slideDuration * 1000;
@@ -1515,9 +1519,101 @@ function App() {
           requestAnimationFrame(animate);
         } else {
           setWallpaper(nextWallpaperItem);
-                setNextWallpaper(null);
-                setIsTransitioning(false);
-        setSlideProgress(0);
+          setNextWallpaper(null);
+          setIsTransitioning(false);
+          setSlideProgress(0);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    } else if (getTransitionType() === 'zoom') {
+      setCrossfadeProgress(0);
+      const startTime = Date.now();
+      const duration = crossfadeDuration * 1000;
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = applyEasing(progress, crossfadeEasing);
+        
+        setCrossfadeProgress(easedProgress);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setWallpaper(nextWallpaperItem);
+          setNextWallpaper(null);
+          setIsTransitioning(false);
+          setCrossfadeProgress(0);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    } else if (getTransitionType() === 'ken-burns') {
+      setCrossfadeProgress(0);
+      const startTime = Date.now();
+      const duration = crossfadeDuration * 1000;
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = applyEasing(progress, crossfadeEasing);
+        
+        setCrossfadeProgress(easedProgress);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setWallpaper(nextWallpaperItem);
+          setNextWallpaper(null);
+          setIsTransitioning(false);
+          setCrossfadeProgress(0);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    } else if (getTransitionType() === 'dissolve') {
+      setCrossfadeProgress(0);
+      const startTime = Date.now();
+      const duration = crossfadeDuration * 1000;
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = applyEasing(progress, crossfadeEasing);
+        
+        setCrossfadeProgress(easedProgress);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setWallpaper(nextWallpaperItem);
+          setNextWallpaper(null);
+          setIsTransitioning(false);
+          setCrossfadeProgress(0);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    } else if (getTransitionType() === 'wipe') {
+      setSlideProgress(0);
+      const startTime = Date.now();
+      const duration = slideDuration * 1000;
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = applyEasing(progress, slideEasing);
+        
+        setSlideProgress(easedProgress);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setWallpaper(nextWallpaperItem);
+          setNextWallpaper(null);
+          setIsTransitioning(false);
+          setSlideProgress(0);
         }
       };
       
@@ -1525,7 +1621,7 @@ function App() {
     } else {
       // Simple fade
       setWallpaper(nextWallpaperItem);
-        setIsTransitioning(false);
+      setIsTransitioning(false);
     }
   }, [cycleList, wallpaper?.url, isTransitioning, getTransitionType, crossfadeDuration, crossfadeEasing, slideDuration, slideEasing, applyEasing]);
   
@@ -1534,19 +1630,19 @@ function App() {
     currentWallpaperRef.current = wallpaper;
   }, [wallpaper]);
 
-  // Simplified wallpaper cycling logic - no animations for now
+  // Wallpaper cycling logic with smooth transitions
   useEffect(() => {
-    // console.log('Wallpaper cycling effect triggered:', {
-    //   cycleWallpapers,
-    //   cycleListLength: cycleList.length,
-    //   cycleInterval,
-    //   showWallpaperModal,
-    //   isTransitioning
-    // });
+    console.log('Wallpaper cycling effect triggered:', {
+      cycleWallpapers,
+      cycleListLength: cycleList.length,
+      cycleInterval,
+      showWallpaperModal,
+      isTransitioning
+    });
     
     // Don't re-run if currently transitioning
     if (isTransitioning) {
-      // console.log('Currently transitioning, skipping effect re-run');
+      console.log('Currently transitioning, skipping effect re-run');
       return;
     }
     
@@ -1559,15 +1655,15 @@ function App() {
 
     // Don't cycle if disabled, not enough wallpapers, or modal is open
     if (!cycleWallpapers || cycleList.length < 2 || showWallpaperModal) {
-      // console.log('Wallpaper cycling stopped:', {
-      //   reason: !cycleWallpapers ? 'disabled' : cycleList.length < 2 ? 'not enough wallpapers' : 'modal open'
-      // });
+      console.log('Wallpaper cycling stopped:', {
+        reason: !cycleWallpapers ? 'disabled' : cycleList.length < 2 ? 'not enough wallpapers' : 'modal open'
+      });
       return;
     }
 
     console.log('Starting wallpaper cycling with interval:', cycleInterval, 'seconds');
 
-    // Test if timeout works at all
+    // Set up the cycling timeout
     console.log('Setting up initial timeout for', cycleInterval, 'seconds');
     cycleTimeoutRef.current = setTimeout(() => {
       console.log('Initial timeout fired!');
@@ -1831,8 +1927,11 @@ function App() {
               zIndex: 0,
               pointerEvents: 'none',
               background: `url('${wallpaper.url}') center center / cover no-repeat`,
-              opacity: getTransitionType() === 'crossfade' ? 1 - crossfadeProgress : wallpaperOpacity,
-              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, false) : 'none',
+              opacity: getTransitionType() === 'crossfade' || getTransitionType() === 'zoom' || getTransitionType() === 'ken-burns' || getTransitionType() === 'dissolve' ? 1 - crossfadeProgress : wallpaperOpacity,
+              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, false) : 
+                        getTransitionType() === 'zoom' ? `scale(${1 + crossfadeProgress * 0.1})` :
+                        getTransitionType() === 'ken-burns' ? `scale(${1 + crossfadeProgress * 0.05}) translate(${crossfadeProgress * 2}%, ${crossfadeProgress * 1}%)` :
+                        getTransitionType() === 'wipe' ? getInfiniteScrollTransform(slideDirection, slideProgress, false) : 'none',
               transition: 'none', // Remove CSS transitions to prevent conflicts
               filter: `blur(${wallpaperBlur}px)`,
             }}
@@ -1851,8 +1950,11 @@ function App() {
               zIndex: 1,
               pointerEvents: 'none',
               background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
-              opacity: getTransitionType() === 'crossfade' ? crossfadeProgress : 1,
-              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, true) : 'none',
+              opacity: getTransitionType() === 'crossfade' || getTransitionType() === 'zoom' || getTransitionType() === 'ken-burns' || getTransitionType() === 'dissolve' ? crossfadeProgress : 1,
+              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, true) : 
+                        getTransitionType() === 'zoom' ? `scale(${1.1 - crossfadeProgress * 0.1})` :
+                        getTransitionType() === 'ken-burns' ? `scale(${1.05 - crossfadeProgress * 0.05}) translate(${(1 - crossfadeProgress) * -2}%, ${(1 - crossfadeProgress) * -1}%)` :
+                        getTransitionType() === 'wipe' ? getInfiniteScrollTransform(slideDirection, slideProgress, true) : 'none',
               transition: 'none', // Remove CSS transitions to prevent conflicts
             }}
           />
