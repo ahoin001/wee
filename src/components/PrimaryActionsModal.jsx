@@ -16,7 +16,6 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
   const [type, setType] = useState(config?.type || 'text');
   const [text, setText] = useState(config?.text || (buttonIndex === 0 ? 'Wii' : ''));
   const [icon, setIcon] = useState(config?.icon || null);
-  const [actionType, setActionType] = useState(config?.actionType || 'none');
   const [action, setAction] = useState(config?.action || '');
   const [pathError, setPathError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
@@ -33,14 +32,12 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
   const [adminMode, setAdminMode] = useState(config?.adminMode || false);
   const [powerActions, setPowerActions] = useState(config?.powerActions || []);
   
-  // App/game path logic state
-  const [gameType, setGameType] = useState('exe');
-  const [appQuery, setAppQuery] = useState('');
-  const [appDropdownOpen, setAppDropdownOpen] = useState(false);
-  const [uwpQuery, setUwpQuery] = useState('');
-  const [uwpDropdownOpen, setUwpDropdownOpen] = useState(false);
-  const [gameQuery, setGameQuery] = useState('');
-  const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
+  // Unified search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const [actionType, setActionType] = useState('exe'); // Only 'exe' or 'url' for UI
+  const [originalItemType, setOriginalItemType] = useState('exe'); // Store the original type for saving
+  const [runAsAdmin, setRunAsAdmin] = useState(false); // Admin mode for exe files
   const exeFileInputRef = useRef(null);
 
   // Zustand store selectors
@@ -65,22 +62,223 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
     clearError: clearIconsError
   } = useIconsStore();
 
-  // Fuzzy search for apps
-  const appResults = (gameType === 'exe' && appQuery && installedApps.length > 0)
-    ? installedApps.filter(a => a.name.toLowerCase().includes(appQuery.toLowerCase())).slice(0, 10)
-    : [];
+  // Unified search results - combines all sources with smart deduplication
+  const getUnifiedSearchResults = () => {
+    if (!searchQuery.trim()) return [];
+    
+    const query = searchQuery.toLowerCase();
+    console.log(`[UnifiedSearch] Raw search query: "${searchQuery}" -> processed query: "${query}"`);
+    
+    // Clean the query to remove common suffixes that users might type
+    const cleanQuery = query
+      .replace(/\s*\(microsoft store\)/i, '')
+      .replace(/\s*\(steam\)/i, '')
+      .replace(/\s*\(epic\)/i, '')
+      .replace(/\s*\(installed\)/i, '')
+      .trim();
+    
+    console.log(`[UnifiedSearch] Cleaned query: "${cleanQuery}"`);
+    
+    const results = [];
+    const seenApps = new Set(); // Track apps we've already added
+    
+    // Helper function to check if app name is similar (for deduplication)
+    const isSimilarApp = (name1, name2) => {
+      const clean1 = name1.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const clean2 = name2.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return clean1 === clean2 || clean1.includes(clean2) || clean2.includes(clean1);
+    };
+    
+    // Helper function to add app with deduplication
+    const addAppWithDedup = (app, source, displayName, path) => {
+      const appKey = app.name.toLowerCase().trim();
+      
+      // Check if we already have a similar app
+      const hasSimilar = Array.from(seenApps).some(seen => isSimilarApp(seen, app.name));
+      
+      // More lenient deduplication for Steam games - only filter out exact matches
+      if (source === 'steam') {
+        const exactMatch = Array.from(seenApps).some(seen => seen === appKey);
+        if (exactMatch) {
+          console.log(`[UnifiedSearch] Skipping Steam game "${app.name}" - exact match found`);
+          return;
+        }
+      } else if (hasSimilar) {
+        console.log(`[UnifiedSearch] Skipping ${source} app "${app.name}" - similar app found`);
+        return;
+      }
+      
+      seenApps.add(appKey);
+      
+      // Determine the correct action type based on source
+      let actionType = 'exe'; // Default
+      if (source === 'steam') {
+        actionType = 'steam';
+      } else if (source === 'epic') {
+        actionType = 'epic';
+      } else if (source === 'microsoftstore') {
+        actionType = 'microsoftstore';
+      }
+      
+      results.push({
+        ...app,
+        type: actionType,
+        source,
+        displayName,
+        path
+      });
+    };
+    
+    // Search installed apps (highest priority - traditional installs)
+    if (installedApps.length > 0) {
+      console.log(`[UnifiedSearch] Found ${installedApps.length} installed apps to search through`);
+      
+      // Debug: Show some installed app names to help with debugging
+      const sampleInstalledApps = installedApps.slice(0, 10).map(app => app.name);
+      console.log(`[UnifiedSearch] Sample installed apps:`, sampleInstalledApps);
+      
+      const appMatches = installedApps
+        .filter(app => app.name.toLowerCase().includes(cleanQuery))
+        .slice(0, 8); // Get more candidates for better deduplication
+        
+      console.log(`[UnifiedSearch] Installed app matches for "${cleanQuery}":`, appMatches.map(app => app.name));
+        
+      appMatches.forEach(app => {
+        addAppWithDedup(
+          app,
+          'installed',
+          app.name,
+          app.args ? `${app.path} ${app.args}` : app.path
+        );
+      });
+    } else {
+      console.log(`[UnifiedSearch] No installed apps available (installedApps.length: ${installedApps.length})`);
+    }
+    
+    // Search Steam games
+    if (steamGames.length > 0) {
+      console.log(`[UnifiedSearch] Found ${steamGames.length} Steam games to search through`);
+      
+      // Debug: Show some Steam game names to help with debugging
+      const sampleSteamGames = steamGames.slice(0, 10).map(game => `${game.name} (${game.appid})`);
+      console.log(`[UnifiedSearch] Sample Steam games:`, sampleSteamGames);
+      
+      // Debug: Look specifically for Marvel Rivals
+      const marvelRivalsGames = steamGames.filter(game => 
+        game.name.toLowerCase().includes('marvel') || 
+        game.name.toLowerCase().includes('rivals') ||
+        game.name.toLowerCase().includes('marvel rivals')
+      );
+      if (marvelRivalsGames.length > 0) {
+        console.log(`[UnifiedSearch] Found Marvel Rivals related games:`, marvelRivalsGames.map(game => `${game.name} (${game.appid})`));
+      } else {
+        console.log(`[UnifiedSearch] No Marvel Rivals found in Steam games`);
+      }
+      
+      // Debug: Show all Steam games that contain "marvel" or "rivals"
+      const partialMatches = steamGames.filter(game => 
+        game.name.toLowerCase().includes('marvel') || 
+        game.name.toLowerCase().includes('rivals')
+      );
+      if (partialMatches.length > 0) {
+        console.log(`[UnifiedSearch] Partial matches for Marvel/Rivals:`, partialMatches.map(game => `${game.name} (${game.appid})`));
+      }
+      
+      const steamMatches = steamGames
+        .filter(game => game.name.toLowerCase().includes(cleanQuery))
+        .slice(0, 8);
+        
+      console.log(`[UnifiedSearch] Steam matches for "${cleanQuery}":`, steamMatches.map(game => game.name));
+        
+      steamMatches.forEach(game => {
+        addAppWithDedup(
+          game,
+          'steam',
+          `${game.name} (Steam)`,
+          `steam://rungameid/${game.appid}`
+        );
+      });
+    } else {
+      console.log(`[UnifiedSearch] No Steam games available (steamGames.length: ${steamGames.length})`);
+    }
+    
+    // Search Epic games
+    if (epicGames.length > 0) {
+      console.log(`[UnifiedSearch] Found ${epicGames.length} Epic games to search through`);
+      
+      // Debug: Show some Epic game names to help with debugging
+      const sampleEpicGames = epicGames.slice(0, 10).map(game => `${game.name} (${game.appName})`);
+      console.log(`[UnifiedSearch] Sample Epic games:`, sampleEpicGames);
+      
+      const epicMatches = epicGames
+        .filter(game => game.name.toLowerCase().includes(cleanQuery))
+        .slice(0, 8);
+        
+      console.log(`[UnifiedSearch] Epic matches for "${cleanQuery}":`, epicMatches.map(game => game.name));
+        
+      epicMatches.forEach(game => {
+        addAppWithDedup(
+          game,
+          'epic',
+          `${game.name} (Epic)`,
+          `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`
+        );
+      });
+    } else {
+      console.log(`[UnifiedSearch] No Epic games available (epicGames.length: ${epicGames.length})`);
+    }
+    
+    // Search Microsoft Store apps (lowest priority - only if not found elsewhere)
+    if (uwpApps.length > 0) {
+      console.log(`[UnifiedSearch] Found ${uwpApps.length} UWP apps to search through`);
+      
+      // Debug: Show some UWP app names to help with debugging
+      const sampleUwpApps = uwpApps.slice(0, 10).map(app => `${app.name} (${app.appId})`);
+      console.log(`[UnifiedSearch] Sample UWP apps:`, sampleUwpApps);
+      
+      const uwpMatches = uwpApps
+        .filter(app => 
+          (app.name.toLowerCase().includes(cleanQuery) || app.appId.toLowerCase().includes(cleanQuery)) &&
+          // Only include if we don't already have a similar app
+          !Array.from(seenApps).some(seen => isSimilarApp(seen, app.name))
+        )
+        .slice(0, 5);
+        
+      console.log(`[UnifiedSearch] UWP matches for "${cleanQuery}":`, uwpMatches.map(app => app.name));
+        
+      uwpMatches.forEach(app => {
+        addAppWithDedup(
+          app,
+          'microsoftstore',
+          `${app.name} (Microsoft Store)`,
+          app.appId
+        );
+      });
+    } else {
+      console.log(`[UnifiedSearch] No UWP apps available (uwpApps.length: ${uwpApps.length})`);
+    }
+    
+    // Sort by relevance (exact matches first, then alphabetical)
+    const sortedResults = results.sort((a, b) => {
+      const aExact = a.displayName.toLowerCase().startsWith(cleanQuery);
+      const bExact = b.displayName.toLowerCase().startsWith(cleanQuery);
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return a.displayName.localeCompare(b.displayName);
+    }).slice(0, 10);
+    
+    // Debug logging for deduplication
+    if (searchQuery.trim() && sortedResults.length > 0) {
+      console.log(`[UnifiedSearch] Query: "${searchQuery}" - Found ${sortedResults.length} unique results:`, 
+        sortedResults.map(r => `${r.displayName} (${r.source})`));
+    } else if (searchQuery.trim() && sortedResults.length === 0) {
+      console.log(`[UnifiedSearch] Query: "${searchQuery}" - No results found after deduplication`);
+    }
+    
+    return sortedResults;
+  };
 
-  // Fuzzy search for games
-  const installedGames = (gameType === 'steam') ? steamGames : (gameType === 'epic' ? epicGames : []);
-  const gameResults = (['steam', 'epic'].includes(gameType) && gameQuery && installedGames.length > 0)
-    ? installedGames.filter(g => g.name.toLowerCase().includes(gameQuery.toLowerCase())).slice(0, 10)
-    : [];
-
-  // Fuzzy search for UWP
-  const filteredUwpApps = uwpApps.filter(app =>
-    app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
-    app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
-  );
+  const unifiedSearchResults = getUnifiedSearchResults();
   
   // Update state when config changes (important for when modal reopens)
   useEffect(() => {
@@ -95,10 +293,11 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
       setType(config.type || 'text');
       setText(config.text || (buttonIndex === 0 ? 'Wii' : ''));
       setIcon(config.icon || null);
-      setActionType(config.actionType || 'none');
+      setActionType(config.actionType || 'exe');
+      setOriginalItemType(config.actionType || 'exe'); // Also set original type
       setAction(config.action || '');
       setPath(config.action || ''); // Sync path with action
-      setGameType(config.actionType || 'exe'); // Sync gameType with actionType
+      setRunAsAdmin(config.runAsAdmin || false);
       setUseWiiGrayFilter(config.useWiiGrayFilter || false);
       setUseAdaptiveColor(config.useAdaptiveColor || false);
       setUseGlowEffect(config.useGlowEffect || false);
@@ -144,27 +343,34 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
     }
   }, [isOpen, installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, fetchInstalledApps, fetchUwpApps, fetchSteamGames, fetchEpicGames, customSteamPath]);
 
-  // Best-practice: useEffect to sync dropdown open state with results
+  // Handle clicking outside the dropdown to close it
   useEffect(() => {
-    if (gameType === 'exe') {
-      if (appQuery && appResults.length > 0) setAppDropdownOpen(true);
-      else setAppDropdownOpen(false);
-    }
-  }, [gameType, appQuery, appResults.length]);
+    const handleClickOutside = (event) => {
+      if (searchDropdownOpen) {
+        // Check if the click is outside the search input and dropdown
+        const searchContainer = event.target.closest('.search-container');
+        if (!searchContainer) {
+          setSearchDropdownOpen(false);
+        }
+      }
+    };
 
-  useEffect(() => {
-    if ((gameType === 'steam' || gameType === 'epic')) {
-      if (gameQuery && gameResults.length > 0) setGameDropdownOpen(true);
-      else setGameDropdownOpen(false);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
-  }, [gameType, gameQuery, gameResults.length]);
+  }, [isOpen, searchDropdownOpen]);
 
+  // Sync dropdown open state with search results
   useEffect(() => {
-    if (gameType === 'microsoftstore') {
-      if (uwpQuery && filteredUwpApps.length > 0) setUwpDropdownOpen(true);
-      else setUwpDropdownOpen(false);
+    if (searchQuery && unifiedSearchResults.length > 0) {
+      setSearchDropdownOpen(true);
+    } else {
+      setSearchDropdownOpen(false);
     }
-  }, [gameType, uwpQuery, filteredUwpApps.length]);
+  }, [searchQuery, unifiedSearchResults.length]);
 
   // Upload and save icon immediately
   const handleUploadIcon = async () => {
@@ -186,7 +392,8 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
       setPathError('');
       return true;
     }
-    if (gameType === 'url') {
+    
+    if (actionType === 'url') {
       // Validate URL format
       try {
         const url = new URL(path.trim());
@@ -201,47 +408,23 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
         setPathError('Please enter a valid URL (e.g., https://example.com)');
         return false;
       }
-    } else if (gameType === 'steam') {
-      // Validate Steam URI/AppID format
-      if (path.trim().startsWith('steam://') || path.trim().startsWith('steam://rungameid/') || path.trim().startsWith('steam://launch/')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Steam URI (e.g., steam://rungameid/252950) or AppID (e.g., 252950)');
-        return false;
-      }
-    } else if (gameType === 'epic') {
-      // Validate Epic URI format
-      if (path.trim().startsWith('com.epicgames.launcher://apps/')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Epic URI (e.g., com.epicgames.launcher://apps/Fortnite?action=launch&silent=true)');
-        return false;
-      }
-    } else if (gameType === 'microsoftstore') {
-      // Accept any AppID containing an exclamation mark
-      if (typeof path === 'string' && path.includes('!')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Microsoft Store AppID (e.g., ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr!App)');
-        return false;
-      }
-    } else if (gameType === 'exe') {
-      // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
+    } else if (actionType === 'exe') {
+      // Accept any path that contains .exe, steam://, epic://, or microsoft store app IDs
       const trimmedPath = path.trim();
-      if (/\.exe(\s+.*)?$/i.test(trimmedPath) || /\.exe/i.test(trimmedPath)) {
-        setPathError('');
-        return true;
-      } else if (trimmedPath.startsWith('\\')) {
+      if (/\.exe(\s+.*)?$/i.test(trimmedPath) || 
+          /\.exe/i.test(trimmedPath) ||
+          trimmedPath.startsWith('steam://') ||
+          trimmedPath.startsWith('com.epicgames.launcher://') ||
+          trimmedPath.includes('!') ||
+          trimmedPath.startsWith('\\')) {
         setPathError('');
         return true;
       } else {
-        setPathError('Please enter a valid file path or use "Browse Files" to select an executable');
+        setPathError('Please enter a valid file path, Steam URI, Epic URI, or Microsoft Store AppID');
         return false;
       }
     }
+    
     setPathError('');
     return true;
   };
@@ -259,8 +442,9 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
       type,
       text: type === 'text' ? text : '',
       icon: type === 'icon' ? icon : null,
-      actionType: gameType, // Use gameType/type for actionType
-      action: path,         // Use path for action
+      actionType: originalItemType, // Use the original item type for saving
+      action: path,           // Use path for action
+      runAsAdmin: actionType === 'exe' ? runAsAdmin : false, // Admin mode for exe files
       useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false,
       useAdaptiveColor,
       useGlowEffect,
@@ -495,123 +679,327 @@ function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribb
     console.log('PrimaryActionsModal powerActions state updated');
   };
 
-  // Replace the renderAppPathSection function with the robust version from ChannelModal, adapting variable names for PrimaryActionsModal context.
+  // Unified app path section renderer
   const renderAppPathSection = () => {
-    // Gather all relevant state for AppPathSectionCard
-    const appPathSectionValue = {
-      gameType,
-      appQuery,
-      appDropdownOpen,
-      appResults,
-      appsLoading: appsLoading,
-      appsError: appsError,
-      path,
-      pathError,
-      exeFileInputRef,
-      uwpQuery,
-      uwpDropdownOpen,
-      filteredUwpApps,
-      uwpLoading: uwpLoading,
-      uwpError: uwpError,
-      gameQuery,
-      gameDropdownOpen,
-      gameResults,
-      steamLoading: steamLoading,
-      epicLoading: epicLoading,
-      steamError: steamError,
-      epicError: epicError,
-      customSteamPath,
-    };
-
-    const handleAppPathSectionChange = updates => {
-      if ('gameType' in updates) {
-        setGameType(updates.gameType);
-        setActionType(updates.gameType); // Update actionType for saving
-      }
-      if ('appQuery' in updates) setAppQuery(updates.appQuery);
-      if ('appDropdownOpen' in updates) setAppDropdownOpen(updates.appDropdownOpen);
-      if ('path' in updates) {
-        setPath(updates.path);
-        setAction(updates.path); // Update action for saving
-      }
-      if ('pathError' in updates) setPathError(updates.pathError);
-      if ('uwpQuery' in updates) setUwpQuery(updates.uwpQuery);
-      if ('uwpDropdownOpen' in updates) setUwpDropdownOpen(updates.uwpDropdownOpen);
-      if ('gameQuery' in updates) setGameQuery(updates.gameQuery);
-      if ('gameDropdownOpen' in updates) setGameDropdownOpen(updates.gameDropdownOpen);
-    };
-
     return (
-      <AppPathSectionCard
-        value={appPathSectionValue}
-        onChange={handleAppPathSectionChange}
-        onAppSelect={handleAppResultClick}
-        onRescanInstalledApps={rescanInstalledApps}
-        onGameResultClick={handleGameResultClick}
-        handlePickSteamFolder={handlePickSteamFolder}
-        handleGameRefresh={handleGameRefresh}
-      />
+      <div>
+        {/* Action Type Selection */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 500, marginBottom: 8 }}>Action Type:</div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="actionType"
+                value="exe"
+                checked={actionType === 'exe'}
+                onChange={() => setActionType('exe')}
+              />
+              <span>Application or Game</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="actionType"
+                value="url"
+                checked={actionType === 'url'}
+                onChange={() => setActionType('url')}
+              />
+              <span>Website URL</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Unified Search Input */}
+        {actionType === 'exe' && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 500, marginBottom: 8 }}>Search Applications & Games:</div>
+            <div className="search-container" style={{ position: 'relative' }}>
+              <input
+                type="text"
+                className="text-input"
+                placeholder="Search for apps, games, Steam games, Epic games, Microsoft Store apps..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => {
+                  if (unifiedSearchResults.length > 0) {
+                    setSearchDropdownOpen(true);
+                  }
+                }}
+                onBlur={() => {
+                  // Use a small delay to allow the dropdown click to register first
+                  setTimeout(() => setSearchDropdownOpen(false), 150);
+                }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14 }}
+              />
+              
+              {/* Rescan buttons */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => rescanSteamGames(customSteamPath)}
+                  disabled={steamLoading}
+                  style={{
+                    background: steamLoading ? '#ccc' : '#0099ff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: steamLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: '500',
+                    opacity: steamLoading ? 0.7 : 1,
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => {
+                    if (!steamLoading) {
+                      e.currentTarget.style.background = '#007acc';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!steamLoading) {
+                      e.currentTarget.style.background = '#0099ff';
+                    }
+                  }}
+                >
+                  {steamLoading ? '🔄 Scanning Steam...' : 'Rescan Steam'}
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => rescanEpicGames()}
+                  disabled={epicLoading}
+                  style={{
+                    background: epicLoading ? '#ccc' : '#0099ff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: epicLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: '500',
+                    opacity: epicLoading ? 0.7 : 1,
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => {
+                    if (!epicLoading) {
+                      e.currentTarget.style.background = '#007acc';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!epicLoading) {
+                      e.currentTarget.style.background = '#0099ff';
+                    }
+                  }}
+                >
+                  {epicLoading ? '🔄 Scanning Epic...' : 'Rescan Epic'}
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => rescanUwpApps()}
+                  disabled={uwpLoading}
+                  style={{
+                    background: uwpLoading ? '#ccc' : '#0099ff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: uwpLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: '500',
+                    opacity: uwpLoading ? 0.7 : 1,
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => {
+                    if (!uwpLoading) {
+                      e.currentTarget.style.background = '#007acc';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!uwpLoading) {
+                      e.currentTarget.style.background = '#0099ff';
+                    }
+                  }}
+                >
+                  {uwpLoading ? '🔄 Scanning Store...' : 'Rescan Store'}
+                </button>
+              </div>
+              
+              {/* Search Results Dropdown */}
+              {searchDropdownOpen && unifiedSearchResults.length > 0 && (
+                <div 
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: '#fff',
+                    border: '1px solid #ddd',
+                    borderRadius: '0 0 6px 6px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 1000,
+                    maxHeight: '200px',
+                    overflowY: 'auto'
+                  }}
+                  onMouseDown={(e) => {
+                    // Prevent the dropdown from closing when clicking inside it
+                    e.stopPropagation();
+                  }}
+                >
+                  {unifiedSearchResults.map((item, index) => (
+                    <div
+                      key={`${item.source}-${index}`}
+                      style={{
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        borderBottom: index < unifiedSearchResults.length - 1 ? '1px solid #f0f0f0' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8f9fa';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSearchResultClick(item);
+                      }}
+                    >
+                      <span style={{ fontSize: '16px' }}>
+                        {item.source === 'steam' && '🎮'}
+                        {item.source === 'epic' && '🎯'}
+                        {item.source === 'microsoftstore' && '🏪'}
+                        {item.source === 'installed' && '💻'}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500, fontSize: 14 }}>{item.displayName}</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>
+                          {item.source === 'steam' && 'Steam Game'}
+                          {item.source === 'epic' && 'Epic Game'}
+                          {item.source === 'microsoftstore' && 'Microsoft Store App'}
+                          {item.source === 'installed' && 'Installed Application'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Admin Mode Toggle - Only show for exe files */}
+        {actionType === 'exe' && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={runAsAdmin}
+                  onChange={(e) => setRunAsAdmin(e.target.checked)}
+                  style={{ width: 16, height: 16 }}
+                />
+                <span style={{ fontWeight: 500 }}>Run as Administrator</span>
+              </label>
+              <span style={{ fontSize: 12, color: '#666' }}>
+                (Opens the application with elevated privileges)
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Manual Path Input */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 500, marginBottom: 8 }}>
+            {actionType === 'exe' ? 'Application Path:' : 'Website URL:'}
+          </div>
+          <input
+            type="text"
+            className="text-input"
+            placeholder={actionType === 'exe' 
+              ? "Enter path to executable, Steam URI, Epic URI, or Microsoft Store AppID..." 
+              : "Enter website URL (e.g., https://example.com)..."}
+            value={path}
+            onChange={(e) => {
+              setPath(e.target.value);
+              setAction(e.target.value);
+            }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14 }}
+          />
+          {pathError && (
+            <div style={{ color: '#dc3545', fontSize: 12, marginTop: 4 }}>{pathError}</div>
+          )}
+        </div>
+
+        {/* File Browser Button for EXE */}
+        {actionType === 'exe' && (
+          <div style={{ marginBottom: 16 }}>
+            <button
+              type="button"
+              onClick={() => exeFileInputRef.current?.click()}
+              style={{
+                background: '#0099ff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#007acc';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#0099ff';
+              }}
+            >
+              Browse Files
+            </button>
+            <input
+              ref={exeFileInputRef}
+              type="file"
+              accept=".exe"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setPath(file.path);
+                  setAction(file.path);
+                  setPathError('');
+                }
+              }}
+            />
+          </div>
+        )}
+      </div>
     );
   };
 
-  // Handlers that work with Zustand store
-  const handleAppResultClick = (item) => {
-    const fullPath = item.args ? `${item.path} ${item.args}` : item.path;
-    const newPath = fullPath || item.name || '';
-                        setPath(newPath);
-    setAction(newPath); // Also update action for saving
-    setAppQuery(item.name || item.path || '');
-    setAppDropdownOpen(false);
-  };
-
-  const handleGameResultClick = (game) => {
-    let newPath = '';
-    if (gameType === 'steam') {
-      newPath = `steam://rungameid/${game.appid}`;
-    } else if (gameType === 'epic') {
-      // Epic Games Launcher URI format: com.epicgames.launcher://apps/[AppName]?action=launch&silent=true
-      newPath = `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`;
-    } else {
-      newPath = game.appName;
+  // Unified search result handler
+  const handleSearchResultClick = (item) => {
+    setPath(item.path);
+    setAction(item.path); // Also update action for saving
+    setOriginalItemType(item.type); // Store the original type for saving
+    
+    // Map the item type to our simplified action type system
+    // All games and apps should be treated as 'exe' for the UI
+    if (item.type === 'steam' || item.type === 'epic' || item.type === 'microsoftstore' || item.type === 'exe') {
+      setActionType('exe');
+    } else if (item.type === 'url') {
+      setActionType('url');
     }
-    setPath(newPath);
-    setAction(newPath); // Also update action for saving
-    setGameQuery(game.name);
-    setGameDropdownOpen(false);
+    
+    setSearchQuery(item.displayName);
+    setSearchDropdownOpen(false);
   };
 
-  const handlePickSteamFolder = async () => {
-    const result = await window.api.steam.pickLibraryFolder();
-    if (result && result.path) {
-      setCustomSteamPath(result.path);
-    }
-  };
 
-  const handleGameRefresh = async () => {
-    try {
-      if (gameType === 'steam') {
-        await rescanSteamGames(customSteamPath);
-      } else if (gameType === 'epic') {
-        await rescanEpicGames();
-      }
-    } catch (err) {
-      console.error('Error during rescan:', err);
-    }
-  };
-
-  const handleExeFileSelect = (file) => {
-    if (file && file.path) {
-      setPath(file.path);
-      setAction(file.path); // Also update action for saving
-      setPathError('');
-    }
-  };
-
-  const handlePathChange = (e) => {
-    setPath(e.target.value);
-    setAction(e.target.value); // Also update action for saving
-    setPathError('');
-  };
 
 
   if (!isOpen) return null;

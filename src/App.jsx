@@ -219,7 +219,7 @@ function App() {
     gridAlignment: 'start',
     gridJustification: 'center'
   });
-  const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
+  const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState([{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]); // Track ribbon button configs with defaults
   const [accessoryButtonConfig, setAccessoryButtonConfig] = useState({}); // Track accessory button config
   const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
@@ -473,7 +473,7 @@ function App() {
         console.warn('Failed to clear wallpaper:', error);
       }
     }
-    setRibbonButtonConfigs(d.ribbonButtonConfigs || []); // This now includes textFont for each button
+    setRibbonButtonConfigs(d.ribbonButtonConfigs || [{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]); // This now includes textFont for each button
     setPresetsButtonConfig(d.presetsButtonConfig || { type: 'icon', icon: 'star' }); // Apply presets button config
     
     // Apply channel data if present
@@ -751,6 +751,9 @@ function App() {
         if (settings.ribbonButtonConfigs) {
           console.log('App: Loaded ribbonButtonConfigs:', settings.ribbonButtonConfigs);
           setRibbonButtonConfigs(settings.ribbonButtonConfigs);
+        } else {
+          // Set default ribbon button configs if none exist
+          setRibbonButtonConfigs([{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]);
         }
         // Load ribbonColor from settings
         setRibbonColor(settings.ribbonColor || '#e0e6ef');
@@ -825,7 +828,7 @@ function App() {
       if (!current) current = {};
       
       // Use the loaded ribbonButtonConfigs from state, or preserve from current settings if not loaded
-      const preservedButtonConfigs = ribbonButtonConfigs || current.ribbonButtonConfigs;
+      const preservedButtonConfigs = ribbonButtonConfigs || current.ribbonButtonConfigs || [{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }];
       
       // Merge new state with current, preserving ribbonButtonConfigs and other existing data
       const merged = {
@@ -1174,6 +1177,7 @@ function App() {
   const handleClassicButtonContextMenu = (index, e) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('Classic button context menu:', index, 'ribbonButtonConfigs:', ribbonButtonConfigs);
     setActiveButtonIndex(index);
     openPrimaryActionsModal();
   };
@@ -1193,9 +1197,19 @@ function App() {
     if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
     if (window.api && window.api.launchApp) {
       if (config.actionType === 'exe') {
-        window.api.launchApp({ type: 'exe', path: config.action });
+        window.api.launchApp({ 
+          type: 'exe', 
+          path: config.action,
+          asAdmin: config.runAsAdmin || false
+        });
       } else if (config.actionType === 'url') {
         window.api.launchApp({ type: 'url', path: config.action });
+      } else if (config.actionType === 'steam') {
+        window.api.launchApp({ type: 'steam', path: config.action });
+      } else if (config.actionType === 'epic') {
+        window.api.launchApp({ type: 'epic', path: config.action });
+      } else if (config.actionType === 'microsoftstore') {
+        window.api.launchApp({ type: 'microsoftstore', path: config.action });
       }
     } else {
       // Fallback: try window.open for URLs
@@ -1228,7 +1242,11 @@ function App() {
     
     if (window.api && window.api.launchApp) {
       if (accessoryButtonConfig.actionType === 'exe') {
-        window.api.launchApp({ type: 'exe', path: accessoryButtonConfig.action });
+        window.api.launchApp({ 
+          type: 'exe', 
+          path: accessoryButtonConfig.action,
+          asAdmin: accessoryButtonConfig.runAsAdmin || false
+        });
       } else if (accessoryButtonConfig.actionType === 'url') {
         window.api.launchApp({ type: 'url', path: accessoryButtonConfig.action });
       } else if (accessoryButtonConfig.actionType === 'steam') {
@@ -2670,6 +2688,11 @@ function App() {
             ribbonGlowColor={ribbonGlowColor}
           />
         )}
+        {showPrimaryActionsModal && console.log('Rendering PrimaryActionsModal with:', {
+          activeButtonIndex,
+          config: activeButtonIndex === "accessory" ? accessoryButtonConfig : ribbonButtonConfigs[activeButtonIndex],
+          ribbonButtonConfigs
+        })}
 
         {/* Admin Menu for ClassicWiiDock */}
         {showAdminMenu && (

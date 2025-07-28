@@ -327,9 +327,19 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
     if (window.api && window.api.launchApp) {
       if (config.actionType === 'exe') {
-        window.api.launchApp({ type: 'exe', path: config.action });
+        window.api.launchApp({ 
+          type: 'exe', 
+          path: config.action,
+          asAdmin: config.runAsAdmin || false
+        });
       } else if (config.actionType === 'url') {
         window.api.launchApp({ type: 'url', path: config.action });
+      } else if (config.actionType === 'steam') {
+        window.api.launchApp({ type: 'steam', path: config.action });
+      } else if (config.actionType === 'epic') {
+        window.api.launchApp({ type: 'epic', path: config.action });
+      } else if (config.actionType === 'microsoftstore') {
+        window.api.launchApp({ type: 'microsoftstore', path: config.action });
       }
     } else {
       // Fallback: try window.open for URLs

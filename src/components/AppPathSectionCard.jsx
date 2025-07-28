@@ -35,6 +35,7 @@ export default function AppPathSectionCard({
     steamError,
     epicError,
     customSteamPath,
+    runAsAdmin = false, // Add admin mode option
   } = value;
 
   return (
@@ -54,6 +55,24 @@ export default function AppPathSectionCard({
           <option value="microsoftstore">Microsoft Store App</option>
         </select>
       </div>
+      
+      {/* Admin Mode Toggle - Only show for exe files */}
+      {gameType === 'exe' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+            <input
+              type="checkbox"
+              checked={runAsAdmin}
+              onChange={e => onChange({ runAsAdmin: e.target.checked })}
+              style={{ width: 16, height: 16 }}
+            />
+            <span style={{ fontWeight: 500 }}>Run as Administrator</span>
+          </label>
+          <span style={{ fontSize: 12, color: '#666' }}>
+            (Opens the application with elevated privileges)
+          </span>
+        </div>
+      )}
       {/* App Path Input (EXE) */}
       {gameType === 'exe' && (
         <div style={{ position: 'relative', marginBottom: 16 }}>
