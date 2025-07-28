@@ -11,7 +11,7 @@ export default function Slider({ label, value, min, max, step, onChange }) {
         min={min}
         max={max}
         step={step}
-        onChange={onChange}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
         style={{ width: "100%" }}
       />
       <span style={{ color: colors.textSecondary, marginLeft: 8 }}>{value}</span>

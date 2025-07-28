@@ -18,6 +18,7 @@ const useUIStore = create((set, get) => ({
   showUpdateModal: false,
   showLayoutManagerModal: false,
   showPrimaryActionsModal: false,
+  pendingPrimaryActionSave: null,
   
   // Keyboard shortcuts state
   keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
@@ -126,6 +127,19 @@ const useUIStore = create((set, get) => ({
     const { showPrimaryActionsModal } = get();
     set({ showPrimaryActionsModal: !showPrimaryActionsModal });
   },
+  
+  // Save handler for PrimaryActionsModal
+  savePrimaryAction: (newConfig, buttonIndex) => {
+    // This will be called from the modal to save the configuration
+    // The actual save logic will be handled in App.jsx
+    set({ 
+      showPrimaryActionsModal: false,
+      pendingPrimaryActionSave: { newConfig, buttonIndex }
+    });
+  },
+  
+  // Clear pending save
+  setPendingPrimaryActionSave: (value) => set({ pendingPrimaryActionSave: value }),
   
   // Keyboard shortcuts actions
   updateKeyboardShortcut: (shortcutId, updates) => {

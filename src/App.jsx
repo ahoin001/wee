@@ -139,6 +139,7 @@ function App() {
     showRibbonSettingsModal,
     showUpdateModal,
     showPrimaryActionsModal,
+    pendingPrimaryActionSave,
     closePresetsModal,
     closeWallpaperModal,
     closeSoundModal,
@@ -150,6 +151,7 @@ function App() {
     closeRibbonSettingsModal,
     closeUpdateModal,
     closePrimaryActionsModal,
+    openPrimaryActionsModal,
     loadKeyboardShortcuts
   } = useUIStore();
   
@@ -218,11 +220,13 @@ function App() {
     gridJustification: 'center'
   });
   const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
+  const [accessoryButtonConfig, setAccessoryButtonConfig] = useState({}); // Track accessory button config
   const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
   const [showDock, setShowDock] = useState(true); // Show/hide the Wii Ribbon dock
   const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [activeButtonIndex, setActiveButtonIndex] = useState(0); // Track which button is being configured
   
   // Classic Dock Settings
   const [dockSettings, setDockSettings] = useState({
@@ -773,6 +777,7 @@ function App() {
           glassShineOpacity: settings.presetsButtonConfig?.glassShineOpacity ?? 0.7
         });
         setShowPresetsButton(settings.showPresetsButton ?? false);
+        setAccessoryButtonConfig(settings.accessoryButtonConfig || {});
         setShowDock(settings.showDock ?? true);
         setWallpaperBlur(settings.wallpaperBlur ?? 0);
         
@@ -857,6 +862,7 @@ function App() {
         presets, // Persist presets
         presetsButtonConfig, // Persist presets button configuration
         showPresetsButton, // Persist show presets button setting
+        accessoryButtonConfig, // Persist accessory button configuration
         timeFont, // Persist timeFont
         channelAnimation, // Persist channelAnimation
         adaptiveEmptyChannels,
@@ -894,7 +900,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, gridSettings, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, gridSettings, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, accessoryButtonConfig, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings]);
 
   // Persist keyboard shortcuts when they change
   useEffect(() => {
@@ -1024,6 +1030,32 @@ function App() {
     fetchUwpApps();
   }, []);
 
+  // Handle pending PrimaryActionsModal save
+  useEffect(() => {
+    if (pendingPrimaryActionSave) {
+      const { newConfig, buttonIndex } = pendingPrimaryActionSave;
+      console.log('Handling pending PrimaryActionsModal save:', buttonIndex, newConfig);
+      
+      if (buttonIndex === "accessory") {
+        // Update accessory button config
+        setAccessoryButtonConfig(newConfig);
+        // Save to settings
+        handleSettingsChange({ accessoryButtonConfig: newConfig });
+      } else {
+        // Update the ribbon button configs
+        const newConfigs = [...ribbonButtonConfigs];
+        newConfigs[buttonIndex] = newConfig;
+        setRibbonButtonConfigs(newConfigs);
+        
+        // Save to settings
+        handleSettingsChange({ ribbonButtonConfigs: newConfigs });
+      }
+      
+      // Clear the pending save
+      useUIStore.getState().setPendingPrimaryActionSave(null);
+    }
+  }, [pendingPrimaryActionSave, ribbonButtonConfigs]);
+
   const handleMediaChange = (id, file) => {
     const url = URL.createObjectURL(file);
     setMediaMap((prev) => ({
@@ -1143,7 +1175,7 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     setActiveButtonIndex(index);
-    setShowPrimaryActionsModal(true);
+    openPrimaryActionsModal();
   };
 
   const handleClassicButtonClick = (index) => {
@@ -1180,10 +1212,38 @@ function App() {
     setShowClassicDockSettingsModal(true);
   };
 
-  const handleSdCardContextMenu = (e) => {
+  const handleAccessoryButtonContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setShowClassicDockSettingsModal(true);
+    // Open PrimaryActionsModal for accessory button configuration
+    setActiveButtonIndex("accessory");
+    useUIStore.getState().openPrimaryActionsModal();
+  };
+
+  const handleAccessoryButtonClick = () => {
+    console.log('Accessory button clicked! Config:', accessoryButtonConfig);
+    
+    // Handle regular button actions
+    if (!accessoryButtonConfig || !accessoryButtonConfig.actionType || !accessoryButtonConfig.action || accessoryButtonConfig.actionType === 'none') return;
+    
+    if (window.api && window.api.launchApp) {
+      if (accessoryButtonConfig.actionType === 'exe') {
+        window.api.launchApp({ type: 'exe', path: accessoryButtonConfig.action });
+      } else if (accessoryButtonConfig.actionType === 'url') {
+        window.api.launchApp({ type: 'url', path: accessoryButtonConfig.action });
+      } else if (accessoryButtonConfig.actionType === 'steam') {
+        window.api.launchApp({ type: 'steam', path: accessoryButtonConfig.action });
+      } else if (accessoryButtonConfig.actionType === 'epic') {
+        window.api.launchApp({ type: 'epic', path: accessoryButtonConfig.action });
+      } else if (accessoryButtonConfig.actionType === 'microsoftstore') {
+        window.api.launchApp({ type: 'microsoftstore', path: accessoryButtonConfig.action });
+      }
+    } else {
+      // Fallback: try window.open for URLs
+      if (accessoryButtonConfig.actionType === 'url') {
+        window.open(accessoryButtonConfig.action, '_blank');
+      }
+    }
   };
 
   // Classic Dock settings change handler
@@ -2193,7 +2253,9 @@ function App() {
             openPresetsModal={useUIStore.getState().openPresetsModal}
             dockSettings={dockSettings}
             onDockContextMenu={handleDockContextMenu}
-            onSdCardContextMenu={handleSdCardContextMenu}
+            onAccessoryButtonContextMenu={handleAccessoryButtonContextMenu}
+            onAccessoryButtonClick={handleAccessoryButtonClick}
+            accessoryButtonConfig={accessoryButtonConfig}
           />
         )}
         
@@ -2602,16 +2664,7 @@ function App() {
         {/* PrimaryActionsModal for ClassicWiiDock */}
         {showPrimaryActionsModal && (
           <PrimaryActionsModal
-            isOpen={showPrimaryActionsModal}
-            onClose={() => setShowPrimaryActionsModal(false)}
-            onSave={(newConfig) => {
-              const newConfigs = [...ribbonButtonConfigs];
-              newConfigs[activeButtonIndex] = newConfig;
-              setRibbonButtonConfigs(newConfigs);
-              handleSettingsChange({ ribbonButtonConfigs: newConfigs });
-              setShowPrimaryActionsModal(false);
-            }}
-            config={ribbonButtonConfigs[activeButtonIndex]}
+            config={activeButtonIndex === "accessory" ? accessoryButtonConfig : ribbonButtonConfigs[activeButtonIndex]}
             buttonIndex={activeButtonIndex}
             preavailableIcons={[]}
             ribbonGlowColor={ribbonGlowColor}

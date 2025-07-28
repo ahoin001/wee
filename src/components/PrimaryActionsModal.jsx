@@ -6,8 +6,13 @@ import Toggle from '../ui/Toggle';
 import AdminPanel from './AdminPanel';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import useIconsStore from '../utils/useIconsStore';
+import useUIStore from '../utils/useUIStore';
 
-function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [], ribbonGlowColor = '#0099ff' }) {
+function PrimaryActionsModal({ config, buttonIndex, preavailableIcons = [], ribbonGlowColor = '#0099ff' }) {
+  const { showPrimaryActionsModal, closePrimaryActionsModal, savePrimaryAction } = useUIStore();
+  
+  const isOpen = showPrimaryActionsModal;
+  const onClose = closePrimaryActionsModal;
   const [type, setType] = useState(config?.type || 'text');
   const [text, setText] = useState(config?.text || (buttonIndex === 0 ? 'Wii' : ''));
   const [icon, setIcon] = useState(config?.icon || null);
@@ -271,8 +276,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     };
     
     console.log('PrimaryActionsModal saveData:', saveData);
-    console.log('Calling onSave with powerActions:', saveData.powerActions?.length || 0);
-    onSave(saveData);
+    console.log('Calling savePrimaryAction with powerActions:', saveData.powerActions?.length || 0);
+    savePrimaryAction(saveData, buttonIndex);
   };
 
   // --- Section Renderers ---
@@ -611,12 +616,13 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
 
   if (!isOpen) return null;
 
-  // Check if this is for the presets button
+  // Check if this is for the presets button or accessory button
   const isPresetsButton = buttonIndex === "presets";
+  const isAccessoryButton = buttonIndex === "accessory";
 
   return (
     <BaseModal
-      title={isPresetsButton ? "Customize Presets Button" : "Primary Actions"}
+      title={isPresetsButton ? "Customize Presets Button" : isAccessoryButton ? "Customize Accessory Button" : "Primary Actions"}
       onClose={onClose}
       maxWidth="480px"
       footerContent={({ handleClose }) => (
@@ -634,12 +640,14 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       {/* Icon Selection/Upload Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
-          <span className="wee-card-title">{isPresetsButton ? "Presets Button Icon" : "Channel Icon"}</span>
+          <span className="wee-card-title">{isPresetsButton ? "Presets Button Icon" : isAccessoryButton ? "Accessory Button Icon" : "Channel Icon"}</span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           {isPresetsButton 
             ? "Choose or upload a custom icon for the presets button. This button opens the presets modal when clicked."
+            : isAccessoryButton
+            ? "Choose or upload a custom icon for the accessory button. This button can be configured to launch any app or action."
             : "Choose or upload a custom icon for this channel. PNG recommended for best results."
           }
           <div style={{ marginTop: 14 }}>
