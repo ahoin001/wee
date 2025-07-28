@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BaseModal from './BaseModal';
 import Toggle from '../ui/Toggle';
+import cacheManager from '../utils/CacheManager.js';
 
 // Power Actions Data
 const powerActionsList = [
@@ -728,6 +729,177 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
           </div>
         </div>
       </div>
+      
+      {/* Cache Management Section */}
+      <div style={{
+        marginTop: '20px',
+        padding: '20px',
+        background: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid #e9ecef'
+      }}>
+        <h3 style={{
+          margin: '0 0 15px 0',
+          fontSize: '16px',
+          fontWeight: '600',
+          color: '#333'
+        }}>
+          🗄️ Cache Management
+        </h3>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '10px',
+          marginBottom: '15px'
+        }}>
+          <button
+            type="button"
+            onClick={() => {
+              cacheManager.clearCache('STEAM_GAMES_LIST');
+              setNotificationMessage('Steam games cache cleared');
+              setShowNotification(true);
+              setTimeout(() => setShowNotification(false), 2000);
+            }}
+            style={{
+              padding: '8px 12px',
+              background: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#0056b3'}
+            onMouseLeave={e => e.currentTarget.style.background = '#007bff'}
+          >
+            Clear Steam Games Cache
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => {
+              cacheManager.clearCache('INSTALLED_APPS');
+              setNotificationMessage('Installed apps cache cleared');
+              setShowNotification(true);
+              setTimeout(() => setShowNotification(false), 2000);
+            }}
+            style={{
+              padding: '8px 12px',
+              background: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#1e7e34'}
+            onMouseLeave={e => e.currentTarget.style.background = '#28a745'}
+          >
+            Clear Apps Cache
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => {
+              cacheManager.clearCache('EPIC_GAMES');
+              setNotificationMessage('Epic games cache cleared');
+              setShowNotification(true);
+              setTimeout(() => setShowNotification(false), 2000);
+            }}
+            style={{
+              padding: '8px 12px',
+              background: '#ffc107',
+              color: '#212529',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#e0a800'}
+            onMouseLeave={e => e.currentTarget.style.background = '#ffc107'}
+          >
+            Clear Epic Games Cache
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => {
+              cacheManager.clearCache('UWP_APPS');
+              setNotificationMessage('UWP apps cache cleared');
+              setShowNotification(true);
+              setTimeout(() => setShowNotification(false), 2000);
+            }}
+            style={{
+              padding: '8px 12px',
+              background: '#6f42c1',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#5a2d91'}
+            onMouseLeave={e => e.currentTarget.style.background = '#6f42c1'}
+          >
+            Clear UWP Apps Cache
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => {
+              cacheManager.clearAllCaches();
+              setNotificationMessage('All caches cleared');
+              setShowNotification(true);
+              setTimeout(() => setShowNotification(false), 2000);
+            }}
+            style={{
+              padding: '8px 12px',
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#c82333'}
+            onMouseLeave={e => e.currentTarget.style.background = '#dc3545'}
+          >
+            Clear All Caches
+          </button>
+        </div>
+        
+        <div style={{
+          fontSize: '12px',
+          color: '#666',
+          lineHeight: '1.4'
+        }}>
+          <strong>Cache Info:</strong> Caches are automatically refreshed every 24 hours. 
+          Clearing caches will force fresh data to be loaded on next app restart.
+        </div>
+      </div>
+      
+      {/* Notification */}
+      {showNotification && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: '#28a745',
+          color: 'white',
+          padding: '12px 20px',
+          borderRadius: '4px',
+          zIndex: 1000,
+          animation: 'slideIn 0.3s ease'
+        }}>
+          {notificationMessage}
+        </div>
+      )}
     </BaseModal>
   );
 }

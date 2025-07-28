@@ -1,9 +1,8 @@
 // Utility for loading, caching, and fuzzy searching Steam games
+import cacheManager from './CacheManager.js';
 
 const GAMES_URL = 'https://api.steampowered.com/ISteamApps/GetAppList/v2/';
 const POPULAR_GAMES_URL = '/steam-popular.json';
-const CACHE_KEY = 'steamGamesCache';
-const CACHE_TIMESTAMP_KEY = 'steamGamesCacheTimestamp';
 
 let gamesCache = null;
 let lastUpdated = null;
@@ -19,6 +18,15 @@ function fuzzySearch(games, query) {
 export async function loadGames() {
   lastError = null;
   console.log('[SteamGames] Fetching full Steam games list...');
+  
+  // Try to get cached data first
+  const cachedGames = cacheManager.getCachedData('STEAM_GAMES_LIST');
+  if (cachedGames) {
+    gamesCache = cachedGames;
+    lastUpdated = Date.now();
+    console.log(`[SteamGames] Using cached games list: ${cachedGames.length} games.`);
+  }
+  
   try {
     const resp = await fetch(GAMES_URL);
     if (!resp.ok) throw new Error('Steam API fetch failed: ' + resp.status);
@@ -27,8 +35,7 @@ export async function loadGames() {
     const games = data.applist?.apps || [];
     gamesCache = games;
     lastUpdated = Date.now();
-    localStorage.setItem(CACHE_KEY, JSON.stringify(games));
-    localStorage.setItem(CACHE_TIMESTAMP_KEY, lastUpdated);
+    cacheManager.setCachedData('STEAM_GAMES_LIST', games);
     console.log(`[SteamGames] Fetched full list: ${games.length} games.`);
     return games;
   } catch (err) {
@@ -42,16 +49,14 @@ export async function loadGames() {
       const data = await resp.json();
       gamesCache = data;
       lastUpdated = Date.now();
-      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-      localStorage.setItem(CACHE_TIMESTAMP_KEY, lastUpdated);
+      cacheManager.setCachedData('STEAM_GAMES_LIST', data);
       console.log(`[SteamGames] Fallback: loaded ${data.length} popular games.`);
       return data;
     } catch (fallbackErr) {
       lastError = fallbackErr.message;
       gamesCache = null;
       lastUpdated = null;
-      localStorage.removeItem(CACHE_KEY);
-      localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+      cacheManager.clearCache('STEAM_GAMES_LIST');
       console.error('[SteamGames] Failed to fetch fallback popular games:', fallbackErr);
       throw fallbackErr;
     }
@@ -60,10 +65,10 @@ export async function loadGames() {
 
 export function getCachedGames() {
   if (gamesCache) return gamesCache;
-  const raw = localStorage.getItem(CACHE_KEY);
-  if (raw) {
-    gamesCache = JSON.parse(raw);
-    lastUpdated = parseInt(localStorage.getItem(CACHE_TIMESTAMP_KEY), 10) || null;
+  const cachedGames = cacheManager.getCachedData('STEAM_GAMES_LIST');
+  if (cachedGames) {
+    gamesCache = cachedGames;
+    lastUpdated = Date.now();
     return gamesCache;
   }
   return null;
@@ -73,8 +78,7 @@ export function clearGamesCache() {
   gamesCache = null;
   lastUpdated = null;
   lastError = null;
-  localStorage.removeItem(CACHE_KEY);
-  localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+  cacheManager.clearCache('STEAM_GAMES_LIST');
 }
 
 export function searchGames(query) {

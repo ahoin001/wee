@@ -1,5 +1,56 @@
 import { create } from 'zustand';
 
+// Cache keys for localStorage
+const CACHE_KEYS = {
+  INSTALLED_APPS: 'installedAppsCache',
+  INSTALLED_APPS_TIMESTAMP: 'installedAppsCacheTimestamp',
+  STEAM_GAMES: 'steamGamesCache',
+  STEAM_GAMES_TIMESTAMP: 'steamGamesCacheTimestamp',
+  EPIC_GAMES: 'epicGamesCache',
+  EPIC_GAMES_TIMESTAMP: 'epicGamesCacheTimestamp',
+  UWP_APPS: 'uwpAppsCache',
+  UWP_APPS_TIMESTAMP: 'uwpAppsCacheTimestamp',
+};
+
+// Cache duration in milliseconds (24 hours)
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
+
+// Helper functions for cache management
+const getCachedData = (key, timestampKey) => {
+  try {
+    const data = localStorage.getItem(key);
+    const timestamp = localStorage.getItem(timestampKey);
+    
+    if (data && timestamp) {
+      const age = Date.now() - parseInt(timestamp, 10);
+      if (age < CACHE_DURATION) {
+        return JSON.parse(data);
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read cache:', key, error);
+  }
+  return null;
+};
+
+const setCachedData = (key, timestampKey, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(timestampKey, Date.now().toString());
+  } catch (error) {
+    console.warn('Failed to write cache:', key, error);
+  }
+};
+
+const clearCache = (key, timestampKey) => {
+  try {
+    localStorage.removeItem(key);
+    localStorage.removeItem(timestampKey);
+  } catch (error) {
+    console.warn('Failed to clear cache:', key, error);
+  }
+};
+
 const useAppLibraryStore = create((set, get) => ({
   // Installed Apps
   installedApps: [],
@@ -8,14 +59,29 @@ const useAppLibraryStore = create((set, get) => ({
   fetchInstalledApps: async () => {
     // console.log('[Zustand] fetchInstalledApps called');
     set({ appsLoading: true, appsError: '' });
+    
+    // Try to get cached data first
+    const cachedApps = getCachedData(CACHE_KEYS.INSTALLED_APPS, CACHE_KEYS.INSTALLED_APPS_TIMESTAMP);
+    if (cachedApps) {
+      set({ installedApps: cachedApps, appsLoading: false });
+      console.log('[Zustand] Using cached installed apps:', cachedApps.length);
+    }
+    
     try {
       const api = window.api?.apps;
       const apps = await api?.getInstalled();
       // console.log('[Zustand] fetchInstalledApps result:', apps);
-      set({ installedApps: apps || [], appsLoading: false });
+      
+      if (apps && apps.length > 0) {
+        set({ installedApps: apps, appsLoading: false });
+        setCachedData(CACHE_KEYS.INSTALLED_APPS, CACHE_KEYS.INSTALLED_APPS_TIMESTAMP, apps);
+        console.log('[Zustand] Updated installed apps cache:', apps.length);
+      } else {
+        set({ appsLoading: false });
+      }
     } catch (err) {
       console.log('[Zustand] fetchInstalledApps error:', err);
-      set({ installedApps: [], appsLoading: false, appsError: err?.message || 'Failed to scan apps.' });
+      set({ appsLoading: false, appsError: err?.message || 'Failed to scan apps.' });
     }
   },
   rescanInstalledApps: async () => {
@@ -24,7 +90,14 @@ const useAppLibraryStore = create((set, get) => ({
       const api = window.api?.apps;
       const apps = await api?.rescanInstalled();
       // console.log('[Zustand] rescanInstalledApps result:', apps);
-      set({ installedApps: apps || [], appsLoading: false });
+      
+      if (apps && apps.length > 0) {
+        set({ installedApps: apps, appsLoading: false });
+        setCachedData(CACHE_KEYS.INSTALLED_APPS, CACHE_KEYS.INSTALLED_APPS_TIMESTAMP, apps);
+        console.log('[Zustand] Updated installed apps cache after rescan:', apps.length);
+      } else {
+        set({ appsLoading: false });
+      }
     } catch (err) {
       console.log('[Zustand] rescanInstalledApps error:', err);
       set({ installedApps: [], appsLoading: false, appsError: err?.message || 'Failed to rescan apps.' });
@@ -38,15 +111,33 @@ const useAppLibraryStore = create((set, get) => ({
   fetchSteamGames: async (customSteamPath) => {
     // console.log('[Zustand] fetchSteamGames called', customSteamPath);
     set({ steamLoading: true, steamError: '' });
+    
+    // Try to get cached data first (if no custom path)
+    if (!customSteamPath) {
+      const cachedGames = getCachedData(CACHE_KEYS.STEAM_GAMES, CACHE_KEYS.STEAM_GAMES_TIMESTAMP);
+      if (cachedGames) {
+        set({ steamGames: cachedGames, steamLoading: false });
+        console.log('[Zustand] Using cached Steam games:', cachedGames.length);
+      }
+    }
+    
     try {
       const api = window.api?.steam;
       const args = customSteamPath ? { customPath: customSteamPath } : undefined;
       const result = await api?.getInstalledGames(args);
       console.log('[Zustand] fetchSteamGames result:', result);
+      
       if (result?.error) {
         set({ steamGames: [], steamLoading: false, steamError: result.error });
+      } else if (result?.games && result.games.length > 0) {
+        set({ steamGames: result.games, steamLoading: false });
+        // Only cache if no custom path (custom paths might change)
+        if (!customSteamPath) {
+          setCachedData(CACHE_KEYS.STEAM_GAMES, CACHE_KEYS.STEAM_GAMES_TIMESTAMP, result.games);
+          console.log('[Zustand] Updated Steam games cache:', result.games.length);
+        }
       } else {
-        set({ steamGames: result?.games || [], steamLoading: false });
+        set({ steamLoading: false });
       }
     } catch (err) {
       console.log('[Zustand] fetchSteamGames error:', err);
@@ -64,14 +155,27 @@ const useAppLibraryStore = create((set, get) => ({
   fetchEpicGames: async () => {
     // console.log('[Zustand] fetchEpicGames called');
     set({ epicLoading: true, epicError: '' });
+    
+    // Try to get cached data first
+    const cachedGames = getCachedData(CACHE_KEYS.EPIC_GAMES, CACHE_KEYS.EPIC_GAMES_TIMESTAMP);
+    if (cachedGames) {
+      set({ epicGames: cachedGames, epicLoading: false });
+      console.log('[Zustand] Using cached Epic games:', cachedGames.length);
+    }
+    
     try {
       const api = window.api?.epic;
       const result = await api?.getInstalledGames();
       console.log('[Zustand] fetchEpicGames result:', result);
+      
       if (result?.error) {
         set({ epicGames: [], epicLoading: false, epicError: result.error });
+      } else if (result?.games && result.games.length > 0) {
+        set({ epicGames: result.games, epicLoading: false });
+        setCachedData(CACHE_KEYS.EPIC_GAMES, CACHE_KEYS.EPIC_GAMES_TIMESTAMP, result.games);
+        console.log('[Zustand] Updated Epic games cache:', result.games.length);
       } else {
-        set({ epicGames: result?.games || [], epicLoading: false });
+        set({ epicLoading: false });
       }
     } catch (err) {
       console.log('[Zustand] fetchEpicGames error:', err);
@@ -89,11 +193,26 @@ const useAppLibraryStore = create((set, get) => ({
   fetchUwpApps: async () => {
     // console.log('[Zustand] fetchUwpApps called');
     set({ uwpLoading: true, uwpError: '' });
+    
+    // Try to get cached data first
+    const cachedApps = getCachedData(CACHE_KEYS.UWP_APPS, CACHE_KEYS.UWP_APPS_TIMESTAMP);
+    if (cachedApps) {
+      set({ uwpApps: cachedApps, uwpLoading: false });
+      console.log('[Zustand] Using cached UWP apps:', cachedApps.length);
+    }
+    
     try {
       const api = window.api?.uwp;
       const apps = await api?.listApps();
       console.log('[Zustand] fetchUwpApps result:', apps);
-      set({ uwpApps: apps || [], uwpLoading: false });
+      
+      if (apps && apps.length > 0) {
+        set({ uwpApps: apps, uwpLoading: false });
+        setCachedData(CACHE_KEYS.UWP_APPS, CACHE_KEYS.UWP_APPS_TIMESTAMP, apps);
+        console.log('[Zustand] Updated UWP apps cache:', apps.length);
+      } else {
+        set({ uwpLoading: false });
+      }
     } catch (err) {
       console.log('[Zustand] fetchUwpApps error:', err);
       set({ uwpApps: [], uwpLoading: false, uwpError: err?.message || 'Failed to scan Microsoft Store apps.' });
@@ -103,18 +222,46 @@ const useAppLibraryStore = create((set, get) => ({
     await get().fetchUwpApps();
   },
 
-  // Steam library path (single source of truth)
+  // Custom paths
   customSteamPath: localStorage.getItem('customSteamPath') || '',
   setCustomSteamPath: (path) => {
-    localStorage.setItem('customSteamPath', path);
     set({ customSteamPath: path });
+    localStorage.setItem('customSteamPath', path);
   },
-
-  // Epic library path (single source of truth)
   customEpicPath: localStorage.getItem('customEpicPath') || '',
   setCustomEpicPath: (path) => {
-    localStorage.setItem('customEpicPath', path);
     set({ customEpicPath: path });
+    localStorage.setItem('customEpicPath', path);
+  },
+
+  // Cache management
+  clearAllCaches: () => {
+    Object.values(CACHE_KEYS).forEach(key => {
+      if (key.includes('TIMESTAMP')) {
+        clearCache(key.replace('_TIMESTAMP', ''), key);
+      }
+    });
+    console.log('[Zustand] Cleared all app library caches');
+  },
+
+  clearInstalledAppsCache: () => {
+    clearCache(CACHE_KEYS.INSTALLED_APPS, CACHE_KEYS.INSTALLED_APPS_TIMESTAMP);
+    console.log('[Zustand] Cleared installed apps cache');
+  },
+
+  clearSteamGamesCache: () => {
+    clearCache(CACHE_KEYS.STEAM_GAMES, CACHE_KEYS.STEAM_GAMES_TIMESTAMP);
+    console.log('[Zustand] Cleared Steam games cache');
+  },
+
+  clearEpicGamesCache: () => {
+    clearCache(CACHE_KEYS.EPIC_GAMES, CACHE_KEYS.EPIC_GAMES_TIMESTAMP);
+    console.log('[Zustand] Cleared Epic games cache');
+  },
+
+  clearUwpAppsCache: () => {
+    clearCache(CACHE_KEYS.UWP_APPS, CACHE_KEYS.UWP_APPS_TIMESTAMP);
+    console.log('[Zustand] Cleared UWP apps cache');
   },
 }));
 
