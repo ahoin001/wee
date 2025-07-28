@@ -882,6 +882,50 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
           <strong>Cache Info:</strong> Caches are automatically refreshed every 24 hours. 
           Clearing caches will force fresh data to be loaded on next app restart.
         </div>
+        
+        {/* Cache Status Display */}
+        <div style={{
+          marginTop: '15px',
+          padding: '12px',
+          background: '#fff',
+          borderRadius: '6px',
+          border: '1px solid #e0e0e0'
+        }}>
+          <div style={{
+            fontSize: '13px',
+            fontWeight: '600',
+            marginBottom: '8px',
+            color: '#333'
+          }}>
+            📊 Cache Status
+          </div>
+          {(() => {
+            const stats = cacheManager.getCacheStats();
+            return Object.entries(stats).map(([cacheName, stat]) => (
+              <div key={cacheName} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '4px 0',
+                fontSize: '11px',
+                borderBottom: '1px solid #f0f0f0'
+              }}>
+                <span style={{ color: '#666' }}>
+                  {stat.description || cacheName}
+                </span>
+                <span style={{
+                  color: stat.exists ? (stat.expired ? '#ff9500' : '#28a745') : '#dc3545',
+                  fontWeight: '500'
+                }}>
+                  {stat.exists 
+                    ? (stat.expired ? `Expired (${stat.age}min)` : `Valid (${stat.age}min)`)
+                    : 'Not cached'
+                  }
+                </span>
+              </div>
+            ));
+          })()}
+        </div>
       </div>
       
       {/* Notification */}

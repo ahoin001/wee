@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import cacheManager from './CacheManager.js';
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
@@ -51,20 +52,46 @@ const clearCache = (key, timestampKey) => {
   }
 };
 
+// Check if cache is valid (exists and not expired)
+const isCacheValid = (key, timestampKey) => {
+  try {
+    const data = localStorage.getItem(key);
+    const timestamp = localStorage.getItem(timestampKey);
+    
+    if (data && timestamp) {
+      const age = Date.now() - parseInt(timestamp, 10);
+      return age < CACHE_DURATION;
+    }
+  } catch (error) {
+    console.warn('Error checking cache validity:', key, error);
+  }
+  return false;
+};
+
 const useAppLibraryStore = create((set, get) => ({
   // Installed Apps
   installedApps: [],
   appsLoading: false,
   appsError: '',
-  fetchInstalledApps: async () => {
-    // console.log('[Zustand] fetchInstalledApps called');
+  fetchInstalledApps: async (forceRefresh = false) => {
+    // console.log('[Zustand] fetchInstalledApps called', { forceRefresh });
     set({ appsLoading: true, appsError: '' });
     
-    // Try to get cached data first
+    // Check if we have valid cache and don't need to force refresh
+    if (!forceRefresh && isCacheValid(CACHE_KEYS.INSTALLED_APPS, CACHE_KEYS.INSTALLED_APPS_TIMESTAMP)) {
+      const cachedApps = getCachedData(CACHE_KEYS.INSTALLED_APPS, CACHE_KEYS.INSTALLED_APPS_TIMESTAMP);
+      if (cachedApps) {
+        set({ installedApps: cachedApps, appsLoading: false });
+        console.log('[Zustand] Using valid cached installed apps:', cachedApps.length);
+        return; // Exit early - no need to fetch
+      }
+    }
+    
+    // Show cached data immediately if available (even if expired)
     const cachedApps = getCachedData(CACHE_KEYS.INSTALLED_APPS, CACHE_KEYS.INSTALLED_APPS_TIMESTAMP);
     if (cachedApps) {
       set({ installedApps: cachedApps, appsLoading: false });
-      console.log('[Zustand] Using cached installed apps:', cachedApps.length);
+      console.log('[Zustand] Using cached installed apps (will refresh):', cachedApps.length);
     }
     
     try {
@@ -108,16 +135,26 @@ const useAppLibraryStore = create((set, get) => ({
   steamGames: [],
   steamLoading: false,
   steamError: '',
-  fetchSteamGames: async (customSteamPath) => {
-    // console.log('[Zustand] fetchSteamGames called', customSteamPath);
+  fetchSteamGames: async (customSteamPath, forceRefresh = false) => {
+    // console.log('[Zustand] fetchSteamGames called', { customSteamPath, forceRefresh });
     set({ steamLoading: true, steamError: '' });
     
-    // Try to get cached data first (if no custom path)
+    // Check if we have valid cache and don't need to force refresh (only for default path)
+    if (!customSteamPath && !forceRefresh && isCacheValid(CACHE_KEYS.STEAM_GAMES, CACHE_KEYS.STEAM_GAMES_TIMESTAMP)) {
+      const cachedGames = getCachedData(CACHE_KEYS.STEAM_GAMES, CACHE_KEYS.STEAM_GAMES_TIMESTAMP);
+      if (cachedGames) {
+        set({ steamGames: cachedGames, steamLoading: false });
+        console.log('[Zustand] Using valid cached Steam games:', cachedGames.length);
+        return; // Exit early - no need to fetch
+      }
+    }
+    
+    // Show cached data immediately if available (even if expired)
     if (!customSteamPath) {
       const cachedGames = getCachedData(CACHE_KEYS.STEAM_GAMES, CACHE_KEYS.STEAM_GAMES_TIMESTAMP);
       if (cachedGames) {
         set({ steamGames: cachedGames, steamLoading: false });
-        console.log('[Zustand] Using cached Steam games:', cachedGames.length);
+        console.log('[Zustand] Using cached Steam games (will refresh):', cachedGames.length);
       }
     }
     
@@ -145,22 +182,32 @@ const useAppLibraryStore = create((set, get) => ({
     }
   },
   rescanSteamGames: async (customSteamPath) => {
-    await get().fetchSteamGames(customSteamPath);
+    await get().fetchSteamGames(customSteamPath, true); // Force refresh
   },
 
   // Epic Games
   epicGames: [],
   epicLoading: false,
   epicError: '',
-  fetchEpicGames: async () => {
-    // console.log('[Zustand] fetchEpicGames called');
+  fetchEpicGames: async (forceRefresh = false) => {
+    // console.log('[Zustand] fetchEpicGames called', { forceRefresh });
     set({ epicLoading: true, epicError: '' });
     
-    // Try to get cached data first
+    // Check if we have valid cache and don't need to force refresh
+    if (!forceRefresh && isCacheValid(CACHE_KEYS.EPIC_GAMES, CACHE_KEYS.EPIC_GAMES_TIMESTAMP)) {
+      const cachedGames = getCachedData(CACHE_KEYS.EPIC_GAMES, CACHE_KEYS.EPIC_GAMES_TIMESTAMP);
+      if (cachedGames) {
+        set({ epicGames: cachedGames, epicLoading: false });
+        console.log('[Zustand] Using valid cached Epic games:', cachedGames.length);
+        return; // Exit early - no need to fetch
+      }
+    }
+    
+    // Show cached data immediately if available (even if expired)
     const cachedGames = getCachedData(CACHE_KEYS.EPIC_GAMES, CACHE_KEYS.EPIC_GAMES_TIMESTAMP);
     if (cachedGames) {
       set({ epicGames: cachedGames, epicLoading: false });
-      console.log('[Zustand] Using cached Epic games:', cachedGames.length);
+      console.log('[Zustand] Using cached Epic games (will refresh):', cachedGames.length);
     }
     
     try {
@@ -183,22 +230,32 @@ const useAppLibraryStore = create((set, get) => ({
     }
   },
   rescanEpicGames: async () => {
-    await get().fetchEpicGames();
+    await get().fetchEpicGames(true); // Force refresh
   },
 
   // UWP Apps
   uwpApps: [],
   uwpLoading: false,
   uwpError: '',
-  fetchUwpApps: async () => {
-    // console.log('[Zustand] fetchUwpApps called');
+  fetchUwpApps: async (forceRefresh = false) => {
+    // console.log('[Zustand] fetchUwpApps called', { forceRefresh });
     set({ uwpLoading: true, uwpError: '' });
     
-    // Try to get cached data first
+    // Check if we have valid cache and don't need to force refresh
+    if (!forceRefresh && isCacheValid(CACHE_KEYS.UWP_APPS, CACHE_KEYS.UWP_APPS_TIMESTAMP)) {
+      const cachedApps = getCachedData(CACHE_KEYS.UWP_APPS, CACHE_KEYS.UWP_APPS_TIMESTAMP);
+      if (cachedApps) {
+        set({ uwpApps: cachedApps, uwpLoading: false });
+        console.log('[Zustand] Using valid cached UWP apps:', cachedApps.length);
+        return; // Exit early - no need to fetch
+      }
+    }
+    
+    // Show cached data immediately if available (even if expired)
     const cachedApps = getCachedData(CACHE_KEYS.UWP_APPS, CACHE_KEYS.UWP_APPS_TIMESTAMP);
     if (cachedApps) {
       set({ uwpApps: cachedApps, uwpLoading: false });
-      console.log('[Zustand] Using cached UWP apps:', cachedApps.length);
+      console.log('[Zustand] Using cached UWP apps (will refresh):', cachedApps.length);
     }
     
     try {
@@ -219,7 +276,7 @@ const useAppLibraryStore = create((set, get) => ({
     }
   },
   rescanUwpApps: async () => {
-    await get().fetchUwpApps();
+    await get().fetchUwpApps(true); // Force refresh
   },
 
   // Custom paths
@@ -263,6 +320,12 @@ const useAppLibraryStore = create((set, get) => ({
     clearCache(CACHE_KEYS.UWP_APPS, CACHE_KEYS.UWP_APPS_TIMESTAMP);
     console.log('[Zustand] Cleared UWP apps cache');
   },
+
+  // Cache status helpers
+  isInstalledAppsCacheValid: () => isCacheValid(CACHE_KEYS.INSTALLED_APPS, CACHE_KEYS.INSTALLED_APPS_TIMESTAMP),
+  isSteamGamesCacheValid: () => isCacheValid(CACHE_KEYS.STEAM_GAMES, CACHE_KEYS.STEAM_GAMES_TIMESTAMP),
+  isEpicGamesCacheValid: () => isCacheValid(CACHE_KEYS.EPIC_GAMES, CACHE_KEYS.EPIC_GAMES_TIMESTAMP),
+  isUwpAppsCacheValid: () => isCacheValid(CACHE_KEYS.UWP_APPS, CACHE_KEYS.UWP_APPS_TIMESTAMP),
 }));
 
 export default useAppLibraryStore; 

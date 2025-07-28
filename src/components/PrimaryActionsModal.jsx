@@ -120,19 +120,19 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   // Fetch app library data when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Fetch installed apps if not already loaded
+      // Only fetch if data is not already loaded and not currently loading
       if (installedApps.length === 0 && !appsLoading) {
         fetchInstalledApps();
       }
-      // Fetch UWP apps if not already loaded
+      // Only fetch if data is not already loaded and not currently loading
       if (uwpApps.length === 0 && !uwpLoading) {
         fetchUwpApps();
       }
-      // Fetch Steam games if not already loaded
+      // Only fetch if data is not already loaded and not currently loading
       if (steamGames.length === 0 && !steamLoading) {
         fetchSteamGames(customSteamPath);
       }
-      // Fetch Epic games if not already loaded
+      // Only fetch if data is not already loaded and not currently loading
       if (epicGames.length === 0 && !epicLoading) {
         fetchEpicGames();
       }

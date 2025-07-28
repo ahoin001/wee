@@ -1017,7 +1017,7 @@ function App() {
     } = useAppLibraryStore.getState();
 
     // Fetch data only if cache is expired or missing
-    // The fetch functions now check cache validity internally
+    // The fetch functions now check cache validity internally and only fetch when needed
     fetchInstalledApps();
     fetchSteamGames();
     fetchEpicGames();
