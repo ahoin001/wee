@@ -2220,14 +2220,14 @@ function App() {
                 }}>
                   {showDock ? 'Hide Ribbon (Dock)' : 'Show Ribbon'}
                 </div>
-                {/* <div className="context-menu-item" onClick={async () => {
+                <div className="context-menu-item" onClick={async () => {
                   const newClassicMode = !classicMode;
                   setClassicMode(newClassicMode);
                   await handleSettingsChange({ classicMode: newClassicMode });
                   closeSettingsMenu();
                 }}>
                   {classicMode ? 'Switch to Modern Mode' : 'Switch to Classic Mode'}
-                </div> */}
+                </div>
                 <div className="settings-menu-separator" />
                 {/* Window Group */}
                 <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>

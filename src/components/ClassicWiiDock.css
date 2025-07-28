@@ -1,33 +1,176 @@
-/* Classic Wii Dock Component Styles */
+/* Wii Dock Scoped Styles - Prevents Global CSS Conflicts */
 
-/* Ensure tap highlight is transparent for better mobile experience on buttons */
-button {
-  -webkit-tap-highlight-color: transparent;
+/* Main Container - Positioned at bottom like WiiRibbon */
+.wii-dock-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: auto;
+  z-index: 1000;
+  background: transparent;
+  padding: 0;
 }
 
-/* Pod glow effect */
-.pod-glow {
+.wii-dock-container {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  position: relative;
+}
+
+.wii-dock-base {
+  position: relative;
+  width: 100%;
+  margin: 0;
+}
+
+/* Base Dock SVG */
+.wii-dock-svg {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 10px 8px rgb(0 0 0 / 0.04)) drop-shadow(0 4px 3px rgb(0 0 0 / 0.1));
+}
+
+/* SD Card */
+.wii-sd-card {
+  position: absolute;
+  top: 43.12%;
+  left: 18.51%;
+  width: 3.83%;
+  height: auto;
+}
+
+.wii-sd-card-svg {
+  width: 100%;
+  height: auto;
+}
+
+/* Button Pods */
+.wii-left-pod {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 15.9%;
+  height: auto;
+  transform: translateY(-50%);
+}
+
+.wii-right-pod {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 15.9%;
+  height: auto;
+  transform: translateY(-50%);
+}
+
+.wii-pod-svg {
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.wii-pod-glow {
   filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.7));
   transition: filter 0.2s ease-in-out;
 }
 
+/* Buttons */
+.wii-left-button {
+  position: absolute;
+  width: 57.7%;
+  height: 78.2%;
+  top: 5.6%;
+  left: 31.6%;
+  border-radius: 50%;
+  border: 2px solid;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wii-right-button {
+  position: absolute;
+  width: 65.4%;
+  aspect-ratio: 1/1;
+  top: 5.6%;
+  right: 33.7%;
+  border-radius: 50%;
+  border: 2px solid;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Button Content */
+.wii-button-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wii-button-icon {
+  width: 48%;
+  height: auto;
+  z-index: 10;
+}
+
+.wii-right-button .wii-button-icon {
+  width: 50%;
+}
+
+.wii-icon-svg {
+  width: 100%;
+  height: auto;
+}
+
+.wii-button-highlight {
+  position: absolute;
+  inset: 0;
+}
+
+.wii-highlight-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Animation Classes */
+.group-hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
+.group-hover\:brightness-110:hover {
+  filter: brightness(1.1);
+}
+
+.group-active\:scale-95:active {
+  transform: scale(0.95);
+}
+
+.group-active\:brightness-90:active {
+  filter: brightness(0.9);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-  .text-4xl {
-    font-size: 1.5rem;
+  .wii-dock-wrapper {
+    padding: 0;
   }
   
-  .text-lg {
-    font-size: 0.875rem;
+  .wii-dock-container {
+    max-width: 100%;
   }
 }
 
 @media (max-width: 480px) {
-  .text-4xl {
-    font-size: 1.25rem;
-  }
-  
-  .text-lg {
-    font-size: 0.75rem;
+  .wii-dock-wrapper {
+    padding: 0;
   }
 } 
