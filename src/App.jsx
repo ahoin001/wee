@@ -2336,7 +2336,19 @@ function App() {
                   handleOpenUpdateModal();
                   closeSettingsMenu(); 
                 }}>
-                  🔄 Check for Updates
+                  �� Check for Updates
+                  {updateAvailable && (
+                    <span style={{
+                      background: '#dc3545',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '8px',
+                      height: '8px',
+                      display: 'inline-block',
+                      marginLeft: '8px',
+                      animation: 'pulse 2s infinite'
+                    }} />
+                  )}
                 </div>
                 <div className="context-menu-item" onClick={() => { 
                   if (window.api?.close) window.api.close(); 
