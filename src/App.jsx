@@ -17,6 +17,7 @@ import TimeSettingsModal from './components/TimeSettingsModal';
 import RibbonSettingsModal from './components/RibbonSettingsModal';
 import UpdateModal from './components/UpdateModal';
 import ChannelSettingsModal from './components/ChannelSettingsModal';
+import LayoutManagerModal from './components/LayoutManagerModal';
 import AppShortcutsModal from './components/AppShortcutsModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
@@ -130,6 +131,7 @@ function App() {
     showWallpaperModal, 
     showSoundModal,
     showChannelSettingsModal,
+    showLayoutManagerModal,
     showAppShortcutsModal,
     showGeneralSettingsModal,
     showTimeSettingsModal,
@@ -140,6 +142,7 @@ function App() {
     closeWallpaperModal,
     closeSoundModal,
     closeChannelSettingsModal,
+    closeLayoutManagerModal,
     closeAppShortcutsModal,
     closeGeneralSettingsModal,
     closeTimeSettingsModal,
@@ -203,6 +206,16 @@ function App() {
   const [timePillBlur, setTimePillBlur] = useState(8); // Time pill backdrop blur
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Channel auto-fade timeout
+  const [gridSettings, setGridSettings] = useState({
+    rowGap: 16,
+    columnGap: 16,
+    gridPosition: 'center',
+    responsiveRows: 3,
+    responsiveColumns: 4,
+    hiddenChannels: [],
+    gridAlignment: 'start',
+    gridJustification: 'center'
+  });
   const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
   const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
@@ -658,6 +671,16 @@ function App() {
         setTimePillBlur(settings.timePillBlur ?? 8); // Load timePillBlur
         setTimePillOpacity(settings.timePillOpacity ?? 0.05); // Load timePillOpacity
         setChannelAutoFadeTimeout(settings.channelAutoFadeTimeout ?? 5); // Load channelAutoFadeTimeout
+        setGridSettings(settings.gridSettings ?? {
+          rowGap: 16,
+          columnGap: 16,
+          gridPosition: 'center',
+          responsiveRows: 3,
+          responsiveColumns: 4,
+          hiddenChannels: [],
+          gridAlignment: 'start',
+          gridJustification: 'center'
+        }); // Load gridSettings
         currentTimeColorRef.current = settings.timeColor || '#ffffff';
         currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
         setTimeFont(settings.timeFont || 'default');
@@ -784,6 +807,8 @@ function App() {
         timePillBlur, // Persist timePillBlur
         timePillOpacity, // Persist timePillOpacity
         channelAutoFadeTimeout, // Persist channelAutoFadeTimeout
+        gridSettings, // Persist gridSettings
+        ribbonButtonConfigs, // Persist ribbonButtonConfigs
         ribbonColor, // Persist ribbonColor
         recentRibbonColors, // Persist recentRibbonColors
         ribbonGlowColor, // Persist ribbonGlowColor
@@ -830,7 +855,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, gridSettings, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock]);
 
   // Persist keyboard shortcuts when they change
   useEffect(() => {
@@ -1308,6 +1333,12 @@ function App() {
     // Note: Settings are automatically persisted by the main persistSettings useEffect
     // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
     // are preserved and not overwritten by direct settings saves.
+    if (newSettings.channelAutoFadeTimeout !== undefined) {
+      setChannelAutoFadeTimeout(newSettings.channelAutoFadeTimeout);
+    }
+    if (newSettings.gridSettings !== undefined) {
+      setGridSettings(newSettings.gridSettings);
+    }
   };
 
   // Pass settings to SettingsButton via window.settings for now (could use context for better solution)
@@ -2041,6 +2072,7 @@ function App() {
             onChannelSave={handleChannelSave}
             onChannelHover={handleChannelHover}
             onOpenModal={setOpenChannelModal}
+            gridSettings={gridSettings}
           />
           <PageNavigation />
           <WiiSideNavigation />
@@ -2168,6 +2200,12 @@ function App() {
                 }}>
                   Channel Settings
                 </div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openLayoutManagerModal(); closeSettingsMenu(); }}>
+                  📐 Layout Manager
+                </div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openAppShortcutsModal(); closeSettingsMenu(); }}>
+                  ⌨️ Keyboard Shortcuts
+                </div>
                 <div className="context-menu-item" onClick={() => { handleToggleDarkMode(); closeSettingsMenu(); }}>
                   Toggle Dark Mode
                 </div>
@@ -2283,6 +2321,16 @@ function App() {
                           slideDuration: 1.5,
                           slideEasing: 'ease-out',
                           channelAutoFadeTimeout: 5,
+                          gridSettings: {
+                            rowGap: 16,
+                            columnGap: 16,
+                            gridPosition: 'center',
+                            responsiveRows: 3,
+                            responsiveColumns: 4,
+                            hiddenChannels: [],
+                            gridAlignment: 'start',
+                            gridJustification: 'center'
+                          },
                           ribbonButtonConfigs: [{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]
                         });
                       }
@@ -2381,6 +2429,14 @@ function App() {
           kenBurnsCrossfadeReturn={kenBurnsCrossfadeReturn}
           kenBurnsTransitionType={kenBurnsTransitionType}
           channelAutoFadeTimeout={channelAutoFadeTimeout}
+        />
+        
+        <LayoutManagerModal
+          isOpen={showLayoutManagerModal}
+          onClose={closeLayoutManagerModal}
+          onSettingsChange={handleSettingsChange}
+          channels={channels}
+          gridSettings={gridSettings}
         />
         
         {showAppShortcutsModal && (

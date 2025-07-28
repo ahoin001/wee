@@ -16,6 +16,7 @@ const useUIStore = create((set, get) => ({
   showTimeSettingsModal: false,
   showRibbonSettingsModal: false,
   showUpdateModal: false,
+  showLayoutManagerModal: false,
   showPrimaryActionsModal: false,
   
   // Keyboard shortcuts state
@@ -112,6 +113,13 @@ const useUIStore = create((set, get) => ({
     set({ showUpdateModal: !showUpdateModal });
   },
   
+  openLayoutManagerModal: () => set({ showLayoutManagerModal: true }),
+  closeLayoutManagerModal: () => set({ showLayoutManagerModal: false }),
+  toggleLayoutManagerModal: () => {
+    const { showLayoutManagerModal } = get();
+    set({ showLayoutManagerModal: !showLayoutManagerModal });
+  },
+  
   openPrimaryActionsModal: () => set({ showPrimaryActionsModal: true }),
   closePrimaryActionsModal: () => set({ showPrimaryActionsModal: false }),
   togglePrimaryActionsModal: () => {
@@ -155,6 +163,7 @@ const useUIStore = create((set, get) => ({
       showTimeSettingsModal,
       showRibbonSettingsModal,
       showUpdateModal,
+      showLayoutManagerModal,
       showPrimaryActionsModal,
       keyboardShortcuts 
     } = get();
@@ -163,7 +172,7 @@ const useUIStore = create((set, get) => ({
     const modalsOpen = showPresetsModal || showWallpaperModal || showSoundModal || 
                       showChannelSettingsModal || showAppShortcutsModal ||
                       showGeneralSettingsModal || showTimeSettingsModal ||
-                      showRibbonSettingsModal || showUpdateModal || showPrimaryActionsModal;
+                      showRibbonSettingsModal || showUpdateModal || showLayoutManagerModal || showPrimaryActionsModal;
     
     // Get the current key and modifier
     const key = event.key.toLowerCase();
@@ -254,6 +263,14 @@ const useUIStore = create((set, get) => ({
             document.dispatchEvent(escapeEvent);
           } else {
             get().openUpdateModal();
+          }
+        },
+        'openLayoutManagerModal': () => {
+          if (showLayoutManagerModal) {
+            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+            document.dispatchEvent(escapeEvent);
+          } else {
+            get().openLayoutManagerModal();
           }
         },
         'openPrimaryActionsModal': () => {

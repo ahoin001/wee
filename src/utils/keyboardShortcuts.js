@@ -101,6 +101,16 @@ export const DEFAULT_SHORTCUTS = [
     icon: '⚙️'
   },
   {
+    id: 'open-layout-manager-modal',
+    name: 'Open Layout Manager',
+    description: 'Open the layout manager for grid customization',
+    defaultKey: 'l',
+    defaultModifier: 'ctrl',
+    action: 'openLayoutManagerModal',
+    category: 'Modals',
+    icon: '📐'
+  },
+  {
     id: 'toggle-settings-menu',
     name: 'Toggle Settings Menu',
     description: 'Open or close the settings menu',

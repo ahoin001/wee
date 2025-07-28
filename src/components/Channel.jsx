@@ -20,7 +20,7 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle, adaptiveEmptyChannels, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode, idleAnimationClass, isIdleAnimating }) => {
+const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle, adaptiveEmptyChannels, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode, idleAnimationClass, isIdleAnimating, isHidden }) => {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -489,19 +489,23 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     <div
       className={
         empty && !media 
-          ? `channel empty${adaptiveEmptyChannels && window.settings?.ribbonColor ? ' adaptive' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}`
+          ? `channel empty${adaptiveEmptyChannels && window.settings?.ribbonColor ? ' adaptive' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${isHidden ? ' hidden' : ''}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${isHidden ? ' hidden' : ''}`
       }
       data-channel-id={id}
-      onClick={handleClick}
-      onMouseEnter={e => { handleMouseEnter(e); setIsHovered(true); }}
-      onMouseLeave={e => { handleMouseLeave(e); setIsHovered(false); }}
-      tabIndex={0}
+      onClick={isHidden ? undefined : handleClick}
+      onMouseEnter={isHidden ? undefined : (e) => { handleMouseEnter(e); setIsHovered(true); }}
+      onMouseLeave={isHidden ? undefined : (e) => { handleMouseLeave(e); setIsHovered(false); }}
+      tabIndex={isHidden ? -1 : 0}
       role="button"
-      onContextMenu={handleRightClick}
+      onContextMenu={isHidden ? undefined : handleRightClick}
       style={{
         ...(empty && !media && adaptiveEmptyChannels && window.settings?.ribbonColor && {
           '--adaptive-bg-color': window.settings.ribbonColor,
+        }),
+        ...(isHidden && {
+          visibility: 'hidden',
+          pointerEvents: 'none'
         })
       }}
     >
@@ -605,6 +609,7 @@ Channel.propTypes = {
   kenBurnsMode: PropTypes.oneOf(['hover', 'autoplay']),
   idleAnimationClass: PropTypes.string,
   isIdleAnimating: PropTypes.bool,
+  isHidden: PropTypes.bool,
 };
 
 export default Channel;

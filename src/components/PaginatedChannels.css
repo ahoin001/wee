@@ -22,10 +22,7 @@
 }
 
 .channels-page .channels-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
-  grid-template-rows: repeat(3, 1fr);
-  gap: 2rem;
+  /* Grid styles are now applied dynamically via inline styles */
   padding: 2rem 2vw;
   width: 100%;
   max-width: 100%;
@@ -61,16 +58,14 @@
 /* Responsive Design */
 @media (max-width: 1200px) {
   .channels-page .channels-grid {
-    grid-template-columns: repeat(3, minmax(160px, 1fr));
-    grid-template-rows: repeat(4, 1fr);
+    /* Responsive grid settings are now handled dynamically */
     gap: 1.5rem;
   }
 }
 
 @media (max-width: 768px) {
   .channels-page .channels-grid {
-    grid-template-columns: repeat(2, minmax(140px, 1fr));
-    grid-template-rows: repeat(6, 1fr);
+    /* Responsive grid settings are now handled dynamically */
     gap: 1.25rem;
     padding: 1.5rem 1rem;
   }
@@ -78,7 +73,7 @@
 
 @media (max-width: 480px) {
   .channels-page .channels-grid {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    /* Responsive grid settings are now handled dynamically */
     gap: 1rem;
     padding: 1rem 0.5rem;
   }

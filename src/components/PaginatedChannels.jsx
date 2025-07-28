@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import usePageNavigationStore from '../utils/usePageNavigationStore';
 import useIdleChannelAnimations from '../utils/useIdleChannelAnimations';
@@ -21,7 +21,8 @@ const PaginatedChannels = ({
   onAppPathChange,
   onChannelSave,
   onChannelHover,
-  onOpenModal
+  onOpenModal,
+  gridSettings = {}
 }) => {
   const {
     currentPage,
@@ -34,6 +35,20 @@ const PaginatedChannels = ({
     setTotalPages,
     ensurePageExists
   } = usePageNavigationStore();
+
+  const [selectedChannels, setSelectedChannels] = useState([]);
+  const [showHiddenChannels, setShowHiddenChannels] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Track window resize for responsive updates
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Calculate total channels needed first
   const totalChannelsNeeded = useMemo(() => {
@@ -49,14 +64,17 @@ const PaginatedChannels = ({
       }
     });
     
-    // Ensure we have at least 3 pages worth of channels (36 channels) to start with
-    const minChannels = channelsPerPage * 3; // At least 3 pages
+    // Calculate based on user's grid settings to ensure each page fills completely
+    const channelsPerGrid = gridSettings.responsiveRows * gridSettings.responsiveColumns;
     const neededForConfigured = highestIndex >= 0 ? highestIndex + 1 : 0;
-    const result = Math.max(minChannels, neededForConfigured);
+    
+    // Ensure we have enough channels to fill at least 3 pages completely
+    const minChannelsForPages = channelsPerGrid * 3;
+    const result = Math.max(minChannelsForPages, neededForConfigured);
     
     // console.log('PaginatedChannels: totalChannelsNeeded calculation', {
-    //   channelsPerPage,
-    //   minChannels,
+    //   channelsPerGrid,
+    //   minChannelsForPages,
     //   highestIndex,
     //   neededForConfigured,
     //   result,
@@ -64,11 +82,11 @@ const PaginatedChannels = ({
     // });
     
     return result;
-  }, [channelConfigs, channelsPerPage]);
+  }, [channelConfigs, gridSettings.responsiveRows, gridSettings.responsiveColumns]);
 
   // Generate all channels for all pages (with full configuration data)
   const allPagesChannels = useMemo(() => {
-    const totalChannels = getTotalChannelsCount();
+    const totalChannels = totalChannelsNeeded;
     const channels = [];
     
     for (let i = 0; i < totalChannels; i++) {
@@ -101,7 +119,7 @@ const PaginatedChannels = ({
     // })));
     
     return channels;
-  }, [getTotalChannelsCount, channelConfigs, mediaMap, appPathMap, totalPages, channelsPerPage, totalChannelsNeeded]);
+  }, [totalChannelsNeeded, channelConfigs, mediaMap, appPathMap, totalPages, channelsPerPage]);
 
   // Idle animation system (now using processed channels with full data)
   const { getChannelAnimationClass, isChannelAnimating } = useIdleChannelAnimations(
@@ -134,16 +152,92 @@ const PaginatedChannels = ({
 
   // Get channels for each page
   const pageChannels = useMemo(() => {
+    // Don't filter out hidden channels - keep them in their positions
+    const allChannels = allPagesChannels;
+    
+    // Calculate exact channels per page based on grid settings
+    const channelsPerGrid = gridSettings.responsiveRows * gridSettings.responsiveColumns;
+    
     const pages = [];
     for (let page = 0; page < totalPages; page++) {
       const { startIndex, endIndex } = getChannelIndexRange(page);
-      const pageChannelSlice = allPagesChannels.slice(startIndex, endIndex);
+      let pageChannelSlice = allChannels.slice(startIndex, endIndex);
+      
+      // Ensure each page has exactly the same number of channels that fills the grid
+      if (pageChannelSlice.length > channelsPerGrid) {
+        pageChannelSlice = pageChannelSlice.slice(0, channelsPerGrid);
+      } else if (pageChannelSlice.length < channelsPerGrid) {
+        // Pad with empty channels to fill the grid completely
+        const emptyChannelsNeeded = channelsPerGrid - pageChannelSlice.length;
+        for (let i = 0; i < emptyChannelsNeeded; i++) {
+          const emptyChannelId = `empty-${page}-${i}`;
+          pageChannelSlice.push({
+            id: emptyChannelId,
+            index: startIndex + pageChannelSlice.length + i,
+            empty: true,
+            media: null,
+            path: null,
+            type: null,
+            title: null,
+            hoverSound: null,
+            asAdmin: false
+          });
+        }
+      }
+      
       pages.push(pageChannelSlice);
       // console.log(`Page ${page}: indices ${startIndex}-${endIndex}, channels:`, pageChannelSlice.length);
     }
     // console.log('PaginatedChannels: Total pages created:', pages.length, 'with channels:', pages.map(p => p.length));
     return pages;
-  }, [allPagesChannels, totalPages, getChannelIndexRange]);
+  }, [allPagesChannels, totalPages, getChannelIndexRange, gridSettings.responsiveRows, gridSettings.responsiveColumns]);
+
+  // Get responsive grid settings based on screen size
+  const getResponsiveGridSettings = () => {
+    const width = windowWidth;
+    let responsiveColumns = gridSettings.responsiveColumns || 4;
+    let responsiveRows = gridSettings.responsiveRows || 3;
+    let gap = `${gridSettings.rowGap || 16}px ${gridSettings.columnGap || 16}px`;
+
+    // Only apply responsive limits if the user hasn't set custom values
+    if (width <= 480) {
+      responsiveColumns = Math.min(responsiveColumns, 2);
+      responsiveRows = Math.min(responsiveRows, 6);
+      gap = `${Math.min(gridSettings.rowGap || 16, 12)}px ${Math.min(gridSettings.columnGap || 16, 12)}px`;
+    } else if (width <= 768) {
+      responsiveColumns = Math.min(responsiveColumns, 2);
+      responsiveRows = Math.min(responsiveRows, 6);
+      gap = `${Math.min(gridSettings.rowGap || 16, 14)}px ${Math.min(gridSettings.columnGap || 16, 14)}px`;
+    } else if (width <= 1200) {
+      responsiveColumns = Math.min(responsiveColumns, 3);
+      responsiveRows = Math.min(responsiveRows, 4);
+      gap = `${Math.min(gridSettings.rowGap || 16, 18)}px ${Math.min(gridSettings.columnGap || 16, 18)}px`;
+    }
+
+    return { responsiveColumns, responsiveRows, gap };
+  };
+
+  // Get grid container styles based on positioning settings
+  const getGridContainerStyles = () => {
+    const { responsiveColumns, responsiveRows, gap } = getResponsiveGridSettings();
+    
+    return {
+      display: 'grid',
+      gridTemplateColumns: `repeat(${responsiveColumns}, minmax(180px, 1fr))`,
+      gridTemplateRows: `repeat(${responsiveRows}, 1fr)`,
+      gap: gap,
+      padding: '2rem 2vw',
+      width: '100%',
+      maxWidth: '100%',
+      margin: 0,
+      boxSizing: 'border-box',
+      minHeight: '400px',
+      height: 'fit-content',
+      justifyContent: gridSettings.gridJustification || 'center',
+      alignItems: gridSettings.gridAlignment || 'start',
+      placeItems: gridSettings.gridAlignment === 'stretch' ? 'stretch' : 'start'
+    };
+  };
 
   // Handle channel modal opening (ensure page exists for the channel)
   const handleOpenModal = (channelId) => {
@@ -168,8 +262,21 @@ const PaginatedChannels = ({
           <div 
             key={pageIndex} 
             className={`channels-page ${pageIndex === currentPage ? 'active' : ''}`}
+            style={{
+              height: '100vh',
+              display: 'flex',
+              alignItems: gridSettings.gridAlignment === 'center' ? 'center' : 
+                        gridSettings.gridAlignment === 'end' ? 'flex-end' : 'flex-start',
+              justifyContent: gridSettings.gridJustification === 'center' ? 'center' : 
+                            gridSettings.gridJustification === 'end' ? 'flex-end' : 
+                            gridSettings.gridJustification === 'space-between' ? 'space-between' :
+                            gridSettings.gridJustification === 'space-around' ? 'space-around' : 'flex-start'
+            }}
           >
-            <div className="channels-grid">
+            <div 
+              className="channels-grid"
+              style={getGridContainerStyles()}
+            >
               {channels.map((channel) => (
                 <Channel
                   key={channel.id}
@@ -187,6 +294,7 @@ const PaginatedChannels = ({
                   kenBurnsMode={kenBurnsMode}
                   idleAnimationClass={getChannelAnimationClass(channel.id)}
                   isIdleAnimating={isChannelAnimating(channel.id)}
+                  isHidden={gridSettings.hiddenChannels?.includes(channel.id)}
                 />
               ))}
             </div>
@@ -213,7 +321,8 @@ PaginatedChannels.propTypes = {
   onAppPathChange: PropTypes.func.isRequired,
   onChannelSave: PropTypes.func.isRequired,
   onChannelHover: PropTypes.func,
-  onOpenModal: PropTypes.func.isRequired
+  onOpenModal: PropTypes.func.isRequired,
+  gridSettings: PropTypes.object
 };
 
 export default PaginatedChannels; 
