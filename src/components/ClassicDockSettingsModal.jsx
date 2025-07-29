@@ -96,7 +96,7 @@ const THEME_GROUPS = {
   },
   pastel: {
     name: 'Soft Pastel Collection',
-    description: 'Gentle, soothing pastel themes',
+    description:'Gentle, soothing pastel themes',
     themes: {
       pastel: {
         name: 'Soft Pastel',
@@ -528,7 +528,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
   // Collapsible groups state
   const [expandedGroups, setExpandedGroups] = useState({
     classic: true,
-    pastel: true,
+    pastel: false,
     modern: false,
     nature: false,
     vibrant: false
@@ -536,6 +536,9 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
 
   // Recent colors
   const [recentColors, setRecentColors] = useState(dockSettings.recentColors || []);
+
+  // Track current theme
+  const [currentTheme, setCurrentTheme] = useState('default');
 
   // Update states when dockSettings changes
   useEffect(() => {
@@ -575,7 +578,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
 
   // Reset to default values
   const resetToDefault = () => {
-    applyTheme('default');
+    applyTheme('classic.default');
     setGlassEnabled(false);
     setGlassOpacity(0.18);
     setGlassBlur(2.5);
@@ -641,6 +644,42 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
     }
   };
 
+  // Check if current colors match a theme
+  const getCurrentTheme = () => {
+    for (const [groupKey, group] of Object.entries(THEME_GROUPS)) {
+      for (const [themeKey, theme] of Object.entries(group.themes)) {
+        const themePath = `${groupKey}.${themeKey}`;
+        const colors = theme.colors;
+        
+        if (
+          colors.dockBaseGradientStart === dockBaseGradientStart &&
+          colors.dockBaseGradientEnd === dockBaseGradientEnd &&
+          colors.dockAccentColor === dockAccentColor &&
+          colors.sdCardBodyColor === sdCardBodyColor &&
+          colors.sdCardBorderColor === sdCardBorderColor &&
+          colors.sdCardLabelColor === sdCardLabelColor &&
+          colors.sdCardLabelBorderColor === sdCardLabelBorderColor &&
+          colors.sdCardBottomColor === sdCardBottomColor &&
+          colors.leftPodBaseColor === leftPodBaseColor &&
+          colors.leftPodAccentColor === leftPodAccentColor &&
+          colors.leftPodDetailColor === leftPodDetailColor &&
+          colors.rightPodBaseColor === rightPodBaseColor &&
+          colors.rightPodAccentColor === rightPodAccentColor &&
+          colors.rightPodDetailColor === rightPodDetailColor &&
+          colors.buttonBorderColor === buttonBorderColor &&
+          colors.buttonGradientStart === buttonGradientStart &&
+          colors.buttonGradientEnd === buttonGradientEnd &&
+          colors.buttonIconColor === buttonIconColor &&
+          colors.rightButtonIconColor === rightButtonIconColor &&
+          colors.buttonHighlightColor === buttonHighlightColor
+        ) {
+          return themePath;
+        }
+      }
+    }
+    return null; // No matching theme found
+  };
+
   // Apply theme function
   const applyTheme = (themePath) => {
     const [groupKey, themeKey] = themePath.split('.');
@@ -667,6 +706,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
       setButtonIconColor(theme.colors.buttonIconColor);
       setRightButtonIconColor(theme.colors.rightButtonIconColor);
       setButtonHighlightColor(theme.colors.buttonHighlightColor);
+      setCurrentTheme(themePath);
     }
   };
 
@@ -758,31 +798,40 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                     background: '#f8f9fa',
                     borderRadius: '8px'
                   }}>
-                    {Object.entries(group.themes).map(([themeKey, theme]) => (
-                      <button
-                        key={themeKey}
-                        onClick={() => applyTheme(groupKey + '.' + themeKey)}
-                        style={{
-                          padding: '12px',
-                          borderRadius: '8px',
-                          border: '2px solid #e0e0e0',
-                          background: 'white',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          transition: 'all 0.2s ease',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.borderColor = '#0099ff';
-                          e.target.style.background = '#f8f9fa';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.borderColor = '#e0e0e0';
-                          e.target.style.background = 'white';
-                        }}
-                      >
+                    {Object.entries(group.themes).map(([themeKey, theme]) => {
+                      const themePath = `${groupKey}.${themeKey}`;
+                      const isSelected = getCurrentTheme() === themePath;
+                      
+                      return (
+                        <button
+                          key={themeKey}
+                          onClick={() => applyTheme(themePath)}
+                          style={{
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: isSelected ? '2px solid #0099ff' : '2px solid #e0e0e0',
+                            background: isSelected ? '#f0f8ff' : 'white',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                            position: 'relative'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.target.style.borderColor = '#0099ff';
+                              e.target.style.background = '#f8f9fa';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.target.style.borderColor = '#e0e0e0';
+                              e.target.style.background = 'white';
+                            }
+                          }}
+                        >
                         <div style={{ fontWeight: '600', fontSize: '14px', color: '#333' }}>
                           {theme.name}
                         </div>
@@ -823,8 +872,28 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                             border: '1px solid #ddd'
                           }} />
                         </div>
+                        {isSelected && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '8px',
+                            right: '8px',
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '50%',
+                            background: '#0099ff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '10px',
+                            fontWeight: 'bold'
+                          }}>
+                            ✓
+                          </div>
+                        )}
                       </button>
-                    ))}
+                    );
+                  })}
                   </div>
                 )}
               </div>
