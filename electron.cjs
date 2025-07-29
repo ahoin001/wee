@@ -98,6 +98,21 @@ ipcMain.handle('sounds:reset', async () => { await soundsData.reset(); return tr
 
 ipcMain.handle('wallpapers:get', async () => await wallpapersData.get());
 ipcMain.handle('wallpapers:set', async (e, data) => { await wallpapersData.set(data); return true; });
+
+// Update notification handlers
+ipcMain.handle('update-notification:dismiss', () => {
+  if (mainWindow) {
+    mainWindow.webContents.send('update-notification-dismissed');
+  }
+  return true;
+});
+
+ipcMain.handle('update-notification:install-update', () => {
+  if (mainWindow) {
+    mainWindow.webContents.send('update-notification-install');
+  }
+  return true;
+});
 ipcMain.handle('wallpapers:reset', async () => { await wallpapersData.reset(); return true; });
 
 ipcMain.handle('channels:get', async () => await channelsData.get());
@@ -1730,6 +1745,13 @@ if (app.isPackaged) {
         releaseDate: info.releaseDate,
         releaseNotes: info.releaseNotes
       });
+      
+      // Notify the update notification manager
+      mainWindow.webContents.send('update-notification-available', {
+        version: info.version,
+        releaseDate: info.releaseDate,
+        releaseNotes: info.releaseNotes
+      });
     }
   });
   
@@ -1738,6 +1760,9 @@ if (app.isPackaged) {
     if (mainWindow) {
       console.log('[AUTO-UPDATE] Sending not-available status to renderer');
       mainWindow.webContents.send('update-status', { status: 'not-available' });
+      
+      // Notify the update notification manager
+      mainWindow.webContents.send('update-notification-not-available');
     }
   });
   

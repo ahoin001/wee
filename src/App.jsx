@@ -12,12 +12,14 @@ import ClassicDockSettingsModal from './components/ClassicDockSettingsModal';
 import PrimaryActionsModal from './components/PrimaryActionsModal';
 import WallpaperModal from './components/WallpaperModal';
 import useClassicDockStore from './utils/useClassicDockStore';
+import useUpdateNotificationStore, { getUpdateNotificationManager } from './utils/updateNotificationManager';
 import WallpaperOverlay from './components/WallpaperOverlay';
 import NavigationCustomizationModal from './components/NavigationCustomizationModal';
 import GeneralSettingsModal from './components/GeneralSettingsModal';
 import TimeSettingsModal from './components/TimeSettingsModal';
 import RibbonSettingsModal from './components/RibbonSettingsModal';
 import UpdateModal from './components/UpdateModal';
+import UpdateNotificationBadge from './components/UpdateNotificationBadge';
 import ChannelSettingsModal from './components/ChannelSettingsModal';
 import AppShortcutsModal from './components/AppShortcutsModal';
 import './App.css';
@@ -327,6 +329,15 @@ function App() {
     getConfigurationsForPersistence
   } = useClassicDockStore();
 
+  // Update notification state
+  const {
+    showUpdateBadge,
+    updateAvailable: notificationUpdateAvailable,
+    updateInfo,
+    dismissNotification,
+    onUpdateInstalled
+  } = useUpdateNotificationStore();
+
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   // showPresetsModal now managed by useUIStore
   const [presets, setPresets] = useState([]);
@@ -626,6 +637,14 @@ function App() {
       }, 800); // match fade-out duration
     }
     loadAll();
+    
+    // Initialize update notification manager
+    const notificationManager = getUpdateNotificationManager();
+    
+    // Cleanup on unmount
+    return () => {
+      notificationManager.destroy();
+    };
   }, []);
 
   // Initialize global mouse navigation
@@ -635,6 +654,46 @@ function App() {
     
     return cleanup; // This will clean up the event listeners when component unmounts
   }, []);
+
+  // Listen for update notification events
+  useEffect(() => {
+    const handleUpdateNotificationAvailable = (data) => {
+      console.log('[App] Update notification available:', data);
+      const notificationManager = getUpdateNotificationManager();
+      notificationManager.onUpdateAvailable(data);
+    };
+
+    const handleUpdateNotificationNotAvailable = () => {
+      console.log('[App] Update notification not available');
+      const notificationManager = getUpdateNotificationManager();
+      notificationManager.onUpdateNotAvailable();
+    };
+
+    const handleUpdateNotificationDismissed = () => {
+      console.log('[App] Update notification dismissed');
+      dismissNotification();
+    };
+
+    const handleUpdateNotificationInstall = () => {
+      console.log('[App] Update notification install triggered');
+      // Trigger the update installation
+      if (window.api?.updater?.installUpdate) {
+        window.api.updater.installUpdate();
+      }
+    };
+
+    window.api?.on('update-notification-available', handleUpdateNotificationAvailable);
+    window.api?.on('update-notification-not-available', handleUpdateNotificationNotAvailable);
+    window.api?.on('update-notification-dismissed', handleUpdateNotificationDismissed);
+    window.api?.on('update-notification-install', handleUpdateNotificationInstall);
+    
+    return () => {
+      window.api?.off('update-notification-available', handleUpdateNotificationAvailable);
+      window.api?.off('update-notification-not-available', handleUpdateNotificationNotAvailable);
+      window.api?.off('update-notification-dismissed', handleUpdateNotificationDismissed);
+      window.api?.off('update-notification-install', handleUpdateNotificationInstall);
+    };
+  }, [dismissNotification]);
 
   // Helper function to infer channel type from path
   const inferChannelType = (path) => {
@@ -1232,6 +1291,23 @@ function App() {
       updatedConfigs[activeButtonIndex] = newConfig;
       setClassicDockButtonConfigs(updatedConfigs);
     }
+  };
+
+  // Update notification handlers
+  const handleUpdateNotificationDismiss = () => {
+    console.log('[App] Dismissing update notification');
+    dismissNotification();
+    if (window.api?.updater?.dismissUpdateNotification) {
+      window.api.updater.dismissUpdateNotification();
+    }
+  };
+
+  const handleUpdateNotificationInstall = () => {
+    console.log('[App] Installing update from notification');
+    if (window.api?.updater?.installUpdate) {
+      window.api.updater.installUpdate();
+    }
+    dismissNotification();
   };
 
   // Handler for settings changes from WallpaperModal or SoundModal
@@ -2619,6 +2695,14 @@ function App() {
             ribbonGlowColor={ribbonGlowColor}
           />
         )}
+
+        {/* Update Notification Badge */}
+        <UpdateNotificationBadge
+          isVisible={showUpdateBadge && notificationUpdateAvailable}
+          onDismiss={handleUpdateNotificationDismiss}
+          onInstall={handleUpdateNotificationInstall}
+          updateInfo={updateInfo}
+        />
 
         {/* ClassicDockSettingsModal */}
         {showClassicDockSettingsModal && (

@@ -70,6 +70,8 @@ contextBridge.exposeInMainWorld('api', {
   // Auto-updater APIs
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  dismissUpdateNotification: () => ipcRenderer.invoke('update-notification:dismiss'),
+  installUpdate: () => ipcRenderer.invoke('update-notification:install-update'),
     downloadUpdate: () => ipcRenderer.invoke('download-update'),
     installUpdate: () => ipcRenderer.invoke('install-update'),
     onUpdateStatus: (cb) => ipcRenderer.on('update-status', (e, data) => cb(data)),
