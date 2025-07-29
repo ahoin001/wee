@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import './ClassicWiiDock.css';
 
-const WiiDock = ({ dockSettings = {}, onContextMenu, onSdCardContextMenu }) => {
+const WiiDock = ({ 
+  dockSettings = {}, 
+  onContextMenu, 
+  onAccessoryButtonClick,
+  onAccessoryButtonContextMenu,
+  onButtonContextMenu,
+  onButtonClick,
+  buttonConfigs = [],
+  accessoryButtonConfig = {}
+}) => {
   const [activeButton, setActiveButton] = useState(null);
 
   // Default colors
@@ -35,8 +44,8 @@ const WiiDock = ({ dockSettings = {}, onContextMenu, onSdCardContextMenu }) => {
   const glassBorderOpacity = dockSettings.glassBorderOpacity || 0.5;
   const glassShineOpacity = dockSettings.glassShineOpacity || 0.7;
 
-  // SD Card icon
-  const sdCardIcon = dockSettings.sdCardIcon || 'default';
+  // SD Card icon - use from accessory button config if available
+  const sdCardIcon = accessoryButtonConfig?.icon || dockSettings.sdCardIcon || 'default';
 
   // Glass effect styles
   const glassStyles = glassEnabled ? {
@@ -120,7 +129,12 @@ const WiiDock = ({ dockSettings = {}, onContextMenu, onSdCardContextMenu }) => {
         </svg>
 
         {/* Overlaid SVG elements, positioned absolutely */}
-        <div className="wii-sd-card" onContextMenu={handleSdCardContextMenu}>
+        <div 
+          className="wii-sd-card" 
+          onClick={() => onAccessoryButtonClick && onAccessoryButtonClick()}
+          onContextMenu={onAccessoryButtonContextMenu}
+          style={{ cursor: 'pointer' }}
+        >
           {sdCardIcon === 'default' ? (
             <svg viewBox="0 0 147 198" fill="none" xmlns="http://www.w3.org/2000/svg" className="wii-sd-card-svg">
               <path d="M0 12C0 5.37258 5.37258 0 12 0H116.327C119.629 0 122.785 1.36025 125.052 3.76052L143.724 23.5315C145.828 25.759 147 28.707 147 31.7709V186C147 192.627 141.627 198 135 198H12C5.37259 198 0 192.627 0 186V12Z" fill={colors.sdCardBodyColor}/>
@@ -160,6 +174,8 @@ const WiiDock = ({ dockSettings = {}, onContextMenu, onSdCardContextMenu }) => {
               onMouseDown={() => setActiveButton('left')}
               onMouseUp={() => setActiveButton(null)}
               onMouseLeave={() => setActiveButton(null)}
+              onClick={() => onButtonClick && onButtonClick(0)}
+              onContextMenu={(e) => onButtonContextMenu && onButtonContextMenu(0, e)}
               className={`wii-left-button ${animationClasses}`}
               style={styles['left-button']}
           >
@@ -209,6 +225,8 @@ const WiiDock = ({ dockSettings = {}, onContextMenu, onSdCardContextMenu }) => {
                       onMouseDown={() => setActiveButton('right')}
                       onMouseUp={() => setActiveButton(null)}
                       onMouseLeave={() => setActiveButton(null)}
+                      onClick={() => onButtonClick && onButtonClick(1)}
+                      onContextMenu={(e) => onButtonContextMenu && onButtonContextMenu(1, e)}
                       className={`wii-right-button ${animationClasses}`}
                       style={finalButtonStyle}
                   >
@@ -244,6 +262,8 @@ const ClassicWiiDock = ({
   buttonConfigs,
   onButtonContextMenu,
   onButtonClick,
+  onAccessoryButtonClick,
+  onAccessoryButtonContextMenu,
   timeColor,
   timeFormat24hr,
   timeFont,
@@ -253,14 +273,19 @@ const ClassicWiiDock = ({
   openPresetsModal,
   dockSettings,
   onDockContextMenu,
-  onSdCardContextMenu
+  accessoryButtonConfig
 }) => {
   return (
     <div className="wii-dock-wrapper">
       <WiiDock 
         dockSettings={dockSettings} 
         onContextMenu={onDockContextMenu}
-        onSdCardContextMenu={onSdCardContextMenu}
+        onAccessoryButtonClick={onAccessoryButtonClick}
+        onAccessoryButtonContextMenu={onAccessoryButtonContextMenu}
+        onButtonContextMenu={onButtonContextMenu}
+        onButtonClick={onButtonClick}
+        buttonConfigs={buttonConfigs}
+        accessoryButtonConfig={accessoryButtonConfig}
       />
     </div>
   );

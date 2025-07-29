@@ -11,6 +11,7 @@ import ClassicWiiDock from './components/ClassicWiiDock';
 import ClassicDockSettingsModal from './components/ClassicDockSettingsModal';
 import PrimaryActionsModal from './components/PrimaryActionsModal';
 import WallpaperModal from './components/WallpaperModal';
+import useClassicDockStore from './utils/useClassicDockStore';
 import WallpaperOverlay from './components/WallpaperOverlay';
 import NavigationCustomizationModal from './components/NavigationCustomizationModal';
 import GeneralSettingsModal from './components/GeneralSettingsModal';
@@ -313,6 +314,18 @@ function App() {
     recentColors: []
   });
   const [showClassicDockSettingsModal, setShowClassicDockSettingsModal] = useState(false);
+
+  // Classic Dock Button Configurations - using Zustand store
+  const {
+    classicDockButtonConfigs,
+    accessoryButtonConfig,
+    activeButtonIndex,
+    setClassicDockButtonConfigs,
+    setAccessoryButtonConfig,
+    setActiveButtonIndex,
+    loadConfigurations,
+    getConfigurationsForPersistence
+  } = useClassicDockStore();
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   // showPresetsModal now managed by useUIStore
@@ -757,10 +770,13 @@ function App() {
         setShowDock(settings.showDock ?? true);
         setWallpaperBlur(settings.wallpaperBlur ?? 0);
         
-        // Load dockSettings
-        if (settings.dockSettings) {
-          setDockSettings(settings.dockSettings);
-        }
+            // Load dockSettings
+    if (settings.dockSettings) {
+      setDockSettings(settings.dockSettings);
+    }
+
+    // Load ClassicWiiDock button configurations using Zustand store
+    loadConfigurations(settings);
         
         // Load keyboard shortcuts
         if (settings.keyboardShortcuts) {
@@ -854,10 +870,11 @@ function App() {
         kenBurnsForVideos, // Persist Ken Burns for videos setting
         kenBurnsEasing, // Persist Ken Burns animation easing
         kenBurnsAnimationType, // Persist Ken Burns animation type
-        kenBurnsCrossfadeReturn, // Persist Ken Burns crossfade return
-        kenBurnsTransitionType, // Persist Ken Burns transition type
-        showDock, // Persist showDock setting
-        dockSettings, // Persist dockSettings
+            kenBurnsCrossfadeReturn, // Persist Ken Burns crossfade return
+    kenBurnsTransitionType, // Persist Ken Burns transition type
+    showDock, // Persist showDock setting
+    dockSettings, // Persist dockSettings
+    ...getConfigurationsForPersistence(), // Persist ClassicWiiDock button configurations
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -872,7 +889,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings, classicDockButtonConfigs, accessoryButtonConfig]);
 
   // Persist keyboard shortcuts when they change
   useEffect(() => {
@@ -1124,16 +1141,10 @@ function App() {
     setUseCustomCursor(!useCustomCursor);
   };
 
-  // Button handlers for ClassicWiiDock
-  const handleClassicButtonContextMenu = (index, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setActiveButtonIndex(index);
-    setShowPrimaryActionsModal(true);
-  };
+
 
   const handleClassicButtonClick = (index) => {
-    const config = ribbonButtonConfigs[index];
+    const config = classicDockButtonConfigs[index];
     console.log('Classic button clicked:', index, 'Config:', config);
     
     // Handle admin mode for left button (index 0)
@@ -1147,15 +1158,79 @@ function App() {
     if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
     if (window.api && window.api.launchApp) {
       if (config.actionType === 'exe') {
-        window.api.launchApp({ type: 'exe', path: config.action });
+        window.api.launchApp({ type: 'exe', path: config.action, asAdmin: config.adminMode });
       } else if (config.actionType === 'url') {
         window.api.launchApp({ type: 'url', path: config.action });
+      } else if (config.actionType === 'steam') {
+        window.api.launchApp({ type: 'steam', path: config.action });
+      } else if (config.actionType === 'epic') {
+        window.api.launchApp({ type: 'epic', path: config.action });
+      } else if (config.actionType === 'microsoftstore') {
+        window.api.launchApp({ type: 'microsoftstore', path: config.action });
       }
     } else {
       // Fallback: try window.open for URLs
       if (config.actionType === 'url') {
         window.open(config.action, '_blank');
       }
+    }
+  };
+
+  const handleAccessoryButtonClick = () => {
+    const config = accessoryButtonConfig;
+    console.log('Accessory button clicked:', config);
+    
+    // Handle admin mode
+    if (config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
+      console.log('Opening admin menu with actions:', config.powerActions.length, config.powerActions.map(a => a.name));
+      setShowAdminMenu(true);
+      return;
+    }
+    
+    // Handle regular button actions
+    if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
+    if (window.api && window.api.launchApp) {
+      if (config.actionType === 'exe') {
+        window.api.launchApp({ type: 'exe', path: config.action, asAdmin: config.adminMode });
+      } else if (config.actionType === 'url') {
+        window.api.launchApp({ type: 'url', path: config.action });
+      } else if (config.actionType === 'steam') {
+        window.api.launchApp({ type: 'steam', path: config.action });
+      } else if (config.actionType === 'epic') {
+        window.api.launchApp({ type: 'epic', path: config.action });
+      } else if (config.actionType === 'microsoftstore') {
+        window.api.launchApp({ type: 'microsoftstore', path: config.action });
+      }
+    } else {
+      // Fallback: try window.open for URLs
+      if (config.actionType === 'url') {
+        window.open(config.action, '_blank');
+      }
+    }
+  };
+
+  const handleClassicButtonContextMenu = (index, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveButtonIndex(index);
+    useUIStore.getState().openPrimaryActionsModal();
+  };
+
+  const handleAccessoryButtonContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveButtonIndex('accessory');
+    useUIStore.getState().openPrimaryActionsModal();
+  };
+
+  const handleClassicButtonSave = (newConfig) => {
+    console.log('Saving classic button config:', newConfig);
+    if (activeButtonIndex === 'accessory') {
+      setAccessoryButtonConfig(newConfig);
+    } else {
+      const updatedConfigs = [...classicDockButtonConfigs];
+      updatedConfigs[activeButtonIndex] = newConfig;
+      setClassicDockButtonConfigs(updatedConfigs);
     }
   };
 
@@ -2138,9 +2213,11 @@ function App() {
           <ClassicWiiDock
             onSettingsClick={handleSettingsClick}
             onSettingsChange={handleSettingsChange}
-            buttonConfigs={ribbonButtonConfigs}
+            buttonConfigs={classicDockButtonConfigs}
             onButtonContextMenu={handleClassicButtonContextMenu}
             onButtonClick={handleClassicButtonClick}
+            onAccessoryButtonClick={handleAccessoryButtonClick}
+            onAccessoryButtonContextMenu={handleAccessoryButtonContextMenu}
             timeColor={timeColor}
             timeFormat24hr={timeFormat24hr}
             timeFont={timeFont}
@@ -2150,6 +2227,7 @@ function App() {
             openPresetsModal={useUIStore.getState().openPresetsModal}
             dockSettings={dockSettings}
             onDockContextMenu={handleOpenClassicDockSettingsModal}
+            accessoryButtonConfig={accessoryButtonConfig}
           />
         )}
         
@@ -2529,6 +2607,19 @@ function App() {
           />
         )}
 
+        {/* PrimaryActionsModal for ClassicWiiDock */}
+        {useUIStore.getState().showPrimaryActionsModal && activeButtonIndex !== null && (
+          <PrimaryActionsModal
+            isOpen={useUIStore.getState().showPrimaryActionsModal}
+            onClose={() => useUIStore.getState().closePrimaryActionsModal()}
+            onSave={handleClassicButtonSave}
+            config={activeButtonIndex === 'accessory' ? accessoryButtonConfig : classicDockButtonConfigs[activeButtonIndex]}
+            buttonIndex={activeButtonIndex}
+            preavailableIcons={[]}
+            ribbonGlowColor={ribbonGlowColor}
+          />
+        )}
+
         {/* ClassicDockSettingsModal */}
         {showClassicDockSettingsModal && (
           <ClassicDockSettingsModal
@@ -2567,7 +2658,7 @@ function App() {
               }}>
                 Admin Actions
               </div>
-              {ribbonButtonConfigs[0]?.powerActions?.map((action, index) => (
+              {classicDockButtonConfigs[0]?.powerActions?.map((action, index) => (
                 <div
                   key={action.id}
                   className="context-menu-item"
@@ -2586,7 +2677,7 @@ function App() {
                     padding: '12px 16px',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s ease',
-                    borderBottom: index < ribbonButtonConfigs[0].powerActions.length - 1 ? '1px solid #f0f0f0' : 'none'
+                    borderBottom: index < classicDockButtonConfigs[0].powerActions.length - 1 ? '1px solid #f0f0f0' : 'none'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#f8f9fa';

@@ -248,7 +248,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     // Check if this is for the presets button
     const isPresetsButton = buttonIndex === "presets";
     
-    if (!isPresetsButton && !validatePath()) return;
+    if (!isPresetsButton && !isAccessoryButton && !validatePath()) return;
     
     const saveData = {
       type,
@@ -611,19 +611,20 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
 
   if (!isOpen) return null;
 
-  // Check if this is for the presets button
+  // Check if this is for the presets button or accessory button
   const isPresetsButton = buttonIndex === "presets";
+  const isAccessoryButton = buttonIndex === "accessory";
 
   return (
     <BaseModal
-      title={isPresetsButton ? "Customize Presets Button" : "Primary Actions"}
+      title={isPresetsButton ? "Customize Presets Button" : isAccessoryButton ? "Customize Accessory Button" : "Primary Actions"}
       onClose={onClose}
       maxWidth="480px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button className="cancel-button" onClick={handleClose}>Cancel</button>
           <button className="save-button" onClick={() => { 
-            if (isPresetsButton || validatePath()) { 
+            if (isPresetsButton || isAccessoryButton || validatePath()) { 
               handleSave();
               handleClose(); 
             } 
@@ -634,12 +635,16 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       {/* Icon Selection/Upload Card */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
-          <span className="wee-card-title">{isPresetsButton ? "Presets Button Icon" : "Channel Icon"}</span>
+          <span className="wee-card-title">
+            {isPresetsButton ? "Presets Button Icon" : isAccessoryButton ? "Accessory Button Icon" : "Channel Icon"}
+          </span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           {isPresetsButton 
             ? "Choose or upload a custom icon for the presets button. This button opens the presets modal when clicked."
+            : isAccessoryButton
+            ? "Choose or upload a custom icon for the accessory button. This button can be configured to launch apps or URLs."
             : "Choose or upload a custom icon for this channel. PNG recommended for best results."
           }
           <div style={{ marginTop: 14 }}>
@@ -648,8 +653,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       </div>
-      {/* Wii Gray Filter Card - Only show when using icon and not presets button */}
-      {type === 'icon' && !isPresetsButton && (
+      {/* Wii Gray Filter Card - Only show when using icon and not presets button or accessory button */}
+      {type === 'icon' && !isPresetsButton && !isAccessoryButton && (
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
             <span className="wee-card-title">Use Wii Button Color Filter</span>
@@ -668,8 +673,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       )}
-      {/* Admin Mode Card - Only show for left button (index 0) */}
-      {buttonIndex === 0 && !isPresetsButton && (
+      {/* Admin Mode Card - Only show for left button (index 0) and not presets/accessory buttons */}
+      {buttonIndex === 0 && !isPresetsButton && !isAccessoryButton && (
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
             <span className="wee-card-title">Admin Mode</span>
