@@ -20,6 +20,7 @@ import TimeSettingsModal from './components/TimeSettingsModal';
 import RibbonSettingsModal from './components/RibbonSettingsModal';
 import UpdateModal from './components/UpdateModal';
 import UpdateNotificationBadge from './components/UpdateNotificationBadge';
+import SoundModal from './components/SoundModal';
 import ChannelSettingsModal from './components/ChannelSettingsModal';
 import AppShortcutsModal from './components/AppShortcutsModal';
 import './App.css';
@@ -140,6 +141,7 @@ function App() {
     showRibbonSettingsModal,
     showUpdateModal,
     showPrimaryActionsModal,
+    openSoundModal,
     closePresetsModal,
     closeWallpaperModal,
     closeSoundModal,
@@ -337,6 +339,8 @@ function App() {
     dismissNotification,
     onUpdateInstalled
   } = useUpdateNotificationStore();
+
+
 
   const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
   // showPresetsModal now managed by useUIStore
@@ -682,16 +686,16 @@ function App() {
       }
     };
 
-    window.api?.on('update-notification-available', handleUpdateNotificationAvailable);
-    window.api?.on('update-notification-not-available', handleUpdateNotificationNotAvailable);
-    window.api?.on('update-notification-dismissed', handleUpdateNotificationDismissed);
-    window.api?.on('update-notification-install', handleUpdateNotificationInstall);
+    window.api?.onUpdateNotificationAvailable(handleUpdateNotificationAvailable);
+    window.api?.onUpdateNotificationNotAvailable(handleUpdateNotificationNotAvailable);
+    window.api?.onUpdateNotificationDismissed(handleUpdateNotificationDismissed);
+    window.api?.onUpdateNotificationInstall(handleUpdateNotificationInstall);
     
     return () => {
-      window.api?.off('update-notification-available', handleUpdateNotificationAvailable);
-      window.api?.off('update-notification-not-available', handleUpdateNotificationNotAvailable);
-      window.api?.off('update-notification-dismissed', handleUpdateNotificationDismissed);
-      window.api?.off('update-notification-install', handleUpdateNotificationInstall);
+      window.api?.offUpdateNotificationAvailable(handleUpdateNotificationAvailable);
+      window.api?.offUpdateNotificationNotAvailable(handleUpdateNotificationNotAvailable);
+      window.api?.offUpdateNotificationDismissed(handleUpdateNotificationDismissed);
+      window.api?.offUpdateNotificationInstall(handleUpdateNotificationInstall);
     };
   }, [dismissNotification]);
 
@@ -2703,6 +2707,15 @@ function App() {
           onInstall={handleUpdateNotificationInstall}
           updateInfo={updateInfo}
         />
+
+        {/* SoundModal */}
+        {showSoundModal && (
+          <SoundModal
+            isOpen={showSoundModal}
+            onClose={closeSoundModal}
+            onSettingsChange={handleSettingsChange}
+          />
+        )}
 
         {/* ClassicDockSettingsModal */}
         {showClassicDockSettingsModal && (

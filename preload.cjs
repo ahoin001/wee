@@ -70,13 +70,22 @@ contextBridge.exposeInMainWorld('api', {
   // Auto-updater APIs
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-  dismissUpdateNotification: () => ipcRenderer.invoke('update-notification:dismiss'),
-  installUpdate: () => ipcRenderer.invoke('update-notification:install-update'),
+    dismissUpdateNotification: () => ipcRenderer.invoke('update-notification:dismiss'),
+    installUpdate: () => ipcRenderer.invoke('update-notification:install-update'),
     downloadUpdate: () => ipcRenderer.invoke('download-update'),
     installUpdate: () => ipcRenderer.invoke('install-update'),
     onUpdateStatus: (cb) => ipcRenderer.on('update-status', (e, data) => cb(data)),
     offUpdateStatus: (cb) => ipcRenderer.removeListener('update-status', cb),
   },
+  // Update notification event listeners
+  onUpdateNotificationAvailable: (cb) => ipcRenderer.on('update-notification-available', (e, data) => cb(data)),
+  offUpdateNotificationAvailable: (cb) => ipcRenderer.removeListener('update-notification-available', cb),
+  onUpdateNotificationNotAvailable: (cb) => ipcRenderer.on('update-notification-not-available', (e) => cb()),
+  offUpdateNotificationNotAvailable: (cb) => ipcRenderer.removeListener('update-notification-not-available', cb),
+  onUpdateNotificationDismissed: (cb) => ipcRenderer.on('update-notification-dismissed', (e) => cb()),
+  offUpdateNotificationDismissed: (cb) => ipcRenderer.removeListener('update-notification-dismissed', cb),
+  onUpdateNotificationInstall: (cb) => ipcRenderer.on('update-notification-install', (e) => cb()),
+  offUpdateNotificationInstall: (cb) => ipcRenderer.removeListener('update-notification-install', cb),
   getFullscreenState: () => ipcRenderer.invoke('get-fullscreen-state'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   apps: {

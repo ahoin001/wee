@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import SoundModal from './SoundModal';
+
 import GeneralSettingsModal from './GeneralSettingsModal';
 import PrimaryActionsModal from './PrimaryActionsModal';
 import TimeSettingsModal from './TimeSettingsModal';
@@ -24,10 +24,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   
   // Use Zustand store for modal states
   const { 
-    showSoundModal,
     showPresetsModal,
-    openSoundModal,
-    closeSoundModal,
     openPresetsModal,
     closePresetsModal
   } = useUIStore();
@@ -844,11 +841,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
           />
         )}
 
-      <SoundModal 
-        isOpen={showSoundModal}
-        onClose={closeSoundModal}
-        onSettingsChange={onSettingsChange}
-      />
+
       <UpdateModal 
         isOpen={showUpdateModal}
         onClose={() => setShowUpdateModal(false)}
