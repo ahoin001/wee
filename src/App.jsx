@@ -554,6 +554,7 @@ function App() {
       }
       // Load wallpapers
       const wallpaperData = await wallpapersApi.get();
+      console.log('[App] Loaded wallpaper data:', wallpaperData ? Object.keys(wallpaperData) : 'null');
       // setWallpaper(wallpaperData?.wallpaper || null); // Remove - wallpaper now loaded from general settings
       setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
       setSavedWallpapers(wallpaperData?.savedWallpapers || []);
@@ -604,6 +605,7 @@ function App() {
       
       // Load channels - no hardcoded limit, let PaginatedChannels handle dynamic generation
       const channelData = await channelsApi.get();
+      console.log('[App] Loaded channel data:', channelData ? Object.keys(channelData) : 'null');
       
       // Create a minimal channels array for backward compatibility (not used by PaginatedChannels)
       const gridChannels = [];
@@ -946,9 +948,9 @@ function App() {
         kenBurnsForVideos, // Persist Ken Burns for videos setting
         kenBurnsEasing, // Persist Ken Burns animation easing
         kenBurnsAnimationType, // Persist Ken Burns animation type
-            kenBurnsCrossfadeReturn, // Persist Ken Burns crossfade return
-    kenBurnsTransitionType, // Persist Ken Burns transition type
-    showDock, // Persist showDock setting
+        kenBurnsCrossfadeReturn, // Persist Ken Burns crossfade return
+        kenBurnsTransitionType, // Persist Ken Burns transition type
+        showDock, // Persist showDock setting
     dockSettings, // Persist dockSettings
     ...getConfigurationsForPersistence(), // Persist ClassicWiiDock button configurations
       };

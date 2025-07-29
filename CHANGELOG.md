@@ -27,6 +27,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.2] - 2025-01-XX
+
+### Added
+- Unified Appearance Settings Modal with sidebar navigation
+- Dark mode support for all UI components including modals and forms
+- Componentized PresetListItem with dark mode styling
+- Enhanced Toggle component with improved disabled state visibility
+- Design system integration across all modals and components
+
+### Changed
+- Replaced all custom toggle switches with unified Toggle component
+- Updated PresetsModal to use design system colors and components
+- Improved dark mode text contrast and card styling
+- Enhanced modal navigation with scalable sidebar pattern
+- Consolidated channel grid styles for better responsiveness
+
+### Fixed
+- **Critical**: Fixed wallpapers and channels not loading on startup after PC restart
+- Fixed duplicate getDefaultSettings() function in electron.cjs
+- Fixed wallpapers data structure mismatch causing empty wallpaper lists
+- Fixed channel configurations not persisting across app restarts
+- Fixed toggle component visibility in disabled state (dark mode)
+- Fixed double scrolling issue in AppearanceSettingsModal
+- Fixed immersivePip state variable not defined error
+- Fixed sound modal not opening when ClassicWiiDock is active
+
+### Security
+- Enhanced error handling and debugging for data persistence issues
+
+---
+
 ## [1.9.1] - 2024-01-XX
 
 ### Added

@@ -474,28 +474,28 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                 <div className="background-music-settings">
                   <div className="settings-row">
                     <Toggle
-                      checked={backgroundMusicSettings.enabled}
+                          checked={backgroundMusicSettings.enabled}
                       onChange={(checked) => handleBackgroundMusicSettingChange('enabled', checked)}
                       label="Enable Background Music"
-                    />
+                        />
                   </div>
                   
                   {backgroundMusicSettings.enabled && (
                     <>
                       <div className="settings-row">
                         <Toggle
-                          checked={backgroundMusicSettings.looping}
+                              checked={backgroundMusicSettings.looping}
                           onChange={(checked) => handleBackgroundMusicSettingChange('looping', checked)}
                           label="Loop Music"
-                        />
+                            />
                       </div>
                       
                       <div className="settings-row">
                         <Toggle
-                          checked={backgroundMusicSettings.playlistMode}
+                              checked={backgroundMusicSettings.playlistMode}
                           onChange={(checked) => handleBackgroundMusicSettingChange('playlistMode', checked)}
                           label="Playlist Mode (Play liked sounds in order)"
-                        />
+                            />
                       </div>
                     </>
                   )}
@@ -592,10 +592,10 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                             <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
                           )}
                           <Toggle
-                            checked={!!sound.enabled}
+                              checked={!!sound.enabled}
                             onChange={(checked) => handleToggleEnable(cat.key, sound.id)}
-                            disabled={!backgroundMusicSettings.enabled}
-                          />
+                              disabled={!backgroundMusicSettings.enabled}
+                            />
                         </div>
                       </div>
                     </div>
@@ -664,9 +664,9 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                         <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
                       )}
                       <Toggle
-                        checked={!!sound.enabled}
+                          checked={!!sound.enabled}
                         onChange={(checked) => handleToggleEnable(cat.key, sound.id)}
-                      />
+                        />
                     </div>
                   </div>
                 </div>

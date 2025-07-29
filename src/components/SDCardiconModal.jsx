@@ -67,7 +67,9 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
 
   const handleSave = () => {
     if (onSettingsChange) {
-      onSettingsChange({ sdCardIcon: selectedIcon });
+      // Ensure we save 'default' for the default icon, not a URL
+      const iconToSave = selectedIcon === 'default' ? 'default' : selectedIcon;
+      onSettingsChange({ sdCardIcon: iconToSave });
     }
     onClose();
   };

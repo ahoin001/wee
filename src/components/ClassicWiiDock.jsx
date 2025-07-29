@@ -47,6 +47,63 @@ const WiiDock = ({
   // SD Card icon - use from accessory button config if available
   const sdCardIcon = accessoryButtonConfig?.icon || dockSettings.sdCardIcon || 'default';
 
+  // Helper function to normalize icon value
+  const normalizeIconValue = (iconValue) => {
+    // If it's 'default', empty, null, or undefined, show default icon
+    if (!iconValue || iconValue === 'default' || iconValue === '') {
+      return 'default';
+    }
+    // If it's a URL, show custom icon
+    return iconValue;
+  };
+
+  // Helper function to render built-in icons
+  const renderBuiltInIcon = (iconType) => {
+    switch (iconType) {
+      case 'palette':
+        return (
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="13.5" cy="6.5" r="2.5"/>
+            <circle cx="17.5" cy="10.5" r="2.5"/>
+            <circle cx="8.5" cy="7.5" r="2.5"/>
+            <circle cx="6.5" cy="12.5" r="2.5"/>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+          </svg>
+        );
+      case 'star':
+        return (
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+          </svg>
+        );
+      case 'heart':
+        return (
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Helper function to check if an icon is built-in
+  const isBuiltInIcon = (iconValue) => {
+    return ['palette', 'star', 'heart'].includes(iconValue);
+  };
+
+  const normalizedSdCardIcon = normalizeIconValue(sdCardIcon);
+
+  // Debug logging for icon issues
+  if (sdCardIcon !== normalizedSdCardIcon) {
+    console.log('[ClassicWiiDock] Icon value normalized:', { original: sdCardIcon, normalized: normalizedSdCardIcon });
+  }
+  
+  // Debug logging for built-in icons
+  if (isBuiltInIcon(normalizedSdCardIcon)) {
+    console.log('[ClassicWiiDock] Built-in icon detected:', normalizedSdCardIcon);
+  }
+
   // Glass effect styles
   const glassStyles = glassEnabled ? {
     background: `rgba(255, 255, 255, ${glassOpacity})`,
@@ -93,8 +150,8 @@ const WiiDock = ({
   const handleSdCardContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onSdCardContextMenu) {
-      onSdCardContextMenu(e);
+    if (onAccessoryButtonContextMenu) {
+      onAccessoryButtonContextMenu(e);
     }
   };
 
@@ -132,10 +189,9 @@ const WiiDock = ({
         <div 
           className="wii-sd-card" 
           onClick={() => onAccessoryButtonClick && onAccessoryButtonClick()}
-          onContextMenu={onAccessoryButtonContextMenu}
-          style={{ cursor: 'pointer' }}
+          onContextMenu={handleSdCardContextMenu}
         >
-          {sdCardIcon === 'default' ? (
+          {(normalizedSdCardIcon === 'default' || !normalizedSdCardIcon || normalizedSdCardIcon === '') ? (
             <svg viewBox="0 0 147 198" fill="none" xmlns="http://www.w3.org/2000/svg" className="wii-sd-card-svg">
               <path d="M0 12C0 5.37258 5.37258 0 12 0H116.327C119.629 0 122.785 1.36025 125.052 3.76052L143.724 23.5315C145.828 25.759 147 28.707 147 31.7709V186C147 192.627 141.627 198 135 198H12C5.37259 198 0 192.627 0 186V12Z" fill={colors.sdCardBodyColor}/>
               <path d="M0 186V12C1.93277e-07 5.37258 5.37258 4.83208e-08 12 0H116.327C119.629 0 122.785 1.36048 125.052 3.76074L143.725 23.5312C145.828 25.7587 147 28.7067 147 31.7705V186C147 192.627 141.627 198 135 198V191C137.761 191 140 188.761 140 186V31.7705C140 30.494 139.511 29.2659 138.635 28.3379L119.963 8.56641C119.018 7.56633 117.703 7 116.327 7H12C9.23858 7 7 9.23858 7 12V186C7 188.761 9.23858 191 12 191V198C5.47609 198 0.168106 192.794 0.00390625 186.31L0 186ZM135 191V198H12V191H135Z" fill={colors.sdCardBorderColor}/>
@@ -147,17 +203,15 @@ const WiiDock = ({
               <path d="M110.5 80C105.781 81.5909 99.7536 84.0159 95 85.5C94.8651 85.1501 93.6349 84.3499 93.5 84C97.6595 82.0753 101.341 79.9226 105.5 78L110.5 80Z" fill={colors.sdCardBorderColor}/>
               <path d="M98 77L89.5 83.5L78 82.5L82 77H98Z" fill={colors.sdCardBorderColor}/>
             </svg>
+          ) : isBuiltInIcon(normalizedSdCardIcon) ? (
+            <div className="wii-sd-card-builtin-icon">
+              {renderBuiltInIcon(normalizedSdCardIcon)}
+            </div>
           ) : (
             <img 
-              src={sdCardIcon} 
+              src={normalizedSdCardIcon} 
               alt="Custom SD Card Icon" 
               className="wii-sd-card-custom-icon"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                borderRadius: '4px'
-              }}
             />
           )}
         </div>

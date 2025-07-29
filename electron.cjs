@@ -53,14 +53,67 @@ const soundsData = {
 const wallpapersData = {
   async get() {
     await ensureDataDir();
-    try { return JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { return { wallpapers: [], settings: {} }; }
+    try { 
+      const data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8'));
+      console.log('[WALLPAPERS] Successfully loaded wallpaper data:', Object.keys(data));
+      return data;
+    } catch (error) { 
+      console.warn('[WALLPAPERS] Failed to load wallpaper data, using defaults:', error.message);
+      return { 
+        savedWallpapers: [], 
+        likedWallpapers: [], 
+        wallpaper: null,
+        wallpaperOpacity: 1,
+        wallpaperBlur: 0,
+        cyclingSettings: {
+          enabled: false,
+          interval: 30,
+          animation: 'fade',
+          slideDirection: 'right',
+          crossfadeDuration: 1.2,
+          crossfadeEasing: 'ease-out',
+          slideRandomDirection: false,
+          slideDuration: 1.5,
+          slideEasing: 'ease-out'
+        },
+        overlayEnabled: false,
+        overlayEffect: 'snow',
+        overlayIntensity: 50,
+        overlaySpeed: 1,
+        overlayWind: 0.02,
+        overlayGravity: 0.1
+      }; 
+    }
   },
   async set(data) {
     await ensureDataDir();
     await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
   },
   async reset() {
-    await this.set({ wallpapers: [], settings: {} });
+    await this.set({ 
+      savedWallpapers: [], 
+      likedWallpapers: [], 
+      wallpaper: null,
+      wallpaperOpacity: 1,
+      wallpaperBlur: 0,
+      cyclingSettings: {
+        enabled: false,
+        interval: 30,
+        animation: 'fade',
+        slideDirection: 'right',
+        crossfadeDuration: 1.2,
+        crossfadeEasing: 'ease-out',
+        slideRandomDirection: false,
+        slideDuration: 1.5,
+        slideEasing: 'ease-out'
+      },
+      overlayEnabled: false,
+      overlayEffect: 'snow',
+      overlayIntensity: 50,
+      overlaySpeed: 1,
+      overlayWind: 0.02,
+      overlayGravity: 0.1
+    });
   }
 };
 
@@ -68,7 +121,14 @@ const wallpapersData = {
 const channelsData = {
   async get() {
     await ensureDataDir();
-    try { return JSON.parse(await fsPromises.readFile(channelsFile, 'utf-8')); } catch { return { channels: [] }; }
+    try { 
+      const data = JSON.parse(await fsPromises.readFile(channelsFile, 'utf-8'));
+      console.log('[CHANNELS] Successfully loaded channel data:', Object.keys(data));
+      return data;
+    } catch (error) { 
+      console.warn('[CHANNELS] Failed to load channel data, using defaults:', error.message);
+      return { channels: [] }; 
+    }
   },
   async set(data) {
     await ensureDataDir();
@@ -509,29 +569,6 @@ async function loadSoundLibrary() {
     }
     return fallbackLibrary;
   }
-}
-
-// --- Default Settings Helper ---
-function getDefaultSettings() {
-  return {
-    isDarkMode: false,
-    useCustomCursor: true,
-    barType: 'flat',
-    glassWiiRibbon: true,
-    wallpaper: null,
-    wallpaperOpacity: 1,
-    savedWallpapers: [],
-    likedWallpapers: [],
-    cycleWallpapers: false,
-    cycleInterval: 30,
-    cycleAnimation: 'fade',
-    ribbonButtonConfigs: [],
-    presetsButtonConfig: { type: 'icon', icon: 'star' },
-    showPresetsButton: false,
-    sounds: {
-      // Will be set up by the sound library loader
-    },
-  };
 }
 
 function getDefaultChannels() {

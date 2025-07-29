@@ -137,9 +137,9 @@ const ChannelSettingsModal = ({
         <div className="wee-card-header">
           <span className="wee-card-title">Adaptive Empty Channel Backgrounds</span>
           <Toggle
-            checked={localAdaptiveEmptyChannels}
+              checked={localAdaptiveEmptyChannels}
             onChange={setLocalAdaptiveEmptyChannels}
-          />
+            />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">When enabled, empty channel slots will automatically adapt their background to match the current wallpaper, creating a more cohesive visual experience.</div>
@@ -174,9 +174,9 @@ const ChannelSettingsModal = ({
         <div className="wee-card-header">
           <span className="wee-card-title">Only play channel animations on hover</span>
           <Toggle
-            checked={localAnimatedOnHover}
+              checked={localAnimatedOnHover}
             onChange={setLocalAnimatedOnHover}
-          />
+            />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel. When disabled, animations will play automatically.</div>
@@ -187,9 +187,9 @@ const ChannelSettingsModal = ({
         <div className="wee-card-header">
           <span className="wee-card-title">Idle Channel Animations</span>
           <Toggle
-            checked={localIdleAnimationEnabled}
+              checked={localIdleAnimationEnabled}
             onChange={setLocalIdleAnimationEnabled}
-          />
+            />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">When enabled, channels will play subtle animations when not being interacted with, adding life to the interface.</div>
@@ -233,9 +233,9 @@ const ChannelSettingsModal = ({
         <div className="wee-card-header">
           <span className="wee-card-title">Ken Burns Effect</span>
           <Toggle
-            checked={localKenBurnsEnabled}
+              checked={localKenBurnsEnabled}
             onChange={setLocalKenBurnsEnabled}
-          />
+            />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">Add cinematic zoom and pan effects to channel images, creating dynamic visual interest.</div>
@@ -378,9 +378,9 @@ const ChannelSettingsModal = ({
         <div className="wee-card-header">
           <span className="wee-card-title">Channel Auto-Fade</span>
           <Toggle
-            checked={localChannelAutoFadeTimeout > 0}
+              checked={localChannelAutoFadeTimeout > 0}
             onChange={(checked) => setLocalChannelAutoFadeTimeout(checked ? 5 : 0)}
-          />
+            />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity.</div>
