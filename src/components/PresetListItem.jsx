@@ -83,6 +83,7 @@ const PresetListItem = ({
             fontWeight: 500, 
             textAlign: 'left', 
             fontSize: 16,
+            marginBottom: 0, 
             color: 'hsl(var(--text-primary))'
           }}
         >
