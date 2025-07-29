@@ -220,11 +220,27 @@ const PaginatedChannels = ({
   // Get grid container styles based on positioning settings
   const getGridContainerStyles = () => {
     const { responsiveColumns, responsiveRows, gap } = getResponsiveGridSettings();
+    const width = windowWidth;
+    
+    // Responsive minimum sizes based on screen width
+    let minColumnWidth = 460;
+    let minRowHeight = 215;
+    
+    if (width <= 480) {
+      minColumnWidth = 250;
+      minRowHeight = 117;
+    } else if (width <= 768) {
+      minColumnWidth = 300;
+      minRowHeight = 140;
+    } else if (width <= 1200) {
+      minColumnWidth = 400;
+      minRowHeight = 187;
+    }
     
     return {
       display: 'grid',
-      gridTemplateColumns: `repeat(${responsiveColumns}, minmax(180px, 1fr))`,
-      gridTemplateRows: `repeat(${responsiveRows}, 1fr)`,
+      gridTemplateColumns: `repeat(${responsiveColumns}, minmax(${minColumnWidth}px, 1fr))`,
+      gridTemplateRows: `repeat(${responsiveRows}, minmax(${minRowHeight}px, 1fr))`,
       gap: gap,
       padding: '2rem 2vw',
       width: '100%',
@@ -235,7 +251,7 @@ const PaginatedChannels = ({
       height: 'fit-content',
       justifyContent: gridSettings.gridJustification || 'center',
       alignItems: gridSettings.gridAlignment || 'start',
-      placeItems: gridSettings.gridAlignment === 'stretch' ? 'stretch' : 'start'
+      placeItems: 'stretch' // Ensure channels stretch to fill grid cells
     };
   };
 
