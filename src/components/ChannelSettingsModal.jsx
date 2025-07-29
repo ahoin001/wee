@@ -132,7 +132,7 @@ const ChannelSettingsModal = ({
       )}
     >
       {/* Adaptive Empty Channel Backgrounds */}
-      {/* <div className="wee-card">
+      <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Adaptive Empty Channel Backgrounds</span>
           <label className="toggle-switch" style={{ margin: 0 }}>
@@ -146,7 +146,7 @@ const ChannelSettingsModal = ({
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">When enabled, empty channel slots will automatically adapt their background to match the current wallpaper, creating a more cohesive visual experience.</div>
-      </div> */}
+      </div>
 
       {/* Channel Animation */}
       {/* <div className="wee-card">

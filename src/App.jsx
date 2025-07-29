@@ -23,6 +23,7 @@ import UpdateNotificationBadge from './components/UpdateNotificationBadge';
 import SoundModal from './components/SoundModal';
 import ChannelSettingsModal from './components/ChannelSettingsModal';
 import AppShortcutsModal from './components/AppShortcutsModal';
+import AppearanceSettingsModal from './components/AppearanceSettingsModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
@@ -141,7 +142,9 @@ function App() {
     showRibbonSettingsModal,
     showUpdateModal,
     showPrimaryActionsModal,
+    showAppearanceSettingsModal,
     openSoundModal,
+    openAppearanceSettingsModal,
     closePresetsModal,
     closeWallpaperModal,
     closeSoundModal,
@@ -152,6 +155,7 @@ function App() {
     closeRibbonSettingsModal,
     closeUpdateModal,
     closePrimaryActionsModal,
+    closeAppearanceSettingsModal,
     loadKeyboardShortcuts
   } = useUIStore();
   
@@ -212,6 +216,8 @@ function App() {
   const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
   const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
+  const [startOnBoot, setStartOnBoot] = useState(false); // Launch on startup
+  const [immersivePip, setImmersivePip] = useState(false); // Immersive PiP mode
   const [showDock, setShowDock] = useState(true); // Show/hide the Wii Ribbon dock
   const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
   const [showAdminMenu, setShowAdminMenu] = useState(false);
@@ -540,6 +546,12 @@ function App() {
       // Load sounds
       const soundData = await soundsApi.get();
       setSoundSettings(soundData || {});
+      
+      // Load auto-launch setting
+      if (window.api && window.api.getAutoLaunch) {
+        const autoLaunchEnabled = await window.api.getAutoLaunch();
+        setStartOnBoot(autoLaunchEnabled);
+      }
       // Load wallpapers
       const wallpaperData = await wallpapersApi.get();
       // setWallpaper(wallpaperData?.wallpaper || null); // Remove - wallpaper now loaded from general settings
@@ -830,6 +842,7 @@ function App() {
           glassShineOpacity: settings.presetsButtonConfig?.glassShineOpacity ?? 0.7
         });
         setShowPresetsButton(settings.showPresetsButton ?? false);
+        setImmersivePip(settings.immersivePip ?? false);
         setShowDock(settings.showDock ?? true);
         setWallpaperBlur(settings.wallpaperBlur ?? 0);
         
@@ -1316,6 +1329,7 @@ function App() {
 
   // Handler for settings changes from WallpaperModal or SoundModal
   const handleSettingsChange = async (newSettings) => {
+    console.log('handleSettingsChange received:', newSettings);
     // Update state directly with the new settings passed from the modal
     if (newSettings.channelAutoFadeTimeout !== undefined) {
       setChannelAutoFadeTimeout(newSettings.channelAutoFadeTimeout);
@@ -1448,6 +1462,136 @@ function App() {
     }
     if (newSettings.adaptiveEmptyChannels !== undefined) {
       setAdaptiveEmptyChannels(newSettings.adaptiveEmptyChannels);
+    }
+    if (newSettings.animatedOnHover !== undefined) {
+      setAnimatedOnHover(newSettings.animatedOnHover);
+    }
+    
+    // Handle general settings
+    if (newSettings.immersivePip !== undefined) {
+      setImmersivePip(newSettings.immersivePip);
+    }
+    if (newSettings.startInFullscreen !== undefined) {
+      setStartInFullscreen(newSettings.startInFullscreen);
+    }
+    if (newSettings.showPresetsButton !== undefined) {
+      setShowPresetsButton(newSettings.showPresetsButton);
+    }
+    if (newSettings.startOnBoot !== undefined) {
+      if (window.api && window.api.setAutoLaunch) {
+        window.api.setAutoLaunch(newSettings.startOnBoot);
+      }
+    }
+    
+    // Handle sound settings
+    if (newSettings.backgroundMusicEnabled !== undefined) {
+      // Update sound settings via API
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          backgroundMusicSettings: {
+            ...currentSounds.backgroundMusicSettings,
+            enabled: newSettings.backgroundMusicEnabled
+          }
+        });
+      }
+    }
+    if (newSettings.backgroundMusicLooping !== undefined) {
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          backgroundMusicSettings: {
+            ...currentSounds.backgroundMusicSettings,
+            looping: newSettings.backgroundMusicLooping
+          }
+        });
+      }
+    }
+    if (newSettings.backgroundMusicPlaylistMode !== undefined) {
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          backgroundMusicSettings: {
+            ...currentSounds.backgroundMusicSettings,
+            playlistMode: newSettings.backgroundMusicPlaylistMode
+          }
+        });
+      }
+    }
+    if (newSettings.channelClickEnabled !== undefined) {
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          channelClick: {
+            ...currentSounds.channelClick,
+            enabled: newSettings.channelClickEnabled
+          }
+        });
+      }
+    }
+    if (newSettings.channelClickVolume !== undefined) {
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          channelClick: {
+            ...currentSounds.channelClick,
+            volume: newSettings.channelClickVolume
+          }
+        });
+      }
+    }
+    if (newSettings.channelHoverEnabled !== undefined) {
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          channelHover: {
+            ...currentSounds.channelHover,
+            enabled: newSettings.channelHoverEnabled
+          }
+        });
+      }
+    }
+    if (newSettings.channelHoverVolume !== undefined) {
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          channelHover: {
+            ...currentSounds.channelHover,
+            volume: newSettings.channelHoverVolume
+          }
+        });
+      }
+    }
+    if (newSettings.startupEnabled !== undefined) {
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          startup: {
+            ...currentSounds.startup,
+            enabled: newSettings.startupEnabled
+          }
+        });
+      }
+    }
+    if (newSettings.startupVolume !== undefined) {
+      if (soundsApi?.set) {
+        const currentSounds = await soundsApi.get();
+        await soundsApi.set({
+          ...currentSounds,
+          startup: {
+            ...currentSounds.startup,
+            volume: newSettings.startupVolume
+          }
+        });
+      }
     }
     
     // Handle idle animation settings
@@ -1587,6 +1731,23 @@ function App() {
     kenBurnsAnimationType,
     kenBurnsCrossfadeReturn,
     kenBurnsTransitionType,
+    
+    // General settings
+    immersivePip,
+    startInFullscreen,
+    showPresetsButton,
+    startOnBoot,
+    
+    // Sound settings
+    backgroundMusicEnabled: soundSettings?.backgroundMusicSettings?.enabled ?? true,
+    backgroundMusicLooping: soundSettings?.backgroundMusicSettings?.looping ?? true,
+    backgroundMusicPlaylistMode: soundSettings?.backgroundMusicSettings?.playlistMode ?? false,
+    channelClickEnabled: soundSettings?.channelClick?.enabled ?? true,
+    channelClickVolume: soundSettings?.channelClick?.volume ?? 0.5,
+    channelHoverEnabled: soundSettings?.channelHover?.enabled ?? true,
+    channelHoverVolume: soundSettings?.channelHover?.volume ?? 0.5,
+    startupEnabled: soundSettings?.startup?.enabled ?? true,
+    startupVolume: soundSettings?.startup?.volume ?? 0.5,
   };
 
   // Memoize expensive calculations
@@ -2437,6 +2598,12 @@ function App() {
                 }}>
                   📱 App Shortcuts
                 </div>
+                <div className="context-menu-item" onClick={() => { 
+                  useUIStore.getState().openAppearanceSettingsModal();
+                  closeSettingsMenu(); 
+                }}>
+                  🎨 Appearance Settings
+                </div>
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
                   🎵 Change Sounds
                 </div>
@@ -2708,16 +2875,25 @@ function App() {
           updateInfo={updateInfo}
         />
 
-        {/* SoundModal */}
-        {showSoundModal && (
-          <SoundModal
-            isOpen={showSoundModal}
-            onClose={closeSoundModal}
-            onSettingsChange={handleSettingsChange}
-          />
-        )}
+                        {/* SoundModal */}
+                {showSoundModal && (
+                  <SoundModal
+                    isOpen={showSoundModal}
+                    onClose={closeSoundModal}
+                    onSettingsChange={handleSettingsChange}
+                  />
+                )}
 
-        {/* ClassicDockSettingsModal */}
+                {/* AppearanceSettingsModal */}
+                {showAppearanceSettingsModal && (
+                  <AppearanceSettingsModal
+                    isOpen={showAppearanceSettingsModal}
+                    onClose={closeAppearanceSettingsModal}
+                    onSettingsChange={handleSettingsChange}
+                  />
+                )}
+
+                {/* ClassicDockSettingsModal */}
         {showClassicDockSettingsModal && (
           <ClassicDockSettingsModal
             isOpen={showClassicDockSettingsModal}

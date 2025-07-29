@@ -17,6 +17,7 @@ const useUIStore = create((set, get) => ({
   showRibbonSettingsModal: false,
   showUpdateModal: false,
   showPrimaryActionsModal: false,
+  showAppearanceSettingsModal: false,
   
   // Keyboard shortcuts state
   keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
@@ -119,6 +120,13 @@ const useUIStore = create((set, get) => ({
     set({ showPrimaryActionsModal: !showPrimaryActionsModal });
   },
   
+  openAppearanceSettingsModal: () => set({ showAppearanceSettingsModal: true }),
+  closeAppearanceSettingsModal: () => set({ showAppearanceSettingsModal: false }),
+  toggleAppearanceSettingsModal: () => {
+    const { showAppearanceSettingsModal } = get();
+    set({ showAppearanceSettingsModal: !showAppearanceSettingsModal });
+  },
+  
   // Keyboard shortcuts actions
   updateKeyboardShortcut: (shortcutId, updates) => {
     const { keyboardShortcuts } = get();
@@ -156,6 +164,7 @@ const useUIStore = create((set, get) => ({
       showRibbonSettingsModal,
       showUpdateModal,
       showPrimaryActionsModal,
+      showAppearanceSettingsModal,
       keyboardShortcuts 
     } = get();
     
@@ -163,7 +172,8 @@ const useUIStore = create((set, get) => ({
     const modalsOpen = showPresetsModal || showWallpaperModal || showSoundModal || 
                       showChannelSettingsModal || showAppShortcutsModal ||
                       showGeneralSettingsModal || showTimeSettingsModal ||
-                      showRibbonSettingsModal || showUpdateModal || showPrimaryActionsModal;
+                      showRibbonSettingsModal || showUpdateModal || showPrimaryActionsModal ||
+                      showAppearanceSettingsModal;
     
     // Get the current key and modifier
     const key = event.key.toLowerCase();

@@ -55,7 +55,7 @@ function BaseModal({
           <h2>{title}</h2>
           <button className="close-button" onClick={handleClose}>×</button>
         </div>
-        <div className="modal-content" style={{ paddingBottom: 80 }}>
+        <div className="modal-content" style={{ paddingBottom: 40 }}>
           {children}
         </div>
         {footerContent && (
