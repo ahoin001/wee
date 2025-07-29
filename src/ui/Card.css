@@ -3,9 +3,15 @@
   margin-bottom: 0;
   padding: 24px 28px;
   border-radius: 12px;
-  background: hsl(var(220 20% 95%));
-  box-shadow: 0 1.5px 6px #0099ff08;
-  border: hsl(var(220 10% 80%));
+  background: hsl(var(--surface-secondary));
+  box-shadow: var(--shadow-sm);
+  border: 1px solid hsl(var(--border-primary));
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wee-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: hsl(var(--border-secondary));
 }
 
 .wee-card-header {
@@ -17,17 +23,17 @@
 .wee-card-title {
   font-size: 1.18em;
   font-weight: 600;
-  color: #222;
+  color: hsl(var(--text-primary));
 }
 
 .wee-card-separator {
   height: 1px;
-  background: #e0e0e6;
+  background: hsl(var(--border-primary));
   margin: 10px 0;
 }
 
 .wee-card-desc {
-  color: #555;
+  color: hsl(var(--text-secondary));
   font-size: 0.97em;
   margin-bottom: 10px;
 } 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
+import Text from '../ui/Text';
 import './SoundModal.css';
 
 const SOUND_CATEGORIES = [
@@ -472,47 +473,29 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                 {/* Background Music Settings */}
                 <div className="background-music-settings">
                   <div className="settings-row">
-                    <label className="setting-item">
-                      <label className="toggle-switch" title="Enable/Disable Background Music">
-                        <input
-                          type="checkbox"
-                          checked={backgroundMusicSettings.enabled}
-                          onChange={(e) => handleBackgroundMusicSettingChange('enabled', e.target.checked)}
-                        />
-                        <span className="slider" />
-                      </label>
-                      <span>Enable Background Music</span>
-                    </label>
+                    <Toggle
+                      checked={backgroundMusicSettings.enabled}
+                      onChange={(checked) => handleBackgroundMusicSettingChange('enabled', checked)}
+                      label="Enable Background Music"
+                    />
                   </div>
                   
                   {backgroundMusicSettings.enabled && (
                     <>
                       <div className="settings-row">
-                        <label className="setting-item">
-                          <label className="toggle-switch" title="Loop Music">
-                            <input
-                              type="checkbox"
-                              checked={backgroundMusicSettings.looping}
-                              onChange={(e) => handleBackgroundMusicSettingChange('looping', e.target.checked)}
-                            />
-                            <span className="slider" />
-                          </label>
-                          <span>Loop Music</span>
-                        </label>
+                        <Toggle
+                          checked={backgroundMusicSettings.looping}
+                          onChange={(checked) => handleBackgroundMusicSettingChange('looping', checked)}
+                          label="Loop Music"
+                        />
                       </div>
                       
                       <div className="settings-row">
-                        <label className="setting-item">
-                          <label className="toggle-switch" title="Playlist Mode">
-                            <input
-                              type="checkbox"
-                              checked={backgroundMusicSettings.playlistMode}
-                              onChange={(e) => handleBackgroundMusicSettingChange('playlistMode', e.target.checked)}
-                            />
-                            <span className="slider" />
-                          </label>
-                          <span>Playlist Mode (Play liked sounds in order)</span>
-                        </label>
+                        <Toggle
+                          checked={backgroundMusicSettings.playlistMode}
+                          onChange={(checked) => handleBackgroundMusicSettingChange('playlistMode', checked)}
+                          label="Playlist Mode (Play liked sounds in order)"
+                        />
                       </div>
                     </>
                   )}
@@ -549,7 +532,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                 {/* Sound List */}
                 <div className="sound-list">
                   {localState[cat.key]?.length === 0 && (
-                    <span className="no-sounds" style={{ color: '#888' }}>No sounds yet.</span>
+                    <Text variant="help" className="no-sounds">No sounds yet.</Text>
                   )}
                   {localState[cat.key]?.map(sound => (
                     <div
@@ -608,15 +591,11 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                           {!sound.isDefault && (
                             <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
                           )}
-                          <label className="toggle-switch" title="Enable/Disable">
-                            <input
-                              type="checkbox"
-                              checked={!!sound.enabled}
-                              onChange={() => handleToggleEnable(cat.key, sound.id)}
-                              disabled={!backgroundMusicSettings.enabled}
-                            />
-                            <span className="slider" />
-                          </label>
+                          <Toggle
+                            checked={!!sound.enabled}
+                            onChange={(checked) => handleToggleEnable(cat.key, sound.id)}
+                            disabled={!backgroundMusicSettings.enabled}
+                          />
                         </div>
                       </div>
                     </div>
@@ -652,7 +631,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
             </div>
             <div className="sound-list">
               {localState[cat.key]?.length === 0 && (
-                <span className="no-sounds" style={{ color: '#888' }}>No sounds yet.</span>
+                <Text variant="help" className="no-sounds">No sounds yet.</Text>
               )}
               {localState[cat.key]?.map(sound => (
                 <div
@@ -684,14 +663,10 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                       {!sound.isDefault && (
                         <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
                       )}
-                      <label className="toggle-switch" title="Enable/Disable">
-                        <input
-                          type="checkbox"
-                          checked={!!sound.enabled}
-                          onChange={() => handleToggleEnable(cat.key, sound.id)}
-                        />
-                        <span className="slider" />
-                      </label>
+                      <Toggle
+                        checked={!!sound.enabled}
+                        onChange={(checked) => handleToggleEnable(cat.key, sound.id)}
+                      />
                     </div>
                   </div>
                 </div>

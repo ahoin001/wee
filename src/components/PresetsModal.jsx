@@ -7,6 +7,8 @@ import Button from '../ui/Button';
 import '../styles/design-system.css';
 import Text from '../ui/Text';
 import Card from '../ui/Card';
+import PresetListItem from './PresetListItem';
+import Toggle from '../ui/Toggle';
 
 function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset, onImportPresets, onReorderPresets }) {
   const fileInputRef = useRef();
@@ -390,10 +392,10 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 flex: 1, 
                 padding: 8, 
                 borderRadius: 6, 
-                border: '1.5px solid #bbb', 
+                border: '1.5px solid hsl(var(--border-primary))', 
                 fontSize: 15, 
-                background: '#fff', 
-                color: '#222',
+                background: 'hsl(var(--surface-primary))', 
+                color: 'hsl(var(--text-primary))',
               
                 opacity: presets.length >= 6 ? 0.6 : 1
               }}
@@ -407,38 +409,30 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           </div>
           <div style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <label className="toggle-switch" style={{ margin: 0 }}>
-                <input
-                  type="checkbox"
-                  checked={includeChannels}
-                  onChange={(e) => setIncludeChannels(e.target.checked)}
-                />
-                <span className="slider" />
-              </label>
-              <Text size="md" color="#666">Include channel data (apps and media)</Text>
+              <Toggle
+                checked={includeChannels}
+                onChange={setIncludeChannels}
+                label="Include channel data (apps and media)"
+              />
             </div>
-            <Text size="sm" color="#888" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
-              When enabled, this preset will also save your current channel apps and media files.
-            </Text>
+                          <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
+                When enabled, this preset will also save your current channel apps and media files.
+              </Text>
             <div style={{ marginTop: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <label className="toggle-switch" style={{ margin: 0 }}>
-                  <input
-                    type="checkbox"
-                    checked={includeSounds}
-                    onChange={(e) => setIncludeSounds(e.target.checked)}
-                  />
-                  <span className="slider" />
-                </label>
-                <Text size="md" color="#666">Include sound settings (enabled sounds and volumes)</Text>
+                <Toggle
+                  checked={includeSounds}
+                  onChange={setIncludeSounds}
+                  label="Include sound settings (enabled sounds and volumes)"
+                />
               </div>
-              <Text size="sm" color="#888" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
+              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
                 When enabled, this preset will also save your current sound settings and volume levels.
               </Text>
             </div>
           </div>
           {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
-          {presets.length >= 6 && <Text size="sm" color="#888" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
+          {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
         </div>
       </Card>
       <Card 
@@ -473,7 +467,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
         </div>
         {selectMode && (
           <div style={{ display: 'flex', gap: 10, marginBottom: 18, justifyContent: 'flex-end' }}>
-            <Text size="md" weight={500} style={{ color: '#222', marginRight: 'auto' }}>
+            <Text size="md" weight={500} style={{ color: 'hsl(var(--text-primary))', marginRight: 'auto' }}>
               Click presets to select for export
             </Text>
             <Button variant="primary" onClick={() => { handleExportZip(getPresetsToExport()); setSelectMode(false); }} disabled={selectedPresets.length === 0}>
@@ -490,10 +484,10 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
             </Button>
           </div>
         )}
-        <hr style={{ border: 'none', borderTop: '1.5px solid #e0e6ef', margin: '0 0 18px 0' }} />
+        <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '0 0 18px 0' }} />
         
          {showImportPreview && importedPresets && (
-        <div className="import-preview-modal" style={{ background: '#f7fafd', border: '1.5px solid #0099ff', borderRadius: 12, padding: 24, marginBottom: 18 }}>
+        <div className="import-preview-modal" style={{ background: 'hsl(var(--surface-secondary))', border: '1.5px solid hsl(var(--wii-blue))', borderRadius: 12, padding: 24, marginBottom: 18 }}>
           <h3>Preview Imported Presets</h3>
           <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
             {importedPresets.map((preset, idx) => {
@@ -502,7 +496,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
                   {exists && (
-                    <label style={{ fontSize: 13, color: '#0099ff', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
+                    <label style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
                       <input
                         type="checkbox"
                         checked={overwriteMap[preset.name]}
@@ -512,12 +506,12 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                       Overwrite existing
                     </label>
                   )}
-                  {exists && !overwriteMap[preset.name] && <span style={{ color: '#888', fontSize: 13 }}>(Will skip)</span>}
+                  {exists && !overwriteMap[preset.name] && <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 13 }}>(Will skip)</span>}
                 </li>
               );
             })}
           </ul>
-          <button onClick={handleConfirmImport} style={{ marginRight: 12, padding: '8px 24px', borderRadius: 8, background: '#0099ff', color: 'white', fontWeight: 600 }}>Import</button>
+          <button onClick={handleConfirmImport} style={{ marginRight: 12, padding: '8px 24px', borderRadius: 8, background: 'hsl(var(--wii-blue))', color: 'white', fontWeight: 600 }}>Import</button>
           <button onClick={handleCancelImport} style={{ padding: '8px 24px', borderRadius: 8 }}>Cancel</button>
         </div>
       )}
@@ -529,77 +523,32 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
             const isSelected = selectMode && selectedPresets.includes(preset.name);
             
             return (
-            <li
-              key={preset.name}
-              className={isSelected ? 'pulse-blue' : ''}
-              draggable={!selectMode}
-              onDragStart={(e) => handleDragStart(e, preset.name)}
-              onDragOver={(e) => handleDragOver(e, preset.name)}
-              onDragEnter={(e) => handleDragEnter(e, preset.name)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, preset.name)}
-              onDragEnd={handleDragEnd}
-              style={{
-                display: 'flex', alignItems: 'center', marginBottom: 10, padding: '12px 24px', borderBottom: '1px solid #f0f0f0',
-                cursor: selectMode ? 'pointer' : (isDragging ? 'grabbing' : 'grab'),
-                background: isSelected ? '#e6f3ff' : (isDropTarget ? '#f0f9ff' : '#fff'),
-                borderRadius: isSelected ? 10 : 8,
-                boxShadow: !selectMode || !isSelected
-                  ? '0 1.5px 6px #0099ff08'
-                  : undefined,
-                border: !selectMode || !isSelected
-                  ? (isDropTarget ? '2px solid #0099ff' : '1.5px solid #e0e6ef')
-                  : undefined,
-                transition: 'background 0.2s, box-shadow 0.2s, border 0.2s, transform 0.2s',
-                opacity: isDragging ? 0.5 : 1,
-                transform: isDragging ? 'scale(0.98)' : (isDropTarget ? 'scale(1.02)' : 'scale(1)'),
-              }}
-              onClick={selectMode ? () => handleToggleSelectPreset(preset.name) : undefined}
-            >
-              {/* Title left, buttons right */}
-              <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                {!selectMode && (
-                  <span 
-                    style={{ 
-                      fontSize: 14, 
-                      color: '#999', 
-                      marginRight: 8, 
-                      cursor: 'grab',
-                      userSelect: 'none'
-                    }}
-                    title="Drag to reorder"
-                  >
-                    ⋮⋮
-                  </span>
-                )}
-                <span style={{ fontWeight: 500, textAlign: 'left', fontSize: 16 }}>{preset.name}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
-                {editingPreset === preset.name ? (
-                  <>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={e => setEditName(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      style={{ fontSize: 16, padding: '6px 10px', borderRadius: 6, border: '1.5px solid #ccc', marginRight: 8, flex: 1, background: '#fff', color: '#222' }}
-                      autoFocus
-                    />
-                    <Button style={{ minWidth: 70, marginRight: 8 }} onClick={handleSaveEdit}>Save</Button>
-                    <Button style={{ minWidth: 70 }} onClick={handleCancelEdit}>Cancel</Button>
-                  </>
-                ) : (
-                  <>
-                    <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); handleApplyPreset(preset); }}>Apply</Button>
-                    <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); handleUpdate(preset.name); }}>
-                      {justUpdated === preset.name ? 'Updated!' : 'Update'}
-                    </Button>
-                    <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); handleStartEdit(preset); }}>Rename</Button>
-                    <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); onDeletePreset(preset.name); }}>Delete</Button>
-                  </>
-                )}
-              </div>
-            </li>
+              <PresetListItem
+                key={preset.name}
+                preset={preset}
+                isDragging={isDragging}
+                isDropTarget={isDropTarget}
+                isSelected={isSelected}
+                selectMode={selectMode}
+                editingPreset={editingPreset}
+                editName={editName}
+                justUpdated={justUpdated}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onDragEnd={handleDragEnd}
+                onToggleSelect={handleToggleSelectPreset}
+                onApply={handleApplyPreset}
+                onUpdate={handleUpdate}
+                onStartEdit={handleStartEdit}
+                onDelete={onDeletePreset}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={handleCancelEdit}
+                onEditNameChange={e => setEditName(e.target.value)}
+                onKeyPress={handleKeyPress}
+              />
             );
           })}
         </ul>

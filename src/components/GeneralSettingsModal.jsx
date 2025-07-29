@@ -59,14 +59,10 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
         <div className="wee-card">
           <div className="wee-card-header">
             <span className="wee-card-title">Immersive Picture in Picture mode</span>
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={pip}
-                onChange={e => setPip(e.target.checked)}
-              />
-              <span className="slider" />
-            </label>
+            <Toggle
+              checked={pip}
+              onChange={setPip}
+            />
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, video overlays will use immersive PiP mode for a more cinematic experience.</div>
@@ -76,14 +72,10 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
         <div className="wee-card">
           <div className="wee-card-header">
             <span className="wee-card-title">Start in Fullscreen</span>
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={fullscreen}
-                onChange={e => setFullscreen(e.target.checked)}
-              />
-              <span className="slider" />
-            </label>
+            <Toggle
+              checked={fullscreen}
+              onChange={setFullscreen}
+            />
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode.</div>
@@ -93,14 +85,10 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
         <div className="wee-card">
           <div className="wee-card-header">
             <span className="wee-card-title">Show Presets Button</span>
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={showPresets}
-                onChange={e => setShowPresets(e.target.checked)}
-              />
-              <span className="slider" />
-            </label>
+            <Toggle
+              checked={showPresets}
+              onChange={setShowPresets}
+            />
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, shows a presets button near the time display that allows quick access to saved appearance presets. Right-click the button to customize its icon.</div>
@@ -110,14 +98,10 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
         <div className="wee-card">
           <div className="wee-card-header">
             <span className="wee-card-title">Launch app when my computer starts</span>
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={startOnBoot}
-                onChange={handleStartOnBootToggle}
-              />
-              <span className="slider" />
-            </label>
+            <Toggle
+              checked={startOnBoot}
+              onChange={handleStartOnBootToggle}
+            />
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">When enabled, the app will launch automatically when your computer starts.</div>

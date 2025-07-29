@@ -9,15 +9,16 @@ import { colors } from "./tokens";
 function getAutoToggleColors(disabled) {
   const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   return {
-    track: disabled ? (isDark ? '#333' : '#eee') : (isDark ? '#2a4a6a' : '#e0e6ef'),
-    trackChecked: disabled ? (isDark ? '#333' : '#eee') : (isDark ? '#0099ff' : colors.primary),
-    thumb: isDark ? '#fff' : '#fff',
-    border: isDark ? '#222' : '#ccc',
+    track: disabled ? (isDark ? 'hsl(var(--surface-secondary))' : '#f0f0f0') : (isDark ? 'hsl(var(--surface-tertiary))' : '#e0e6ef'),
+    trackChecked: disabled ? (isDark ? 'hsl(var(--surface-secondary))' : '#f0f0f0') : (isDark ? 'hsl(var(--wii-blue))' : colors.primary),
+    thumb: disabled ? (isDark ? 'hsl(var(--surface-tertiary))' : '#ddd') : (isDark ? 'hsl(var(--surface-primary))' : '#fff'),
+    border: disabled ? (isDark ? 'hsl(var(--border-secondary))' : '#ddd') : (isDark ? 'hsl(var(--border-tertiary))' : '#ccc'),
+    label: disabled ? 'hsl(var(--text-tertiary))' : (isDark ? 'hsl(var(--text-primary))' : '#222'),
   };
 }
 
 export default function Toggle({ checked, onChange, label, disabled = false, style, ...props }) {
-  const { track, trackChecked, thumb, border } = getAutoToggleColors(disabled);
+  const { track, trackChecked, thumb, border, label: labelColor } = getAutoToggleColors(disabled);
   const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   
   return (
@@ -57,7 +58,7 @@ export default function Toggle({ checked, onChange, label, disabled = false, sty
           transition: 'left 0.22s cubic-bezier(.4,1.3,.5,1)',
         }} />
       </span>
-      {label && <span style={{ fontSize: 15, color: disabled ? '#aaa' : (isDark ? '#fff' : '#222'), fontWeight: 500 }}>{label}</span>}
+      {label && <span style={{ fontSize: 15, color: labelColor, fontWeight: 500 }}>{label}</span>}
     </label>
   );
 } 

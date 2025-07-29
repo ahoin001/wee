@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
+import Toggle from '../ui/Toggle';
 import './BaseModal.css';
 
 const ChannelSettingsModal = ({ 
@@ -135,14 +136,10 @@ const ChannelSettingsModal = ({
       <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Adaptive Empty Channel Backgrounds</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={localAdaptiveEmptyChannels}
-              onChange={e => setLocalAdaptiveEmptyChannels(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
+          <Toggle
+            checked={localAdaptiveEmptyChannels}
+            onChange={setLocalAdaptiveEmptyChannels}
+          />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">When enabled, empty channel slots will automatically adapt their background to match the current wallpaper, creating a more cohesive visual experience.</div>
@@ -176,14 +173,10 @@ const ChannelSettingsModal = ({
       <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Only play channel animations on hover</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={localAnimatedOnHover}
-              onChange={e => setLocalAnimatedOnHover(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
+          <Toggle
+            checked={localAnimatedOnHover}
+            onChange={setLocalAnimatedOnHover}
+          />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel. When disabled, animations will play automatically.</div>
@@ -193,14 +186,10 @@ const ChannelSettingsModal = ({
       <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Idle Channel Animations</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={localIdleAnimationEnabled}
-              onChange={e => setLocalIdleAnimationEnabled(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
+          <Toggle
+            checked={localIdleAnimationEnabled}
+            onChange={setLocalIdleAnimationEnabled}
+          />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">When enabled, channels will play subtle animations when not being interacted with, adding life to the interface.</div>
@@ -243,14 +232,10 @@ const ChannelSettingsModal = ({
       <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Ken Burns Effect</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={localKenBurnsEnabled}
-              onChange={e => setLocalKenBurnsEnabled(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
+          <Toggle
+            checked={localKenBurnsEnabled}
+            onChange={setLocalKenBurnsEnabled}
+          />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">Add cinematic zoom and pan effects to channel images, creating dynamic visual interest.</div>
@@ -392,14 +377,10 @@ const ChannelSettingsModal = ({
       <div className="wee-card">
         <div className="wee-card-header">
           <span className="wee-card-title">Channel Auto-Fade</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={localChannelAutoFadeTimeout > 0}
-              onChange={e => setLocalChannelAutoFadeTimeout(e.target.checked ? 5 : 0)}
-            />
-            <span className="slider" />
-          </label>
+          <Toggle
+            checked={localChannelAutoFadeTimeout > 0}
+            onChange={(checked) => setLocalChannelAutoFadeTimeout(checked ? 5 : 0)}
+          />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity.</div>

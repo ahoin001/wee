@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
+import Text from '../ui/Text';
 import './BaseModal.css';
 import Card from '../ui/Card';
 import Toggle from '../ui/Toggle';
@@ -389,7 +390,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               </div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', alignItems: 'flex-start' }}>
-              {wallpapers.length === 0 && <span style={{ color: '#888' }}>No saved wallpapers yet.</span>}
+              {wallpapers.length === 0 && <Text variant="help">No saved wallpapers yet.</Text>}
               {wallpapers.map((wallpaper, idx) => (
                 <div key={wallpaper.url || idx} style={{ minWidth: 120, maxWidth: 160, flex: '1 1 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
                   <div
@@ -510,7 +511,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 onChange={e => setCycleInterval(Number(e.target.value))}
                 style={{ width: 70, fontSize: 15, padding: '4px 8px', borderRadius: 6, border: '1px solid #ccc', marginRight: 8 }}
               />
-              <span style={{ color: '#666', fontSize: 15 }}>seconds</span>
+              <Text variant="small" style={{ color: 'hsl(var(--text-secondary))' }}>seconds</Text>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
               <span style={{ fontWeight: 500, minWidth: 120 }}>Animation</span>
@@ -542,7 +543,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     onChange={e => setCrossfadeDuration(Number(e.target.value))}
                     style={{ flex: 1 }}
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+                  <Text variant="small" style={{ minWidth: 40, fontWeight: 600, color: 'hsl(var(--text-secondary))' }}>{crossfadeDuration}s</Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
                   <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>

@@ -5,6 +5,7 @@ import Button from '../ui/Button';
 import Slider from '../ui/Slider';
 import Card from '../ui/Card';
 import Toggle from '../ui/Toggle';
+import Text from '../ui/Text';
 import useAppearanceSettingsStore from '../utils/useAppearanceSettingsStore';
 import { spacing } from '../ui/tokens';
 import './BaseModal.css';
@@ -364,7 +365,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 <select
                   value={localSettings.channels?.kenBurnsMode || 'hover'}
                   onChange={e => updateLocalSetting('channels', 'kenBurnsMode', e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14 }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid hsl(var(--border-primary))', fontSize: 14, background: 'hsl(var(--surface-primary))', color: 'hsl(var(--text-primary))' }}
                 >
                   <option value="hover">On Hover</option>
                   <option value="autoplay">Autoplay</option>
@@ -376,7 +377,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 <div style={{ fontWeight: 500, marginBottom: 8 }}>Scale Settings:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ fontSize: 12, color: '#666' }}>Hover Scale: {localSettings.channels?.kenBurnsHoverScale ?? 1.1}</label>
+                    <label style={{ fontSize: 12, color: 'hsl(var(--text-secondary))' }}>Hover Scale: {localSettings.channels?.kenBurnsHoverScale ?? 1.1}</label>
                     <input
                       type="range"
                       min={1.0}
@@ -388,7 +389,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, color: '#666' }}>Autoplay Scale: {localSettings.channels?.kenBurnsAutoplayScale ?? 1.15}</label>
+                    <label style={{ fontSize: 12, color: 'hsl(var(--text-secondary))' }}>Autoplay Scale: {localSettings.channels?.kenBurnsAutoplayScale ?? 1.15}</label>
                     <input
                       type="range"
                       min={1.0}
@@ -406,7 +407,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 <div style={{ fontWeight: 500, marginBottom: 8 }}>Duration Settings:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ fontSize: 12, color: '#666' }}>Hover Duration: {localSettings.channels?.kenBurnsHoverDuration ?? 8000}ms</label>
+                    <label style={{ fontSize: 12, color: 'hsl(var(--text-secondary))' }}>Hover Duration: {localSettings.channels?.kenBurnsHoverDuration ?? 8000}ms</label>
                     <input
                       type="range"
                       min={2000}
@@ -418,7 +419,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, color: '#666' }}>Autoplay Duration: {localSettings.channels?.kenBurnsAutoplayDuration ?? 12000}ms</label>
+                    <label style={{ fontSize: 12, color: 'hsl(var(--text-secondary))' }}>Autoplay Duration: {localSettings.channels?.kenBurnsAutoplayDuration ?? 12000}ms</label>
                     <input
                       type="range"
                       min={5000}
@@ -436,7 +437,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 <div style={{ fontWeight: 500, marginBottom: 8 }}>Advanced Settings:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ fontSize: 12, color: '#666' }}>Crossfade Duration: {localSettings.channels?.kenBurnsCrossfadeDuration ?? 1000}ms</label>
+                    <label style={{ fontSize: 12, color: 'hsl(var(--text-secondary))' }}>Crossfade Duration: {localSettings.channels?.kenBurnsCrossfadeDuration ?? 1000}ms</label>
                     <input
                       type="range"
                       min={500}
@@ -448,11 +449,11 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, color: '#666' }}>Easing:</label>
+                    <label style={{ fontSize: 12, color: 'hsl(var(--text-secondary))' }}>Easing:</label>
                     <select
                       value={localSettings.channels?.kenBurnsEasing || 'ease-out'}
                       onChange={e => updateLocalSetting('channels', 'kenBurnsEasing', e.target.value)}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid #ddd', fontSize: 12 }}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid hsl(var(--border-primary))', fontSize: 12, background: 'hsl(var(--surface-primary))', color: 'hsl(var(--text-primary))' }}
                     >
                       <option value="ease-out">Ease Out</option>
                       <option value="ease-in">Ease In</option>
@@ -492,7 +493,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 onChange={e => updateLocalSetting('channels', 'channelAutoFadeTimeout', Number(e.target.value))}
                 style={{ width: '100%' }}
               />
-              <div style={{ fontSize: 13, color: '#666', marginTop: 8 }}>
+              <div style={{ fontSize: 13, color: 'hsl(var(--text-secondary))', marginTop: 8 }}>
                 <strong>Fade Timeout:</strong> The time in seconds before channels start to fade out when not hovered.
               </div>
             </div>
@@ -526,13 +527,13 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                     cursor: 'pointer'
                   }}
                 />
-                <span style={{ color: '#888', fontSize: 14 }}>
+                <Text variant="small" style={{ color: 'hsl(var(--text-secondary))' }}>
                   {(localSettings.ribbon?.ribbonColor ?? '#e0e6ef').toUpperCase()}
-                </span>
+                </Text>
               </div>
               {(localSettings.ribbon?.recentRibbonColors ?? []).length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
-                  <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+                  <Text variant="caption" style={{ marginRight: 2 }}>Previous:</Text>
                   {(localSettings.ribbon?.recentRibbonColors ?? []).map((color, idx) => (
                     <button
                       key={color}
@@ -541,7 +542,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                         width: 28,
                         height: 28,
                         borderRadius: '50%',
-                        border: color === (localSettings.ribbon?.ribbonColor ?? '#e0e6ef') ? '2px solid #0099ff' : '1.5px solid #bbb',
+                        border: color === (localSettings.ribbon?.ribbonColor ?? '#e0e6ef') ? '2px solid hsl(var(--wii-blue))' : '1.5px solid hsl(var(--border-secondary))',
                         background: color,
                         cursor: 'pointer',
                         outline: 'none',
@@ -566,13 +567,13 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                     cursor: 'pointer'
                   }}
                 />
-                <span style={{ color: '#888', fontSize: 14 }}>
+                <Text variant="small" style={{ color: 'hsl(var(--text-secondary))' }}>
                   {(localSettings.ribbon?.ribbonGlowColor ?? '#0099ff').toUpperCase()}
-                </span>
+                </Text>
               </div>
               {(localSettings.ribbon?.recentRibbonGlowColors ?? []).length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
-                  <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+                  <Text variant="caption" style={{ marginRight: 2 }}>Previous:</Text>
                   {(localSettings.ribbon?.recentRibbonGlowColors ?? []).map((color, idx) => (
                     <button
                       key={color}
@@ -581,7 +582,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                         width: 28,
                         height: 28,
                         borderRadius: '50%',
-                        border: color === (localSettings.ribbon?.ribbonGlowColor ?? '#0099ff') ? '2px solid #0099ff' : '1.5px solid #bbb',
+                        border: color === (localSettings.ribbon?.ribbonGlowColor ?? '#0099ff') ? '2px solid hsl(var(--wii-blue))' : '1.5px solid hsl(var(--border-secondary))',
                         background: color,
                         cursor: 'pointer',
                         outline: 'none',
@@ -685,7 +686,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         desc="Adjust the transparency and blur of the wallpaper background."
         actions={
           <>
-            <div style={{ fontSize: 14, color: '#666', marginTop: 0 }}>
+            <div style={{ fontSize: 14, color: 'hsl(var(--text-secondary))', marginTop: 0 }}>
               <strong>Wallpaper Opacity:</strong> Adjust the transparency of the wallpaper background.
             </div>
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -698,9 +699,9 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 onChange={e => updateLocalSetting('wallpaper', 'wallpaperOpacity', Number(e.target.value))}
                 style={{ flex: 1 }}
               />
-              <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round((localSettings.wallpaper?.wallpaperOpacity ?? 1) * 100)}%</span>
+              <Text variant="small" style={{ minWidth: 38, fontWeight: 600, color: 'hsl(var(--text-secondary))' }}>{Math.round((localSettings.wallpaper?.wallpaperOpacity ?? 1) * 100)}%</Text>
             </div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
+            <Text variant="help" style={{ marginTop: 2 }}>Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</Text>
             
             <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
               <input
@@ -712,9 +713,9 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 onChange={e => updateLocalSetting('wallpaper', 'wallpaperBlur', Number(e.target.value))}
                 style={{ flex: 1 }}
               />
-              <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{localSettings.wallpaper?.wallpaperBlur ?? 0}px</span>
+              <Text variant="small" style={{ minWidth: 38, fontWeight: 600, color: 'hsl(var(--text-secondary))' }}>{localSettings.wallpaper?.wallpaperBlur ?? 0}px</Text>
             </div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
+            <Text variant="help" style={{ marginTop: 2 }}>Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</Text>
           </>
         }
       />
@@ -740,16 +741,16 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 max={600}
                 value={localSettings.wallpaper?.cycleInterval ?? 30}
                 onChange={e => updateLocalSetting('wallpaper', 'cycleInterval', Number(e.target.value))}
-                style={{ width: 70, fontSize: 15, padding: '4px 8px', borderRadius: 6, border: '1px solid #ccc', marginRight: 8 }}
+                style={{ width: 70, fontSize: 15, padding: '4px 8px', borderRadius: 6, border: '1px solid hsl(var(--border-primary))', marginRight: 8, background: 'hsl(var(--surface-primary))', color: 'hsl(var(--text-primary))' }}
               />
-              <span style={{ color: '#666', fontSize: 15 }}>seconds</span>
+              <Text variant="small" style={{ color: 'hsl(var(--text-secondary))' }}>seconds</Text>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
               <span style={{ fontWeight: 500, minWidth: 120 }}>Animation</span>
               <select
                 value={localSettings.wallpaper?.cycleAnimation ?? 'fade'}
                 onChange={e => updateLocalSetting('wallpaper', 'cycleAnimation', e.target.value)}
-                style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid hsl(var(--border-primary))', background: 'hsl(var(--surface-primary))', color: 'hsl(var(--text-primary))' }}
               >
                 <option value="fade">Fade - Smooth crossfade between wallpapers</option>
                 <option value="slide">Slide - Slide one wallpaper out while sliding the next in</option>
@@ -782,7 +783,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 <select
                   value={localSettings.wallpaper?.overlayEffect ?? 'snow'}
                   onChange={e => updateLocalSetting('wallpaper', 'overlayEffect', e.target.value)}
-                  style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
+                  style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid hsl(var(--border-primary))', background: 'hsl(var(--surface-primary))', color: 'hsl(var(--text-primary))' }}
                 >
                   <option value="snow">❄️ Snow</option>
                   <option value="rain">🌧️ Rain</option>
@@ -804,7 +805,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                   onChange={e => updateLocalSetting('wallpaper', 'overlayIntensity', Number(e.target.value))}
                   style={{ flex: 1 }}
                 />
-                <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{localSettings.wallpaper?.overlayIntensity ?? 50}%</span>
+                <span style={{ minWidth: 40, fontWeight: 600, color: 'hsl(var(--text-secondary))' }}>{localSettings.wallpaper?.overlayIntensity ?? 50}%</span>
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
@@ -818,7 +819,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                   onChange={e => updateLocalSetting('wallpaper', 'overlaySpeed', Number(e.target.value))}
                   style={{ flex: 1 }}
                 />
-                <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{localSettings.wallpaper?.overlaySpeed ?? 1}x</span>
+                <span style={{ minWidth: 40, fontWeight: 600, color: 'hsl(var(--text-secondary))' }}>{localSettings.wallpaper?.overlaySpeed ?? 1}x</span>
               </div>
             </>
           )
@@ -910,13 +911,13 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                     cursor: 'pointer'
                   }}
                 />
-                <span style={{ color: '#888', fontSize: 14 }}>
+                <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 14 }}>
                   {(localSettings.time?.timeColor ?? '#ffffff').toUpperCase()}
                 </span>
               </div>
               {(localSettings.time?.recentTimeColors ?? []).length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+                  <span style={{ fontSize: 13, color: 'hsl(var(--text-secondary))', marginRight: 2 }}>Previous:</span>
                   {(localSettings.time?.recentTimeColors ?? []).map((color, idx) => (
                     <button
                       key={color}
@@ -925,7 +926,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                         width: 28,
                         height: 28,
                         borderRadius: '50%',
-                        border: color === (localSettings.time?.timeColor ?? '#ffffff') ? '2px solid #0099ff' : '1.5px solid #bbb',
+                        border: color === (localSettings.time?.timeColor ?? '#ffffff') ? '2px solid hsl(var(--wii-blue))' : '1.5px solid hsl(var(--border-secondary))',
                         background: color,
                         cursor: 'pointer',
                         outline: 'none',
@@ -1241,7 +1242,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         separator
         desc="Customize the classic Wii dock appearance and behavior."
         actions={
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'hsl(var(--text-secondary))' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚓</div>
             <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>Dock Settings</div>
             <div style={{ fontSize: '14px' }}>Coming soon - customize dock size, themes, and button configurations</div>
@@ -1258,7 +1259,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         separator
         desc="Manage and apply preset themes for the entire application."
         actions={
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'hsl(var(--text-secondary))' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎨</div>
             <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>Theme Management</div>
             <div style={{ fontSize: '14px' }}>Coming soon - browse, apply, and create custom themes</div>
@@ -1275,7 +1276,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         separator
         desc="Expert-level configuration options for power users."
         actions={
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'hsl(var(--text-secondary))' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚙️</div>
             <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>Advanced Settings</div>
             <div style={{ fontSize: '14px' }}>Coming soon - performance tuning, debug options, and expert configurations</div>
@@ -1326,21 +1327,21 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
             style={{
               padding: '8px 16px',
               borderRadius: '6px',
-              border: '2px solid #0099ff',
+              border: '2px solid hsl(var(--wii-blue))',
               background: 'transparent',
-              color: '#0099ff',
+              color: 'hsl(var(--wii-blue))',
               cursor: 'pointer',
               fontSize: '14px',
               fontWeight: '500',
               transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              e.target.style.background = '#0099ff';
+              e.target.style.background = 'hsl(var(--wii-blue))';
               e.target.style.color = 'white';
             }}
             onMouseLeave={(e) => {
               e.target.style.background = 'transparent';
-              e.target.style.color = '#0099ff';
+              e.target.style.color = 'hsl(var(--wii-blue))';
             }}
           >
             Reset to Default
@@ -1362,15 +1363,15 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
       <div style={{ 
         display: 'flex', 
         height: 'calc(85vh - 200px)', // Account for header, footer, and padding
-        border: '1px solid #e0e0e0',
+        border: '1px solid hsl(var(--border-primary))',
         borderRadius: '8px',
         overflow: 'hidden'
       }}>
         {/* Sidebar */}
         <div style={{
           width: '220px',
-          background: '#f8f9fa',
-          borderRight: '1px solid #e0e0e0',
+          background: 'hsl(var(--surface-secondary))',
+          borderRight: '1px solid hsl(var(--border-primary))',
           overflowY: 'auto',
           flexShrink: 0
         }}>
@@ -1383,7 +1384,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 padding: '16px 20px',
                 border: 'none',
                 background: activeTab === section.id ? section.color : 'transparent',
-                color: activeTab === section.id ? 'white' : '#666',
+                color: activeTab === section.id ? 'white' : 'hsl(var(--text-secondary))',
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: activeTab === section.id ? '600' : '500',
@@ -1392,18 +1393,18 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                 alignItems: 'center',
                 gap: '12px',
                 textAlign: 'left',
-                borderBottom: '1px solid #e0e0e0'
+                borderBottom: '1px solid hsl(var(--border-primary))'
               }}
               onMouseEnter={(e) => {
                 if (activeTab !== section.id) {
-                  e.target.style.background = '#e3f2fd';
+                  e.target.style.background = 'hsl(var(--surface-tertiary))';
                   e.target.style.color = section.color;
                 }
               }}
               onMouseLeave={(e) => {
                 if (activeTab !== section.id) {
                   e.target.style.background = 'transparent';
-                  e.target.style.color = '#666';
+                  e.target.style.color = 'hsl(var(--text-secondary))';
                 }
               }}
             >
@@ -1428,7 +1429,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
           padding: '20px',
           paddingBottom: '90px',
           overflowY: 'auto',
-          background: 'white',
+          background: 'hsl(var(--surface-primary))',
           minHeight: 0 // Important for flex child scrolling
         }}>
           {renderTabContent()}

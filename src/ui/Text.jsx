@@ -20,6 +20,8 @@ const variantDefaults = {
   desc: { as: "p", size: "sm", weight: 400, margin: "0 0 0.5em 0", color: "hsl(var(--text-secondary))" },
   help: { as: "p", size: "sm", weight: 400, margin: "0.25em 0 0 0", color: "hsl(var(--text-tertiary))" },
   error: { as: "p", size: "sm", weight: 500, margin: "0.25em 0 0 0", color: "hsl(var(--state-error))" },
+  caption: { as: "p", size: "sm", weight: 400, margin: "0.25em 0 0 0", color: "hsl(var(--text-tertiary))" },
+  small: { as: "span", size: "sm", weight: 400, margin: 0, color: "hsl(var(--text-secondary))" },
 };
 
 function getAutoTextColor(explicitColor) {
