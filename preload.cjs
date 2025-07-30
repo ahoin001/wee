@@ -92,6 +92,7 @@ contextBridge.exposeInMainWorld('api', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   apps: {
     getInstalled: () => ipcRenderer.invoke('apps:getInstalled'),
+    rescanInstalled: () => ipcRenderer.invoke('apps:rescanInstalled'),
   },
   uwp: {
     listApps: () => ipcRenderer.invoke('uwp:list-apps'),

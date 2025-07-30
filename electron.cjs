@@ -14,86 +14,8 @@ const wsQuery = promisify(ws.query);
 const { nativeImage } = require('electron');
 const { exec } = require('child_process');
 
-// --- Version Check and Fresh Install Logic ---
+// --- Version Constants for Manual Fresh Install ---
 const CURRENT_VERSION = '2.7.4';
-const MIN_VERSION_FOR_FRESH_START = '2.7.4';
-
-async function performFreshInstall() {
-  try {
-    console.log('[FRESH_INSTALL] Starting fresh install process...');
-    
-    // Get the user data directory
-    const userDataPath = app.getPath('userData');
-    const dataDir = path.join(userDataPath, 'data');
-    
-    // Check if we need to perform a fresh install
-    const versionFile = path.join(userDataPath, 'version.json');
-    let currentStoredVersion = '0.0.0';
-    
-    try {
-      if (await fsPromises.access(versionFile).then(() => true).catch(() => false)) {
-        const versionData = JSON.parse(await fsPromises.readFile(versionFile, 'utf-8'));
-        currentStoredVersion = versionData.version || '0.0.0';
-        console.log(`[FRESH_INSTALL] Current stored version: ${currentStoredVersion}`);
-      }
-    } catch (error) {
-      console.log('[FRESH_INSTALL] No version file found, treating as fresh install');
-    }
-    
-    // Compare versions
-    const needsFreshInstall = currentStoredVersion < MIN_VERSION_FOR_FRESH_START;
-    
-    if (needsFreshInstall) {
-      console.log(`[FRESH_INSTALL] Version ${currentStoredVersion} is below ${MIN_VERSION_FOR_FRESH_START}, performing fresh install...`);
-      
-      // Backup old data directory if it exists
-      const backupDir = path.join(userDataPath, 'data_backup_' + Date.now());
-      if (await fsPromises.access(dataDir).then(() => true).catch(() => false)) {
-        console.log('[FRESH_INSTALL] Backing up old data directory...');
-        await fsExtra.move(dataDir, backupDir);
-        console.log(`[FRESH_INSTALL] Old data backed up to: ${backupDir}`);
-      }
-      
-      // Remove any other old files in userData
-      const filesToRemove = [
-        'settings.json',
-        'sounds.json',
-        'wallpapers.json',
-        'channels.json',
-        'presets.json',
-        'savedSounds.json'
-      ];
-      
-      for (const file of filesToRemove) {
-        const filePath = path.join(userDataPath, file);
-        try {
-          if (await fsPromises.access(filePath).then(() => true).catch(() => false)) {
-            await fsPromises.unlink(filePath);
-            console.log(`[FRESH_INSTALL] Removed old file: ${file}`);
-          }
-        } catch (error) {
-          console.log(`[FRESH_INSTALL] Could not remove ${file}: ${error.message}`);
-        }
-      }
-      
-      // Create fresh data directory
-      await fsPromises.mkdir(dataDir, { recursive: true });
-      console.log('[FRESH_INSTALL] Created fresh data directory');
-      
-      // Save current version
-      await fsPromises.writeFile(versionFile, JSON.stringify({ version: CURRENT_VERSION }, null, 2));
-      console.log(`[FRESH_INSTALL] Updated version to ${CURRENT_VERSION}`);
-      
-      console.log('[FRESH_INSTALL] Fresh install completed successfully!');
-    } else {
-      console.log(`[FRESH_INSTALL] Version ${currentStoredVersion} is current, no fresh install needed`);
-      // Update version file to current version
-      await fsPromises.writeFile(versionFile, JSON.stringify({ version: CURRENT_VERSION }, null, 2));
-    }
-  } catch (error) {
-    console.error('[FRESH_INSTALL] Error during fresh install:', error);
-  }
-}
 
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
@@ -1808,9 +1730,6 @@ app.whenReady().then(async () => {
     await showCustomInstaller();
   }
   
-  // Perform fresh install check for users below version 2.7.4
-  await performFreshInstall();
-  
   // Ensure default sounds exist in production
   await ensureDefaultSoundsExist();
   
@@ -2595,6 +2514,7 @@ let appsCacheTime = 0;
 const APPS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours (matches frontend cache)
 
 async function scanInstalledApps() {
+  console.log('[scanInstalledApps] Starting app scan...');
   // Scan Start Menu shortcuts for installed apps
   // FIX: Added system applications that might not be properly detected by shortcut scanning
   // This ensures Windows File Explorer and other system apps are always available
@@ -2602,6 +2522,7 @@ async function scanInstalledApps() {
     path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
     path.join('C:', 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
   ];
+  console.log('[scanInstalledApps] Scanning directories:', startMenuDirs);
   const results = [];
   
   // Add system applications that might not be properly detected
@@ -2733,6 +2654,7 @@ async function scanInstalledApps() {
   for (const dir of startMenuDirs) {
     await scanDir(dir);
   }
+  console.log(`[scanInstalledApps] Found ${results.length} apps before deduplication`);
   // Deduplicate by name+path
   const seen = new Set();
   const deduped = results.filter(app => {
@@ -2741,24 +2663,31 @@ async function scanInstalledApps() {
     seen.add(key);
     return true;
   });
+  console.log(`[scanInstalledApps] Returning ${deduped.length} apps after deduplication`);
   return deduped;
 }
 
 ipcMain.handle('apps:getInstalled', async () => {
+  console.log('[apps:getInstalled] Called');
   const now = Date.now();
   if (appsCache && (now - appsCacheTime < APPS_CACHE_TTL)) {
+    console.log('[apps:getInstalled] Using cached apps:', appsCache.length);
     return appsCache;
   }
+  console.log('[apps:getInstalled] Cache miss, scanning apps...');
   const deduped = await scanInstalledApps();
   appsCache = deduped;
   appsCacheTime = now;
+  console.log('[apps:getInstalled] Returning apps:', deduped.length);
   return deduped;
 });
 
 ipcMain.handle('apps:rescanInstalled', async () => {
+  console.log('[apps:rescanInstalled] Called - forcing fresh scan');
   const deduped = await scanInstalledApps();
   appsCache = deduped;
   appsCacheTime = Date.now();
+  console.log('[apps:rescanInstalled] Returning apps:', deduped.length);
   return deduped;
 });
 
@@ -2854,7 +2783,7 @@ if (!supabaseSecretKey) {
 const supabaseBackend = supabaseSecretKey ? createClient(supabaseUrl, supabaseSecretKey) : null;
 
 // IPC: Upload preset to Supabase (backend proxy)
-ipcMain.handle('supabase:upload', async (event, { presetData, formData }) => {
+ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnailBase64, presetFileName, thumbnailFileName }) => {
   try {
     if (!supabaseBackend) {
       return { success: false, error: 'Supabase backend not configured. Please check your environment variables.' };
@@ -2862,26 +2791,11 @@ ipcMain.handle('supabase:upload', async (event, { presetData, formData }) => {
 
     console.log('Backend: Starting Supabase upload...');
     
-    // TODO: Future user authentication support
-    // const currentUser = await supabaseBackend.auth.getUser();
-    // const uploadData = {
-    //   ...presetData,
-    //   upload_type: currentUser?.user ? 'authenticated' : 'anonymous',
-    //   user_id: currentUser?.user?.id || null
-    // };
-    
-    // For now, all uploads are anonymous
-    const uploadData = {
-      ...presetData,
-      upload_type: 'anonymous',
-      user_id: null
-    };
-    
     // Upload preset file
     console.log('Backend: Uploading preset file...');
     const { data: presetFile, error: presetError } = await supabaseBackend.storage
       .from('presets')
-      .upload(presetData.name, Buffer.from(JSON.stringify(presetData), 'utf-8'), { contentType: 'application/json' });
+      .upload(presetFileName, Buffer.from(presetData), { contentType: 'application/json' });
 
     if (presetError) {
       console.error('Backend: Preset upload error:', presetError);
@@ -2896,7 +2810,7 @@ ipcMain.handle('supabase:upload', async (event, { presetData, formData }) => {
       const customImageBase64 = formData.custom_image.split(',')[1]; // Remove data URL prefix
       const { data: customImageData, error: customImageError } = await supabaseBackend.storage
         .from('thumbnails')
-        .upload(formData.name + '-thumbnail', Buffer.from(customImageBase64, 'base64'), { contentType: 'image/png' });
+        .upload(thumbnailFileName, Buffer.from(customImageBase64, 'base64'), { contentType: 'image/png' });
 
       if (customImageError) {
         console.error('Backend: Custom image upload error:', customImageError);
@@ -2908,7 +2822,7 @@ ipcMain.handle('supabase:upload', async (event, { presetData, formData }) => {
       console.log('Backend: Uploading auto-generated thumbnail...');
       const { data: autoThumbnailData, error: thumbnailError } = await supabaseBackend.storage
         .from('thumbnails')
-        .upload(formData.name + '-thumbnail', Buffer.from(formData.thumbnailBase64, 'base64'), { contentType: 'image/png' });
+        .upload(thumbnailFileName, Buffer.from(thumbnailBase64, 'base64'), { contentType: 'image/png' });
 
       if (thumbnailError) {
         console.error('Backend: Thumbnail upload error:', thumbnailError);
@@ -3031,14 +2945,6 @@ ipcMain.handle('supabase:delete', async (event, { presetId }) => {
       return { success: false, error: 'Preset not found' };
     }
 
-    // TODO: Future user authentication support
-    // const currentUser = await supabaseBackend.auth.getUser();
-    // const canDelete = preset.upload_type === 'anonymous' || 
-    //                   (preset.upload_type === 'authenticated' && preset.user_id === currentUser?.user?.id);
-    // if (!canDelete) {
-    //   return { success: false, error: 'You can only delete your own presets or anonymous presets' };
-    // }
-    
     // Note: Since users don't have accounts, anyone can delete any preset
     // In a future version, this could be improved with proper authentication
 
@@ -3137,7 +3043,7 @@ ipcMain.handle('trigger-fresh-install', async () => {
     const dataDir = path.join(userDataPath, 'data');
     
     // Backup current data directory if it exists
-    const backupDir = path.join(userDataPath, 'data_backup_manual_' + Date.now());
+    const backupDir = path.join(userDataPath, 'data_backup_' + Date.now());
     if (await fsPromises.access(dataDir).then(() => true).catch(() => false)) {
       console.log('[FRESH_INSTALL] Backing up current data directory...');
       await fsExtra.move(dataDir, backupDir);
@@ -3170,7 +3076,7 @@ ipcMain.handle('trigger-fresh-install', async () => {
     await fsPromises.mkdir(dataDir, { recursive: true });
     console.log('[FRESH_INSTALL] Created fresh data directory');
     
-    // Save current version
+    // Update version file to current version
     const versionFile = path.join(userDataPath, 'version.json');
     await fsPromises.writeFile(versionFile, JSON.stringify({ version: CURRENT_VERSION }, null, 2));
     console.log(`[FRESH_INSTALL] Updated version to ${CURRENT_VERSION}`);
@@ -3184,6 +3090,9 @@ ipcMain.handle('trigger-fresh-install', async () => {
     };
   } catch (error) {
     console.error('[FRESH_INSTALL] Error during manual fresh install:', error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: error.message 
+    };
   }
 });

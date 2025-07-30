@@ -103,6 +103,26 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   }, [type, uwpQuery, filteredUwpApps.length]);
 
+  // Fetch app library data when modal opens
+  useEffect(() => {
+    // Fetch installed apps if not already loaded
+    if (installedApps.length === 0 && !appsLoading) {
+      fetchInstalledApps();
+    }
+    // Fetch UWP apps if not already loaded
+    if (uwpApps.length === 0 && !uwpLoading) {
+      fetchUwpApps();
+    }
+    // Fetch Steam games if not already loaded
+    if (steamGames.length === 0 && !steamLoading) {
+      fetchSteamGames(customSteamPath);
+    }
+    // Fetch Epic games if not already loaded
+    if (epicGames.length === 0 && !epicLoading) {
+      fetchEpicGames();
+    }
+  }, [installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, fetchInstalledApps, fetchUwpApps, fetchSteamGames, fetchEpicGames, customSteamPath]);
+
   // Handle hover sound file select
   const handleHoverSoundFile = async (file) => {
     if (file) {

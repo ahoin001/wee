@@ -51,14 +51,19 @@ const useAppLibraryStore = create((set, get) => ({
     // Check cache first
     if (isCacheValid('installedApps')) {
       const cachedApps = getCachedData('installedApps');
-      if (cachedApps) {
+      if (cachedApps && cachedApps.length > 0) {
         console.log('[Zustand] Using cached installed apps:', cachedApps.length);
         set({ installedApps: cachedApps, appsLoading: false });
         return;
+      } else if (cachedApps && cachedApps.length === 0) {
+        // Clear empty cache to force fresh scan
+        console.log('[Zustand] Clearing empty cache to force fresh scan');
+        localStorage.removeItem(getCacheKey('installedApps'));
+        localStorage.removeItem(getCacheTimestampKey('installedApps'));
       }
     }
     
-    // Cache miss or expired, fetch from API
+    // Cache miss, expired, or empty cache - fetch from API
     try {
       const api = window.api?.apps;
       const apps = await api?.getInstalled();

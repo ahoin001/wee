@@ -122,6 +122,20 @@ function AppPathSearchCard({
         >
           {loading ? 'Rescanning...' : rescanLabel}
         </button>
+        <button
+          type="button"
+          style={{ marginLeft: 8, padding: '4px 8px', borderRadius: 6, border: '1.5px solid #dc3545', background: '#f7fafd', color: '#dc3545', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, fontSize: '12px' }}
+          title="Force clear cache and rescan all apps"
+          disabled={loading || disabled}
+          onClick={() => {
+            // Clear cache and force fresh scan
+            localStorage.removeItem('app_cache_installedApps');
+            localStorage.removeItem('app_cache_timestamp_installedApps');
+            onRescan();
+          }}
+        >
+          {loading ? '...' : 'Force'}
+        </button>
       </div>
       {error && <div style={{ color: 'red', marginTop: 4 }}>{error}</div>}
       {dropdownOpen && results && results.length > 0 && (

@@ -223,9 +223,7 @@ function App() {
   const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   
-  // Fresh install notification state
-  const [showFreshInstallNotification, setShowFreshInstallNotification] = useState(false);
-  const [freshInstallInfo, setFreshInstallInfo] = useState(null);
+
   
   // Modal states for when dock is hidden
   // These modals are now managed by Zustand store
@@ -564,20 +562,6 @@ function App() {
   // On mount, load all modular data
   useEffect(() => {
     async function loadAll() {
-      // Check for fresh install and show notification if needed
-      try {
-        if (window.api && window.api.getFreshInstallInfo) {
-          const freshInstallData = await window.api.getFreshInstallInfo();
-          if (freshInstallData && !freshInstallData.error) {
-            setFreshInstallInfo(freshInstallData);
-            if (freshInstallData.backupLocation) {
-              setShowFreshInstallNotification(true);
-            }
-          }
-        }
-      } catch (error) {
-        console.log('[App] Could not check fresh install info:', error);
-      }
       
       // Load sounds
       const soundData = await soundsApi.get();
@@ -2314,49 +2298,6 @@ function App() {
     }
   };
 
-  // Screenshot countdown state
-  const [screenshotCountdown, setScreenshotCountdown] = useState(0);
-  const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
-
-  // Screenshot countdown function
-  const handleScreenshotWithCountdown = async () => {
-    setShowScreenshotOverlay(true);
-    setScreenshotCountdown(3);
-    
-    // Countdown timer
-    const countdownInterval = setInterval(() => {
-      setScreenshotCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          setShowScreenshotOverlay(false);
-          setScreenshotCountdown(0);
-          
-          // Take screenshot after countdown
-          setTimeout(async () => {
-            try {
-              const result = await window.api.takeScreenshot();
-              if (result.success) {
-                console.log('Screenshot saved:', result.filePath);
-                // Open the folder containing the screenshot
-                if (window.api.openExternal) {
-                  const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
-                  window.api.openExternal(`file://${folderPath}`);
-                }
-              } else if (result.error !== 'Save cancelled by user') {
-                console.error('Screenshot failed:', result.error);
-              }
-            } catch (error) {
-              console.error('Screenshot error:', error);
-            }
-          }, 100);
-          
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
   return (
     <>
       {/* Always render the main UI, but overlay the splash screen while loading */}
@@ -2612,17 +2553,20 @@ function App() {
               >
                 {/* Appearance Group */}
                 <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
-                  Appearance Toggles
+                  Appearance
                 </Text>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
+                  🎨 Presets (Ctrl+P)
+                </div>
                 {/* <div className="context-menu-item" onClick={() => { useUIStore.getState().openWallpaperModal(); closeSettingsMenu(); }}>
                   Change Wallpaper
                 </div> */}
-                {/* <div className="context-menu-item" onClick={() => { 
+                <div className="context-menu-item" onClick={() => { 
                   useUIStore.getState().openChannelSettingsModal();
                   closeSettingsMenu(); 
                 }}>
                   Channel Settings
-                </div> */}
+                </div>
                 <div className="context-menu-item" onClick={() => { handleToggleDarkMode(); closeSettingsMenu(); }}>
                   Toggle Dark Mode
                 </div>
@@ -2668,10 +2612,10 @@ function App() {
                   System
                 </Text>
                 <div className="context-menu-item" onClick={() => { 
-                  useUIStore.getState().openAppearanceSettingsModal();
+                  handleOpenGeneralModal();
                   closeSettingsMenu(); 
                 }}>
-                  🎨 Settings
+                  General Settings
                 </div>
                 <div className="context-menu-item" onClick={() => { 
                   useUIStore.getState().openAppShortcutsModal();
@@ -2679,17 +2623,35 @@ function App() {
                 }}>
                   📱 App Shortcuts
                 </div>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
-                  🎵 Change Sounds
+                <div className="context-menu-item" onClick={() => { 
+                  useUIStore.getState().openAppearanceSettingsModal();
+                  closeSettingsMenu(); 
+                }}>
+                  🎨 Appearance Settings
                 </div>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
-                  🎨 Presets (Ctrl+P)
-                </div>
-                <div className="context-menu-item" onClick={() => {
-                  handleScreenshotWithCountdown();
+                <div className="context-menu-item" onClick={async () => {
+                  try {
+                    const result = await window.api.takeScreenshot();
+                    if (result.success) {
+                      // Show success notification
+                      console.log('Screenshot saved:', result.filePath);
+                      // Open the folder containing the screenshot
+                      if (window.api.openExternal) {
+                        const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
+                        window.api.openExternal(`file://${folderPath}`);
+                      }
+                    } else if (result.error !== 'Save cancelled by user') {
+                      console.error('Screenshot failed:', result.error);
+                    }
+                  } catch (error) {
+                    console.error('Screenshot error:', error);
+                  }
                   closeSettingsMenu();
                 }}>
                   📸 Take Screenshot
+                </div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
+                  🎵 Change Sounds
                 </div>
                 <div className="context-menu-item" onClick={() => { 
                   handleOpenUpdateModal();
@@ -2959,121 +2921,7 @@ function App() {
           updateInfo={updateInfo}
         />
 
-        {/* Fresh Install Notification */}
-        {showFreshInstallNotification && freshInstallInfo && (
-          <div style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            background: 'hsl(var(--surface-primary))',
-            border: '1px solid hsl(var(--border-primary))',
-            borderRadius: '12px',
-            padding: '16px',
-            maxWidth: '400px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            zIndex: 1000,
-            color: 'hsl(var(--text-primary))'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <div style={{ fontSize: '20px', color: '#0099ff' }}>🔄</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', marginBottom: '8px' }}>
-                  Fresh Start Complete
-                </div>
-                <div style={{ fontSize: '14px', color: 'hsl(var(--text-secondary))', marginBottom: '12px' }}>
-                  Your app has been updated to version 2.7.4 with a fresh start. Your old data has been backed up.
-                </div>
-                {freshInstallInfo.backupLocation && (
-                  <div style={{ fontSize: '12px', color: 'hsl(var(--text-tertiary))', marginBottom: '12px' }}>
-                    <strong>Backup location:</strong> {freshInstallInfo.backupLocation}
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => setShowFreshInstallNotification(false)}
-                    style={{
-                      padding: '6px 12px',
-                      background: 'hsl(var(--surface-secondary))',
-                      border: '1px solid hsl(var(--border-primary))',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      color: 'hsl(var(--text-primary))'
-                    }}
-                  >
-                    Got it
-                  </button>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowFreshInstallNotification(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  color: 'hsl(var(--text-secondary))',
-                  padding: '0',
-                  lineHeight: '1'
-                }}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
 
-        {/* Screenshot Countdown Overlay */}
-        {showScreenshotOverlay && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            backdropFilter: 'blur(4px)'
-          }}>
-            <div style={{
-              background: 'hsl(var(--surface-primary))',
-              border: '2px solid hsl(var(--border-primary))',
-              borderRadius: '16px',
-              padding: '40px',
-              textAlign: 'center',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-              minWidth: '300px'
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📸</div>
-              <div style={{ 
-                fontSize: '24px', 
-                fontWeight: '600', 
-                marginBottom: '8px',
-                color: 'hsl(var(--text-primary))'
-              }}>
-                Taking Screenshot
-              </div>
-              <div style={{ 
-                fontSize: '64px', 
-                fontWeight: 'bold',
-                color: screenshotCountdown > 1 ? '#dc3545' : '#28a745',
-                marginBottom: '16px',
-                fontFamily: 'monospace'
-              }}>
-                {screenshotCountdown}
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: 'hsl(var(--text-secondary))'
-              }}>
-                Get ready! Screenshot will be taken in {screenshotCountdown} second{screenshotCountdown !== 1 ? 's' : ''}
-              </div>
-            </div>
-          </div>
-        )}
 
                         {/* SoundModal */}
                 {showSoundModal && (
