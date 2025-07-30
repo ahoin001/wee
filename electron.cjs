@@ -2854,7 +2854,7 @@ if (!supabaseSecretKey) {
 const supabaseBackend = supabaseSecretKey ? createClient(supabaseUrl, supabaseSecretKey) : null;
 
 // IPC: Upload preset to Supabase (backend proxy)
-ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnailBase64, presetFileName, thumbnailFileName }) => {
+ipcMain.handle('supabase:upload', async (event, { presetData, formData }) => {
   try {
     if (!supabaseBackend) {
       return { success: false, error: 'Supabase backend not configured. Please check your environment variables.' };
@@ -2862,11 +2862,26 @@ ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnai
 
     console.log('Backend: Starting Supabase upload...');
     
+    // TODO: Future user authentication support
+    // const currentUser = await supabaseBackend.auth.getUser();
+    // const uploadData = {
+    //   ...presetData,
+    //   upload_type: currentUser?.user ? 'authenticated' : 'anonymous',
+    //   user_id: currentUser?.user?.id || null
+    // };
+    
+    // For now, all uploads are anonymous
+    const uploadData = {
+      ...presetData,
+      upload_type: 'anonymous',
+      user_id: null
+    };
+    
     // Upload preset file
     console.log('Backend: Uploading preset file...');
     const { data: presetFile, error: presetError } = await supabaseBackend.storage
       .from('presets')
-      .upload(presetFileName, Buffer.from(presetData), { contentType: 'application/json' });
+      .upload(presetData.name, Buffer.from(JSON.stringify(presetData), 'utf-8'), { contentType: 'application/json' });
 
     if (presetError) {
       console.error('Backend: Preset upload error:', presetError);
@@ -2881,7 +2896,7 @@ ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnai
       const customImageBase64 = formData.custom_image.split(',')[1]; // Remove data URL prefix
       const { data: customImageData, error: customImageError } = await supabaseBackend.storage
         .from('thumbnails')
-        .upload(thumbnailFileName, Buffer.from(customImageBase64, 'base64'), { contentType: 'image/png' });
+        .upload(formData.name + '-thumbnail', Buffer.from(customImageBase64, 'base64'), { contentType: 'image/png' });
 
       if (customImageError) {
         console.error('Backend: Custom image upload error:', customImageError);
@@ -2893,7 +2908,7 @@ ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnai
       console.log('Backend: Uploading auto-generated thumbnail...');
       const { data: autoThumbnailData, error: thumbnailError } = await supabaseBackend.storage
         .from('thumbnails')
-        .upload(thumbnailFileName, Buffer.from(thumbnailBase64, 'base64'), { contentType: 'image/png' });
+        .upload(formData.name + '-thumbnail', Buffer.from(formData.thumbnailBase64, 'base64'), { contentType: 'image/png' });
 
       if (thumbnailError) {
         console.error('Backend: Thumbnail upload error:', thumbnailError);
@@ -3016,6 +3031,14 @@ ipcMain.handle('supabase:delete', async (event, { presetId }) => {
       return { success: false, error: 'Preset not found' };
     }
 
+    // TODO: Future user authentication support
+    // const currentUser = await supabaseBackend.auth.getUser();
+    // const canDelete = preset.upload_type === 'anonymous' || 
+    //                   (preset.upload_type === 'authenticated' && preset.user_id === currentUser?.user?.id);
+    // if (!canDelete) {
+    //   return { success: false, error: 'You can only delete your own presets or anonymous presets' };
+    // }
+    
     // Note: Since users don't have accounts, anyone can delete any preset
     // In a future version, this could be improved with proper authentication
 

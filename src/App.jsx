@@ -2314,6 +2314,49 @@ function App() {
     }
   };
 
+  // Screenshot countdown state
+  const [screenshotCountdown, setScreenshotCountdown] = useState(0);
+  const [showScreenshotOverlay, setShowScreenshotOverlay] = useState(false);
+
+  // Screenshot countdown function
+  const handleScreenshotWithCountdown = async () => {
+    setShowScreenshotOverlay(true);
+    setScreenshotCountdown(3);
+    
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      setScreenshotCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setShowScreenshotOverlay(false);
+          setScreenshotCountdown(0);
+          
+          // Take screenshot after countdown
+          setTimeout(async () => {
+            try {
+              const result = await window.api.takeScreenshot();
+              if (result.success) {
+                console.log('Screenshot saved:', result.filePath);
+                // Open the folder containing the screenshot
+                if (window.api.openExternal) {
+                  const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
+                  window.api.openExternal(`file://${folderPath}`);
+                }
+              } else if (result.error !== 'Save cancelled by user') {
+                console.error('Screenshot failed:', result.error);
+              }
+            } catch (error) {
+              console.error('Screenshot error:', error);
+            }
+          }, 100);
+          
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   return (
     <>
       {/* Always render the main UI, but overlay the splash screen while loading */}
@@ -2642,23 +2685,8 @@ function App() {
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
                   🎨 Presets (Ctrl+P)
                 </div>
-                <div className="context-menu-item" onClick={async () => {
-                  try {
-                    const result = await window.api.takeScreenshot();
-                    if (result.success) {
-                      // Show success notification
-                      console.log('Screenshot saved:', result.filePath);
-                      // Open the folder containing the screenshot
-                      if (window.api.openExternal) {
-                        const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
-                        window.api.openExternal(`file://${folderPath}`);
-                      }
-                    } else if (result.error !== 'Save cancelled by user') {
-                      console.error('Screenshot failed:', result.error);
-                    }
-                  } catch (error) {
-                    console.error('Screenshot error:', error);
-                  }
+                <div className="context-menu-item" onClick={() => {
+                  handleScreenshotWithCountdown();
                   closeSettingsMenu();
                 }}>
                   📸 Take Screenshot
@@ -2991,6 +3019,58 @@ function App() {
               >
                 ×
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Screenshot Countdown Overlay */}
+        {showScreenshotOverlay && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            backdropFilter: 'blur(4px)'
+          }}>
+            <div style={{
+              background: 'hsl(var(--surface-primary))',
+              border: '2px solid hsl(var(--border-primary))',
+              borderRadius: '16px',
+              padding: '40px',
+              textAlign: 'center',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              minWidth: '300px'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📸</div>
+              <div style={{ 
+                fontSize: '24px', 
+                fontWeight: '600', 
+                marginBottom: '8px',
+                color: 'hsl(var(--text-primary))'
+              }}>
+                Taking Screenshot
+              </div>
+              <div style={{ 
+                fontSize: '64px', 
+                fontWeight: 'bold',
+                color: screenshotCountdown > 1 ? '#dc3545' : '#28a745',
+                marginBottom: '16px',
+                fontFamily: 'monospace'
+              }}>
+                {screenshotCountdown}
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: 'hsl(var(--text-secondary))'
+              }}>
+                Get ready! Screenshot will be taken in {screenshotCountdown} second{screenshotCountdown !== 1 ? 's' : ''}
+              </div>
             </div>
           </div>
         )}
