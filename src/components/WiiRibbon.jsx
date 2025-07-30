@@ -478,7 +478,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                       transform: 'translate(0px, 0px)',
                       fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
                       zIndex: '1',
-                      marginBottom: '8px'
+                      marginBottom: '12px'
                     }}
                   >
                       {formatTime(currentTime)}
@@ -503,21 +503,32 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 </div>
               ) : (
                 /* Simple time display without pill when disabled */
-                <div onContextMenu={handleTimeContextMenu}>
+                <div 
+                  onContextMenu={handleTimeContextMenu}
+                  style={{
+                    padding: '20px 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '120px'
+                  }}
+                >
                   <div 
                     id="time" 
                     className="text-4xl font-bold" 
                     style={{ 
                       fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif", 
                       color: timeColor,
-                      textShadow: '0px 2px 4px rgba(0, 0, 0, 0.3)'
+                      textShadow: '0px 2px 4px rgba(0, 0, 0, 0.3)',
+                      marginBottom: '12px'
                     }}
                   >
                       {formatTime(currentTime)}
                   </div>
                   <div 
                     id="date" 
-                    className="text-lg font-bold mt-8" 
+                    className="text-lg font-bold" 
                     style={{ 
                       color: timeColor,
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',

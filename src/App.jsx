@@ -25,6 +25,7 @@ import ChannelSettingsModal from './components/ChannelSettingsModal';
 import AppShortcutsModal from './components/AppShortcutsModal';
 import AppearanceSettingsModal from './components/AppearanceSettingsModal';
 import AuthModal from './components/AuthModal';
+import CountdownOverlay from './components/CountdownOverlay';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
@@ -223,8 +224,27 @@ function App() {
   const [showDock, setShowDock] = useState(true); // Show/hide the Wii Ribbon dock
   const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
   
-
+  // Screenshot function that will be called after countdown
+  const handleTakeScreenshot = async () => {
+    try {
+      const result = await window.api.takeScreenshot();
+      if (result.success) {
+        // Show success notification
+        console.log('Screenshot saved:', result.filePath);
+        // Open the folder containing the screenshot
+        if (window.api.openExternal) {
+          const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
+          window.api.openExternal(`file://${folderPath}`);
+        }
+      } else if (result.error !== 'Save cancelled by user') {
+        console.error('Screenshot failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Screenshot error:', error);
+    }
+  };
   
   // Modal states for when dock is hidden
   // These modals are now managed by Zustand store
@@ -2637,23 +2657,8 @@ function App() {
                 }}>
                   📱 App Shortcuts
                 </div>
-                <div className="context-menu-item" onClick={async () => {
-                  try {
-                    const result = await window.api.takeScreenshot();
-                    if (result.success) {
-                      // Show success notification
-                      console.log('Screenshot saved:', result.filePath);
-                      // Open the folder containing the screenshot
-                      if (window.api.openExternal) {
-                        const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
-                        window.api.openExternal(`file://${folderPath}`);
-                      }
-                    } else if (result.error !== 'Save cancelled by user') {
-                      console.error('Screenshot failed:', result.error);
-                    }
-                  } catch (error) {
-                    console.error('Screenshot error:', error);
-                  }
+                <div className="context-menu-item" onClick={() => {
+                  setShowCountdown(true);
                   closeSettingsMenu();
                 }}>
                   📸 Take Screenshot
@@ -2948,6 +2953,18 @@ function App() {
 
                 {/* AuthModal - Always rendered, controlled by Zustand store */}
                 <AuthModal />
+
+                {/* CountdownOverlay for screenshot countdown */}
+                <CountdownOverlay 
+                  isVisible={showCountdown}
+                  onComplete={() => {
+                    setShowCountdown(false);
+                    // Take screenshot after a brief delay to ensure overlay is hidden
+                    setTimeout(() => {
+                      handleTakeScreenshot();
+                    }, 50);
+                  }}
+                />
 
                 {/* ClassicDockSettingsModal */}
         {showClassicDockSettingsModal && (

@@ -511,7 +511,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
         >
           {/* Import/Export controls now above the preset list */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
+          {/* <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
             <Button variant="secondary" onClick={handleImportClick}>
               Import
             </Button>
@@ -552,8 +552,9 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 Cancel
               </Button>
             </div>
-          )}
-          <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '0 0 18px 0' }} />
+          )} */}
+
+          <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '10px 0 18px 0' }} />
           
            {showImportPreview && importedPresets && (
           <div className="import-preview-modal" style={{ background: 'hsl(var(--surface-secondary))', border: '1.5px solid hsl(var(--wii-blue))', borderRadius: 12, padding: 24, marginBottom: 18 }}>
