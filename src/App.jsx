@@ -2569,20 +2569,17 @@ function App() {
               >
                 {/* Appearance Group */}
                 <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
-                  Appearance
+                  Appearance Toggles
                 </Text>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
-                  🎨 Presets (Ctrl+P)
-                </div>
                 {/* <div className="context-menu-item" onClick={() => { useUIStore.getState().openWallpaperModal(); closeSettingsMenu(); }}>
                   Change Wallpaper
                 </div> */}
-                <div className="context-menu-item" onClick={() => { 
+                {/* <div className="context-menu-item" onClick={() => { 
                   useUIStore.getState().openChannelSettingsModal();
                   closeSettingsMenu(); 
                 }}>
                   Channel Settings
-                </div>
+                </div> */}
                 <div className="context-menu-item" onClick={() => { handleToggleDarkMode(); closeSettingsMenu(); }}>
                   Toggle Dark Mode
                 </div>
@@ -2628,10 +2625,10 @@ function App() {
                   System
                 </Text>
                 <div className="context-menu-item" onClick={() => { 
-                  handleOpenGeneralModal();
+                  useUIStore.getState().openAppearanceSettingsModal();
                   closeSettingsMenu(); 
                 }}>
-                  General Settings
+                  🎨 Settings
                 </div>
                 <div className="context-menu-item" onClick={() => { 
                   useUIStore.getState().openAppShortcutsModal();
@@ -2639,11 +2636,11 @@ function App() {
                 }}>
                   📱 App Shortcuts
                 </div>
-                <div className="context-menu-item" onClick={() => { 
-                  useUIStore.getState().openAppearanceSettingsModal();
-                  closeSettingsMenu(); 
-                }}>
-                  🎨 Appearance Settings
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
+                  🎵 Change Sounds
+                </div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
+                  🎨 Presets (Ctrl+P)
                 </div>
                 <div className="context-menu-item" onClick={async () => {
                   try {
@@ -2665,9 +2662,6 @@ function App() {
                   closeSettingsMenu();
                 }}>
                   📸 Take Screenshot
-                </div>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
-                  🎵 Change Sounds
                 </div>
                 <div className="context-menu-item" onClick={() => { 
                   handleOpenUpdateModal();
