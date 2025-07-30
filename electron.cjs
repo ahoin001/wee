@@ -2193,8 +2193,18 @@ ipcMain.handle('wallpaper:selectFile', async () => {
         if (stats.size === 0) {
           return { success: false, error: 'File is empty.\n\nPlease select a valid image file.' };
         }
-      } catch {}
-      return { success: true, file: { path: filePath, name: filename, size: fileSize } };
+      } catch (error) {
+        console.warn(`[WALLPAPER] Could not check file stats: ${error.message}`);
+      }
+      console.log(`[WALLPAPER] Successfully selected file: ${filename} (${filePath})`);
+      return {
+        success: true,
+        file: {
+          path: filePath,
+          name: filename,
+          size: fileSize
+        }
+      };
     } else {
       return { success: false, error: 'No file selected' };
     }
@@ -2741,4 +2751,235 @@ ipcMain.handle('execute-command', async (event, command) => {
       resolve({ success: true, stdout, stderr });
     });
   });
+});
+
+
+
+// --- Supabase Backend Operations ---
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.local' });
+
+// Supabase client for backend operations (uses secret key)
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://bmlcydwltfexgbsyunkf.supabase.co';
+const supabaseSecretKey = process.env.VITE_SUPABASE_ANON_KEY; // Secret key for backend
+
+if (!supabaseSecretKey) {
+  console.warn('Supabase secret key not found. Upload functionality will be disabled.');
+}
+
+const supabaseBackend = supabaseSecretKey ? createClient(supabaseUrl, supabaseSecretKey) : null;
+
+// IPC: Upload preset to Supabase (backend proxy)
+ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnailBase64, presetFileName, thumbnailFileName }) => {
+  try {
+    if (!supabaseBackend) {
+      return { success: false, error: 'Supabase backend not configured. Please check your environment variables.' };
+    }
+
+    console.log('Backend: Starting Supabase upload...');
+    
+    // Upload preset file
+    console.log('Backend: Uploading preset file...');
+    const { data: presetFile, error: presetError } = await supabaseBackend.storage
+      .from('presets')
+      .upload(presetFileName, Buffer.from(presetData), { contentType: 'application/json' });
+
+    if (presetError) {
+      console.error('Backend: Preset upload error:', presetError);
+      return { success: false, error: presetError.message };
+    }
+    console.log('Backend: Preset file uploaded successfully:', presetFile.path);
+
+    // Upload thumbnail or custom image
+    let thumbnailFile;
+    if (formData.custom_image) {
+      console.log('Backend: Uploading custom image...');
+      const customImageBase64 = formData.custom_image.split(',')[1]; // Remove data URL prefix
+      const { data: customImageData, error: customImageError } = await supabaseBackend.storage
+        .from('thumbnails')
+        .upload(thumbnailFileName, Buffer.from(customImageBase64, 'base64'), { contentType: 'image/png' });
+
+      if (customImageError) {
+        console.error('Backend: Custom image upload error:', customImageError);
+        return { success: false, error: customImageError.message };
+      }
+      console.log('Backend: Custom image uploaded successfully:', customImageData.path);
+      thumbnailFile = customImageData;
+    } else {
+      console.log('Backend: Uploading auto-generated thumbnail...');
+      const { data: autoThumbnailData, error: thumbnailError } = await supabaseBackend.storage
+        .from('thumbnails')
+        .upload(thumbnailFileName, Buffer.from(thumbnailBase64, 'base64'), { contentType: 'image/png' });
+
+      if (thumbnailError) {
+        console.error('Backend: Thumbnail upload error:', thumbnailError);
+        return { success: false, error: thumbnailError.message };
+      }
+      console.log('Backend: Thumbnail uploaded successfully:', autoThumbnailData.path);
+      thumbnailFile = autoThumbnailData;
+    }
+
+    // Save to database using public client (for RLS policies)
+    console.log('Backend: Saving to database...');
+    const { error: dbError } = await supabaseBackend
+      .from('shared_presets')
+      .insert({
+        name: formData.name,
+        description: formData.description,
+        creator_name: formData.creator_name || 'Anonymous',
+        creator_email: formData.creator_email || '',
+        tags: formData.tags || [],
+        preset_file_url: presetFile.path,
+        thumbnail_url: thumbnailFile.path,
+        file_size: presetData.length,
+        downloads: 0,
+
+      });
+
+    if (dbError) {
+      console.error('Backend: Database insert error:', dbError);
+      return { success: false, error: dbError.message };
+    }
+    console.log('Backend: Database record created successfully');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Backend: Upload failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC: Take screenshot of the homescreen
+ipcMain.handle('take-screenshot', async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) {
+      return { success: false, error: 'Window not found' };
+    }
+
+    // Capture the window content
+    const image = await win.webContents.capturePage();
+    
+    // Create a unique filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const defaultFilename = `screenshot-${timestamp}.png`;
+    
+    // Show save dialog to let user choose location
+    const result = await dialog.showSaveDialog(win, {
+      title: 'Save Screenshot',
+      defaultPath: defaultFilename,
+      filters: [
+        { name: 'PNG Images', extensions: ['png'] },
+        { name: 'JPEG Images', extensions: ['jpg', 'jpeg'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      properties: ['createDirectory']
+    });
+    
+    if (result.canceled) {
+      return { success: false, error: 'Save cancelled by user' };
+    }
+    
+    const filePath = result.filePath;
+    const fileExtension = path.extname(filePath).toLowerCase();
+    
+    // Save the image in the appropriate format
+    let imageBuffer;
+    if (fileExtension === '.jpg' || fileExtension === '.jpeg') {
+      imageBuffer = image.toJPEG(90); // 90% quality for JPEG
+    } else {
+      imageBuffer = image.toPNG(); // Default to PNG
+    }
+    
+    // Save the image
+    await fsPromises.writeFile(filePath, imageBuffer);
+    
+    console.log('Screenshot saved:', filePath);
+    
+    return { 
+      success: true, 
+      filePath: filePath,
+      filename: path.basename(filePath)
+    };
+  } catch (error) {
+    console.error('Screenshot failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC: Delete preset from Supabase (backend proxy)
+ipcMain.handle('supabase:delete', async (event, { presetId }) => {
+  try {
+    if (!supabaseBackend) {
+      return { success: false, error: 'Supabase backend not configured. Please check your environment variables.' };
+    }
+
+    console.log('Backend: Starting Supabase delete...');
+    
+    // First, get the preset to check ownership and get file URLs
+    const { data: preset, error: fetchError } = await supabaseBackend
+      .from('shared_presets')
+      .select('*')
+      .eq('id', presetId)
+      .single();
+
+    if (fetchError) {
+      console.error('Backend: Preset fetch error:', fetchError);
+      return { success: false, error: fetchError.message };
+    }
+
+    if (!preset) {
+      return { success: false, error: 'Preset not found' };
+    }
+
+    // Note: Since users don't have accounts, anyone can delete any preset
+    // In a future version, this could be improved with proper authentication
+
+    // Delete files from storage
+    const deletePromises = [];
+    
+    if (preset.preset_file_url) {
+      deletePromises.push(
+        supabaseBackend.storage
+          .from('presets')
+          .remove([preset.preset_file_url])
+      );
+    }
+    
+    if (preset.thumbnail_url) {
+      deletePromises.push(
+        supabaseBackend.storage
+          .from('thumbnails')
+          .remove([preset.thumbnail_url])
+      );
+    }
+    
+    if (preset.screenshot_url) {
+      deletePromises.push(
+        supabaseBackend.storage
+          .from('screenshots')
+          .remove([preset.screenshot_url])
+      );
+    }
+
+    // Wait for all file deletions
+    await Promise.all(deletePromises);
+
+    // Delete from database
+    const { error: deleteError } = await supabaseBackend
+      .from('shared_presets')
+      .delete()
+      .eq('id', presetId);
+
+    if (deleteError) {
+      console.error('Backend: Database delete error:', deleteError);
+      return { success: false, error: deleteError.message };
+    }
+
+    console.log('Backend: Preset deleted successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Backend: Delete failed:', error);
+    return { success: false, error: error.message };
+  }
 });

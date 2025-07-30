@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('api', {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (data) => ipcRenderer.invoke('settings:set', data),
   },
+  supabaseUpload: (data) => ipcRenderer.invoke('supabase:upload', data),
+  supabaseDelete: (data) => ipcRenderer.invoke('supabase:delete', data),
   sounds: {
     get: () => ipcRenderer.invoke('sounds:get'),
     set: (data) => ipcRenderer.invoke('sounds:set', data),
@@ -96,4 +98,17 @@ contextBridge.exposeInMainWorld('api', {
     launch: (appId) => ipcRenderer.invoke('uwp:launch', appId),
   },
   executeCommand: (command) => ipcRenderer.invoke('execute-command', command),
+  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
+});
+
+  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
+});
+
+  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
+});
+
+  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
+});
+
+  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
 });

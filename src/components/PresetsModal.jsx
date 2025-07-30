@@ -9,6 +9,9 @@ import Text from '../ui/Text';
 import Card from '../ui/Card';
 import PresetListItem from './PresetListItem';
 import Toggle from '../ui/Toggle';
+import CommunityPresets from './CommunityPresets';
+import useUIStore from '../utils/useUIStore';
+import { uploadPreset } from '../utils/supabase';
 
 function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset, onImportPresets, onReorderPresets }) {
   const fileInputRef = useRef();
@@ -29,6 +32,25 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
   const handleCloseRef = useRef(null); // ref to store BaseModal's handleClose function
   const [draggingPreset, setDraggingPreset] = useState(null); // name of preset being dragged
   const [dropTarget, setDropTarget] = useState(null); // name of preset being hovered over for drop
+  
+  // Get Zustand store state
+  const { 
+    showCommunitySection, 
+    toggleCommunitySection
+  } = useUIStore();
+  
+  // Upload form state
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState({ type: '', text: '' });
+  const [uploadFormData, setUploadFormData] = useState({
+    name: '',
+    description: '',
+    creator_name: '',
+    custom_image: null,
+    selectedPreset: null
+  });
+
 
   // Helper to get presets to export
   const getPresetsToExport = () => {
@@ -353,224 +375,500 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     setSelectedPresets([]);
   };
 
+  // Community sharing handlers
+  const handleSharePreset = (preset) => {
+    setUploadFormData({
+      name: preset.name,
+      description: '',
+      creator_name: '',
+      selectedPreset: preset
+    });
+    setIncludeChannelsUpload(false);
+    setIncludeSoundsUpload(false);
+    setShowUploadForm(true);
+    setUploadMessage({ type: '', text: '' });
+  };
+
+  const handleImportCommunityPreset = (presetData) => {
+    if (onImportPresets) {
+      onImportPresets(presetData);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!uploadFormData.selectedPreset) {
+      setUploadMessage({ type: 'error', text: 'Please select a preset to share' });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadMessage({ type: '', text: '' });
+
+      // Create preset data from the selected preset
+      const presetData = {
+        name: uploadFormData.name,
+        data: {
+          ...uploadFormData.selectedPreset.data
+        }
+      };
+
+      console.log('Uploading preset data:', presetData);
+      
+      const uploadData = {
+        ...uploadFormData
+      };
+      
+      const result = await uploadPreset(presetData, uploadData);
+      console.log('Upload result:', result);
+      
+      if (result.success) {
+        setUploadMessage({ type: 'success', text: 'Preset uploaded successfully!' });
+        setTimeout(() => {
+          setShowUploadForm(false);
+                  setUploadFormData({ 
+          name: '', 
+          description: '', 
+          creator_name: '', 
+          custom_image: null,
+          selectedPreset: null
+        });
+          setUploadMessage({ type: '', text: '' });
+          setIncludeChannelsUpload(false);
+          setIncludeSoundsUpload(false);
+        }, 1500);
+      } else {
+        setUploadMessage({ type: 'error', text: `Failed to upload: ${result.error}` });
+      }
+    } catch (error) {
+      setUploadMessage({ type: 'error', text: `Upload failed: ${error.message}` });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadInputChange = (field, value) => {
+    setUploadFormData(prev => ({ ...prev, [field]: value }));
+    if (uploadMessage.text) setUploadMessage({ type: '', text: '' });
+  };
+
   if (!isOpen) return null;
 
-  // Add animation CSS (can be in a <style> tag or a CSS file, but for now inline for clarity)
-  const presetPulseStyle = `
-@keyframes presetPulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 #0099ff44; }
-  50% { transform: scale(1.06); box-shadow: 0 0 16px 4px #0099ff88; }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 #0099ff44; }
-}
-`;
-
   return (
-    <BaseModal
-      title="Save Presets"
-      onClose={onClose}
-      maxWidth="720px"
-      footerContent={({ handleClose }) => {
-        handleCloseRef.current = handleClose;
-        return (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button className="cancel-button" onClick={handleClose}>Close</button>
-          </div>
-        );
-      }}
-    >
-      {importError && <div style={{ color: 'red', marginBottom: 12 }}>{importError}</div>}
-     
-      <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
-        <div className="wee-card-desc">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <input
-              type="text"
-              placeholder="Preset name"
-              value={newPresetName}
-              onChange={e => { setNewPresetName(e.target.value); setError(''); }}
-              style={{ 
-                flex: 1, 
-                padding: 8, 
-                borderRadius: 6, 
-                border: '1.5px solid hsl(var(--border-primary))', 
-                fontSize: 15, 
-                background: 'hsl(var(--surface-primary))', 
-                color: 'hsl(var(--text-primary))',
-              
-                opacity: presets.length >= 6 ? 0.6 : 1
-              }}
-              maxLength={32}
-              
-              tabIndex={presets.length >= 6 ? -1 : 0}
-            />
-            <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.length >= 6}>
-              Save Preset
-            </Button>
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Toggle
-                checked={includeChannels}
-                onChange={setIncludeChannels}
-                label="Include channel data (apps and media)"
-              />
+    <>
+      <BaseModal
+        isOpen={isOpen}
+        title="Save Presets"
+        onClose={onClose}
+        maxWidth="980px"
+        footerContent={({ handleClose }) => {
+          handleCloseRef.current = handleClose;
+          return (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <Button variant="secondary" onClick={handleClose}>Close</Button>
             </div>
-                          <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
-                When enabled, this preset will also save your current channel apps and media files.
-              </Text>
-            <div style={{ marginTop: 8 }}>
+          );
+        }}
+      >
+        {importError && <div style={{ color: 'red', marginBottom: 12 }}>{importError}</div>}
+       
+        <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
+          <div className="wee-card-desc">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <input
+                type="text"
+                placeholder="Preset name"
+                value={newPresetName}
+                onChange={e => { setNewPresetName(e.target.value); setError(''); }}
+                style={{ 
+                  flex: 1, 
+                  padding: 8, 
+                  borderRadius: 6, 
+                  border: '1.5px solid hsl(var(--border-primary))', 
+                  fontSize: 15, 
+                  background: 'hsl(var(--surface-primary))', 
+                  color: 'hsl(var(--text-primary))',
+                
+                  opacity: presets.length >= 6 ? 0.6 : 1
+                }}
+                maxLength={32}
+                
+                tabIndex={presets.length >= 6 ? -1 : 0}
+              />
+              <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.length >= 6}>
+                Save Preset
+              </Button>
+            </div>
+            <div style={{ marginTop: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Toggle
-                  checked={includeSounds}
-                  onChange={setIncludeSounds}
-                  label="Include sound settings (enabled sounds and volumes)"
+                  checked={includeChannels}
+                  onChange={setIncludeChannels}
+                  label="Include channel data (apps and media)"
                 />
               </div>
               <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
-                When enabled, this preset will also save your current sound settings and volume levels.
+                When enabled, this preset will also save your current channel apps and media files.
               </Text>
+              <div style={{ marginTop: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Toggle
+                    checked={includeSounds}
+                    onChange={setIncludeSounds}
+                    label="Include sound settings (enabled sounds and volumes)"
+                  />
+                </div>
+                <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
+                  When enabled, this preset will also save your current sound settings and volume levels.
+                </Text>
+              </div>
             </div>
+            {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
+            {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
           </div>
-          {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
-          {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
-        </div>
-      </Card>
-      <Card 
-        style={{ marginBottom: 18 }} 
-        title="Saved Presets" 
-        separator
-        desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
-      >
-        {/* Import/Export controls now above the preset list */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
-          <Button variant="secondary" onClick={handleImportClick}>
-            Import
-          </Button>
-          <Button variant="primary" onClick={() => { setSelectMode(true); setSelectedPresets([]); }}>
-            Export
-          </Button>
-          <input
-            type="file"
-            accept=".json,.zip,application/json,application/zip"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={e => {
-              const file = e.target.files[0];
-              if (!file) return;
-              if (file.name.endsWith('.zip')) {
-                handleImportZip(file);
-              } else {
-                handleFileChange(e);
-              }
-            }}
-          />
-        </div>
-        {selectMode && (
-          <div style={{ display: 'flex', gap: 10, marginBottom: 18, justifyContent: 'flex-end' }}>
-            <Text size="md" weight={500} style={{ color: 'hsl(var(--text-primary))', marginRight: 'auto' }}>
-              Click presets to select for export
-            </Text>
-            <Button variant="primary" onClick={() => { handleExportZip(getPresetsToExport()); setSelectMode(false); }} disabled={selectedPresets.length === 0}>
-              Export Selected
+        </Card>
+        <Card 
+          style={{ marginBottom: 18 }} 
+          title="Saved Presets" 
+          separator
+          desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
+        >
+          {/* Import/Export controls now above the preset list */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
+            <Button variant="secondary" onClick={handleImportClick}>
+              Import
             </Button>
-            <Button variant="secondary" onClick={handleSelectAll}>
-              Select All
+            <Button variant="primary" onClick={() => { setSelectMode(true); setSelectedPresets([]); }}>
+              Export
             </Button>
-            <Button variant="secondary" onClick={handleDeselectAll}>
-              Deselect All
-            </Button>
-            <Button variant="tertiary" onClick={() => { setSelectMode(false); setSelectedPresets([]); }}>
-              Cancel
-            </Button>
+            <input
+              type="file"
+              accept=".json,.zip,application/json,application/zip"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.name.endsWith('.zip')) {
+                  handleImportZip(file);
+                } else {
+                  handleFileChange(e);
+                }
+              }}
+            />
+          </div>
+          {selectMode && (
+            <div style={{ display: 'flex', gap: 10, marginBottom: 18, justifyContent: 'flex-end' }}>
+              <Text size="md" weight={500} style={{ color: 'hsl(var(--text-primary))', marginRight: 'auto' }}>
+                Click presets to select for export
+              </Text>
+              <Button variant="primary" onClick={() => { handleExportZip(getPresetsToExport()); setSelectMode(false); }} disabled={selectedPresets.length === 0}>
+                Export Selected
+              </Button>
+              <Button variant="secondary" onClick={handleSelectAll}>
+                Select All
+              </Button>
+              <Button variant="secondary" onClick={handleDeselectAll}>
+                Deselect All
+              </Button>
+              <Button variant="tertiary" onClick={() => { setSelectMode(false); setSelectedPresets([]); }}>
+                Cancel
+              </Button>
+            </div>
+          )}
+          <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '0 0 18px 0' }} />
+          
+           {showImportPreview && importedPresets && (
+          <div className="import-preview-modal" style={{ background: 'hsl(var(--surface-secondary))', border: '1.5px solid hsl(var(--wii-blue))', borderRadius: 12, padding: 24, marginBottom: 18 }}>
+            <h3>Preview Imported Presets</h3>
+            <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
+              {importedPresets.map((preset, idx) => {
+                const exists = presets.some(p => p.name === preset.name);
+                return (
+                  <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
+                    {exists && (
+                      <label style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={overwriteMap[preset.name]}
+                          onChange={() => handleToggleOverwrite(preset.name)}
+                          style={{ marginRight: 4 }}
+                        />
+                        Overwrite existing
+                      </label>
+                    )}
+                    {exists && !overwriteMap[preset.name] && <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 13 }}>(Will skip)</span>}
+                  </li>
+                );
+              })}
+            </ul>
+            <Button variant="primary" onClick={handleConfirmImport} style={{ marginRight: 12 }}>Import</Button>
+            <Button variant="secondary" onClick={handleCancelImport}>Cancel</Button>
           </div>
         )}
-        <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '0 0 18px 0' }} />
-        
-         {showImportPreview && importedPresets && (
-        <div className="import-preview-modal" style={{ background: 'hsl(var(--surface-secondary))', border: '1.5px solid hsl(var(--wii-blue))', borderRadius: 12, padding: 24, marginBottom: 18 }}>
-          <h3>Preview Imported Presets</h3>
-          <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
-            {importedPresets.map((preset, idx) => {
-              const exists = presets.some(p => p.name === preset.name);
+          
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
+            {presets.map((preset, idx) => {
+              const isDragging = draggingPreset === preset.name;
+              const isDropTarget = dropTarget === preset.name;
+              const isSelected = selectMode && selectedPresets.includes(preset.name);
+              
               return (
-                <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
-                  {exists && (
-                    <label style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
-                      <input
-                        type="checkbox"
-                        checked={overwriteMap[preset.name]}
-                        onChange={() => handleToggleOverwrite(preset.name)}
-                        style={{ marginRight: 4 }}
-                      />
-                      Overwrite existing
-                    </label>
-                  )}
-                  {exists && !overwriteMap[preset.name] && <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 13 }}>(Will skip)</span>}
-                </li>
+                <PresetListItem
+                  key={preset.name}
+                  preset={preset}
+                  isDragging={isDragging}
+                  isDropTarget={isDropTarget}
+                  isSelected={isSelected}
+                  selectMode={selectMode}
+                  editingPreset={editingPreset}
+                  editName={editName}
+                  justUpdated={justUpdated}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onDragEnd={handleDragEnd}
+                  onToggleSelect={handleToggleSelectPreset}
+                  onApply={handleApplyPreset}
+                  onUpdate={handleUpdate}
+                  onStartEdit={handleStartEdit}
+                  onDelete={onDeletePreset}
+                  onSaveEdit={handleSaveEdit}
+                  onCancelEdit={handleCancelEdit}
+                  onEditNameChange={e => setEditName(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                />
               );
             })}
           </ul>
-          <button onClick={handleConfirmImport} style={{ marginRight: 12, padding: '8px 24px', borderRadius: 8, background: 'hsl(var(--wii-blue))', color: 'white', fontWeight: 600 }}>Import</button>
-          <button onClick={handleCancelImport} style={{ padding: '8px 24px', borderRadius: 8 }}>Cancel</button>
-        </div>
-      )}
-        
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
-          {presets.map((preset, idx) => {
-            const isDragging = draggingPreset === preset.name;
-            const isDropTarget = dropTarget === preset.name;
-            const isSelected = selectMode && selectedPresets.includes(preset.name);
-            
-            return (
-              <PresetListItem
-                key={preset.name}
-                preset={preset}
-                isDragging={isDragging}
-                isDropTarget={isDropTarget}
-                isSelected={isSelected}
-                selectMode={selectMode}
-                editingPreset={editingPreset}
-                editName={editName}
-                justUpdated={justUpdated}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onDragEnd={handleDragEnd}
-                onToggleSelect={handleToggleSelectPreset}
-                onApply={handleApplyPreset}
-                onUpdate={handleUpdate}
-                onStartEdit={handleStartEdit}
-                onDelete={onDeletePreset}
-                onSaveEdit={handleSaveEdit}
-                onCancelEdit={handleCancelEdit}
-                onEditNameChange={e => setEditName(e.target.value)}
-                onKeyPress={handleKeyPress}
-              />
-            );
-          })}
-        </ul>
-      </Card>
-     
-    </BaseModal>
+        </Card>
+
+        {/* Community Presets Section */}
+        <Card 
+          style={{ marginBottom: 18 }} 
+          title="Community Presets" 
+          separator
+          desc="Browse and download presets shared by the community."
+        >
+          <div style={{ marginBottom: '16px' }}>
+            <Button 
+              variant="secondary" 
+              onClick={toggleCommunitySection}
+              style={{ marginRight: '12px' }}
+            >
+              {showCommunitySection ? 'Hide Community' : 'Browse Community'}
+            </Button>
+            {presets.length > 0 && (
+              <Button 
+                variant="primary" 
+                onClick={() => {
+                  setUploadFormData({
+                    name: '',
+                    description: '',
+                    creator_name: '',
+                    custom_image: null,
+                    selectedPreset: null
+                  });
+                  setShowUploadForm(true);
+                  setUploadMessage({ type: '', text: '' });
+                }}
+              >
+                Share My Preset
+              </Button>
+            )}
+          </div>
+
+          {/* Upload Form Section */}
+          {showUploadForm && (
+            <Card style={{ marginBottom: '16px', padding: '16px' }}>
+              {uploadMessage.text && (
+                <div style={{ 
+                  padding: '12px', 
+                  borderRadius: '6px', 
+                  marginBottom: '16px',
+                  background: uploadMessage.type === 'success' ? 'hsl(var(--success-light))' : 'hsl(var(--error-light))',
+                  color: uploadMessage.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--error))',
+                  border: `1px solid ${uploadMessage.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--error))'}`
+                }}>
+                  {uploadMessage.text}
+                </div>
+              )}
+
+              <div style={{ marginBottom: '12px' }}>
+                <Text variant="label" style={{ marginBottom: '8px' }}>Select Preset to Share *</Text>
+                <select
+                  value={uploadFormData.selectedPreset ? uploadFormData.selectedPreset.name : ''}
+                  onChange={(e) => {
+                    const selectedPreset = presets.find(p => p.name === e.target.value);
+                    setUploadFormData(prev => ({
+                      ...prev,
+                      name: selectedPreset ? selectedPreset.name : '',
+                      selectedPreset: selectedPreset || null
+                    }));
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid hsl(var(--border-primary))',
+                    borderRadius: '6px',
+                    background: 'hsl(var(--surface-primary))',
+                    color: 'hsl(var(--text-primary))'
+                  }}
+                >
+                  <option value="">Select a preset to share...</option>
+                  {presets.map((preset) => (
+                    <option key={preset.name} value={preset.name}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <Text variant="label" style={{ marginBottom: '8px' }}>Description</Text>
+                <textarea
+                  value={uploadFormData.description}
+                  onChange={(e) => handleUploadInputChange('description', e.target.value)}
+                  placeholder="Describe your preset..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid hsl(var(--border-primary))',
+                    borderRadius: '6px',
+                    background: 'hsl(var(--surface-primary))',
+                    color: 'hsl(var(--text-primary))',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <Text variant="label" style={{ marginBottom: '8px' }}>Your Name (Optional)</Text>
+                <input
+                  type="text"
+                  value={uploadFormData.creator_name}
+                  onChange={(e) => handleUploadInputChange('creator_name', e.target.value)}
+                  placeholder="Anonymous"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid hsl(var(--border-primary))',
+                    borderRadius: '6px',
+                    background: 'hsl(var(--surface-primary))',
+                    color: 'hsl(var(--text-primary))'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <Text variant="label" style={{ marginBottom: '8px' }}>Custom Image (Optional)</Text>
+                <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginBottom: '8px' }}>
+                  Upload a custom image to represent your preset. If not provided, a thumbnail will be auto-generated.
+                </Text>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          handleUploadInputChange('custom_image', reader.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                    id="custom-image-upload"
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => document.getElementById('custom-image-upload').click()}
+                    style={{ flex: 1 }}
+                  >
+                    Choose Image
+                  </Button>
+                  {uploadFormData.custom_image && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleUploadInputChange('custom_image', null)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                {uploadFormData.custom_image && (
+                  <div style={{ marginTop: '8px' }}>
+                    <img
+                      src={uploadFormData.custom_image}
+                      alt="Custom image preview"
+                      style={{
+                        width: '100px',
+                        height: '60px',
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        border: '1px solid hsl(var(--border-primary))'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+
+
+
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => {
+                    setShowUploadForm(false);
+                    setUploadFormData({ name: '', description: '', creator_name: '' });
+                    setUploadMessage({ type: '', text: '' });
+                  }}
+                  disabled={uploading}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="primary" 
+                  onClick={handleUpload} 
+                  disabled={uploading || !uploadFormData.name.trim()}
+                >
+                  {uploading ? 'Uploading...' : 'Share Preset'}
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {showCommunitySection && (
+            <CommunityPresets 
+              onImportPreset={handleImportCommunityPreset}
+              onClose={() => toggleCommunitySection()}
+            />
+          )}
+        </Card>
+       
+      </BaseModal>
+    </>
   );
 }
 
 PresetsModal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
+  isOpen: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
-  presets: PropTypes.arrayOf(PropTypes.shape({
-    name: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired,
-  })).isRequired,
-  onSavePreset: PropTypes.func.isRequired, // (name, includeChannels, includeSounds) => void
-  onDeletePreset: PropTypes.func.isRequired,
-  onApplyPreset: PropTypes.func.isRequired,
-  onUpdatePreset: PropTypes.func.isRequired,
-  onRenamePreset: PropTypes.func,
-  onImportPresets: PropTypes.func, // (presets: Preset[]) => void
+  presets: PropTypes.array.isRequired,
+  onSavePreset: PropTypes.func.isRequired, // (name: string, includeChannels: boolean, includeSounds: boolean) => void
+  onDeletePreset: PropTypes.func.isRequired, // (name: string) => void
+  onApplyPreset: PropTypes.func.isRequired, // (preset: Preset) => void
+  onUpdatePreset: PropTypes.func.isRequired, // (name: string) => void
+  onRenamePreset: PropTypes.func.isRequired, // (oldName: string, newName: string) => void
+  onImportPresets: PropTypes.func.isRequired, // (presets: Preset[]) => void
   onReorderPresets: PropTypes.func, // (reorderedPresets: Preset[]) => void
 };
 

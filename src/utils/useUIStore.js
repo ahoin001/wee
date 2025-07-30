@@ -19,6 +19,9 @@ const useUIStore = create((set, get) => ({
   showPrimaryActionsModal: false,
   showAppearanceSettingsModal: false,
   
+  // Community sharing states
+  showCommunitySection: false,
+  
   // Keyboard shortcuts state
   keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
     ...shortcut,
@@ -51,11 +54,20 @@ const useUIStore = create((set, get) => ({
   
   // Modal actions
   openPresetsModal: () => set({ showPresetsModal: true }),
-  closePresetsModal: () => set({ showPresetsModal: false }),
+  closePresetsModal: () => set({ 
+    showPresetsModal: false,
+    showCommunitySection: false
+  }),
   togglePresetsModal: () => {
     const { showPresetsModal } = get();
     set({ showPresetsModal: !showPresetsModal });
   },
+  
+  // Community sharing actions
+  toggleCommunitySection: () => set(state => ({ 
+    showCommunitySection: !state.showCommunitySection 
+  })),
+  setCommunitySection: (show) => set({ showCommunitySection: show }),
   
   openWallpaperModal: () => set({ showWallpaperModal: true }),
   closeWallpaperModal: () => set({ showWallpaperModal: false }),
@@ -154,17 +166,18 @@ const useUIStore = create((set, get) => ({
   handleGlobalKeyPress: (event) => {
     const { 
       showSettingsMenu, 
-      showPresetsModal, 
-      showWallpaperModal, 
-      showSoundModal, 
-      showChannelSettingsModal, 
-      showAppShortcutsModal,
-      showGeneralSettingsModal,
-      showTimeSettingsModal,
-      showRibbonSettingsModal,
-      showUpdateModal,
-      showPrimaryActionsModal,
-      showAppearanceSettingsModal,
+        showPresetsModal,
+  showWallpaperModal,
+  showSoundModal,
+  showChannelSettingsModal,
+  showAppShortcutsModal,
+  showGeneralSettingsModal,
+  showTimeSettingsModal,
+  showRibbonSettingsModal,
+  showUpdateModal,
+  showPrimaryActionsModal,
+  showAppearanceSettingsModal,
+  showCommunitySection,
       keyboardShortcuts 
     } = get();
     

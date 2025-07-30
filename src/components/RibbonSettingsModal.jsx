@@ -218,7 +218,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
               min={0}
               max={64}
               step={1}
-              onChange={e => setRibbonGlowStrength(Number(e.target.value))}
+              onChange={value => setRibbonGlowStrength(value)}
             />
             <Slider
               label="Glow Strength on Hover"
@@ -226,7 +226,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
               min={0}
               max={96}
               step={1}
-              onChange={e => setRibbonGlowStrengthHover(Number(e.target.value))}
+              onChange={value => setRibbonGlowStrengthHover(value)}
             />
             {!glassEnabled && (
               <Slider
@@ -235,7 +235,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
                 min={0.1}
                 max={1}
                 step={0.01}
-                onChange={e => setRibbonDockOpacity(Number(e.target.value))}
+                onChange={value => setRibbonDockOpacity(value)}
               />
             )}
           </div>
@@ -264,7 +264,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
                 min={0.05}
                 max={0.4}
                 step={0.01}
-                onChange={e => setGlassOpacity(Number(e.target.value))}
+                onChange={value => setGlassOpacity(value)}
               />
               <Slider
                 label="Backdrop Blur"
@@ -272,7 +272,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
                 min={0}
                 max={8}
                 step={0.1}
-                onChange={e => setGlassBlur(Number(e.target.value))}
+                onChange={value => setGlassBlur(value)}
               />
               <Slider
                 label="Border Opacity"
@@ -280,7 +280,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
                 min={0}
                 max={1}
                 step={0.05}
-                onChange={e => setGlassBorderOpacity(Number(e.target.value))}
+                onChange={value => setGlassBorderOpacity(value)}
               />
               <Slider
                 label="Shine Effect"
@@ -288,7 +288,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
                 min={0}
                 max={1}
                 step={0.05}
-                onChange={e => setGlassShineOpacity(Number(e.target.value))}
+                onChange={value => setGlassShineOpacity(value)}
               />
             </div>
           )}

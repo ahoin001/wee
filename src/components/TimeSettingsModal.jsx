@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
+import Button from '../ui/Button';
 import './BaseModal.css';
 
 function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
@@ -78,33 +79,19 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
       maxWidth="480px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
-          <button 
-            className="reset-button" 
+          <Button 
+            variant="secondary" 
             onClick={resetToDefault}
             style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: '2px solid #0099ff',
-              background: 'transparent',
-              color: '#0099ff',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = '#0099ff';
-              e.target.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent';
-              e.target.style.color = '#0099ff';
+              border: '2px solid hsl(var(--wii-blue))',
+              color: 'hsl(var(--wii-blue))',
+              background: 'transparent'
             }}
           >
             Reset to Default
-          </button>
-          <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
+          </Button>
+          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</Button>
         </div>
       )}
     >

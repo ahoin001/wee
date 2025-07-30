@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
+import Button from '../ui/Button';
 import './BaseModal.css';
 
 function BaseModal({ 
@@ -53,7 +54,20 @@ function BaseModal({
       >
         <div className="modal-header">
           <h2>{title}</h2>
-          <button className="close-button" onClick={handleClose}>×</button>
+          <Button 
+            variant="tertiary" 
+            onClick={handleClose}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '24px', 
+              padding: '4px',
+              minWidth: 'auto',
+              width: 'auto'
+            }}
+          >
+            ×
+          </Button>
         </div>
         <div className="modal-content" style={{ paddingBottom: 40 }}>
           {children}

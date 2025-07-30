@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BaseModal from './BaseModal';
+import Button from '../ui/Button';
 import Toggle from '../ui/Toggle';
 
 // Power Actions Data
@@ -274,8 +275,8 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
             />
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button className="cancel-button" onClick={handleClose}>Cancel</button>
-            <button className="save-button" onClick={handleSave}>Save</button>
+            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+            <Button variant="primary" onClick={handleSave}>Save</Button>
           </div>
         </div>
       )}
@@ -335,34 +336,14 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
 
           {/* Add Custom Action Button */}
           <div style={{ marginBottom: 16 }}>
-            <button
-              type="button"
+            <Button
+              variant="primary"
               onClick={() => setShowCustomForm(true)}
-              style={{
-                width: '100%',
-                background: '#0099ff',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '10px 16px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = '#007acc';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = '#0099ff';
-              }}
+              fullWidth
             >
               <span>➕</span>
               Add Custom Action
-            </button>
+            </Button>
           </div>
 
           {/* Custom Action Form */}

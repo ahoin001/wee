@@ -135,12 +135,12 @@ const usePageNavigationStore = create((set, get) => ({
 
     // Mouse wheel navigation
     const handleWheel = (event) => {
-      console.log('PageNavigation: Global wheel event detected', {
-        deltaX: event.deltaX,
-        deltaY: event.deltaY,
-        shiftKey: event.shiftKey,
-        target: event.target.tagName
-      });
+      // console.log('PageNavigation: Global wheel event detected', {
+      //   deltaX: event.deltaX,
+      //   deltaY: event.deltaY,
+      //   shiftKey: event.shiftKey,
+      //   target: event.target.tagName
+      // });
 
       // Only handle navigation when not in a modal or input field
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
@@ -178,7 +178,7 @@ const usePageNavigationStore = create((set, get) => ({
           goToPreviousPage();
         }
       } else {
-        console.log('PageNavigation: Wheel event not handled (no shift key, no horizontal delta)');
+        // console.log('PageNavigation: Wheel event not handled (no shift key, no horizontal delta)');
       }
     };
 

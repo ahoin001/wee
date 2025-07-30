@@ -49,8 +49,8 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
       maxWidth="900px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
+          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</Button>
         </div>
       )}
     >

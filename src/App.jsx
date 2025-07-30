@@ -206,6 +206,7 @@ function App() {
   // const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
+  const [appReady, setAppReady] = useState(false);
   const [timeColor, setTimeColor] = useState('#ffffff'); // Time display color
   const [recentTimeColors, setRecentTimeColors] = useState([]); // Time color history
   const [timeFormat24hr, setTimeFormat24hr] = useState(true); // Time format (24hr/12hr)
@@ -433,7 +434,23 @@ function App() {
     setPresets(prev => prev.filter(p => p.name !== name));
   };
   const handleImportPresets = (newPresets) => {
-    setPresets(newPresets);
+    setPresets(prev => {
+      // If newPresets is an array, add them to existing presets
+      if (Array.isArray(newPresets)) {
+        // Filter out any presets that already exist (by name)
+        const existingNames = prev.map(p => p.name);
+        const uniqueNewPresets = newPresets.filter(p => !existingNames.includes(p.name));
+        return [...prev, ...uniqueNewPresets];
+      }
+      // If it's a single preset, add it if it doesn't exist
+      else if (newPresets && typeof newPresets === 'object') {
+        const exists = prev.some(p => p.name === newPresets.name);
+        if (!exists) {
+          return [...prev, newPresets];
+        }
+      }
+      return prev;
+    });
   };
 
   const handleReorderPresets = (reorderedPresets) => {
@@ -649,6 +666,10 @@ function App() {
       setMediaMap(newMediaMap);
       setAppPathMap(newAppPathMap);
       // --- SplashScreen logic ---
+      // Mark app as ready first
+      setAppReady(true);
+      
+      // Then fade out splash screen
       setSplashFading(true);
       setTimeout(() => {
         setIsLoading(false);
@@ -1736,7 +1757,6 @@ function App() {
     
     // General settings
     immersivePip,
-    startInFullscreen,
     showPresetsButton,
     startOnBoot,
     
@@ -2606,6 +2626,27 @@ function App() {
                 }}>
                   🎨 Appearance Settings
                 </div>
+                <div className="context-menu-item" onClick={async () => {
+                  try {
+                    const result = await window.api.takeScreenshot();
+                    if (result.success) {
+                      // Show success notification
+                      console.log('Screenshot saved:', result.filePath);
+                      // Open the folder containing the screenshot
+                      if (window.api.openExternal) {
+                        const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
+                        window.api.openExternal(`file://${folderPath}`);
+                      }
+                    } else if (result.error !== 'Save cancelled by user') {
+                      console.error('Screenshot failed:', result.error);
+                    }
+                  } catch (error) {
+                    console.error('Screenshot error:', error);
+                  }
+                  closeSettingsMenu();
+                }}>
+                  📸 Take Screenshot
+                </div>
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
                   🎵 Change Sounds
                 </div>
@@ -2718,7 +2759,7 @@ function App() {
             );
           })()
         )}
-        {isLoading && <SplashScreen fadingOut={splashFading} />}
+        {(!appReady || isLoading) && <SplashScreen fadingOut={splashFading} />}
         <PresetsModal
           isOpen={showPresetsModal}
           onClose={closePresetsModal}

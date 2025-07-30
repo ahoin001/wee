@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Text from '../ui/Text';
+import Button from '../ui/Button';
 import './SoundModal.css';
 
 const SOUND_CATEGORIES = [
@@ -439,8 +440,8 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
       maxWidth="900px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</button>
+          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</Button>
         </div>
       )}
     >

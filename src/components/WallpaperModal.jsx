@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Text from '../ui/Text';
+import Button from '../ui/Button';
 import './BaseModal.css';
 import Card from '../ui/Card';
 import Toggle from '../ui/Toggle';
@@ -293,8 +294,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       maxWidth="900px"
       footerContent={({ handleClose }) => (
         <div style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button className="cancel-button" onClick={handleClose}>Cancel</button>
-          <button className="save-button" onClick={() => handleSaveAll(handleClose)} style={{ minWidth: 90 }}>Save</button>
+          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => handleSaveAll(handleClose)} style={{ minWidth: 90 }}>Save</Button>
         </div>
       )}
     >
@@ -311,9 +312,9 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         actions={
           <div style={{ marginTop: 14 }}>
             {/* Upload button and logic here */}
-            <button className="file-button" onClick={handleUpload} disabled={uploading}>
+            <Button variant="secondary" onClick={handleUpload} disabled={uploading}>
               {uploading ? 'Uploading...' : 'Upload New Wallpaper'}
-            </button>
+            </Button>
           </div>
         }
       />

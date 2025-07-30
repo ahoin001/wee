@@ -14,62 +14,62 @@ const THEME_GROUPS = {
     name: 'Classic Themes',
     description: 'Original Wii and gaming-inspired themes',
     themes: {
-      default: {
-        name: 'Default Wii',
-        description: 'Classic Wii dock colors',
-        colors: {
-          dockBaseGradientStart: '#BDBEC2',
-          dockBaseGradientEnd: '#DADDE6',
-          dockAccentColor: '#33BEED',
-          sdCardBodyColor: '#B9E1F2',
-          sdCardBorderColor: '#33BEED',
-          sdCardLabelColor: 'white',
-          sdCardLabelBorderColor: '#F4F0EE',
-          sdCardBottomColor: '#31BEED',
-          leftPodBaseColor: '#D2D3DA',
-          leftPodAccentColor: '#B6B6BB',
-          leftPodDetailColor: '#D7D8DA',
-          rightPodBaseColor: '#DCDCDF',
-          rightPodAccentColor: '#E4E4E4',
-          rightPodDetailColor: '#B6B6BB',
-          buttonBorderColor: '#22BEF3',
-          buttonGradientStart: '#E0DCDC',
-          buttonGradientEnd: '#CBCBCB',
-          buttonIconColor: '#979796',
-          rightButtonIconColor: '#A4A4A4',
-          buttonHighlightColor: '#E4E4E4',
-        }
-      },
-      retro: {
-        name: 'Retro Gaming',
-        description: 'Vintage gaming aesthetic',
-        colors: {
-          dockBaseGradientStart: '#2C1810',
-          dockBaseGradientEnd: '#4A2C1A',
-          dockAccentColor: '#FF6B35',
-          sdCardBodyColor: '#3D2314',
-          sdCardBorderColor: '#FF6B35',
-          sdCardLabelColor: '#5A3A2A',
-          sdCardLabelBorderColor: '#4A2C1A',
-          sdCardBottomColor: '#FF6B35',
-          leftPodBaseColor: '#3D2314',
-          leftPodAccentColor: '#5A3A2A',
-          leftPodDetailColor: '#4A2C1A',
-          rightPodBaseColor: '#3D2314',
-          rightPodAccentColor: '#5A3A2A',
-          rightPodDetailColor: '#4A2C1A',
-          buttonBorderColor: '#FF6B35',
-          buttonGradientStart: '#5A3A2A',
-          buttonGradientEnd: '#4A2C1A',
-          buttonIconColor: '#FFD700',
-          rightButtonIconColor: '#FFD700',
-          buttonHighlightColor: '#FFD700',
-        }
-      },
+  default: {
+    name: 'Default Wii',
+    description: 'Classic Wii dock colors',
+    colors: {
+      dockBaseGradientStart: '#BDBEC2',
+      dockBaseGradientEnd: '#DADDE6',
+      dockAccentColor: '#33BEED',
+      sdCardBodyColor: '#B9E1F2',
+      sdCardBorderColor: '#33BEED',
+      sdCardLabelColor: 'white',
+      sdCardLabelBorderColor: '#F4F0EE',
+      sdCardBottomColor: '#31BEED',
+      leftPodBaseColor: '#D2D3DA',
+      leftPodAccentColor: '#B6B6BB',
+      leftPodDetailColor: '#D7D8DA',
+      rightPodBaseColor: '#DCDCDF',
+      rightPodAccentColor: '#E4E4E4',
+      rightPodDetailColor: '#B6B6BB',
+      buttonBorderColor: '#22BEF3',
+      buttonGradientStart: '#E0DCDC',
+      buttonGradientEnd: '#CBCBCB',
+      buttonIconColor: '#979796',
+      rightButtonIconColor: '#A4A4A4',
+      buttonHighlightColor: '#E4E4E4',
+    }
+  },
+  retro: {
+    name: 'Retro Gaming',
+    description: 'Vintage gaming aesthetic',
+    colors: {
+      dockBaseGradientStart: '#2C1810',
+      dockBaseGradientEnd: '#4A2C1A',
+      dockAccentColor: '#FF6B35',
+      sdCardBodyColor: '#3D2314',
+      sdCardBorderColor: '#FF6B35',
+      sdCardLabelColor: '#5A3A2A',
+      sdCardLabelBorderColor: '#4A2C1A',
+      sdCardBottomColor: '#FF6B35',
+      leftPodBaseColor: '#3D2314',
+      leftPodAccentColor: '#5A3A2A',
+      leftPodDetailColor: '#4A2C1A',
+      rightPodBaseColor: '#3D2314',
+      rightPodAccentColor: '#5A3A2A',
+      rightPodDetailColor: '#4A2C1A',
+      buttonBorderColor: '#FF6B35',
+      buttonGradientStart: '#5A3A2A',
+      buttonGradientEnd: '#4A2C1A',
+      buttonIconColor: '#FFD700',
+      rightButtonIconColor: '#FFD700',
+      buttonHighlightColor: '#FFD700',
+    }
+  },
       matrix: {
         name: 'Matrix Green',
         description: 'Digital matrix theme',
-        colors: {
+    colors: {
           dockBaseGradientStart: '#064E3B',
           dockBaseGradientEnd: '#065F46',
           dockAccentColor: '#10B981',
@@ -98,32 +98,32 @@ const THEME_GROUPS = {
     name: 'Soft Pastel Collection',
     description:'Gentle, soothing pastel themes',
     themes: {
-      pastel: {
-        name: 'Soft Pastel',
-        description: 'Gentle pastel colors',
-        colors: {
-          dockBaseGradientStart: '#E8F4FD',
-          dockBaseGradientEnd: '#F0F8FF',
-          dockAccentColor: '#87CEEB',
-          sdCardBodyColor: '#E6F3FF',
-          sdCardBorderColor: '#87CEEB',
-          sdCardLabelColor: '#F8FBFF',
-          sdCardLabelBorderColor: '#E8F4FD',
-          sdCardBottomColor: '#87CEEB',
-          leftPodBaseColor: '#E8F4FD',
-          leftPodAccentColor: '#D4E6F1',
-          leftPodDetailColor: '#E6F3FF',
-          rightPodBaseColor: '#E8F4FD',
-          rightPodAccentColor: '#D4E6F1',
-          rightPodDetailColor: '#E6F3FF',
-          buttonBorderColor: '#87CEEB',
-          buttonGradientStart: '#D4E6F1',
-          buttonGradientEnd: '#C5D8E6',
-          buttonIconColor: '#6B8E9E',
-          rightButtonIconColor: '#6B8E9E',
-          buttonHighlightColor: '#FFFFFF',
-        }
-      },
+  pastel: {
+    name: 'Soft Pastel',
+    description: 'Gentle pastel colors',
+    colors: {
+      dockBaseGradientStart: '#E8F4FD',
+      dockBaseGradientEnd: '#F0F8FF',
+      dockAccentColor: '#87CEEB',
+      sdCardBodyColor: '#E6F3FF',
+      sdCardBorderColor: '#87CEEB',
+      sdCardLabelColor: '#F8FBFF',
+      sdCardLabelBorderColor: '#E8F4FD',
+      sdCardBottomColor: '#87CEEB',
+      leftPodBaseColor: '#E8F4FD',
+      leftPodAccentColor: '#D4E6F1',
+      leftPodDetailColor: '#E6F3FF',
+      rightPodBaseColor: '#E8F4FD',
+      rightPodAccentColor: '#D4E6F1',
+      rightPodDetailColor: '#E6F3FF',
+      buttonBorderColor: '#87CEEB',
+      buttonGradientStart: '#D4E6F1',
+      buttonGradientEnd: '#C5D8E6',
+      buttonIconColor: '#6B8E9E',
+      rightButtonIconColor: '#6B8E9E',
+      buttonHighlightColor: '#FFFFFF',
+    }
+  },
       pastelLavender: {
         name: 'Lavender Dreams',
         description: 'Soft lavender pastel theme',
@@ -318,82 +318,82 @@ const THEME_GROUPS = {
     name: 'Nature Themes',
     description: 'Inspired by natural elements',
     themes: {
-      sunset: {
-        name: 'Sunset Orange',
-        description: 'Warm sunset gradient',
-        colors: {
-          dockBaseGradientStart: '#FF6B35',
-          dockBaseGradientEnd: '#F7931E',
-          dockAccentColor: '#FFD700',
-          sdCardBodyColor: '#FF8C42',
-          sdCardBorderColor: '#FFD700',
-          sdCardLabelColor: '#FFA500',
-          sdCardLabelBorderColor: '#FFB347',
-          sdCardBottomColor: '#FFD700',
-          leftPodBaseColor: '#FF8C42',
-          leftPodAccentColor: '#FFA500',
-          leftPodDetailColor: '#FFB347',
-          rightPodBaseColor: '#FF8C42',
-          rightPodAccentColor: '#FFA500',
-          rightPodDetailColor: '#FFB347',
-          buttonBorderColor: '#FFD700',
-          buttonGradientStart: '#FFA500',
-          buttonGradientEnd: '#FF8C42',
-          buttonIconColor: '#FF4500',
-          rightButtonIconColor: '#FF4500',
-          buttonHighlightColor: '#FFD700',
-        }
-      },
-      forest: {
-        name: 'Forest Green',
-        description: 'Natural forest theme',
-        colors: {
-          dockBaseGradientStart: '#2D5016',
-          dockBaseGradientEnd: '#4A7C59',
-          dockAccentColor: '#90EE90',
-          sdCardBodyColor: '#3B5323',
-          sdCardBorderColor: '#90EE90',
-          sdCardLabelColor: '#556B2F',
-          sdCardLabelBorderColor: '#4A7C59',
-          sdCardBottomColor: '#90EE90',
-          leftPodBaseColor: '#3B5323',
-          leftPodAccentColor: '#556B2F',
-          leftPodDetailColor: '#4A7C59',
-          rightPodBaseColor: '#3B5323',
-          rightPodAccentColor: '#556B2F',
-          rightPodDetailColor: '#4A7C59',
-          buttonBorderColor: '#90EE90',
-          buttonGradientStart: '#556B2F',
-          buttonGradientEnd: '#3B5323',
-          buttonIconColor: '#228B22',
-          rightButtonIconColor: '#228B22',
-          buttonHighlightColor: '#90EE90',
-        }
-      },
-      ocean: {
-        name: 'Ocean Blue',
-        description: 'Deep ocean depths',
-        colors: {
-          dockBaseGradientStart: '#1E3A8A',
-          dockBaseGradientEnd: '#3B82F6',
-          dockAccentColor: '#06B6D4',
-          sdCardBodyColor: '#1E40AF',
-          sdCardBorderColor: '#06B6D4',
-          sdCardLabelColor: '#1D4ED8',
-          sdCardLabelBorderColor: '#3B82F6',
-          sdCardBottomColor: '#06B6D4',
-          leftPodBaseColor: '#1E40AF',
-          leftPodAccentColor: '#1D4ED8',
-          leftPodDetailColor: '#3B82F6',
-          rightPodBaseColor: '#1E40AF',
-          rightPodAccentColor: '#1D4ED8',
-          rightPodDetailColor: '#3B82F6',
-          buttonBorderColor: '#06B6D4',
-          buttonGradientStart: '#1D4ED8',
-          buttonGradientEnd: '#1E40AF',
-          buttonIconColor: '#0EA5E9',
-          rightButtonIconColor: '#0EA5E9',
-          buttonHighlightColor: '#06B6D4',
+  sunset: {
+    name: 'Sunset Orange',
+    description: 'Warm sunset gradient',
+    colors: {
+      dockBaseGradientStart: '#FF6B35',
+      dockBaseGradientEnd: '#F7931E',
+      dockAccentColor: '#FFD700',
+      sdCardBodyColor: '#FF8C42',
+      sdCardBorderColor: '#FFD700',
+      sdCardLabelColor: '#FFA500',
+      sdCardLabelBorderColor: '#FFB347',
+      sdCardBottomColor: '#FFD700',
+      leftPodBaseColor: '#FF8C42',
+      leftPodAccentColor: '#FFA500',
+      leftPodDetailColor: '#FFB347',
+      rightPodBaseColor: '#FF8C42',
+      rightPodAccentColor: '#FFA500',
+      rightPodDetailColor: '#FFB347',
+      buttonBorderColor: '#FFD700',
+      buttonGradientStart: '#FFA500',
+      buttonGradientEnd: '#FF8C42',
+      buttonIconColor: '#FF4500',
+      rightButtonIconColor: '#FF4500',
+      buttonHighlightColor: '#FFD700',
+    }
+  },
+  forest: {
+    name: 'Forest Green',
+    description: 'Natural forest theme',
+    colors: {
+      dockBaseGradientStart: '#2D5016',
+      dockBaseGradientEnd: '#4A7C59',
+      dockAccentColor: '#90EE90',
+      sdCardBodyColor: '#3B5323',
+      sdCardBorderColor: '#90EE90',
+      sdCardLabelColor: '#556B2F',
+      sdCardLabelBorderColor: '#4A7C59',
+      sdCardBottomColor: '#90EE90',
+      leftPodBaseColor: '#3B5323',
+      leftPodAccentColor: '#556B2F',
+      leftPodDetailColor: '#4A7C59',
+      rightPodBaseColor: '#3B5323',
+      rightPodAccentColor: '#556B2F',
+      rightPodDetailColor: '#4A7C59',
+      buttonBorderColor: '#90EE90',
+      buttonGradientStart: '#556B2F',
+      buttonGradientEnd: '#3B5323',
+      buttonIconColor: '#228B22',
+      rightButtonIconColor: '#228B22',
+      buttonHighlightColor: '#90EE90',
+    }
+  },
+  ocean: {
+    name: 'Ocean Blue',
+    description: 'Deep ocean depths',
+    colors: {
+      dockBaseGradientStart: '#1E3A8A',
+      dockBaseGradientEnd: '#3B82F6',
+      dockAccentColor: '#06B6D4',
+      sdCardBodyColor: '#1E40AF',
+      sdCardBorderColor: '#06B6D4',
+      sdCardLabelColor: '#1D4ED8',
+      sdCardLabelBorderColor: '#3B82F6',
+      sdCardBottomColor: '#06B6D4',
+      leftPodBaseColor: '#1E40AF',
+      leftPodAccentColor: '#1D4ED8',
+      leftPodDetailColor: '#3B82F6',
+      rightPodBaseColor: '#1E40AF',
+      rightPodAccentColor: '#1D4ED8',
+      rightPodDetailColor: '#3B82F6',
+      buttonBorderColor: '#06B6D4',
+      buttonGradientStart: '#1D4ED8',
+      buttonGradientEnd: '#1E40AF',
+      buttonIconColor: '#0EA5E9',
+      rightButtonIconColor: '#0EA5E9',
+      buttonHighlightColor: '#06B6D4',
         }
       }
     }
@@ -402,83 +402,83 @@ const THEME_GROUPS = {
     name: 'Vibrant Themes',
     description: 'Bold and energetic colors',
     themes: {
-      purple: {
-        name: 'Royal Purple',
-        description: 'Elegant purple theme',
-        colors: {
-          dockBaseGradientStart: '#4C1D95',
-          dockBaseGradientEnd: '#7C3AED',
-          dockAccentColor: '#A855F7',
-          sdCardBodyColor: '#581C87',
-          sdCardBorderColor: '#A855F7',
-          sdCardLabelColor: '#6B21A8',
-          sdCardLabelBorderColor: '#7C3AED',
-          sdCardBottomColor: '#A855F7',
-          leftPodBaseColor: '#581C87',
-          leftPodAccentColor: '#6B21A8',
-          leftPodDetailColor: '#7C3AED',
-          rightPodBaseColor: '#581C87',
-          rightPodAccentColor: '#6B21A8',
-          rightPodDetailColor: '#7C3AED',
-          buttonBorderColor: '#A855F7',
-          buttonGradientStart: '#6B21A8',
-          buttonGradientEnd: '#581C87',
-          buttonIconColor: '#C084FC',
-          rightButtonIconColor: '#C084FC',
-          buttonHighlightColor: '#A855F7',
-        }
-      },
-      fire: {
-        name: 'Fiery Red',
-        description: 'Hot fire theme',
-        colors: {
-          dockBaseGradientStart: '#7F1D1D',
-          dockBaseGradientEnd: '#DC2626',
-          dockAccentColor: '#F59E0B',
-          sdCardBodyColor: '#991B1B',
-          sdCardBorderColor: '#F59E0B',
-          sdCardLabelColor: '#B91C1C',
-          sdCardLabelBorderColor: '#DC2626',
-          sdCardBottomColor: '#F59E0B',
-          leftPodBaseColor: '#991B1B',
-          leftPodAccentColor: '#B91C1C',
-          leftPodDetailColor: '#DC2626',
-          rightPodBaseColor: '#991B1B',
-          rightPodAccentColor: '#B91C1C',
-          rightPodDetailColor: '#DC2626',
-          buttonBorderColor: '#F59E0B',
-          buttonGradientStart: '#B91C1C',
-          buttonGradientEnd: '#991B1B',
-          buttonIconColor: '#EF4444',
-          rightButtonIconColor: '#EF4444',
-          buttonHighlightColor: '#F59E0B',
-        }
-      },
-      gold: {
-        name: 'Golden Luxury',
-        description: 'Premium gold theme',
-        colors: {
-          dockBaseGradientStart: '#92400E',
-          dockBaseGradientEnd: '#F59E0B',
-          dockAccentColor: '#FCD34D',
-          sdCardBodyColor: '#A16207',
-          sdCardBorderColor: '#FCD34D',
-          sdCardLabelColor: '#B45309',
-          sdCardLabelBorderColor: '#F59E0B',
-          sdCardBottomColor: '#FCD34D',
-          leftPodBaseColor: '#A16207',
-          leftPodAccentColor: '#B45309',
-          leftPodDetailColor: '#F59E0B',
-          rightPodBaseColor: '#A16207',
-          rightPodAccentColor: '#B45309',
-          rightPodDetailColor: '#F59E0B',
-          buttonBorderColor: '#FCD34D',
-          buttonGradientStart: '#B45309',
-          buttonGradientEnd: '#A16207',
-          buttonIconColor: '#F59E0B',
-          rightButtonIconColor: '#F59E0B',
-          buttonHighlightColor: '#FCD34D',
-        }
+  purple: {
+    name: 'Royal Purple',
+    description: 'Elegant purple theme',
+    colors: {
+      dockBaseGradientStart: '#4C1D95',
+      dockBaseGradientEnd: '#7C3AED',
+      dockAccentColor: '#A855F7',
+      sdCardBodyColor: '#581C87',
+      sdCardBorderColor: '#A855F7',
+      sdCardLabelColor: '#6B21A8',
+      sdCardLabelBorderColor: '#7C3AED',
+      sdCardBottomColor: '#A855F7',
+      leftPodBaseColor: '#581C87',
+      leftPodAccentColor: '#6B21A8',
+      leftPodDetailColor: '#7C3AED',
+      rightPodBaseColor: '#581C87',
+      rightPodAccentColor: '#6B21A8',
+      rightPodDetailColor: '#7C3AED',
+      buttonBorderColor: '#A855F7',
+      buttonGradientStart: '#6B21A8',
+      buttonGradientEnd: '#581C87',
+      buttonIconColor: '#C084FC',
+      rightButtonIconColor: '#C084FC',
+      buttonHighlightColor: '#A855F7',
+    }
+  },
+  fire: {
+    name: 'Fiery Red',
+    description: 'Hot fire theme',
+    colors: {
+      dockBaseGradientStart: '#7F1D1D',
+      dockBaseGradientEnd: '#DC2626',
+      dockAccentColor: '#F59E0B',
+      sdCardBodyColor: '#991B1B',
+      sdCardBorderColor: '#F59E0B',
+      sdCardLabelColor: '#B91C1C',
+      sdCardLabelBorderColor: '#DC2626',
+      sdCardBottomColor: '#F59E0B',
+      leftPodBaseColor: '#991B1B',
+      leftPodAccentColor: '#B91C1C',
+      leftPodDetailColor: '#DC2626',
+      rightPodBaseColor: '#991B1B',
+      rightPodAccentColor: '#B91C1C',
+      rightPodDetailColor: '#DC2626',
+      buttonBorderColor: '#F59E0B',
+      buttonGradientStart: '#B91C1C',
+      buttonGradientEnd: '#991B1B',
+      buttonIconColor: '#EF4444',
+      rightButtonIconColor: '#EF4444',
+      buttonHighlightColor: '#F59E0B',
+    }
+  },
+  gold: {
+    name: 'Golden Luxury',
+    description: 'Premium gold theme',
+    colors: {
+      dockBaseGradientStart: '#92400E',
+      dockBaseGradientEnd: '#F59E0B',
+      dockAccentColor: '#FCD34D',
+      sdCardBodyColor: '#A16207',
+      sdCardBorderColor: '#FCD34D',
+      sdCardLabelColor: '#B45309',
+      sdCardLabelBorderColor: '#F59E0B',
+      sdCardBottomColor: '#FCD34D',
+      leftPodBaseColor: '#A16207',
+      leftPodAccentColor: '#B45309',
+      leftPodDetailColor: '#F59E0B',
+      rightPodBaseColor: '#A16207',
+      rightPodAccentColor: '#B45309',
+      rightPodDetailColor: '#F59E0B',
+      buttonBorderColor: '#FCD34D',
+      buttonGradientStart: '#B45309',
+      buttonGradientEnd: '#A16207',
+      buttonIconColor: '#F59E0B',
+      rightButtonIconColor: '#F59E0B',
+      buttonHighlightColor: '#FCD34D',
+    }
       }
     }
   }
@@ -836,89 +836,89 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                   </div>
                 </div>
                 {expandedGroups[groupKey] && (
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                    gap: '12px', 
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '12px', 
                     marginTop: '14px',
                     padding: '12px',
                     background: '#f8f9fa',
                     borderRadius: '8px'
-                  }}>
+          }}>
                     {Object.entries(group.themes).map(([themeKey, theme]) => {
                       const themePath = `${groupKey}.${themeKey}`;
                       const isSelected = getCurrentTheme() === themePath;
                       
                       return (
-                        <button
+              <button
                           key={themeKey}
                           onClick={() => applyTheme(themePath)}
-                          style={{
-                            padding: '12px',
-                            borderRadius: '8px',
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
                             border: isSelected ? '2px solid #0099ff' : '2px solid #e0e0e0',
                             background: isSelected ? '#f0f8ff' : 'white',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            flexDirection: 'column',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
                             gap: '4px',
                             position: 'relative'
-                          }}
-                          onMouseEnter={(e) => {
+                }}
+                onMouseEnter={(e) => {
                             if (!isSelected) {
-                              e.target.style.borderColor = '#0099ff';
-                              e.target.style.background = '#f8f9fa';
+                  e.target.style.borderColor = '#0099ff';
+                  e.target.style.background = '#f8f9fa';
                             }
-                          }}
-                          onMouseLeave={(e) => {
+                }}
+                onMouseLeave={(e) => {
                             if (!isSelected) {
-                              e.target.style.borderColor = '#e0e0e0';
-                              e.target.style.background = 'white';
+                  e.target.style.borderColor = '#e0e0e0';
+                  e.target.style.background = 'white';
                             }
-                          }}
-                        >
-                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#333' }}>
-                          {theme.name}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#666' }}>
-                          {theme.description}
-                        </div>
-                        <div style={{ 
-                          display: 'flex', 
-                          gap: '4px', 
-                          marginTop: '4px' 
-                        }}>
-                          <div style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '50%', 
-                            background: theme.colors.dockBaseGradientStart,
-                            border: '1px solid #ddd'
-                          }} />
-                          <div style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '50%', 
-                            background: theme.colors.dockAccentColor,
-                            border: '1px solid #ddd'
-                          }} />
-                          <div style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '50%', 
-                            background: theme.colors.buttonGradientStart,
-                            border: '1px solid #ddd'
-                          }} />
-                          <div style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '50%', 
-                            background: theme.colors.buttonIconColor,
-                            border: '1px solid #ddd'
-                          }} />
-                        </div>
+                }}
+              >
+                <div style={{ fontWeight: '600', fontSize: '14px', color: '#333' }}>
+                  {theme.name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  {theme.description}
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '4px', 
+                  marginTop: '4px' 
+                }}>
+                  <div style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    borderRadius: '50%', 
+                    background: theme.colors.dockBaseGradientStart,
+                    border: '1px solid #ddd'
+                  }} />
+                  <div style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    borderRadius: '50%', 
+                    background: theme.colors.dockAccentColor,
+                    border: '1px solid #ddd'
+                  }} />
+                  <div style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    borderRadius: '50%', 
+                    background: theme.colors.buttonGradientStart,
+                    border: '1px solid #ddd'
+                  }} />
+                  <div style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    borderRadius: '50%', 
+                    background: theme.colors.buttonIconColor,
+                    border: '1px solid #ddd'
+                  }} />
+                </div>
                         {isSelected && (
                           <div style={{
                             position: 'absolute',
@@ -938,7 +938,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                             ✓
                           </div>
                         )}
-                      </button>
+              </button>
                     );
                   })}
                   </div>

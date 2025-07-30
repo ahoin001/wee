@@ -600,9 +600,19 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const footerContent = ({ handleClose }) => (
     <>
       <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
-        <button className="cancel-button" onClick={handleClose}>Cancel</button>
-        <button className="clear-button" style={{ border: '1.5px solid #dc3545', color: '#dc3545', background: '#fff', fontWeight: 600 }} onClick={() => handleClearChannel(handleClose)} onMouseOver={e => e.currentTarget.style.background='#ffeaea'} onMouseOut={e => e.currentTarget.style.background='#fff'}>Clear Channel</button>
-        <button className="save-button" onClick={() => handleSave(handleClose)} title={saveTooltip}>Save Channel</button>
+        <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+        <Button 
+          variant="secondary" 
+          onClick={() => handleClearChannel(handleClose)}
+          style={{ 
+            border: '1.5px solid hsl(var(--error))', 
+            color: 'hsl(var(--error))', 
+            background: 'transparent'
+          }}
+        >
+          Clear Channel
+        </Button>
+        <Button variant="primary" onClick={() => handleSave(handleClose)} title={saveTooltip}>Save Channel</Button>
       </div>
       {showError && saveTooltip && (
         <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8, fontWeight: 500 }}>{saveTooltip}</div>
@@ -714,14 +724,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                     ) : null}
                   </>
                 )}
-                <button className="remove-image-button" onClick={handleRemoveImage}>
+                <Button variant="secondary" onClick={handleRemoveImage}>
                   Remove
-                </button>
+                </Button>
               </div>
             ) : (
-              <button className="file-button" style={{ background: '#f7fafd', color: '#222', border: '2px solid #b0c4d8', fontWeight: 500 }} onClick={() => setShowImageSearch(true)}>
+              <Button variant="secondary" onClick={() => setShowImageSearch(true)}>
                 Add Channel Image
-              </button>
+              </Button>
             )}
           </>
         )}
