@@ -885,6 +885,77 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         }
         style={{ marginBottom: '20px' }}
       />
+
+      {/* Restore App */}
+      <Card
+        title="Restore App to Fresh State"
+        separator
+        desc="Reset the app to a completely fresh state. This will backup your current data and create a clean installation. Use this if you're experiencing issues or want to start over."
+        actions={
+          <div style={{ marginTop: 16 }}>
+            <div style={{ 
+              padding: '16px', 
+              background: '#fff3cd', 
+              border: '1px solid #ffeaa7', 
+              borderRadius: '8px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#856404' }}>⚠️ Warning</div>
+              <div style={{ fontSize: '14px', color: '#856404', marginBottom: '12px' }}>
+                This will:
+              </div>
+              <ul style={{ fontSize: '14px', color: '#856404', margin: '0', paddingLeft: '20px' }}>
+                <li>Backup your current settings and data</li>
+                <li>Remove all customizations and configurations</li>
+                <li>Reset the app to default settings</li>
+                <li>Require you to reconfigure everything</li>
+              </ul>
+            </div>
+            <button
+              onClick={async () => {
+                if (window.confirm('Are you sure you want to restore the app to a fresh state? This will backup your current data and reset everything to default settings.')) {
+                  try {
+                    if (window.api && window.api.triggerFreshInstall) {
+                      const result = await window.api.triggerFreshInstall();
+                      if (result.success) {
+                        alert(`Restore completed successfully!\n\nYour old data has been backed up to:\n${result.backupLocation}\n\nThe app will now restart with fresh settings.`);
+                        // Reload the app to apply fresh settings
+                        window.location.reload();
+                      } else {
+                        alert('Failed to restore app: ' + (result.error || 'Unknown error'));
+                      }
+                    } else {
+                      alert('Restore functionality not available');
+                    }
+                  } catch (error) {
+                    alert('Error during restore: ' + error.message);
+                  }
+                }
+              }}
+              style={{
+                padding: '12px 24px',
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#c82333';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#dc3545';
+              }}
+            >
+              🔄 Restore to Fresh State
+            </button>
+          </div>
+        }
+        style={{ marginBottom: '20px' }}
+      />
     </div>
   );
 

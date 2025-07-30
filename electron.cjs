@@ -14,6 +14,87 @@ const wsQuery = promisify(ws.query);
 const { nativeImage } = require('electron');
 const { exec } = require('child_process');
 
+// --- Version Check and Fresh Install Logic ---
+const CURRENT_VERSION = '2.7.4';
+const MIN_VERSION_FOR_FRESH_START = '2.7.4';
+
+async function performFreshInstall() {
+  try {
+    console.log('[FRESH_INSTALL] Starting fresh install process...');
+    
+    // Get the user data directory
+    const userDataPath = app.getPath('userData');
+    const dataDir = path.join(userDataPath, 'data');
+    
+    // Check if we need to perform a fresh install
+    const versionFile = path.join(userDataPath, 'version.json');
+    let currentStoredVersion = '0.0.0';
+    
+    try {
+      if (await fsPromises.access(versionFile).then(() => true).catch(() => false)) {
+        const versionData = JSON.parse(await fsPromises.readFile(versionFile, 'utf-8'));
+        currentStoredVersion = versionData.version || '0.0.0';
+        console.log(`[FRESH_INSTALL] Current stored version: ${currentStoredVersion}`);
+      }
+    } catch (error) {
+      console.log('[FRESH_INSTALL] No version file found, treating as fresh install');
+    }
+    
+    // Compare versions
+    const needsFreshInstall = currentStoredVersion < MIN_VERSION_FOR_FRESH_START;
+    
+    if (needsFreshInstall) {
+      console.log(`[FRESH_INSTALL] Version ${currentStoredVersion} is below ${MIN_VERSION_FOR_FRESH_START}, performing fresh install...`);
+      
+      // Backup old data directory if it exists
+      const backupDir = path.join(userDataPath, 'data_backup_' + Date.now());
+      if (await fsPromises.access(dataDir).then(() => true).catch(() => false)) {
+        console.log('[FRESH_INSTALL] Backing up old data directory...');
+        await fsExtra.move(dataDir, backupDir);
+        console.log(`[FRESH_INSTALL] Old data backed up to: ${backupDir}`);
+      }
+      
+      // Remove any other old files in userData
+      const filesToRemove = [
+        'settings.json',
+        'sounds.json',
+        'wallpapers.json',
+        'channels.json',
+        'presets.json',
+        'savedSounds.json'
+      ];
+      
+      for (const file of filesToRemove) {
+        const filePath = path.join(userDataPath, file);
+        try {
+          if (await fsPromises.access(filePath).then(() => true).catch(() => false)) {
+            await fsPromises.unlink(filePath);
+            console.log(`[FRESH_INSTALL] Removed old file: ${file}`);
+          }
+        } catch (error) {
+          console.log(`[FRESH_INSTALL] Could not remove ${file}: ${error.message}`);
+        }
+      }
+      
+      // Create fresh data directory
+      await fsPromises.mkdir(dataDir, { recursive: true });
+      console.log('[FRESH_INSTALL] Created fresh data directory');
+      
+      // Save current version
+      await fsPromises.writeFile(versionFile, JSON.stringify({ version: CURRENT_VERSION }, null, 2));
+      console.log(`[FRESH_INSTALL] Updated version to ${CURRENT_VERSION}`);
+      
+      console.log('[FRESH_INSTALL] Fresh install completed successfully!');
+    } else {
+      console.log(`[FRESH_INSTALL] Version ${currentStoredVersion} is current, no fresh install needed`);
+      // Update version file to current version
+      await fsPromises.writeFile(versionFile, JSON.stringify({ version: CURRENT_VERSION }, null, 2));
+    }
+  } catch (error) {
+    console.error('[FRESH_INSTALL] Error during fresh install:', error);
+  }
+}
+
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
 const soundsFile = path.join(dataDir, 'sounds.json');
@@ -1727,6 +1808,9 @@ app.whenReady().then(async () => {
     await showCustomInstaller();
   }
   
+  // Perform fresh install check for users below version 2.7.4
+  await performFreshInstall();
+  
   // Ensure default sounds exist in production
   await ensureDefaultSoundsExist();
   
@@ -2980,6 +3064,103 @@ ipcMain.handle('supabase:delete', async (event, { presetId }) => {
     return { success: true };
   } catch (error) {
     console.error('Backend: Delete failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC: Get fresh install information
+ipcMain.handle('get-fresh-install-info', async () => {
+  try {
+    const userDataPath = app.getPath('userData');
+    const versionFile = path.join(userDataPath, 'version.json');
+    
+    let currentVersion = '0.0.0';
+    let backupLocation = null;
+    
+    try {
+      if (await fsPromises.access(versionFile).then(() => true).catch(() => false)) {
+        const versionData = JSON.parse(await fsPromises.readFile(versionFile, 'utf-8'));
+        currentVersion = versionData.version || '0.0.0';
+      }
+    } catch (error) {
+      console.log('[FRESH_INSTALL] Could not read version file:', error.message);
+    }
+    
+    // Check if there's a backup directory
+    const backupDirs = await fsPromises.readdir(userDataPath);
+    const backupDir = backupDirs.find(dir => dir.startsWith('data_backup_'));
+    if (backupDir) {
+      backupLocation = path.join(userDataPath, backupDir);
+    }
+    
+    return {
+      currentVersion,
+      backupLocation,
+      needsFreshInstall: currentVersion < MIN_VERSION_FOR_FRESH_START
+    };
+  } catch (error) {
+    console.error('[FRESH_INSTALL] Error getting fresh install info:', error);
+    return { error: error.message };
+  }
+});
+
+// IPC: Trigger fresh install manually
+ipcMain.handle('trigger-fresh-install', async () => {
+  try {
+    console.log('[FRESH_INSTALL] Manual fresh install triggered by user');
+    
+    // Get the user data directory
+    const userDataPath = app.getPath('userData');
+    const dataDir = path.join(userDataPath, 'data');
+    
+    // Backup current data directory if it exists
+    const backupDir = path.join(userDataPath, 'data_backup_manual_' + Date.now());
+    if (await fsPromises.access(dataDir).then(() => true).catch(() => false)) {
+      console.log('[FRESH_INSTALL] Backing up current data directory...');
+      await fsExtra.move(dataDir, backupDir);
+      console.log(`[FRESH_INSTALL] Current data backed up to: ${backupDir}`);
+    }
+    
+    // Remove any other old files in userData
+    const filesToRemove = [
+      'settings.json',
+      'sounds.json',
+      'wallpapers.json',
+      'channels.json',
+      'presets.json',
+      'savedSounds.json'
+    ];
+    
+    for (const file of filesToRemove) {
+      const filePath = path.join(userDataPath, file);
+      try {
+        if (await fsPromises.access(filePath).then(() => true).catch(() => false)) {
+          await fsPromises.unlink(filePath);
+          console.log(`[FRESH_INSTALL] Removed old file: ${file}`);
+        }
+      } catch (error) {
+        console.log(`[FRESH_INSTALL] Could not remove ${file}: ${error.message}`);
+      }
+    }
+    
+    // Create fresh data directory
+    await fsPromises.mkdir(dataDir, { recursive: true });
+    console.log('[FRESH_INSTALL] Created fresh data directory');
+    
+    // Save current version
+    const versionFile = path.join(userDataPath, 'version.json');
+    await fsPromises.writeFile(versionFile, JSON.stringify({ version: CURRENT_VERSION }, null, 2));
+    console.log(`[FRESH_INSTALL] Updated version to ${CURRENT_VERSION}`);
+    
+    console.log('[FRESH_INSTALL] Manual fresh install completed successfully!');
+    
+    return { 
+      success: true, 
+      backupLocation: backupDir,
+      message: 'Fresh install completed successfully. Your old data has been backed up.'
+    };
+  } catch (error) {
+    console.error('[FRESH_INSTALL] Error during manual fresh install:', error);
     return { success: false, error: error.message };
   }
 });

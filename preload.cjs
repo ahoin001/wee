@@ -99,16 +99,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   executeCommand: (command) => ipcRenderer.invoke('execute-command', command),
   takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
-});
-
-  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
-});
-
-  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
-});
-
-  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
-});
-
-  takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
+  // Fresh install API
+  getFreshInstallInfo: () => ipcRenderer.invoke('get-fresh-install-info'),
+  triggerFreshInstall: () => ipcRenderer.invoke('trigger-fresh-install'),
 });

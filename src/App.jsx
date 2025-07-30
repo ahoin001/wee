@@ -223,6 +223,10 @@ function App() {
   const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   
+  // Fresh install notification state
+  const [showFreshInstallNotification, setShowFreshInstallNotification] = useState(false);
+  const [freshInstallInfo, setFreshInstallInfo] = useState(null);
+  
   // Modal states for when dock is hidden
   // These modals are now managed by Zustand store
   // const [showGeneralModal, setShowGeneralModal] = useState(false);
@@ -560,6 +564,21 @@ function App() {
   // On mount, load all modular data
   useEffect(() => {
     async function loadAll() {
+      // Check for fresh install and show notification if needed
+      try {
+        if (window.api && window.api.getFreshInstallInfo) {
+          const freshInstallData = await window.api.getFreshInstallInfo();
+          if (freshInstallData && !freshInstallData.error) {
+            setFreshInstallInfo(freshInstallData);
+            if (freshInstallData.backupLocation) {
+              setShowFreshInstallNotification(true);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('[App] Could not check fresh install info:', error);
+      }
+      
       // Load sounds
       const soundData = await soundsApi.get();
       setSoundSettings(soundData || {});
@@ -2917,6 +2936,70 @@ function App() {
           onInstall={handleUpdateNotificationInstall}
           updateInfo={updateInfo}
         />
+
+        {/* Fresh Install Notification */}
+        {showFreshInstallNotification && freshInstallInfo && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'hsl(var(--surface-primary))',
+            border: '1px solid hsl(var(--border-primary))',
+            borderRadius: '12px',
+            padding: '16px',
+            maxWidth: '400px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 1000,
+            color: 'hsl(var(--text-primary))'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{ fontSize: '20px', color: '#0099ff' }}>🔄</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', marginBottom: '8px' }}>
+                  Fresh Start Complete
+                </div>
+                <div style={{ fontSize: '14px', color: 'hsl(var(--text-secondary))', marginBottom: '12px' }}>
+                  Your app has been updated to version 2.7.4 with a fresh start. Your old data has been backed up.
+                </div>
+                {freshInstallInfo.backupLocation && (
+                  <div style={{ fontSize: '12px', color: 'hsl(var(--text-tertiary))', marginBottom: '12px' }}>
+                    <strong>Backup location:</strong> {freshInstallInfo.backupLocation}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setShowFreshInstallNotification(false)}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'hsl(var(--surface-secondary))',
+                      border: '1px solid hsl(var(--border-primary))',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      color: 'hsl(var(--text-primary))'
+                    }}
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFreshInstallNotification(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  color: 'hsl(var(--text-secondary))',
+                  padding: '0',
+                  lineHeight: '1'
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
 
                         {/* SoundModal */}
                 {showSoundModal && (
