@@ -243,7 +243,14 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   // Generate tinted images for buttons with adaptive color enabled
   useEffect(() => {
+    // Only run if we have button configs loaded
+    if (!buttonConfigs || buttonConfigs.length === 0) {
+      console.log('[WiiRibbon] Skipping tinted image generation - no button configs loaded yet');
+      return;
+    }
+
     const generateTintedImages = async () => {
+      console.log('[WiiRibbon] Generating tinted images for color:', propRibbonGlowColor);
       const rgbColor = hexToRgb(propRibbonGlowColor);
       const newTintedImages = {};
       
@@ -253,14 +260,22 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         allConfigs.push(presetsButtonConfig);
       }
       
+      console.log('[WiiRibbon] Checking configs for adaptive color:', allConfigs.map(c => ({
+        useAdaptiveColor: c.useAdaptiveColor,
+        icon: c.icon,
+        hasIcon: !!c.icon
+      })));
+      
       for (const config of allConfigs) {
         if (config.useAdaptiveColor && config.icon && !config.icon.startsWith('data:') && !['palette', 'star', 'heart'].includes(config.icon)) {
+          console.log('[WiiRibbon] Tinting image:', config.icon);
           try {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = async () => {
               const tintedUrl = await tintImage(img, rgbColor);
               newTintedImages[config.icon] = tintedUrl;
+              console.log('[WiiRibbon] Tinted image created:', config.icon, tintedUrl.substring(0, 50) + '...');
               setTintedImages(prev => ({ ...prev, ...newTintedImages }));
             };
             img.src = config.icon;
@@ -376,9 +391,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   // Helper function to get the appropriate image source for adaptive color
   const getImageSource = (originalUrl, useAdaptiveColor) => {
+    console.log('[WiiRibbon] getImageSource called:', { originalUrl, useAdaptiveColor, hasTintedImage: !!tintedImages[originalUrl] });
     if (useAdaptiveColor && tintedImages[originalUrl]) {
+      console.log('[WiiRibbon] Using tinted image for:', originalUrl);
       return tintedImages[originalUrl];
     }
+    console.log('[WiiRibbon] Using original image for:', originalUrl);
     return originalUrl;
   };
 
