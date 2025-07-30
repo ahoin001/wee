@@ -52,6 +52,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [showPresetsButtonModal, setShowPresetsButtonModal] = useState(false);
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [tintedImages, setTintedImages] = useState({});
 
   // Load configs from settings on mount
   useEffect(() => {
@@ -92,11 +93,15 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const saveButtonConfigs = async (configs) => {
     console.log('WiiRibbon saveButtonConfigs called');
     console.log('Configs to save:', configs);
-    console.log('PowerActions in configs:', configs.map((config, index) => ({ 
-      index, 
-      powerActions: config.powerActions?.length || 0,
-      names: config.powerActions?.map(a => a.name) || []
-    })));
+    
+    // Add null checks for powerActions
+    if (configs && Array.isArray(configs)) {
+      console.log('PowerActions in configs:', configs.map((config, index) => ({ 
+        index, 
+        powerActions: config?.powerActions?.length || 0,
+        names: config?.powerActions?.map(a => a.name) || []
+      })));
+    }
     
     setButtonConfigs(configs);
     if (window.api?.settings?.get && window.api?.settings?.set) {
@@ -133,11 +138,20 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const handlePrimaryActionsSave = (newConfig) => {
     console.log('WiiRibbon handlePrimaryActionsSave called');
     console.log('New config received:', newConfig);
-    console.log('PowerActions in new config:', newConfig.powerActions?.length || 0, newConfig.powerActions?.map(a => a.name) || []);
+    
+    // Add null checks for powerActions
+    if (newConfig) {
+      console.log('PowerActions in new config:', newConfig.powerActions?.length || 0, newConfig.powerActions?.map(a => a.name) || []);
+    }
     
     const newConfigs = [...buttonConfigs];
     newConfigs[activeButtonIndex] = newConfig;
-    console.log('Saving button configs with powerActions:', newConfigs[activeButtonIndex].powerActions?.length || 0);
+    
+    // Add null check for the updated config
+    if (newConfigs[activeButtonIndex]) {
+      console.log('Saving button configs with powerActions:', newConfigs[activeButtonIndex].powerActions?.length || 0);
+    }
+    
     saveButtonConfigs(newConfigs);
     setShowPrimaryActionsModal(false);
   };
@@ -225,6 +239,39 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     const taskId = intervalManager.addTask(checkRibbonColor, 1000, 'ribbon-color-check');
     return () => intervalManager.removeTask(taskId);
   }, [propRibbonColor, propRibbonGlowColor]);
+
+  // Generate tinted images for buttons with adaptive color enabled
+  useEffect(() => {
+    const generateTintedImages = async () => {
+      const rgbColor = hexToRgb(propRibbonGlowColor);
+      const newTintedImages = {};
+      
+      // Check all button configs for adaptive color and custom icons
+      const allConfigs = [...buttonConfigs];
+      if (presetsButtonConfig) {
+        allConfigs.push(presetsButtonConfig);
+      }
+      
+      for (const config of allConfigs) {
+        if (config.useAdaptiveColor && config.icon && !config.icon.startsWith('data:') && !['palette', 'star', 'heart'].includes(config.icon)) {
+          try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = async () => {
+              const tintedUrl = await tintImage(img, rgbColor);
+              newTintedImages[config.icon] = tintedUrl;
+              setTintedImages(prev => ({ ...prev, ...newTintedImages }));
+            };
+            img.src = config.icon;
+          } catch (error) {
+            console.error('Error tinting image:', error);
+          }
+        }
+      }
+    };
+
+    generateTintedImages();
+  }, [propRibbonGlowColor, buttonConfigs, presetsButtonConfig]);
   
   // Listen for update status events
   useEffect(() => {
@@ -275,6 +322,71 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       month: '2-digit',
       day: '2-digit'
     }).replace(',', '');
+  };
+
+  // Helper function to convert hex color to RGB array
+  const hexToRgb = (hexColor) => {
+    // Remove # if present
+    const hex = hexColor.replace('#', '');
+    
+    // Convert hex to RGB
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    return [r, g, b];
+  };
+
+  // Helper function to tint an image with a specific color
+  const tintImage = (imageElement, rgbColor) => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas size to match image
+      canvas.width = imageElement.naturalWidth || imageElement.width;
+      canvas.height = imageElement.naturalHeight || imageElement.height;
+      
+      // Draw the image to get the alpha mask
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Replace all non-transparent pixels with the tint color
+      for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        if (alpha !== 0) {
+          data[i]     = rgbColor[0]; // R
+          data[i + 1] = rgbColor[1]; // G
+          data[i + 2] = rgbColor[2]; // B
+          // Keep original alpha
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Convert canvas to data URL
+      const tintedImageUrl = canvas.toDataURL('image/png');
+      resolve(tintedImageUrl);
+    });
+  };
+
+  // Helper function to get the appropriate image source for adaptive color
+  const getImageSource = (originalUrl, useAdaptiveColor) => {
+    if (useAdaptiveColor && tintedImages[originalUrl]) {
+      return tintedImages[originalUrl];
+    }
+    return originalUrl;
+  };
+
+  // Helper function to get icon filter based on settings
+  const getIconFilter = (useWiiGrayFilter) => {
+    if (useWiiGrayFilter) {
+      return 'grayscale(100%) brightness(0.6) contrast(1.2)';
+    }
+    return 'none';
   };
 
   const handleSettingsClick = () => {
@@ -596,12 +708,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon ? (
                   <img 
-                    src={buttonConfigs[0].icon} 
+                    src={getImageSource(buttonConfigs[0].icon, buttonConfigs[0].useAdaptiveColor)} 
                     alt="icon" 
                     style={{ 
                       maxHeight: 40, 
                       maxWidth: 40,
-                      filter: buttonConfigs[0].useWiiGrayFilter ? 'grayscale(100%) brightness(0.6) contrast(1.2)' : 'none'
+                      filter: getIconFilter(buttonConfigs[0].useWiiGrayFilter)
                     }} 
                   />
                 ) : (
@@ -679,12 +791,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               </svg>
             ) : presetsButtonConfig.icon ? (
               <img 
-                src={presetsButtonConfig.icon} 
+                src={getImageSource(presetsButtonConfig.icon, presetsButtonConfig.useAdaptiveColor)} 
                 alt="icon" 
                 style={{ 
                   maxHeight: 28, 
                   maxWidth: 28,
-                  filter: presetsButtonConfig.useWiiGrayFilter ? 'grayscale(100%) brightness(0.6) contrast(1.2)' : 'none'
+                  filter: getIconFilter(presetsButtonConfig.useWiiGrayFilter)
                 }} 
               />
             ) : (
@@ -747,12 +859,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                         </svg>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon ? (
                         <img 
-                          src={buttonConfigs[1].icon} 
+                          src={getImageSource(buttonConfigs[1].icon, buttonConfigs[1].useAdaptiveColor)} 
                           alt="icon" 
                           style={{ 
                             maxHeight: 40, 
                             maxWidth: 40,
-                            filter: buttonConfigs[1].useWiiGrayFilter ? 'grayscale(100%) brightness(0.6) contrast(1.2)' : 'none'
+                            filter: getIconFilter(buttonConfigs[1].useWiiGrayFilter)
                           }} 
                         />
                       ) : (

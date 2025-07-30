@@ -117,6 +117,29 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     }
   }, [isOpen, fetchIcons]);
 
+  // Regenerate tinted images when ribbon glow color changes and adaptive color is enabled
+  useEffect(() => {
+    if (useAdaptiveColor && savedIcons.length > 0) {
+      const rgbColor = hexToRgb(ribbonGlowColor);
+      const newTintedImages = {};
+      
+      savedIcons.forEach(icon => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = async () => {
+          try {
+            const tintedUrl = await tintImage(img, rgbColor);
+            newTintedImages[icon.url] = tintedUrl;
+            setTintedImages(prev => ({ ...prev, ...newTintedImages }));
+          } catch (error) {
+            console.error('Error tinting image:', error);
+          }
+        };
+        img.src = icon.url;
+      });
+    }
+  }, [ribbonGlowColor, useAdaptiveColor, savedIcons]);
+
   // Fetch app library data when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -160,6 +183,119 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       else setUwpDropdownOpen(false);
     }
   }, [gameType, uwpQuery, filteredUwpApps.length]);
+
+  // Helper function to get icon color based on adaptive color setting
+  const getIconColor = () => {
+    if (useAdaptiveColor) {
+      return ribbonGlowColor;
+    }
+    return '#0099ff';
+  };
+
+  // Helper function to get icon filter based on settings
+  const getIconFilter = () => {
+    if (useWiiGrayFilter) {
+      return 'grayscale(100%) brightness(0.6) contrast(1.2)';
+    }
+    return 'none';
+  };
+
+  // Helper function to get the appropriate image source for adaptive color
+  const getImageSource = (originalUrl) => {
+    if (useAdaptiveColor && tintedImages[originalUrl]) {
+      return tintedImages[originalUrl];
+    }
+    return originalUrl;
+  };
+
+  // Helper function to convert hex color to RGB array
+  const hexToRgb = (hexColor) => {
+    // Remove # if present
+    const hex = hexColor.replace('#', '');
+    
+    // Convert hex to RGB
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    return [r, g, b];
+  };
+
+  // Helper function to tint an image with a specific color
+  const tintImage = (imageElement, rgbColor) => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas size to match image
+      canvas.width = imageElement.naturalWidth || imageElement.width;
+      canvas.height = imageElement.naturalHeight || imageElement.height;
+      
+      // Draw the image to get the alpha mask
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Replace all non-transparent pixels with the tint color
+      for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        if (alpha !== 0) {
+          data[i]     = rgbColor[0]; // R
+          data[i + 1] = rgbColor[1]; // G
+          data[i + 2] = rgbColor[2]; // B
+          // Keep original alpha
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Convert canvas to data URL
+      const tintedImageUrl = canvas.toDataURL('image/png');
+      resolve(tintedImageUrl);
+    });
+  };
+
+  // Handle Wii gray filter toggle with mutual exclusivity
+  const handleWiiGrayFilterToggle = (checked) => {
+    setUseWiiGrayFilter(checked);
+    if (checked && useAdaptiveColor) {
+      setUseAdaptiveColor(false);
+    }
+  };
+
+  // Handle adaptive color toggle with mutual exclusivity
+  const handleAdaptiveColorToggle = async (checked) => {
+    setUseAdaptiveColor(checked);
+    if (checked && useWiiGrayFilter) {
+      setUseWiiGrayFilter(false);
+    }
+    
+    // Generate tinted images for all saved icons when adaptive color is enabled
+    if (checked && savedIcons.length > 0) {
+      const rgbColor = hexToRgb(ribbonGlowColor);
+      const newTintedImages = {};
+      
+      for (const icon of savedIcons) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = async () => {
+            const tintedUrl = await tintImage(img, rgbColor);
+            newTintedImages[icon.url] = tintedUrl;
+            setTintedImages(prev => ({ ...prev, ...newTintedImages }));
+          };
+          img.src = icon.url;
+        } catch (error) {
+          console.error('Error tinting image:', error);
+        }
+      }
+    } else if (!checked) {
+      // Clear tinted images when adaptive color is disabled
+      setTintedImages({});
+    }
+  };
 
   // Upload and save icon immediately
   const handleUploadIcon = async () => {
@@ -327,18 +463,28 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 <button
                   type="button"
                   style={{
-                    border: icon === 'palette' ? '2.5px solid #0099ff' : '1.5px solid #ccc',
+                    border: icon === 'palette' ? `2.5px solid ${getIconColor()}` : '1.5px solid #ccc',
                     borderRadius: 8,
                     padding: 8,
-                    background: icon === 'palette' ? '#e6f7ff' : '#fff',
-                    boxShadow: icon === 'palette' ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
+                    background: icon === 'palette' ? `${getIconColor()}10` : '#fff',
+                    boxShadow: icon === 'palette' ? `0 0 0 2px ${getIconColor()}40` : '0 1px 4px #0001',
                     outline: 'none',
                     cursor: 'pointer',
                     transition: 'border 0.18s, box-shadow 0.18s',
                   }}
                   onClick={() => setIcon('palette')}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke={getIconColor()} 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    style={{ filter: getIconFilter() }}
+                  >
                     <circle cx="13.5" cy="6.5" r="2.5"/>
                     <circle cx="17.5" cy="10.5" r="2.5"/>
                     <circle cx="8.5" cy="7.5" r="2.5"/>
@@ -351,18 +497,28 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 <button
                   type="button"
                   style={{
-                    border: icon === 'star' ? '2.5px solid #0099ff' : '1.5px solid #ccc',
+                    border: icon === 'star' ? `2.5px solid ${getIconColor()}` : '1.5px solid #ccc',
                     borderRadius: 8,
                     padding: 8,
-                    background: icon === 'star' ? '#e6f7ff' : '#fff',
-                    boxShadow: icon === 'star' ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
+                    background: icon === 'star' ? `${getIconColor()}10` : '#fff',
+                    boxShadow: icon === 'star' ? `0 0 0 2px ${getIconColor()}40` : '0 1px 4px #0001',
                     outline: 'none',
                     cursor: 'pointer',
                     transition: 'border 0.18s, box-shadow 0.18s',
                   }}
                   onClick={() => setIcon('star')}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke={getIconColor()} 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    style={{ filter: getIconFilter() }}
+                  >
                     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
                   </svg>
                 </button>
@@ -371,18 +527,28 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 <button
                   type="button"
                   style={{
-                    border: icon === 'heart' ? '2.5px solid #0099ff' : '1.5px solid #ccc',
+                    border: icon === 'heart' ? `2.5px solid ${getIconColor()}` : '1.5px solid #ccc',
                     borderRadius: 8,
                     padding: 8,
-                    background: icon === 'heart' ? '#e6f7ff' : '#fff',
-                    boxShadow: icon === 'heart' ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
+                    background: icon === 'heart' ? `${getIconColor()}10` : '#fff',
+                    boxShadow: icon === 'heart' ? `0 0 0 2px ${getIconColor()}40` : '0 1px 4px #0001',
                     outline: 'none',
                     cursor: 'pointer',
                     transition: 'border 0.18s, box-shadow 0.18s',
                   }}
                   onClick={() => setIcon('heart')}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke={getIconColor()} 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    style={{ filter: getIconFilter() }}
+                  >
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                   </svg>
                 </button>
@@ -392,7 +558,15 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             {/* Upload New Icon Button */}
             <button
               className="file-button"
-              style={{ marginBottom: 18, fontWeight: 500, padding: '8px 18px', fontSize: 15, background: iconsUploading ? '#bbb' : '#0099ff', color: '#fff', cursor: iconsUploading ? 'not-allowed' : 'pointer' }}
+              style={{ 
+                marginBottom: 18, 
+                fontWeight: 500, 
+                padding: '8px 18px', 
+                fontSize: 15, 
+                background: iconsUploading ? '#bbb' : getIconColor(), 
+                color: '#fff', 
+                cursor: iconsUploading ? 'not-allowed' : 'pointer' 
+              }}
               onClick={handleUploadIcon}
               disabled={iconsUploading}
             >
@@ -413,11 +587,11 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                       <button
                         type="button"
                         style={{
-                          border: icon === i.url ? '2.5px solid #0099ff' : '1.5px solid #ccc',
+                          border: icon === i.url ? `2.5px solid ${getIconColor()}` : '1.5px solid #ccc',
                           borderRadius: 8,
                           padding: 0,
-                          background: icon === i.url ? '#e6f7ff' : '#fff',
-                          boxShadow: icon === i.url ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
+                          background: icon === i.url ? `${getIconColor()}10` : '#fff',
+                          boxShadow: icon === i.url ? `0 0 0 2px ${getIconColor()}40` : '0 1px 4px #0001',
                           outline: 'none',
                           cursor: 'pointer',
                           width: 44,
@@ -430,7 +604,16 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                         aria-label={`Select saved icon ${idx + 1}`}
                         onClick={() => setIcon(i.url)}
                       >
-                        <img src={i.url} alt={i.name} style={{ maxHeight: 32, maxWidth: 32, borderRadius: 6 }} />
+                        <img 
+                          src={getImageSource(i.url)} 
+                          alt={i.name} 
+                          style={{ 
+                            maxHeight: 32, 
+                            maxWidth: 32, 
+                            borderRadius: 6,
+                            filter: getIconFilter()
+                          }} 
+                        />
                       </button>
                       <button
                         type="button"
@@ -481,6 +664,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   }
 
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [tintedImages, setTintedImages] = useState({});
 
   const handleAdminPanelSave = (adminConfig) => {
     console.log('PrimaryActionsModal handleAdminPanelSave called');
@@ -650,23 +834,35 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </div>
       </div>
-      {/* Wii Gray Filter Card - Only show when using icon and not presets button or accessory button */}
+      {/* Icon Color Settings Card - Only show when using icon and not presets button or accessory button */}
       {type === 'icon' && !isPresetsButton && !isAccessoryButton && (
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
-            <span className="wee-card-title">Use Wii Button Color Filter</span>
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={useWiiGrayFilter}
-                onChange={(e) => setUseWiiGrayFilter(e.target.checked)}
-              />
-              <span className="slider" />
-            </label>
+            <span className="wee-card-title">Icon Color Settings</span>
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">
-            Make the icon Wii gray to match the classic Wii button style.
+            <div style={{ marginBottom: 16 }}>
+              <Toggle
+                checked={useWiiGrayFilter}
+                onChange={handleWiiGrayFilterToggle}
+                label="Use Wii Button Color Filter"
+              />
+              <div style={{ marginLeft: 54, marginTop: 4, fontSize: 14, color: '#666' }}>
+                Make the icon Wii gray to match the classic Wii button style.
+              </div>
+            </div>
+            
+            <div>
+              <Toggle
+                checked={useAdaptiveColor}
+                onChange={handleAdaptiveColorToggle}
+                label="Use Adaptive Color"
+              />
+              <div style={{ marginLeft: 54, marginTop: 4, fontSize: 14, color: '#666' }}>
+                Make the icon color match the ribbon glow color ({ribbonGlowColor}).
+              </div>
+            </div>
           </div>
         </div>
       )}

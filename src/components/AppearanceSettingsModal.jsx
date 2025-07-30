@@ -2037,7 +2037,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
       >
         {/* Import/Export controls */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
+        {/* <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
           <Button variant="secondary" onClick={handleImportClick}>
             Import
           </Button>
@@ -2079,7 +2079,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
               Cancel
             </Button>
           </div>
-        )}
+        )} */}
 
         <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '0 0 18px 0' }} />
           
