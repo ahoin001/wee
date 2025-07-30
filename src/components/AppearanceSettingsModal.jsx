@@ -1423,8 +1423,8 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         title="Account Management"
         separator
         desc={isAnonymous 
-          ? "Create an account to upload presets to the community and manage your uploads. You can still use the app without an account, but community features will be limited."
-          : `Signed in as ${currentUser?.email || 'Unknown'}. You can upload presets to the community and manage your uploads.`
+          ? "You can use all community features without an account! Browse, download, and upload presets anonymously. Create an account to manage your uploads, track favorites, and get a personalized experience."
+          : `Signed in as ${currentUser?.email || 'Unknown'}. You can manage your uploads and get a personalized experience.`
         }
         actions={
           <div style={{ marginTop: 16 }}>
@@ -1437,7 +1437,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                     handleSignUp();
                   }}
                 >
-                  Create Account
+                  Create Account (Optional)
                 </Button>
                 <Button 
                   variant="secondary" 
@@ -1446,7 +1446,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
                     handleSignIn();
                   }}
                 >
-                  Sign In
+                  Sign In (Optional)
                 </Button>
               </div>
             ) : (

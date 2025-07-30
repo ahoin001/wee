@@ -1,28 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const publicAnonKey = import.meta.env.VITE_SUPABASE_PUBLIC_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
-const secretKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Built-in Supabase configuration for community features
+// These are public keys that are safe to include in client apps
+const SUPABASE_URL = 'https://bmlcydwltfexgbsyunkf.supabase.co' // Replace with your project URL
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbGN5ZHdsdGZleGdic3l1bmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MTMzNDAsImV4cCI6MjA2OTM4OTM0MH0.m1kx74I5ytK0dLFPFAwD18Q907wvE56jvyQr3otp5A4' // Replace with your public anon key
 
-console.log('[SUPABASE] Environment check:');
-console.log('[SUPABASE] VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing');
-console.log('[SUPABASE] VITE_SUPABASE_ANON_KEY:', publicAnonKey ? 'Set' : 'Missing');
-console.log('[SUPABASE] VITE_SUPABASE_PUBLIC_ANON_KEY:', import.meta.env.VITE_SUPABASE_PUBLIC_ANON_KEY ? 'Set' : 'Missing');
+// For public operations (browsing, downloading), we can use the client directly
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-if (!supabaseUrl || !publicAnonKey) {
-  console.warn('Missing Supabase environment variables - community features will be disabled')
-}
+// For private operations (uploading, deleting), we use the backend proxy
+// This is already implemented in electron.cjs
 
-// Client for database operations (uses public anon key)
-export const supabase = (supabaseUrl && publicAnonKey) ? createClient(supabaseUrl, publicAnonKey) : null
-
-console.log('[SUPABASE] Client created:', supabase ? 'Yes' : 'No');
-if (supabase) {
-  console.log('[SUPABASE] Client URL:', supabase.supabaseUrl);
-}
-
-// Client for storage operations (uses secret key - server-side only)
-const supabaseStorage = (supabaseUrl && secretKey) ? createClient(supabaseUrl, secretKey) : null
+console.log('[SUPABASE] Client created for public operations');
 
 // Helper function to generate thumbnail from preset data
 export const generateThumbnail = async (presetData) => {
@@ -51,7 +40,67 @@ export const generateThumbnail = async (presetData) => {
   })
 }
 
-// Upload preset to Supabase using backend proxy
+// Browse presets (public operation - can use client directly)
+export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at') => {
+  try {
+    console.log('[SUPABASE] Fetching shared presets...');
+    console.log('[SUPABASE] Search term:', searchTerm);
+    console.log('[SUPABASE] Sort by:', sortBy);
+    
+    let query = supabase
+      .from('shared_presets')
+      .select('*')
+      .order(sortBy, { ascending: false })
+    
+    if (searchTerm) {
+      query = query.ilike('name', `%${searchTerm}%`)
+    }
+    
+    const { data, error } = await query
+    console.log('[SUPABASE] Query result:', { data: data?.length || 0, error });
+    
+    if (error) {
+      console.error('[SUPABASE] Database error:', error);
+      throw error;
+    }
+    
+    console.log('[SUPABASE] Successfully fetched presets:', data?.length || 0);
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error('[SUPABASE] Error fetching shared presets:', error)
+    return { success: false, error: error.message, data: [] }
+  }
+}
+
+// Download preset (public operation - can use client directly)
+export const downloadPreset = async (preset) => {
+  try {
+    if (!supabase) {
+      return { success: false, error: 'Supabase not configured' }
+    }
+
+    // Download the preset file
+    const { data: fileData, error: fileError } = await supabase.storage
+      .from('presets')
+      .download(preset.preset_file_url)
+
+    if (fileError) {
+      console.error('Error downloading preset file:', fileError);
+      return { success: false, error: fileError.message };
+    }
+
+    // Convert the file data to text
+    const presetText = await fileData.text();
+    const presetData = JSON.parse(presetText);
+
+    return { success: true, data: presetData };
+  } catch (error) {
+    console.error('Error downloading preset:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Upload preset (private operation - uses backend proxy)
 export const uploadPreset = async (presetData, formData) => {
   try {
     console.log('Starting upload process...');
@@ -93,76 +142,6 @@ export const uploadPreset = async (presetData, formData) => {
   } catch (error) {
     console.error('Error uploading preset:', error)
     return { success: false, error: error.message }
-  }
-}
-
-// Download preset from Supabase
-export const downloadPreset = async (preset) => {
-  try {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' }
-    }
-
-    // Download the preset file
-    const { data: fileData, error: fileError } = await supabase.storage
-      .from('presets')
-      .download(preset.preset_file_url)
-
-    if (fileError) throw fileError
-
-    // Convert blob to JSON
-    const presetData = JSON.parse(await fileData.text())
-    
-    // Increment download count
-    await supabase
-      .from('shared_presets')
-      .update({ downloads: preset.downloads + 1 })
-      .eq('id', preset.id)
-
-    return { success: true, data: presetData }
-  } catch (error) {
-    console.error('Error downloading preset:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-
-
-// Get shared presets with optional search and filtering
-export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at') => {
-  try {
-    if (!supabase) {
-      console.log('[SUPABASE] Supabase not configured');
-      return { success: false, error: 'Supabase not configured', data: [] }
-    }
-
-    console.log('[SUPABASE] Fetching shared presets...');
-    console.log('[SUPABASE] Search term:', searchTerm);
-    console.log('[SUPABASE] Sort by:', sortBy);
-
-    let query = supabase
-      .from('shared_presets')
-      .select('*')
-      .order(sortBy, { ascending: false })
-
-    if (searchTerm) {
-      query = query.ilike('name', `%${searchTerm}%`)
-    }
-
-    const { data, error } = await query
-    
-    console.log('[SUPABASE] Query result:', { data: data?.length || 0, error });
-    
-    if (error) {
-      console.error('[SUPABASE] Database error:', error);
-      throw error;
-    }
-    
-    console.log('[SUPABASE] Successfully fetched presets:', data?.length || 0);
-    return { success: true, data: data || [] }
-  } catch (error) {
-    console.error('[SUPABASE] Error fetching shared presets:', error)
-    return { success: false, error: error.message, data: [] }
   }
 } 
  
