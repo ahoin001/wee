@@ -181,6 +181,39 @@ const useUIStore = create((set, get) => ({
       keyboardShortcuts 
     } = get();
     
+    // Check for custom settings shortcut first
+    const customSettingsShortcut = window.settings?.settingsShortcut;
+    if (customSettingsShortcut) {
+      const keys = customSettingsShortcut.split(' + ');
+      const hasCtrl = keys.includes('Ctrl') && event.ctrlKey;
+      const hasShift = keys.includes('Shift') && event.shiftKey;
+      const hasAlt = keys.includes('Alt') && event.altKey;
+      const hasCmd = keys.includes('Cmd') && event.metaKey;
+      
+      // Check if the main key matches
+      const mainKey = keys.find(key => !['Ctrl', 'Shift', 'Alt', 'Cmd'].includes(key));
+      const keyMatches = mainKey && event.key.toUpperCase() === mainKey;
+      
+      // Check if all required modifiers are pressed
+      const modifiersMatch = 
+        (keys.includes('Ctrl') ? hasCtrl : !event.ctrlKey) &&
+        (keys.includes('Shift') ? hasShift : !event.shiftKey) &&
+        (keys.includes('Alt') ? hasAlt : !event.altKey) &&
+        (keys.includes('Cmd') ? hasCmd : !event.metaKey);
+      
+      if (keyMatches && modifiersMatch) {
+        event.preventDefault();
+        
+        // Toggle appearance settings modal
+        if (showAppearanceSettingsModal) {
+          get().closeAppearanceSettingsModal();
+        } else {
+          get().openAppearanceSettingsModal();
+        }
+        return;
+      }
+    }
+    
     // Check if any modal is open that should handle its own keyboard events
     const modalsOpen = showPresetsModal || showWallpaperModal || showSoundModal || 
                       showChannelSettingsModal || showAppShortcutsModal ||
@@ -209,80 +242,70 @@ const useUIStore = create((set, get) => ({
       const modalActions = {
         'openPresetsModal': () => {
           if (showPresetsModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closePresetsModal();
           } else {
             get().openPresetsModal();
           }
         },
         'openWallpaperModal': () => {
           if (showWallpaperModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closeWallpaperModal();
           } else {
             get().openWallpaperModal();
           }
         },
         'openSoundModal': () => {
           if (showSoundModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closeSoundModal();
           } else {
             get().openSoundModal();
           }
         },
         'openChannelSettingsModal': () => {
           if (showChannelSettingsModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closeChannelSettingsModal();
           } else {
             get().openChannelSettingsModal();
           }
         },
         'openAppShortcutsModal': () => {
           if (showAppShortcutsModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closeAppShortcutsModal();
           } else {
             get().openAppShortcutsModal();
           }
         },
         'openGeneralSettingsModal': () => {
           if (showGeneralSettingsModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closeGeneralSettingsModal();
           } else {
             get().openGeneralSettingsModal();
           }
         },
         'openTimeSettingsModal': () => {
           if (showTimeSettingsModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closeTimeSettingsModal();
           } else {
             get().openTimeSettingsModal();
           }
         },
         'openRibbonSettingsModal': () => {
           if (showRibbonSettingsModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closeRibbonSettingsModal();
           } else {
             get().openRibbonSettingsModal();
           }
         },
         'openUpdateModal': () => {
           if (showUpdateModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closeUpdateModal();
           } else {
             get().openUpdateModal();
           }
         },
         'openPrimaryActionsModal': () => {
           if (showPrimaryActionsModal) {
-            const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-            document.dispatchEvent(escapeEvent);
+            get().closePrimaryActionsModal();
           } else {
             get().openPrimaryActionsModal();
           }

@@ -179,6 +179,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
             startInFullscreen: window.settings.startInFullscreen ?? false,
             showPresetsButton: window.settings.showPresetsButton ?? true,
             startOnBoot: window.settings.startOnBoot ?? false,
+            settingsShortcut: window.settings.settingsShortcut || '',
           },
           sounds: {
             backgroundMusicEnabled: window.settings.backgroundMusicEnabled ?? true,
@@ -287,6 +288,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         startInFullscreen: allSettings.general.startInFullscreen,
         showPresetsButton: allSettings.general.showPresetsButton,
         startOnBoot: allSettings.general.startOnBoot,
+        settingsShortcut: allSettings.general.settingsShortcut,
         
         // Sound settings
         backgroundMusicEnabled: allSettings.sounds.backgroundMusicEnabled,
@@ -1414,6 +1416,96 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
             checked={localSettings.general?.startOnBoot ?? false}
             onChange={(checked) => updateLocalSetting('general', 'startOnBoot', checked)}
           />
+        }
+        style={{ marginBottom: '20px' }}
+      />
+
+      {/* Keyboard Shortcut */}
+      <Card
+        title="Keyboard Shortcut"
+        separator
+        desc="Set a keyboard shortcut to quickly open the settings modal. Press the keys you want to use for the shortcut."
+        actions={
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <label style={{ fontWeight: 500, minWidth: 120 }}>Shortcut</label>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8,
+                padding: '8px 12px',
+                border: '1px solid hsl(var(--border-primary))',
+                borderRadius: '6px',
+                background: 'hsl(var(--surface-primary))',
+                minWidth: '200px',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+              onClick={() => {
+                // Start listening for key combination
+                const handleKeyDown = (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  const keys = [];
+                  if (e.ctrlKey) keys.push('Ctrl');
+                  if (e.shiftKey) keys.push('Shift');
+                  if (e.altKey) keys.push('Alt');
+                  if (e.metaKey) keys.push('Cmd');
+                  
+                  // Add the main key (avoid modifier keys)
+                  if (e.key && e.key !== 'Control' && e.key !== 'Shift' && e.key !== 'Alt' && e.key !== 'Meta') {
+                    keys.push(e.key.toUpperCase());
+                  }
+                  
+                  if (keys.length > 0) {
+                    const shortcut = keys.join(' + ');
+                    updateLocalSetting('general', 'settingsShortcut', shortcut);
+                    document.removeEventListener('keydown', handleKeyDown);
+                    document.removeEventListener('click', handleClickOutside);
+                  }
+                };
+                
+                const handleClickOutside = () => {
+                  document.removeEventListener('keydown', handleKeyDown);
+                  document.removeEventListener('click', handleClickOutside);
+                };
+                
+                document.addEventListener('keydown', handleKeyDown);
+                document.addEventListener('click', handleClickOutside);
+                
+                // Show visual feedback
+                const shortcutElement = document.querySelector('[data-shortcut-input]');
+                if (shortcutElement) {
+                  shortcutElement.style.background = 'hsl(var(--surface-tertiary))';
+                  shortcutElement.textContent = 'Press keys...';
+                }
+              }}
+              data-shortcut-input
+              >
+                {localSettings.general?.settingsShortcut || 'Click to set shortcut'}
+              </div>
+              <Button 
+                variant="secondary" 
+                onClick={() => updateLocalSetting('general', 'settingsShortcut', '')}
+                disabled={!localSettings.general?.settingsShortcut}
+              >
+                Clear
+              </Button>
+            </div>
+            
+            <div style={{ 
+              fontSize: '13px', 
+              color: 'hsl(var(--text-secondary))', 
+              padding: '12px',
+              background: 'hsl(var(--surface-secondary))',
+              borderRadius: '6px',
+              border: '1px solid hsl(var(--border-primary))'
+            }}>
+              <strong>💡 Tip:</strong> Common shortcuts include Ctrl+Shift+S, Ctrl+, (comma), or F12. 
+              The shortcut will work globally when the app is focused.
+            </div>
+          </div>
         }
         style={{ marginBottom: '20px' }}
       />
