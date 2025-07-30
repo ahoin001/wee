@@ -48,3 +48,14 @@ If you'd like to contribute or run the app in a development environment, follow 
 1. **Clone the Repository:**
    ```bash
    git clone https://github.com/ahoin001/wee.git
+   ```
+
+2. **Set up Supabase (Optional - for Community Presets):**
+   If you want to use the community preset sharing features, you'll need to set up Supabase:
+   
+   - Create a `.env` file in the project root with:
+     ```bash
+     VITE_SUPABASE_URL=https://your-project.supabase.co
+     VITE_SUPABASE_ANON_KEY=your-anon-key
+     ```
+   - See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for detailed setup instructions

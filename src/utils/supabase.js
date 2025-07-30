@@ -4,12 +4,22 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const publicAnonKey = import.meta.env.VITE_SUPABASE_PUBLIC_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
 const secretKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+console.log('[SUPABASE] Environment check:');
+console.log('[SUPABASE] VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing');
+console.log('[SUPABASE] VITE_SUPABASE_ANON_KEY:', publicAnonKey ? 'Set' : 'Missing');
+console.log('[SUPABASE] VITE_SUPABASE_PUBLIC_ANON_KEY:', import.meta.env.VITE_SUPABASE_PUBLIC_ANON_KEY ? 'Set' : 'Missing');
+
 if (!supabaseUrl || !publicAnonKey) {
   console.warn('Missing Supabase environment variables - community features will be disabled')
 }
 
 // Client for database operations (uses public anon key)
 export const supabase = (supabaseUrl && publicAnonKey) ? createClient(supabaseUrl, publicAnonKey) : null
+
+console.log('[SUPABASE] Client created:', supabase ? 'Yes' : 'No');
+if (supabase) {
+  console.log('[SUPABASE] Client URL:', supabase.supabaseUrl);
+}
 
 // Client for storage operations (uses secret key - server-side only)
 const supabaseStorage = (supabaseUrl && secretKey) ? createClient(supabaseUrl, secretKey) : null
@@ -122,8 +132,13 @@ export const downloadPreset = async (preset) => {
 export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at') => {
   try {
     if (!supabase) {
+      console.log('[SUPABASE] Supabase not configured');
       return { success: false, error: 'Supabase not configured', data: [] }
     }
+
+    console.log('[SUPABASE] Fetching shared presets...');
+    console.log('[SUPABASE] Search term:', searchTerm);
+    console.log('[SUPABASE] Sort by:', sortBy);
 
     let query = supabase
       .from('shared_presets')
@@ -136,10 +151,17 @@ export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at') =
 
     const { data, error } = await query
     
-    if (error) throw error
+    console.log('[SUPABASE] Query result:', { data: data?.length || 0, error });
+    
+    if (error) {
+      console.error('[SUPABASE] Database error:', error);
+      throw error;
+    }
+    
+    console.log('[SUPABASE] Successfully fetched presets:', data?.length || 0);
     return { success: true, data: data || [] }
   } catch (error) {
-    console.error('Error fetching shared presets:', error)
+    console.error('[SUPABASE] Error fetching shared presets:', error)
     return { success: false, error: error.message, data: [] }
   }
 } 

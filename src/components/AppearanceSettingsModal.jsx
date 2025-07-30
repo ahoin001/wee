@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import Button from '../ui/Button';
@@ -10,6 +10,16 @@ import useAppearanceSettingsStore from '../utils/useAppearanceSettingsStore';
 import { spacing } from '../ui/tokens';
 import './BaseModal.css';
 import './SoundModal.css';
+import JSZip from 'jszip';
+import PresetListItem from './PresetListItem';
+import CommunityPresets from './CommunityPresets';
+import useUIStore from '../utils/useUIStore';
+import { uploadPreset } from '../utils/supabase';
+import AuthModal from './AuthModal';
+import useAuthModalStore from '../utils/useAuthModalStore';
+
+// Auth service (we'll create this)
+import { authService } from '../utils/authService';
 
 // Sidebar navigation configuration
 const SIDEBAR_SECTIONS = [
@@ -17,10 +27,10 @@ const SIDEBAR_SECTIONS = [
   { id: 'ribbon', label: 'Ribbon', icon: '🎗️', color: '#ff6b35', description: 'Colors & glass effects' },
   { id: 'wallpaper', label: 'Wallpaper', icon: '🖼️', color: '#4ecdc4', description: 'Background & cycling' },
   { id: 'time', label: 'Time', icon: '🕐', color: '#45b7d1', description: 'Clock & pill display' },
-  { id: 'general', label: 'General', icon: '⚙️', color: '#6c5ce7', description: 'App behavior & startup' },
 //   { id: 'sounds', label: 'Sounds', icon: '🎵', color: '#96ceb4', description: 'Audio & feedback' },
 //   { id: 'dock', label: 'Dock', icon: '⚓', color: '#feca57', description: 'Classic dock settings' },
   { id: 'themes', label: 'Themes', icon: '🎨', color: '#ff9ff3', description: 'Preset themes' },
+  { id: 'general', label: 'General', icon: '⚙️', color: '#6c5ce7', description: 'App behavior & startup' },
 //   { id: 'advanced', label: 'Advanced', icon: '⚙️', color: '#54a0ff', description: 'Expert options' }
 ];
 
@@ -41,6 +51,51 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   // Local state for form inputs
   const [localSettings, setLocalSettings] = useState({});
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Presets state and functions
+  const [presets, setPresets] = useState([]);
+  const [importedPresets, setImportedPresets] = useState(null);
+  const [importError, setImportError] = useState('');
+  const [showImportPreview, setShowImportPreview] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+  const [error, setError] = useState('');
+  const [justUpdated, setJustUpdated] = useState(null);
+  const [editingPreset, setEditingPreset] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editError, setEditError] = useState('');
+  const [includeChannels, setIncludeChannels] = useState(false);
+  const [includeSounds, setIncludeSounds] = useState(false);
+  const [overwriteMap, setOverwriteMap] = useState({});
+  const [selectedPresets, setSelectedPresets] = useState([]);
+  const [selectMode, setSelectMode] = useState(false);
+  const [draggingPreset, setDraggingPreset] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
+  const fileInputRef = useRef();
+  
+  // Upload form state
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState({ type: '', text: '' });
+  const [uploadFormData, setUploadFormData] = useState({
+    name: '',
+    description: '',
+    creator_name: '',
+    custom_image: null,
+    selectedPreset: null
+  });
+
+  // Get Zustand store state for community section
+  const { 
+    showCommunitySection, 
+    toggleCommunitySection
+  } = useUIStore();
+
+  // Account management state
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAnonymous, setIsAnonymous] = useState(true);
+  
+  // Auth modal store
+  const { openModal: openAuthModal } = useAuthModalStore();
 
   // Load current settings when modal opens
   useEffect(() => {
@@ -139,6 +194,12 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         };
         loadSettings(currentSettings);
         setLocalSettings(currentSettings);
+        
+        // Load presets from window.settings
+        if (window.settings && window.settings.presets) {
+          setPresets(window.settings.presets);
+        }
+        
         console.log('Loaded settings into modal:', currentSettings);
       }
     } else {
@@ -237,6 +298,9 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         channelHoverVolume: allSettings.sounds.channelHoverVolume,
         startupEnabled: allSettings.sounds.startupEnabled,
         startupVolume: allSettings.sounds.startupVolume,
+        
+        // Presets
+        presets: presets,
       };
       
       // Call onSettingsChange to notify parent component
@@ -274,6 +338,474 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
       }
     }));
     updateTabSettings(tab, { [key]: value });
+  };
+
+  // Presets functions
+  const getPresetsToExport = () => {
+    if (selectedPresets.length > 0) {
+      return presets.filter(p => selectedPresets.includes(p.name));
+    }
+    return presets;
+  };
+
+  // Drag and drop handlers for preset reordering
+  const handleDragStart = (e, presetName) => {
+    if (selectMode) return;
+    setDraggingPreset(presetName);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.outerHTML);
+  };
+
+  const handleDragOver = (e, presetName) => {
+    if (!draggingPreset || selectMode) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(presetName);
+  };
+
+  const handleDragEnter = (e, presetName) => {
+    if (!draggingPreset || selectMode) return;
+    e.preventDefault();
+    setDropTarget(presetName);
+  };
+
+  const handleDragLeave = (e) => {
+    if (selectMode) return;
+    e.preventDefault();
+    setDropTarget(null);
+  };
+
+  const handleDrop = (e, targetPresetName) => {
+    if (!draggingPreset || draggingPreset === targetPresetName || selectMode) {
+      setDraggingPreset(null);
+      setDropTarget(null);
+      return;
+    }
+    
+    e.preventDefault();
+    
+    const currentPresets = [...presets];
+    const draggedIndex = currentPresets.findIndex(p => p.name === draggingPreset);
+    const targetIndex = currentPresets.findIndex(p => p.name === targetPresetName);
+    
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      const [draggedPreset] = currentPresets.splice(draggedIndex, 1);
+      currentPresets.splice(targetIndex, 0, draggedPreset);
+      setPresets(currentPresets);
+    }
+    
+    setDraggingPreset(null);
+    setDropTarget(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingPreset(null);
+    setDropTarget(null);
+  };
+
+  // Export presets as JSON
+  const handleExport = () => {
+    const dataStr = JSON.stringify(presets, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wiidesktop-presets.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export presets as zip
+  const handleExportZip = async (presetsToExport = null) => {
+    const zip = new JSZip();
+    const exportPresets = presetsToExport || getPresetsToExport();
+    
+    const allWallpapers = new Set();
+    exportPresets.forEach(preset => {
+      if (preset.data && preset.data.wallpaper && preset.data.wallpaper.url && preset.data.wallpaper.url.startsWith('userdata://wallpapers/')) {
+        allWallpapers.add(preset.data.wallpaper.url);
+      }
+      if (preset.data && Array.isArray(preset.data.savedWallpapers)) {
+        preset.data.savedWallpapers.forEach(wp => {
+          if (wp.url && wp.url.startsWith('userdata://wallpapers/')) {
+            allWallpapers.add(wp.url);
+          }
+        });
+      }
+    });
+    
+    zip.file('presets.json', JSON.stringify(exportPresets, null, 2));
+    
+    for (const url of allWallpapers) {
+      const result = await window.api.wallpapers.getFile(url);
+      if (result.success) {
+        zip.file(`wallpapers/${result.filename}`, result.data, { base64: true });
+      }
+    }
+    
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = exportPresets.length === 1 ? `wiidesktop-preset-${exportPresets[0].name}.zip` : 'wiidesktop-presets.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import presets from file
+  const handleImportClick = () => {
+    setImportError('');
+    fileInputRef.current.value = '';
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = (e) => {
+    setImportError('');
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target.result);
+        if (!Array.isArray(imported)) throw new Error('Invalid preset file format.');
+        const map = {};
+        imported.forEach(preset => {
+          if (preset && preset.name && presets.some(p => p.name === preset.name)) {
+            map[preset.name] = true;
+          }
+        });
+        setOverwriteMap(map);
+        setImportedPresets(imported);
+        setShowImportPreview(true);
+      } catch (err) {
+        setImportError('Failed to import: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Import presets from zip
+  const handleImportZip = async (file) => {
+    setImportError('');
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const jsonFile = zip.file('presets.json');
+      if (!jsonFile) throw new Error('No presets.json found in zip');
+      const jsonStr = await jsonFile.async('string');
+      const imported = JSON.parse(jsonStr);
+      
+      const wallpaperFiles = zip.folder('wallpapers');
+      const urlMap = {};
+      if (wallpaperFiles) {
+        const files = Object.values(wallpaperFiles.files || {});
+        for (const fileObj of files) {
+          if (!fileObj.dir) {
+            const data = await fileObj.async('base64');
+            const filename = fileObj.name.split('/').pop();
+            const saveResult = await window.api.wallpapers.saveFile({ filename, data });
+            if (saveResult.success) {
+              urlMap[`userdata://wallpapers/${filename}`] = saveResult.url;
+            }
+          }
+        }
+      }
+      
+      imported.forEach(preset => {
+        if (preset.data && preset.data.wallpaper && urlMap[preset.data.wallpaper.url]) {
+          preset.data.wallpaper.url = urlMap[preset.data.wallpaper.url];
+        }
+        if (preset.data && Array.isArray(preset.data.savedWallpapers)) {
+          preset.data.savedWallpapers.forEach(wp => {
+            if (urlMap[wp.url]) wp.url = urlMap[wp.url];
+          });
+        }
+      });
+      
+      const map = {};
+      imported.forEach(preset => {
+        if (preset && preset.name && presets.some(p => p.name === preset.name)) {
+          map[preset.name] = true;
+        }
+      });
+      setOverwriteMap(map);
+      setImportedPresets(imported);
+      setShowImportPreview(true);
+    } catch (err) {
+      setImportError('Failed to import: ' + err.message);
+    }
+  };
+
+  const handleToggleOverwrite = (name) => {
+    setOverwriteMap(prev => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  // Confirm import
+  const handleConfirmImport = () => {
+    if (importedPresets && Array.isArray(importedPresets)) {
+      let updated = [...presets];
+      importedPresets.forEach(preset => {
+        if (preset && preset.name && preset.data) {
+          const existsIdx = updated.findIndex(p => p.name === preset.name);
+          if (existsIdx !== -1) {
+            if (overwriteMap[preset.name]) {
+              updated[existsIdx] = preset;
+            }
+          } else {
+            updated.push(preset);
+          }
+        }
+      });
+      
+      setPresets(updated.slice(0, 6));
+      setShowImportPreview(false);
+      setImportedPresets(null);
+      setOverwriteMap({});
+    }
+  };
+
+  const handleCancelImport = () => {
+    setShowImportPreview(false);
+    setImportedPresets(null);
+    setOverwriteMap({});
+  };
+
+  const handleSavePreset = () => {
+    if (!newPresetName.trim()) {
+      setError('Please enter a name for the preset.');
+      return;
+    }
+    if (presets.some(p => p.name === newPresetName.trim())) {
+      setError('A preset with this name already exists.');
+      return;
+    }
+    
+    // Create preset data from current settings
+    const presetData = {
+      channels: localSettings.channels || {},
+      ribbon: localSettings.ribbon || {},
+      wallpaper: localSettings.wallpaper || {},
+      time: localSettings.time || {},
+      general: localSettings.general || {},
+      sounds: localSettings.sounds || {}
+    };
+    
+    setPresets(prev => [...prev, { name: newPresetName.trim(), data: presetData }].slice(0, 6));
+    setNewPresetName('');
+    setError('');
+  };
+
+  const handleUpdate = (name) => {
+    const presetIndex = presets.findIndex(p => p.name === name);
+    if (presetIndex !== -1) {
+      const presetData = {
+        channels: localSettings.channels || {},
+        ribbon: localSettings.ribbon || {},
+        wallpaper: localSettings.wallpaper || {},
+        time: localSettings.time || {},
+        general: localSettings.general || {},
+        sounds: localSettings.sounds || {}
+      };
+      
+      setPresets(prev => prev.map((p, idx) => 
+        idx === presetIndex ? { ...p, data: presetData } : p
+      ));
+    }
+    setJustUpdated(name);
+    setTimeout(() => setJustUpdated(null), 1500);
+  };
+
+  const handleStartEdit = (preset) => {
+    setEditingPreset(preset.name);
+    setEditName(preset.name);
+    setEditError('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPreset(null);
+    setEditName('');
+    setEditError('');
+  };
+
+  const handleSaveEdit = () => {
+    if (!editName.trim()) {
+      setEditError('Please enter a name for the preset.');
+      return;
+    }
+    if (presets.some(p => p.name === editName.trim() && p.name !== editingPreset)) {
+      setEditError('A preset with this name already exists.');
+      return;
+    }
+    
+    setPresets(prev => prev.map(p => p.name === editingPreset ? { ...p, name: editName.trim() } : p));
+    setEditingPreset(null);
+    setEditName('');
+    setEditError('');
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
+  const handleApplyPreset = (preset) => {
+    if (preset.data) {
+      // Apply preset data to local settings
+      Object.keys(preset.data).forEach(tab => {
+        if (preset.data[tab]) {
+          setLocalSettings(prev => ({
+            ...prev,
+            [tab]: { ...prev[tab], ...preset.data[tab] }
+          }));
+          updateTabSettings(tab, preset.data[tab]);
+        }
+      });
+    }
+  };
+
+  const handleDeletePreset = (name) => {
+    const confirmMessage = `Are you sure you want to delete the preset "${name}"?\n\nThis action cannot be undone.`;
+    if (window.confirm(confirmMessage)) {
+      setPresets(prev => prev.filter(p => p.name !== name));
+    }
+  };
+
+  const handleToggleSelectPreset = (name) => {
+    setSelectedPresets(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
+
+  const handleSelectAll = () => {
+    setSelectedPresets(presets.map(p => p.name));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedPresets([]);
+  };
+
+  // Community sharing handlers
+  const handleSharePreset = (preset) => {
+    setUploadFormData({
+      name: preset.name,
+      description: '',
+      creator_name: '',
+      selectedPreset: preset
+    });
+    setShowUploadForm(true);
+    setUploadMessage({ type: '', text: '' });
+  };
+
+  const handleImportCommunityPreset = (presetData) => {
+    if (Array.isArray(presetData)) {
+      setPresets(prev => {
+        const existingNames = prev.map(p => p.name);
+        const uniqueNewPresets = presetData.filter(p => !existingNames.includes(p.name));
+        return [...prev, ...uniqueNewPresets].slice(0, 6);
+      });
+    } else if (presetData && typeof presetData === 'object') {
+      setPresets(prev => {
+        const exists = prev.some(p => p.name === presetData.name);
+        if (!exists) {
+          return [...prev, presetData].slice(0, 6);
+        }
+        return prev;
+      });
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!uploadFormData.selectedPreset) {
+      setUploadMessage({ type: 'error', text: 'Please select a preset to share' });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadMessage({ type: '', text: '' });
+
+      const presetData = {
+        name: uploadFormData.name,
+        data: {
+          ...uploadFormData.selectedPreset.data
+        }
+      };
+
+      const uploadData = {
+        ...uploadFormData
+      };
+      
+      const result = await uploadPreset(presetData, uploadData);
+      
+      if (result.success) {
+        setUploadMessage({ type: 'success', text: 'Preset uploaded successfully!' });
+        setTimeout(() => {
+          setShowUploadForm(false);
+          setUploadFormData({ 
+            name: '', 
+            description: '', 
+            creator_name: '', 
+            custom_image: null,
+            selectedPreset: null
+          });
+          setUploadMessage({ type: '', text: '' });
+        }, 1500);
+      } else {
+        setUploadMessage({ type: 'error', text: `Failed to upload: ${result.error}` });
+      }
+    } catch (error) {
+      setUploadMessage({ type: 'error', text: `Upload failed: ${error.message}` });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadInputChange = (field, value) => {
+    setUploadFormData(prev => ({ ...prev, [field]: value }));
+    if (uploadMessage.text) setUploadMessage({ type: '', text: '' });
+  };
+
+  // Account management functions
+  useEffect(() => {
+    // Check current auth state
+    const checkAuthState = async () => {
+      const user = await authService.getCurrentUser();
+      setCurrentUser(user);
+      setIsAnonymous(!user);
+    };
+
+    checkAuthState();
+    
+    // Subscribe to auth changes
+    const unsubscribe = authService.subscribe((user, anonymous) => {
+      setCurrentUser(user);
+      setIsAnonymous(anonymous);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const handleSignIn = () => {
+    console.log('[SETTINGS] Sign In button clicked');
+    openAuthModal('signin');
+    console.log('[SETTINGS] Auth modal should now be open');
+  };
+
+  const handleSignUp = () => {
+    console.log('[SETTINGS] Sign Up button clicked');
+    openAuthModal('signup');
+    console.log('[SETTINGS] Auth modal should now be open');
+  };
+
+  const handleSignOut = async () => {
+    const { error } = await authService.signOut();
+    if (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   const renderChannelsTab = () => (
@@ -886,6 +1418,55 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         style={{ marginBottom: '20px' }}
       />
 
+      {/* Account Management */}
+      <Card
+        title="Account Management"
+        separator
+        desc={isAnonymous 
+          ? "Create an account to upload presets to the community and manage your uploads. You can still use the app without an account, but community features will be limited."
+          : `Signed in as ${currentUser?.email || 'Unknown'}. You can upload presets to the community and manage your uploads.`
+        }
+        actions={
+          <div style={{ marginTop: 16 }}>
+            {isAnonymous ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button 
+                  variant="primary" 
+                  onClick={() => {
+                    console.log('[SETTINGS] Create Account button clicked');
+                    handleSignUp();
+                  }}
+                >
+                  Create Account
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => {
+                    console.log('[SETTINGS] Sign In button clicked');
+                    handleSignIn();
+                  }}
+                >
+                  Sign In
+                </Button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <Text size="sm" color="hsl(var(--text-secondary))">
+                  {currentUser?.email}
+                </Text>
+                <Button 
+                  variant="tertiary" 
+                  onClick={handleSignOut}
+                >
+                  Sign Out
+                </Button>
+              </div>
+            )}
+          </div>
+        }
+        style={{ marginBottom: '20px' }}
+      />
+
       {/* Fresh Install Restore */}
       <Card
         title="Restore Fresh Install"
@@ -1324,18 +1905,366 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
 
   const renderThemesTab = () => (
     <div>
-      <Card
-        title="Theme Management"
-        separator
-        desc="Manage and apply preset themes for the entire application."
-        actions={
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'hsl(var(--text-secondary))' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎨</div>
-            <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>Theme Management</div>
-            <div style={{ fontSize: '14px' }}>Coming soon - browse, apply, and create custom themes</div>
+      {importError && <div style={{ color: 'red', marginBottom: 12 }}>{importError}</div>}
+       
+      <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
+        <div className="wee-card-desc">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <input
+              type="text"
+              placeholder="Preset name"
+              value={newPresetName}
+              onChange={e => { setNewPresetName(e.target.value); setError(''); }}
+              style={{ 
+                flex: 1, 
+                padding: 8, 
+                borderRadius: 6, 
+                border: '1.5px solid hsl(var(--border-primary))', 
+                fontSize: 15, 
+                background: 'hsl(var(--surface-primary))', 
+                color: 'hsl(var(--text-primary))',
+                opacity: presets.length >= 6 ? 0.6 : 1
+              }}
+              maxLength={32}
+              tabIndex={presets.length >= 6 ? -1 : 0}
+            />
+            <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSavePreset} disabled={presets.length >= 6}>
+              Save Preset
+            </Button>
           </div>
-        }
-      />
+          
+          {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
+          {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
+        </div>
+      </Card>
+
+      <Card 
+        style={{ marginBottom: 18 }} 
+        title="Saved Presets" 
+        separator
+        desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
+      >
+        {/* Import/Export controls */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
+          <Button variant="secondary" onClick={handleImportClick}>
+            Import
+          </Button>
+          <Button variant="primary" onClick={() => { setSelectMode(true); setSelectedPresets([]); }}>
+            Export
+          </Button>
+          <input
+            type="file"
+            accept=".json,.zip,application/json,application/zip"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={e => {
+              const file = e.target.files[0];
+              if (!file) return;
+              if (file.name.endsWith('.zip')) {
+                handleImportZip(file);
+              } else {
+                handleFileChange(e);
+              }
+            }}
+          />
+        </div>
+
+        {selectMode && (
+          <div style={{ display: 'flex', gap: 10, marginBottom: 18, justifyContent: 'flex-end' }}>
+            <Text size="md" weight={500} style={{ color: 'hsl(var(--text-primary))', marginRight: 'auto' }}>
+              Click presets to select for export
+            </Text>
+            <Button variant="primary" onClick={() => { handleExportZip(getPresetsToExport()); setSelectMode(false); }} disabled={selectedPresets.length === 0}>
+              Export Selected
+            </Button>
+            <Button variant="secondary" onClick={handleSelectAll}>
+              Select All
+            </Button>
+            <Button variant="secondary" onClick={handleDeselectAll}>
+              Deselect All
+            </Button>
+            <Button variant="tertiary" onClick={() => { setSelectMode(false); setSelectedPresets([]); }}>
+              Cancel
+            </Button>
+          </div>
+        )}
+
+        <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '0 0 18px 0' }} />
+          
+        {showImportPreview && importedPresets && (
+          <div className="import-preview-modal" style={{ background: 'hsl(var(--surface-secondary))', border: '1.5px solid hsl(var(--wii-blue))', borderRadius: 12, padding: 24, marginBottom: 18 }}>
+            <h3>Preview Imported Presets</h3>
+            <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
+              {importedPresets.map((preset, idx) => {
+                const exists = presets.some(p => p.name === preset.name);
+                return (
+                  <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
+                    {exists && (
+                      <label style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={overwriteMap[preset.name]}
+                          onChange={() => handleToggleOverwrite(preset.name)}
+                          style={{ marginRight: 4 }}
+                        />
+                        Overwrite existing
+                      </label>
+                    )}
+                    {exists && !overwriteMap[preset.name] && <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 13 }}>(Will skip)</span>}
+                  </li>
+                );
+              })}
+            </ul>
+            <Button variant="primary" onClick={handleConfirmImport} style={{ marginRight: 12 }}>Import</Button>
+            <Button variant="secondary" onClick={handleCancelImport}>Cancel</Button>
+          </div>
+        )}
+          
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
+          {presets.map((preset, idx) => {
+            const isDragging = draggingPreset === preset.name;
+            const isDropTarget = dropTarget === preset.name;
+            const isSelected = selectMode && selectedPresets.includes(preset.name);
+            
+            return (
+              <PresetListItem
+                key={preset.name}
+                preset={preset}
+                isDragging={isDragging}
+                isDropTarget={isDropTarget}
+                isSelected={isSelected}
+                selectMode={selectMode}
+                editingPreset={editingPreset}
+                editName={editName}
+                justUpdated={justUpdated}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onDragEnd={handleDragEnd}
+                onToggleSelect={handleToggleSelectPreset}
+                onApply={handleApplyPreset}
+                onUpdate={handleUpdate}
+                onStartEdit={handleStartEdit}
+                onDelete={handleDeletePreset}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={handleCancelEdit}
+                onEditNameChange={e => setEditName(e.target.value)}
+                onKeyPress={handleKeyPress}
+              />
+            );
+          })}
+        </ul>
+      </Card>
+
+      {/* Community Presets Section */}
+      <Card 
+        style={{ marginBottom: 18 }} 
+        title="Community Presets" 
+        separator
+        desc="Browse and download presets shared by the community."
+      >
+        <div style={{ marginBottom: '16px' }}>
+          <Button 
+            variant="secondary" 
+            onClick={toggleCommunitySection}
+            style={{ marginRight: '12px' }}
+          >
+            {showCommunitySection ? 'Hide Community' : 'Browse Community'}
+          </Button>
+          {presets.length > 0 && (
+            <Button 
+              variant="primary" 
+              onClick={() => {
+                setUploadFormData({
+                  name: '',
+                  description: '',
+                  creator_name: '',
+                  custom_image: null,
+                  selectedPreset: null
+                });
+                setShowUploadForm(true);
+                setUploadMessage({ type: '', text: '' });
+              }}
+            >
+              Share My Preset
+            </Button>
+          )}
+        </div>
+
+        {/* Upload Form Section */}
+        {showUploadForm && (
+          <Card style={{ marginBottom: '16px', padding: '16px' }}>
+            {uploadMessage.text && (
+              <div style={{ 
+                padding: '12px', 
+                borderRadius: '6px', 
+                marginBottom: '16px',
+                background: uploadMessage.type === 'success' ? 'hsl(var(--success-light))' : 'hsl(var(--error-light))',
+                color: uploadMessage.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--error))',
+                border: `1px solid ${uploadMessage.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--error))'}`
+              }}>
+                {uploadMessage.text}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '12px' }}>
+              <Text variant="label" style={{ marginBottom: '8px' }}>Select Preset to Share *</Text>
+              <select
+                value={uploadFormData.selectedPreset ? uploadFormData.selectedPreset.name : ''}
+                onChange={(e) => {
+                  const selectedPreset = presets.find(p => p.name === e.target.value);
+                  setUploadFormData(prev => ({
+                    ...prev,
+                    name: selectedPreset ? selectedPreset.name : '',
+                    selectedPreset: selectedPreset || null
+                  }));
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid hsl(var(--border-primary))',
+                  borderRadius: '6px',
+                  background: 'hsl(var(--surface-primary))',
+                  color: 'hsl(var(--text-primary))'
+                }}
+              >
+                <option value="">Select a preset to share...</option>
+                {presets.map((preset) => (
+                  <option key={preset.name} value={preset.name}>
+                    {preset.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <Text variant="label" style={{ marginBottom: '8px' }}>Description</Text>
+              <textarea
+                value={uploadFormData.description}
+                onChange={(e) => handleUploadInputChange('description', e.target.value)}
+                placeholder="Describe your preset..."
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid hsl(var(--border-primary))',
+                  borderRadius: '6px',
+                  background: 'hsl(var(--surface-primary))',
+                  color: 'hsl(var(--text-primary))',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <Text variant="label" style={{ marginBottom: '8px' }}>Your Name (Optional)</Text>
+              <input
+                type="text"
+                value={uploadFormData.creator_name}
+                onChange={(e) => handleUploadInputChange('creator_name', e.target.value)}
+                placeholder="Anonymous"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid hsl(var(--border-primary))',
+                  borderRadius: '6px',
+                  background: 'hsl(var(--surface-primary))',
+                  color: 'hsl(var(--text-primary))'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <Text variant="label" style={{ marginBottom: '8px' }}>Custom Image (Optional)</Text>
+              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginBottom: '8px' }}>
+                Upload a custom image to represent your preset. If not provided, a thumbnail will be auto-generated.
+              </Text>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        handleUploadInputChange('custom_image', reader.result);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                  id="custom-image-upload"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => document.getElementById('custom-image-upload').click()}
+                  style={{ flex: 1 }}
+                >
+                  Choose Image
+                </Button>
+                {uploadFormData.custom_image && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleUploadInputChange('custom_image', null)}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+              {uploadFormData.custom_image && (
+                <div style={{ marginTop: '8px' }}>
+                  <img
+                    src={uploadFormData.custom_image}
+                    alt="Custom image preview"
+                    style={{
+                      width: '100px',
+                      height: '60px',
+                      objectFit: 'cover',
+                      borderRadius: '4px',
+                      border: '1px solid hsl(var(--border-primary))'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  setShowUploadForm(false);
+                  setUploadFormData({ name: '', description: '', creator_name: '' });
+                  setUploadMessage({ type: '', text: '' });
+                }}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={handleUpload} 
+                disabled={uploading || !uploadFormData.name.trim()}
+              >
+                {uploading ? 'Uploading...' : 'Share Preset'}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {showCommunitySection && (
+          <CommunityPresets 
+            onImportPreset={handleImportCommunityPreset}
+            onClose={() => toggleCommunitySection()}
+          />
+        )}
+      </Card>
+
+      {/* Auth Modal */}
+      <AuthModal />
     </div>
   );
 
@@ -1385,7 +2314,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
 
   return (
     <BaseModal
-      title="Appearance Settings"
+      title="Settings"
       onClose={onClose}
       maxWidth="1000px"
       maxHeight="85vh"

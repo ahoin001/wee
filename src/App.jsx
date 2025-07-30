@@ -24,6 +24,7 @@ import SoundModal from './components/SoundModal';
 import ChannelSettingsModal from './components/ChannelSettingsModal';
 import AppShortcutsModal from './components/AppShortcutsModal';
 import AppearanceSettingsModal from './components/AppearanceSettingsModal';
+import AuthModal from './components/AuthModal';
 import './App.css';
 import SplashScreen from './components/SplashScreen';
 import PresetsModal from './components/PresetsModal';
@@ -2622,7 +2623,7 @@ function App() {
                   useUIStore.getState().openAppearanceSettingsModal();
                   closeSettingsMenu(); 
                 }}>
-                  🎨 Appearance Settings
+                  🎨 Settings
                 </div>
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
                   🎨 Presets (Ctrl+P)
@@ -2944,6 +2945,9 @@ function App() {
                     onSettingsChange={handleSettingsChange}
                   />
                 )}
+
+                {/* AuthModal - Always rendered, controlled by Zustand store */}
+                <AuthModal />
 
                 {/* ClassicDockSettingsModal */}
         {showClassicDockSettingsModal && (

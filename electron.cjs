@@ -2834,7 +2834,19 @@ ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnai
 
     // Save to database using public client (for RLS policies)
     console.log('Backend: Saving to database...');
-    const { error: dbError } = await supabaseBackend
+    console.log('Backend: Insert data:', {
+      name: formData.name,
+      description: formData.description,
+      creator_name: formData.creator_name || 'Anonymous',
+      creator_email: formData.creator_email || '',
+      tags: formData.tags || [],
+      preset_file_url: presetFile.path,
+      thumbnail_url: thumbnailFile.path,
+      file_size: presetData.length,
+      downloads: 0,
+    });
+    
+    const { data: insertData, error: dbError } = await supabaseBackend
       .from('shared_presets')
       .insert({
         name: formData.name,
@@ -2846,14 +2858,14 @@ ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnai
         thumbnail_url: thumbnailFile.path,
         file_size: presetData.length,
         downloads: 0,
-
-      });
+      })
+      .select();
 
     if (dbError) {
       console.error('Backend: Database insert error:', dbError);
       return { success: false, error: dbError.message };
     }
-    console.log('Backend: Database record created successfully');
+    console.log('Backend: Database record created successfully:', insertData);
 
     return { success: true };
   } catch (error) {
