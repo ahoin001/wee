@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import BaseModal from './BaseModal';
 import Button from '../ui/Button';
 import Toggle from '../ui/Toggle';
+import ActionCommand from './ActionCommand';
+import QuickAccessItem from './QuickAccessItem';
 
 // Power Actions Data
 const powerActionsList = [
@@ -267,13 +269,13 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
       maxWidth="800px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Toggle
               checked={showQuickAccess}
               onChange={setShowQuickAccess}
               label="Show Quick Access"
             />
-          </div>
+          </div> */}
           <div style={{ display: 'flex', gap: 10 }}>
             <Button variant="secondary" onClick={handleClose}>Cancel</Button>
             <Button variant="primary" onClick={handleSave}>Save</Button>
@@ -492,98 +494,16 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
               const isRecentlyAdded = recentlyAdded === action.id;
               
               return (
-                <div
+                <ActionCommand
                   key={action.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px',
-                    margin: '4px 0',
-                    background: isRecentlyAdded ? '#e8f5e8' : isAdded ? '#f0f8ff' : '#fff',
-                    borderRadius: 6,
-                    border: isRecentlyAdded ? '2px solid #4caf50' : isAdded ? '2px solid #0099ff' : '1px solid #e0e0e0',
-                    cursor: isAdded ? 'default' : 'pointer',
-                    transition: 'all 0.2s ease',
-                    opacity: isAdded ? 0.7 : 1
-                  }}
-                  onClick={() => !isAdded && handleAddAction(action)}
-                  onMouseEnter={e => {
-                    if (!isAdded) {
-                      e.currentTarget.style.background = '#e6f3ff';
-                      e.currentTarget.style.border = '1.5px solid #0099ff';
-                      e.currentTarget.style.boxShadow = '0 1.5px 6px #0099ff08';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isAdded) {
-                      e.currentTarget.style.background = '#fff';
-                      e.currentTarget.style.border = '1px solid #e0e0e0';
-                      e.currentTarget.style.boxShadow = 'none';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }
-                  }}
-                >
-                <span style={{ fontSize: '20px' }}>{action.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '500' }}>{action.name}</div>
-                  <div style={{ 
-                    fontSize: '12px', 
-                    color: '#666',
-                    fontFamily: 'monospace'
-                  }}>
-                    {action.command}
-                  </div>
-                  <div style={{ 
-                    fontSize: '11px', 
-                    color: '#999',
-                    marginTop: '2px'
-                  }}>
-                    {action.category}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleQuickExecute(action);
-                  }}
-                  style={{
-                    background: '#0099ff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = '#007acc';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = '#0099ff';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                >
-                  Run
-                </button>
-                {isAdded && (
-                  <div style={{
-                    background: '#4caf50',
-                    color: '#fff',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: '500'
-                  }}>
-                    Added
-                  </div>
-                )}
-              </div>
-            )})}
+                  action={action}
+                  isAdded={isAdded}
+                  isRecentlyAdded={isRecentlyAdded}
+                  onAdd={handleAddAction}
+                  onQuickExecute={handleQuickExecute}
+                />
+              );
+            })}
           </div>
         </div>
 
@@ -604,17 +524,17 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
 
           <div style={{ 
             flex: 1, 
-            border: '1px solid #ddd', 
+            border: '1px solid hsl(var(--border-primary))', 
             borderRadius: 8, 
             padding: 8,
-            background: '#f9f9f9',
+            background: 'hsl(var(--surface-secondary))',
             overflowY: 'auto',
             maxHeight: '400px'
           }}>
             {powerActions.length === 0 ? (
               <div style={{ 
                 textAlign: 'center', 
-                color: '#888', 
+                color: 'hsl(var(--text-tertiary))', 
                 padding: '40px 20px',
                 fontStyle: 'italic'
               }}>
@@ -622,88 +542,13 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
               </div>
             ) : (
               powerActions.map((action, index) => (
-                <div
+                <QuickAccessItem
                   key={action.id}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', index.toString());
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.style.borderTop = '2px solid #0099ff';
-                  }}
-                  onDragLeave={(e) => {
-                    e.currentTarget.style.borderTop = 'none';
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.style.borderTop = 'none';
-                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                    if (fromIndex !== index) {
-                      handleMoveAction(fromIndex, index);
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px',
-                    margin: '4px 0',
-                    background: '#fff',
-                    borderRadius: 6,
-                    border: '1px solid #e0e0e0',
-                    cursor: 'grab',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = '#e6f3ff';
-                    e.currentTarget.style.border = '1.5px solid #0099ff';
-                    e.currentTarget.style.boxShadow = '0 1.5px 6px #0099ff08';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = '#fff';
-                    e.currentTarget.style.border = '1px solid #e0e0e0';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <span style={{ fontSize: '18px' }}>{action.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '500' }}>{action.name}</div>
-                    <div style={{ 
-                      fontSize: '12px', 
-                      color: '#666',
-                      fontFamily: 'monospace'
-                    }}>
-                      {action.command}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAction(action.id)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#dc3545',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      borderRadius: '4px',
-                      fontSize: '16px',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = '#ffeaea';
-                      e.currentTarget.style.transform = 'scale(1.1)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'none';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
+                  action={action}
+                  index={index}
+                  onRemove={handleRemoveAction}
+                  onMoveAction={handleMoveAction}
+                />
               ))
             )}
           </div>

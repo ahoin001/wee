@@ -53,6 +53,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [tintedImages, setTintedImages] = useState({});
+  const [activeButton, setActiveButton] = useState(null);
 
   // Load configs from settings on mount
   useEffect(() => {
@@ -670,6 +671,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                   <WiiStyleButton
                 onContextMenu={e => handleButtonContextMenu(0, e)}
                 onClick={() => handleButtonClick(0)}
+                onMouseDown={() => setActiveButton('left')}
+                onMouseUp={() => setActiveButton(null)}
+                onMouseLeave={() => setActiveButton(null)}
                 useAdaptiveColor={buttonConfigs[0]?.useAdaptiveColor}
                 useGlowEffect={buttonConfigs[0]?.useGlowEffect}
                 glowStrength={buttonConfigs[0]?.glowStrength}
@@ -679,7 +683,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 glassBorderOpacity={buttonConfigs[0]?.glassBorderOpacity}
                 glassShineOpacity={buttonConfigs[0]?.glassShineOpacity}
                 ribbonGlowColor={propRibbonGlowColor}
-                style={{ marginLeft: 16 }}
+                style={{ 
+                  marginLeft: 16,
+                  transform: activeButton === 'left' ? 'scale(0.95)' : 'scale(1)',
+                  filter: activeButton === 'left' ? 'brightness(0.9)' : 'brightness(1)',
+                  transition: 'transform 0.1s ease, filter 0.1s ease'
+                }}
               >
                 {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
                   <span 
@@ -747,10 +756,16 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 boxShadow: '0 2px 16px 0 rgba(80,80,120,0.07)',
                 width: '56px',
                 height: '56px',
-                minWidth: '56px'
+                minWidth: '56px',
+                transform: activeButton === 'presets' ? 'scale(0.95)' : 'scale(1)',
+                filter: activeButton === 'presets' ? 'brightness(0.9)' : 'brightness(1)',
+                transition: 'transform 0.1s ease, filter 0.1s ease'
               }}
               onClick={openPresetsModal}
               onContextMenu={handlePresetsButtonContextMenu}
+              onMouseDown={() => setActiveButton('presets')}
+              onMouseUp={() => setActiveButton(null)}
+              onMouseLeave={() => setActiveButton(null)}
               title="Customize Looks (Right-click to customize button)"
               useAdaptiveColor={presetsButtonConfig?.useAdaptiveColor}
               useGlowEffect={presetsButtonConfig?.useGlowEffect}
@@ -822,6 +837,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                   <WiiStyleButton
                     onContextMenu={e => handleButtonContextMenu(1, e)}
                     onClick={() => handleButtonClick(1)}
+                    onMouseDown={() => setActiveButton('right')}
+                    onMouseUp={() => setActiveButton(null)}
+                    onMouseLeave={() => setActiveButton(null)}
                     useAdaptiveColor={buttonConfigs[1]?.useAdaptiveColor}
                     useGlowEffect={buttonConfigs[1]?.useGlowEffect}
                     glowStrength={buttonConfigs[1]?.glowStrength}
@@ -831,6 +849,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     glassBorderOpacity={buttonConfigs[1]?.glassBorderOpacity}
                     glassShineOpacity={buttonConfigs[1]?.glassShineOpacity}
                     ribbonGlowColor={propRibbonGlowColor}
+                    style={{
+                      transform: activeButton === 'right' ? 'scale(0.95)' : 'scale(1)',
+                      filter: activeButton === 'right' ? 'brightness(0.9)' : 'brightness(1)',
+                      transition: 'transform 0.1s ease, filter 0.1s ease'
+                    }}
                   >
                       {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
                         <span 

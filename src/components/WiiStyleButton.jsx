@@ -5,6 +5,9 @@ const WiiStyleButton = ({
   children, 
   onClick, 
   onContextMenu, 
+  onMouseDown,
+  onMouseUp,
+  onMouseLeave,
   title, 
   className = '', 
   style = {},
@@ -48,8 +51,9 @@ const WiiStyleButton = ({
     setIsHovered(true);
   };
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = (e) => {
     setIsHovered(false);
+    onMouseLeave?.(e);
   };
 
   const hoverStyle = {
@@ -77,6 +81,8 @@ const WiiStyleButton = ({
       onContextMenu={onContextMenu}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
       title={title}
       tabIndex={0}
       onKeyDown={(e) => {
