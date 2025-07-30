@@ -2770,11 +2770,10 @@ ipcMain.handle('execute-command', async (event, command) => {
 
 // --- Supabase Backend Operations ---
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({ path: '.env.local' });
 
-// Supabase client for backend operations (uses secret key)
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://bmlcydwltfexgbsyunkf.supabase.co';
-const supabaseSecretKey = process.env.VITE_SUPABASE_ANON_KEY; // Secret key for backend
+// Supabase client for backend operations (uses hardcoded credentials)
+const supabaseUrl = 'https://bmlcydwltfexgbsyunkf.supabase.co';
+const supabaseSecretKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbGN5ZHdsdGZleGdic3l1bmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MTMzNDAsImV4cCI6MjA2OTM4OTM0MH0.m1kx74I5ytK0dLFPFAwD18Q907wvE56jvyQr3otp5A4'; // Anon key for backend operations
 
 if (!supabaseSecretKey) {
   console.warn('Supabase secret key not found. Upload functionality will be disabled.');

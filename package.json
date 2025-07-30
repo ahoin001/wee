@@ -25,6 +25,24 @@
       "electron.cjs",
       "preload.cjs"
     ],
+    "extraResources": [
+      {
+        "from": "public/sounds",
+        "to": "sounds"
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "public/sounds",
+        "to": "sounds"
+      }
+    ],
+    "exclude": [
+      "test-*.js",
+      "debug-*.js",
+      ".env*",
+      "node_modules/**/*"
+    ],
     "publish": [
       {
         "provider": "github",
