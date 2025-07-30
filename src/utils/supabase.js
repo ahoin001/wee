@@ -93,6 +93,26 @@ export const downloadPreset = async (preset) => {
     const presetText = await fileData.text();
     const presetData = JSON.parse(presetText);
 
+    // Increment download count
+    console.log('Incrementing download count for preset:', preset.id);
+    const currentDownloads = preset.downloads || 0;
+    const { error: updateError } = await supabase
+      .from('shared_presets')
+      .update({ downloads: currentDownloads + 1 })
+      .eq('id', preset.id);
+
+    if (updateError) {
+      console.error('Error updating download count:', updateError);
+      console.error('Update details:', { 
+        presetId: preset.id, 
+        currentDownloads, 
+        newDownloads: currentDownloads + 1 
+      });
+      // Don't fail the download if the count update fails
+    } else {
+      console.log('Download count updated successfully:', currentDownloads + 1);
+    }
+
     return { success: true, data: presetData };
   } catch (error) {
     console.error('Error downloading preset:', error);

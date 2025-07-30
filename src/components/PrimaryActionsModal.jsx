@@ -11,7 +11,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [type, setType] = useState(config?.type || 'text');
   const [text, setText] = useState(config?.text || (buttonIndex === 0 ? 'Wii' : ''));
   const [icon, setIcon] = useState(config?.icon || null);
-  const [actionType, setActionType] = useState(config?.actionType || 'none');
+  const [actionType, setActionType] = useState(config?.actionType === 'none' ? 'exe' : config?.actionType || 'exe');
   const [action, setAction] = useState(config?.action || '');
   const [pathError, setPathError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
@@ -90,10 +90,10 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       setType(config.type || 'text');
       setText(config.text || (buttonIndex === 0 ? 'Wii' : ''));
       setIcon(config.icon || null);
-      setActionType(config.actionType || 'none');
+      setActionType(config.actionType === 'none' ? 'exe' : config.actionType || 'exe');
       setAction(config.action || '');
       setPath(config.action || ''); // Sync path with action
-      setGameType(config.actionType || 'exe'); // Sync gameType with actionType
+      setGameType(config.actionType === 'none' ? 'exe' : config.actionType || 'exe'); // Default to 'exe' if actionType is 'none'
       setUseWiiGrayFilter(config.useWiiGrayFilter || false);
       setUseAdaptiveColor(config.useAdaptiveColor || false);
       setUseGlowEffect(config.useGlowEffect || false);
@@ -241,12 +241,13 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     return true;
   };
 
+  // Check if this is for the presets button or accessory button
+  const isPresetsButton = buttonIndex === "presets";
+  const isAccessoryButton = buttonIndex === "accessory";
+
   const handleSave = () => {
     console.log('PrimaryActionsModal handleSave called');
     console.log('Current powerActions at save time:', powerActions.length, powerActions.map(a => a.name));
-    
-    // Check if this is for the presets button
-    const isPresetsButton = buttonIndex === "presets";
     
     if (!isPresetsButton && !isAccessoryButton && !validatePath()) return;
     
@@ -610,10 +611,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
 
 
   if (!isOpen) return null;
-
-  // Check if this is for the presets button or accessory button
-  const isPresetsButton = buttonIndex === "presets";
-  const isAccessoryButton = buttonIndex === "accessory";
 
   return (
     <BaseModal

@@ -53,6 +53,9 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
         onImportPreset([result.data]);
         setMessage({ type: 'success', text: 'Preset downloaded and installed!' });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        
+        // Refresh the presets list to update download counts
+        await loadPresets();
       } else {
         setMessage({ type: 'error', text: `Failed to download: ${result.error}` });
       }
