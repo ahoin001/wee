@@ -315,7 +315,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape' && showAdminMenu) {
-        console.log('Escape key pressed, closing admin menu');
+        // console.log('Escape key pressed, closing admin menu');
         setShowAdminMenu(false);
       }
     };
@@ -391,12 +391,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   // Helper function to get the appropriate image source for adaptive color
   const getImageSource = (originalUrl, useAdaptiveColor) => {
-    console.log('[WiiRibbon] getImageSource called:', { originalUrl, useAdaptiveColor, hasTintedImage: !!tintedImages[originalUrl] });
+    // console.log('[WiiRibbon] getImageSource called:', { originalUrl, useAdaptiveColor, hasTintedImage: !!tintedImages[originalUrl] });
     if (useAdaptiveColor && tintedImages[originalUrl]) {
-      console.log('[WiiRibbon] Using tinted image for:', originalUrl);
+      // console.log('[WiiRibbon] Using tinted image for:', originalUrl);
       return tintedImages[originalUrl];
     }
-    console.log('[WiiRibbon] Using original image for:', originalUrl);
+    // console.log('[WiiRibbon] Using original image for:', originalUrl);
     return originalUrl;
   };
 
@@ -458,10 +458,26 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         window.api.launchApp({ type: 'exe', path: config.action });
       } else if (config.actionType === 'url') {
         window.api.launchApp({ type: 'url', path: config.action });
+      } else if (config.actionType === 'application') {
+        // Handle unified application type by detecting the correct launch type
+        const path = config.action;
+        if (path.startsWith('steam://')) {
+          window.api.launchApp({ type: 'steam', path: path });
+        } else if (path.startsWith('com.epicgames.launcher://')) {
+          window.api.launchApp({ type: 'epic', path: path });
+        } else if (path.includes('!') && !path.includes('\\') && !path.includes('/')) {
+          // Microsoft Store app ID (contains ! and no path separators)
+          window.api.launchApp({ type: 'microsoftstore', path: path });
+        } else if (path.startsWith('http://') || path.startsWith('https://')) {
+          window.api.launchApp({ type: 'url', path: path });
+        } else {
+          // Default to exe for any other path
+          window.api.launchApp({ type: 'exe', path: path });
+        }
       }
     } else {
       // Fallback: try window.open for URLs
-      if (config.actionType === 'url') {
+      if (config.actionType === 'url' || (config.actionType === 'application' && (config.action.startsWith('http://') || config.action.startsWith('https://')))) {
         window.open(config.action, '_blank');
       }
     }
