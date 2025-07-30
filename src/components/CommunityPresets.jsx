@@ -89,19 +89,6 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
         </div>
       )}
 
-      {/* Community Guidelines Notice */}
-      <div style={{ 
-        padding: '12px', 
-        borderRadius: '6px', 
-        marginBottom: '16px',
-        background: '#fff3cd',
-        color: '#856404',
-        border: '1px solid #ffeaa7',
-        fontSize: '14px'
-      }}>
-        <strong>ℹ️ Community Guidelines:</strong> Anyone can delete any preset. Please be respectful and only delete content that violates community guidelines or is clearly inappropriate.
-      </div>
-
       {/* Search and Sort Controls */}
       <Card style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -250,51 +237,6 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
                   >
                     {downloading === preset.id ? 'Downloading...' : 'Download'}
                   </Button>
-                                      <button
-                      className="delete-btn"
-                      onClick={async () => {
-                        if (window.confirm(`Are you sure you want to delete "${preset.name}"? This action cannot be undone.`)) {
-                          try {
-                            if (window.api && window.api.supabaseDelete) {
-                              const result = await window.api.supabaseDelete({ presetId: preset.id });
-                              if (result.success) {
-                                // Remove the preset from local state instead of reloading
-                                setPresets(prevPresets => prevPresets.filter(p => p.id !== preset.id));
-                                setMessage({ type: 'success', text: `"${preset.name}" has been deleted successfully.` });
-                                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-                              } else {
-                                setMessage({ type: 'error', text: 'Failed to delete preset: ' + (result.error || 'Unknown error') });
-                              }
-                            } else {
-                              setMessage({ type: 'error', text: 'Delete functionality not available' });
-                            }
-                          } catch (error) {
-                            setMessage({ type: 'error', text: 'Error deleting preset: ' + error.message });
-                          }
-                        }
-                      }}
-                      title="Delete this preset (anyone can delete any preset)"
-                      style={{
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        marginLeft: '8px',
-                        transition: 'background-color 0.2s ease',
-                        fontWeight: '500'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = '#c82333';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = '#dc3545';
-                      }}
-                    >
-                      🗑️ Delete
-                    </button>
                 </div>
               </div>
             </Card>

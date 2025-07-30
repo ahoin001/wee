@@ -120,7 +120,14 @@ const PresetListItem = ({
               {justUpdated === preset.name ? 'Updated!' : 'Update'}
             </Button>
             <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); onStartEdit(preset); }}>Rename</Button>
-            <Button style={{ minWidth: 70 }} onClick={e => { e.stopPropagation(); onDelete(preset.name); }}>Delete</Button>
+            <Button 
+              variant="danger-primary"
+              size="sm"
+              onClick={e => { e.stopPropagation(); onDelete(preset.name); }}
+              title="Delete this preset (requires confirmation)"
+            >
+              Delete
+            </Button>
           </>
         )}
       </div>

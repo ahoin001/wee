@@ -499,30 +499,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 Save Preset
               </Button>
             </div>
-            <div style={{ marginTop: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Toggle
-                  checked={includeChannels}
-                  onChange={setIncludeChannels}
-                  label="Include channel data (apps and media)"
-                />
-              </div>
-              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
-                When enabled, this preset will also save your current channel apps and media files.
-              </Text>
-              <div style={{ marginTop: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Toggle
-                    checked={includeSounds}
-                    onChange={setIncludeSounds}
-                    label="Include sound settings (enabled sounds and volumes)"
-                  />
-                </div>
-                <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 4, marginLeft: 0, display: 'block' }}>
-                  When enabled, this preset will also save your current sound settings and volume levels.
-                </Text>
-              </div>
-            </div>
+            
             {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
             {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
           </div>

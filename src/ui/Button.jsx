@@ -3,6 +3,8 @@
 // <Button variant="primary">Label</Button>
 // <Button variant="secondary" size="sm">Small Button</Button>
 // <Button variant="tertiary" fullWidth>Full Width</Button>
+// <Button variant="danger-primary">Delete</Button>
+// <Button variant="danger-secondary" size="sm">Remove</Button>
 // <Button color="#ff0" bgColor="#333">Custom</Button>
 
 import React from "react";
@@ -16,16 +18,21 @@ function getAutoButtonColors({ variant, color, bgColor, borderColor }) {
   let border = borderColor;
   if (!color) {
     if (variant === "primary") text = "hsl(var(--text-inverse))";
+    else if (variant === "danger-primary") text = "hsl(var(--text-inverse))";
     else text = "hsl(var(--text-primary))";
   }
   if (!bgColor) {
     if (variant === "primary") bg = "hsl(var(--wii-blue))";
     else if (variant === "secondary") bg = "hsl(var(--surface-secondary))";
+    else if (variant === "danger-primary") bg = "hsl(var(--state-error))";
+    else if (variant === "danger-secondary") bg = "hsl(var(--surface-secondary))";
     else bg = "transparent";
   }
   if (!borderColor) {
     if (variant === "primary") border = "hsl(var(--wii-blue))";
     else if (variant === "secondary") border = "hsl(var(--border-primary))";
+    else if (variant === "danger-primary") border = "hsl(var(--state-error))";
+    else if (variant === "danger-secondary") border = "hsl(var(--state-error))";
     else border = "transparent";
   }
   return { text, bg, border };
@@ -93,6 +100,22 @@ export default function Button({
         backgroundColor: "hsl(var(--state-hover))",
         color: "hsl(var(--text-primary))",
         textDecoration: "underline",
+      };
+    } else if (variant === "danger-primary") {
+      hoverStyle = {
+        backgroundColor: "hsl(var(--state-error) / 0.9)",
+        border: `1.5px solid hsl(var(--state-error) / 0.9)`,
+        boxShadow: `var(--shadow-md), 0 0 0 1px hsl(var(--state-error) / 0.3)`,
+        color: "hsl(var(--text-inverse))",
+        transform: "translateY(-1px) scale(1.03)",
+      };
+    } else if (variant === "danger-secondary") {
+      hoverStyle = {
+        backgroundColor: "hsl(var(--state-error) / 0.1)",
+        border: `1.5px solid hsl(var(--state-error))`,
+        color: "hsl(var(--state-error))",
+        boxShadow: "var(--shadow-md)",
+        transform: "translateY(-1px) scale(1.03)",
       };
     }
   }

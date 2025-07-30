@@ -433,7 +433,11 @@ function App() {
     setPresets(prev => [...prev, { name, data }].slice(0, 6));
   };
   const handleDeletePreset = (name) => {
-    setPresets(prev => prev.filter(p => p.name !== name));
+    // Show confirmation dialog for anonymous deleting
+    const confirmMessage = `Are you sure you want to delete the preset "${name}"?\n\nThis action cannot be undone.`;
+    if (window.confirm(confirmMessage)) {
+      setPresets(prev => prev.filter(p => p.name !== name));
+    }
   };
   const handleImportPresets = (newPresets) => {
     setPresets(prev => {
@@ -2553,20 +2557,17 @@ function App() {
               >
                 {/* Appearance Group */}
                 <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
-                  Appearance
+                  Quick Toggles
                 </Text>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
-                  🎨 Presets (Ctrl+P)
-                </div>
                 {/* <div className="context-menu-item" onClick={() => { useUIStore.getState().openWallpaperModal(); closeSettingsMenu(); }}>
                   Change Wallpaper
                 </div> */}
-                <div className="context-menu-item" onClick={() => { 
+                {/* <div className="context-menu-item" onClick={() => { 
                   useUIStore.getState().openChannelSettingsModal();
                   closeSettingsMenu(); 
                 }}>
                   Channel Settings
-                </div>
+                </div> */}
                 <div className="context-menu-item" onClick={() => { handleToggleDarkMode(); closeSettingsMenu(); }}>
                   Toggle Dark Mode
                 </div>
@@ -2611,23 +2612,29 @@ function App() {
                 <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
                   System
                 </Text>
-                <div className="context-menu-item" onClick={() => { 
+                {/* <div className="context-menu-item" onClick={() => { 
                   handleOpenGeneralModal();
                   closeSettingsMenu(); 
                 }}>
                   General Settings
+                </div> */}
+                 <div className="context-menu-item" onClick={() => { 
+                  useUIStore.getState().openAppearanceSettingsModal();
+                  closeSettingsMenu(); 
+                }}>
+                  🎨 Appearance Settings
+                </div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
+                  🎨 Presets (Ctrl+P)
+                </div>
+                <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
+                  🎵 Change Sounds
                 </div>
                 <div className="context-menu-item" onClick={() => { 
                   useUIStore.getState().openAppShortcutsModal();
                   closeSettingsMenu(); 
                 }}>
                   📱 App Shortcuts
-                </div>
-                <div className="context-menu-item" onClick={() => { 
-                  useUIStore.getState().openAppearanceSettingsModal();
-                  closeSettingsMenu(); 
-                }}>
-                  🎨 Appearance Settings
                 </div>
                 <div className="context-menu-item" onClick={async () => {
                   try {
@@ -2649,9 +2656,6 @@ function App() {
                   closeSettingsMenu();
                 }}>
                   📸 Take Screenshot
-                </div>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
-                  🎵 Change Sounds
                 </div>
                 <div className="context-menu-item" onClick={() => { 
                   handleOpenUpdateModal();

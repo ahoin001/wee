@@ -4,6 +4,7 @@ import BaseModal from './BaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Text from '../ui/Text';
 import Button from '../ui/Button';
+import Toggle from '../ui/Toggle';
 import './SoundModal.css';
 
 const SOUND_CATEGORIES = [
@@ -462,44 +463,63 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                       {cat.label}
                     </ResourceUsageIndicator>
                   </h3>
-                  <button
-                    className="add-sound-button"
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={() => handleUploadClick(cat.key)}
                     disabled={uploading[cat.key]}
                   >
                     {uploading[cat.key] ? 'Uploading...' : 'Add Sound'}
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Background Music Settings */}
                 <div className="background-music-settings">
-                  <div className="settings-row">
-                    <Toggle
-                          checked={backgroundMusicSettings.enabled}
-                      onChange={(checked) => handleBackgroundMusicSettingChange('enabled', checked)}
-                      label="Enable Background Music"
-                        />
-                  </div>
-                  
-                  {backgroundMusicSettings.enabled && (
-                    <>
-                      <div className="settings-row">
-                        <Toggle
-                              checked={backgroundMusicSettings.looping}
-                          onChange={(checked) => handleBackgroundMusicSettingChange('looping', checked)}
-                          label="Loop Music"
-                            />
-                      </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '12px',
+                    padding: '16px',
+                    background: 'hsl(var(--surface-secondary))',
+                    borderRadius: '8px',
+                    border: '1px solid hsl(var(--border-primary))'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      paddingBottom: '8px',
+                      borderBottom: '1px solid hsl(var(--border-primary))'
+                    }}>
+                      <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
+                        Background Music Settings
+                      </Text>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <Toggle
+                        checked={backgroundMusicSettings.enabled}
+                        onChange={(checked) => handleBackgroundMusicSettingChange('enabled', checked)}
+                        label="Enable Background Music"
+                      />
                       
-                      <div className="settings-row">
-                        <Toggle
-                              checked={backgroundMusicSettings.playlistMode}
-                          onChange={(checked) => handleBackgroundMusicSettingChange('playlistMode', checked)}
-                          label="Playlist Mode (Play liked sounds in order)"
-                            />
-                      </div>
-                    </>
-                  )}
+                      {backgroundMusicSettings.enabled && (
+                        <>
+                          <Toggle
+                            checked={backgroundMusicSettings.looping}
+                            onChange={(checked) => handleBackgroundMusicSettingChange('looping', checked)}
+                            label="Loop Music"
+                          />
+                          
+                          <Toggle
+                            checked={backgroundMusicSettings.playlistMode}
+                            onChange={(checked) => handleBackgroundMusicSettingChange('playlistMode', checked)}
+                            label="Playlist Mode (Play liked sounds in order)"
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Playlist Mode Info */}
@@ -570,27 +590,49 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                             <span className="volume-value">{Math.round((sound.volume ?? 0.5) * 100)}%</span>
                           </div>
                           {testing[sound.id] ? (
-                            <button className="test-button" onClick={() => handleStopTest(sound.id)} style={{ minWidth: 60 }}>Stop</button>
+                            <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              onClick={() => handleStopTest(sound.id)}
+                              style={{ minWidth: 60 }}
+                            >
+                              Stop
+                            </Button>
                           ) : (
-                            <button 
-                              className="test-button" 
+                            <Button 
+                              variant="secondary" 
+                              size="sm" 
                               onClick={() => handleTestSound(cat.key, sound)} 
                               style={{ minWidth: 60 }}
                               disabled={!backgroundMusicSettings.enabled}
                             >
                               Test
-                            </button>
+                            </Button>
                           )}
-                          <button 
-                            className={`like-button ${sound.liked ? 'liked' : ''}`}
+                          <Button 
+                            variant="tertiary" 
+                            size="sm" 
                             onClick={() => handleToggleLike(sound.id)}
                             title={sound.liked ? 'Unlike' : 'Like'}
                             disabled={!backgroundMusicSettings.enabled}
+                            style={{ 
+                              minWidth: 40, 
+                              padding: '4px 8px',
+                              color: sound.liked ? '#e91e63' : 'hsl(var(--text-secondary))'
+                            }}
                           >
                             {sound.liked ? '❤️' : '🤍'}
-                          </button>
+                          </Button>
                           {!sound.isDefault && (
-                            <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
+                            <Button 
+                              variant="danger-secondary" 
+                              size="sm" 
+                              onClick={() => handleDeleteSound(cat.key, sound.id)} 
+                              title="Delete Sound"
+                              style={{ minWidth: 40, padding: '4px 8px' }}
+                            >
+                              🗑️
+                            </Button>
                           )}
                           <Toggle
                               checked={!!sound.enabled}
@@ -603,7 +645,14 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                   ))}
                 </div>
                 <div style={{ marginTop: 10, textAlign: 'right' }}>
-                  <button className="add-sound-button" style={{ background: '#bbb', color: '#222' }} onClick={() => handleDisableAll(cat.key)}>Disable All</button>
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    onClick={() => handleDisableAll(cat.key)}
+                    style={{ background: '#bbb', color: '#222' }}
+                  >
+                    Disable All
+                  </Button>
                 </div>
               </div>
             );
@@ -622,13 +671,14 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                     cat.label
                   )}
                 </h3>
-              <button
-                className="add-sound-button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => handleUploadClick(cat.key)}
                 disabled={uploading[cat.key]}
               >
                 {uploading[cat.key] ? 'Uploading...' : 'Add Sound'}
-              </button>
+              </Button>
             </div>
             <div className="sound-list">
               {localState[cat.key]?.length === 0 && (
@@ -657,12 +707,34 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                         <span className="volume-value">{Math.round((sound.volume ?? 0.5) * 100)}%</span>
                       </div>
                       {testing[sound.id] ? (
-                        <button className="test-button" onClick={() => handleStopTest(sound.id)} style={{ minWidth: 60 }}>Stop</button>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          onClick={() => handleStopTest(sound.id)}
+                          style={{ minWidth: 60 }}
+                        >
+                          Stop
+                        </Button>
                       ) : (
-                        <button className="test-button" onClick={() => handleTestSound(cat.key, sound)} style={{ minWidth: 60 }}>Test</button>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          onClick={() => handleTestSound(cat.key, sound)}
+                          style={{ minWidth: 60 }}
+                        >
+                          Test
+                        </Button>
                       )}
                       {!sound.isDefault && (
-                        <button className="remove-button" onClick={() => handleDeleteSound(cat.key, sound.id)} title="Delete Sound">🗑️</button>
+                        <Button 
+                          variant="danger-secondary" 
+                          size="sm" 
+                          onClick={() => handleDeleteSound(cat.key, sound.id)} 
+                          title="Delete Sound"
+                          style={{ minWidth: 40, padding: '4px 8px' }}
+                        >
+                          🗑️
+                        </Button>
                       )}
                       <Toggle
                           checked={!!sound.enabled}
@@ -674,7 +746,14 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
               ))}
             </div>
             <div style={{ marginTop: 10, textAlign: 'right' }}>
-              <button className="add-sound-button" style={{ background: '#bbb', color: '#222' }} onClick={() => handleDisableAll(cat.key)}>Disable All</button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => handleDisableAll(cat.key)}
+                style={{ background: '#bbb', color: '#222' }}
+              >
+                Disable All
+              </Button>
             </div>
           </div>
           );
