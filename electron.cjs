@@ -1708,7 +1708,14 @@ ipcMain.on('launch-app', async (event, { type, path: appPath, asAdmin }) => {
           }
         }
         
-        // Try to find the longest valid path from the start
+        // Handle paths with spaces by checking if the entire path exists first
+        if (fs.existsSync(appPath)) {
+          console.log('[PARSE] Full path exists:', appPath);
+          return [appPath];
+        }
+        
+        // If the full path doesn't exist, try to parse it
+        // Split by spaces and try to find the executable
         let parts = appPath.split(' ');
         let exe = parts[0];
         let i = 1;
