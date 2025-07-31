@@ -26,9 +26,11 @@ const UnifiedAppPathCard = ({
   useEffect(() => {
     if (selectedApp) {
       setAppName(selectedApp.name);
-      setPath(selectedApp.path);
+      // Use the generated path that includes arguments
+      const generatedPath = getConfiguration().generatedPath;
+      setPath(generatedPath);
     }
-  }, [selectedApp]);
+  }, [selectedApp, getConfiguration]);
 
   // Update parent when form changes
   useEffect(() => {

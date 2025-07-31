@@ -1505,7 +1505,104 @@ ipcMain.handle('set-auto-launch', (event, enable) => {
 });
 
 // --- App Launching Logic ---
-ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
+
+// Helper function to check if an app is running and bring it to foreground
+async function checkAndBringToForeground(executablePath, args = []) {
+  try {
+    // Get the process name from the executable path
+    const processName = path.basename(executablePath, path.extname(executablePath));
+    
+    // For launcher executables, try to find the actual process name
+    let targetProcessName = processName;
+    
+    // Common launcher patterns
+    if (processName === 'Update' && args.includes('--processStart')) {
+      // Extract the actual process name from --processStart argument
+      const processStartIndex = args.indexOf('--processStart');
+      if (processStartIndex !== -1 && args[processStartIndex + 1]) {
+        targetProcessName = args[processStartIndex + 1].replace('.exe', '');
+        console.log('[FOREGROUND] Launcher detected, checking for process:', targetProcessName);
+      }
+    } else if (processName === 'Launcher' && args.includes('--launch')) {
+      // Common pattern for launcher executables
+      const launchIndex = args.indexOf('--launch');
+      if (launchIndex !== -1 && args[launchIndex + 1]) {
+        targetProcessName = args[launchIndex + 1].replace('.exe', '');
+        console.log('[FOREGROUND] Launcher detected, checking for process:', targetProcessName);
+      }
+    } else if (processName === 'Updater' && args.includes('--process')) {
+      // Another common launcher pattern
+      const processIndex = args.indexOf('--process');
+      if (processIndex !== -1 && args[processIndex + 1]) {
+        targetProcessName = args[processIndex + 1].replace('.exe', '');
+        console.log('[FOREGROUND] Launcher detected, checking for process:', targetProcessName);
+      }
+    }
+    
+    // Use PowerShell to check if the process is running and bring it to foreground
+    const psCommand = `
+      Add-Type -TypeDefinition @"
+        using System;
+        using System.Runtime.InteropServices;
+        public class Win32 {
+          [DllImport("user32.dll")]
+          [return: MarshalAs(UnmanagedType.Bool)]
+          public static extern bool SetForegroundWindow(IntPtr hWnd);
+          
+          [DllImport("user32.dll")]
+          [return: MarshalAs(UnmanagedType.Bool)]
+          public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        }
+"@
+      
+      $processes = Get-Process -Name "${targetProcessName}" -ErrorAction SilentlyContinue
+      if ($processes) {
+        foreach ($process in $processes) {
+          try {
+            $hwnd = $process.MainWindowHandle
+            if ($hwnd -ne [System.IntPtr]::Zero) {
+              # Bring window to foreground
+              [Win32]::SetForegroundWindow($hwnd)
+              # Restore window if minimized
+              [Win32]::ShowWindow($hwnd, 9) # SW_RESTORE = 9
+              Write-Host "Brought ${targetProcessName} to foreground"
+              exit 0
+            }
+          } catch {
+            Write-Host "Could not bring ${targetProcessName} to foreground: $_"
+          }
+        }
+      }
+      exit 1
+    `;
+    
+    const result = await new Promise((resolve) => {
+      const child = spawn('powershell', ['-Command', psCommand], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      let output = '';
+      child.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      child.stderr.on('data', (data) => {
+        console.error('PowerShell error:', data.toString());
+      });
+      
+      child.on('close', (code) => {
+        resolve({ success: code === 0, output: output.trim() });
+      });
+    });
+    
+    return result.success;
+  } catch (error) {
+    console.error('Error checking/bringing app to foreground:', error);
+    return false;
+  }
+}
+
+ipcMain.on('launch-app', async (event, { type, path: appPath, asAdmin }) => {
   console.log(`Launching app: type=${type}, path=${appPath}, asAdmin=${asAdmin}`);
 
   if (type === 'url') {
@@ -1567,6 +1664,8 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
 
       // Robustly parse the executable path and arguments, even with spaces.
       function parseExeAndArgs(appPath) {
+        console.log('[PARSE] Parsing path:', appPath);
+        
         // If quoted, use quoted part
         if (appPath.startsWith('"')) {
           const match = appPath.match(/^"([^\"]+)"\s*(.*)$/);
@@ -1574,17 +1673,17 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
             const exe = match[1];
             const argsString = match[2] || '';
             const args = argsString.match(/(?:[^\s\"]+|"[^"]*")+/g) || [];
+            console.log('[PARSE] Quoted path - exe:', exe, 'args:', args);
             return [exe, ...args.map(arg => arg.replace(/^"|"$/g, ''))];
           }
         }
-        // NEW: If the full path exists as a file, use it as the exe
-        if (fs.existsSync(appPath)) {
-          return [appPath];
-        }
+        
         // Try to find the longest valid path from the start
         let parts = appPath.split(' ');
         let exe = parts[0];
         let i = 1;
+        
+        // Find the longest valid executable path
         while (i <= parts.length) {
           const testPath = parts.slice(0, i).join(' ');
           if (fs.existsSync(testPath)) {
@@ -1594,12 +1693,29 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
             break;
           }
         }
+        
+        // Everything after the executable path becomes arguments
         const args = parts.slice(i - 1);
+        console.log('[PARSE] Parsed - exe:', exe, 'args:', args);
         return [exe, ...args];
       }
       const [executablePath, ...args] = parseExeAndArgs(appPath);
       const workingDir = path.dirname(executablePath);
-      console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
+      
+      console.log('[LAUNCH] Parsed executable:', executablePath);
+      console.log('[LAUNCH] Parsed arguments:', args);
+      console.log('[LAUNCH] Working directory:', workingDir);
+      
+      // First, try to bring the app to foreground if it's already running
+      console.log('[FOREGROUND CHECK] Checking if app is already running:', executablePath, 'with args:', args);
+      const broughtToForeground = await checkAndBringToForeground(executablePath, args);
+      
+      if (broughtToForeground) {
+        console.log('[FOREGROUND SUCCESS] App was already running and brought to foreground');
+        return; // Don't launch a new instance
+      }
+      
+      console.log('[SPAWN CALL] App not running, launching new instance:', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
       
       if (asAdmin) {
         const argsString = args.length > 0 ? ` -ArgumentList "${args.join('", "')}"` : '';
@@ -1613,7 +1729,6 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
         child.on('spawn', () => { console.log('Executable launched as admin successfully'); child.unref(); });
       } else {
         // Normal launch using the parsed path and setting the working directory.
-        console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
         const child = spawn(executablePath, args, {
           cwd: workingDir,
           detached: true,

@@ -51,7 +51,14 @@ const useUnifiedAppStore = create((set, get) => ({
         return app.appId;
       case 'exe':
       default:
-        return app.path || '';
+        // For EXE apps, include arguments if they exist
+        if (app.path) {
+          if (app.args && app.args.trim()) {
+            return `${app.path} ${app.args.trim()}`;
+          }
+          return app.path;
+        }
+        return '';
     }
   },
   
@@ -183,6 +190,7 @@ const useUnifiedAppStore = create((set, get) => ({
         name: app.name,
         type: 'exe',
         path: app.path,
+        args: app.args || '', // Preserve arguments
         icon: app.icon,
         source: 'exe',
         category: 'Application'
