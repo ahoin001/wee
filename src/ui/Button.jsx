@@ -7,7 +7,7 @@
 // <Button variant="danger-secondary" size="sm">Remove</Button>
 // <Button color="#ff0" bgColor="#333">Custom</Button>
 
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { colors, radii, fontSizes, shadows } from "./tokens";
 import Text from "./Text";
 
@@ -38,7 +38,7 @@ function getAutoButtonColors({ variant, color, bgColor, borderColor }) {
   return { text, bg, border };
 }
 
-export default function Button({
+const Button = React.memo(({
   variant = "primary",
   size = "md",
   weight = 600,
@@ -49,15 +49,29 @@ export default function Button({
   borderColor,
   style,
   children,
+  onMouseDown,
+  onMouseUp,
+  onMouseLeave,
   ...props
-}) {
-  const { text, bg, border } = getAutoButtonColors({ variant, color, bgColor, borderColor });
-  const sizes = {
+}) => {
+  const [hovered, setHovered] = useState(false);
+  
+  // Memoize button colors to prevent recalculation
+  const buttonColors = useMemo(() => 
+    getAutoButtonColors({ variant, color, bgColor, borderColor }), 
+    [variant, color, bgColor, borderColor]
+  );
+  const { text, bg, border } = buttonColors;
+  
+  // Memoize sizes object
+  const sizes = useMemo(() => ({
     sm: { fontSize: fontSizes.sm, padding: "0.32rem 0.8rem" },
     md: { fontSize: fontSizes.md, padding: "0.45rem 1.1rem" },
     lg: { fontSize: fontSizes.lg, padding: "0.7rem 1.6rem" },
-  };
-  const baseStyle = {
+  }), []);
+  
+  // Memoize base style
+  const baseStyle = useMemo(() => ({
     borderRadius: rounded ? 999 : radii.md,
     fontSize: sizes[size].fontSize,
     fontWeight: weight,
@@ -75,20 +89,22 @@ export default function Button({
     alignItems: "center",
     justifyContent: "center",
     ...style,
-  };
-  const [hovered, setHovered] = React.useState(false);
-  let hoverStyle = {};
-  if (hovered) {
+  }), [rounded, sizes, size, weight, variant, border, bg, text, fullWidth, style]);
+  
+  // Memoize hover style
+  const hoverStyle = useMemo(() => {
+    if (!hovered) return {};
+    
     if (variant === "primary") {
-      hoverStyle = {
+      return {
         backgroundColor: "hsl(var(--wii-blue-hover))",
         border: `1.5px solid hsl(var(--wii-blue-hover))`,
         boxShadow: `var(--shadow-md), var(--shadow-glow)`,
         color: "hsl(var(--text-inverse))",
         transform: "translateY(-1px) scale(1.03)",
-  };
+      };
     } else if (variant === "secondary") {
-      hoverStyle = {
+      return {
         backgroundColor: "hsl(var(--state-hover))",
         border: `1.5px solid hsl(var(--wii-blue))`,
         color: "hsl(var(--text-primary))",
@@ -96,37 +112,63 @@ export default function Button({
         transform: "translateY(-1px) scale(1.03)",
       };
     } else if (variant === "tertiary") {
-      hoverStyle = {
+      return {
         backgroundColor: "hsl(var(--state-hover))",
         color: "hsl(var(--text-primary))",
-        textDecoration: "underline",
+        transform: "translateY(-1px)",
       };
     } else if (variant === "danger-primary") {
-      hoverStyle = {
-        backgroundColor: "hsl(var(--state-error) / 0.9)",
-        border: `1.5px solid hsl(var(--state-error) / 0.9)`,
-        boxShadow: `var(--shadow-md), 0 0 0 1px hsl(var(--state-error) / 0.3)`,
+      return {
+        backgroundColor: "hsl(var(--state-error-hover))",
+        border: `1.5px solid hsl(var(--state-error-hover))`,
+        boxShadow: `var(--shadow-md), var(--shadow-glow)`,
         color: "hsl(var(--text-inverse))",
         transform: "translateY(-1px) scale(1.03)",
       };
     } else if (variant === "danger-secondary") {
-      hoverStyle = {
-        backgroundColor: "hsl(var(--state-error) / 0.1)",
+      return {
+        backgroundColor: "hsl(var(--state-error-light))",
         border: `1.5px solid hsl(var(--state-error))`,
         color: "hsl(var(--state-error))",
         boxShadow: "var(--shadow-md)",
         transform: "translateY(-1px) scale(1.03)",
       };
     }
-  }
+    return {};
+  }, [hovered, variant]);
+  
+  // Memoize event handlers
+  const handleMouseEnter = useCallback(() => {
+    setHovered(true);
+  }, []);
+  
+  const handleMouseLeave = useCallback((e) => {
+    setHovered(false);
+    if (onMouseLeave) onMouseLeave(e);
+  }, [onMouseLeave]);
+  
+  const handleMouseDown = useCallback((e) => {
+    if (onMouseDown) onMouseDown(e);
+  }, [onMouseDown]);
+  
+  const handleMouseUp = useCallback((e) => {
+    if (onMouseUp) onMouseUp(e);
+  }, [onMouseUp]);
+
   return (
     <button
       style={{ ...baseStyle, ...hoverStyle }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       {...props}
     >
-      <Text as="span" size={size} weight={weight} color={text} style={{ pointerEvents: "none" }}>{children}</Text>
+      {children}
     </button>
   );
-} 
+});
+
+Button.displayName = 'Button';
+
+export default Button; 

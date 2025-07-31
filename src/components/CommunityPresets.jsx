@@ -23,12 +23,9 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
   const loadPresets = async () => {
     try {
       setLoading(true);
-      console.log('[COMMUNITY] Loading presets with searchTerm:', searchTerm, 'sortBy:', sortBy);
       const result = await getSharedPresets(searchTerm, sortBy);
       
       if (result.success) {
-        console.log('[COMMUNITY] Loaded presets:', result.data.length, 'presets');
-        console.log('[COMMUNITY] Download counts:', result.data.map(p => ({ id: p.id, name: p.name, downloads: p.downloads })));
         setPresets(result.data);
       } else {
         if (result.error === 'Supabase not configured') {
@@ -58,9 +55,7 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         
         // Refresh the presets list to update download counts
-        console.log('[COMMUNITY] Download successful, refreshing presets list...');
         await loadPresets();
-        console.log('[COMMUNITY] Presets list refreshed after download');
       } else {
         setMessage({ type: 'error', text: `Failed to download: ${result.error}` });
       }

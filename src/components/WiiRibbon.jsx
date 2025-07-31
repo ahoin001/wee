@@ -60,14 +60,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     async function loadButtonConfigs() {
       if (window.api?.settings?.get) {
         const settings = await window.api.settings.get();
-        console.log('WiiRibbon: Loading settings:', settings);
         if (settings && settings.ribbonButtonConfigs) {
-          console.log('WiiRibbon: Found ribbonButtonConfigs:', settings.ribbonButtonConfigs);
-          console.log('PowerActions in loaded configs:', settings.ribbonButtonConfigs.map((config, index) => ({ 
-            index, 
-            powerActions: config.powerActions?.length || 0,
-            names: config.powerActions?.map(a => a.name) || []
-          })));
           
           // Ensure each button config has all required properties
           const configsWithAdaptiveColor = settings.ribbonButtonConfigs.map(config => ({
@@ -82,8 +75,6 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
             glassShineOpacity: config.glassShineOpacity ?? 0.7
           }));
           setButtonConfigs(configsWithAdaptiveColor);
-        } else {
-          console.log('WiiRibbon: No ribbonButtonConfigs found in settings, keeping defaults');
         }
       }
     }
@@ -92,24 +83,11 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   // Save configs to settings
   const saveButtonConfigs = async (configs) => {
-    console.log('WiiRibbon saveButtonConfigs called');
-    console.log('Configs to save:', configs);
-    
-    // Add null checks for powerActions
-    if (configs && Array.isArray(configs)) {
-      console.log('PowerActions in configs:', configs.map((config, index) => ({ 
-        index, 
-        powerActions: config?.powerActions?.length || 0,
-        names: config?.powerActions?.map(a => a.name) || []
-      })));
-    }
     
     setButtonConfigs(configs);
     if (window.api?.settings?.get && window.api?.settings?.set) {
       const settings = await window.api.settings.get();
-      console.log('Current settings before save:', settings);
       await window.api.settings.set({ ...settings, ribbonButtonConfigs: configs });
-      console.log('Settings saved with ribbonButtonConfigs');
       
       // Notify parent component of the change
       if (onSettingsChange) {
@@ -137,21 +115,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   };
 
   const handlePrimaryActionsSave = (newConfig) => {
-    console.log('WiiRibbon handlePrimaryActionsSave called');
-    console.log('New config received:', newConfig);
-    
-    // Add null checks for powerActions
-    if (newConfig) {
-      console.log('PowerActions in new config:', newConfig.powerActions?.length || 0, newConfig.powerActions?.map(a => a.name) || []);
-    }
-    
     const newConfigs = [...buttonConfigs];
     newConfigs[activeButtonIndex] = newConfig;
-    
-    // Add null check for the updated config
-    if (newConfigs[activeButtonIndex]) {
-      console.log('Saving button configs with powerActions:', newConfigs[activeButtonIndex].powerActions?.length || 0);
-    }
     
     saveButtonConfigs(newConfigs);
     setShowPrimaryActionsModal(false);
@@ -245,12 +210,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   useEffect(() => {
     // Only run if we have button configs loaded
     if (!buttonConfigs || buttonConfigs.length === 0) {
-      console.log('[WiiRibbon] Skipping tinted image generation - no button configs loaded yet');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[WiiRibbon] Skipping tinted image generation - no button configs loaded yet');
+      }
       return;
     }
 
     const generateTintedImages = async () => {
-      console.log('[WiiRibbon] Generating tinted images for color:', propRibbonGlowColor);
       const rgbColor = hexToRgb(propRibbonGlowColor);
       const newTintedImages = {};
       
@@ -260,22 +226,14 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         allConfigs.push(presetsButtonConfig);
       }
       
-      console.log('[WiiRibbon] Checking configs for adaptive color:', allConfigs.map(c => ({
-        useAdaptiveColor: c.useAdaptiveColor,
-        icon: c.icon,
-        hasIcon: !!c.icon
-      })));
-      
       for (const config of allConfigs) {
         if (config.useAdaptiveColor && config.icon && !config.icon.startsWith('data:') && !['palette', 'star', 'heart'].includes(config.icon)) {
-          console.log('[WiiRibbon] Tinting image:', config.icon);
           try {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = async () => {
               const tintedUrl = await tintImage(img, rgbColor);
               newTintedImages[config.icon] = tintedUrl;
-              console.log('[WiiRibbon] Tinted image created:', config.icon, tintedUrl.substring(0, 50) + '...');
               setTintedImages(prev => ({ ...prev, ...newTintedImages }));
             };
             img.src = config.icon;
@@ -292,7 +250,6 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   // Listen for update status events
   useEffect(() => {
     const handleUpdateStatus = (data) => {
-      console.log('[WiiRibbon] Update status received:', data);
       if (data.status === 'available') {
         setUpdateAvailable(true);
       } else if (data.status === 'not-available' || data.status === 'downloaded') {
@@ -442,28 +399,17 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
 
   const handleButtonClick = (index) => {
     const config = buttonConfigs[index];
-    console.log('Button clicked:', index, 'Config:', config);
-    console.log('Button config details:', {
-      actionType: config?.actionType,
-      action: config?.action,
-      adminMode: config?.adminMode,
-      powerActions: config?.powerActions?.length || 0
-    });
     
     // Handle admin mode for left button (index 0)
     if (index === 0 && config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
-      console.log('Opening admin menu with actions:', config.powerActions.length, config.powerActions.map(a => a.name));
       setShowAdminMenu(true);
       return;
     }
     
     // Handle regular button actions
     if (!config || !config.actionType || !config.action || config.actionType === 'none') {
-      console.log('No valid action found for button:', index);
       return;
     }
-    
-    console.log('Launching app with:', { type: config.actionType, path: config.action });
     
     if (window.api && window.api.launchApp) {
       // Handle all supported action types
@@ -489,9 +435,6 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const handleAdminActionClick = (action) => {
     if (window.api && window.api.executeCommand) {
       window.api.executeCommand(action.command);
-    } else {
-      // Fallback for development/testing
-      console.log('Would execute command:', action.command);
     }
     setShowAdminMenu(false);
   };
@@ -940,7 +883,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         {/* Admin Menu */}
         {showAdminMenu && (
           <div className="admin-menu">
-            {console.log('Rendering admin menu with actions:', buttonConfigs[0]?.powerActions?.length || 0, buttonConfigs[0]?.powerActions?.map(a => a.name) || [])}
+            {process.env.NODE_ENV === 'development' && console.log('Rendering admin menu with actions:', buttonConfigs[0]?.powerActions?.length || 0, buttonConfigs[0]?.powerActions?.map(a => a.name) || [])}
             <div
               className="context-menu-content"
               style={{ 
@@ -1018,7 +961,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
               background: 'transparent'
             }} 
             onClick={() => {
-              console.log('Clicking outside to close admin menu');
+              if (process.env.NODE_ENV === 'development') {
+        
+              }
               setShowAdminMenu(false);
             }}
           />

@@ -68,7 +68,7 @@ const KenBurnsTest = () => {
             crossfadeDuration={800}
             enableReorder={true}
             alt="Slideshow test images"
-            onImageChange={(index, src) => console.log('Image changed:', index, src)}
+            onImageChange={(index, src) => {}}
           />
         </div>
 

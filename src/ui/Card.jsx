@@ -6,7 +6,7 @@ import React from 'react';
 import './Card.css';
 import Text from './Text';
 
-export default function Card({ title, separator, desc, actions, headerActions, children, className = '', style = {} }) {
+const Card = React.memo(({ title, separator, desc, actions, headerActions, children, className = '', style = {} }) => {
   return (
     <div className={`wee-card ${className}`} style={style}>
       {(title || headerActions) && (
@@ -23,4 +23,8 @@ export default function Card({ title, separator, desc, actions, headerActions, c
       {children}
     </div>
   );
-} 
+});
+
+Card.displayName = 'Card';
+
+export default Card; 

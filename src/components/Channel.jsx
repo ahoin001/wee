@@ -167,7 +167,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
         }
       } catch (error) {
-        console.log('Failed to load sound library:', error);
+        console.warn('Failed to load sound library:', error);
       }
       // Launch app or URL
       if (type === 'url' && path.startsWith('http')) {
@@ -180,7 +180,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           window.open(path, '_blank'); // fallback for browser only
         }
       } else {
-        console.log('Launching app:', { type, path, asAdmin });
+
         api.launchApp({ type, path, asAdmin });
       }
     }
@@ -206,7 +206,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
             await audioManager.playSound(enabledHoverSound.url, enabledHoverSound.volume ?? 0.3);
           }
         } catch (error) {
-          console.log('Failed to load sound library:', error);
+          console.warn('Failed to load sound library:', error);
         }
       }
     }

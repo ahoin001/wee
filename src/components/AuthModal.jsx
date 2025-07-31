@@ -29,20 +29,20 @@ const AuthModal = () => {
     try {
       let result;
       if (mode === 'signup') {
-        console.log('[AUTH MODAL] Calling signUp...');
+    
         result = await authService.signUp(email, password);
       } else {
-        console.log('[AUTH MODAL] Calling signIn...');
+
         result = await authService.signIn(email, password);
       }
 
-      console.log('[AUTH MODAL] Auth result:', result);
+      
 
       if (result.error) {
         console.error('[AUTH MODAL] Auth error:', result.error);
         setError(result.error);
       } else if (result.data?.user) {
-        console.log('[AUTH MODAL] Auth successful - user:', result.data.user.email);
+
         closeModal();
       } else {
         console.error('[AUTH MODAL] Auth failed - no user data');

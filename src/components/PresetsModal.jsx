@@ -413,14 +413,11 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
         }
       };
 
-      console.log('Uploading preset data:', presetData);
-      
       const uploadData = {
         ...uploadFormData
       };
       
       const result = await uploadPreset(presetData, uploadData);
-      console.log('Upload result:', result);
       
       if (result.success) {
         setUploadMessage({ type: 'success', text: 'Preset uploaded successfully!' });

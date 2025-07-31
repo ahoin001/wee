@@ -49,13 +49,11 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
       
       // Check if cache is expired (older than 7 days)
       if (cacheAge > CACHE_DURATION) {
-        console.log('[ImageCache] Cache expired, will fetch fresh data');
         localStorage.removeItem(CACHE_KEY);
         localStorage.removeItem(CACHE_TIMESTAMP_KEY);
         return null;
       }
       
-      console.log('[ImageCache] Using cached data, age:', Math.round(cacheAge / (1000 * 60 * 60)), 'hours');
       return JSON.parse(cachedData);
     } catch (error) {
       console.warn('[ImageCache] Error reading cache, will fetch fresh data:', error);
@@ -69,7 +67,6 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(data));
       localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-      console.log('[ImageCache] Data cached successfully');
     } catch (error) {
       console.warn('[ImageCache] Error caching data:', error);
     }
@@ -79,7 +76,6 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     try {
       localStorage.removeItem(CACHE_KEY);
       localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-      console.log('[ImageCache] Cache cleared manually');
     } catch (error) {
       console.warn('[ImageCache] Error clearing cache:', error);
     }
@@ -104,21 +100,17 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     } else {
       // Clear cache when force refreshing
       clearCache();
-      console.log('[ImageCache] Force refresh requested, cache cleared');
     }
 
     // Fetch from network
-    console.log('[ImageCache] Fetching fresh data from network');
     fetch(THUMBNAILS_URL)
       .then(res => {
-        console.log('[ImageCache] Network response received:', res.status);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
         return res.json();
       })
       .then(data => {
-        console.log('[ImageCache] Network data received, items:', data.length);
         
         // Cache the fresh data
         setCachedData(data);
@@ -138,7 +130,6 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
          try {
            const fallbackCache = localStorage.getItem(CACHE_KEY);
            if (fallbackCache) {
-             console.log('[ImageCache] Using expired cache as fallback');
              setImages(JSON.parse(fallbackCache));
              setCacheStatus('fallback');
              setError('Using cached data (network unavailable)');
@@ -156,7 +147,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
     setItemLoading(prev => ({ ...prev, [img.url]: true }));
     
     try {
-      console.log('Starting download for:', img.name, img.url);
+  
       
       // Fetch the file
       const response = await fetch(img.url);
@@ -198,7 +189,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
       // Clean up
       window.URL.revokeObjectURL(url);
       
-      console.log('Download completed for:', filename);
+      
       
       // Show success indicator
       setDownloadSuccess(prev => ({ ...prev, [img.url]: true }));

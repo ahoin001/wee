@@ -94,15 +94,7 @@ const WiiDock = ({
 
   const normalizedSdCardIcon = normalizeIconValue(sdCardIcon);
 
-  // Debug logging for icon issues
-  if (sdCardIcon !== normalizedSdCardIcon) {
-    console.log('[ClassicWiiDock] Icon value normalized:', { original: sdCardIcon, normalized: normalizedSdCardIcon });
-  }
-  
-  // Debug logging for built-in icons
-  if (isBuiltInIcon(normalizedSdCardIcon)) {
-    console.log('[ClassicWiiDock] Built-in icon detected:', normalizedSdCardIcon);
-  }
+  // Icon normalization and validation
 
   // Glass effect styles
   const glassStyles = glassEnabled ? {

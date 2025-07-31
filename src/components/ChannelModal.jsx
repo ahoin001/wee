@@ -412,12 +412,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   // Unified app path change handler
   const handleUnifiedAppPathChange = (config) => {
-    console.log('[ChannelModal] Unified app path config changed:', config);
-    
     if (config.launchType === 'url') {
       setType('url');
       setPath(config.path || '');
-      console.log('[ChannelModal] Set URL:', config.path);
     } else {
       // Map app type to channel type
       let newType = 'exe'; // default
@@ -437,7 +434,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             newType = 'exe';
             break;
         }
-        console.log('[ChannelModal] Set app:', config.selectedApp.name, 'type:', newType, 'path:', config.path);
       }
       setType(newType);
       setPath(config.path || '');
@@ -446,13 +442,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   // On save, use channelsApi.set and reload state
   const handleSave = async (handleClose) => {
-    console.log('[ChannelModal] handleSave called');
-    console.log('[ChannelModal] Current type:', type);
-    console.log('[ChannelModal] Current path:', path);
-    
-    // Validate that we have single media (gallery feature not ready)
-    const hasMedia = media;
-    if (!validatePath() || !hasMedia || !path.trim()) {
+    if (!validatePath() || !media || !path.trim()) {
       setShowError(true);
       return;
     }
@@ -464,7 +454,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     
     setShowError(false);
     
-    // Prepare media object (single image only - gallery not ready)
+    // Prepare media object (single image only - gallery feature not ready)
     const mediaObject = media;
       
     const newChannel = {

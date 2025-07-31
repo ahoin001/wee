@@ -30,13 +30,8 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
     if (isOpen) {
       // Add a small delay to ensure APIs are available
       setTimeout(() => {
-        console.log('[MonitorSelection] Testing monitor APIs...');
-        console.log('[MonitorSelection] window.api.monitors:', window.api?.monitors);
-        
         if (window.api?.monitors) {
-          console.log('[MonitorSelection] Monitor APIs found, testing getDisplays...');
           window.api.monitors.getDisplays().then(displays => {
-            console.log('[MonitorSelection] getDisplays result:', displays);
           }).catch(err => {
             console.error('[MonitorSelection] getDisplays error:', err);
           });
@@ -58,7 +53,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
   const handleMoveToDisplay = async (displayId) => {
     const result = await moveToDisplay(displayId);
     if (result.success) {
-      console.log('[MonitorSelection] Successfully moved to display:', displayId);
+      
     } else {
       console.error('[MonitorSelection] Failed to move to display:', result.error);
     }
@@ -87,10 +82,6 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
 
   // Check if monitor APIs are available
   if (!window.api?.monitors) {
-    console.log('[MonitorSelection] Debug - window.api:', window.api);
-    console.log('[MonitorSelection] Debug - window.api.monitors:', window.api?.monitors);
-    console.log('[MonitorSelection] Debug - Available APIs:', Object.keys(window.api || {}));
-    
     return (
       <BaseModal
         title="Monitor Settings"

@@ -81,14 +81,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   
   // Update state when config changes (important for when modal reopens)
   useEffect(() => {
-    console.log('PrimaryActionsModal useEffect triggered:', { 
-      hasConfig: !!config, 
-      buttonIndex,
-      configPowerActions: config?.powerActions?.length || 0
-    });
-    
     if (config) {
-      console.log('PrimaryActionsModal loading config:', config);
       setType(config.type || 'text');
       setText(config.text || (buttonIndex === 0 ? 'Wii' : ''));
       setIcon(config.icon || null);
@@ -107,7 +100,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       setGlassShineOpacity(config.glassShineOpacity || 0.7);
       setTextFont(config.textFont || 'default');
       setAdminMode(config.adminMode || false);
-      console.log('Setting powerActions from config:', config.powerActions?.length || 0, config.powerActions?.map(a => a.name) || []);
       setPowerActions(config.powerActions || []);
     }
   }, [config, buttonIndex]);
@@ -384,10 +376,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const isAccessoryButton = buttonIndex === "accessory";
 
   const handleSave = () => {
-    console.log('PrimaryActionsModal handleSave called');
-    console.log('Current powerActions at save time:', powerActions.length, powerActions.map(a => a.name));
-    console.log('Current actionType:', actionType);
-    console.log('Current action:', action);
     
     if (!isPresetsButton && !isAccessoryButton && !validatePath()) return;
     
@@ -411,8 +399,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       powerActions,
     };
     
-    console.log('PrimaryActionsModal saveData:', saveData);
-    console.log('Calling onSave with powerActions:', saveData.powerActions?.length || 0);
     onSave(saveData);
   };
 
@@ -671,12 +657,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [tintedImages, setTintedImages] = useState({});
 
   const handleAdminPanelSave = (adminConfig) => {
-    console.log('PrimaryActionsModal handleAdminPanelSave called');
-    console.log('Received adminConfig:', adminConfig);
-    console.log('Current powerActions before update:', powerActions.length, powerActions.map(a => a.name));
-    console.log('New powerActions from adminConfig:', adminConfig.powerActions?.length || 0, adminConfig.powerActions?.map(a => a.name) || []);
     setPowerActions(adminConfig.powerActions || []);
-    console.log('PrimaryActionsModal powerActions state updated');
   };
 
   // LEGACY: Commented out the old renderAppPathSection function
@@ -951,7 +932,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                   path: action
                 }}
                 onChange={(config) => {
-                  console.log('[UnifiedAppPath] Config changed:', config);
                   if (config.launchType === 'url') {
                     setActionType('url');
                     setAction(config.path || '');
@@ -988,11 +968,9 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                   selectedApp: null // Will be set by the store
                 }}
                 onChange={(config) => {
-                  console.log('[UnifiedAppPath] Config changed:', config);
                   if (config.launchType === 'url') {
                     setActionType('url');
                     setAction(config.path || '');
-                    console.log('[UnifiedAppPath] Set URL:', config.path);
                   } else {
                     // Map app type to actionType
                     let newActionType = 'exe'; // default
@@ -1013,7 +991,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                           break;
                       }
                       setText(config.selectedApp.name);
-                      console.log('[UnifiedAppPath] Set app:', config.selectedApp.name, 'type:', newActionType, 'path:', config.path);
                     }
                     setActionType(newActionType);
                     setAction(config.path || '');

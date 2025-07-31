@@ -18,7 +18,7 @@ const KenBurnsDemo = () => {
   const [selectedImages, setSelectedImages] = useState(DEMO_IMAGES.slice(0, 3));
 
   const handleImageChange = (index, src) => {
-    console.log(`Slideshow changed to image ${index + 1}:`, src);
+    // console.log(`Slideshow changed to image ${index + 1}:`, src);
   };
 
   return (
@@ -197,7 +197,7 @@ const KenBurnsDemo = () => {
   slideshowDuration={10000}
   slideshowScale={1.2}
   enableReorder={true}
-  onImageChange={(index, src) => console.log('Changed to:', src)}
+          onImageChange={(index, src) => {}}
 />`}
         </pre>
       </Card>

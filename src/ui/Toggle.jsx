@@ -3,13 +3,13 @@
 // <Toggle checked={value} onChange={fn} label="Label" />
 // <Toggle checked={value} onChange={fn} disabled />
 
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { colors } from "./tokens";
 
 function getAutoToggleColors(disabled) {
   const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   return {
-    track: disabled ? (isDark ? 'hsl(var(--surface-secondary))' : '#f0f0f0') : (isDark ? 'hsl(var(--surface-tertiary))' : '#e0e6ef'),
+    track: disabled ? (isDark ? 'hsl(var(--surface-secondary))' : 'hsl(0, 74.30%, 27.50%)') : (isDark ? 'hsl(var(--surface-tertiary))' : '#e0e6ef'),
     trackChecked: disabled ? (isDark ? 'hsl(var(--surface-secondary))' : '#f0f0f0') : (isDark ? 'hsl(var(--wii-blue))' : colors.primary),
     thumb: disabled ? (isDark ? 'hsl(var(--surface-tertiary))' : '#ddd') : (isDark ? 'hsl(var(--surface-primary))' : '#fff'),
     border: disabled ? (isDark ? 'hsl(var(--border-secondary))' : '#ddd') : (isDark ? 'hsl(var(--border-tertiary))' : '#ccc'),
@@ -17,9 +17,19 @@ function getAutoToggleColors(disabled) {
   };
 }
 
-export default function Toggle({ checked, onChange, label, disabled = false, style, ...props }) {
-  const { track, trackChecked, thumb, border, label: labelColor } = getAutoToggleColors(disabled);
+const Toggle = React.memo(({ checked, onChange, label, disabled = false, style, ...props }) => {
   const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  // Memoize colors to prevent recalculation on every render
+  const colors = useMemo(() => getAutoToggleColors(disabled), [disabled]);
+  const { track, trackChecked, thumb, border, label: labelColor } = colors;
+  
+  // Memoize the onChange handler
+  const handleChange = useCallback((e) => {
+    if (onChange) {
+      onChange(e.target.checked);
+    }
+  }, [onChange]);
   
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: disabled ? 'not-allowed' : 'pointer', ...style }}>
@@ -32,7 +42,7 @@ export default function Toggle({ checked, onChange, label, disabled = false, sty
         <input
           type="checkbox"
           checked={checked}
-          onChange={e => onChange && onChange(e.target.checked)}
+          onChange={handleChange}
           disabled={disabled}
           style={{ opacity: 0, width: 44, height: 24, position: 'absolute', left: 0, top: 0, margin: 0, zIndex: 2, cursor: disabled ? 'not-allowed' : 'pointer' }}
           {...props}
@@ -61,4 +71,8 @@ export default function Toggle({ checked, onChange, label, disabled = false, sty
       {label && <span style={{ fontSize: 15, color: labelColor, fontWeight: 500 }}>{label}</span>}
     </label>
   );
-} 
+});
+
+Toggle.displayName = 'Toggle';
+
+export default Toggle; 

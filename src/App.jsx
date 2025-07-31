@@ -239,8 +239,6 @@ function App() {
     try {
       const result = await window.api.takeScreenshot();
       if (result.success) {
-        // Show success notification
-        console.log('Screenshot saved:', result.filePath);
         // Open the folder containing the screenshot
         if (window.api.openExternal) {
           const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
@@ -458,7 +456,6 @@ function App() {
       data.soundLibrary = soundLibrary;
     }
     
-    console.log('Saving preset:', name, 'with timeFont:', timeFont, 'includeChannels:', includeChannels, 'includeSounds:', includeSounds, 'data:', data);
     setPresets(prev => [...prev, { name, data }].slice(0, 6));
   };
   const handleDeletePreset = (name) => {
@@ -531,7 +528,6 @@ function App() {
     if (d.wallpaper && d.wallpaper.url && window.api?.wallpapers?.setActive) {
       try {
         await window.api.wallpapers.setActive({ url: d.wallpaper.url });
-        console.log('Successfully set wallpaper from preset:', d.wallpaper.url);
       } catch (error) {
         console.warn('Failed to set wallpaper from preset:', error);
         // If setting the wallpaper fails, set to null to avoid UI inconsistency
@@ -541,7 +537,6 @@ function App() {
       // If preset has no wallpaper, clear current wallpaper
       try {
         await window.api.wallpapers.setActive({ url: null });
-        console.log('Cleared wallpaper as preset has none');
       } catch (error) {
         console.warn('Failed to clear wallpaper:', error);
       }
@@ -551,7 +546,7 @@ function App() {
     
     // Apply channel data if present
     if (d.channels && d.mediaMap && d.appPathMap) {
-      console.log('Applying preset with channel data:', { channels: d.channels, mediaMap: d.mediaMap, appPathMap: d.appPathMap });
+
       
       // Update the channels state
       setChannels(d.channels);
@@ -571,22 +566,20 @@ function App() {
         }
       });
       
-      console.log('Saving channel data to persistent storage:', channelData);
       channelsApi?.set(channelData);
     } else {
-      console.log('No channel data in preset or channel data incomplete');
+      // No channel data in preset or channel data incomplete
     }
     
     // Apply sound settings if present
     if (d.soundLibrary) {
-      console.log('Applying preset with sound library:', d.soundLibrary);
       setSoundSettings(d.soundLibrary);
       soundsApi?.set(d.soundLibrary);
       
       // Update background music using the proper setup function
       await setupBackgroundMusic(d.soundLibrary);
     } else {
-      console.log('No sound library in preset');
+      // No sound library in preset
     }
     
             closePresetsModal();
@@ -627,7 +620,6 @@ function App() {
       }
       // Load wallpapers
       const wallpaperData = await wallpapersApi.get();
-      console.log('[App] Loaded wallpaper data:', wallpaperData ? Object.keys(wallpaperData) : 'null');
       // setWallpaper(wallpaperData?.wallpaper || null); // Remove - wallpaper now loaded from general settings
       setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
       setSavedWallpapers(wallpaperData?.savedWallpapers || []);
@@ -678,7 +670,6 @@ function App() {
       
       // Load channels - no hardcoded limit, let PaginatedChannels handle dynamic generation
       const channelData = await channelsApi.get();
-      console.log('[App] Loaded channel data:', channelData ? Object.keys(channelData) : 'null');
       
       // Create a minimal channels array for backward compatibility (not used by PaginatedChannels)
       const gridChannels = [];
@@ -764,18 +755,15 @@ function App() {
     };
 
     const handleUpdateNotificationNotAvailable = () => {
-      console.log('[App] Update notification not available');
       const notificationManager = getUpdateNotificationManager();
       notificationManager.onUpdateNotAvailable();
     };
 
     const handleUpdateNotificationDismissed = () => {
-      console.log('[App] Update notification dismissed');
       dismissNotification();
     };
 
     const handleUpdateNotificationInstall = () => {
-      console.log('[App] Update notification install triggered');
       // Trigger the update installation
       if (window.api?.updater?.installUpdate) {
         window.api.updater.installUpdate();
@@ -836,7 +824,6 @@ function App() {
   useEffect(() => {
     async function loadSettings() {
       let settings = await settingsApi?.get();
-      console.log('App: Loading general settings:', settings);
 
       if (settings) {
         setIsDarkMode(settings.isDarkMode ?? false);
@@ -898,7 +885,6 @@ function App() {
         
         // Load ribbonButtonConfigs to ensure they're preserved during persistence
         if (settings.ribbonButtonConfigs) {
-          console.log('App: Loaded ribbonButtonConfigs:', settings.ribbonButtonConfigs);
           setRibbonButtonConfigs(settings.ribbonButtonConfigs);
         }
         // Load ribbonColor from settings
@@ -954,12 +940,8 @@ function App() {
     if (!soundSettings) return;
     async function initSounds() {
       try {
-        console.log('[App] Initializing audio manager: updateVolumesFromLibrary (after soundSettings loaded)');
         await audioManager.updateVolumesFromLibrary();
-        console.log('[App] updateVolumesFromLibrary complete');
-        console.log('[App] Initializing audio manager: updateBackgroundMusicFromSettings (after soundSettings loaded)');
         await audioManager.updateBackgroundMusicFromSettings();
-        console.log('[App] updateBackgroundMusicFromSettings complete');
       } catch (err) {
         console.warn('Failed to initialize audio manager:', err);
       }

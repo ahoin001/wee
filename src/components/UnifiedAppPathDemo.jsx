@@ -9,7 +9,6 @@ const UnifiedAppPathDemo = () => {
 
   const handleConfigChange = (newConfig) => {
     setConfig(newConfig);
-    console.log('[Demo] Config changed:', newConfig);
   };
 
   const handleReset = () => {

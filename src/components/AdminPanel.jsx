@@ -99,19 +99,10 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
   const hasInitializedRef = useRef(false);
 
   useEffect(() => {
-    console.log('AdminPanel useEffect triggered:', { 
-      hasConfig: !!config, 
-      hasPowerActions: !!(config?.powerActions), 
-      isOpen, 
-      actionCount: config?.powerActions?.length || 0 
-    });
-    
     // Only initialize from config when the modal first opens and we haven't initialized yet
     if (config && config.powerActions && isOpen && !hasInitializedRef.current) {
-      console.log('AdminPanel setting powerActions from config:', config.powerActions);
       setPowerActions(config.powerActions);
       hasInitializedRef.current = true;
-      console.log('AdminPanel loaded with actions:', config.powerActions.length);
     }
     
     // Reset initialization flag when modal closes
@@ -134,9 +125,7 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
   });
 
   const handleAddAction = (action) => {
-    console.log('handleAddAction called with:', action.name);
     const currentActions = powerActionsRef.current;
-    console.log('Current actions before adding:', currentActions.length, currentActions.map(a => a.name));
     
     // For built-in actions, check by ID. For custom actions, check by name to avoid duplicates
     const existingAction = action.category === 'Custom' 
@@ -145,16 +134,13 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
     
     if (!existingAction) {
       const newPowerActions = [...currentActions, action];
-      console.log('Setting new powerActions:', newPowerActions.length, newPowerActions.map(a => a.name));
       setPowerActions(newPowerActions);
       setRecentlyAdded(action.id);
       setNotificationMessage(`Added "${action.name}" to quick access menu`);
       setShowNotification(true);
-      console.log('Added action:', action.name, 'Total actions:', newPowerActions.length, 'Actions:', newPowerActions.map(a => a.name));
       
       // Clear the highlight after 2 seconds
       setTimeout(() => {
-        console.log('Clearing recentlyAdded highlight for:', action.id);
         setRecentlyAdded(null);
       }, 2000);
       
@@ -162,8 +148,6 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
       setTimeout(() => {
         setShowNotification(false);
       }, 3000);
-    } else {
-      console.log('Action already exists:', action.name);
     }
   };
 
@@ -182,10 +166,6 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
 
   const handleSave = () => {
     const currentActions = powerActionsRef.current;
-    console.log('AdminPanel handleSave called');
-    console.log('Current actions in ref:', currentActions.length, currentActions.map(a => a.name));
-    console.log('Current actions in state:', powerActions.length, powerActions.map(a => a.name));
-    console.log('Calling onSave with:', { powerActions: currentActions });
     onSave({ powerActions: currentActions });
     onClose();
   };

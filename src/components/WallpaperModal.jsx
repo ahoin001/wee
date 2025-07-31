@@ -98,13 +98,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    if (wallpapers && wallpapers.length > 0) {
-      console.log('Saved wallpapers:', wallpapers);
-      wallpapers.forEach(wp => console.log('Wallpaper URL:', wp.url));
-    }
-  }, [wallpapers]);
-
   // Upload a new wallpaper
   const handleUpload = async () => {
     setUploading(true);

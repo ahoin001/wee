@@ -22,7 +22,6 @@ function UpdateModal({ isOpen, onClose }) {
 
   // Handle update status changes
   const handleUpdateStatus = (data) => {
-    console.log('[UpdateModal] Received update status:', data);
     setUpdateStatus(data);
     
     if (data.status === 'downloading') {
@@ -109,11 +108,9 @@ function UpdateModal({ isOpen, onClose }) {
   // Check for updates
   const handleCheckForUpdates = async () => {
     try {
-      console.log('[UpdateModal] Checking for updates...');
       setUpdateStatus({ status: 'checking' });
       
       const result = await window.api.updater.checkForUpdates();
-      console.log('[UpdateModal] Update check result:', result);
       
       if (!result.success) {
         setUpdateStatus({ 
@@ -132,7 +129,6 @@ function UpdateModal({ isOpen, onClose }) {
       }
       
       // If no specific status returned, assume no updates available
-      console.log('[UpdateModal] No status events received, assuming no updates available');
       setUpdateStatus({ status: 'not-available' });
       
     } catch (error) {
