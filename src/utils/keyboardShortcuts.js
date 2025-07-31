@@ -1,34 +1,14 @@
 // Default keyboard shortcuts configuration
 export const DEFAULT_SHORTCUTS = [
   {
-    id: 'open-presets-modal',
-    name: 'Open Presets Modal',
-    description: 'Open the presets management modal',
-    defaultKey: 'p',
+    id: 'open-app-shortcuts-modal',
+    name: 'Open App Shortcuts Modal',
+    description: 'Open the app shortcuts management modal',
+    defaultKey: 'a',
     defaultModifier: 'ctrl',
-    action: 'openPresetsModal',
+    action: 'openAppShortcutsModal',
     category: 'Modals',
-    icon: '🎨'
-  },
-  {
-    id: 'open-wallpaper-modal',
-    name: 'Open Wallpaper Modal',
-    description: 'Open the wallpaper settings modal',
-    defaultKey: 'w',
-    defaultModifier: 'ctrl',
-    action: 'openWallpaperModal',
-    category: 'Modals',
-    icon: '🖼️'
-  },
-  {
-    id: 'open-sound-modal',
-    name: 'Open Sound Modal',
-    description: 'Open the sound settings modal',
-    defaultKey: 's',
-    defaultModifier: 'ctrl',
-    action: 'openSoundModal',
-    category: 'Modals',
-    icon: '🔊'
+    icon: '📱'
   },
   {
     id: 'open-channel-settings-modal',
@@ -41,16 +21,6 @@ export const DEFAULT_SHORTCUTS = [
     icon: '⚙️'
   },
   {
-    id: 'open-app-shortcuts-modal',
-    name: 'Open App Shortcuts Modal',
-    description: 'Open the app shortcuts management modal',
-    defaultKey: 'a',
-    defaultModifier: 'ctrl',
-    action: 'openAppShortcutsModal',
-    category: 'Modals',
-    icon: '📱'
-  },
-  {
     id: 'open-general-settings-modal',
     name: 'Open General Settings Modal',
     description: 'Open the general settings modal',
@@ -61,14 +31,24 @@ export const DEFAULT_SHORTCUTS = [
     icon: '⚙️'
   },
   {
-    id: 'open-time-settings-modal',
-    name: 'Open Time Settings Modal',
-    description: 'Open the time and date settings modal',
+    id: 'open-presets-modal',
+    name: 'Open Presets Modal',
+    description: 'Open the presets management modal',
+    defaultKey: 'p',
+    defaultModifier: 'ctrl',
+    action: 'openPresetsModal',
+    category: 'Modals',
+    icon: '🎨'
+  },
+  {
+    id: 'open-primary-actions-modal',
+    name: 'Open Primary Actions Modal',
+    description: 'Open the primary actions configuration modal',
     defaultKey: '',
     defaultModifier: 'none',
-    action: 'openTimeSettingsModal',
+    action: 'openPrimaryActionsModal',
     category: 'Modals',
-    icon: '🕐'
+    icon: '⚙️'
   },
   {
     id: 'open-ribbon-settings-modal',
@@ -81,6 +61,26 @@ export const DEFAULT_SHORTCUTS = [
     icon: '🎨'
   },
   {
+    id: 'open-sound-modal',
+    name: 'Open Sound Modal',
+    description: 'Open the sound settings modal',
+    defaultKey: 's',
+    defaultModifier: 'ctrl',
+    action: 'openSoundModal',
+    category: 'Modals',
+    icon: '🔊'
+  },
+  {
+    id: 'open-time-settings-modal',
+    name: 'Open Time Settings Modal',
+    description: 'Open the time and date settings modal',
+    defaultKey: '',
+    defaultModifier: 'none',
+    action: 'openTimeSettingsModal',
+    category: 'Modals',
+    icon: '🕐'
+  },
+  {
     id: 'open-update-modal',
     name: 'Open Update Modal',
     description: 'Open the app update modal',
@@ -91,14 +91,14 @@ export const DEFAULT_SHORTCUTS = [
     icon: '🔄'
   },
   {
-    id: 'open-primary-actions-modal',
-    name: 'Open Primary Actions Modal',
-    description: 'Open the primary actions configuration modal',
-    defaultKey: '',
-    defaultModifier: 'none',
-    action: 'openPrimaryActionsModal',
+    id: 'open-wallpaper-modal',
+    name: 'Open Wallpaper Modal',
+    description: 'Open the wallpaper settings modal',
+    defaultKey: 'w',
+    defaultModifier: 'ctrl',
+    action: 'openWallpaperModal',
     category: 'Modals',
-    icon: '⚙️'
+    icon: '🖼️'
   },
   {
     id: 'toggle-settings-menu',
@@ -121,9 +121,9 @@ export const formatShortcut = (shortcut) => {
   }
   
   const modifierText = modifier === 'ctrl' ? 'Ctrl' : 
-                      modifier === 'alt' ? 'Alt' : 
-                      modifier === 'shift' ? 'Shift' : 
-                      modifier === 'meta' ? 'Meta' : '';
+                       modifier === 'alt' ? 'Alt' : 
+                       modifier === 'shift' ? 'Shift' : 
+                       modifier === 'meta' ? 'Meta' : '';
   
   return `${modifierText}+${key.toUpperCase()}`;
 };
@@ -210,4 +210,4 @@ export const getShortcutsByCategory = (shortcuts) => {
   });
   
   return grouped;
-}; 
+};

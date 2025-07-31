@@ -180,6 +180,7 @@ function AppShortcutsModal({ isOpen, onClose }) {
                   <Text weight={600} size="lg" style={{ marginBottom: 4 }}>
                     {shortcut.name}
                   </Text>
+                  <br />
                   <Text color="#666" size="sm" style={{ marginBottom: 2 }}>
                     {shortcut.description}
                   </Text>

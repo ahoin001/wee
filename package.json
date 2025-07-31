@@ -37,12 +37,6 @@
         "to": "sounds"
       }
     ],
-    "exclude": [
-      "test-*.js",
-      "debug-*.js",
-      ".env*",
-      "node_modules/**/*"
-    ],
     "publish": [
       {
         "provider": "github",
