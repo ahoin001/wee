@@ -6,11 +6,8 @@ class AuthService {
     this.isAnonymous = true;
     this.listeners = [];
     
-    // console.log('[AUTH SERVICE] Initializing...');
-    
     // Listen for auth state changes
     if (supabase) {
-      console.log('[AUTH SERVICE] Setting up auth state listener...');
       supabase.auth.onAuthStateChange((event, session) => {
         // console.log('[AUTH SERVICE] Auth state changed:', event, session?.user?.email);
         this.user = session?.user || null;
@@ -41,9 +38,6 @@ class AuthService {
 
   // Sign up
   async signUp(email, password) {
-    console.log('[AUTH] Attempting sign up for:', email);
-    console.log('[AUTH] Supabase client:', supabase ? 'Available' : 'Not configured');
-    
     if (!supabase) {
       console.error('[AUTH] Supabase not configured - check environment variables');
       return { error: 'Supabase not configured. Please check your environment variables.' };

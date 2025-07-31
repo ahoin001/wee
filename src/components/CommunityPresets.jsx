@@ -10,11 +10,28 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [downloading, setDownloading] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
+
+  // Get unique tags from all presets
+  const allTags = [...new Set(presets.flatMap(preset => preset.tags || []))].sort();
+
+  // Filter presets by search term and selected tag
+  const filteredPresets = presets.filter(preset => {
+    const matchesSearch = !searchTerm || 
+      preset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      preset.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      preset.creator_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTag = !selectedTag || 
+      (preset.tags && preset.tags.includes(selectedTag));
+    
+    return matchesSearch && matchesTag;
+  });
 
   useEffect(() => {
     loadPresets();
@@ -112,6 +129,23 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
             />
           </div>
           <select
+            value={selectedTag}
+            onChange={(e) => setSelectedTag(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              border: '1px solid hsl(var(--border-primary))',
+              borderRadius: '6px',
+              background: 'hsl(var(--surface-primary))',
+              color: 'hsl(var(--text-primary))',
+              minWidth: '120px'
+            }}
+          >
+            <option value="">All Tags</option>
+            {allTags.map(tag => (
+              <option key={tag} value={tag}>{tag}</option>
+            ))}
+          </select>
+          <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             style={{
@@ -141,11 +175,11 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
           gap: '12px',
           maxWidth: '100%'
         }}>
-          {presets.map((preset) => (
+          {filteredPresets.map((preset) => (
             <Card key={preset.id} style={{ padding: '12px', position: 'relative', minHeight: '200px' }}>
               {/* Image Section */}
               <div style={{ marginBottom: '8px' }}>
-                {preset.thumbnail_url ? (
+                {preset.display_image_url ? (
                   <div 
                     style={{ 
                       position: 'relative',
@@ -155,12 +189,12 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
                       border: '1px solid hsl(var(--border-primary))'
                     }}
                     onClick={() => handleImageClick(
-                      `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/thumbnails/${preset.thumbnail_url}`,
+                      `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/preset-displays/${preset.display_image_url}`,
                       preset.name
                     )}
                   >
                     <img 
-                      src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/thumbnails/${preset.thumbnail_url}`}
+                      src={`https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/preset-displays/${preset.display_image_url}`}
                       alt="Preset thumbnail"
                       style={{ 
                         width: '100%', 
@@ -213,10 +247,35 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
                 <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '4px', fontSize: '12px' }}>
                   by {preset.creator_name || 'Anonymous'}
                 </Text>
+                <br />
                 {preset.description && (
                   <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', lineHeight: '1.3', fontSize: '11px' }}>
                     {preset.description}
                   </Text>
+                )}
+                
+                {/* Tags Section */}
+                {preset.tags && preset.tags.length > 0 && (
+                  <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {preset.tags.map(tag => (
+                      <span
+                        key={tag}
+                        style={{
+                          background: 'hsl(var(--primary))',
+                          color: 'white',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                          opacity: selectedTag === tag ? 1 : 0.7
+                        }}
+                        onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
+                        title={`Filter by ${tag}`}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -247,7 +306,7 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
         </div>
       )}
 
-      {!loading && presets.length === 0 && (
+      {!loading && filteredPresets.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px' }}>
           <Text>No community presets found.</Text>
           <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', marginTop: '8px' }}>

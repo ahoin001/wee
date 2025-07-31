@@ -428,7 +428,7 @@ function App() {
 
   // Preset handlers (must be inside App)
   const handleSavePreset = async (name, includeChannels = false, includeSounds = false, importedData = null) => {
-    if (presets.length >= 6) return;
+    // if (presets.length >= 6) return;
     const data = importedData || {
       // WiiRibbon & Glow
       ribbonColor, ribbonGlowColor, ribbonGlowStrength, ribbonGlowStrengthHover, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, recentRibbonColors, recentRibbonGlowColors,
@@ -456,7 +456,8 @@ function App() {
       data.soundLibrary = soundLibrary;
     }
     
-    setPresets(prev => [...prev, { name, data }].slice(0, 6));
+    setPresets(prev => [...prev, { name, data }]);
+
   };
   const handleDeletePreset = (name) => {
     // Show confirmation dialog for anonymous deleting

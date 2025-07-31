@@ -47,6 +47,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     name: '',
     description: '',
     creator_name: '',
+    tags: '',
     custom_image: null,
     selectedPreset: null
   });
@@ -405,39 +406,119 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       setUploading(true);
       setUploadMessage({ type: '', text: '' });
 
-      // Create preset data from the selected preset
-      const presetData = {
-        name: uploadFormData.name,
-        data: {
-          ...uploadFormData.selectedPreset.data
+      console.log('[UPLOAD] Starting preset upload...');
+      console.log('[UPLOAD] Selected preset:', uploadFormData.selectedPreset);
+      console.log('[UPLOAD] Wallpaper URL:', uploadFormData.selectedPreset.data?.wallpaper?.url);
+      console.log('[UPLOAD] Custom image:', uploadFormData.custom_image ? 'Present' : 'None');
+
+      // Get current wallpaper if it exists
+      let wallpaperFile = null;
+      if (uploadFormData.selectedPreset.data?.wallpaper?.url) {
+        try {
+          console.log('[UPLOAD] Processing wallpaper...');
+          // For local wallpaper URLs, we need to get the file data from the filesystem
+          if (uploadFormData.selectedPreset.data.wallpaper.url.startsWith('userdata://')) {
+            console.log('[UPLOAD] Getting local wallpaper file...');
+            // Use Electron API to get the file data
+            const wallpaperResult = await window.api.wallpapers.getFile(uploadFormData.selectedPreset.data.wallpaper.url);
+            console.log('[UPLOAD] Wallpaper result:', wallpaperResult);
+            if (wallpaperResult.success) {
+              // Convert base64 data to File object
+              const binaryString = atob(wallpaperResult.data);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              wallpaperFile = new File([bytes], wallpaperResult.filename, { 
+                type: uploadFormData.selectedPreset.data.wallpaper.mimeType || 'image/jpeg' 
+              });
+              console.log('[UPLOAD] Created wallpaper file:', wallpaperFile.name, wallpaperFile.size);
+            }
+          } else {
+            console.log('[UPLOAD] Getting external wallpaper...');
+            // For external URLs, try to fetch
+            const response = await fetch(uploadFormData.selectedPreset.data.wallpaper.url);
+            const blob = await response.blob();
+            wallpaperFile = new File([blob], 'wallpaper.jpg', { type: 'image/jpeg' });
+            console.log('[UPLOAD] Created external wallpaper file:', wallpaperFile.name, wallpaperFile.size);
+          }
+        } catch (error) {
+          console.warn('[UPLOAD] Could not load wallpaper for upload:', error);
         }
+      } else {
+        console.log('[UPLOAD] No wallpaper found in preset');
+      }
+
+      // Process custom image if provided
+      let customImageFile = null;
+      if (uploadFormData.custom_image) {
+        try {
+          console.log('[UPLOAD] Processing custom image...');
+          // Convert base64 to File object
+          const base64Data = uploadFormData.custom_image.split(',')[1]; // Remove data URL prefix
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          customImageFile = new File([bytes], 'custom-display.jpg', { type: 'image/jpeg' });
+          console.log('[UPLOAD] Created custom image file:', customImageFile.name, customImageFile.size);
+        } catch (error) {
+          console.warn('[UPLOAD] Could not process custom image:', error);
+        }
+      } else {
+        console.log('[UPLOAD] No custom image provided');
+      }
+
+      // Create preset data for new schema
+      const presetData = {
+        settings: uploadFormData.selectedPreset.data,
+        wallpaper: wallpaperFile,
+        customImage: customImageFile
       };
 
-      const uploadData = {
-        ...uploadFormData
+      console.log('[UPLOAD] Preset data created:', {
+        hasSettings: !!presetData.settings,
+        hasWallpaper: !!presetData.wallpaper,
+        hasCustomImage: !!presetData.customImage,
+        wallpaperSize: presetData.wallpaper?.size,
+        customImageSize: presetData.customImage?.size
+      });
+
+      // Create form data for new schema
+      const formData = {
+        name: uploadFormData.name,
+        description: uploadFormData.description,
+        tags: uploadFormData.tags ? uploadFormData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [],
+        creator_name: uploadFormData.creator_name || 'Anonymous'
       };
+
+      console.log('[UPLOAD] Form data:', formData);
+      console.log('[UPLOAD] Calling uploadPreset...');
       
-      const result = await uploadPreset(presetData, uploadData);
+      const result = await uploadPreset(presetData, formData);
       
-      if (result.success) {
+      console.log('[UPLOAD] Upload result:', result);
+      
+      if (result) {
         setUploadMessage({ type: 'success', text: 'Preset uploaded successfully!' });
         setTimeout(() => {
           setShowUploadForm(false);
-                  setUploadFormData({ 
-          name: '', 
-          description: '', 
-          creator_name: '', 
-          custom_image: null,
-          selectedPreset: null
-        });
+          setUploadFormData({ 
+            name: '', 
+            description: '', 
+            creator_name: '', 
+            tags: '',
+            custom_image: null,
+            selectedPreset: null
+          });
           setUploadMessage({ type: '', text: '' });
-          setIncludeChannelsUpload(false);
-          setIncludeSoundsUpload(false);
         }, 1500);
       } else {
-        setUploadMessage({ type: 'error', text: `Failed to upload: ${result.error}` });
+        setUploadMessage({ type: 'error', text: 'Failed to upload preset' });
       }
     } catch (error) {
+      console.error('[UPLOAD] Upload error:', error);
       setUploadMessage({ type: 'error', text: `Upload failed: ${error.message}` });
     } finally {
       setUploading(false);
@@ -640,10 +721,11 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
               <Button 
                 variant="primary" 
                 onClick={() => {
-                  setUploadFormData({
-                    name: '',
-                    description: '',
-                    creator_name: '',
+                  setUploadFormData({ 
+                    name: '', 
+                    description: '', 
+                    creator_name: '', 
+                    tags: '',
                     custom_image: null,
                     selectedPreset: null
                   });
@@ -717,6 +799,27 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                     background: 'hsl(var(--surface-primary))',
                     color: 'hsl(var(--text-primary))',
                     resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <Text variant="label" style={{ marginBottom: '8px' }}>Tags (Optional)</Text>
+                <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginBottom: '8px' }}>
+                  Add tags to help others find your preset. Separate with commas.
+                </Text>
+                <input
+                  type="text"
+                  value={uploadFormData.tags}
+                  onChange={(e) => handleUploadInputChange('tags', e.target.value)}
+                  placeholder="gaming, dark theme, minimal, etc."
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid hsl(var(--border-primary))',
+                    borderRadius: '6px',
+                    background: 'hsl(var(--surface-primary))',
+                    color: 'hsl(var(--text-primary))'
                   }}
                 />
               </div>
@@ -803,7 +906,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                   variant="secondary" 
                   onClick={() => {
                     setShowUploadForm(false);
-                    setUploadFormData({ name: '', description: '', creator_name: '' });
+                    setUploadFormData({ name: '', description: '', creator_name: '', tags: '' });
                     setUploadMessage({ type: '', text: '' });
                   }}
                   disabled={uploading}
