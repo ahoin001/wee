@@ -7,7 +7,7 @@ import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Button from '../ui/Button';
 // Remove unused imports related to old fetching/caching logic
 // import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
-import AppPathSectionCard from './AppPathSectionCard';
+import UnifiedAppPathCard from './UnifiedAppPathCard';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import { useCallback } from 'react';
 import Card from '../ui/Card';
@@ -27,7 +27,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [asAdmin, setAsAdmin] = useState(currentAsAdmin);
   const fileInputRef = useRef();
   const galleryFileInputRef = useRef();
-  const exeFileInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
   // Hover sound state
   const [hoverSound, setHoverSound] = useState(currentHoverSound || null);
@@ -47,13 +46,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     currentKenBurnsMode === 'slideshow' ? 'hover' : currentKenBurnsMode
   );
   
-  const [gameQuery, setGameQuery] = useState('');
-  const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
-  const [gameType, setGameType] = useState(type || 'exe'); // 'exe', 'url', 'steam', 'epic'
-  const [appQuery, setAppQuery] = useState('');
-  const [appDropdownOpen, setAppDropdownOpen] = useState(false);
-
-  // Zustand store selectors
+  // Zustand store selectors (still needed for unified app system)
   const {
     installedApps, appsLoading, appsError, fetchInstalledApps, rescanInstalledApps,
     steamGames, steamLoading, steamError, fetchSteamGames, rescanSteamGames,
@@ -62,48 +55,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     customSteamPath, setCustomSteamPath
   } = useAppLibraryStore();
 
-  // Fuzzy search for apps
-  const appResults = (type === 'exe' && appQuery && installedApps.length > 0)
-    ? installedApps.filter(a => a.name.toLowerCase().includes(appQuery.toLowerCase())).slice(0, 10)
-    : [];
-
-  // Fuzzy search for games
-  const installedGames = (gameType === 'steam') ? steamGames : (gameType === 'epic' ? epicGames : []);
-  const gameResults = (['steam', 'epic'].includes(gameType) && gameQuery && installedGames.length > 0)
-    ? installedGames.filter(g => g.name.toLowerCase().includes(gameQuery.toLowerCase())).slice(0, 10)
-    : [];
-
-  // Fuzzy search for UWP
-  const [uwpQuery, setUwpQuery] = useState('');
-  const [uwpDropdownOpen, setUwpDropdownOpen] = useState(false);
-  const filteredUwpApps = uwpApps.filter(app =>
-    app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
-    app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
-  );
-
-  // Best-practice: useEffect to sync dropdown open state with results
-  useEffect(() => {
-    if (type === 'exe') {
-      if (appQuery && appResults.length > 0) setAppDropdownOpen(true);
-      else setAppDropdownOpen(false);
-    }
-  }, [type, appQuery, appResults.length]);
-
-  useEffect(() => {
-    if ((gameType === 'steam' || gameType === 'epic')) {
-      if (gameQuery && gameResults.length > 0) setGameDropdownOpen(true);
-      else setGameDropdownOpen(false);
-    }
-  }, [gameType, gameQuery, gameResults.length]);
-
-  useEffect(() => {
-    if (type === 'microsoftstore') {
-      if (uwpQuery && filteredUwpApps.length > 0) setUwpDropdownOpen(true);
-      else setUwpDropdownOpen(false);
-    }
-  }, [type, uwpQuery, filteredUwpApps.length]);
-
-  // Fetch app library data when modal opens
+  // Fetch app library data when modal opens (for unified system)
   useEffect(() => {
     // Fetch installed apps if not already loaded
     if (installedApps.length === 0 && !appsLoading) {
@@ -382,19 +334,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     });
   };
 
-  const handleExeFileSelect = (file) => {
-    if (file) {
-      // For Electron apps, we can get the file path
-      if (file.path) {
-        setPath(file.path);
-        setPathError('');
-      } else {
-        // Fallback for web browsers
-        setPath(file.name);
-        setPathError('');
-      }
-    }
-  };
+
 
   const handleImageSelect = (img) => {
     setMedia({ url: img.url, type: img.format === 'image' ? 'image/png' : img.format === 'gif' ? 'image/gif' : img.format === 'mp4' ? 'video/mp4' : '', name: img.name, isBuiltin: true });
@@ -470,70 +410,46 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
 
-  const handleGameResultClick = (game) => {
-    console.log('[ChannelModal] handleGameResultClick called with game:', game);
-    console.log('[ChannelModal] gameType:', gameType);
+  // Unified app path change handler
+  const handleUnifiedAppPathChange = (config) => {
+    console.log('[ChannelModal] Unified app path config changed:', config);
     
-    let uri = '';
-    if (gameType === 'steam') {
-      uri = `steam://rungameid/${game.appid}`;
-      console.log('[ChannelModal] Generated Steam URI:', uri);
-    } else if (gameType === 'epic') {
-      // Epic Games Launcher URI format: com.epicgames.launcher://apps/[AppName]?action=launch&silent=true
-      // Alternative format: com.epicgames.launcher://apps/[AppName]?action=launch
-      uri = `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`;
-      console.log('[ChannelModal] Generated Epic URI:', uri);
-    }
-    
-    console.log('[ChannelModal] Setting path to:', uri);
-    setPath(uri);
-    setGameQuery(game.name);
-    setGameDropdownOpen(false);
-    setPathError('');
-  };
-
-  // Refactored handleGameRefresh
-  const handleGameRefresh = useCallback(async () => {
-    try {
-      if (gameType === 'steam') {
-        await rescanSteamGames(customSteamPath);
-      } else if (gameType === 'epic') {
-        await rescanEpicGames();
+    if (config.launchType === 'url') {
+      setType('url');
+      setPath(config.path || '');
+      console.log('[ChannelModal] Set URL:', config.path);
+    } else {
+      // Map app type to channel type
+      let newType = 'exe'; // default
+      if (config.selectedApp) {
+        switch (config.selectedApp.type) {
+          case 'steam':
+            newType = 'steam';
+            break;
+          case 'epic':
+            newType = 'epic';
+            break;
+          case 'microsoft':
+            newType = 'microsoftstore';
+            break;
+          case 'exe':
+          default:
+            newType = 'exe';
+            break;
+        }
+        console.log('[ChannelModal] Set app:', config.selectedApp.name, 'type:', newType, 'path:', config.path);
       }
-    } catch (err) {
-      console.error('Error during rescan:', err);
-      // Optionally: show a toast/notification
+      setType(newType);
+      setPath(config.path || '');
     }
-  }, [gameType, customSteamPath, rescanSteamGames, rescanEpicGames]);
-
-  const handlePickSteamFolder = async () => {
-    const result = await window.api.steam.pickLibraryFolder();
-    if (result && result.path) {
-      setCustomSteamPath(result.path);
-    }
-  };
-
-  const handleAppResultClick = (app) => {
-    console.log('[ChannelModal] handleAppResultClick called with app:', app);
-    
-    // Ensure we have a valid path
-    if (!app.path) {
-      console.error('[ChannelModal] App selected but path is missing:', app);
-      setPathError('Selected app has no file path. Please try rescanning apps or manually enter the path.');
-      return;
-    }
-    
-    const fullPath = app.args ? `${app.path} ${app.args}` : app.path;
-    console.log('[ChannelModal] Setting path to:', fullPath);
-    
-    setPath(fullPath);
-    setAppQuery(app.name);
-    setAppDropdownOpen(false);
-    setPathError('');
   };
 
   // On save, use channelsApi.set and reload state
   const handleSave = async (handleClose) => {
+    console.log('[ChannelModal] handleSave called');
+    console.log('[ChannelModal] Current type:', type);
+    console.log('[ChannelModal] Current path:', path);
+    
     // Validate that we have single media (gallery feature not ready)
     const hasMedia = media;
     if (!validatePath() || !hasMedia || !path.trim()) {
@@ -904,340 +820,17 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     );
   };
 
-  // Gather all relevant state for AppPathSectionCard
-  const appPathSectionValue = {
-    gameType,
-    appQuery,
-    appDropdownOpen,
-    appResults,
-    appsLoading,
-    appsError,
-    path,
-    pathError,
-    exeFileInputRef,
-    uwpQuery,
-    uwpDropdownOpen,
-    filteredUwpApps,
-    uwpLoading,
-    uwpError,
-    gameQuery,
-    gameDropdownOpen,
-    gameResults,
-    steamLoading,
-    epicLoading,
-    steamError,
-    epicError,
-    customSteamPath,
-  };
-
-  const handleAppPathSectionChange = updates => {
-    if ('gameType' in updates) { setGameType(updates.gameType); setType(updates.gameType); }
-    if ('appQuery' in updates) setAppQuery(updates.appQuery);
-    if ('appDropdownOpen' in updates) setAppDropdownOpen(updates.appDropdownOpen);
-    if ('path' in updates) setPath(updates.path);
-    if ('pathError' in updates) setPathError(updates.pathError);
-    if ('uwpQuery' in updates) setUwpQuery(updates.uwpQuery);
-    if ('uwpDropdownOpen' in updates) setUwpDropdownOpen(updates.uwpDropdownOpen);
-    if ('gameQuery' in updates) setGameQuery(updates.gameQuery);
-    if ('gameDropdownOpen' in updates) setGameDropdownOpen(updates.gameDropdownOpen);
-  };
-
-  const renderAppPathSection = () => (
-    <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
-        <label htmlFor={`launch-type-select-${channelId}`} style={{ fontWeight: 600, marginBottom: 4 }}>Launch Type</label>
-        <select
-          id={`launch-type-select-${channelId}`}
-          value={gameType}
-          onChange={e => { setGameType(e.target.value); setType(e.target.value); }}
-          className="select-box"
-        >
-          <option value="exe">Application (.exe)</option>
-          <option value="url">Website (URL)</option>
-          <option value="steam">Steam Game</option>
-          <option value="epic">Epic Game</option>
-          <option value="microsoftstore">Microsoft Store App</option>
-        </select>
-      </div>
-      {/* App Path Input (EXE) */}
-      {type === 'exe' && (
-        <div style={{ position: 'relative', marginBottom: 16 }}>
-          <AppPathSectionCard
-            value={appPathSectionValue}
-            onChange={handleAppPathSectionChange}
-            onAppSelect={handleAppResultClick}
-            onRescanInstalledApps={rescanInstalledApps}
-            onGameResultClick={handleGameResultClick}
-            handlePickSteamFolder={handlePickSteamFolder}
-            fetchSteamGames={fetchSteamGames}
-            handleGameRefresh={handleGameRefresh}
-            handleExeFileSelect={handleExeFileSelect}
-          />
-          {/* Visual indicator for loading */}
-          {appsLoading && appQuery && appResults.length === 0 && (
-            <div style={{ position: 'absolute', left: 0, top: '100%', color: '#007bff', fontWeight: 500, fontSize: 15, marginTop: 4 }}>
-              <span>Scanning for installed apps...</span>
-            </div>
-          )}
-        </div>
-      )}
-      {/* Microsoft Store AppID Input */}
-      {type === 'microsoftstore' && (
-        <div style={{ position: 'relative', marginBottom: 16 }}>
-          <input
-            type="text"
-            className="text-input"
-            placeholder="Search or enter Microsoft Store App name or AppID"
-            value={uwpQuery}
-            onChange={e => setUwpQuery(e.target.value)}
-            onFocus={() => { if (filteredUwpApps.length > 0) setUwpDropdownOpen(true); }}
-            onBlur={() => setTimeout(() => setUwpDropdownOpen(false), 150)}
-            style={{ width: '100%', padding: '12px 14px', fontSize: 17 }}
-            autoComplete="off"
-          />
-          {uwpLoading && uwpQuery && filteredUwpApps.length === 0 && (
-            <div style={{ position: 'absolute', top: 40, left: 0, color: '#007bff', fontWeight: 500, fontSize: 15 }}>
-              <span>Scanning for Microsoft Store apps...</span>
-            </div>
-          )}
-          {uwpError && <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8 }}>{uwpError}</div>}
-          {uwpDropdownOpen && filteredUwpApps.length > 0 && (
-            <div className="uwp-dropdown" style={{ position: 'absolute', zIndex: 10, background: '#fff', border: '1px solid #b0c4d8', width: '100%', maxHeight: 200, overflowY: 'auto', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              {filteredUwpApps.map(app => (
-                <div
-                  key={app.appId}
-                  style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
-                  onMouseDown={() => { setPath(app.appId); setUwpQuery(app.name); setUwpDropdownOpen(false); }}
-                >
-                  <div style={{ fontWeight: 500 }}>{app.name}</div>
-                  <div style={{ fontSize: 12, color: '#888' }}>{app.appId}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      <div className="path-input-group">
-        {(gameType === 'steam' || gameType === 'epic') ? (
-          <div style={{ width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-              <input
-                type="text"
-                placeholder={gameType === 'steam' ? 'Type a Steam game name (e.g. Rocket League) or paste a Steam URI' : 'Type an Epic game name (e.g. Fortnite) or paste an Epic URI'}
-                value={gameQuery}
-                onChange={e => { setGameQuery(e.target.value); setPath(e.target.value); setPathError(''); }}
-                className={`text-input ${pathError ? 'error' : ''}`}
-                style={{ flex: 1, padding: '12px 14px', fontSize: 17 }}
-                autoComplete="off"
-                onFocus={() => gameResults.length > 0 && setGameDropdownOpen(true)}
-                onBlur={() => setTimeout(() => setGameDropdownOpen(false), 150)}
-                disabled={gameType === 'steam' ? steamLoading : epicLoading}
-              />
-              {/* Add a Rescan button for Steam/Epic */}
-              {(gameType === 'steam' || gameType === 'epic') && (
-                <Button
-                  variant="primary"
-                  title={gameType === 'steam' ? 'Rescan your Steam library for installed games.' : 'Rescan your Epic library for installed games.'}
-                  style={{ fontSize: 14, borderRadius: 6, marginLeft: 0 }}
-                  onClick={handleGameRefresh}
-                  disabled={gameType === 'steam' ? steamLoading : epicLoading}
-                >
-                  {(gameType === 'steam' ? steamLoading : epicLoading) ? 'Scanning...' : 'Rescan'}
-                </Button>
-              )}
-              {gameType === 'steam' && (
-                <Button
-                  variant="secondary"
-                  title="Pick your main Steam folder (the one containing the steamapps folder and libraryfolders.vdf). Do NOT select the steamapps folder itself."
-                  style={{ fontSize: 14, borderRadius: 6, marginLeft: 0, background: '#f7fafd', color: '#222', border: '1px solid #b0c4d8' }}
-                  onClick={handlePickSteamFolder}
-                  disabled={steamLoading}
-                >
-                  Change Steam Folder
-                </Button>
-              )}
-              {/* Visual indicator for loading games */}
-              {(gameType === 'steam' && steamLoading && gameQuery && gameResults.length === 0) && (
-                <div style={{ position: 'absolute', left: 0, top: '100%', color: '#007bff', fontWeight: 500, fontSize: 15, marginTop: 4 }}>
-                  <span>Scanning for Steam games...</span>
-                </div>
-              )}
-              {(gameType === 'epic' && epicLoading && gameQuery && gameResults.length === 0) && (
-                <div style={{ position: 'absolute', left: 0, top: '100%', color: '#007bff', fontWeight: 500, fontSize: 15, marginTop: 4 }}>
-                  <span>Scanning for Epic games...</span>
-                </div>
-              )}
-              {gameDropdownOpen && gameResults.length > 0 && (
-                <ul style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  width: '100%',
-                  zIndex: 10,
-                  background: '#fff',
-                  border: '1px solid #b0c4d8',
-                  borderRadius: 8,
-                  margin: 0,
-                  padding: 0,
-                  maxHeight: 320,
-                  overflowY: 'auto',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.10)'
-                }}>
-                  {gameResults.map(game => (
-                    <li
-                      key={gameType === 'steam' ? game.appid : game.appName}
-                      className="steam-dropdown-result"
-                      style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '14px 18px', cursor: 'pointer', fontSize: 18, minHeight: 56, transition: 'background 0.15s' }}
-                      onMouseDown={() => {
-                        let uri = '';
-                        if (gameType === 'steam') {
-                          uri = `steam://rungameid/${game.appid}`;
-                        } else if (gameType === 'epic') {
-                          uri = `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`;
-                        }
-                        setPath(uri);
-                        setGameQuery(game.name);
-                        setGameDropdownOpen(false);
-                        setPathError('');
-                      }}
-                    >
-                      {gameType === 'steam' && (
-                        <img
-                          src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg`}
-                          alt={game.name + ' cover'}
-                          style={{ width: 90, height: 42, objectFit: 'cover', borderRadius: 6, background: '#e9eff3', flexShrink: 0, transition: 'transform 0.15s' }}
-                          onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }}
-                        />
-                      )}
-                      {gameType === 'epic' && game.image && (
-                        <img
-                          src={game.image}
-                          alt={game.name + ' cover'}
-                          style={{ width: 90, height: 42, objectFit: 'cover', borderRadius: 6, background: '#e9eff3', flexShrink: 0, transition: 'transform 0.15s' }}
-                          onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }}
-                        />
-                      )}
-                      <span>{game.name} <span style={{ color: '#888', fontSize: 15 }}>{gameType === 'steam' ? `(${game.appid})` : `(${game.appName})`}</span></span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 16 }}>
-              <span>Format: {gameType === 'steam' ? <code>steam://rungameid/[AppID]</code> : <code>com.epicgames.launcher://apps/[AppName]?action=launch&amp;silent=true</code>}</span>
-              <br />
-              <span>
-                If you can't find your game, make sure it's installed in your {gameType === 'steam' ? 'Steam' : 'Epic'} library.<br />
-                {gameType === 'steam' && (
-                  <>
-                    The correct Steam library path is required to scan your games. {customSteamPath ? <span>Currently using: <code>{customSteamPath}</code></span> : <span>Default: <code>C:\Program Files (x86)\Steam</code></span>}<br />
-                    <b>When changing the Steam folder, select your main Steam folder (the one containing the <code>steamapps</code> folder and <code>libraryfolders.vdf</code>).<br />Do <u>NOT</u> select the <code>steamapps</code> folder itself.</b><br />
-                    If you move your Steam library, use the <b>Change Steam Folder</b> button.
-                  </>
-                )}
-              </span>
-            </div>
-            {(gameType === 'steam' && steamError) && (
-              <div style={{ color: '#dc3545', fontWeight: 500, marginTop: 8, fontSize: 15 }}>
-                {steamError} <br />
-                Please ensure Steam is installed and you have games downloaded.
-              </div>
-            )}
-            {(gameType === 'epic' && epicError) && (
-              <div style={{ color: '#dc3545', fontWeight: 500, marginTop: 8, fontSize: 15 }}>
-                {epicError} <br />
-                Please ensure Epic Games Launcher is installed and you have games downloaded.
-              </div>
-            )}
-            {(gameType === 'steam' && steamLoading) && (
-              <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 18, color: '#007bff', fontWeight: 500 }}>
-                Scanning your Steam library for installed games...
-              </div>
-            )}
-            {(gameType === 'epic' && epicLoading) && (
-              <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 18, color: '#007bff', fontWeight: 500 }}>
-                Scanning your Epic library for installed games...
-              </div>
-            )}
-            {!steamLoading && !steamError && gameType === 'steam' && installedGames.length === 0 && (
-              <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 16, color: '#888', fontWeight: 500 }}>
-                No installed Steam games found.
-              </div>
-            )}
-            {!epicLoading && !epicError && gameType === 'epic' && installedGames.length === 0 && (
-              <div style={{ textAlign: 'center', margin: '18px 0', fontSize: 16, color: '#888', fontWeight: 500 }}>
-                No installed Epic games found.
-              </div>
-            )}
-            <style>{`
-              .steam-dropdown-result:hover {
-                background: #f0f6ff !important;
-                transition: background 0.15s, transform 0.15s;
-              }
-              .steam-dropdown-result:hover img {
-                transform: scale(1.07);
-                transition: transform 0.15s;
-              }
-              .steam-dropdown-result:hover span {
-                transform: scale(1.04);
-                transition: transform 0.15s;
-              }
-            `}</style>
-          </div>
-        ) : (
-          <>
-            <input
-              type="text"
-              placeholder={type === 'exe' ? 'C:\\Path\\To\\Application.exe or paste path here' : 'https://example.com'}
-              value={path}
-              onChange={e => { setPath(e.target.value); setPathError(''); }}
-              className={`text-input ${pathError ? 'error' : ''}`}
-            />
-            {type === 'exe' && (
-              <>
-                <button
-                  className="file-picker-button"
-                  onClick={async () => {
-                    if (window.api && window.api.selectExeOrShortcutFile) {
-                      const result = await window.api.selectExeOrShortcutFile();
-                      if (result && result.success && result.file) {
-                        let newPath = result.file.path;
-                        if (result.file.args && result.file.args.trim()) {
-                          newPath += ' ' + result.file.args.trim();
-                        }
-                        setPath(newPath);
-                        setPathError('');
-                      } else if (result && result.error) {
-                        setPathError(result.error);
-                      }
-                    } else {
-                      exeFileInputRef.current?.click();
-                    }
-                  }}
-                >
-                  Browse Files
-                </button>
-                <input
-                  type="file"
-                  accept=".exe,.bat,.cmd,.com,.pif,.scr,.vbs,.js,.msi,.lnk"
-                  ref={exeFileInputRef}
-                  onChange={e => handleExeFileSelect(e.target.files[0])}
-                  style={{ display: 'none' }}
-                />
-              </>
-            )}
-          </>
-        )}
-      </div>
-      {pathError && <Text variant="error">{pathError}</Text>}
-      <Text variant="help">
-        {type === 'exe'
-          ? (<>I suggest searching the app in your search bar, right click it - open file location - right click the file and click properties - copy and paste what is in the Target field.<br />Example: C:\Users\ahoin\AppData\Local\Discord\Update.exe --processStart Discord.exe</>)
-          : type === 'steam'
-            ? (<>Type a Steam game name and select from the list, or paste a Steam URI/AppID directly.<br />Example: steam://rungameid/252950</>)
-            : 'Enter the complete URL including https://'}
-      </Text>
-    </>
+  // Unified app path section
+  const renderUnifiedAppPathSection = () => (
+    <UnifiedAppPathCard
+      value={{
+        launchType: type === 'url' ? 'url' : 'application',
+        appName: '', // Will be set by the unified system
+        path: path,
+        selectedApp: null // Will be set by the unified system
+      }}
+      onChange={handleUnifiedAppPathChange}
+    />
   );
 
   const renderDisplayOptionsSection = () => (
@@ -1468,18 +1061,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           {renderImageSection()}
         </Card>
         {/* App Path/URL Card */}
-        <Card title="App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
-          <AppPathSectionCard
-            value={appPathSectionValue}
-            onChange={handleAppPathSectionChange}
-            onAppSelect={handleAppResultClick}
-            onRescanInstalledApps={rescanInstalledApps}
-            onGameResultClick={handleGameResultClick}
-            handlePickSteamFolder={handlePickSteamFolder}
-            fetchSteamGames={fetchSteamGames}
-            handleGameRefresh={handleGameRefresh}
-            handleExeFileSelect={handleExeFileSelect}
-          />
+        <Card title="Unified App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
+          {renderUnifiedAppPathSection()}
         </Card>
         {/* Launch Options Card */}
         <Card title="Launch Options" separator desc="Choose how this application should be launched when the channel is clicked.">
