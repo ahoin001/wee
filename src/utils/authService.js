@@ -6,13 +6,13 @@ class AuthService {
     this.isAnonymous = true;
     this.listeners = [];
     
-    console.log('[AUTH SERVICE] Initializing...');
+    // console.log('[AUTH SERVICE] Initializing...');
     
     // Listen for auth state changes
     if (supabase) {
       console.log('[AUTH SERVICE] Setting up auth state listener...');
       supabase.auth.onAuthStateChange((event, session) => {
-        console.log('[AUTH SERVICE] Auth state changed:', event, session?.user?.email);
+        // console.log('[AUTH SERVICE] Auth state changed:', event, session?.user?.email);
         this.user = session?.user || null;
         this.isAnonymous = !this.user;
         this.notifyListeners();
@@ -131,7 +131,7 @@ class AuthService {
   }
 
   notifyListeners() {
-    console.log('[AUTH SERVICE] Notifying listeners:', this.listeners.length, 'listeners');
+    // console.log('[AUTH SERVICE] Notifying listeners:', this.listeners.length, 'listeners');
     this.listeners.forEach(callback => callback(this.user, this.isAnonymous));
   }
 

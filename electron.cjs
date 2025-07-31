@@ -1600,6 +1600,7 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
       const [executablePath, ...args] = parseExeAndArgs(appPath);
       const workingDir = path.dirname(executablePath);
       console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
+      
       if (asAdmin) {
         const argsString = args.length > 0 ? ` -ArgumentList "${args.join('", "')}"` : '';
         const command = `Start-Process -FilePath "${executablePath}"${argsString} -Verb RunAs`;
@@ -1615,12 +1616,23 @@ ipcMain.on('launch-app', (event, { type, path: appPath, asAdmin }) => {
         console.log('[SPAWN CALL]', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
         const child = spawn(executablePath, args, {
           cwd: workingDir,
-        detached: true,
-        stdio: 'ignore',
+          detached: true,
+          stdio: 'ignore',
           shell: false
         });
-        child.on('error', (err) => console.error('Failed to launch executable:', err));
-        child.on('spawn', () => { console.log('Executable launched successfully'); child.unref(); });
+        child.on('error', (err) => {
+          console.error('[LAUNCH ERROR] Failed to launch executable:', err);
+          console.error('[LAUNCH ERROR] Executable path:', executablePath);
+          console.error('[LAUNCH ERROR] Arguments:', args);
+          console.error('[LAUNCH ERROR] Working directory:', workingDir);
+        });
+        child.on('spawn', () => { 
+          console.log('[LAUNCH SUCCESS] Executable launched successfully'); 
+          child.unref(); 
+        });
+        child.on('exit', (code, signal) => {
+          console.log('[LAUNCH EXIT] App exited with code:', code, 'signal:', signal);
+        });
       }
     } catch (err) {
       console.error('Failed to launch executable:', err);

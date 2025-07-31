@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BaseModal from './BaseModal';
-import AppPathSectionCard from './AppPathSectionCard';
+// import AppPathSectionCard from './AppPathSectionCard'; // LEGACY: No longer used
+import UnifiedAppPathCard from './UnifiedAppPathCard';
 import Button from '../ui/Button';
 import Toggle from '../ui/Toggle';
 import AdminPanel from './AdminPanel';
@@ -313,14 +314,14 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   };
 
   const validatePath = () => {
-    if (!path.trim()) {
+    if (!action.trim()) {
       setPathError('');
       return true;
     }
-    if (gameType === 'url') {
+    if (actionType === 'url') {
       // Validate URL format
       try {
-        const url = new URL(path.trim());
+        const url = new URL(action.trim());
         if (url.protocol === 'http:' || url.protocol === 'https:') {
           setPathError('');
           return true;
@@ -332,36 +333,36 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
         setPathError('Please enter a valid URL (e.g., https://example.com)');
         return false;
       }
-    } else if (gameType === 'steam') {
+    } else if (actionType === 'steam') {
       // Validate Steam URI/AppID format
-      if (path.trim().startsWith('steam://') || path.trim().startsWith('steam://rungameid/') || path.trim().startsWith('steam://launch/')) {
+      if (action.trim().startsWith('steam://') || action.trim().startsWith('steam://rungameid/') || action.trim().startsWith('steam://launch/')) {
         setPathError('');
         return true;
       } else {
         setPathError('Please enter a valid Steam URI (e.g., steam://rungameid/252950) or AppID (e.g., 252950)');
         return false;
       }
-    } else if (gameType === 'epic') {
+    } else if (actionType === 'epic') {
       // Validate Epic URI format
-      if (path.trim().startsWith('com.epicgames.launcher://apps/')) {
+      if (action.trim().startsWith('com.epicgames.launcher://apps/')) {
         setPathError('');
         return true;
       } else {
         setPathError('Please enter a valid Epic URI (e.g., com.epicgames.launcher://apps/Fortnite?action=launch&silent=true)');
         return false;
       }
-    } else if (gameType === 'microsoftstore') {
+    } else if (actionType === 'microsoftstore') {
       // Accept any AppID containing an exclamation mark
-      if (typeof path === 'string' && path.includes('!')) {
+      if (typeof action === 'string' && action.includes('!')) {
         setPathError('');
         return true;
       } else {
         setPathError('Please enter a valid Microsoft Store AppID (e.g., ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr!App)');
         return false;
       }
-    } else if (gameType === 'exe') {
+    } else if (actionType === 'exe') {
       // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
-      const trimmedPath = path.trim();
+      const trimmedPath = action.trim();
       if (/\.exe(\s+.*)?$/i.test(trimmedPath) || /\.exe/i.test(trimmedPath)) {
         setPathError('');
         return true;
@@ -384,6 +385,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const handleSave = () => {
     console.log('PrimaryActionsModal handleSave called');
     console.log('Current powerActions at save time:', powerActions.length, powerActions.map(a => a.name));
+    console.log('Current actionType:', actionType);
+    console.log('Current action:', action);
     
     if (!isPresetsButton && !isAccessoryButton && !validatePath()) return;
     
@@ -391,8 +394,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       type,
       text: type === 'text' ? text : '',
       icon: type === 'icon' ? icon : null,
-      actionType: gameType, // Use gameType/type for actionType
-      action: path,         // Use path for action
+      actionType: actionType, // Use actionType from unified system
+      action: action,         // Use action from unified system
       useWiiGrayFilter: type === 'icon' ? useWiiGrayFilter : false,
       useAdaptiveColor,
       useGlowEffect,
@@ -675,123 +678,124 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     console.log('PrimaryActionsModal powerActions state updated');
   };
 
-  // Replace the renderAppPathSection function with the robust version from ChannelModal, adapting variable names for PrimaryActionsModal context.
-  const renderAppPathSection = () => {
-    // Gather all relevant state for AppPathSectionCard
-    const appPathSectionValue = {
-      gameType,
-      appQuery,
-      appDropdownOpen,
-      appResults,
-      appsLoading: appsLoading,
-      appsError: appsError,
-      path,
-      pathError,
-      exeFileInputRef,
-      uwpQuery,
-      uwpDropdownOpen,
-      filteredUwpApps,
-      uwpLoading: uwpLoading,
-      uwpError: uwpError,
-      gameQuery,
-      gameDropdownOpen,
-      gameResults,
-      steamLoading: steamLoading,
-      epicLoading: epicLoading,
-      steamError: steamError,
-      epicError: epicError,
-      customSteamPath,
-    };
+  // LEGACY: Commented out the old renderAppPathSection function
+  // const renderAppPathSection = () => {
+  //   // Gather all relevant state for AppPathSectionCard
+  //   const appPathSectionValue = {
+  //     gameType,
+  //     appQuery,
+  //     appDropdownOpen,
+  //     appResults,
+  //     appsLoading: appsLoading,
+  //     appsError: appsError,
+  //     path,
+  //     pathError,
+  //     exeFileInputRef,
+  //     uwpQuery,
+  //     uwpDropdownOpen,
+  //     filteredUwpApps,
+  //     uwpLoading: uwpLoading,
+  //     uwpError: uwpError,
+  //     gameQuery,
+  //     gameDropdownOpen,
+  //     gameResults,
+  //     steamLoading: steamLoading,
+  //     epicLoading: epicLoading,
+  //     steamError: steamError,
+  //     epicError: epicError,
+  //     customSteamPath,
+  //   };
 
-    const handleAppPathSectionChange = updates => {
-      if ('gameType' in updates) {
-        setGameType(updates.gameType);
-        setActionType(updates.gameType); // Update actionType for saving
-      }
-      if ('appQuery' in updates) setAppQuery(updates.appQuery);
-      if ('appDropdownOpen' in updates) setAppDropdownOpen(updates.appDropdownOpen);
-      if ('path' in updates) {
-        setPath(updates.path);
-        setAction(updates.path); // Update action for saving
-      }
-      if ('pathError' in updates) setPathError(updates.pathError);
-      if ('uwpQuery' in updates) setUwpQuery(updates.uwpQuery);
-      if ('uwpDropdownOpen' in updates) setUwpDropdownOpen(updates.uwpDropdownOpen);
-      if ('gameQuery' in updates) setGameQuery(updates.gameQuery);
-      if ('gameDropdownOpen' in updates) setGameDropdownOpen(updates.gameDropdownOpen);
-    };
+  //   const handleAppPathSectionChange = updates => {
+  //     if ('gameType' in updates) {
+  //       setGameType(updates.gameType);
+  //       setActionType(updates.gameType); // Update actionType for saving
+  //     }
+  //     if ('appQuery' in updates) setAppQuery(updates.appQuery);
+  //     if ('appDropdownOpen' in updates) setAppDropdownOpen(updates.appDropdownOpen);
+  //     if ('path' in updates) {
+  //       setPath(updates.path);
+  //       setAction(updates.path); // Update action for saving
+  //     }
+  //     if ('pathError' in updates) setPathError(updates.pathError);
+  //     if ('uwpQuery' in updates) setUwpQuery(updates.uwpQuery);
+  //     if ('uwpDropdownOpen' in updates) setUwpDropdownOpen(updates.uwpDropdownOpen);
+  //     if ('gameQuery' in updates) setGameQuery(updates.gameQuery);
+  //     if ('gameDropdownOpen' in updates) setGameDropdownOpen(updates.gameDropdownOpen);
+  //   };
 
-    return (
-      <AppPathSectionCard
-        value={appPathSectionValue}
-        onChange={handleAppPathSectionChange}
-        onAppSelect={handleAppResultClick}
-        onRescanInstalledApps={rescanInstalledApps}
-        onGameResultClick={handleGameResultClick}
-        handlePickSteamFolder={handlePickSteamFolder}
-        handleGameRefresh={handleGameRefresh}
-      />
-    );
-  };
+  //   return (
+  //     <AppPathSectionCard
+  //       value={appPathSectionValue}
+  //       onChange={handleAppPathSectionChange}
+  //       onAppSelect={handleAppResultClick}
+  //       onRescanInstalledApps={rescanInstalledApps}
+  //       onGameResultClick={handleGameResultClick}
+  //       handlePickSteamFolder={handlePickSteamFolder}
+  //       handleGameRefresh={handleGameRefresh}
+  //     />
+  //   );
+  // };
 
-  // Handlers that work with Zustand store
-  const handleAppResultClick = (item) => {
-    const fullPath = item.args ? `${item.path} ${item.args}` : item.path;
-    const newPath = fullPath || item.name || '';
-                        setPath(newPath);
-    setAction(newPath); // Also update action for saving
-    setAppQuery(item.name || item.path || '');
-    setAppDropdownOpen(false);
-  };
+  // LEGACY: Commented out the old handlers that work with Zustand store
+  // const handleAppResultClick = (item) => {
+  //   const fullPath = item.args ? `${item.path} ${item.args}` : item.path;
+  //   const newPath = fullPath || item.name || '';
+  //                       setPath(newPath);
+  //   setAction(newPath); // Also update action for saving
+  //   setAppQuery(item.name || item.path || '');
+  //   setAppDropdownOpen(false);
+  // };
 
-  const handleGameResultClick = (game) => {
-    let newPath = '';
-    if (gameType === 'steam') {
-      newPath = `steam://rungameid/${game.appid}`;
-    } else if (gameType === 'epic') {
-      // Epic Games Launcher URI format: com.epicgames.launcher://apps/[AppName]?action=launch&silent=true
-      newPath = `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`;
-    } else {
-      newPath = game.appName;
-    }
-    setPath(newPath);
-    setAction(newPath); // Also update action for saving
-    setGameQuery(game.name);
-    setGameDropdownOpen(false);
-  };
+  // const handleGameResultClick = (game) => {
+  //   let newPath = '';
+  //   if (gameType === 'steam') {
+  //     newPath = `steam://rungameid/${game.appid}`;
+  //   } else if (gameType === 'epic') {
+  //     // Epic Games Launcher URI format: com.epicgames.launcher://apps/[AppName]?action=launch&silent=true
+  //     newPath = `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`;
+  //   } else {
+  //     newPath = game.appName;
+  //   }
+  //   setPath(newPath);
+  //   setAction(newPath); // Also update action for saving
+  //   setGameQuery(game.name);
+  //   setGameDropdownOpen(false);
+  // };
 
-  const handlePickSteamFolder = async () => {
-    const result = await window.api.steam.pickLibraryFolder();
-    if (result && result.path) {
-      setCustomSteamPath(result.path);
-    }
-  };
+  // const handlePickSteamFolder = async () => {
+  //   const result = await window.api.steam.pickLibraryFolder();
+  //   if (result && result.path) {
+  //     setCustomSteamPath(result.path);
+  //   }
+  // };
 
-  const handleGameRefresh = async () => {
-    try {
-      if (gameType === 'steam') {
-        await rescanSteamGames(customSteamPath);
-      } else if (gameType === 'epic') {
-        await rescanEpicGames();
-      }
-    } catch (err) {
-      console.error('Error during rescan:', err);
-    }
-  };
+  // const handleGameRefresh = async () => {
+  //   try {
+  //       if (gameType === 'steam') {
+  //         await rescanSteamGames(customSteamPath);
+  //       } else if (gameType === 'epic') {
+  //         await rescanEpicGames();
+  //       }
+  //     } catch (err) {
+  //       console.error('Error during rescan:', err);
+  //     }
+  //   };
 
-  const handleExeFileSelect = (file) => {
-    if (file && file.path) {
-      setPath(file.path);
-      setAction(file.path); // Also update action for saving
-      setPathError('');
-    }
-  };
+  // LEGACY: Commented out the old file selection handlers
+  // const handleExeFileSelect = (file) => {
+  //   if (file && file.path) {
+  //     setPath(file.path);
+  //     setAction(file.path); // Also update action for saving
+  //     setPathError('');
+  //   }
+  // };
 
-  const handlePathChange = (e) => {
-    setPath(e.target.value);
-    setAction(e.target.value); // Also update action for saving
-    setPathError('');
-  };
+  // const handlePathChange = (e) => {
+  //   setPath(e.target.value);
+  //   setAction(e.target.value); // Also update action for saving
+  //     setPathError('');
+  //   };
 
 
   if (!isOpen) return null;
@@ -929,6 +933,41 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
         </div>
       )}
 
+      {/* Unified App Path Card - Only show for non-presets buttons when not in admin mode */}
+      {!isPresetsButton && !adminMode && (
+        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+          <div className="wee-card-header">
+            <span className="wee-card-title">Unified App Path (NEW)</span>
+          </div>
+          <div className="wee-card-separator" />
+          <div className="wee-card-desc">
+            NEW: Unified app search that consolidates all app types (EXE, Steam, Epic, Microsoft Store) into a single interface.
+            <div style={{ marginTop: 14 }}>
+              <UnifiedAppPathCard
+                value={{
+                  launchType: actionType === 'url' ? 'url' : 'application',
+                  appName: text,
+                  path: action
+                }}
+                onChange={(config) => {
+                  console.log('[UnifiedAppPath] Config changed:', config);
+                  if (config.launchType === 'url') {
+                    setActionType('url');
+                    setAction(config.path || '');
+                  } else {
+                    setActionType('exe');
+                    setAction(config.path || '');
+                    if (config.selectedApp) {
+                      setText(config.selectedApp.name);
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* App Path/URL Card - Only show for non-presets buttons when not in admin mode */}
       {!isPresetsButton && !adminMode && (
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
@@ -937,9 +976,48 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
           <div className="wee-card-separator" />
           <div className="wee-card-desc">
-            Set the path to an app or a URL to launch when this channel is clicked.
+            Set the path to an app or a URL to launch when this button is clicked.
             <div style={{ marginTop: 14 }}>
-              {renderAppPathSection && renderAppPathSection()}
+              <UnifiedAppPathCard
+                value={{
+                  launchType: actionType === 'url' ? 'url' : 'application',
+                  appName: text,
+                  path: action,
+                  selectedApp: null // Will be set by the store
+                }}
+                onChange={(config) => {
+                  console.log('[UnifiedAppPath] Config changed:', config);
+                  if (config.launchType === 'url') {
+                    setActionType('url');
+                    setAction(config.path || '');
+                    console.log('[UnifiedAppPath] Set URL:', config.path);
+                  } else {
+                    // Map app type to actionType
+                    let newActionType = 'exe'; // default
+                    if (config.selectedApp) {
+                      switch (config.selectedApp.type) {
+                        case 'steam':
+                          newActionType = 'steam';
+                          break;
+                        case 'epic':
+                          newActionType = 'epic';
+                          break;
+                        case 'microsoft':
+                          newActionType = 'microsoftstore';
+                          break;
+                        case 'exe':
+                        default:
+                          newActionType = 'exe';
+                          break;
+                      }
+                      setText(config.selectedApp.name);
+                      console.log('[UnifiedAppPath] Set app:', config.selectedApp.name, 'type:', newActionType, 'path:', config.path);
+                    }
+                    setActionType(newActionType);
+                    setAction(config.path || '');
+                  }
+                }}
+              />
             </div>
           </div>
         </div>

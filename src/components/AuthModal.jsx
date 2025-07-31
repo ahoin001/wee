@@ -9,7 +9,7 @@ import useAuthModalStore from '../utils/useAuthModalStore';
 const AuthModal = () => {
   const { isOpen, mode, closeModal, toggleMode } = useAuthModalStore();
   
-  console.log('[AUTH MODAL] Component rendered with isOpen:', isOpen, 'mode:', mode);
+  // console.log('[AUTH MODAL] Component rendered with isOpen:', isOpen, 'mode:', mode);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,10 +18,10 @@ const AuthModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('[AUTH MODAL] Form submitted');
-    console.log('[AUTH MODAL] Mode:', mode);
-    console.log('[AUTH MODAL] Email:', email);
-    console.log('[AUTH MODAL] Password length:', password.length);
+    // console.log('[AUTH MODAL] Form submitted');
+    // console.log('[AUTH MODAL] Mode:', mode);
+    // console.log('[AUTH MODAL] Email:', email);
+    // console.log('[AUTH MODAL] Password length:', password.length);
     
     setLoading(true);
     setError('');

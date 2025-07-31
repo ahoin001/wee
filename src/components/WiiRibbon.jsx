@@ -443,6 +443,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const handleButtonClick = (index) => {
     const config = buttonConfigs[index];
     console.log('Button clicked:', index, 'Config:', config);
+    console.log('Button config details:', {
+      actionType: config?.actionType,
+      action: config?.action,
+      adminMode: config?.adminMode,
+      powerActions: config?.powerActions?.length || 0
+    });
     
     // Handle admin mode for left button (index 0)
     if (index === 0 && config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
@@ -452,32 +458,29 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     }
     
     // Handle regular button actions
-    if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
+    if (!config || !config.actionType || !config.action || config.actionType === 'none') {
+      console.log('No valid action found for button:', index);
+      return;
+    }
+    
+    console.log('Launching app with:', { type: config.actionType, path: config.action });
+    
     if (window.api && window.api.launchApp) {
+      // Handle all supported action types
       if (config.actionType === 'exe') {
         window.api.launchApp({ type: 'exe', path: config.action });
       } else if (config.actionType === 'url') {
         window.api.launchApp({ type: 'url', path: config.action });
-      } else if (config.actionType === 'application') {
-        // Handle unified application type by detecting the correct launch type
-        const path = config.action;
-        if (path.startsWith('steam://')) {
-          window.api.launchApp({ type: 'steam', path: path });
-        } else if (path.startsWith('com.epicgames.launcher://')) {
-          window.api.launchApp({ type: 'epic', path: path });
-        } else if (path.includes('!') && !path.includes('\\') && !path.includes('/')) {
-          // Microsoft Store app ID (contains ! and no path separators)
-          window.api.launchApp({ type: 'microsoftstore', path: path });
-        } else if (path.startsWith('http://') || path.startsWith('https://')) {
-          window.api.launchApp({ type: 'url', path: path });
-        } else {
-          // Default to exe for any other path
-          window.api.launchApp({ type: 'exe', path: path });
-        }
+      } else if (config.actionType === 'steam') {
+        window.api.launchApp({ type: 'steam', path: config.action });
+      } else if (config.actionType === 'epic') {
+        window.api.launchApp({ type: 'epic', path: config.action });
+      } else if (config.actionType === 'microsoftstore') {
+        window.api.launchApp({ type: 'microsoftstore', path: config.action });
       }
     } else {
       // Fallback: try window.open for URLs
-      if (config.actionType === 'url' || (config.actionType === 'application' && (config.action.startsWith('http://') || config.action.startsWith('https://')))) {
+      if (config.actionType === 'url') {
         window.open(config.action, '_blank');
       }
     }
