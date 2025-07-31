@@ -336,8 +336,31 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
 
 
-  const handleImageSelect = (img) => {
-    setMedia({ url: img.url, type: img.format === 'image' ? 'image/png' : img.format === 'gif' ? 'image/gif' : img.format === 'mp4' ? 'video/mp4' : '', name: img.name, isBuiltin: true });
+  const handleImageSelect = (mediaItem) => {
+    console.log('ChannelModal: handleImageSelect called with:', mediaItem);
+    
+    // Convert Supabase media item to the format expected by ChannelModal
+    const mediaUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${mediaItem.file_url}`;
+    
+    // Determine MIME type based on file_type
+    let mimeType = 'image/png'; // default
+    if (mediaItem.file_type === 'gif') {
+      mimeType = 'image/gif';
+    } else if (mediaItem.file_type === 'video') {
+      mimeType = 'video/mp4';
+    } else if (mediaItem.mime_type) {
+      mimeType = mediaItem.mime_type;
+    }
+    
+    const convertedMedia = { 
+      url: mediaUrl, 
+      type: mimeType, 
+      name: mediaItem.title || mediaItem.file_url,
+      isBuiltin: true 
+    };
+    
+    console.log('ChannelModal: Setting media to:', convertedMedia);
+    setMedia(convertedMedia);
     setShowImageSearch(false);
   };
 

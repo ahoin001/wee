@@ -51,93 +51,154 @@ export const ensureSession = async () => {
 // =====================================================
 
 export const uploadMedia = async (file, metadata) => {
-  const sessionId = await ensureSession()
-  const fileName = `${Date.now()}-${file.name}`
-  
-  // Upload file to storage
-  const { data, error } = await supabase.storage
-    .from('media-library')
-    .upload(fileName, file)
-  
-  if (error) throw error
-  
-  // Create media record
-  const { data: mediaData, error: insertError } = await supabase
-    .from('media_library')
-    .insert({
-      title: metadata.title,
-      description: metadata.description,
-      tags: metadata.tags || [],
-      file_type: metadata.fileType,
-      mime_type: file.type,
-      file_size: file.size,
-      file_url: data.path,
-      created_by_session_id: sessionId
-    })
-    .select()
-    .single()
-  
-  if (insertError) throw insertError
-  return mediaData
+  try {
+    const sessionId = await ensureSession()
+    const fileName = `${Date.now()}-${file.name}`
+    
+    // Determine file type
+    let fileType = 'image'
+    if (file.type.includes('gif')) fileType = 'gif'
+    else if (file.type.includes('video')) fileType = 'video'
+    
+    // Upload file to storage
+    const { data, error } = await supabase.storage
+      .from('media-library')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+    
+    if (error) {
+      return { success: false, error: error.message }
+    }
+    
+    // Create media record
+    const { data: mediaData, error: insertError } = await supabase
+      .from('media_library')
+      .insert({
+        title: metadata.title,
+        description: metadata.description,
+        tags: metadata.tags || [],
+        file_type: fileType,
+        mime_type: file.type,
+        file_size: file.size,
+        file_url: data.path,
+        created_by_session_id: sessionId
+      })
+      .select()
+      .single()
+    
+    if (insertError) {
+      return { success: false, error: insertError.message }
+    }
+    
+    return { success: true, data: mediaData }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
 }
 
-export const searchMedia = async (query, filters = {}) => {
-  let queryBuilder = supabase
-    .from('media_library')
-    .select('*')
-    .eq('is_approved', true)
-  
-  if (query) {
-    queryBuilder = queryBuilder.or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+export const searchMedia = async (filters = {}) => {
+  try {
+    let queryBuilder = supabase
+      .from('media_library')
+      .select('*')
+      .eq('is_approved', true)
+    
+    // Search by title, description, or tags
+    if (filters.searchTerm) {
+      queryBuilder = queryBuilder.or(
+        `title.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%,tags.cs.{${filters.searchTerm}}`
+      )
+    }
+    
+    // Filter by file type
+    if (filters.fileType && filters.fileType !== 'all') {
+      queryBuilder = queryBuilder.eq('file_type', filters.fileType)
+    }
+    
+    // Filter by tags
+    if (filters.tags && filters.tags.length > 0) {
+      queryBuilder = queryBuilder.overlaps('tags', filters.tags)
+    }
+    
+    // Apply sorting
+    const sortBy = filters.sortBy || 'created_at'
+    switch (sortBy) {
+      case 'title_asc':
+        queryBuilder = queryBuilder.order('title', { ascending: true })
+        break
+      case 'title_desc':
+        queryBuilder = queryBuilder.order('title', { ascending: false })
+        break
+      case 'downloads':
+        queryBuilder = queryBuilder.order('downloads', { ascending: false })
+        break
+      case 'created_at':
+      default:
+        queryBuilder = queryBuilder.order('created_at', { ascending: false })
+        break
+    }
+    
+    // Pagination
+    const page = filters.page || 1
+    const limit = filters.limit || 12
+    const offset = (page - 1) * limit
+    
+    queryBuilder = queryBuilder.range(offset, offset + limit - 1)
+    
+    const { data, error } = await queryBuilder
+    
+    if (error) {
+      return { success: false, error: error.message }
+    }
+    
+    return { success: true, data }
+  } catch (error) {
+    return { success: false, error: error.message }
   }
-  
-  if (filters.fileType && filters.fileType !== 'all') {
-    queryBuilder = queryBuilder.eq('file_type', filters.fileType)
-  }
-  
-  if (filters.tags && filters.tags.length > 0) {
-    queryBuilder = queryBuilder.overlaps('tags', filters.tags)
-  }
-  
-  const { data, error } = await queryBuilder
-    .order('downloads', { ascending: false })
-    .limit(50)
-  
-  if (error) throw error
-  return data
 }
 
 export const downloadMedia = async (mediaId) => {
-  const sessionId = await ensureSession()
-  
-  // Get media info
-  const { data: media, error: mediaError } = await supabase
-    .from('media_library')
-    .select('*')
-    .eq('id', mediaId)
-    .single()
-  
-  if (mediaError) throw mediaError
-  
-  // Track download
-  await supabase
-    .from('media_downloads')
-    .insert({
-      media_id: mediaId,
-      session_id: sessionId
-    })
-  
-  // Download file
-  const { data: fileData, error: fileError } = await supabase.storage
-    .from('media-library')
-    .download(media.file_url)
-  
-  if (fileError) throw fileError
-  
-  return {
-    data: await fileData.arrayBuffer(),
-    mimeType: media.mime_type,
-    fileName: media.file_url.split('/').pop()
+  try {
+    const sessionId = await ensureSession()
+    
+    // Get media info
+    const { data: media, error: mediaError } = await supabase
+      .from('media_library')
+      .select('*')
+      .eq('id', mediaId)
+      .single()
+    
+    if (mediaError) {
+      return { success: false, error: mediaError.message }
+    }
+    
+    // Track download
+    await supabase
+      .from('media_downloads')
+      .insert({
+        media_id: mediaId,
+        session_id: sessionId
+      })
+    
+    // Download file
+    const { data: fileData, error: fileError } = await supabase.storage
+      .from('media-library')
+      .download(media.file_url)
+    
+    if (fileError) {
+      return { success: false, error: fileError.message }
+    }
+    
+    return {
+      success: true,
+      data: await fileData.arrayBuffer(),
+      mimeType: media.mime_type,
+      fileName: media.file_url.split('/').pop()
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
   }
 }
 
