@@ -14,6 +14,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [icon, setIcon] = useState(config?.icon || null);
   const [actionType, setActionType] = useState(config?.actionType === 'none' ? 'exe' : config?.actionType || 'exe');
   const [action, setAction] = useState(config?.action || '');
+  const [appName, setAppName] = useState(''); // Separate state for app name in UnifiedAppPathCard
   const [pathError, setPathError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
   const [useAdaptiveColor, setUseAdaptiveColor] = useState(config?.useAdaptiveColor || false);
@@ -946,7 +947,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
               <UnifiedAppPathCard
                 value={{
                   launchType: actionType === 'url' ? 'url' : 'application',
-                  appName: text,
+                  appName: appName,
                   path: action
                 }}
                 onChange={(config) => {
@@ -954,11 +955,12 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                   if (config.launchType === 'url') {
                     setActionType('url');
                     setAction(config.path || '');
+                    setAppName('');
                   } else {
                     setActionType('exe');
                     setAction(config.path || '');
                     if (config.selectedApp) {
-                      setText(config.selectedApp.name);
+                      setAppName(config.selectedApp.name);
                     }
                   }
                 }}
@@ -969,7 +971,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       )}
 
       {/* App Path/URL Card - Only show for non-presets buttons when not in admin mode */}
-      {!isPresetsButton && !adminMode && (
+      {/* {!isPresetsButton && !adminMode && (
         <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
           <div className="wee-card-header">
             <span className="wee-card-title">App Path or URL</span>
@@ -1021,7 +1023,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             </div>
           </div>
         </div>
-      )}
+      )} */}
+
       {/* Hover Effect Card - Show for all buttons */}
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
