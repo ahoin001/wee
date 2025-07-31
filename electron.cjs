@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, protocol, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, protocol, dialog, screen } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { execFile, spawn } = require('child_process');
@@ -84,7 +84,10 @@ const wallpapersData = {
         overlayIntensity: 50,
         overlaySpeed: 1,
         overlayWind: 0.02,
-        overlayGravity: 0.1
+        overlayGravity: 0.1,
+        // Monitor-specific wallpaper settings
+        monitorWallpapers: {}, // { monitorId: { wallpaper, opacity, blur, etc. } }
+        monitorSettings: {} // { monitorId: { theme, colors, etc. } }
       }; 
     }
   },
@@ -161,6 +164,33 @@ ipcMain.handle('sounds:reset', async () => { await soundsData.reset(); return tr
 
 ipcMain.handle('wallpapers:get', async () => await wallpapersData.get());
 ipcMain.handle('wallpapers:set', async (e, data) => { await wallpapersData.set(data); return true; });
+
+// Monitor-specific wallpaper handlers
+ipcMain.handle('wallpapers:getMonitorWallpaper', async (e, monitorId) => {
+  const data = await wallpapersData.get();
+  return data.monitorWallpapers?.[monitorId] || null;
+});
+
+ipcMain.handle('wallpapers:setMonitorWallpaper', async (e, { monitorId, wallpaperData }) => {
+  const data = await wallpapersData.get();
+  if (!data.monitorWallpapers) data.monitorWallpapers = {};
+  data.monitorWallpapers[monitorId] = wallpaperData;
+  await wallpapersData.set(data);
+  return true;
+});
+
+ipcMain.handle('wallpapers:getMonitorSettings', async (e, monitorId) => {
+  const data = await wallpapersData.get();
+  return data.monitorSettings?.[monitorId] || null;
+});
+
+ipcMain.handle('wallpapers:setMonitorSettings', async (e, { monitorId, settings }) => {
+  const data = await wallpapersData.get();
+  if (!data.monitorSettings) data.monitorSettings = {};
+  data.monitorSettings[monitorId] = settings;
+  await wallpapersData.set(data);
+  return true;
+});
 
 // Update notification handlers
 ipcMain.handle('update-notification:dismiss', () => {
@@ -2225,6 +2255,28 @@ if (app.isPackaged) {
   }
   
   await createWindow();
+  
+  // Set up monitor event listeners after app is ready
+  screen.on('display-added', (event, display) => {
+    console.log('[MONITOR] Display added:', display.id);
+    if (mainWindow) {
+      mainWindow.webContents.send('display-added', display);
+    }
+  });
+
+  screen.on('display-removed', (event, display) => {
+    console.log('[MONITOR] Display removed:', display.id);
+    if (mainWindow) {
+      mainWindow.webContents.send('display-removed', display);
+    }
+  });
+
+  screen.on('display-metrics-changed', (event, display, changedMetrics) => {
+    console.log('[MONITOR] Display metrics changed:', display.id, changedMetrics);
+    if (mainWindow) {
+      mainWindow.webContents.send('display-metrics-changed', { display, changedMetrics });
+    }
+  });
 });
 
 app.on('activate', () => {
@@ -3234,3 +3286,122 @@ ipcMain.handle('trigger-fresh-install', async () => {
     };
   }
 });
+
+// --- Multi-Monitor Support ---
+
+// IPC: Get all displays
+ipcMain.handle('get-displays', () => {
+  try {
+    const displays = screen.getAllDisplays();
+    console.log('[MONITOR] Found displays:', displays.length);
+    return displays.map(display => ({
+      id: display.id,
+      bounds: display.bounds,
+      workArea: display.workArea,
+      scaleFactor: display.scaleFactor,
+      rotation: display.rotation,
+      internal: display.internal,
+      primary: display.primary,
+      size: display.size,
+      colorSpace: display.colorSpace,
+      colorDepth: display.colorDepth,
+      monochrome: display.monochrome,
+      depthPerComponent: display.depthPerComponent,
+      displayFrequency: display.displayFrequency
+    }));
+  } catch (error) {
+    console.error('[MONITOR] Error getting displays:', error);
+    return [];
+  }
+});
+
+// IPC: Get primary display
+ipcMain.handle('get-primary-display', () => {
+  try {
+    const primaryDisplay = screen.getPrimaryDisplay();
+    console.log('[MONITOR] Primary display:', primaryDisplay.id);
+    return {
+      id: primaryDisplay.id,
+      bounds: primaryDisplay.bounds,
+      workArea: primaryDisplay.workArea,
+      scaleFactor: primaryDisplay.scaleFactor,
+      rotation: primaryDisplay.rotation,
+      internal: primaryDisplay.internal,
+      primary: primaryDisplay.primary,
+      size: primaryDisplay.size,
+      colorSpace: primaryDisplay.colorSpace,
+      colorDepth: primaryDisplay.colorDepth,
+      monochrome: primaryDisplay.monochrome,
+      depthPerComponent: primaryDisplay.depthPerComponent,
+      displayFrequency: primaryDisplay.displayFrequency
+    };
+  } catch (error) {
+    console.error('[MONITOR] Error getting primary display:', error);
+    return null;
+  }
+});
+
+// IPC: Move window to specific display
+ipcMain.handle('move-to-display', (event, displayId) => {
+  try {
+    const displays = screen.getAllDisplays();
+    const targetDisplay = displays.find(d => d.id === displayId);
+    
+    if (targetDisplay) {
+      console.log('[MONITOR] Moving window to display:', displayId);
+      mainWindow.setBounds(targetDisplay.bounds);
+      return { success: true, displayId };
+    } else {
+      console.error('[MONITOR] Display not found:', displayId);
+      return { success: false, error: 'Display not found' };
+    }
+  } catch (error) {
+    console.error('[MONITOR] Error moving to display:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC: Get current display
+ipcMain.handle('get-current-display', () => {
+  try {
+    const currentBounds = mainWindow.getBounds();
+    const displays = screen.getAllDisplays();
+    
+    // Find which display the window is currently on
+    const currentDisplay = displays.find(display => {
+      const { x, y, width, height } = display.bounds;
+      const windowCenterX = currentBounds.x + (currentBounds.width / 2);
+      const windowCenterY = currentBounds.y + (currentBounds.height / 2);
+      
+      return windowCenterX >= x && windowCenterX <= x + width &&
+             windowCenterY >= y && windowCenterY <= y + height;
+    });
+    
+    if (currentDisplay) {
+      console.log('[MONITOR] Current display:', currentDisplay.id);
+      return {
+        id: currentDisplay.id,
+        bounds: currentDisplay.bounds,
+        workArea: currentDisplay.workArea,
+        scaleFactor: currentDisplay.scaleFactor,
+        rotation: currentDisplay.rotation,
+        internal: currentDisplay.internal,
+        primary: currentDisplay.primary,
+        size: currentDisplay.size,
+        colorSpace: currentDisplay.colorSpace,
+        colorDepth: currentDisplay.colorDepth,
+        monochrome: currentDisplay.monochrome,
+        depthPerComponent: currentDisplay.depthPerComponent,
+        displayFrequency: currentDisplay.displayFrequency
+      };
+    } else {
+      console.log('[MONITOR] Could not determine current display');
+      return null;
+    }
+  } catch (error) {
+    console.error('[MONITOR] Error getting current display:', error);
+    return null;
+  }
+});
+
+// Monitor event listeners will be set up after app is ready

@@ -38,6 +38,11 @@ contextBridge.exposeInMainWorld('api', {
     setCyclingSettings: (args) => ipcRenderer.invoke('wallpapers:setCyclingSettings', args),
     getFile: (url) => ipcRenderer.invoke('wallpapers:get-file', url),
     saveFile: (args) => ipcRenderer.invoke('wallpapers:save-file', args),
+    // Monitor-specific wallpaper APIs
+    getMonitorWallpaper: (monitorId) => ipcRenderer.invoke('wallpapers:getMonitorWallpaper', monitorId),
+    setMonitorWallpaper: (monitorId, wallpaperData) => ipcRenderer.invoke('wallpapers:setMonitorWallpaper', { monitorId, wallpaperData }),
+    getMonitorSettings: (monitorId) => ipcRenderer.invoke('wallpapers:getMonitorSettings', monitorId),
+    setMonitorSettings: (monitorId, settings) => ipcRenderer.invoke('wallpapers:setMonitorSettings', { monitorId, settings }),
   },
   icons: {
     add: ({ filePath, filename }) => ipcRenderer.invoke('icons:add', { filePath, filename }),
@@ -97,6 +102,16 @@ contextBridge.exposeInMainWorld('api', {
   uwp: {
     listApps: () => ipcRenderer.invoke('uwp:list-apps'),
     launch: (appId) => ipcRenderer.invoke('uwp:launch', appId),
+  },
+  // Multi-monitor support
+  monitors: {
+    getDisplays: () => ipcRenderer.invoke('get-displays'),
+    getPrimaryDisplay: () => ipcRenderer.invoke('get-primary-display'),
+    getCurrentDisplay: () => ipcRenderer.invoke('get-current-display'),
+    moveToDisplay: (displayId) => ipcRenderer.invoke('move-to-display', displayId),
+    onDisplayAdded: (callback) => ipcRenderer.on('display-added', callback),
+    onDisplayRemoved: (callback) => ipcRenderer.on('display-removed', callback),
+    onDisplayMetricsChanged: (callback) => ipcRenderer.on('display-metrics-changed', callback),
   },
   executeCommand: (command) => ipcRenderer.invoke('execute-command', command),
   takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),

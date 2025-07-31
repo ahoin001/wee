@@ -33,6 +33,7 @@ import audioManager from './utils/AudioManager';
 import intervalManager from './utils/IntervalManager';
 import useAppLibraryStore from './utils/useAppLibraryStore';
 import useUIStore from './utils/useUIStore';
+import useMonitorStore from './utils/useMonitorStore';
 import Text from './ui/Text';
 
 
@@ -160,6 +161,13 @@ function App() {
     closeAppearanceSettingsModal,
     loadKeyboardShortcuts
   } = useUIStore();
+  
+  // Monitor store for multi-monitor support
+  const { 
+    initialize: initializeMonitorStore, 
+    currentDisplay, 
+    loadMonitorSpecificData 
+  } = useMonitorStore();
   
   const [mediaMap, setMediaMap] = useState({});
   const [appPathMap, setAppPathMap] = useState({});
@@ -584,6 +592,26 @@ function App() {
             closePresetsModal();
   };
 
+  // Load monitor-specific wallpaper when current display changes
+  useEffect(() => {
+    if (currentDisplay && window.api?.wallpapers) {
+      const loadMonitorWallpaper = async () => {
+        try {
+          const monitorWallpaper = await window.api.wallpapers.getMonitorWallpaper(currentDisplay.id);
+          if (monitorWallpaper) {
+            console.log('[App] Loading monitor-specific wallpaper for:', currentDisplay.id);
+            setWallpaper(monitorWallpaper);
+            setWallpaperOpacity(monitorWallpaper.opacity || 1);
+          }
+        } catch (error) {
+          console.error('[App] Error loading monitor-specific wallpaper:', error);
+        }
+      };
+      
+      loadMonitorWallpaper();
+    }
+  }, [currentDisplay]);
+
   // On mount, load all modular data
   useEffect(() => {
     async function loadAll() {
@@ -696,6 +724,11 @@ function App() {
       // --- SplashScreen logic ---
       // Mark app as ready first
       setAppReady(true);
+      
+      // Initialize monitor system (with delay to ensure APIs are loaded)
+      setTimeout(() => {
+        initializeMonitorStore();
+      }, 100);
       
       // Then fade out splash screen
       setSplashFading(true);

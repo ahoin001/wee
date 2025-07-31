@@ -17,6 +17,7 @@ import useUIStore from '../utils/useUIStore';
 import { uploadPreset } from '../utils/supabase';
 import AuthModal from './AuthModal';
 import useAuthModalStore from '../utils/useAuthModalStore';
+import MonitorSelectionModal from './MonitorSelectionModal';
 
 // Auth service (we'll create this)
 import { authService } from '../utils/authService';
@@ -30,6 +31,7 @@ const SIDEBAR_SECTIONS = [
 //   { id: 'sounds', label: 'Sounds', icon: '🎵', color: '#96ceb4', description: 'Audio & feedback' },
 //   { id: 'dock', label: 'Dock', icon: '⚓', color: '#feca57', description: 'Classic dock settings' },
   { id: 'themes', label: 'Themes', icon: '🎨', color: '#ff9ff3', description: 'Preset themes' },
+  { id: 'monitor', label: 'Monitor (beta)', icon: '🖥️', color: '#ff6b9d', description: 'Multi-monitor settings' },
   { id: 'general', label: 'General', icon: '⚙️', color: '#6c5ce7', description: 'App behavior & startup' },
 //   { id: 'advanced', label: 'Advanced', icon: '⚙️', color: '#54a0ff', description: 'Expert options' }
 ];
@@ -93,6 +95,9 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   // Account management state
   const [currentUser, setCurrentUser] = useState(null);
   const [isAnonymous, setIsAnonymous] = useState(true);
+  
+  // Monitor modal state
+  const [showMonitorModal, setShowMonitorModal] = useState(false);
   
   // Auth modal store
   const { openModal: openAuthModal } = useAuthModalStore();
@@ -1628,6 +1633,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         }
         style={{ marginBottom: '20px' }}
       />
+
     </div>
   );
 
@@ -2360,6 +2366,40 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
     </div>
   );
 
+  const renderMonitorTab = () => (
+    <div>
+      <Card
+        title="Monitor Settings"
+        separator
+        desc="Configure which monitor the launcher appears on and manage multi-monitor preferences."
+        actions={
+          <div style={{ marginTop: 14 }}>
+            <Button
+              variant="secondary"
+              onClick={() => setShowMonitorModal(true)}
+              style={{ marginBottom: 8 }}
+            >
+              📺 Open Monitor Settings
+            </Button>
+            <div style={{ 
+              fontSize: '13px', 
+              color: 'hsl(var(--text-secondary))', 
+              marginTop: '8px',
+              padding: '12px',
+              background: 'hsl(var(--surface-secondary))',
+              borderRadius: '6px',
+              border: '1px solid hsl(var(--border-primary))'
+            }}>
+              <strong>💡 Tip:</strong> Use the monitor settings to choose which display the launcher appears on. 
+              You can set it to always use the primary monitor, secondary monitor, or remember your last choice.
+            </div>
+          </div>
+        }
+        style={{ marginBottom: '20px' }}
+      />
+    </div>
+  );
+
   const renderAdvancedTab = () => (
     <div>
       <Card
@@ -2395,6 +2435,8 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         return renderDockTab();
       case 'themes':
         return renderThemesTab();
+      case 'monitor':
+        return renderMonitorTab();
       case 'advanced':
         return renderAdvancedTab();
       default:
@@ -2527,6 +2569,11 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         </div>
       </div>
 
+      {/* Monitor Selection Modal */}
+      <MonitorSelectionModal
+        isOpen={showMonitorModal}
+        onClose={() => setShowMonitorModal(false)}
+      />
 
     </BaseModal>
   );
