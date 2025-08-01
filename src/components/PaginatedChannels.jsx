@@ -26,10 +26,18 @@ const PaginatedChannels = ({
   // Debug flag - set to true only when debugging is needed
   const DEBUG = false;
   
-  const [totalPages, setTotalPages] = useState(3);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [animationDirection, setAnimationDirection] = useState('none');
+  // Use Zustand store for page navigation instead of local state
+  const {
+    currentPage,
+    totalPages,
+    isAnimating,
+    animationDirection,
+    setCurrentPage,
+    setTotalPages,
+    setIsAnimating,
+    setAnimationDirection,
+    finishAnimation
+  } = usePageNavigationStore();
   
   // Get channel data from Zustand store
   const { getChannelDataForComponents, getHighestConfiguredIndex } = useChannelStore();
@@ -107,7 +115,7 @@ const PaginatedChannels = ({
     idleAnimationParams.channels
   );
 
-  // Page navigation logic
+  // Page navigation logic - now using Zustand store
   const channelsPerPage = 12;
   
   const getChannelIndexRange = useCallback((page) => {
@@ -115,15 +123,8 @@ const PaginatedChannels = ({
     const endIndex = startIndex + channelsPerPage - 1;
     return { startIndex, endIndex };
   }, [channelsPerPage]);
-  
-  const ensurePageExists = useCallback((channelIndex) => {
-    const requiredPage = Math.floor(channelIndex / channelsPerPage);
-    if (requiredPage >= totalPages) {
-      setTotalPages(requiredPage + 1);
-    }
-  }, [totalPages, channelsPerPage]);
 
-  // Update total pages when needed
+  // Update total pages when needed - now using Zustand store
   const prevTotalChannelsRef = useRef(getTotalChannelsCount);
   
   useEffect(() => {
@@ -139,7 +140,7 @@ const PaginatedChannels = ({
       prevTotalChannelsRef.current = currentTotalChannels;
       setTotalPages(targetPages);
     }
-  }, [getTotalChannelsCount, channelsPerPage, DEBUG]); // Removed totalPages from dependencies
+  }, [getTotalChannelsCount, channelsPerPage, totalPages, setTotalPages, DEBUG]);
 
   // Debug logging for channel data changes (only when DEBUG is true)
   useEffect(() => {
@@ -162,14 +163,14 @@ const PaginatedChannels = ({
 
   // Modal opening is now handled by Zustand store
 
-  // Handle page navigation
+  // Handle page navigation - now using Zustand store
   const handlePageChange = useCallback((newPage) => {
     if (newPage >= 0 && newPage < totalPages) {
       setCurrentPage(newPage);
     }
-  }, [totalPages]);
+  }, [totalPages, setCurrentPage]);
 
-  // Handle animation
+  // Handle animation - now using Zustand store
   const handleAnimation = useCallback((direction) => {
     setIsAnimating(true);
     setAnimationDirection(direction);
@@ -178,7 +179,7 @@ const PaginatedChannels = ({
       setIsAnimating(false);
       setAnimationDirection('none');
     }, 300);
-  }, []);
+  }, [setIsAnimating, setAnimationDirection]);
 
   // Memoize Channel component props to prevent unnecessary re-renders
   const channelProps = useMemo(() => ({
@@ -194,30 +195,36 @@ const PaginatedChannels = ({
 
   return (
     <div className="paginated-channels">
-      <div className="channels-container">
-        <div 
-          className={`channels-wrapper ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''}`}
-          style={{
-            transform: `translateX(-${currentPage * 100}%)`,
-            transition: isAnimating ? 'transform 0.3s ease-in-out' : 'none'
-          }}
-        >
-          <div className="channels-page active">
-            <div className="channels-grid">
-              {currentPageChannels.map((channel) => (
-                <Channel
-                  key={channel.id}
-                  {...channel}
-                  {...channelProps}
-                  channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
-                  animationStyle={channel.animationStyle}
-                  idleAnimationClass={getChannelAnimationClass(channel.id)}
-                  isIdleAnimating={isChannelAnimating(channel.id)}
-                />
-              ))}
+      <div 
+        className={`pages-container ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''}`}
+        style={{
+          transform: `translateX(-${currentPage * 100}%)`,
+          transition: isAnimating ? 'transform 0.3s ease-in-out' : 'none'
+        }}
+      >
+        {/* Render all pages */}
+        {Array.from({ length: totalPages }, (_, pageIndex) => {
+          const { startIndex, endIndex } = getChannelIndexRange(pageIndex);
+          const pageChannels = allPagesChannels.slice(startIndex, endIndex + 1);
+          
+          return (
+            <div key={pageIndex} className={`channels-page ${pageIndex === currentPage ? 'active' : ''}`}>
+              <div className="channels-grid">
+                {pageChannels.map((channel) => (
+                  <Channel
+                    key={channel.id}
+                    {...channel}
+                    {...channelProps}
+                    channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
+                    animationStyle={channel.animationStyle}
+                    idleAnimationClass={getChannelAnimationClass(channel.id)}
+                    isIdleAnimating={isChannelAnimating(channel.id)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
       
       {/* Channel Modal */}
