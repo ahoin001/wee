@@ -245,4 +245,4 @@ PaginatedChannels.propTypes = {
 
 };
 
-export default PaginatedChannels; 
+export default PaginatedChannels;

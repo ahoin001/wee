@@ -549,11 +549,14 @@ function App() {
     }
   };
   const handleDeletePreset = (name) => {
-    // Show confirmation dialog for anonymous deleting
-    const confirmMessage = `Are you sure you want to delete the preset "${name}"?\n\nThis action cannot be undone.`;
-    if (window.confirm(confirmMessage)) {
-      setPresets(prev => prev.filter(p => p.name !== name));
-    }
+    // Use Zustand confirmation modal instead of window.confirm
+    const { confirmDelete } = useUIStore.getState();
+    confirmDelete(
+      name,
+      () => {
+        setPresets(prev => prev.filter(p => p.name !== name));
+      }
+    );
   };
   const handleImportPresets = (newPresets) => {
     setPresets(prev => {
