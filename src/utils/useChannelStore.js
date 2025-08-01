@@ -7,8 +7,11 @@ const useChannelStore = create(
       // Channel data - single source of truth
       channels: {}, // { channelId: { media, path, type, title, hoverSound, asAdmin, animatedOnHover, kenBurnsEnabled, kenBurnsMode } }
       
-      // Backup system for user's original channel setup
-      userChannelBackup: null, // Stores user's original channel setup
+      // Persistent default user channel setup (survives app restarts)
+      userDefaultChannels: {}, // User's default channel setup that persists across app restarts
+      
+      // Temporary backup for current session
+      userChannelBackup: null, // Stores user's original channel setup for current session
       isBackupStale: false, // Tracks if backup is outdated
       
       // Modal state
@@ -32,41 +35,79 @@ const useChannelStore = create(
             // If channelData is null, delete the channel
             const newChannels = { ...state.channels };
             delete newChannels[channelId];
+            
+            // Also update the persistent default channels
+            const newDefaultChannels = { ...state.userDefaultChannels };
+            delete newDefaultChannels[channelId];
+            
             return { 
               channels: newChannels,
+              userDefaultChannels: newDefaultChannels,
               isBackupStale: true // Mark backup as stale when user makes changes
             };
           } else {
             // Otherwise, set the channel data
+            const newChannels = { ...state.channels, [channelId]: channelData };
+            
+            // Also update the persistent default channels
+            const newDefaultChannels = { ...state.userDefaultChannels, [channelId]: channelData };
+            
             return {
-              channels: { ...state.channels, [channelId]: channelData },
+              channels: newChannels,
+              userDefaultChannels: newDefaultChannels,
               isBackupStale: true // Mark backup as stale when user makes changes
             };
           }
         }),
       
-      // Backup user's current channel setup
+      // Backup user's current channel setup for current session
       backupUserChannels: () => 
         set(state => ({
           userChannelBackup: { ...state.channels },
           isBackupStale: false
         })),
       
-      // Restore user's original channel setup
+      // Restore user's persistent default channel setup
       restoreUserChannels: () => 
         set(state => {
-          if (state.userChannelBackup) {
+          // First try to restore from persistent default channels
+          if (Object.keys(state.userDefaultChannels).length > 0) {
+            console.log('[ChannelStore] Restoring from persistent default channels');
+            return { channels: { ...state.userDefaultChannels } };
+          }
+          // Fallback to session backup if no persistent default
+          else if (state.userChannelBackup) {
+            console.log('[ChannelStore] Restoring from session backup');
             return { channels: { ...state.userChannelBackup } };
           }
+          console.log('[ChannelStore] No backup available, keeping current state');
           return state; // No backup available, keep current state
         }),
       
-      // Check if user has a backup
-      hasUserBackup: () => get().userChannelBackup !== null,
+      // Check if user has a persistent default setup
+      hasUserBackup: () => {
+        const state = get();
+        return Object.keys(state.userDefaultChannels).length > 0 || state.userChannelBackup !== null;
+      },
       
-      // Clear backup (when user explicitly resets or clears all)
+      // Clear session backup (when user explicitly resets or clears all)
       clearUserBackup: () => 
         set({ userChannelBackup: null, isBackupStale: false }),
+      
+      // Clear persistent default channels (when user explicitly resets)
+      clearUserDefaultChannels: () => 
+        set({ userDefaultChannels: {} }),
+      
+      // Initialize persistent default channels from current channels (called on app start)
+      initializeUserDefaultChannels: () => 
+        set(state => {
+          // Only initialize if we don't already have default channels and we have current channels
+          if (Object.keys(state.userDefaultChannels).length === 0 && Object.keys(state.channels).length > 0) {
+            console.log('[ChannelStore] Initializing persistent default channels from current channels');
+            return { userDefaultChannels: { ...state.channels } };
+          }
+          return state;
+        }),
       
       // Modal actions
       openChannelModal: (channelId) => {
@@ -110,14 +151,23 @@ const useChannelStore = create(
         set(state => {
           const newChannels = { ...state.channels };
           delete newChannels[channelId];
-          return { channels: newChannels };
+          
+          // Also update the persistent default channels
+          const newDefaultChannels = { ...state.userDefaultChannels };
+          delete newDefaultChannels[channelId];
+          
+          return { 
+            channels: newChannels,
+            userDefaultChannels: newDefaultChannels
+          };
         }),
       
       setChannelsFromPreset: (presetData) => {
         console.log('[ChannelStore] Setting channels from preset:', presetData);
         
         // If this is the first time applying a preset with channel data, backup current user channels
-        if (!get().userChannelBackup && (presetData.channels || presetData.channelData)) {
+        const state = get();
+        if (!state.userChannelBackup && !Object.keys(state.userDefaultChannels).length && (presetData.channels || presetData.channelData)) {
           console.log('[ChannelStore] First preset with channel data - backing up user channels');
           get().backupUserChannels();
         }
@@ -143,23 +193,25 @@ const useChannelStore = create(
               };
             }
           });
+          console.log('[ChannelStore] Applied old format preset with channel data');
           set({ channels: channelData });
         } else if (presetData.channelData) {
           // Handle new clean preset format
+          console.log('[ChannelStore] Applied new format preset with channel data');
           set({ channels: presetData.channelData });
         } else {
-          // No channel data in preset - restore user's original channels if available
-          if (get().userChannelBackup) {
-            console.log('[ChannelStore] No channel data in preset - restoring user channels');
-            get().restoreUserChannels();
-          } else {
-            console.log('[ChannelStore] No channel data in preset and no backup - clearing channels');
-            set({ channels: {} });
-          }
+          // No channel data in preset - restore user's persistent default channels
+          console.log('[ChannelStore] No channel data in preset - restoring user default channels');
+          get().restoreUserChannels();
         }
       },
       
-      clearAllChannels: () => set({ channels: {} }),
+      clearAllChannels: () => set({ 
+        channels: {},
+        userDefaultChannels: {},
+        userChannelBackup: null,
+        isBackupStale: false
+      }),
       
       // Computed selectors
       getChannelConfig: (channelId) => get().channels[channelId] || null,

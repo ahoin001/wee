@@ -350,8 +350,8 @@ function App() {
   const [ribbonGlowColor, setRibbonGlowColor] = useState('#0099ff');
   const [recentRibbonGlowColors, setRecentRibbonGlowColors] = useState([]);
   // Add ribbonGlowStrength and ribbonGlowStrengthHover state
-  const [ribbonGlowStrength, setRibbonGlowStrength] = useState(20);
-  const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(28);
+  const [ribbonGlowStrength, setRibbonGlowStrength] = useState(16);
+  const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(20);
   const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
   
@@ -834,6 +834,10 @@ function App() {
       };
       
       // Channel data now managed by Zustand store with automatic persistence
+      // Initialize persistent default channels
+      const { initializeUserDefaultChannels } = useChannelStore.getState();
+      initializeUserDefaultChannels();
+      
       // --- SplashScreen logic ---
       // Mark app as ready first
       setAppReady(true);
@@ -970,13 +974,13 @@ function App() {
         setWallpaper(settings.wallpaper || null); // Add wallpaper back to match ribbon settings persistence
         setTimeColor(settings.timeColor || '#ffffff'); // Load timeColor
         setRecentTimeColors(settings.recentTimeColors || []); // Load recentTimeColors
-        setTimeFormat24hr(settings.timeFormat24hr ?? true); // Load timeFormat24hr
+        setTimeFormat24hr(settings.timeFormat24hr ?? false); // Load timeFormat24hr
         setEnableTimePill(settings.enableTimePill ?? true); // Load enableTimePill
-        setTimePillBlur(settings.timePillBlur ?? 8); // Load timePillBlur
+        setTimePillBlur(settings.timePillBlur ?? 3); // Load timePillBlur
         setTimePillOpacity(settings.timePillOpacity ?? 0.05); // Load timePillOpacity
-        setChannelAutoFadeTimeout(settings.channelAutoFadeTimeout ?? 5); // Load channelAutoFadeTimeout
+        setChannelAutoFadeTimeout(settings.channelAutoFadeTimeout ?? 8); // Load channelAutoFadeTimeout
         currentTimeColorRef.current = settings.timeColor || '#ffffff';
-        currentTimeFormatRef.current = settings.timeFormat24hr ?? true;
+        currentTimeFormatRef.current = settings.timeFormat24hr ?? false;
         setTimeFont(settings.timeFont || 'default');
               setChannelAnimation(settings.channelAnimation || 'none'); // Load channelAnimation
       setAdaptiveEmptyChannels(settings.adaptiveEmptyChannels ?? true);
@@ -2268,7 +2272,9 @@ function App() {
     
     // Channel data now managed by Zustand store
     console.log('Channel data now managed by Zustand store');
-    clearUserBackup(); // Clear backup when user explicitly resets everything
+    const { clearUserBackup, clearUserDefaultChannels } = useChannelStore.getState();
+    clearUserBackup(); // Clear session backup when user explicitly resets everything
+    clearUserDefaultChannels(); // Clear persistent default channels when user explicitly resets everything
   };
 
   // Channel auto-fade logic
