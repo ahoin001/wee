@@ -33,10 +33,11 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
   const [draggingPreset, setDraggingPreset] = useState(null); // name of preset being dragged
   const [dropTarget, setDropTarget] = useState(null); // name of preset being hovered over for drop
   
-  // Get Zustand store state
+  // Get Zustand store state and actions
   const { 
     showCommunitySection, 
-    toggleCommunitySection
+    toggleCommunitySection,
+    confirmDelete
   } = useUIStore();
   
   // Upload form state
@@ -51,7 +52,6 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     custom_image: null,
     selectedPreset: null
   });
-
 
   // Helper to get presets to export
   const getPresetsToExport = () => {
@@ -306,13 +306,15 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       setError('A preset with this name already exists.');
       return;
     }
+    console.log('[PresetsModal] Saving preset with includeChannels:', includeChannels, 'includeSounds:', includeSounds);
     onSavePreset(newPresetName.trim(), includeChannels, includeSounds);
     setNewPresetName('');
     setError('');
   };
 
   const handleUpdate = (name) => {
-    onUpdatePreset(name);
+    console.log('[PresetsModal] Updating preset with includeChannels:', includeChannels, 'includeSounds:', includeSounds);
+    onUpdatePreset(name, includeChannels, includeSounds);
     setJustUpdated(name);
     setTimeout(() => setJustUpdated(null), 1500);
   };
@@ -354,6 +356,14 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     }
   };
 
+  // Handle delete confirmation
+  const handleDeleteClick = (preset) => {
+    confirmDelete(
+      preset.name,
+      () => onDeletePreset(preset.name)
+    );
+  };
+
   // Wrapper function to handle apply preset with proper modal closing
   const handleApplyPreset = (preset) => {
     // Call onApplyPreset (which will set showPresetsModal to false)
@@ -390,9 +400,124 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     setUploadMessage({ type: '', text: '' });
   };
 
-  const handleImportCommunityPreset = (presetData) => {
-    if (onImportPresets) {
-      onImportPresets(presetData);
+  const handleImportCommunityPreset = async (presetData) => {
+    console.log('[PresetsModal] Importing community preset:', presetData);
+    console.log('[PresetsModal] PresetData type:', typeof presetData, Array.isArray(presetData) ? 'array' : 'object');
+    
+    // Handle both single preset and array of presets
+    const presetsToImport = Array.isArray(presetData) ? presetData : [presetData];
+    
+    for (let index = 0; index < presetsToImport.length; index++) {
+      const preset = presetsToImport[index];
+      console.log(`[PresetsModal] Processing preset ${index}:`, preset);
+      console.log(`[PresetsModal] Preset has settings:`, !!preset.settings);
+      console.log(`[PresetsModal] Settings keys:`, preset.settings ? Object.keys(preset.settings) : 'no settings');
+      
+      // Convert the downloaded preset structure to the expected format
+      // Community presets have 'settings', local presets have 'data'
+      // App.jsx handleApplyPreset expects preset.data.timeColor, not preset.settings.timeColor
+      let presetSettings = {
+        ...preset.settings,
+      };
+      
+      // Handle wallpaper download and conversion
+      if (preset.wallpaper && preset.wallpaper.data) {
+        try {
+          console.log(`[PresetsModal] Processing wallpaper for preset ${index}:`, preset.wallpaper);
+          
+          // Check if wallpaper data is properly structured
+          if (preset.wallpaper.data && (preset.wallpaper.data instanceof ArrayBuffer || preset.wallpaper.data.byteLength > 0)) {
+            console.log(`[PresetsModal] Wallpaper data is ArrayBuffer with size:`, preset.wallpaper.data.byteLength);
+            
+            // Convert ArrayBuffer to base64 string for the saveFile API
+            const arrayBuffer = preset.wallpaper.data;
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+            const base64Data = btoa(binaryString);
+            
+            const fileName = preset.wallpaper.fileName || `community-wallpaper-${Date.now()}.jpg`;
+            const mimeType = preset.wallpaper.mimeType || 'image/jpeg';
+            
+            console.log(`[PresetsModal] Converting wallpaper to base64, size:`, base64Data.length);
+            
+            // Save wallpaper to local storage
+            if (window.api?.wallpapers?.saveFile) {
+              const saveResult = await window.api.wallpapers.saveFile({
+                filename: fileName,
+                data: base64Data,
+                mimeType: mimeType
+              });
+              
+              if (saveResult.success) {
+                console.log(`[PresetsModal] Wallpaper saved locally:`, saveResult.url);
+                
+                // Update wallpaper URL in settings to use local path
+                if (presetSettings.wallpaper) {
+                  presetSettings.wallpaper.url = saveResult.url;
+                  presetSettings.wallpaper.name = fileName;
+                }
+                
+                // Update savedWallpapers array if it exists
+                if (presetSettings.savedWallpapers && Array.isArray(presetSettings.savedWallpapers)) {
+                  presetSettings.savedWallpapers = presetSettings.savedWallpapers.map(wp => {
+                    if (wp.url && wp.url.includes('userdata://wallpapers/')) {
+                      // This is a local wallpaper reference, keep it
+                      return wp;
+                    } else {
+                      // This might be a community wallpaper, we'll need to handle it
+                      // For now, keep the original URL as fallback
+                      return wp;
+                    }
+                  });
+                }
+              } else {
+                console.warn(`[PresetsModal] Failed to save wallpaper locally:`, saveResult.error);
+                // Fallback: keep the original wallpaper data
+                presetSettings.wallpaper = preset.wallpaper;
+              }
+            } else {
+              console.warn(`[PresetsModal] Wallpaper API not available, keeping original data`);
+              presetSettings.wallpaper = preset.wallpaper;
+            }
+          } else {
+            console.warn(`[PresetsModal] Wallpaper data is empty or invalid:`, preset.wallpaper.data);
+            // If wallpaper data is empty, try to use the original wallpaper from settings
+            if (presetSettings.wallpaper) {
+              console.log(`[PresetsModal] Using original wallpaper from settings:`, presetSettings.wallpaper);
+            } else {
+              console.warn(`[PresetsModal] No wallpaper data available`);
+            }
+          }
+        } catch (error) {
+          console.error(`[PresetsModal] Error processing wallpaper for preset ${index}:`, error);
+          // Fallback: keep the original wallpaper data
+          presetSettings.wallpaper = preset.wallpaper;
+        }
+      } else {
+        console.log(`[PresetsModal] No wallpaper data in preset ${index}`);
+      }
+      
+      const convertedPreset = {
+        name: preset.name,
+        data: presetSettings, // Convert 'settings' to 'data' for compatibility with App.jsx handleApplyPreset
+        timestamp: new Date().toISOString(),
+        isCommunity: true,
+        communityId: preset.id
+      };
+      
+      console.log(`[PresetsModal] Converted preset ${index} structure:`, convertedPreset);
+      console.log(`[PresetsModal] Preset ${index} data structure check:`, {
+        hasData: !!convertedPreset.data,
+        hasTimeColor: !!convertedPreset.data?.timeColor,
+        timeColorValue: convertedPreset.data?.timeColor,
+        dataKeys: convertedPreset.data ? Object.keys(convertedPreset.data) : 'no data',
+        hasWallpaper: !!convertedPreset.data?.wallpaper,
+        wallpaperUrl: convertedPreset.data?.wallpaper?.url
+      });
+      
+      if (onImportPresets) {
+        onImportPresets(convertedPreset);
+      }
     }
   };
 
@@ -476,6 +601,18 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
         wallpaper: wallpaperFile,
         customImage: customImageFile
       };
+
+      // CRITICAL: Remove channel data from shared presets for security and compatibility
+      if (presetData.settings) {
+        // Remove all channel-related data
+        delete presetData.settings.channels;
+        delete presetData.settings.mediaMap;
+        delete presetData.settings.appPathMap;
+        delete presetData.settings.channelData;
+        
+        // Also remove sound library data for security
+        delete presetData.settings.soundLibrary;
+      }
 
       console.log('[UPLOAD] Preset data created:', {
         hasSettings: !!presetData.settings,
@@ -571,12 +708,45 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 }}
                 maxLength={32}
                 
-                tabIndex={presets.length >= 6 ? -1 : 0}
+              
               />
+                {/* tabIndex={presets.length >= 6 ? -1 : 0} */}
               <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.length >= 6}>
                 Save Preset
               </Button>
             </div>
+            
+            {/* Include Channel Data Toggle */}
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Toggle
+                checked={includeChannels}
+                onChange={setIncludeChannels}
+                label="Include Channel Data"
+              />
+              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 8 }}>
+                Save channels, their media, and app paths for workspace switching
+              </Text>
+            </div>
+            
+            {/* Help text for channel data feature */}
+            {includeChannels && (
+              <div style={{ 
+                marginTop: 8, 
+                padding: 8, 
+                background: 'hsl(var(--primary) / 0.1)', 
+                border: '1px solid hsl(var(--primary) / 0.2)', 
+                borderRadius: 6,
+                fontSize: 12
+              }}>
+                <Text size="sm" color="hsl(var(--primary))" style={{ fontWeight: 500, marginBottom: 4 }}>
+                  🎯 Workspace Mode Enabled
+                </Text>
+                <Text size="sm" color="hsl(var(--text-secondary))">
+                  This preset will save your current channels, apps, and settings. Perfect for switching between "Gaming" and "Work" workspaces. 
+                  <strong>Note:</strong> Channel data is never included when sharing presets.
+                </Text>
+              </div>
+            )}
             
             {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
             {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
@@ -588,49 +758,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           separator
           desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
         >
-          {/* Import/Export controls now above the preset list */}
-          {/* <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end', marginBottom: 18 }}>
-            <Button variant="secondary" onClick={handleImportClick}>
-              Import
-            </Button>
-            <Button variant="primary" onClick={() => { setSelectMode(true); setSelectedPresets([]); }}>
-              Export
-            </Button>
-            <input
-              type="file"
-              accept=".json,.zip,application/json,application/zip"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={e => {
-                const file = e.target.files[0];
-                if (!file) return;
-                if (file.name.endsWith('.zip')) {
-                  handleImportZip(file);
-                } else {
-                  handleFileChange(e);
-                }
-              }}
-            />
-          </div>
-          {selectMode && (
-            <div style={{ display: 'flex', gap: 10, marginBottom: 18, justifyContent: 'flex-end' }}>
-              <Text size="md" weight={500} style={{ color: 'hsl(var(--text-primary))', marginRight: 'auto' }}>
-                Click presets to select for export
-              </Text>
-              <Button variant="primary" onClick={() => { handleExportZip(getPresetsToExport()); setSelectMode(false); }} disabled={selectedPresets.length === 0}>
-                Export Selected
-              </Button>
-              <Button variant="secondary" onClick={handleSelectAll}>
-                Select All
-              </Button>
-              <Button variant="secondary" onClick={handleDeselectAll}>
-                Deselect All
-              </Button>
-              <Button variant="tertiary" onClick={() => { setSelectMode(false); setSelectedPresets([]); }}>
-                Cancel
-              </Button>
-            </div>
-          )} */}
+          
 
           <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '10px 0 18px 0' }} />
           
@@ -691,7 +819,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                   onApply={handleApplyPreset}
                   onUpdate={handleUpdate}
                   onStartEdit={handleStartEdit}
-                  onDelete={onDeletePreset}
+                  onDelete={handleDeleteClick}
                   onSaveEdit={handleSaveEdit}
                   onCancelEdit={handleCancelEdit}
                   onEditNameChange={e => setEditName(e.target.value)}
@@ -944,7 +1072,7 @@ PresetsModal.propTypes = {
   onSavePreset: PropTypes.func.isRequired, // (name: string, includeChannels: boolean, includeSounds: boolean) => void
   onDeletePreset: PropTypes.func.isRequired, // (name: string) => void
   onApplyPreset: PropTypes.func.isRequired, // (preset: Preset) => void
-  onUpdatePreset: PropTypes.func.isRequired, // (name: string) => void
+  onUpdatePreset: PropTypes.func.isRequired, // (name: string, includeChannels: boolean, includeSounds: boolean) => void
   onRenamePreset: PropTypes.func.isRequired, // (oldName: string, newName: string) => void
   onImportPresets: PropTypes.func.isRequired, // (presets: Preset[]) => void
   onReorderPresets: PropTypes.func, // (reorderedPresets: Preset[]) => void

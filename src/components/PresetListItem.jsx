@@ -88,6 +88,21 @@ const PresetListItem = ({
           }}
         >
           {preset.name}
+          {/* Show workspace indicator if preset includes channel data */}
+          {(preset.data?.channels || preset.data?.channelData) && (
+            <span style={{
+              marginLeft: 8,
+              padding: '2px 6px',
+              background: 'hsl(var(--primary))',
+              color: 'white',
+              borderRadius: 4,
+              fontSize: 10,
+              fontWeight: 500,
+              verticalAlign: 'middle'
+            }} title="Includes channel data for workspace switching">
+              🎯
+            </span>
+          )}
         </Text>
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -123,7 +138,7 @@ const PresetListItem = ({
             <Button 
               variant="danger-primary"
               size="sm"
-              onClick={e => { e.stopPropagation(); onDelete(preset.name); }}
+              onClick={e => { e.stopPropagation(); onDelete(preset); }}
               title="Delete this preset (requires confirmation)"
             >
               Delete

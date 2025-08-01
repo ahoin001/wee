@@ -8,20 +8,26 @@ const useIdleChannelAnimations = (
 ) => {
   const [activeAnimations, setActiveAnimations] = useState(new Set());
   const intervalRef = useRef(null);
-  const timeoutRefs = useRef(new Map());
+  const timeoutRefs = useRef(new Set());
+  const channelsRef = useRef(channels);
+  const prevChannelsLengthRef = useRef(channels.length);
+
+  // Update channels ref only when the length or content actually changes
+  useEffect(() => {
+    const currentLength = channels.length;
+    const prevLength = prevChannelsLengthRef.current;
+    
+    // Only update if the number of channels changed
+    if (currentLength !== prevLength) {
+      channelsRef.current = channels;
+      prevChannelsLengthRef.current = currentLength;
+    }
+  }, [channels.length]); // Only depend on channels.length, not the entire channels array
 
   // Get channels that have content (not empty)
   const getChannelsWithContent = () => {
-    return channels.filter(channel => 
-      channel && !channel.empty && (
-        channel.title || 
-        channel.path || 
-        channel.media || 
-        channel.imageGallery?.length > 0 ||
-        channel.type === 'steam' ||
-        channel.type === 'url' ||
-        (channel.type === 'exe' && channel.path)
-      )
+    return channelsRef.current.filter(channel => 
+      channel && (channel.media || channel.path)
     );
   };
 
@@ -42,7 +48,7 @@ const useIdleChannelAnimations = (
     }, duration);
     
     // Store timeout reference for cleanup
-    timeoutRefs.current.set(`${channelId}-${animationType}`, timeoutId);
+    timeoutRefs.current.add(timeoutId);
   };
 
   // Get animation duration based on type
@@ -75,19 +81,16 @@ const useIdleChannelAnimations = (
   const triggerRandomAnimation = () => {
     const channelsWithContent = getChannelsWithContent();
     
-    if (channelsWithContent.length === 0 || animationTypes.length === 0) {
-      if (channelsWithContent.length === 0) {
-        console.log(`[IdleAnimation] No channels with content found. Total channels: ${channels.length}, Channels checked:`, channels.slice(0, 3).map(c => ({id: c.id, empty: c.empty, title: c.title, path: c.path, media: c.media})));
-      }
+    if (channelsWithContent.length === 0) {
       return;
     }
 
-    // console.log(`[IdleAnimation] Found ${channelsWithContent.length} channels with content out of ${channels.length} total`);
+    // console.log(`[IdleAnimation] Found ${channelsWithContent.length} channels with content out of ${channelsRef.current.length} total`);
     // console.log(`[IdleAnimation] Channels with content:`, channelsWithContent.map(c => ({id: c.id, title: c.title, media: !!c.media, path: !!c.path})));
 
     // Pick a random channel with content
     const randomChannel = channelsWithContent[Math.floor(Math.random() * channelsWithContent.length)];
-    const channelId = randomChannel.id || `channel-${channels.indexOf(randomChannel)}`;
+    const channelId = randomChannel.id || `channel-${channelsRef.current.indexOf(randomChannel)}`;
     
     // Pick a random animation type
     const randomAnimationType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
@@ -131,7 +134,7 @@ const useIdleChannelAnimations = (
         intervalRef.current = null;
       }
     };
-  }, [enabled, animationTypes, interval, channels]);
+  }, [enabled, animationTypes, interval]); // Removed 'channels' from dependencies
 
   // Cleanup on unmount
   useEffect(() => {

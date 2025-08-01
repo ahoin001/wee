@@ -1,0 +1,195 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+const useChannelStore = create(
+  persist(
+    (set, get) => ({
+      // Channel data - single source of truth
+      channels: {}, // { channelId: { media, path, type, title, hoverSound, asAdmin, animatedOnHover, kenBurnsEnabled, kenBurnsMode } }
+      
+      // Modal state
+      modalState: {
+        isOpen: false,
+        channelId: null,
+        currentMedia: null,
+        currentPath: '',
+        currentType: 'exe',
+        currentHoverSound: null,
+        currentAsAdmin: false,
+        currentAnimatedOnHover: undefined,
+        currentKenBurnsEnabled: undefined,
+        currentKenBurnsMode: undefined
+      },
+      
+      // Actions
+      setChannel: (channelId, channelData) => 
+        set(state => {
+          if (channelData === null) {
+            // If channelData is null, delete the channel
+            const newChannels = { ...state.channels };
+            delete newChannels[channelId];
+            return { channels: newChannels };
+          } else {
+            // Otherwise, set the channel data
+            return {
+              channels: { ...state.channels, [channelId]: channelData }
+            };
+          }
+        }),
+      
+      // Modal actions
+      openChannelModal: (channelId) => {
+        const channels = get().channels;
+        const channelConfig = channels[channelId] || {};
+        
+        set(state => ({
+          modalState: {
+            isOpen: true,
+            channelId,
+            currentMedia: channelConfig.media || null,
+            currentPath: channelConfig.path || '',
+            currentType: channelConfig.type || 'exe',
+            currentHoverSound: channelConfig.hoverSound || null,
+            currentAsAdmin: channelConfig.asAdmin || false,
+            currentAnimatedOnHover: channelConfig.animatedOnHover,
+            currentKenBurnsEnabled: channelConfig.kenBurnsEnabled,
+            currentKenBurnsMode: channelConfig.kenBurnsMode
+          }
+        }));
+      },
+      
+      closeChannelModal: () => 
+        set(state => ({
+          modalState: {
+            ...state.modalState,
+            isOpen: false,
+            channelId: null
+          }
+        })),
+      
+      updateChannelModal: (updates) =>
+        set(state => ({
+          modalState: {
+            ...state.modalState,
+            ...updates
+          }
+        })),
+      
+      clearChannel: (channelId) =>
+        set(state => {
+          const newChannels = { ...state.channels };
+          delete newChannels[channelId];
+          return { channels: newChannels };
+        }),
+      
+      setChannelsFromPreset: (presetData) => {
+        console.log('[ChannelStore] Setting channels from preset:', presetData);
+        
+        if (presetData.channels && presetData.mediaMap && presetData.appPathMap) {
+          // Handle old preset format
+          const channelData = {};
+          presetData.channels.forEach(channel => {
+            const media = presetData.mediaMap[channel.id];
+            const path = presetData.appPathMap[channel.id];
+            
+            if (media || path) {
+              channelData[channel.id] = {
+                media: media || null,
+                path: path || null,
+                type: media?.type || (path?.endsWith('.exe') ? 'exe' : 'url'),
+                title: media?.name || null,
+                hoverSound: channel.hoverSound || null,
+                animatedOnHover: channel.animatedOnHover,
+                kenBurnsEnabled: channel.kenBurnsEnabled,
+                kenBurnsMode: channel.kenBurnsMode,
+                asAdmin: channel.asAdmin || false
+              };
+            }
+          });
+          set({ channels: channelData });
+        } else if (presetData.channelData) {
+          // Handle new clean preset format
+          set({ channels: presetData.channelData });
+        } else {
+          // No channel data in preset - clear all channels
+          set({ channels: {} });
+        }
+      },
+      
+      clearAllChannels: () => set({ channels: {} }),
+      
+      // Computed selectors
+      getChannelConfig: (channelId) => get().channels[channelId] || null,
+      
+      isChannelEmpty: (channelId) => {
+        const config = get().channels[channelId];
+        return !config || (!config.media && !config.path);
+      },
+      
+      getConfiguredChannels: () => {
+        const channels = get().channels;
+        return Object.entries(channels).filter(([id, config]) => 
+          config && (config.media || config.path)
+        );
+      },
+      
+      // Helper to get all channel data in the format expected by components
+      getChannelDataForComponents: () => {
+        const channels = get().channels;
+        const mediaMap = {};
+        const appPathMap = {};
+        const channelConfigs = {};
+        
+        Object.entries(channels).forEach(([channelId, config]) => {
+          // Skip null or undefined configs
+          if (!config) return;
+          
+          if (config.media) {
+            mediaMap[channelId] = config.media;
+          }
+          if (config.path) {
+            appPathMap[channelId] = config.path;
+          }
+          channelConfigs[channelId] = config;
+        });
+        
+        return { mediaMap, appPathMap, channelConfigs };
+      },
+      
+      // Get total number of configured channels
+      getConfiguredChannelCount: () => {
+        const channels = get().channels;
+        return Object.values(channels).filter(config => 
+          config && (config.media || config.path)
+        ).length;
+      },
+      
+      // Get highest configured channel index
+      getHighestConfiguredIndex: () => {
+        const channels = get().channels;
+        let highestIndex = -1;
+        
+        Object.keys(channels).forEach(channelId => {
+          const match = channelId.match(/channel-(\d+)/);
+          if (match) {
+            const index = parseInt(match[1]);
+            const config = channels[channelId];
+            if (config && (config.media || config.path)) {
+              highestIndex = Math.max(highestIndex, index);
+            }
+          }
+        });
+        
+        return highestIndex;
+      }
+    }),
+    {
+      name: 'channel-storage',
+      // Custom serialization if needed for complex data
+      serialize: (state) => JSON.stringify(state),
+      deserialize: (str) => JSON.parse(str),
+    }
+  )
+);
+
+export default useChannelStore; 

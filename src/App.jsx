@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ChannelModal from './components/ChannelModal';
 import PaginatedChannels from './components/PaginatedChannels';
 import PageNavigation from './components/PageNavigation';
@@ -35,6 +35,12 @@ import useAppLibraryStore from './utils/useAppLibraryStore';
 import useUIStore from './utils/useUIStore';
 import useMonitorStore from './utils/useMonitorStore';
 import Text from './ui/Text';
+import useChannelStore from './utils/useChannelStore';
+import useAppearanceSettingsStore from './utils/useAppearanceSettingsStore';
+import useAuthModalStore from './utils/useAuthModalStore';
+import useUnifiedAppStore from './utils/useUnifiedAppStore';
+import AdminPanel from './components/AdminPanel';
+import ConfirmationModal from './components/ConfirmationModal';
 
 
 // Safe fallback for modular APIs
@@ -132,6 +138,45 @@ function WiiCursor() {
 }
 
 function App() {
+  // Zustand stores
+  const { 
+    channels, 
+    setChannel, 
+    clearChannel, 
+    setChannelsFromPreset, 
+    clearAllChannels,
+    getChannelDataForComponents,
+    modalState,
+    closeChannelModal
+  } = useChannelStore();
+  
+  const { 
+    isOpen: isAuthModalOpen, 
+    openModal: openAuthModal, 
+    closeModal: closeAuthModal 
+  } = useAuthModalStore();
+  
+  const { 
+    isOpen: isAppearanceSettingsOpen, 
+    openModal: openAppearanceSettings, 
+    closeModal: closeAppearanceSettings 
+  } = useAppearanceSettingsStore();
+  
+  const { 
+    displays, 
+    currentDisplay, 
+    initialize: initializeMonitors 
+  } = useMonitorStore();
+  
+  const { 
+    unifiedApps, 
+    rescanUnifiedApps 
+  } = useUnifiedAppStore();
+  
+  const { 
+    appLibrary
+  } = useAppLibraryStore();
+  
   // UI Store for global keyboard shortcuts and modal management
   const { 
     handleGlobalKeyPress,
@@ -165,13 +210,11 @@ function App() {
   // Monitor store for multi-monitor support
   const { 
     initialize: initializeMonitorStore, 
-    currentDisplay, 
     loadMonitorSpecificData 
   } = useMonitorStore();
   
-  const [mediaMap, setMediaMap] = useState({});
-  const [appPathMap, setAppPathMap] = useState({});
-  const [channelConfigs, setChannelConfigs] = useState({});
+  // Channel state now managed by Zustand store
+  const [presets, setPresets] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [useCustomCursor, setUseCustomCursor] = useState(true);
@@ -378,9 +421,6 @@ function App() {
 
 
 
-  const [channels, setChannels] = useState(Array(12).fill({ empty: true }));
-  // showPresetsModal now managed by useUIStore
-  const [presets, setPresets] = useState([]);
   const [cachedSteamGames, setCachedSteamGames] = useState([]);
   const [cachedInstalledApps, setCachedInstalledApps] = useState([]);
   const [steamGamesLoading, setSteamGamesLoading] = useState(false);
@@ -411,7 +451,7 @@ function App() {
   };
 
   // Rescan installed apps
-  const rescanInstalledApps = async () => {
+  const rescanInstalledAppsLocal = async () => {
     setInstalledAppsLoading(true);
     setInstalledAppsError('');
     try {
@@ -428,36 +468,85 @@ function App() {
 
   // Preset handlers (must be inside App)
   const handleSavePreset = async (name, includeChannels = false, includeSounds = false, importedData = null) => {
-    // if (presets.length >= 6) return;
-    const data = importedData || {
-      // WiiRibbon & Glow
-      ribbonColor, ribbonGlowColor, ribbonGlowStrength, ribbonGlowStrengthHover, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, recentRibbonColors, recentRibbonGlowColors,
-      // Time & Pill
-      timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, timeFont, // always include timeFont
-      // Wallpaper & Effects
-      wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, wallpaperBlur,
-      // Primary Action Buttons
-      ribbonButtonConfigs, // This now includes textFont for each button
-      // Presets Button
-      presetsButtonConfig, // Track presets button configuration
-    };
+    console.log('[App] handleSavePreset called with:', { name, includeChannels, includeSounds, importedData });
     
-    // Include channel data if requested and not importing
-    if (!importedData && includeChannels) {
-      data.channels = channels;
-      data.mediaMap = mediaMap;
-      data.appPathMap = appPathMap;
-    }
-    
-    // Include sound settings if requested and not importing
-    if (!importedData && includeSounds) {
-      // Get the complete sound library to save all sound configurations
-      const soundLibrary = await soundsApi?.getLibrary();
-      data.soundLibrary = soundLibrary;
-    }
-    
-    setPresets(prev => [...prev, { name, data }]);
+    try {
+      // Get current settings
+      const currentSettings = {
+        // ... existing settings ...
+        timeColor,
+        timeFormat24hr,
+        enableTimePill,
+        timePillBlur,
+        timePillOpacity,
+        channelAutoFadeTimeout,
+        ribbonButtonConfigs,
+        presetsButtonConfig,
+        showPresetsButton,
+        startOnBoot,
+        immersivePip,
+        showDock,
+        classicMode,
+        glassWiiRibbon,
+        glassOpacity,
+        glassBlur,
+        glassBorderOpacity,
+        glassShineOpacity,
+        animatedOnHover,
+        startInFullscreen,
+        wallpaper,
+        wallpaperOpacity,
+        cycleWallpapers,
+        cycleInterval,
+        cycleAnimation,
+        crossfadeDuration,
+        crossfadeEasing,
+        slideRandomDirection,
+        slideDuration,
+        slideEasing,
+        savedWallpapers,
+        likedWallpapers,
+        useCustomCursor,
+        soundSettings
+      };
 
+      // Include channel data if requested and not importing
+      if (!importedData && includeChannels) {
+        // Get channel data from store
+        const { getConfiguredChannels } = useChannelStore.getState();
+        const configuredChannels = getConfiguredChannels();
+        
+        if (configuredChannels.length > 0) {
+          // Create a clean channel data structure
+          const channelData = {};
+          configuredChannels.forEach(([channelId, config]) => {
+            channelData[channelId] = config;
+          });
+          
+          currentSettings.channelData = channelData;
+        }
+      }
+
+      // Include sound library if requested
+      if (includeSounds) {
+        const currentSoundLibrary = await soundsApi?.getLibrary();
+        if (currentSoundLibrary) {
+          currentSettings.soundLibrary = currentSoundLibrary;
+        }
+      }
+
+      const newPreset = {
+        name,
+        data: currentSettings,
+        timestamp: Date.now()
+      };
+
+      setPresets(prev => [...prev, newPreset]);
+      console.log('[App] Saved preset with channel data:', newPreset);
+      
+    } catch (error) {
+      console.error('[App] Error saving preset:', error);
+    }
   };
   const handleDeletePreset = (name) => {
     // Show confirmation dialog for anonymous deleting
@@ -490,100 +579,109 @@ function App() {
     setPresets(reorderedPresets);
   };
   const handleApplyPreset = async (preset) => {
-    const d = preset.data;
-    // WiiRibbon & Glow
-    setRibbonColor(d.ribbonColor);
-    setRibbonGlowColor(d.ribbonGlowColor);
-    setRibbonGlowStrength(d.ribbonGlowStrength);
-    setRibbonGlowStrengthHover(d.ribbonGlowStrengthHover);
-    setGlassWiiRibbon(d.glassWiiRibbon);
-    setGlassOpacity(d.glassOpacity);
-    setGlassBlur(d.glassBlur);
-    setGlassBorderOpacity(d.glassBorderOpacity);
-    setGlassShineOpacity(d.glassShineOpacity);
-    setRecentRibbonColors(d.recentRibbonColors || []);
-    setRecentRibbonGlowColors(d.recentRibbonGlowColors || []);
-    // Time & Pill
-    setTimeColor(d.timeColor);
-    setTimeFormat24hr(d.timeFormat24hr);
-    setEnableTimePill(d.enableTimePill);
-    setTimePillBlur(d.timePillBlur);
-    setTimePillOpacity(d.timePillOpacity);
-    setTimeFont(d.timeFont !== undefined ? d.timeFont : timeFont); // fallback to current if missing
-    // Wallpaper & Effects
-    setWallpaper(d.wallpaper);
-    setWallpaperOpacity(d.wallpaperOpacity);
-    setSavedWallpapers(d.savedWallpapers || []);
-    setLikedWallpapers(d.likedWallpapers || []);
-    setCycleWallpapers(d.cycleWallpapers);
-    setCycleInterval(d.cycleInterval);
-    setCycleAnimation(d.cycleAnimation);
-    setSlideDirection(d.slideDirection);
-    setCrossfadeDuration(d.crossfadeDuration);
-    setCrossfadeEasing(d.crossfadeEasing);
-    setSlideRandomDirection(d.slideRandomDirection);
-    setSlideDuration(d.slideDuration);
-    setSlideEasing(d.slideEasing);
-    setWallpaperBlur(d.wallpaperBlur !== undefined ? d.wallpaperBlur : 0);
-    // Handle wallpaper setting with proper persistence
-    if (d.wallpaper && d.wallpaper.url && window.api?.wallpapers?.setActive) {
-      try {
-        await window.api.wallpapers.setActive({ url: d.wallpaper.url });
-      } catch (error) {
-        console.warn('Failed to set wallpaper from preset:', error);
-        // If setting the wallpaper fails, set to null to avoid UI inconsistency
-        setWallpaper(null);
+    console.log('[App] handleApplyPreset called with preset:', preset);
+    console.log('[App] Preset structure check:', {
+      hasData: !!preset.data,
+      hasSettings: !!preset.settings,
+      dataKeys: preset.data ? Object.keys(preset.data) : 'no data',
+      settingsKeys: preset.settings ? Object.keys(preset.settings) : 'no settings',
+      timeColorFromData: preset.data?.timeColor,
+      timeColorFromSettings: preset.settings?.timeColor
+    });
+    
+    try {
+      const d = preset.data;
+      
+      // Apply basic settings
+      if (d.timeColor !== undefined) setTimeColor(d.timeColor);
+      if (d.timeFormat24hr !== undefined) setTimeFormat24hr(d.timeFormat24hr);
+      if (d.enableTimePill !== undefined) setEnableTimePill(d.enableTimePill);
+      if (d.timePillBlur !== undefined) setTimePillBlur(d.timePillBlur);
+      if (d.timePillOpacity !== undefined) setTimePillOpacity(d.timePillOpacity);
+      if (d.channelAutoFadeTimeout !== undefined) setChannelAutoFadeTimeout(d.channelAutoFadeTimeout);
+      if (d.ribbonButtonConfigs !== undefined) setRibbonButtonConfigs(d.ribbonButtonConfigs);
+      if (d.presetsButtonConfig !== undefined) setPresetsButtonConfig(d.presetsButtonConfig);
+      if (d.showPresetsButton !== undefined) setShowPresetsButton(d.showPresetsButton);
+      if (d.startOnBoot !== undefined) setStartOnBoot(d.startOnBoot);
+      if (d.immersivePip !== undefined) setImmersivePip(d.immersivePip);
+      if (d.showDock !== undefined) setShowDock(d.showDock);
+      if (d.classicMode !== undefined) setClassicMode(d.classicMode);
+      if (d.glassWiiRibbon !== undefined) setGlassWiiRibbon(d.glassWiiRibbon);
+      if (d.glassOpacity !== undefined) setGlassOpacity(d.glassOpacity);
+      if (d.glassBlur !== undefined) setGlassBlur(d.glassBlur);
+      if (d.glassBorderOpacity !== undefined) setGlassBorderOpacity(d.glassBorderOpacity);
+      if (d.glassShineOpacity !== undefined) setGlassShineOpacity(d.glassShineOpacity);
+      if (d.animatedOnHover !== undefined) setAnimatedOnHover(d.animatedOnHover);
+      if (d.startInFullscreen !== undefined) setStartInFullscreen(d.startInFullscreen);
+      
+      // Apply ribbon color and glow settings
+      if (d.ribbonColor !== undefined) {
+        console.log('[App] Applying ribbon color:', d.ribbonColor);
+        setRibbonColor(d.ribbonColor);
       }
-    } else if (!d.wallpaper) {
-      // If preset has no wallpaper, clear current wallpaper
-      try {
-        await window.api.wallpapers.setActive({ url: null });
-      } catch (error) {
-        console.warn('Failed to clear wallpaper:', error);
+      if (d.ribbonGlowColor !== undefined) {
+        console.log('[App] Applying ribbon glow color:', d.ribbonGlowColor);
+        setRibbonGlowColor(d.ribbonGlowColor);
       }
+      if (d.ribbonGlowStrength !== undefined) {
+        console.log('[App] Applying ribbon glow strength:', d.ribbonGlowStrength);
+        setRibbonGlowStrength(d.ribbonGlowStrength);
+      }
+      if (d.ribbonGlowStrengthHover !== undefined) {
+        console.log('[App] Applying ribbon glow strength hover:', d.ribbonGlowStrengthHover);
+        setRibbonGlowStrengthHover(d.ribbonGlowStrengthHover);
+      }
+      if (d.recentRibbonColors !== undefined) {
+        console.log('[App] Applying recent ribbon colors:', d.recentRibbonColors);
+        setRecentRibbonColors(d.recentRibbonColors);
+      }
+      if (d.recentRibbonGlowColors !== undefined) {
+        console.log('[App] Applying recent ribbon glow colors:', d.recentRibbonGlowColors);
+        setRecentRibbonGlowColors(d.recentRibbonGlowColors);
+      }
+      
+      // Apply wallpaper settings
+      if (d.wallpaper !== undefined) {
+        console.log('[App] Applying wallpaper:', d.wallpaper);
+        setWallpaper(d.wallpaper);
+      }
+      if (d.wallpaperOpacity !== undefined) {
+        console.log('[App] Applying wallpaper opacity:', d.wallpaperOpacity);
+        setWallpaperOpacity(d.wallpaperOpacity);
+      }
+      if (d.cycleWallpapers !== undefined) setCycleWallpapers(d.cycleWallpapers);
+      if (d.cycleInterval !== undefined) setCycleInterval(d.cycleInterval);
+      if (d.cycleAnimation !== undefined) setCycleAnimation(d.cycleAnimation);
+      if (d.crossfadeDuration !== undefined) setCrossfadeDuration(d.crossfadeDuration);
+      if (d.crossfadeEasing !== undefined) setCrossfadeEasing(d.crossfadeEasing);
+      if (d.slideRandomDirection !== undefined) setSlideRandomDirection(d.slideRandomDirection);
+      if (d.slideDuration !== undefined) setSlideDuration(d.slideDuration);
+      if (d.slideEasing !== undefined) setSlideEasing(d.slideEasing);
+      if (d.savedWallpapers !== undefined) setSavedWallpapers(d.savedWallpapers);
+      if (d.likedWallpapers !== undefined) setLikedWallpapers(d.likedWallpapers);
+      if (d.useCustomCursor !== undefined) setUseCustomCursor(d.useCustomCursor);
+      if (d.soundSettings !== undefined) setSoundSettings(d.soundSettings);
+      
+      // Apply channel data if present
+      if (d.channelData) {
+        console.log('[App] Applying channel data from preset:', d.channelData);
+        setChannelsFromPreset(d);
+      } else {
+        console.log('[App] No channel data in preset, clearing channels');
+        clearAllChannels();
+      }
+      
+      // Apply sound library if present
+      if (d.soundLibrary) {
+        console.log('[App] Applying sound library from preset');
+        await soundsApi?.setLibrary(d.soundLibrary);
+      }
+      
+      console.log('[App] Preset applied successfully');
+      
+    } catch (error) {
+      console.error('[App] Error applying preset:', error);
     }
-    setRibbonButtonConfigs(d.ribbonButtonConfigs || []); // This now includes textFont for each button
-    setPresetsButtonConfig(d.presetsButtonConfig || { type: 'icon', icon: 'star' }); // Apply presets button config
-    
-    // Apply channel data if present
-    if (d.channels && d.mediaMap && d.appPathMap) {
-
-      
-      // Update the channels state
-      setChannels(d.channels);
-      setMediaMap(d.mediaMap);
-      setAppPathMap(d.appPathMap);
-      
-      // Save channel data to persistent storage in the correct format
-      const channelData = {};
-      d.channels.forEach(channel => {
-        if (!channel.empty && (d.mediaMap[channel.id] || d.appPathMap[channel.id])) {
-          channelData[channel.id] = {
-            media: d.mediaMap[channel.id] || null,
-            path: d.appPathMap[channel.id] || null,
-            type: d.mediaMap[channel.id]?.type || (d.appPathMap[channel.id]?.endsWith('.exe') ? 'exe' : 'url'),
-            title: d.mediaMap[channel.id]?.name || null
-          };
-        }
-      });
-      
-      channelsApi?.set(channelData);
-    } else {
-      // No channel data in preset or channel data incomplete
-    }
-    
-    // Apply sound settings if present
-    if (d.soundLibrary) {
-      setSoundSettings(d.soundLibrary);
-      soundsApi?.set(d.soundLibrary);
-      
-      // Update background music using the proper setup function
-      await setupBackgroundMusic(d.soundLibrary);
-    } else {
-      // No sound library in preset
-    }
-    
-            closePresetsModal();
   };
 
   // Load monitor-specific wallpaper when current display changes
@@ -669,50 +767,7 @@ function App() {
         return media;
       };
       
-      // Load channels - no hardcoded limit, let PaginatedChannels handle dynamic generation
-      const channelData = await channelsApi.get();
-      
-      // Create a minimal channels array for backward compatibility (not used by PaginatedChannels)
-      const gridChannels = [];
-      for (let i = 0; i < 12; i++) {
-        const id = `channel-${i}`;
-        gridChannels.push({ id, empty: true });
-      }
-      setChannels(gridChannels);
-      
-      // Set channelConfigs to the processed channel data
-      const processedConfigs = {};
-      Object.entries(channelData || {}).forEach(([channelId, config]) => {
-        let processedConfig = { ...config };
-        
-        // Validate and clean media URLs
-        if (processedConfig.media) {
-          const validatedMedia = validateMediaUrl(processedConfig.media);
-          if (!validatedMedia) {
-            console.warn(`Removing invalid media URL from channel config ${channelId}:`, processedConfig.media?.url);
-            processedConfig.media = null;
-          } else {
-            processedConfig.media = validatedMedia;
-          }
-        }
-        
-        // Ensure type is present
-        if (!processedConfig.type) {
-          processedConfig.type = inferChannelType(processedConfig.path);
-        }
-        processedConfigs[channelId] = processedConfig;
-      });
-      setChannelConfigs(processedConfigs);
-      
-      // Update mediaMap and appPathMap from saved configs
-      const newMediaMap = {};
-      const newAppPathMap = {};
-      Object.entries(channelData || {}).forEach(([channelId, config]) => {
-        if (config.media) newMediaMap[channelId] = config.media;
-        if (config.path) newAppPathMap[channelId] = config.path;
-      });
-      setMediaMap(newMediaMap);
-      setAppPathMap(newAppPathMap);
+      // Channel data now managed by Zustand store with automatic persistence
       // --- SplashScreen logic ---
       // Mark app as ready first
       setAppReady(true);
@@ -1163,88 +1218,18 @@ function App() {
   }, []);
 
   const handleMediaChange = (id, file) => {
-    const url = URL.createObjectURL(file);
-    setMediaMap((prev) => ({
-      ...prev,
-      [id]: { url, type: file.type },
-    }));
+    console.log('[App] handleMediaChange called with:', { id, file });
+    setChannel(id, { media: file });
   };
 
   const handleAppPathChange = (id, path) => {
-    setAppPathMap((prev) => ({
-      ...prev,
-      [id]: path,
-    }));
+    console.log('[App] handleAppPathChange called with:', { id, path });
+    setChannel(id, { path });
   };
 
   const handleChannelSave = (channelId, channelData) => {
-    // If channelData is null, clear the channel completely
-    if (channelData === null) {
-      setChannelConfigs(prev => {
-        const updated = { ...prev };
-        delete updated[channelId];
-        // Save the updated configs
-        channelsApi?.set(updated);
-        return updated;
-      });
-      // Clear media and path maps for this channel
-      setMediaMap(prev => {
-        const updated = { ...prev };
-        delete updated[channelId];
-        return updated;
-      });
-      setAppPathMap(prev => {
-        const updated = { ...prev };
-        delete updated[channelId];
-        return updated;
-      });
-      return;
-    }
-    // Update channel configurations
-    setChannelConfigs(prev => {
-      let updatedChannelData = { ...channelData, ...prev };
-      let updated = { ...prev };
-      if (channelData === null) {
-        // ... existing code for clearing ...
-        return updated;
-      }
-      // Ensure type is present
-      let channelType = channelData.type;
-      if (!channelType) {
-        channelType = inferChannelType(channelData.path);
-      }
-      updated[channelId] = { ...channelData, type: channelType };
-      channelsApi?.set(updated);
-      return updated;
-    });
-    // Update media and path maps
-    if (channelData.media) {
-      setMediaMap(prev => ({
-        ...prev,
-        [channelId]: channelData.media
-      }));
-    }
-    if (channelData.path) {
-      setAppPathMap(prev => ({
-        ...prev,
-        [channelId]: channelData.path
-      }));
-    }
-    
-    // Navigate to the appropriate page for this channel
-    if (channelId) {
-      const match = channelId.match(/channel-(\d+)/);
-      if (match) {
-        const channelIndex = parseInt(match[1]);
-        // Import the store dynamically to avoid circular dependencies
-        import('./utils/usePageNavigationStore').then(({ default: usePageNavigationStore }) => {
-          const { goToPage, getPageForChannelIndex, ensurePageExists } = usePageNavigationStore.getState();
-          ensurePageExists(channelIndex);
-          const targetPage = getPageForChannelIndex(channelIndex);
-          goToPage(targetPage);
-        });
-      }
-    }
+    console.log('[App] handleChannelSave called with:', { channelId, channelData });
+    setChannel(channelId, channelData);
   };
 
   const handleSettingsClick = () => {
@@ -2159,14 +2144,19 @@ function App() {
 
   // On save for channels
   const handleSaveChannels = async (newChannels) => {
-    await channelsApi?.set(newChannels);
-    const channelData = await channelsApi?.get();
-    setChannelConfigs(channelData || {});
+    // Channel data now managed by Zustand store
+    console.log('[App] Channel data now managed by Zustand store');
   };
 
   // Handle channel hover for auto-fade
   const handleChannelHover = () => {
     setLastChannelHoverTime(Date.now());
+  };
+
+  // Handle opening channel modal
+  const handleOpenChannelModal = (channelId) => {
+    console.log('[App] Opening channel modal for:', channelId);
+    // This will be handled by the ChannelModal component
   };
 
   // On reset all
@@ -2215,9 +2205,8 @@ function App() {
       });
     }
     
-    const channelData = await channelsApi?.get();
-    console.log('channelData', channelData);
-    setChannelConfigs(channelData || {});
+    // Channel data now managed by Zustand store
+    console.log('Channel data now managed by Zustand store');
   };
 
   // Channel auto-fade logic
@@ -2292,33 +2281,82 @@ function App() {
   }, []);
 
   // Toast UI
-  const handleUpdatePreset = async (name) => {
-    console.log('Updating preset:', name, 'with current timeFont:', timeFont);
+  const handleUpdatePreset = async (name, includeChannels = false, includeSounds = false) => {
+    console.log('[App] handleUpdatePreset called with:', { name, includeChannels, includeSounds });
     
-    // Get current sound library
-    const currentSoundLibrary = await soundsApi?.getLibrary();
-    
-    setPresets(prev => prev.map(p => p.name === name ? {
-      name,
-      data: {
-        // WiiRibbon & Glow
-        ribbonColor, ribbonGlowColor, ribbonGlowStrength, ribbonGlowStrengthHover, glassWiiRibbon, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, recentRibbonColors, recentRibbonGlowColors,
-        // Time & Pill
-        timeColor, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, timeFont, // always include timeFont
-        // Wallpaper & Effects
-        wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing, wallpaperBlur,
-        // Primary Action Buttons
-        ribbonButtonConfigs, // This now includes textFont for each button
-        // Presets Button
-        presetsButtonConfig, // Track presets button configuration
-        // Always include current channel data when updating a preset
-        channels,
-        mediaMap,
-        appPathMap,
-        // Always include current sound library when updating a preset
-        soundLibrary: currentSoundLibrary,
+    try {
+      // Get current sound library
+      const currentSoundLibrary = await soundsApi?.getLibrary();
+      
+      // Get current settings
+      const currentSettings = {
+        // ... existing settings ...
+        timeColor,
+        timeFormat24hr,
+        enableTimePill,
+        timePillBlur,
+        timePillOpacity,
+        channelAutoFadeTimeout,
+        ribbonButtonConfigs,
+        presetsButtonConfig,
+        showPresetsButton,
+        startOnBoot,
+        immersivePip,
+        showDock,
+        classicMode,
+        glassWiiRibbon,
+        glassOpacity,
+        glassBlur,
+        glassBorderOpacity,
+        glassShineOpacity,
+        animatedOnHover,
+        startInFullscreen,
+        wallpaper,
+        wallpaperOpacity,
+        cycleWallpapers,
+        cycleInterval,
+        cycleAnimation,
+        crossfadeDuration,
+        crossfadeEasing,
+        slideRandomDirection,
+        slideDuration,
+        slideEasing,
+        savedWallpapers,
+        likedWallpapers,
+        useCustomCursor,
+        soundSettings
+      };
+      
+      // Include channel data only if requested
+      if (includeChannels) {
+        const { getConfiguredChannels } = useChannelStore.getState();
+        const configuredChannels = getConfiguredChannels();
+        
+        if (configuredChannels.length > 0) {
+          const channelData = {};
+          configuredChannels.forEach(([channelId, config]) => {
+            channelData[channelId] = config;
+          });
+          currentSettings.channelData = channelData;
+        }
       }
-    } : p));
+      
+      // Include sound library only if requested
+      if (includeSounds && currentSoundLibrary) {
+        currentSettings.soundLibrary = currentSoundLibrary;
+      }
+      
+      setPresets(prev => prev.map(p => p.name === name ? {
+        name,
+        data: currentSettings,
+        timestamp: Date.now()
+      } : p));
+      
+      console.log('[App] Updated preset with channel data:', { name, includeChannels, includeSounds });
+      
+    } catch (error) {
+      console.error('[App] Error updating preset:', error);
+    }
   };
 
   const handleRenamePreset = (oldName, newName) => {
@@ -2459,24 +2497,20 @@ function App() {
         )}
         
         <div style={{ opacity: channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
-          <PaginatedChannels
-            allChannels={channels}
-            channelConfigs={channelConfigs}
-            mediaMap={mediaMap}
-            appPathMap={appPathMap}
-            animatedOnHover={animatedOnHover}
-            adaptiveEmptyChannels={adaptiveEmptyChannels}
-            kenBurnsEnabled={kenBurnsEnabled}
-            kenBurnsMode={kenBurnsMode}
-            idleAnimationEnabled={idleAnimationEnabled}
-            idleAnimationTypes={idleAnimationTypes}
-            idleAnimationInterval={idleAnimationInterval}
-            onMediaChange={handleMediaChange}
-            onAppPathChange={handleAppPathChange}
-            onChannelSave={handleChannelSave}
-            onChannelHover={handleChannelHover}
-            onOpenModal={setOpenChannelModal}
-          />
+                  <PaginatedChannels
+          animatedOnHover={animatedOnHover}
+          adaptiveEmptyChannels={adaptiveEmptyChannels}
+          kenBurnsEnabled={kenBurnsEnabled}
+          kenBurnsMode={kenBurnsMode}
+          idleAnimationEnabled={idleAnimationEnabled}
+          idleAnimationTypes={idleAnimationTypes}
+          idleAnimationInterval={idleAnimationInterval}
+          onMediaChange={handleMediaChange}
+          onAppPathChange={handleAppPathChange}
+          onChannelSave={handleChannelSave}
+          onChannelHover={handleChannelHover}
+          onOpenModal={handleOpenChannelModal}
+        />
           <PageNavigation />
           <WiiSideNavigation />
         </div>
@@ -3081,6 +3115,25 @@ function App() {
             onClick={() => setShowAdminMenu(false)}
           />
         )}
+
+        {/* ChannelModal - Controlled by Zustand store */}
+        {modalState.isOpen && (
+          <ChannelModal
+            channelId={modalState.channelId}
+            onClose={closeChannelModal}
+            onSave={handleChannelSave}
+            currentMedia={modalState.currentMedia}
+            currentPath={modalState.currentPath}
+            currentType={modalState.currentType}
+            currentHoverSound={modalState.currentHoverSound}
+            currentAsAdmin={modalState.currentAsAdmin}
+            currentAnimatedOnHover={modalState.currentAnimatedOnHover}
+            currentKenBurnsEnabled={modalState.currentKenBurnsEnabled}
+            currentKenBurnsMode={modalState.currentKenBurnsMode}
+          />
+        )}
+        {/* Global Confirmation Modal */}
+        <ConfirmationModal />
       </div>
     </>
   );

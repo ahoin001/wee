@@ -391,13 +391,31 @@ const PresetManager = ({
   };
 
   const handleImportCommunityPreset = (presetData) => {
+    console.log('[PresetManager] Importing community preset:', presetData);
+    
+    // Convert the downloaded preset structure to the expected format
+    // Community presets have 'settings', local presets have 'data'
+    // App.jsx handleApplyPreset expects preset.data.timeColor, not preset.settings.timeColor
+    const presetSettings = {
+      ...presetData.settings,
+      // Include wallpaper in the data object if present
+      ...(presetData.wallpaper && { wallpaper: presetData.wallpaper })
+    };
+    
     const newPreset = {
       name: presetData.name,
-      settings: presetData.settings,
+      data: presetSettings, // Convert 'settings' to 'data' for compatibility with App.jsx handleApplyPreset
       timestamp: new Date().toISOString(),
       isCommunity: true,
       communityId: presetData.id
     };
+    
+    console.log('[PresetManager] Converted preset structure:', newPreset);
+    console.log('[PresetManager] Preset data structure check:', {
+      hasData: !!newPreset.data,
+      hasTimeColor: !!newPreset.data?.timeColor,
+      timeColorValue: newPreset.data?.timeColor
+    });
     
     const newPresets = [...presets, newPreset];
     setPresets(newPresets);
@@ -484,53 +502,7 @@ const PresetManager = ({
         desc="Manage your saved presets. Drag to reorder, or use bulk actions."
         actions={
           <>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              <Button 
-                variant="secondary" 
-                onClick={() => setSelectMode(!selectMode)}
-                style={{ fontSize: 12 }}
-              >
-                {selectMode ? 'Cancel Selection' : 'Select Multiple'}
-              </Button>
-              
-              {selectMode && (
-                <>
-                  <Button 
-                    variant="secondary" 
-                    onClick={handleSelectAll}
-                    style={{ fontSize: 12 }}
-                  >
-                    Select All
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    onClick={handleDeselectAll}
-                    style={{ fontSize: 12 }}
-                  >
-                    Deselect All
-                  </Button>
-                  <Button 
-                    variant="danger-secondary" 
-                    onClick={() => {
-                      if (window.confirm(`Delete ${selectedPresets.length} selected preset(s)?`)) {
-                        const newPresets = presets.filter(p => !selectedPresets.includes(p.name));
-                        setPresets(newPresets);
-                        setSelectedPresets([]);
-                        setSelectMode(false);
-                        
-                        if (window.settings) {
-                          window.settings.presets = newPresets;
-                        }
-                      }
-                    }}
-                    disabled={selectedPresets.length === 0}
-                    style={{ fontSize: 12 }}
-                  >
-                    Delete Selected
-                  </Button>
-                </>
-              )}
-            </div>
+           
             
             {presets.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '20px', color: 'hsl(var(--text-secondary))' }}>

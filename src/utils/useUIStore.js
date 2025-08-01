@@ -15,9 +15,21 @@ const useUIStore = create((set, get) => ({
   showGeneralSettingsModal: false,
   showTimeSettingsModal: false,
   showRibbonSettingsModal: false,
+  showClassicDockSettingsModal: false,
   showUpdateModal: false,
-  showPrimaryActionsModal: false,
-  showAppearanceSettingsModal: false,
+  showNavigationCustomizationModal: false,
+  
+  // Confirmation modal state
+  showConfirmationModal: false,
+  confirmationModalData: {
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    confirmVariant: 'danger-primary',
+    onConfirm: null,
+    onCancel: null
+  },
   
   // Community sharing states
   showCommunitySection: false,
@@ -334,6 +346,68 @@ const useUIStore = create((set, get) => ({
         action();
       }
     }
+  },
+
+  closeNavigationCustomizationModal: () => set({
+    showNavigationCustomizationModal: false
+  }),
+
+  // Confirmation modal actions
+  openConfirmationModal: (data) => set({
+    showConfirmationModal: true,
+    confirmationModalData: {
+      title: data.title || 'Confirm Action',
+      message: data.message || 'Are you sure you want to proceed?',
+      confirmText: data.confirmText || 'Confirm',
+      cancelText: data.cancelText || 'Cancel',
+      confirmVariant: data.confirmVariant || 'danger-primary',
+      onConfirm: data.onConfirm,
+      onCancel: data.onCancel
+    }
+  }),
+
+  closeConfirmationModal: () => set({
+    showConfirmationModal: false,
+    confirmationModalData: {
+      title: '',
+      message: '',
+      confirmText: 'Confirm',
+      cancelText: 'Cancel',
+      confirmVariant: 'danger-primary',
+      onConfirm: null,
+      onCancel: null
+    }
+  }),
+
+  // Convenience function for common confirmation patterns
+  confirmDelete: (itemName, onConfirm, onCancel = null) => {
+    set({
+      showConfirmationModal: true,
+      confirmationModalData: {
+        title: 'Delete Confirmation',
+        message: `Are you sure you want to delete <strong>"${itemName}"</strong>? This action cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        confirmVariant: 'danger-primary',
+        onConfirm,
+        onCancel
+      }
+    });
+  },
+
+  confirmAction: (title, message, onConfirm, onCancel = null, confirmText = 'Confirm', confirmVariant = 'primary') => {
+    set({
+      showConfirmationModal: true,
+      confirmationModalData: {
+        title,
+        message,
+        confirmText,
+        cancelText: 'Cancel',
+        confirmVariant,
+        onConfirm,
+        onCancel
+      }
+    });
   },
 }));
 

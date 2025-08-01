@@ -63,11 +63,30 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
       setDownloading(preset.id);
       setMessage({ type: '', text: '' });
 
-      const result = await downloadPreset(preset);
+      const result = await downloadPreset(preset.id);
       
       if (result.success) {
-        // Import the preset
-        onImportPreset([result.data]);
+        // Import the preset - result.data contains { name, settings, id, wallpaper }
+        const presetData = result.data;
+        
+        console.log('[CommunityPresets] Downloaded preset data:', presetData);
+        
+        // Ensure the preset has required fields
+        if (!presetData || !presetData.name || !presetData.settings) {
+          throw new Error('Invalid preset data received');
+        }
+        
+        // Create the import data structure
+        const importData = {
+          name: presetData.name,
+          settings: presetData.settings,
+          id: presetData.id,
+          wallpaper: presetData.wallpaper
+        };
+        
+        console.log('[CommunityPresets] Import data structure:', importData);
+        
+        onImportPreset([importData]);
         setMessage({ type: 'success', text: 'Preset downloaded and installed!' });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         
@@ -77,6 +96,7 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
         setMessage({ type: 'error', text: `Failed to download: ${result.error}` });
       }
     } catch (error) {
+      console.error('[CommunityPresets] Download error:', error);
       setMessage({ type: 'error', text: `Download failed: ${error.message}` });
     } finally {
       setDownloading(null);

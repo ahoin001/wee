@@ -442,44 +442,92 @@ export const uploadPreset = async (presetData, formData) => {
 }
 
 export const downloadPreset = async (presetId) => {
-  const sessionId = await ensureSession()
-  
-  // Get preset data
-  const { data: preset, error: presetError } = await supabase
-    .from('presets')
-    .select('*')
-    .eq('id', presetId)
-    .single()
-  
-  if (presetError) throw presetError
-  
-  // Track download
-  await supabase
-    .from('preset_downloads')
-    .insert({
-      preset_id: presetId,
-      session_id: sessionId
-    })
-  
-  // Download wallpaper if exists
-  let wallpaperData = null
-  if (preset.wallpaper_url) {
-    const { data: wallpaper, error: wallpaperError } = await supabase.storage
-      .from('preset-wallpapers')
-      .download(preset.wallpaper_url)
+  try {
+    const sessionId = await ensureSession()
     
-    if (!wallpaperError) {
-      wallpaperData = await wallpaper.arrayBuffer()
+    // Get preset data
+    const { data: preset, error: presetError } = await supabase
+      .from('presets')
+      .select('*')
+      .eq('id', presetId)
+      .single()
+    
+    if (presetError) {
+      console.error('[SUPABASE] Error fetching preset:', presetError);
+      return { success: false, error: presetError.message };
     }
-  }
-  
-  return {
-    preset: preset.settings_config,
-    wallpaper: wallpaperData ? {
-      data: wallpaperData,
-      mimeType: preset.wallpaper_mime_type,
-      fileName: preset.wallpaper_url.split('/').pop()
-    } : null
+    
+    if (!preset) {
+      return { success: false, error: 'Preset not found' };
+    }
+    
+    // Track download - handle duplicate download gracefully
+    const { error: downloadError } = await supabase
+      .from('preset_downloads')
+      .insert({
+        preset_id: presetId,
+        session_id: sessionId
+      })
+    
+    if (downloadError) {
+      // 409 Conflict means this session already downloaded this preset
+      if (downloadError.code === '23505' || downloadError.message.includes('duplicate')) {
+        console.log('[SUPABASE] Download already tracked for this session');
+      } else {
+        console.warn('[SUPABASE] Error tracking download:', downloadError);
+      }
+      // Don't fail the download if tracking fails
+    }
+    
+    // Download wallpaper if exists
+    let wallpaperData = null
+    if (preset.wallpaper_url) {
+      const { data: wallpaper, error: wallpaperError } = await supabase.storage
+        .from('preset-wallpapers')
+        .download(preset.wallpaper_url)
+      
+      if (!wallpaperError) {
+        wallpaperData = await wallpaper.arrayBuffer()
+      } else {
+        console.warn('[SUPABASE] Error downloading wallpaper:', wallpaperError);
+        // Don't fail the download if wallpaper fails
+      }
+    }
+    
+    // Ensure the preset data has the correct structure
+    let presetData = preset.settings_config;
+    
+    // If settings_config is a string, try to parse it
+    if (typeof presetData === 'string') {
+      try {
+        presetData = JSON.parse(presetData);
+      } catch (parseError) {
+        console.error('[SUPABASE] Error parsing preset settings:', parseError);
+        return { success: false, error: 'Invalid preset data format' };
+      }
+    }
+    
+    // Ensure the preset has a name
+    if (!presetData.name && preset.name) {
+      presetData.name = preset.name;
+    }
+    
+    return {
+      success: true,
+      data: {
+        name: preset.name,
+        settings: presetData,
+        id: preset.id,
+        wallpaper: wallpaperData ? {
+          data: wallpaperData,
+          mimeType: preset.wallpaper_mime_type,
+          fileName: preset.wallpaper_url.split('/').pop()
+        } : null
+      }
+    }
+  } catch (error) {
+    console.error('[SUPABASE] Error downloading preset:', error);
+    return { success: false, error: error.message };
   }
 }
 

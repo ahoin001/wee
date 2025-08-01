@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import Card from '../ui/Card';
@@ -90,6 +90,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
   // Handle search, filter, and sort changes
   useEffect(() => {
     setCurrentPage(1);
+    setMedia([]); // Clear existing media when filters change
     fetchMedia(1, true);
   }, [search, filter, sortBy]);
 
@@ -97,6 +98,14 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
   useEffect(() => {
     fetchMedia(1);
   }, []);
+
+  // Handle media selection
+  const handleMediaSelect = (mediaItem) => {
+    console.log('ImageSearchModal: handleMediaSelect called with:', mediaItem);
+    console.log('ImageSearchModal: Calling onSelect with mediaItem');
+    onSelect(mediaItem);
+    onClose();
+  };
 
   // Handle download
   const handleDownload = async (mediaItem) => {
@@ -131,6 +140,21 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
       setItemLoading(prev => ({ ...prev, [mediaItem.id]: false }));
     }
   };
+
+  // Performance optimization: Memoize media items to prevent unnecessary re-renders
+  const memoizedMediaItems = useMemo(() => {
+    return media.map((item) => (
+      <MediaItem
+        key={item.id}
+        item={item}
+        onSelect={handleMediaSelect}
+        onDownload={handleDownload}
+        itemLoading={itemLoading}
+        downloadSuccess={downloadSuccess}
+        viewMode={viewMode}
+      />
+    ));
+  }, [media, itemLoading, downloadSuccess, viewMode, handleMediaSelect, handleDownload]);
 
   // Handle upload
   const handleUpload = async () => {
@@ -184,14 +208,6 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
         fileType
       }));
     }
-  };
-
-  // Handle media selection
-  const handleMediaSelect = (mediaItem) => {
-    console.log('ImageSearchModal: handleMediaSelect called with:', mediaItem);
-    console.log('ImageSearchModal: Calling onSelect with mediaItem');
-    onSelect(mediaItem);
-    onClose();
   };
 
   return (
@@ -308,17 +324,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
               maxHeight: '400px',
               overflowY: 'auto'
             }}>
-              {media.map((item) => (
-                <MediaItem
-                  key={item.id}
-                  item={item}
-                  onSelect={handleMediaSelect}
-                  onDownload={handleDownload}
-                  itemLoading={itemLoading}
-                  downloadSuccess={downloadSuccess}
-                  viewMode={viewMode}
-                />
-              ))}
+              {memoizedMediaItems}
             </div>
           )}
 
@@ -326,8 +332,15 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
           {hasMore && !loading && (
             <div style={{ textAlign: 'center', marginTop: '16px' }}>
               <Button variant="secondary" onClick={loadMore}>
-                Load More
+                Load More ({media.length} of {media.length + (hasMore ? '...' : '')} items)
               </Button>
+            </div>
+          )}
+
+          {/* Loading indicator for pagination */}
+          {loading && currentPage > 1 && (
+            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+              <Text>Loading more items...</Text>
             </div>
           )}
 
@@ -464,8 +477,7 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
             }}
             muted
             loop
-            onMouseEnter={(e) => e.target.play()}
-            onMouseLeave={(e) => { e.target.pause(); e.target.currentTime = 0; }}
+           autoPlay
           />
         ) : (
           <img
@@ -476,16 +488,6 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
               height: viewMode === 'grid' ? '120px' : '80px',
               objectFit: 'cover',
               borderRadius: '4px'
-            }}
-            // For GIFs, ensure they autoplay by adding a small delay to force reload
-            onLoad={(e) => {
-              if (isGif) {
-                // Force GIF to animate by briefly changing src
-                const originalSrc = e.target.src;
-                setTimeout(() => {
-                  e.target.src = originalSrc;
-                }, 10);
-              }
             }}
           />
         )}

@@ -1,4 +1,4 @@
-import { supabase, getSharedPresets, downloadPreset, uploadPreset } from './supabase';
+import { supabase, getSharedPresets, downloadPreset as downloadPresetFromSupabase, uploadPreset } from './supabase';
 import { communityService } from './communityService';
 
 class CommunityManager {
@@ -22,7 +22,7 @@ class CommunityManager {
   async downloadPreset(preset) {
     if (this.useBuiltInSupabase) {
       console.log('[COMMUNITY] Using built-in Supabase for download');
-      return await downloadPreset(preset);
+      return await downloadPresetFromSupabase(preset.id);
     } else {
       console.log('[COMMUNITY] Using backend proxy for download');
       return await communityService.downloadPreset(preset.id);

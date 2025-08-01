@@ -6,6 +6,7 @@ import ImageSearchModal from './ImageSearchModal';
 import audioManager from '../utils/AudioManager';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import KenBurnsImage from './KenBurnsImage';
+import useChannelStore from '../utils/useChannelStore';
 import './Channel.css';
 
 // Guard for window.api to prevent errors in browser
@@ -20,7 +21,7 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, onOpenModal, animationStyle, adaptiveEmptyChannels, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode, idleAnimationClass, isIdleAnimating }) => {
+const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, animationStyle, adaptiveEmptyChannels, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode, idleAnimationClass, isIdleAnimating }) => {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -32,36 +33,50 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   const previewVideoRef = useRef(null);
   const previewCanvasRef = useRef(null);
 
+  // Get channel data from Zustand store
+  const { getChannelConfig, isChannelEmpty, setChannel, openChannelModal } = useChannelStore();
+  const storeChannelConfig = getChannelConfig(id);
+  const storeIsEmpty = isChannelEmpty(id);
+  
+  // Use store data if available, fallback to props for backward compatibility
+  const effectiveConfig = storeChannelConfig || channelConfig;
+  const effectiveIsEmpty = storeChannelConfig ? storeIsEmpty : empty;
+  const effectiveMedia = storeChannelConfig?.media || media;
+  const effectivePath = storeChannelConfig?.path || path;
+  const effectiveType = storeChannelConfig?.type || type;
+  const effectiveAsAdmin = storeChannelConfig?.asAdmin || asAdmin;
+  const effectiveHoverSound = storeChannelConfig?.hoverSound || hoverSound;
+  
   // Determine which animatedOnHover setting to use
   // Note: animatedOnHover = true means "only play on hover", false means "autoplay"
-  const effectiveAnimatedOnHover = (channelConfig && channelConfig.animatedOnHover !== undefined)
-    ? channelConfig.animatedOnHover
+  const effectiveAnimatedOnHover = (effectiveConfig && effectiveConfig.animatedOnHover !== undefined)
+    ? effectiveConfig.animatedOnHover
     : globalAnimatedOnHover;
   
   // Determine Ken Burns settings (channel-specific overrides global)
-  const effectiveKenBurnsEnabled = (channelConfig && channelConfig.kenBurnsEnabled !== undefined)
-    ? channelConfig.kenBurnsEnabled
+  const effectiveKenBurnsEnabled = (effectiveConfig && effectiveConfig.kenBurnsEnabled !== undefined)
+    ? effectiveConfig.kenBurnsEnabled
     : globalKenBurnsEnabled;
     
-  const effectiveKenBurnsMode = (channelConfig && channelConfig.kenBurnsMode !== undefined)
-    ? channelConfig.kenBurnsMode
+  const effectiveKenBurnsMode = (effectiveConfig && effectiveConfig.kenBurnsMode !== undefined)
+    ? effectiveConfig.kenBurnsMode
     : globalKenBurnsMode;
   
   // console.log('Channel', id, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover, 'globalAnimatedOnHover:', globalAnimatedOnHover, 'channelConfig:', channelConfig);
 
   // Handle image loading errors
   const handleImageError = useCallback((e) => {
-    console.warn('Channel image failed to load:', media?.url, 'for channel:', id);
+    console.warn('Channel image failed to load:', effectiveMedia?.url, 'for channel:', id);
     setImageError(true);
     
     // Try to use fallback icon if available
-    if (icon && icon !== media?.url) {
+    if (icon && icon !== effectiveMedia?.url) {
       setFallbackIcon(icon);
     }
     
     // Prevent default broken image display
     e.target.style.display = 'none';
-  }, [media?.url, icon, id]);
+  }, [effectiveMedia?.url, icon, id]);
 
   const handleImageLoad = useCallback(() => {
     setImageError(false);
@@ -72,7 +87,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   useEffect(() => {
     setImageError(false);
     setFallbackIcon(null);
-  }, [media?.url]);
+  }, [effectiveMedia?.url]);
 
   // Generate static preview for MP4s on mount or when media changes
   useEffect(() => {
@@ -80,10 +95,10 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     let canvas = null;
     let handleLoadedData = null;
     
-    if (media && media.type && media.type.startsWith('video/') && effectiveAnimatedOnHover && !mp4Preview) {
+    if (effectiveMedia && effectiveMedia.type && effectiveMedia.type.startsWith('video/') && effectiveAnimatedOnHover && !mp4Preview) {
       // Create a static preview from the first frame
       video = document.createElement('video');
-      video.src = media.url;
+      video.src = effectiveMedia.url;
       video.crossOrigin = 'anonymous';
       video.muted = true;
       video.playsInline = true;
@@ -106,7 +121,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       video.addEventListener('loadeddata', handleLoadedData, { once: true });
       // Seek to 0 to ensure first frame
       video.currentTime = 0;
-    } else if (!media || typeof media.type !== 'string' || !media.type.startsWith('video/')) {
+    } else if (!effectiveMedia || typeof effectiveMedia.type !== 'string' || !effectiveMedia.type.startsWith('video/')) {
       setMp4Preview(null);
     }
 
@@ -124,7 +139,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         canvas = null;
       }
     };
-  }, [media, effectiveAnimatedOnHover, mp4Preview]);
+  }, [effectiveMedia, effectiveAnimatedOnHover, mp4Preview]);
 
   // Cleanup audio when component unmounts
   useEffect(() => {
@@ -156,9 +171,21 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     // Stop hover sound immediately
     audioManager.stopAllSounds();
     
-    if (empty) {
+    // Determine if channel is empty based on channelConfig, not the empty prop
+    const isChannelEmpty = !effectiveConfig || (!effectiveConfig.media && !effectiveConfig.path);
+    
+    console.log('[Channel] Clicked channel:', id, {
+      empty,
+      isChannelEmpty,
+      path,
+      type,
+      media: media?.url,
+      channelConfig: effectiveConfig
+    });
+    
+    if (isChannelEmpty) {
       setShowChannelModal(true);
-    } else if (path) {
+    } else if (effectivePath) {
       // Play channel click sound if enabled
       try {
         const soundLibrary = await soundsApi.getLibrary();
@@ -170,18 +197,18 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         console.warn('Failed to load sound library:', error);
       }
       // Launch app or URL
-      if (type === 'url' && path.startsWith('http')) {
+      if (effectiveType === 'url' && effectivePath.startsWith('http')) {
         const immersivePip = (() => { try { return JSON.parse(localStorage.getItem('immersivePip')) || false; } catch { return false; } })();
         if (immersivePip && api.openPipWindow) {
-          api.openPipWindow(path);
+          api.openPipWindow(effectivePath);
         } else if (api.openExternal) {
-          api.openExternal(path);
+          api.openExternal(effectivePath);
         } else {
-          window.open(path, '_blank'); // fallback for browser only
+          window.open(effectivePath, '_blank'); // fallback for browser only
         }
       } else {
 
-        api.launchApp({ type, path, asAdmin });
+        api.launchApp({ type: effectiveType, path: effectivePath, asAdmin: effectiveAsAdmin });
       }
     }
   };
@@ -192,12 +219,15 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       onHover();
     }
     
+    // Determine if channel is empty based on channelConfig
+    const isChannelEmpty = !effectiveConfig || (!effectiveConfig.media && !effectiveConfig.path);
+    
     // Play per-channel hover sound if set, else global
-    if (!empty && path) {
+    if (!isChannelEmpty && effectivePath) {
       // console.log('Channel: Hover sound data:', hoverSound);
-      if (hoverSound && hoverSound.url) {
+      if (effectiveHoverSound && effectiveHoverSound.url) {
         // Play custom hover sound once
-        await audioManager.playSound(hoverSound.url, hoverSound.volume || 0.7);
+        await audioManager.playSound(effectiveHoverSound.url, effectiveHoverSound.volume || 0.7);
       } else {
         try {
           const soundLibrary = await soundsApi.getLibrary();
@@ -273,15 +303,13 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
 
   const handleRightClick = (e) => {
     e.preventDefault();
-    if (onOpenModal) {
-      onOpenModal();
-    }
+    openChannelModal(id);
   };
 
   let mediaPreview = null;
-  if (media && media.url && media.url.trim()) {
+  if (effectiveMedia && effectiveMedia.url && effectiveMedia.url.trim()) {
     // Check for GIFs first (before general image types)
-    if (media.type === 'image/gif' || media.url.match(/\.gif$/i)) {
+    if (effectiveMedia.type === 'image/gif' || effectiveMedia.url.match(/\.gif$/i)) {
       // Check if Ken Burns is enabled for GIFs
       const kenBurnsForGifsEnabled = window.settings?.kenBurnsForGifs ?? false;
       
@@ -293,7 +321,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           height: "100%",
           borderRadius: "12px",
           objectFit: "cover",
-          alt: media.name || 'Channel GIF',
+          alt: effectiveMedia.name || 'Channel GIF',
           
           // Use advanced settings from global configuration
           hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
@@ -319,15 +347,15 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         mediaPreview = (
           <KenBurnsImage
             {...kenBurnsProps}
-            src={media.url}
+            src={effectiveMedia.url}
           />
         );
       } else if (effectiveAnimatedOnHover) {
         // Use ReactFreezeframe for GIFs when hover animation is enabled
         mediaPreview = (
           <ReactFreezeframe
-            key={media.url} // Force re-render when URL changes
-            src={media.url}
+            key={effectiveMedia.url} // Force re-render when URL changes
+            src={effectiveMedia.url}
             alt="Channel media"
             className="channel-media"
             style={{ 
@@ -347,14 +375,14 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         // Show normal GIF (always animated) when hover animation is disabled
         mediaPreview = (
           <img
-            src={media.url}
+            src={effectiveMedia.url}
             alt="Channel media"
             className="channel-media"
             style={{ objectFit: 'cover', width: '100%', height: '100%' }}
           />
         );
       }
-    } else if (media.type.startsWith('video/')) {
+    } else if (effectiveMedia.type.startsWith('video/')) {
       // Check if Ken Burns is enabled for videos
       const kenBurnsForVideosEnabled = window.settings?.kenBurnsForVideos ?? false;
       
@@ -366,7 +394,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           height: "100%",
           borderRadius: "12px",
           objectFit: "cover",
-          alt: media.name || 'Channel Video',
+          alt: effectiveMedia.name || 'Channel Video',
           
           // Use advanced settings from global configuration
           hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
@@ -392,7 +420,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         mediaPreview = (
           <KenBurnsImage
             {...kenBurnsProps}
-            src={media.url}
+            src={effectiveMedia.url}
           />
         );
       } else if (effectiveAnimatedOnHover) {
@@ -414,7 +442,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           mediaPreview = (
             <video
               ref={videoRef}
-              src={media.url}
+              src={effectiveMedia.url}
               className="channel-media"
               autoPlay
               loop
@@ -440,9 +468,9 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           );
         }
       } else {
-        mediaPreview = <video src={media.url} className="channel-media" autoPlay loop muted playsInline style={{ objectFit: 'cover', width: '100%', height: '100%' }} />;
+        mediaPreview = <video src={effectiveMedia.url} className="channel-media" autoPlay loop muted playsInline style={{ objectFit: 'cover', width: '100%', height: '100%' }} />;
       }
-    } else if (media.type.startsWith('image/')) {
+    } else if (effectiveMedia.type.startsWith('image/')) {
       // Handle other image types (PNG, JPG, etc.)
       if (effectiveKenBurnsEnabled) {
         // Use Ken Burns effect for static images
@@ -452,7 +480,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           height: "100%",
           borderRadius: "12px",
           objectFit: "cover",
-          alt: media.name || 'Channel Image',
+          alt: effectiveMedia.name || 'Channel Image',
           
           // Use advanced settings from global configuration
           hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
@@ -480,14 +508,14 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
         mediaPreview = (
           <KenBurnsImage
             {...kenBurnsProps}
-            src={media.url}
+            src={effectiveMedia.url}
           />
         );
       } else {
         // Regular static image without Ken Burns
         mediaPreview = (
           <img 
-            src={media.url} 
+            src={effectiveMedia.url} 
             alt="Channel media" 
             className="channel-media" 
             onError={handleImageError}
@@ -502,7 +530,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   const channelContent = (
     <div
       className={
-        empty && !media 
+        effectiveIsEmpty && !effectiveMedia 
           ? `channel empty${adaptiveEmptyChannels && window.settings?.ribbonColor ? ' adaptive' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
           : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}`
       }
@@ -514,7 +542,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       role="button"
       onContextMenu={handleRightClick}
       style={{
-        ...(empty && !media && adaptiveEmptyChannels && window.settings?.ribbonColor && {
+        ...(effectiveIsEmpty && !effectiveMedia && adaptiveEmptyChannels && window.settings?.ribbonColor && {
           '--adaptive-bg-color': window.settings.ribbonColor,
         })
       }}
@@ -612,7 +640,6 @@ Channel.propTypes = {
   }),
   animatedOnHover: PropTypes.bool,
   onHover: PropTypes.func,
-  onOpenModal: PropTypes.func,
   animationStyle: PropTypes.oneOf(['none', 'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'random']),
   adaptiveEmptyChannels: PropTypes.bool,
   kenBurnsEnabled: PropTypes.bool,
