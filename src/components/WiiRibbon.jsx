@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 
-import GeneralSettingsModal from './GeneralSettingsModal';
-import PrimaryActionsModal from './PrimaryActionsModal';
-import TimeSettingsModal from './TimeSettingsModal';
-import RibbonSettingsModal from './RibbonSettingsModal';
-import UpdateModal from './UpdateModal';
+// Lazy load modals
+const LazyGeneralSettingsModal = React.lazy(() => import('./GeneralSettingsModal'));
+const LazyPrimaryActionsModal = React.lazy(() => import('./PrimaryActionsModal'));
+const LazyTimeSettingsModal = React.lazy(() => import('./TimeSettingsModal'));
+const LazyRibbonSettingsModal = React.lazy(() => import('./RibbonSettingsModal'));
+const LazyUpdateModal = React.lazy(() => import('./UpdateModal'));
 import WiiStyleButton from './WiiStyleButton';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
@@ -19,8 +20,23 @@ function hexAlpha(opacity) {
   return a === 255 ? '' : a.toString(16).padStart(2, '0');
 }
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Debug logging for ribbon props
+  useEffect(() => {
+    console.log('[WiiRibbon] Props received:', {
+      ribbonColor: propRibbonColor,
+      ribbonGlowColor: propRibbonGlowColor,
+      ribbonGlowStrength: propRibbonGlowStrength,
+      ribbonGlowStrengthHover: propRibbonGlowStrengthHover,
+      glassWiiRibbon,
+      glassOpacity: propGlassOpacity,
+      glassBlur: propGlassBlur,
+      glassBorderOpacity: propGlassBorderOpacity,
+      glassShineOpacity: propGlassShineOpacity
+    });
+  }, [propRibbonColor, propRibbonGlowColor, propRibbonGlowStrength, propRibbonGlowStrengthHover, glassWiiRibbon, propGlassOpacity, propGlassBlur, propGlassBorderOpacity, propGlassShineOpacity]);
   
   // Use Zustand store for modal states
   const { 
@@ -115,7 +131,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   };
 
   const handlePrimaryActionsSave = (newConfig) => {
-    const newConfigs = [...buttonConfigs];
+    const newConfigs = [...(buttonConfigs || [])];
     newConfigs[activeButtonIndex] = newConfig;
     
     saveButtonConfigs(newConfigs);
@@ -153,58 +169,9 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
     return () => intervalManager.removeTask(taskId);
   }, []);
 
-  // Watch for time color changes
-  useEffect(() => {
-    const checkTimeColor = () => {
-      const newTimeColor = window.settings?.timeColor || '#ffffff';
-      if (newTimeColor !== timeColor) {
-        // setTimeColor(newTimeColor); // This line is removed as per the edit hint
-      }
-    };
-    
-    // Check immediately
-    checkTimeColor();
-    
-    // Set up an interval to check for changes
-    const taskId = intervalManager.addTask(checkTimeColor, 1000, 'time-color-check');
-    
-    return () => intervalManager.removeTask(taskId);
-  }, [timeColor]);
 
-  // Watch for time format changes
-  useEffect(() => {
-    const checkTimeFormat = () => {
-      const newTimeFormat = window.settings?.timeFormat24hr ?? true;
-      if (newTimeFormat !== timeFormat24hr) {
-        // setTimeFormat24hr(newTimeFormat); // This line is removed as per the edit hint
-      }
-    };
-    
-    // Check immediately
-    checkTimeFormat();
-    
-    // Set up an interval to check for changes
-    const taskId = intervalManager.addTask(checkTimeFormat, 1000, 'time-format-check');
-    
-    return () => intervalManager.removeTask(taskId);
-  }, [timeFormat24hr]);
 
-  // Watch for ribbon color changes
-  useEffect(() => {
-    const checkRibbonColor = () => {
-      const newRibbonColor = window.settings?.ribbonColor || '#e0e6ef';
-      if (newRibbonColor !== propRibbonColor) {
-        // setRibbonColor(newRibbonColor); // This line is removed as per the edit hint
-      }
-      const newRibbonGlowColor = window.settings?.ribbonGlowColor || '#0099ff';
-      if (newRibbonGlowColor !== propRibbonGlowColor) {
-        // setRibbonGlowColor(newRibbonGlowColor); // This line is removed as per the edit hint
-      }
-    };
-    checkRibbonColor();
-    const taskId = intervalManager.addTask(checkRibbonColor, 1000, 'ribbon-color-check');
-    return () => intervalManager.removeTask(taskId);
-  }, [propRibbonColor, propRibbonGlowColor]);
+
 
   // Generate tinted images for buttons with adaptive color enabled
   useEffect(() => {
@@ -221,13 +188,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
       const newTintedImages = {};
       
       // Check all button configs for adaptive color and custom icons
-      const allConfigs = [...buttonConfigs];
+      const allConfigs = [...(buttonConfigs || [])];
       if (presetsButtonConfig) {
         allConfigs.push(presetsButtonConfig);
       }
       
       for (const config of allConfigs) {
-        if (config.useAdaptiveColor && config.icon && !config.icon.startsWith('data:') && !['palette', 'star', 'heart'].includes(config.icon)) {
+        if (config && config.useAdaptiveColor && config.icon && !config.icon.startsWith('data:') && !['palette', 'star', 'heart'].includes(config.icon)) {
           try {
             const img = new Image();
             img.crossOrigin = 'anonymous';
@@ -398,7 +365,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   ];
 
   const handleButtonClick = (index) => {
-    const config = buttonConfigs[index];
+    const config = buttonConfigs?.[index];
     
     // Handle admin mode for left button (index 0)
     if (index === 0 && config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
@@ -455,7 +422,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                 {glassWiiRibbon && (
                   <defs>
                     <filter id="glass-blur" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation={window.settings?.glassBlur || 2.5} result="blur" />
+                      <feGaussianBlur stdDeviation={propGlassBlur || 2.5} result="blur" />
                       <feComponentTransfer>
                         <feFuncA type="linear" slope="1.2" />
                       </feComponentTransfer>
@@ -465,7 +432,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                       </feMerge>
                     </filter>
                     <linearGradient id="glass-shine" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color={`rgba(255,255,255,${window.settings?.glassShineOpacity || 0.7})`} />
+                      <stop offset="0%" stop-color={`rgba(255,255,255,${propGlassShineOpacity || 0.7})`} />
                       <stop offset="60%" stop-color="rgba(255,255,255,0.05)" />
                       <stop offset="100%" stop-color="rgba(255,255,255,0.0)" />
                     </linearGradient>
@@ -480,8 +447,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                      L 1440 40 
                      L 1440 240 
                      L 0 240 Z"
-                  fill={glassWiiRibbon ? `rgba(255,255,255,${window.settings?.glassOpacity || 0.18})` : propRibbonColor + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
-                  stroke={`rgba(255,255,255,${window.settings?.glassBorderOpacity || 0.5})`}
+                  fill={glassWiiRibbon ? `rgba(255,255,255,${propGlassOpacity || 0.18})` : propRibbonColor + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
+                  stroke={`rgba(255,255,255,${propGlassBorderOpacity || 0.5})`}
                   strokeWidth="2"
                   filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
                   style={glassWiiRibbon ? { transition: 'fill 0.3s' } : { transition: 'fill 0.3s' }}
@@ -497,7 +464,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                        L 1440 120 
                        L 0 120 Z"
                     fill="url(#glass-shine)"
-                    style={{ opacity: window.settings?.glassShineOpacity || 0.7, pointerEvents: 'none' }}
+                    style={{ opacity: propGlassShineOpacity || 0.7, pointerEvents: 'none' }}
                   />
                 )}
               </svg>
@@ -921,13 +888,13 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
                     padding: '12px 16px',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s ease',
-                    borderBottom: index < buttonConfigs[0].powerActions.length - 1 ? '1px solid #f0f0f0' : 'none'
+                    borderBottom: index < (buttonConfigs[0]?.powerActions?.length || 0) - 1 ? '1px solid #f0f0f0' : 'none'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8f9fa';
+                    e.currentTarget.style.background = '#f8f9fa';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.background = 'transparent';
                   }}
                 >
                   <span style={{ fontSize: '18px' }}>{action.icon}</span>
@@ -970,94 +937,106 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
         )}
 
 
-      <UpdateModal 
-        isOpen={showUpdateModal}
-        onClose={() => setShowUpdateModal(false)}
-      />
+      <Suspense fallback={<div>Loading Update Modal...</div>}>
+        <LazyUpdateModal 
+          isOpen={showUpdateModal}
+          onClose={() => setShowUpdateModal(false)}
+        />
+      </Suspense>
 
       {/* General Settings Modal */}
       {showGeneralModal && (
-        <GeneralSettingsModal 
-          isOpen={showGeneralModal} 
-          onClose={() => setShowGeneralModal(false)} 
-          immersivePip={immersivePip} 
-          setImmersivePip={val => {
-            setImmersivePip(val);
-            localStorage.setItem('immersivePip', JSON.stringify(val));
-          }}
-          glassWiiRibbon={glassWiiRibbon}
-          setGlassWiiRibbon={onGlassWiiRibbonChange}
-          animatedOnHover={!!animatedOnHover}
-          setAnimatedOnHover={setAnimatedOnHover}
-          startInFullscreen={startInFullscreen}
-          setStartInFullscreen={setStartInFullscreen}
-          showPresetsButton={showPresetsButton}
-          setShowPresetsButton={val => onSettingsChange({ showPresetsButton: val })}
-          showDock={window.settings?.showDock ?? true}
-          setShowDock={val => onSettingsChange({ showDock: val })}
-          channelAnimation={window.settings?.channelAnimation}
-          adaptiveEmptyChannels={window.settings?.adaptiveEmptyChannels}
-          idleAnimationEnabled={window.settings?.idleAnimationEnabled}
-          idleAnimationTypes={window.settings?.idleAnimationTypes}
-          idleAnimationInterval={window.settings?.idleAnimationInterval}
-          kenBurnsEnabled={window.settings?.kenBurnsEnabled}
-          kenBurnsMode={window.settings?.kenBurnsMode}
-          kenBurnsHoverScale={window.settings?.kenBurnsHoverScale}
-          kenBurnsAutoplayScale={window.settings?.kenBurnsAutoplayScale}
-          kenBurnsSlideshowScale={window.settings?.kenBurnsSlideshowScale}
-          kenBurnsHoverDuration={window.settings?.kenBurnsHoverDuration}
-          kenBurnsAutoplayDuration={window.settings?.kenBurnsAutoplayDuration}
-          kenBurnsSlideshowDuration={window.settings?.kenBurnsSlideshowDuration}
-          kenBurnsCrossfadeDuration={window.settings?.kenBurnsCrossfadeDuration}
-          kenBurnsForGifs={window.settings?.kenBurnsForGifs}
-          kenBurnsForVideos={window.settings?.kenBurnsForVideos}
-          kenBurnsEasing={window.settings?.kenBurnsEasing}
-          kenBurnsAnimationType={window.settings?.kenBurnsAnimationType}
-          kenBurnsCrossfadeReturn={window.settings?.kenBurnsCrossfadeReturn}
-          kenBurnsTransitionType={window.settings?.kenBurnsTransitionType}
-          onSettingsChange={onSettingsChange}
-        />
+        <Suspense fallback={<div>Loading General Settings Modal...</div>}>
+          <LazyGeneralSettingsModal 
+            isOpen={showGeneralModal} 
+            onClose={() => setShowGeneralModal(false)} 
+            immersivePip={immersivePip} 
+            setImmersivePip={val => {
+              setImmersivePip(val);
+              localStorage.setItem('immersivePip', JSON.stringify(val));
+            }}
+            glassWiiRibbon={glassWiiRibbon}
+            setGlassWiiRibbon={onGlassWiiRibbonChange}
+            animatedOnHover={!!animatedOnHover}
+            setAnimatedOnHover={setAnimatedOnHover}
+            startInFullscreen={startInFullscreen}
+            setStartInFullscreen={setStartInFullscreen}
+            showPresetsButton={showPresetsButton}
+            setShowPresetsButton={val => onSettingsChange({ showPresetsButton: val })}
+            showDock={window.settings?.showDock ?? true}
+            setShowDock={val => onSettingsChange({ showDock: val })}
+            channelAnimation={window.settings?.channelAnimation}
+            adaptiveEmptyChannels={window.settings?.adaptiveEmptyChannels}
+            idleAnimationEnabled={window.settings?.idleAnimationEnabled}
+            idleAnimationTypes={window.settings?.idleAnimationTypes}
+            idleAnimationInterval={window.settings?.idleAnimationInterval}
+            kenBurnsEnabled={window.settings?.kenBurnsEnabled}
+            kenBurnsMode={window.settings?.kenBurnsMode}
+            kenBurnsHoverScale={window.settings?.kenBurnsHoverScale}
+            kenBurnsAutoplayScale={window.settings?.kenBurnsAutoplayScale}
+            kenBurnsSlideshowScale={window.settings?.kenBurnsSlideshowScale}
+            kenBurnsHoverDuration={window.settings?.kenBurnsHoverDuration}
+            kenBurnsAutoplayDuration={window.settings?.kenBurnsAutoplayDuration}
+            kenBurnsSlideshowDuration={window.settings?.kenBurnsSlideshowDuration}
+            kenBurnsCrossfadeDuration={window.settings?.kenBurnsCrossfadeDuration}
+            kenBurnsForGifs={window.settings?.kenBurnsForGifs}
+            kenBurnsForVideos={window.settings?.kenBurnsForVideos}
+            kenBurnsEasing={window.settings?.kenBurnsEasing}
+            kenBurnsAnimationType={window.settings?.kenBurnsAnimationType}
+            kenBurnsCrossfadeReturn={window.settings?.kenBurnsCrossfadeReturn}
+            kenBurnsTransitionType={window.settings?.kenBurnsTransitionType}
+            onSettingsChange={onSettingsChange}
+          />
+        </Suspense>
       )}
       {showPrimaryActionsModal && (
-        <PrimaryActionsModal
-          isOpen={showPrimaryActionsModal}
-          onClose={handlePrimaryActionsCancel}
-          onSave={handlePrimaryActionsSave}
-          config={buttonConfigs[activeButtonIndex]}
-          buttonIndex={activeButtonIndex}
-          preavailableIcons={preavailableIcons}
-          ribbonGlowColor={propRibbonGlowColor}
-        />
+        <Suspense fallback={<div>Loading Primary Actions Modal...</div>}>
+          <LazyPrimaryActionsModal
+            isOpen={showPrimaryActionsModal}
+            onClose={handlePrimaryActionsCancel}
+            onSave={handlePrimaryActionsSave}
+            config={buttonConfigs?.[activeButtonIndex]}
+            buttonIndex={activeButtonIndex}
+            preavailableIcons={preavailableIcons}
+            ribbonGlowColor={propRibbonGlowColor}
+          />
+        </Suspense>
       )}
       {showPresetsButtonModal && (
-        <PrimaryActionsModal
-          isOpen={showPresetsButtonModal}
-          onClose={handlePresetsButtonCancel}
-          onSave={handlePresetsButtonSave}
-          config={presetsButtonConfig}
-          buttonIndex="presets"
-          preavailableIcons={preavailableIcons}
-          title="Customize Presets Button"
-          ribbonGlowColor={propRibbonGlowColor}
-        />
+        <Suspense fallback={<div>Loading Presets Button Modal...</div>}>
+          <LazyPrimaryActionsModal
+            isOpen={showPresetsButtonModal}
+            onClose={handlePresetsButtonCancel}
+            onSave={handlePresetsButtonSave}
+            config={presetsButtonConfig}
+            buttonIndex="presets"
+            preavailableIcons={preavailableIcons}
+            title="Customize Presets Button"
+            ribbonGlowColor={propRibbonGlowColor}
+          />
+        </Suspense>
       )}
       {/* Time Settings Modal */}
       {showTimeSettingsModal && (
-        <TimeSettingsModal
-          isOpen={showTimeSettingsModal}
-          onClose={() => setShowTimeSettingsModal(false)}
-          onSettingsChange={onSettingsChange}
-        />
+        <Suspense fallback={<div>Loading Time Settings Modal...</div>}>
+          <LazyTimeSettingsModal
+            isOpen={showTimeSettingsModal}
+            onClose={() => setShowTimeSettingsModal(false)}
+            onSettingsChange={onSettingsChange}
+          />
+        </Suspense>
       )}
       {/* Ribbon Settings Modal */}
       {showRibbonSettingsModal && (
-        <RibbonSettingsModal
-          isOpen={showRibbonSettingsModal}
-          onClose={() => setShowRibbonSettingsModal(false)}
-          onSettingsChange={onSettingsChange}
-          glassWiiRibbon={glassWiiRibbon}
-          setGlassWiiRibbon={onGlassWiiRibbonChange}
-        />
+        <Suspense fallback={<div>Loading Ribbon Settings Modal...</div>}>
+          <LazyRibbonSettingsModal
+            isOpen={showRibbonSettingsModal}
+            onClose={() => setShowRibbonSettingsModal(false)}
+            onSettingsChange={onSettingsChange}
+            glassWiiRibbon={glassWiiRibbon}
+            setGlassWiiRibbon={onGlassWiiRibbonChange}
+          />
+        </Suspense>
       )}
     </>
   );

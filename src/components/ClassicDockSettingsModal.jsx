@@ -40,6 +40,32 @@ const THEME_GROUPS = {
       buttonHighlightColor: '#E4E4E4',
     }
   },
+  cyberpunk: {
+    name: 'Cyberpunk',
+    description: 'Cyberpunk esque effect',
+    colors: {
+      dockBaseGradientStart: '#2C2C40',
+    dockBaseGradientEnd: '#1a1a2e',
+    dockAccentColor: '#FF00FF', // Magenta neon
+    sdCardBodyColor: '#1a1a2e',
+    sdCardBorderColor: '#00FFFF',
+    sdCardLabelColor: '#00FFFF',
+    sdCardLabelBorderColor: '#424268',
+    sdCardBottomColor: '#00FFFF',
+    leftPodBaseColor: '#33334F',
+    leftPodAccentColor: '#5A5A82',
+    leftPodDetailColor: '#424268',
+    rightPodBaseColor: '#33334F',
+    rightPodAccentColor: '#5A5A82',
+    rightPodDetailColor: '#424268',
+    buttonBorderColor: '#00FFFF', // Cyan neon
+    buttonGradientStart: '#1a1a2e',
+    buttonGradientEnd: '#1a1a2e',
+    buttonIconColor: '#00FFFF',
+    rightButtonIconColor: '#00FFFF',
+    buttonHighlightColor: 'rgba(255, 0, 255, 0.4)',
+    }
+  },
   retro: {
     name: 'Retro Gaming',
     description: 'Vintage gaming aesthetic',

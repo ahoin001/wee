@@ -7,6 +7,10 @@ const useChannelStore = create(
       // Channel data - single source of truth
       channels: {}, // { channelId: { media, path, type, title, hoverSound, asAdmin, animatedOnHover, kenBurnsEnabled, kenBurnsMode } }
       
+      // Backup system for user's original channel setup
+      userChannelBackup: null, // Stores user's original channel setup
+      isBackupStale: false, // Tracks if backup is outdated
+      
       // Modal state
       modalState: {
         isOpen: false,
@@ -28,14 +32,41 @@ const useChannelStore = create(
             // If channelData is null, delete the channel
             const newChannels = { ...state.channels };
             delete newChannels[channelId];
-            return { channels: newChannels };
+            return { 
+              channels: newChannels,
+              isBackupStale: true // Mark backup as stale when user makes changes
+            };
           } else {
             // Otherwise, set the channel data
             return {
-              channels: { ...state.channels, [channelId]: channelData }
+              channels: { ...state.channels, [channelId]: channelData },
+              isBackupStale: true // Mark backup as stale when user makes changes
             };
           }
         }),
+      
+      // Backup user's current channel setup
+      backupUserChannels: () => 
+        set(state => ({
+          userChannelBackup: { ...state.channels },
+          isBackupStale: false
+        })),
+      
+      // Restore user's original channel setup
+      restoreUserChannels: () => 
+        set(state => {
+          if (state.userChannelBackup) {
+            return { channels: { ...state.userChannelBackup } };
+          }
+          return state; // No backup available, keep current state
+        }),
+      
+      // Check if user has a backup
+      hasUserBackup: () => get().userChannelBackup !== null,
+      
+      // Clear backup (when user explicitly resets or clears all)
+      clearUserBackup: () => 
+        set({ userChannelBackup: null, isBackupStale: false }),
       
       // Modal actions
       openChannelModal: (channelId) => {
@@ -85,6 +116,12 @@ const useChannelStore = create(
       setChannelsFromPreset: (presetData) => {
         console.log('[ChannelStore] Setting channels from preset:', presetData);
         
+        // If this is the first time applying a preset with channel data, backup current user channels
+        if (!get().userChannelBackup && (presetData.channels || presetData.channelData)) {
+          console.log('[ChannelStore] First preset with channel data - backing up user channels');
+          get().backupUserChannels();
+        }
+        
         if (presetData.channels && presetData.mediaMap && presetData.appPathMap) {
           // Handle old preset format
           const channelData = {};
@@ -111,8 +148,14 @@ const useChannelStore = create(
           // Handle new clean preset format
           set({ channels: presetData.channelData });
         } else {
-          // No channel data in preset - clear all channels
-          set({ channels: {} });
+          // No channel data in preset - restore user's original channels if available
+          if (get().userChannelBackup) {
+            console.log('[ChannelStore] No channel data in preset - restoring user channels');
+            get().restoreUserChannels();
+          } else {
+            console.log('[ChannelStore] No channel data in preset and no backup - clearing channels');
+            set({ channels: {} });
+          }
         }
       },
       

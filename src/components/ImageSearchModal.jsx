@@ -20,11 +20,11 @@ const SORT_OPTIONS = [
   { label: 'Most Downloaded', value: 'downloads' },
 ];
 
-function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
+function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
   const [media, setMedia] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('title_asc'); // Default to recently added
+  const [sortBy, setSortBy] = useState('created_at'); // Default to recently added
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mode, setMode] = useState('browse'); // 'browse' | 'upload'
@@ -212,7 +212,7 @@ function ImageSearchModal({ onClose, onSelect, onUploadClick }) {
 
   return (
     <BaseModal
-      isOpen={true}
+      isOpen={isOpen}
       title="Media Library"
       onClose={onClose}
       maxWidth="1200px"
@@ -468,7 +468,7 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
       <div style={{ position: 'relative', marginBottom: '8px' }}>
         {isVideo ? (
           <video
-            src={item.file_url}
+            src={`https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${item.file_url}`}
             style={{
               width: '100%',
               height: viewMode === 'grid' ? '120px' : '80px',
@@ -481,7 +481,7 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
           />
         ) : (
           <img
-            src={item.file_url}
+            src={`https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${item.file_url}`}
             alt={item.title}
             style={{
               width: '100%',
@@ -566,6 +566,7 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
 };
 
 ImageSearchModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSelect: PropTypes.func.isRequired,
   onUploadClick: PropTypes.func

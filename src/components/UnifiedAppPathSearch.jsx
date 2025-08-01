@@ -235,12 +235,12 @@ const UnifiedAppPathSearch = ({
               }}
               onMouseDown={() => handleAppSelect(app)}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = 'hsl(var(--state-hover))';
+                e.currentTarget.style.background = 'hsl(var(--state-hover))';
                 e.currentTarget.style.transform = 'translateY(-1px)';
                 e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.background = 'transparent';
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
               }}

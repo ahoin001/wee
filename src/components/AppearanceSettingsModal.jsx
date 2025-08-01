@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import PropTypes from 'prop-types';
 import BaseModal from './BaseModal';
 import Button from '../ui/Button';
@@ -18,17 +18,19 @@ import { uploadPreset } from '../utils/supabase';
 import AuthModal from './AuthModal';
 import useAuthModalStore from '../utils/useAuthModalStore';
 import MonitorSelectionModal from './MonitorSelectionModal';
-import ChannelsSettingsTab from './settings/ChannelsSettingsTab';
-import RibbonSettingsTab from './settings/RibbonSettingsTab';
-import PresetManager from './settings/PresetManager';
-import ThemesSettingsTab from './settings/ThemesSettingsTab';
-import WallpaperSettingsTab from './settings/WallpaperSettingsTab';
-import GeneralSettingsTab from './settings/GeneralSettingsTab';
-import TimeSettingsTab from './settings/TimeSettingsTab';
-import SoundsSettingsTab from './settings/SoundsSettingsTab';
-import DockSettingsTab from './settings/DockSettingsTab';
-import MonitorSettingsTab from './settings/MonitorSettingsTab';
-import AdvancedSettingsTab from './settings/AdvancedSettingsTab';
+
+// Lazy load settings tabs
+const LazyChannelsSettingsTab = React.lazy(() => import('./settings/ChannelsSettingsTab'));
+const LazyRibbonSettingsTab = React.lazy(() => import('./settings/RibbonSettingsTab'));
+const LazyPresetManager = React.lazy(() => import('./settings/PresetManager'));
+const LazyThemesSettingsTab = React.lazy(() => import('./settings/ThemesSettingsTab'));
+const LazyWallpaperSettingsTab = React.lazy(() => import('./settings/WallpaperSettingsTab'));
+const LazyGeneralSettingsTab = React.lazy(() => import('./settings/GeneralSettingsTab'));
+const LazyTimeSettingsTab = React.lazy(() => import('./settings/TimeSettingsTab'));
+const LazySoundsSettingsTab = React.lazy(() => import('./settings/SoundsSettingsTab'));
+const LazyDockSettingsTab = React.lazy(() => import('./settings/DockSettingsTab'));
+const LazyMonitorSettingsTab = React.lazy(() => import('./settings/MonitorSettingsTab'));
+const LazyAdvancedSettingsTab = React.lazy(() => import('./settings/AdvancedSettingsTab'));
 
 // Auth service (we'll create this)
 import { authService } from '../utils/authService';
@@ -816,128 +818,148 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   };
 
   const renderChannelsTab = () => (
-    <ChannelsSettingsTab 
-      localSettings={localSettings} 
-      updateLocalSetting={updateLocalSetting} 
-    />
+    <Suspense fallback={<div>Loading Channels Settings...</div>}>
+      <LazyChannelsSettingsTab 
+        localSettings={localSettings} 
+        updateLocalSetting={updateLocalSetting} 
+      />
+    </Suspense>
   );
 
   const renderRibbonTab = () => (
-    <RibbonSettingsTab 
-      localSettings={localSettings} 
-      updateLocalSetting={updateLocalSetting} 
-    />
+    <Suspense fallback={<div>Loading Ribbon Settings...</div>}>
+      <LazyRibbonSettingsTab 
+        localSettings={localSettings} 
+        updateLocalSetting={updateLocalSetting} 
+      />
+    </Suspense>
   );
 
   const renderWallpaperTab = () => (
-    <WallpaperSettingsTab 
-      localSettings={localSettings} 
-      updateLocalSetting={updateLocalSetting}
-    />
+    <Suspense fallback={<div>Loading Wallpaper Settings...</div>}>
+      <LazyWallpaperSettingsTab 
+        localSettings={localSettings} 
+        updateLocalSetting={updateLocalSetting}
+      />
+    </Suspense>
   );
 
   const renderGeneralTab = () => (
-    <GeneralSettingsTab 
-      localSettings={localSettings} 
-      updateLocalSetting={updateLocalSetting}
-      isAnonymous={isAnonymous}
-      currentUser={currentUser}
-      handleSignUp={handleSignUp}
-      handleSignIn={handleSignIn}
-      handleSignOut={handleSignOut}
-    />
+    <Suspense fallback={<div>Loading General Settings...</div>}>
+      <LazyGeneralSettingsTab 
+        localSettings={localSettings} 
+        updateLocalSetting={updateLocalSetting}
+        isAnonymous={isAnonymous}
+        currentUser={currentUser}
+        handleSignUp={handleSignUp}
+        handleSignIn={handleSignIn}
+        handleSignOut={handleSignOut}
+      />
+    </Suspense>
   );
 
   const renderTimeTab = () => (
-    <TimeSettingsTab 
-      localSettings={localSettings} 
-      updateLocalSetting={updateLocalSetting}
-    />
+    <Suspense fallback={<div>Loading Time Settings...</div>}>
+      <LazyTimeSettingsTab 
+        localSettings={localSettings} 
+        updateLocalSetting={updateLocalSetting}
+      />
+    </Suspense>
   );
 
   const renderSoundsTab = () => (
-    <SoundsSettingsTab 
-      localSettings={localSettings} 
-      updateLocalSetting={updateLocalSetting}
-    />
+    <Suspense fallback={<div>Loading Sounds Settings...</div>}>
+      <LazySoundsSettingsTab 
+        localSettings={localSettings} 
+        updateLocalSetting={updateLocalSetting}
+      />
+    </Suspense>
   );
 
   const renderDockTab = () => (
-    <DockSettingsTab />
+    <Suspense fallback={<div>Loading Dock Settings...</div>}>
+      <LazyDockSettingsTab />
+    </Suspense>
   );
 
   const renderThemesTab = () => (
-    <ThemesSettingsTab 
-      localSettings={localSettings} 
-      updateLocalSetting={updateLocalSetting}
-      presets={presets}
-      setPresets={setPresets}
-      newPresetName={newPresetName}
-      setNewPresetName={setNewPresetName}
-      error={error}
-      setError={setError}
-      importedPresets={importedPresets}
-      setImportedPresets={setImportedPresets}
-      importError={importError}
-      setImportError={setImportError}
-      showImportPreview={showImportPreview}
-      setShowImportPreview={setShowImportPreview}
-      overwriteMap={overwriteMap}
-      setOverwriteMap={setOverwriteMap}
-      draggingPreset={draggingPreset}
-      setDraggingPreset={setDraggingPreset}
-      dropTarget={dropTarget}
-      setDropTarget={setDropTarget}
-      selectedPresets={selectedPresets}
-      setSelectedPresets={setSelectedPresets}
-      selectMode={selectMode}
-      setSelectMode={setSelectMode}
-      editingPreset={editingPreset}
-      setEditingPreset={setEditingPreset}
-      editName={editName}
-      setEditName={setEditName}
-      justUpdated={justUpdated}
-      setJustUpdated={setJustUpdated}
-      showCommunitySection={showCommunitySection}
-      toggleCommunitySection={toggleCommunitySection}
-      showUploadForm={showUploadForm}
-      setShowUploadForm={setShowUploadForm}
-      uploading={uploading}
-      setUploading={setUploading}
-      uploadMessage={uploadMessage}
-      setUploadMessage={setUploadMessage}
-      uploadFormData={uploadFormData}
-      setUploadFormData={setUploadFormData}
-      handleSavePreset={handleSavePreset}
-      handleUpdate={handleUpdate}
-      handleStartEdit={handleStartEdit}
-      handleCancelEdit={handleCancelEdit}
-      handleSaveEdit={handleSaveEdit}
-      handleKeyPress={handleKeyPress}
-      handleApplyPreset={handleApplyPreset}
-      handleDeletePreset={handleDeletePreset}
-      handleToggleSelectPreset={handleToggleSelectPreset}
-      handleDragStart={handleDragStart}
-      handleDragOver={handleDragOver}
-      handleDragEnter={handleDragEnter}
-      handleDragLeave={handleDragLeave}
-      handleDrop={handleDrop}
-      handleDragEnd={handleDragEnd}
-      handleToggleOverwrite={handleToggleOverwrite}
-      handleConfirmImport={handleConfirmImport}
-      handleCancelImport={handleCancelImport}
-      handleImportCommunityPreset={handleImportCommunityPreset}
-      handleUpload={handleUpload}
-      handleUploadInputChange={handleUploadInputChange}
-    />
+    <Suspense fallback={<div>Loading Themes Settings...</div>}>
+      <LazyThemesSettingsTab 
+        localSettings={localSettings} 
+        updateLocalSetting={updateLocalSetting}
+        presets={presets}
+        setPresets={setPresets}
+        newPresetName={newPresetName}
+        setNewPresetName={setNewPresetName}
+        error={error}
+        setError={setError}
+        importedPresets={importedPresets}
+        setImportedPresets={setImportedPresets}
+        importError={importError}
+        setImportError={setImportError}
+        showImportPreview={showImportPreview}
+        setShowImportPreview={setShowImportPreview}
+        overwriteMap={overwriteMap}
+        setOverwriteMap={setOverwriteMap}
+        draggingPreset={draggingPreset}
+        setDraggingPreset={setDraggingPreset}
+        dropTarget={dropTarget}
+        setDropTarget={setDropTarget}
+        selectedPresets={selectedPresets}
+        setSelectedPresets={setSelectedPresets}
+        selectMode={selectMode}
+        setSelectMode={setSelectMode}
+        editingPreset={editingPreset}
+        setEditingPreset={setEditingPreset}
+        editName={editName}
+        setEditName={setEditName}
+        justUpdated={justUpdated}
+        setJustUpdated={setJustUpdated}
+        showCommunitySection={showCommunitySection}
+        toggleCommunitySection={toggleCommunitySection}
+        showUploadForm={showUploadForm}
+        setShowUploadForm={setShowUploadForm}
+        uploading={uploading}
+        setUploading={setUploading}
+        uploadMessage={uploadMessage}
+        setUploadMessage={setUploadMessage}
+        uploadFormData={uploadFormData}
+        setUploadFormData={setUploadFormData}
+        handleSavePreset={handleSavePreset}
+        handleUpdate={handleUpdate}
+        handleStartEdit={handleStartEdit}
+        handleCancelEdit={handleCancelEdit}
+        handleSaveEdit={handleSaveEdit}
+        handleKeyPress={handleKeyPress}
+        handleApplyPreset={handleApplyPreset}
+        handleDeletePreset={handleDeletePreset}
+        handleToggleSelectPreset={handleToggleSelectPreset}
+        handleDragStart={handleDragStart}
+        handleDragOver={handleDragOver}
+        handleDragEnter={handleDragEnter}
+        handleDragLeave={handleDragLeave}
+        handleDrop={handleDrop}
+        handleDragEnd={handleDragEnd}
+        handleToggleOverwrite={handleToggleOverwrite}
+        handleConfirmImport={handleConfirmImport}
+        handleCancelImport={handleCancelImport}
+        handleImportCommunityPreset={handleImportCommunityPreset}
+        handleUpload={handleUpload}
+        handleUploadInputChange={handleUploadInputChange}
+      />
+    </Suspense>
   );
 
   const renderMonitorTab = () => (
-    <MonitorSettingsTab setShowMonitorModal={setShowMonitorModal} />
+    <Suspense fallback={<div>Loading Monitor Settings...</div>}>
+      <LazyMonitorSettingsTab setShowMonitorModal={setShowMonitorModal} />
+    </Suspense>
   );
 
   const renderAdvancedTab = () => (
-    <AdvancedSettingsTab />
+    <Suspense fallback={<div>Loading Advanced Settings...</div>}>
+      <LazyAdvancedSettingsTab />
+    </Suspense>
   );
 
   const renderTabContent = () => {

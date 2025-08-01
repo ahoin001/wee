@@ -76,13 +76,13 @@ function AppPathSearchCard({
                 }}
                 onMouseDown={() => onSelect({ name: app.name, appId: app.appId, type: 'uwp' })}
                 onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = '#f0f8ff';
+                  e.currentTarget.style.background = '#f0f8ff';
                   e.currentTarget.style.transform = 'translateY(-1px)';
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 153, 255, 0.15)';
                   e.currentTarget.style.color = '#0066cc';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.background = 'transparent';
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow = 'none';
                   e.currentTarget.style.color = '#333';
@@ -169,13 +169,13 @@ function AppPathSearchCard({
               }}
               onMouseDown={() => onSelect(item)}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#f0f8ff';
+                e.currentTarget.style.background = '#f0f8ff';
                 e.currentTarget.style.transform = 'translateY(-1px)';
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 153, 255, 0.15)';
                 e.currentTarget.style.color = '#0066cc';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.background = 'transparent';
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
                 e.currentTarget.style.color = '#333';

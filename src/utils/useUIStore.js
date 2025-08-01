@@ -15,9 +15,14 @@ const useUIStore = create((set, get) => ({
   showGeneralSettingsModal: false,
   showTimeSettingsModal: false,
   showRibbonSettingsModal: false,
-  showClassicDockSettingsModal: false,
   showUpdateModal: false,
+  showPrimaryActionsModal: false,
+  showAppearanceSettingsModal: false,
+  showImageSearchModal: false,
+  imageSearchModalData: null, // { onSelect, onUploadClick }
   showNavigationCustomizationModal: false,
+  showMonitorSelectionModal: false,
+  showClassicDockSettingsModal: false,
   
   // Confirmation modal state
   showConfirmationModal: false,
@@ -150,6 +155,13 @@ const useUIStore = create((set, get) => ({
     const { showAppearanceSettingsModal } = get();
     set({ showAppearanceSettingsModal: !showAppearanceSettingsModal });
   },
+  
+  openImageSearchModal: (data) => set({ showImageSearchModal: true, imageSearchModalData: data }),
+  closeImageSearchModal: () => set({ showImageSearchModal: false, imageSearchModalData: null }),
+  openNavigationCustomizationModal: () => set({ showNavigationCustomizationModal: true }),
+  closeNavigationCustomizationModal: () => set({ showNavigationCustomizationModal: false }),
+  openMonitorSelectionModal: () => set({ showMonitorSelectionModal: true }),
+  closeMonitorSelectionModal: () => set({ showMonitorSelectionModal: false }),
   
   // Keyboard shortcuts actions
   updateKeyboardShortcut: (shortcutId, updates) => {

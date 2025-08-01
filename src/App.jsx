@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import ChannelModal from './components/ChannelModal';
 import PaginatedChannels from './components/PaginatedChannels';
 import PageNavigation from './components/PageNavigation';
@@ -41,7 +41,27 @@ import useAuthModalStore from './utils/useAuthModalStore';
 import useUnifiedAppStore from './utils/useUnifiedAppStore';
 import AdminPanel from './components/AdminPanel';
 import ConfirmationModal from './components/ConfirmationModal';
+import LoadingSpinner from './components/LoadingSpinner';
 
+// Lazy load heavy modals
+const LazyPresetsModal = React.lazy(() => import('./components/PresetsModal'));
+const LazyAppearanceSettingsModal = React.lazy(() => import('./components/AppearanceSettingsModal'));
+const LazyPrimaryActionsModal = React.lazy(() => import('./components/PrimaryActionsModal'));
+const LazyChannelModal = React.lazy(() => import('./components/ChannelModal'));
+const LazyWallpaperModal = React.lazy(() => import('./components/WallpaperModal'));
+const LazySoundModal = React.lazy(() => import('./components/SoundModal'));
+const LazyChannelSettingsModal = React.lazy(() => import('./components/ChannelSettingsModal'));
+const LazyAppShortcutsModal = React.lazy(() => import('./components/AppShortcutsModal'));
+const LazyAuthModal = React.lazy(() => import('./components/AuthModal'));
+const LazyUpdateModal = React.lazy(() => import('./components/UpdateModal'));
+const LazyGeneralSettingsModal = React.lazy(() => import('./components/GeneralSettingsModal'));
+const LazyTimeSettingsModal = React.lazy(() => import('./components/TimeSettingsModal'));
+const LazyRibbonSettingsModal = React.lazy(() => import('./components/RibbonSettingsModal'));
+const LazyClassicDockSettingsModal = React.lazy(() => import('./components/ClassicDockSettingsModal'));
+const LazyNavigationCustomizationModal = React.lazy(() => import('./components/NavigationCustomizationModal'));
+const LazyMonitorSelectionModal = React.lazy(() => import('./components/MonitorSelectionModal'));
+const LazyImageSearchModal = React.lazy(() => import('./components/ImageSearchModal'));
+const LazyAdminPanel = React.lazy(() => import('./components/AdminPanel'));
 
 // Safe fallback for modular APIs
 const soundsApi = window.api?.sounds || {
@@ -142,12 +162,20 @@ function App() {
   const { 
     channels, 
     setChannel, 
-    clearChannel, 
-    setChannelsFromPreset, 
-    clearAllChannels,
+    getChannelConfig, 
+    isChannelEmpty, 
+    getConfiguredChannels, 
     getChannelDataForComponents,
+    setChannelsFromPreset,
+    clearAllChannels,
+    backupUserChannels,
+    restoreUserChannels,
+    hasUserBackup,
+    clearUserBackup,
     modalState,
-    closeChannelModal
+    openChannelModal,
+    closeChannelModal,
+    updateChannelModal
   } = useChannelStore();
   
   const { 
@@ -191,6 +219,10 @@ function App() {
     showUpdateModal,
     showPrimaryActionsModal,
     showAppearanceSettingsModal,
+    showImageSearchModal,
+    imageSearchModalData,
+    showNavigationCustomizationModal,
+    showMonitorSelectionModal,
     openSoundModal,
     openAppearanceSettingsModal,
     closePresetsModal,
@@ -204,6 +236,9 @@ function App() {
     closeUpdateModal,
     closePrimaryActionsModal,
     closeAppearanceSettingsModal,
+    closeImageSearchModal,
+    closeNavigationCustomizationModal,
+    closeMonitorSelectionModal,
     loadKeyboardShortcuts
   } = useUIStore();
   
@@ -267,7 +302,7 @@ function App() {
   const [timePillBlur, setTimePillBlur] = useState(8); // Time pill backdrop blur
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
   const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Channel auto-fade timeout
-  const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState(null); // Track ribbon button configs
+  const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState([]); // Track ribbon button configs
   const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
   const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
   const [startOnBoot, setStartOnBoot] = useState(false); // Launch on startup
@@ -282,11 +317,9 @@ function App() {
     try {
       const result = await window.api.takeScreenshot();
       if (result.success) {
-        // Open the folder containing the screenshot
-        if (window.api.openExternal) {
-          const folderPath = result.filePath.replace(/\\/g, '/').replace(/\/[^\/]*$/, '');
-          window.api.openExternal(`file://${folderPath}`);
-        }
+        // Show success message instead of opening folder
+        console.log('Screenshot saved successfully:', result.filePath);
+        // Optionally show a toast notification here if you have one
       } else if (result.error !== 'Save cancelled by user') {
         console.error('Screenshot failed:', result.error);
       }
@@ -309,7 +342,6 @@ function App() {
   const [channelOpacity, setChannelOpacity] = useState(1);
   const fadeTimeoutRef = useRef(null);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [openChannelModal, setOpenChannelModal] = useState(null); // Track which channel modal is open
   // Add ribbonColor state
   const [ribbonColor, setRibbonColor] = useState('#e0e6ef');
   // Add recentRibbonColors state
@@ -480,34 +512,41 @@ function App() {
         timePillBlur,
         timePillOpacity,
         channelAutoFadeTimeout,
-        ribbonButtonConfigs,
-        presetsButtonConfig,
-        showPresetsButton,
-        startOnBoot,
-        immersivePip,
-        showDock,
-        classicMode,
-        glassWiiRibbon,
-        glassOpacity,
-        glassBlur,
-        glassBorderOpacity,
-        glassShineOpacity,
         animatedOnHover,
-        startInFullscreen,
-        wallpaper,
-        wallpaperOpacity,
-        cycleWallpapers,
-        cycleInterval,
-        cycleAnimation,
+        classicMode,
         crossfadeDuration,
         crossfadeEasing,
-        slideRandomDirection,
+        cycleAnimation,
+        cycleInterval,
+        cycleWallpapers,
+        glassBlur,
+        glassBorderOpacity,
+        glassOpacity,
+        glassShineOpacity,
+        glassWiiRibbon,
+        immersivePip,
+        likedWallpapers,
+        presetsButtonConfig,
+        recentRibbonColors,
+        recentRibbonGlowColors,
+        ribbonButtonConfigs,
+        ribbonColor,
+        ribbonDockOpacity,
+        ribbonGlowColor,
+        ribbonGlowStrength,
+        ribbonGlowStrengthHover,
+        savedWallpapers,
+        showDock,
+        showPresetsButton,
         slideDuration,
         slideEasing,
-        savedWallpapers,
-        likedWallpapers,
+        slideRandomDirection,
+        soundSettings,
+        startInFullscreen,
+        startOnBoot,
         useCustomCursor,
-        soundSettings
+        wallpaper,
+        wallpaperOpacity
       };
 
       // Include channel data if requested and not importing
@@ -542,21 +581,23 @@ function App() {
       };
 
       setPresets(prev => [...prev, newPreset]);
-      console.log('[App] Saved preset with channel data:', newPreset);
+      console.log('[App] Saved preset with ribbon settings:', {
+        ribbonColor: newPreset.data.ribbonColor,
+        ribbonGlowColor: newPreset.data.ribbonGlowColor,
+        ribbonGlowStrength: newPreset.data.ribbonGlowStrength,
+        ribbonGlowStrengthHover: newPreset.data.ribbonGlowStrengthHover,
+        recentRibbonColors: newPreset.data.recentRibbonColors,
+        recentRibbonGlowColors: newPreset.data.recentRibbonGlowColors,
+        ribbonDockOpacity: newPreset.data.ribbonDockOpacity
+      });
       
     } catch (error) {
       console.error('[App] Error saving preset:', error);
     }
   };
   const handleDeletePreset = (name) => {
-    // Use Zustand confirmation modal instead of window.confirm
-    const { confirmDelete } = useUIStore.getState();
-    confirmDelete(
-      name,
-      () => {
-        setPresets(prev => prev.filter(p => p.name !== name));
-      }
-    );
+    // Direct deletion since confirmation is already handled in PresetsModal
+    setPresets(prev => prev.filter(p => p.name !== name));
   };
   const handleImportPresets = (newPresets) => {
     setPresets(prev => {
@@ -643,6 +684,28 @@ function App() {
         setRecentRibbonGlowColors(d.recentRibbonGlowColors);
       }
       
+      // Apply glass effect settings
+      if (d.glassWiiRibbon !== undefined) {
+        console.log('[App] Applying glass Wii ribbon:', d.glassWiiRibbon);
+        setGlassWiiRibbon(d.glassWiiRibbon);
+      }
+      if (d.glassOpacity !== undefined) {
+        console.log('[App] Applying glass opacity:', d.glassOpacity);
+        setGlassOpacity(d.glassOpacity);
+      }
+      if (d.glassBlur !== undefined) {
+        console.log('[App] Applying glass blur:', d.glassBlur);
+        setGlassBlur(d.glassBlur);
+      }
+      if (d.glassBorderOpacity !== undefined) {
+        console.log('[App] Applying glass border opacity:', d.glassBorderOpacity);
+        setGlassBorderOpacity(d.glassBorderOpacity);
+      }
+      if (d.glassShineOpacity !== undefined) {
+        console.log('[App] Applying glass shine opacity:', d.glassShineOpacity);
+        setGlassShineOpacity(d.glassShineOpacity);
+      }
+      
       // Apply wallpaper settings
       if (d.wallpaper !== undefined) {
         console.log('[App] Applying wallpaper:', d.wallpaper);
@@ -670,8 +733,8 @@ function App() {
         console.log('[App] Applying channel data from preset:', d.channelData);
         setChannelsFromPreset(d);
       } else {
-        console.log('[App] No channel data in preset, clearing channels');
-        clearAllChannels();
+        console.log('[App] No channel data in preset - will restore user channels if available');
+        setChannelsFromPreset(d);
       }
       
       // Apply sound library if present
@@ -2157,11 +2220,6 @@ function App() {
   };
 
   // Handle opening channel modal
-  const handleOpenChannelModal = (channelId) => {
-    console.log('[App] Opening channel modal for:', channelId);
-    // This will be handled by the ChannelModal component
-  };
-
   // On reset all
   const handleResetAll = async () => {
     await resetAllApi?.();
@@ -2210,6 +2268,7 @@ function App() {
     
     // Channel data now managed by Zustand store
     console.log('Channel data now managed by Zustand store');
+    clearUserBackup(); // Clear backup when user explicitly resets everything
   };
 
   // Channel auto-fade logic
@@ -2314,6 +2373,14 @@ function App() {
         glassShineOpacity,
         animatedOnHover,
         startInFullscreen,
+        // Ribbon settings
+        ribbonColor,
+        ribbonGlowColor,
+        ribbonGlowStrength,
+        ribbonGlowStrengthHover,
+        recentRibbonColors,
+        recentRibbonGlowColors,
+        ribbonDockOpacity,
         wallpaper,
         wallpaperOpacity,
         cycleWallpapers,
@@ -2355,7 +2422,16 @@ function App() {
         timestamp: Date.now()
       } : p));
       
-      console.log('[App] Updated preset with channel data:', { name, includeChannels, includeSounds });
+      console.log('[App] Updated preset with ribbon settings:', {
+        name,
+        ribbonColor: currentSettings.ribbonColor,
+        ribbonGlowColor: currentSettings.ribbonGlowColor,
+        ribbonGlowStrength: currentSettings.ribbonGlowStrength,
+        ribbonGlowStrengthHover: currentSettings.ribbonGlowStrengthHover,
+        recentRibbonColors: currentSettings.recentRibbonColors,
+        recentRibbonGlowColors: currentSettings.recentRibbonGlowColors,
+        ribbonDockOpacity: currentSettings.ribbonDockOpacity
+      });
       
     } catch (error) {
       console.error('[App] Error updating preset:', error);
@@ -2512,7 +2588,6 @@ function App() {
           onAppPathChange={handleAppPathChange}
           onChannelSave={handleChannelSave}
           onChannelHover={handleChannelHover}
-          onOpenModal={handleOpenChannelModal}
         />
           <PageNavigation />
           <WiiSideNavigation />
@@ -2551,6 +2626,10 @@ function App() {
             timeFont={timeFont}
             presetsButtonConfig={presetsButtonConfig}
             showPresetsButton={showPresetsButton}
+            glassOpacity={glassOpacity}
+            glassBlur={glassBlur}
+            glassBorderOpacity={glassBorderOpacity}
+            glassShineOpacity={glassShineOpacity}
           />
         )}
         {showDock && classicMode && (
@@ -2806,337 +2885,243 @@ function App() {
           );
         })()}
         {/* Channel Modal - rendered at top level for proper z-index */}
-        {openChannelModal && (
-          (() => {
-            return (
-              <ChannelModal
-                channelId={openChannelModal}
-                onClose={() => setOpenChannelModal(null)}
-                onSave={handleChannelSave}
-                currentMedia={mediaMap[openChannelModal]}
-                currentPath={appPathMap[openChannelModal]}
-                currentType={channelConfigs[openChannelModal]?.type}
-                currentAsAdmin={channelConfigs[openChannelModal]?.asAdmin}
-                currentAnimatedOnHover={channelConfigs[openChannelModal]?.animatedOnHover}
-                currentHoverSound={channelConfigs[openChannelModal]?.hoverSound}
-                currentKenBurnsEnabled={channelConfigs[openChannelModal]?.kenBurnsEnabled}
-                currentKenBurnsMode={channelConfigs[openChannelModal]?.kenBurnsMode}
-              />
-            );
-          })()
-        )}
+        <Suspense fallback={<div>Loading channel modal...</div>}>
+          {modalState.isOpen && (
+            <LazyChannelModal
+              channelId={modalState.channelId}
+              onClose={closeChannelModal}
+              onSave={handleChannelSave}
+              currentMedia={modalState.currentMedia}
+              currentPath={modalState.currentPath}
+              currentType={modalState.currentType}
+              currentAsAdmin={modalState.currentAsAdmin}
+              currentAnimatedOnHover={modalState.currentAnimatedOnHover}
+              currentHoverSound={modalState.currentHoverSound}
+              currentKenBurnsEnabled={modalState.currentKenBurnsEnabled}
+              currentKenBurnsMode={modalState.currentKenBurnsMode}
+            />
+          )}
+        </Suspense>
         {(!appReady || isLoading) && <SplashScreen fadingOut={splashFading} />}
-        <PresetsModal
-          isOpen={showPresetsModal}
-          onClose={closePresetsModal}
-          presets={presets}
-          onSavePreset={handleSavePreset}
-          onDeletePreset={handleDeletePreset}
-          onApplyPreset={handleApplyPreset}
-          onUpdatePreset={handleUpdatePreset}
-          onRenamePreset={handleRenamePreset}
-          onImportPresets={handleImportPresets}
-          onReorderPresets={handleReorderPresets}
-        />
-        <NavigationCustomizationModal />
-        <WallpaperModal
-          isOpen={showWallpaperModal}
-          onClose={closeWallpaperModal}
-          onSettingsChange={handleSettingsChange}
-        />
-        <ChannelSettingsModal
-          isOpen={showChannelSettingsModal}
-          onClose={closeChannelSettingsModal}
-          onSettingsChange={handleSettingsChange}
-          adaptiveEmptyChannels={adaptiveEmptyChannels}
-          channelAnimation={channelAnimation}
-          animatedOnHover={animatedOnHover}
-          idleAnimationEnabled={idleAnimationEnabled}
-          idleAnimationTypes={idleAnimationTypes}
-          idleAnimationInterval={idleAnimationInterval}
-          kenBurnsEnabled={kenBurnsEnabled}
-          kenBurnsMode={kenBurnsMode}
-          kenBurnsHoverScale={kenBurnsHoverScale}
-          kenBurnsAutoplayScale={kenBurnsAutoplayScale}
-          kenBurnsSlideshowScale={kenBurnsSlideshowScale}
-          kenBurnsHoverDuration={kenBurnsHoverDuration}
-          kenBurnsAutoplayDuration={kenBurnsAutoplayDuration}
-          kenBurnsSlideshowDuration={kenBurnsSlideshowDuration}
-          kenBurnsCrossfadeDuration={kenBurnsCrossfadeDuration}
-          kenBurnsForGifs={kenBurnsForGifs}
-          kenBurnsForVideos={kenBurnsForVideos}
-          kenBurnsEasing={kenBurnsEasing}
-          kenBurnsAnimationType={kenBurnsAnimationType}
-          kenBurnsCrossfadeReturn={kenBurnsCrossfadeReturn}
-          kenBurnsTransitionType={kenBurnsTransitionType}
-          channelAutoFadeTimeout={channelAutoFadeTimeout}
-        />
-        
-        {showAppShortcutsModal && (
-          <AppShortcutsModal
+        <Suspense fallback={<LoadingSpinner message="Loading Presets..." />}>
+          <LazyPresetsModal
+            isOpen={showPresetsModal}
+            onClose={closePresetsModal}
+            presets={presets}
+            onSavePreset={handleSavePreset}
+            onDeletePreset={handleDeletePreset}
+            onApplyPreset={handleApplyPreset}
+            onUpdatePreset={handleUpdatePreset}
+            onRenamePreset={handleRenamePreset}
+            onImportPresets={handleImportPresets}
+            onReorderPresets={handleReorderPresets}
+          />
+        </Suspense>
+        <Suspense fallback={<LoadingSpinner message="Loading Appearance Settings..." />}>
+          <LazyAppearanceSettingsModal
+            isOpen={showAppearanceSettingsModal}
+            onClose={closeAppearanceSettingsModal}
+            onSettingsChange={handleSettingsChange}
+          />
+        </Suspense>
+        <Suspense fallback={<LoadingSpinner message="Loading Primary Actions..." />}>
+          <LazyPrimaryActionsModal
+            isOpen={showPrimaryActionsModal}
+            onClose={() => {
+              if (closePrimaryActionsModal) {
+                closePrimaryActionsModal();
+              } else {
+                setShowPrimaryActionsModal(false);
+              }
+            }}
+            onSave={(newConfig) => {
+              const newConfigs = [...(ribbonButtonConfigs || [])];
+              if (activeButtonIndex !== null && activeButtonIndex >= 0) {
+                newConfigs[activeButtonIndex] = newConfig;
+                setRibbonButtonConfigs(newConfigs);
+                handleSettingsChange({ ribbonButtonConfigs: newConfigs });
+              }
+              if (closePrimaryActionsModal) {
+                closePrimaryActionsModal();
+              } else {
+                setShowPrimaryActionsModal(false);
+              }
+            }}
+            config={ribbonButtonConfigs && activeButtonIndex !== null ? ribbonButtonConfigs[activeButtonIndex] : null}
+            buttonIndex={activeButtonIndex}
+            preavailableIcons={[]}
+            ribbonGlowColor={ribbonGlowColor}
+          />
+        </Suspense>
+        <Suspense fallback={<div>Loading channel settings...</div>}>
+          <LazyChannelSettingsModal
+            isOpen={showChannelSettingsModal}
+            onClose={closeChannelSettingsModal}
+            onSettingsChange={handleSettingsChange}
+            adaptiveEmptyChannels={adaptiveEmptyChannels}
+            channelAnimation={channelAnimation}
+            animatedOnHover={animatedOnHover}
+            idleAnimationEnabled={idleAnimationEnabled}
+            idleAnimationTypes={idleAnimationTypes}
+            idleAnimationInterval={idleAnimationInterval}
+            kenBurnsEnabled={kenBurnsEnabled}
+            kenBurnsMode={kenBurnsMode}
+            kenBurnsHoverScale={kenBurnsHoverScale}
+            kenBurnsAutoplayScale={kenBurnsAutoplayScale}
+            kenBurnsSlideshowScale={kenBurnsSlideshowScale}
+            kenBurnsHoverDuration={kenBurnsHoverDuration}
+            kenBurnsAutoplayDuration={kenBurnsAutoplayDuration}
+            kenBurnsSlideshowDuration={kenBurnsSlideshowDuration}
+            kenBurnsCrossfadeDuration={kenBurnsCrossfadeDuration}
+            kenBurnsForGifs={kenBurnsForGifs}
+            kenBurnsForVideos={kenBurnsForVideos}
+            kenBurnsEasing={kenBurnsEasing}
+            kenBurnsAnimationType={kenBurnsAnimationType}
+            kenBurnsCrossfadeReturn={kenBurnsCrossfadeReturn}
+            kenBurnsTransitionType={kenBurnsTransitionType}
+            channelAutoFadeTimeout={channelAutoFadeTimeout}
+          />
+        </Suspense>
+        <Suspense fallback={<div>Loading sound settings...</div>}>
+          <LazySoundModal
+            isOpen={showSoundModal}
+            onClose={closeSoundModal}
+            onSettingsChange={handleSettingsChange}
+          />
+        </Suspense>
+        <Suspense fallback={<div>Loading wallpaper settings...</div>}>
+          {showWallpaperModal && (
+            <LazyWallpaperModal
+              isOpen={showWallpaperModal}
+              onClose={closeWallpaperModal}
+              onSettingsChange={handleSettingsChange}
+            />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading app shortcuts...</div>}>
+          <LazyAppShortcutsModal
             isOpen={showAppShortcutsModal}
             onClose={closeAppShortcutsModal}
           />
-        )}
-        
-        {/* Additional modals for when dock is hidden */}
-        {showGeneralSettingsModal && (
-          <GeneralSettingsModal 
-            isOpen={showGeneralSettingsModal} 
-            onClose={closeGeneralSettingsModal}
-            immersivePip={window.settings?.immersivePip ?? false}
-            setImmersivePip={val => {
-              localStorage.setItem('immersivePip', JSON.stringify(val));
-              handleSettingsChange({ immersivePip: val });
-            }}
-            glassWiiRibbon={glassWiiRibbon}
-            setGlassWiiRibbon={setGlassWiiRibbon}
-            startInFullscreen={startInFullscreen}
-            setStartInFullscreen={setStartInFullscreen}
-            showPresetsButton={showPresetsButton}
-            setShowPresetsButton={val => handleSettingsChange({ showPresetsButton: val })}
-            channelAnimation={window.settings?.channelAnimation}
-            adaptiveEmptyChannels={window.settings?.adaptiveEmptyChannels}
-            idleAnimationEnabled={window.settings?.idleAnimationEnabled}
-            idleAnimationTypes={window.settings?.idleAnimationTypes}
-            idleAnimationInterval={window.settings?.idleAnimationInterval}
-            kenBurnsEnabled={window.settings?.kenBurnsEnabled}
-            kenBurnsMode={window.settings?.kenBurnsMode}
-            kenBurnsHoverScale={window.settings?.kenBurnsHoverScale}
-            kenBurnsAutoplayScale={window.settings?.kenBurnsAutoplayScale}
-            kenBurnsSlideshowScale={window.settings?.kenBurnsSlideshowScale}
-            kenBurnsHoverDuration={window.settings?.kenBurnsHoverDuration}
-            kenBurnsAutoplayDuration={window.settings?.kenBurnsAutoplayDuration}
-            kenBurnsSlideshowDuration={window.settings?.kenBurnsSlideshowDuration}
-            kenBurnsCrossfadeDuration={window.settings?.kenBurnsCrossfadeDuration}
-            kenBurnsForGifs={window.settings?.kenBurnsForGifs}
-            kenBurnsForVideos={window.settings?.kenBurnsForVideos}
-            kenBurnsEasing={window.settings?.kenBurnsEasing}
-            kenBurnsAnimationType={window.settings?.kenBurnsAnimationType}
-            kenBurnsCrossfadeReturn={window.settings?.kenBurnsCrossfadeReturn}
-            kenBurnsTransitionType={window.settings?.kenBurnsTransitionType}
-            onSettingsChange={handleSettingsChange}
-          />
-        )}
-        
-        {showTimeSettingsModal && (
-          <TimeSettingsModal
-            isOpen={showTimeSettingsModal}
-            onClose={closeTimeSettingsModal}
-            onSettingsChange={handleSettingsChange}
-          />
-        )}
-        
-        {showRibbonSettingsModal && (
-          <RibbonSettingsModal
-            isOpen={showRibbonSettingsModal}
-            onClose={closeRibbonSettingsModal}
-            onSettingsChange={handleSettingsChange}
-            glassWiiRibbon={glassWiiRibbon}
-            setGlassWiiRibbon={setGlassWiiRibbon}
-          />
-        )}
-        
-                {showUpdateModal && (
-          <UpdateModal
-            isOpen={showUpdateModal}
-            onClose={closeUpdateModal}
-          />
-        )}
-
-        {/* PrimaryActionsModal for ClassicWiiDock */}
-        {showPrimaryActionsModal && (
-          <PrimaryActionsModal
-            isOpen={showPrimaryActionsModal}
-            onClose={() => setShowPrimaryActionsModal(false)}
-            onSave={(newConfig) => {
-              const newConfigs = [...ribbonButtonConfigs];
-              newConfigs[activeButtonIndex] = newConfig;
-              setRibbonButtonConfigs(newConfigs);
-              handleSettingsChange({ ribbonButtonConfigs: newConfigs });
-              setShowPrimaryActionsModal(false);
-            }}
-            config={ribbonButtonConfigs[activeButtonIndex]}
-            buttonIndex={activeButtonIndex}
-            preavailableIcons={[]}
-            ribbonGlowColor={ribbonGlowColor}
-          />
-        )}
-
-        {/* PrimaryActionsModal for ClassicWiiDock */}
-        {useUIStore.getState().showPrimaryActionsModal && activeButtonIndex !== null && (
-          <PrimaryActionsModal
-            isOpen={useUIStore.getState().showPrimaryActionsModal}
-            onClose={() => useUIStore.getState().closePrimaryActionsModal()}
-            onSave={handleClassicButtonSave}
-            config={activeButtonIndex === 'accessory' ? accessoryButtonConfig : classicDockButtonConfigs[activeButtonIndex]}
-            buttonIndex={activeButtonIndex}
-            preavailableIcons={[]}
-            ribbonGlowColor={ribbonGlowColor}
-          />
-        )}
-
-        {/* Update Notification Badge */}
-        <UpdateNotificationBadge
-          isVisible={showUpdateBadge && notificationUpdateAvailable}
-          onDismiss={handleUpdateNotificationDismiss}
-          onInstall={handleUpdateNotificationInstall}
-          updateInfo={updateInfo}
-        />
-
-
-
-                        {/* SoundModal */}
-                {showSoundModal && (
-                  <SoundModal
-                    isOpen={showSoundModal}
-                    onClose={closeSoundModal}
-                    onSettingsChange={handleSettingsChange}
-                  />
-                )}
-
-                {/* AppearanceSettingsModal */}
-                {showAppearanceSettingsModal && (
-                  <AppearanceSettingsModal
-                    isOpen={showAppearanceSettingsModal}
-                    onClose={closeAppearanceSettingsModal}
-                    onSettingsChange={handleSettingsChange}
-                  />
-                )}
-
-                {/* AuthModal - Always rendered, controlled by Zustand store */}
-                <AuthModal />
-
-                {/* CountdownOverlay for screenshot countdown */}
-                <CountdownOverlay 
-                  isVisible={showCountdown}
-                  onComplete={() => {
-                    setShowCountdown(false);
-                    // Take screenshot after a brief delay to ensure overlay is hidden
-                    setTimeout(() => {
-                      handleTakeScreenshot();
-                    }, 50);
-                  }}
-                />
-
-                {/* ClassicDockSettingsModal */}
-        {showClassicDockSettingsModal && (
-          <ClassicDockSettingsModal
-            isOpen={showClassicDockSettingsModal}
-            onClose={() => setShowClassicDockSettingsModal(false)}
-            onSettingsChange={handleDockSettingsChange}
-            dockSettings={dockSettings}
-          />
-        )}
-
-        {/* Admin Menu for ClassicWiiDock */}
-        {showAdminMenu && (
-          <div className="admin-menu">
-            <div
-              className="context-menu-content"
-              style={{ 
-                position: 'absolute', 
-                bottom: '120px',
-                left: '250px',
-                zIndex: 1000,
-                minWidth: '280px',
-                maxWidth: '400px',
-                background: '#fff',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                overflow: 'hidden'
+        </Suspense>
+        <Suspense fallback={<div>Loading auth settings...</div>}>
+          {isAuthModalOpen && (
+            <LazyAuthModal />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading update settings...</div>}>
+          {showUpdateModal && (
+            <LazyUpdateModal
+              isOpen={showUpdateModal}
+              onClose={closeUpdateModal}
+            />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading general settings...</div>}>
+          {showGeneralSettingsModal && (
+            <LazyGeneralSettingsModal
+              isOpen={showGeneralSettingsModal}
+              onClose={closeGeneralSettingsModal}
+              immersivePip={window.settings?.immersivePip ?? false}
+              setImmersivePip={val => {
+                localStorage.setItem('immersivePip', JSON.stringify(val));
+                handleSettingsChange({ immersivePip: val });
               }}
-            >
-              <div className="settings-menu-group-label" style={{ 
-                padding: '12px 16px 8px 16px',
-                background: '#f5f5f5',
-                borderBottom: '1px solid #e0e0e0',
-                fontWeight: '600',
-                color: '#333'
-              }}>
-                Admin Actions
-              </div>
-              {classicDockButtonConfigs[0]?.powerActions?.map((action, index) => (
-                <div
-                  key={action.id}
-                  className="context-menu-item"
-                  onClick={() => {
-                    if (window.api && window.api.executeCommand) {
-                      window.api.executeCommand(action.command);
-                    } else {
-                      console.log('Would execute command:', action.command);
-                    }
-                    setShowAdminMenu(false);
-                  }}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '12px',
-                    padding: '12px 16px',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s ease',
-                    borderBottom: index < classicDockButtonConfigs[0].powerActions.length - 1 ? '1px solid #f0f0f0' : 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8f9fa';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <span style={{ fontSize: '18px' }}>{action.icon}</span>
-                  <div>
-                    <div style={{ fontWeight: '500' }}>{action.name}</div>
-                    <div style={{ 
-                      fontSize: '12px', 
-                      color: '#666',
-                      fontFamily: 'monospace',
-                      marginTop: '2px'
-                    }}>
-                      {action.command}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Click outside to close admin menu */}
-        {showAdminMenu && (
-          <div 
-            style={{ 
-              position: 'fixed', 
-              top: 0, 
-              left: 0, 
-              right: 0, 
-              bottom: 0, 
-              zIndex: 999,
-              background: 'transparent'
-            }} 
-            onClick={() => setShowAdminMenu(false)}
-          />
-        )}
-
-        {/* ChannelModal - Controlled by Zustand store */}
-        {modalState.isOpen && (
-          <ChannelModal
-            channelId={modalState.channelId}
-            onClose={closeChannelModal}
-            onSave={handleChannelSave}
-            currentMedia={modalState.currentMedia}
-            currentPath={modalState.currentPath}
-            currentType={modalState.currentType}
-            currentHoverSound={modalState.currentHoverSound}
-            currentAsAdmin={modalState.currentAsAdmin}
-            currentAnimatedOnHover={modalState.currentAnimatedOnHover}
-            currentKenBurnsEnabled={modalState.currentKenBurnsEnabled}
-            currentKenBurnsMode={modalState.currentKenBurnsMode}
-          />
-        )}
-        {/* Global Confirmation Modal */}
-        <ConfirmationModal />
+              glassWiiRibbon={glassWiiRibbon}
+              setGlassWiiRibbon={setGlassWiiRibbon}
+              startInFullscreen={startInFullscreen}
+              setStartInFullscreen={setStartInFullscreen}
+              showPresetsButton={showPresetsButton}
+              setShowPresetsButton={val => handleSettingsChange({ showPresetsButton: val })}
+              channelAnimation={window.settings?.channelAnimation}
+              adaptiveEmptyChannels={window.settings?.adaptiveEmptyChannels}
+              idleAnimationEnabled={window.settings?.idleAnimationEnabled}
+              idleAnimationTypes={window.settings?.idleAnimationTypes}
+              idleAnimationInterval={window.settings?.idleAnimationInterval}
+              kenBurnsEnabled={window.settings?.kenBurnsEnabled}
+              kenBurnsMode={window.settings?.kenBurnsMode}
+              kenBurnsHoverScale={window.settings?.kenBurnsHoverScale}
+              kenBurnsAutoplayScale={window.settings?.kenBurnsAutoplayScale}
+              kenBurnsSlideshowScale={window.settings?.kenBurnsSlideshowScale}
+              kenBurnsHoverDuration={window.settings?.kenBurnsHoverDuration}
+              kenBurnsAutoplayDuration={window.settings?.kenBurnsAutoplayDuration}
+              kenBurnsSlideshowDuration={window.settings?.kenBurnsSlideshowDuration}
+              kenBurnsCrossfadeDuration={window.settings?.kenBurnsCrossfadeDuration}
+              kenBurnsForGifs={window.settings?.kenBurnsForGifs}
+              kenBurnsForVideos={window.settings?.kenBurnsForVideos}
+              kenBurnsEasing={window.settings?.kenBurnsEasing}
+              kenBurnsAnimationType={window.settings?.kenBurnsAnimationType}
+              kenBurnsCrossfadeReturn={window.settings?.kenBurnsCrossfadeReturn}
+              kenBurnsTransitionType={window.settings?.kenBurnsTransitionType}
+              onSettingsChange={handleSettingsChange}
+            />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading time settings...</div>}>
+          {showTimeSettingsModal && (
+            <LazyTimeSettingsModal
+              isOpen={showTimeSettingsModal}
+              onClose={closeTimeSettingsModal}
+              onSettingsChange={handleSettingsChange}
+            />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading ribbon settings...</div>}>
+          {showRibbonSettingsModal && (
+            <LazyRibbonSettingsModal
+              isOpen={showRibbonSettingsModal}
+              onClose={closeRibbonSettingsModal}
+              onSettingsChange={handleSettingsChange}
+              glassWiiRibbon={glassWiiRibbon}
+              setGlassWiiRibbon={setGlassWiiRibbon}
+            />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading classic dock settings...</div>}>
+          {showClassicDockSettingsModal && (
+            <LazyClassicDockSettingsModal
+              isOpen={showClassicDockSettingsModal}
+              onClose={() => setShowClassicDockSettingsModal(false)}
+              onSettingsChange={handleDockSettingsChange}
+              dockSettings={dockSettings}
+            />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading navigation customization...</div>}>
+          {showNavigationCustomizationModal && (
+            <LazyNavigationCustomizationModal />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading monitor selection...</div>}>
+          {showMonitorSelectionModal && (
+            <LazyMonitorSelectionModal />
+          )}
+        </Suspense>
+        <Suspense fallback={<LoadingSpinner message="Loading image search..." />}>
+          {showImageSearchModal && imageSearchModalData && (
+            <LazyImageSearchModal 
+              isOpen={showImageSearchModal}
+              onClose={closeImageSearchModal}
+              onSelect={imageSearchModalData.onSelect}
+              onUploadClick={imageSearchModalData.onUploadClick}
+            />
+          )}
+        </Suspense>
+        <Suspense fallback={<div>Loading admin panel...</div>}>
+          <LazyAdminPanel />
+        </Suspense>
+        <Suspense fallback={<div>Loading confirmation modal...</div>}>
+          <ConfirmationModal />
+        </Suspense>
+        
+        {/* Countdown Overlay for Screenshots */}
+        <CountdownOverlay 
+          isVisible={showCountdown}
+          onComplete={() => {
+            setShowCountdown(false);
+            handleTakeScreenshot();
+          }}
+        />
       </div>
     </>
   );

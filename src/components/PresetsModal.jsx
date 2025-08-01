@@ -671,62 +671,62 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
 
   return (
     <>
-      <BaseModal
+    <BaseModal
         isOpen={isOpen}
-        title="Save Presets"
-        onClose={onClose}
+      title="Save Presets"
+      onClose={onClose}
         maxWidth="980px"
-        footerContent={({ handleClose }) => {
-          handleCloseRef.current = handleClose;
-          return (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+      footerContent={({ handleClose }) => {
+        handleCloseRef.current = handleClose;
+        return (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <Button variant="secondary" onClick={handleClose}>Close</Button>
-            </div>
-          );
-        }}
-      >
-        {importError && <div style={{ color: 'red', marginBottom: 12 }}>{importError}</div>}
-       
-        <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
-          <div className="wee-card-desc">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <input
-                type="text"
-                placeholder="Preset name"
-                value={newPresetName}
-                onChange={e => { setNewPresetName(e.target.value); setError(''); }}
-                style={{ 
-                  flex: 1, 
-                  padding: 8, 
-                  borderRadius: 6, 
+          </div>
+        );
+      }}
+    >
+      {importError && <div style={{ color: 'red', marginBottom: 12 }}>{importError}</div>}
+     
+      <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
+        <div className="wee-card-desc">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <input
+              type="text"
+              placeholder="Preset name"
+              value={newPresetName}
+              onChange={e => { setNewPresetName(e.target.value); setError(''); }}
+              style={{ 
+                flex: 1, 
+                padding: 8, 
+                borderRadius: 6, 
                   border: '1.5px solid hsl(var(--border-primary))', 
-                  fontSize: 15, 
+                fontSize: 15, 
                   background: 'hsl(var(--surface-primary))', 
                   color: 'hsl(var(--text-primary))',
-                
-                  opacity: presets.length >= 6 ? 0.6 : 1
-                }}
-                maxLength={32}
-                
               
-              />
+                opacity: presets.length >= 6 ? 0.6 : 1
+              }}
+              maxLength={32}
+              
+              
+            />
                 {/* tabIndex={presets.length >= 6 ? -1 : 0} */}
-              <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.length >= 6}>
-                Save Preset
-              </Button>
-            </div>
+            <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.length >= 6}>
+              Save Preset
+            </Button>
+          </div>
             
             {/* Include Channel Data Toggle */}
             <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Toggle
-                checked={includeChannels}
+                  checked={includeChannels}
                 onChange={setIncludeChannels}
                 label="Include Channel Data"
               />
               <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 8 }}>
                 Save channels, their media, and app paths for workspace switching
-              </Text>
-            </div>
+            </Text>
+              </div>
             
             {/* Help text for channel data feature */}
             {includeChannels && (
@@ -744,63 +744,63 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 <Text size="sm" color="hsl(var(--text-secondary))">
                   This preset will save your current channels, apps, and settings. Perfect for switching between "Gaming" and "Work" workspaces. 
                   <strong>Note:</strong> Channel data is never included when sharing presets.
-                </Text>
-              </div>
+              </Text>
+            </div>
             )}
             
-            {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
+          {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
             {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
-          </div>
-        </Card>
-        <Card 
-          style={{ marginBottom: 18 }} 
-          title="Saved Presets" 
-          separator
-          desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
-        >
+        </div>
+      </Card>
+      <Card 
+        style={{ marginBottom: 18 }} 
+        title="Saved Presets" 
+        separator
+        desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
+      >
           
 
           <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '10px 0 18px 0' }} />
-          
-           {showImportPreview && importedPresets && (
+        
+         {showImportPreview && importedPresets && (
           <div className="import-preview-modal" style={{ background: 'hsl(var(--surface-secondary))', border: '1.5px solid hsl(var(--wii-blue))', borderRadius: 12, padding: 24, marginBottom: 18 }}>
-            <h3>Preview Imported Presets</h3>
-            <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
-              {importedPresets.map((preset, idx) => {
-                const exists = presets.some(p => p.name === preset.name);
-                return (
-                  <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
-                    {exists && (
+          <h3>Preview Imported Presets</h3>
+          <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
+            {importedPresets.map((preset, idx) => {
+              const exists = presets.some(p => p.name === preset.name);
+              return (
+                <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
+                  {exists && (
                       <label style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
-                        <input
-                          type="checkbox"
-                          checked={overwriteMap[preset.name]}
-                          onChange={() => handleToggleOverwrite(preset.name)}
-                          style={{ marginRight: 4 }}
-                        />
-                        Overwrite existing
-                      </label>
-                    )}
+                      <input
+                        type="checkbox"
+                        checked={overwriteMap[preset.name]}
+                        onChange={() => handleToggleOverwrite(preset.name)}
+                        style={{ marginRight: 4 }}
+                      />
+                      Overwrite existing
+                    </label>
+                  )}
                     {exists && !overwriteMap[preset.name] && <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 13 }}>(Will skip)</span>}
-                  </li>
-                );
-              })}
-            </ul>
+                </li>
+              );
+            })}
+          </ul>
             <Button variant="primary" onClick={handleConfirmImport} style={{ marginRight: 12 }}>Import</Button>
             <Button variant="secondary" onClick={handleCancelImport}>Cancel</Button>
-          </div>
-        )}
-          
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
-            {presets.map((preset, idx) => {
-              const isDragging = draggingPreset === preset.name;
-              const isDropTarget = dropTarget === preset.name;
-              const isSelected = selectMode && selectedPresets.includes(preset.name);
-              
-              return (
+        </div>
+      )}
+        
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
+          {presets.map((preset, idx) => {
+            const isDragging = draggingPreset === preset.name;
+            const isDropTarget = dropTarget === preset.name;
+            const isSelected = selectMode && selectedPresets.includes(preset.name);
+            
+            return (
                 <PresetListItem
-                  key={preset.name}
+              key={preset.name}
                   preset={preset}
                   isDragging={isDragging}
                   isDropTarget={isDropTarget}
@@ -812,9 +812,9 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
+              onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  onDragEnd={handleDragEnd}
+              onDragEnd={handleDragEnd}
                   onToggleSelect={handleToggleSelectPreset}
                   onApply={handleApplyPreset}
                   onUpdate={handleUpdate}
@@ -894,7 +894,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                       selectedPreset: selectedPreset || null
                     }));
                   }}
-                  style={{
+                    style={{ 
                     width: '100%',
                     padding: '8px 12px',
                     border: '1px solid hsl(var(--border-primary))',
@@ -936,8 +936,8 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginBottom: '8px' }}>
                   Add tags to help others find your preset. Separate with commas.
                 </Text>
-                <input
-                  type="text"
+                    <input
+                      type="text"
                   value={uploadFormData.tags}
                   onChange={(e) => handleUploadInputChange('tags', e.target.value)}
                   placeholder="gaming, dark theme, minimal, etc."
@@ -998,7 +998,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                     style={{ flex: 1 }}
                   >
                     Choose Image
-                  </Button>
+                    </Button>
                   {uploadFormData.custom_image && (
                     <Button
                       variant="secondary"
@@ -1006,8 +1006,8 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                     >
                       Remove
                     </Button>
-                  )}
-                </div>
+                )}
+              </div>
                 {uploadFormData.custom_image && (
                   <div style={{ marginTop: '8px' }}>
                     <img
@@ -1058,9 +1058,9 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
               onClose={() => toggleCommunitySection()}
             />
           )}
-        </Card>
-       
-      </BaseModal>
+      </Card>
+     
+    </BaseModal>
     </>
   );
 }

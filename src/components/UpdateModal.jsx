@@ -262,11 +262,11 @@ function UpdateModal({ isOpen, onClose }) {
                   transition: 'background 0.2s, color 0.2s'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#007bff';
+                  e.currentTarget.style.background = '#007bff';
                   e.currentTarget.style.color = 'white';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.background = '#f8f9fa';
                   e.currentTarget.style.color = '#007bff';
                 }}
               >
