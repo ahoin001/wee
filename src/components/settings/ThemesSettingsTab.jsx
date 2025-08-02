@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Card from '../../ui/Card';
-import Button from '../../ui/Button';
+import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import PresetListItem from '../PresetListItem';
 import CommunityPresets from '../CommunityPresets';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../ui/Card';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import useMonitorStore from '../utils/useMonitorStore';
 
 const MonitorWallpaperCard = ({ monitorId, monitorName }) => {

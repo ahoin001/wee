@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import useMonitorStore from '../utils/useMonitorStore';
 import MonitorWallpaperCard from './MonitorWallpaperCard';
 
@@ -83,7 +83,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
   // Check if monitor APIs are available
   if (!window.api?.monitors) {
     return (
-      <BaseModal
+      <WBaseModal
         title="Monitor Settings"
         onClose={onClose}
         maxWidth="600px"
@@ -108,12 +108,12 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
             </div>
           </div>
         </Card>
-      </BaseModal>
+      </WBaseModal>
     );
   }
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Monitor Settings"
       onClose={onClose}
       maxWidth="600px"
@@ -361,7 +361,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
            </Button>
          </div>
        </Card>
-    </BaseModal>
+    </WBaseModal>
   );
 };
 

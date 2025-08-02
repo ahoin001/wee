@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Text from '../ui/Text';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import './BaseModal.css';
 import Card from '../ui/Card';
 import Toggle from '../ui/Toggle';
@@ -281,7 +281,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
 
   if (!isOpen) return null;
   return (
-    <BaseModal
+    <WBaseModal
       title="Manage Wallpapers"
       onClose={onClose}
       maxWidth="900px"
@@ -859,7 +859,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           </>
         }
       />
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

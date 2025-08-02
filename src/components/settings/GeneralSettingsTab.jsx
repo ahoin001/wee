@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
 import Toggle from '../../ui/Toggle';
-import Button from '../../ui/Button';
+import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 
 const GeneralSettingsTab = React.memo(({ 

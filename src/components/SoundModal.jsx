@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Text from '../ui/Text';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import Toggle from '../ui/Toggle';
 import './SoundModal.css';
 
@@ -434,7 +434,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
   if (!isOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Manage App Sounds"
       onClose={onClose}
       className="sound-modal"
@@ -759,7 +759,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
           );
         })}
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

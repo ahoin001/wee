@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 
 function UpdateModal({ isOpen, onClose }) {
   const [updateStatus, setUpdateStatus] = useState(null);
@@ -108,11 +108,15 @@ function UpdateModal({ isOpen, onClose }) {
   // Check for updates
   const handleCheckForUpdates = async () => {
     try {
+      console.log('[UpdateModal] Starting update check...');
+      console.log('[UpdateModal] Current app version:', appVersion);
       setUpdateStatus({ status: 'checking' });
       
       const result = await window.api.updater.checkForUpdates();
+      console.log('[UpdateModal] Update check result:', result);
       
       if (!result.success) {
+        console.error('[UpdateModal] Update check failed:', result.error);
         setUpdateStatus({ 
           status: 'error', 
           error: result.error || 'Failed to check for updates' 
@@ -120,7 +124,19 @@ function UpdateModal({ isOpen, onClose }) {
         return;
       }
       
+      if (result.status === 'available') {
+        console.log('[UpdateModal] Update available:', result.version);
+        setUpdateStatus({ 
+          status: 'available',
+          version: result.version,
+          releaseDate: result.releaseDate,
+          releaseNotes: result.releaseNotes
+        });
+        return;
+      }
+      
       if (result.status === 'no-update') {
+        console.log('[UpdateModal] No updates available');
         setUpdateStatus({ 
           status: 'not-available',
           message: result.message || 'No updates available'
@@ -129,6 +145,7 @@ function UpdateModal({ isOpen, onClose }) {
       }
       
       // If no specific status returned, assume no updates available
+      console.log('[UpdateModal] No specific status returned, assuming no updates');
       setUpdateStatus({ status: 'not-available' });
       
     } catch (error) {
@@ -294,7 +311,7 @@ function UpdateModal({ isOpen, onClose }) {
               {isDownloading ? '⏳ Downloading...' : '⬇️ Download Update'}
             </button>
             <a
-              href="https://github.com/ahoin001/WiiDesktopLauncher/releases/latest"
+              href="https://github.com/ahoin001/wee/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -453,7 +470,7 @@ function UpdateModal({ isOpen, onClose }) {
               🔄 Try Again
             </button>
             <a
-              href="https://github.com/ahoin001/WiiDesktopLauncher/releases/latest"
+              href="https://github.com/ahoin001/wee/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -588,7 +605,7 @@ function UpdateModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <BaseModal onClose={onClose} title="Check for Updates">
+    <WBaseModal onClose={onClose} title="Check for Updates">
       <div style={{ minHeight: '200px' }}>
         {renderStatusContent()}
         {showFullChangelog && renderFullChangelog()}
@@ -599,7 +616,7 @@ function UpdateModal({ isOpen, onClose }) {
           100% { transform: rotate(360deg); }
         }
       `}</style>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

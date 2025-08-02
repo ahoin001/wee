@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 // import AppPathSectionCard from './AppPathSectionCard'; // LEGACY: No longer used
 import UnifiedAppPathCard from './UnifiedAppPathCard';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import Toggle from '../ui/Toggle';
 import AdminPanel from './AdminPanel';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
@@ -783,7 +783,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   if (!isOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title={isPresetsButton ? "Customize Presets Button" : isAccessoryButton ? "Customize Accessory Button" : "Primary Actions"}
       onClose={onClose}
       maxWidth="480px"
@@ -1171,7 +1171,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
         onSave={handleAdminPanelSave}
         config={{ powerActions }}
       />
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

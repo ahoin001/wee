@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
-import Button from '../ui/Button';
+import WBaseModal from './WBaseModal';
+import Button from '../ui/WButton';
 import Slider from '../ui/Slider';
 import { spacing } from '../ui/tokens';
 import './BaseModal.css';
@@ -88,7 +88,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
   if (!isOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Customize Ribbon"
       onClose={onClose}
       maxWidth="480px"
@@ -294,7 +294,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
           )}
         </div>
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

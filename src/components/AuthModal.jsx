@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import BaseModal from './BaseModal';
+import React, { useState, useEffect } from 'react';
+import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import Text from '../ui/Text';
 import { authService } from '../utils/authService';
 import useAuthModalStore from '../utils/useAuthModalStore';
@@ -66,7 +66,7 @@ const AuthModal = () => {
   if (!isOpen) return null;
 
   return (
-    <BaseModal onClose={closeModal} title={mode === 'signup' ? 'Create Account' : 'Sign In'}>
+    <WBaseModal onClose={closeModal} title={mode === 'signup' ? 'Create Account' : 'Sign In'}>
       <Card>
         <Text style={{ marginBottom: '16px' }}>
           {mode === 'signup' 
@@ -156,7 +156,7 @@ const AuthModal = () => {
           </Text>
         </form>
       </Card>
-    </BaseModal>
+    </WBaseModal>
   );
 };
 

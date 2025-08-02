@@ -29,13 +29,4 @@ jobs:
       run: npm run build
 
     - name: Build and Package (electron-builder)
-      run: npx electron-builder --win --x64 --publish never
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          dist/*.exe
-          dist/latest.yml
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+      run: npx electron-builder --win --x64 --publish always 

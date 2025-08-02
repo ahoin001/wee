@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import useUIStore from '../utils/useUIStore';
 import { formatShortcut, validateShortcut, checkShortcutConflict, getShortcutsByCategory } from '../utils/keyboardShortcuts';
 import './BaseModal.css';
@@ -119,7 +119,7 @@ function AppShortcutsModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
     return (
-    <BaseModal
+    <WBaseModal
       title="Keyboard Shortcuts"
       onClose={onClose}
       maxWidth="800px"
@@ -246,7 +246,7 @@ function AppShortcutsModal({ isOpen, onClose }) {
           ))}
         </div>
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

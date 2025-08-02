@@ -219,14 +219,7 @@ ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data)
 ipcMain.handle('check-for-updates', async () => {
   try {
     console.log('[AUTO-UPDATE] Manual update check requested');
-    console.log('[AUTO-UPDATE] Auto-updater config:', {
-      autoDownload: autoUpdater.autoDownload,
-      autoInstallOnAppQuit: autoUpdater.autoInstallOnAppQuit,
-      allowDowngrade: autoUpdater.allowDowngrade,
-      allowPrerelease: autoUpdater.allowPrerelease
-    });
     
-    // Check if we're in development mode
     if (app.isPackaged === false) {
       console.log('[AUTO-UPDATE] Running in development mode - skipping update check');
       return { 
@@ -236,9 +229,70 @@ ipcMain.handle('check-for-updates', async () => {
       };
     }
     
-    await autoUpdater.checkForUpdates();
-    console.log('[AUTO-UPDATE] Update check completed');
-    return { success: true };
+    console.log('[AUTO-UPDATE] Starting update check...');
+    
+    // Create a promise that resolves when autoUpdater events fire
+    const updateCheckPromise = new Promise((resolve, reject) => {
+      let hasResolved = false;
+      
+      const cleanup = () => {
+        autoUpdater.removeListener('update-available', onUpdateAvailable);
+        autoUpdater.removeListener('update-not-available', onUpdateNotAvailable);
+        autoUpdater.removeListener('error', onError);
+      };
+      
+      const onUpdateAvailable = (info) => {
+        if (hasResolved) return;
+        hasResolved = true;
+        cleanup();
+        console.log('[AUTO-UPDATE] Update available in manual check:', info);
+        resolve({ 
+          success: true, 
+          status: 'available',
+          version: info.version,
+          releaseDate: info.releaseDate,
+          releaseNotes: info.releaseNotes
+        });
+      };
+      
+      const onUpdateNotAvailable = () => {
+        if (hasResolved) return;
+        hasResolved = true;
+        cleanup();
+        console.log('[AUTO-UPDATE] No updates available in manual check');
+        resolve({ 
+          success: true, 
+          status: 'no-update',
+          message: 'No updates available'
+        });
+      };
+      
+      const onError = (err) => {
+        if (hasResolved) return;
+        hasResolved = true;
+        cleanup();
+        console.error('[AUTO-UPDATE] Error in manual check:', err);
+        reject(err);
+      };
+      
+      // Set up event listeners
+      autoUpdater.once('update-available', onUpdateAvailable);
+      autoUpdater.once('update-not-available', onUpdateNotAvailable);
+      autoUpdater.once('error', onError);
+      
+      // Start the update check
+      autoUpdater.checkForUpdates().catch((err) => {
+        if (hasResolved) return;
+        hasResolved = true;
+        cleanup();
+        reject(err);
+      });
+    });
+    
+    const result = await updateCheckPromise;
+    console.log('[AUTO-UPDATE] Manual update check completed:', result);
+    return result;
+    
   } catch (error) {
     console.error('[AUTO-UPDATE] Error checking for updates:', error);
     

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import Toggle from '../ui/Toggle';
 import './BaseModal.css';
 
@@ -121,7 +121,7 @@ const ChannelSettingsModal = ({
   if (!isOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Channel Settings"
       onClose={onClose}
       maxWidth="800px"
@@ -403,7 +403,7 @@ const ChannelSettingsModal = ({
           </div>
         )}
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 };
 

@@ -98,6 +98,24 @@ const useChannelStore = create(
       clearUserDefaultChannels: () => 
         set({ userDefaultChannels: {} }),
       
+      // Set channel visibility (for layout management)
+      setChannelVisibility: (channelId, isVisible) => 
+        set(state => {
+          const channel = state.channels[channelId];
+          if (channel) {
+            return {
+              channels: {
+                ...state.channels,
+                [channelId]: {
+                  ...channel,
+                  isVisible: isVisible
+                }
+              }
+            };
+          }
+          return state;
+        }),
+      
       // Initialize persistent default channels from current channels (called on app start)
       initializeUserDefaultChannels: () => 
         set(state => {

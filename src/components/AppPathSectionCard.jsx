@@ -1,6 +1,6 @@
 import React from 'react';
 import AppPathSearchCard from './AppPathSearchCard';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 
 export default function AppPathSectionCard({
   value,

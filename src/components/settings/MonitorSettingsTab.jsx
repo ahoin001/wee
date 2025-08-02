@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
-import Button from '../../ui/Button';
+import Button from '../../ui/WButton';
 
 const MonitorSettingsTab = React.memo(({ setShowMonitorModal }) => {
   const handleOpenMonitorSettings = useCallback(() => {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import './BaseModal.css';
 import Toggle from '../ui/Toggle';
 import Text from '../ui/Text';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 
 function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, onSettingsChange, ...props }) {
   const [pip, setPip] = useState(immersivePip);
@@ -43,7 +43,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
   };
 
   return (
-    <BaseModal 
+    <WBaseModal 
       title="General Settings" 
       onClose={onClose} 
       maxWidth="900px"
@@ -107,7 +107,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
           <div className="wee-card-desc">When enabled, the app will launch automatically when your computer starts.</div>
         </div>
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

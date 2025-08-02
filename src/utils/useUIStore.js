@@ -23,6 +23,9 @@ const useUIStore = create((set, get) => ({
   showNavigationCustomizationModal: false,
   showMonitorSelectionModal: false,
   showClassicDockSettingsModal: false,
+  showDesignSystemModal: false,
+  
+
   
   // Confirmation modal state
   showConfirmationModal: false,
@@ -162,6 +165,10 @@ const useUIStore = create((set, get) => ({
   closeNavigationCustomizationModal: () => set({ showNavigationCustomizationModal: false }),
   openMonitorSelectionModal: () => set({ showMonitorSelectionModal: true }),
   closeMonitorSelectionModal: () => set({ showMonitorSelectionModal: false }),
+  openDesignSystemModal: () => set({ showDesignSystemModal: true }),
+  closeDesignSystemModal: () => set({ showDesignSystemModal: false }),
+  
+
   
   // Keyboard shortcuts actions
   updateKeyboardShortcut: (shortcutId, updates) => {
@@ -190,18 +197,19 @@ const useUIStore = create((set, get) => ({
   handleGlobalKeyPress: (event) => {
     const { 
       showSettingsMenu, 
-        showPresetsModal,
-  showWallpaperModal,
-  showSoundModal,
-  showChannelSettingsModal,
-  showAppShortcutsModal,
-  showGeneralSettingsModal,
-  showTimeSettingsModal,
-  showRibbonSettingsModal,
-  showUpdateModal,
-  showPrimaryActionsModal,
-  showAppearanceSettingsModal,
-  showCommunitySection,
+      showPresetsModal,
+      showWallpaperModal,
+      showSoundModal,
+      showChannelSettingsModal,
+      showAppShortcutsModal,
+      showGeneralSettingsModal,
+      showTimeSettingsModal,
+      showRibbonSettingsModal,
+      showUpdateModal,
+      showPrimaryActionsModal,
+      showAppearanceSettingsModal,
+      showDesignSystemModal,
+      showCommunitySection,
       keyboardShortcuts 
     } = get();
     
@@ -243,7 +251,7 @@ const useUIStore = create((set, get) => ({
                       showChannelSettingsModal || showAppShortcutsModal ||
                       showGeneralSettingsModal || showTimeSettingsModal ||
                       showRibbonSettingsModal || showUpdateModal || showPrimaryActionsModal ||
-                      showAppearanceSettingsModal;
+                      showAppearanceSettingsModal || showDesignSystemModal;
     
     // Get the current key and modifier
     const key = event.key.toLowerCase();

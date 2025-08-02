@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import Toggle from '../ui/Toggle';
 import useNavigationModalStore from '../utils/useNavigationModalStore';
@@ -185,7 +185,7 @@ function NavigationCustomizationModal() {
   }
 
   return (
-    <BaseModal
+    <WBaseModal
       title={`Customize ${side === 'left' ? 'Left' : 'Right'} Navigation Button`}
       onClose={closeModal}
       maxWidth="600px"
@@ -594,7 +594,7 @@ function NavigationCustomizationModal() {
           </div>
         )}
       </Card>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

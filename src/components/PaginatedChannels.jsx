@@ -82,6 +82,7 @@ const PaginatedChannels = ({
       const channelId = `channel-${i}`;
       const config = effectiveChannelConfigs ? effectiveChannelConfigs[channelId] : null;
       const isConfigured = config && (config.media || config.path);
+      const isVisible = config?.isVisible !== false; // Default to visible unless explicitly hidden
       
       channels.push({
         id: channelId,
@@ -93,6 +94,7 @@ const PaginatedChannels = ({
         title: config?.title,
         hoverSound: config?.hoverSound,
         asAdmin: config?.asAdmin,
+        isVisible: isVisible,
         ...(config || {})
       });
     }
@@ -210,17 +212,19 @@ const PaginatedChannels = ({
           return (
             <div key={pageIndex} className={`channels-page ${pageIndex === currentPage ? 'active' : ''}`}>
               <div className="channels-grid">
-                {pageChannels.map((channel) => (
-                  <Channel
-                    key={channel.id}
-                    {...channel}
-                    {...channelProps}
-                    channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
-                    animationStyle={channel.animationStyle}
-                    idleAnimationClass={getChannelAnimationClass(channel.id)}
-                    isIdleAnimating={isChannelAnimating(channel.id)}
-                  />
-                ))}
+                {pageChannels
+                  .filter(channel => channel.isVisible) // Only show visible channels
+                  .map((channel) => (
+                    <Channel
+                      key={channel.id}
+                      {...channel}
+                      {...channelProps}
+                      channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
+                      animationStyle={channel.animationStyle}
+                      idleAnimationClass={getChannelAnimationClass(channel.id)}
+                      isIdleAnimating={isChannelAnimating(channel.id)}
+                    />
+                  ))}
               </div>
             </div>
           );

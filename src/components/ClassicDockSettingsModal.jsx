@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
-import Button from '../ui/Button';
+import WBaseModal from './WBaseModal';
+import Button from '../ui/WButton';
 import Slider from '../ui/Slider';
-import SdCardIconModal from './SdCardIconModal';
+import Text from '../ui/Text';
+import SDCardiconModal from './SDCardiconModal';
 import { spacing } from '../ui/tokens';
 import './BaseModal.css';
 import './SoundModal.css';
@@ -41,29 +42,30 @@ const THEME_GROUPS = {
     }
   },
   cyberpunk: {
+    // Refer to gemini for pulsing glow effect
     name: 'Cyberpunk',
     description: 'Cyberpunk esque effect',
     colors: {
       dockBaseGradientStart: '#2C2C40',
-    dockBaseGradientEnd: '#1a1a2e',
-    dockAccentColor: '#FF00FF', // Magenta neon
-    sdCardBodyColor: '#1a1a2e',
-    sdCardBorderColor: '#00FFFF',
-    sdCardLabelColor: '#00FFFF',
-    sdCardLabelBorderColor: '#424268',
-    sdCardBottomColor: '#00FFFF',
-    leftPodBaseColor: '#33334F',
-    leftPodAccentColor: '#5A5A82',
-    leftPodDetailColor: '#424268',
-    rightPodBaseColor: '#33334F',
-    rightPodAccentColor: '#5A5A82',
-    rightPodDetailColor: '#424268',
-    buttonBorderColor: '#00FFFF', // Cyan neon
-    buttonGradientStart: '#1a1a2e',
-    buttonGradientEnd: '#1a1a2e',
-    buttonIconColor: '#00FFFF',
-    rightButtonIconColor: '#00FFFF',
-    buttonHighlightColor: 'rgba(255, 0, 255, 0.4)',
+      dockBaseGradientEnd: '#1a1a2e',
+      dockAccentColor: '#FF00FF', // Magenta neon
+      sdCardBodyColor: '#1a1a2e',
+      sdCardBorderColor: '#00FFFF',
+      sdCardLabelColor: '#00FFFF',
+      sdCardLabelBorderColor: '#424268',
+      sdCardBottomColor: '#00FFFF',
+      leftPodBaseColor: '#33334F',
+      leftPodAccentColor: '#5A5A82',
+      leftPodDetailColor: '#424268',
+      rightPodBaseColor: '#33334F',
+      rightPodAccentColor: '#5A5A82',
+      rightPodDetailColor: '#424268',
+      buttonBorderColor: '#00FFFF', // Cyan neon
+      buttonGradientStart: '#1a1a2e',
+      buttonGradientEnd: '#1a1a2e',
+      buttonIconColor: '#00FFFF',
+      rightButtonIconColor: '#00FFFF',
+      buttonHighlightColor: 'rgba(255, 0, 255, 0.4)',
     }
   },
   retro: {
@@ -786,7 +788,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
   if (!isOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Customize Classic Dock"
       onClose={onClose}
       maxWidth="600px"
@@ -1436,13 +1438,13 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
       </div>
 
       {/* SD Card Icon Modal */}
-      <SdCardIconModal
+      <SDCardiconModal
         isOpen={showSdCardIconModal}
         onClose={() => setShowSdCardIconModal(false)}
         onSettingsChange={handleSdCardIconChange}
         sdCardIcon={normalizedSdCardIcon}
       />
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

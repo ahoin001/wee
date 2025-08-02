@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import UnifiedAppPathCard from './UnifiedAppPathCard';
 import Card from '../ui/Card';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 
 const UnifiedAppPathDemo = () => {
   const [config, setConfig] = useState({});

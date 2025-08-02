@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
-import Button from '../ui/Button';
+import WBaseModal from './WBaseModal';
+import Button from '../ui/WButton';
 import Slider from '../ui/Slider';
 import Card from '../ui/Card';
 import Toggle from '../ui/Toggle';
@@ -18,6 +18,7 @@ import { uploadPreset } from '../utils/supabase';
 import AuthModal from './AuthModal';
 import useAuthModalStore from '../utils/useAuthModalStore';
 import MonitorSelectionModal from './MonitorSelectionModal';
+import DesignSystemModal from './DesignSystemModal';
 
 // Lazy load settings tabs
 const LazyChannelsSettingsTab = React.lazy(() => import('./settings/ChannelsSettingsTab'));
@@ -111,6 +112,9 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   
   // Monitor modal state
   const [showMonitorModal, setShowMonitorModal] = useState(false);
+  
+  // Design system modal state
+  const [showDesignSystemModal, setShowDesignSystemModal] = useState(false);
   
   // Auth modal store
   const { openModal: openAuthModal } = useAuthModalStore();
@@ -992,38 +996,47 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   if (!modalIsOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Settings"
       onClose={onClose}
       maxWidth="1000px"
       maxHeight="85vh"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', gap: 10,justifyContent: 'space-between', alignItems: 'center' }}>
-          <button 
-            className="reset-button" 
-            onClick={handleReset}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: '2px solid hsl(var(--wii-blue))',
-              background: 'transparent',
-              color: 'hsl(var(--wii-blue))',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'hsl(var(--wii-blue))';
-              e.target.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent';
-              e.target.style.color = 'hsl(var(--wii-blue))';
-            }}
-          >
-            Reset to Default
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button 
+              className="reset-button" 
+              onClick={handleReset}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: '2px solid hsl(var(--wii-blue))',
+                background: 'transparent',
+                color: 'hsl(var(--wii-blue))',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'hsl(var(--wii-blue))';
+                e.target.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent';
+                e.target.style.color = 'hsl(var(--wii-blue))';
+              }}
+            >
+              Reset to Default
+            </button>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              onClick={() => setShowDesignSystemModal(true)}
+            >
+              Design System
+            </Button>
+          </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <Button variant="secondary" onClick={handleClose}>Cancel</Button>
             <Button variant="primary" onClick={() => handleSave(handleClose)}>Save</Button>
@@ -1120,7 +1133,13 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         onClose={() => setShowMonitorModal(false)}
       />
 
-    </BaseModal>
+      {/* Design System Modal */}
+      <DesignSystemModal
+        isOpen={showDesignSystemModal}
+        onClose={() => setShowDesignSystemModal(false)}
+      />
+
+    </WBaseModal>
   );
 }
 

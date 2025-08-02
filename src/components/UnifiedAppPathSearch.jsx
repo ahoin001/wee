@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useUnifiedAppStore from '../utils/useUnifiedAppStore';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 
 const UnifiedAppPathSearch = ({ 
   value, 

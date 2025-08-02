@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import Text from '../ui/Text';
 
 const PresetListItem = ({

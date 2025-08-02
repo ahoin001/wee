@@ -1,6 +1,6 @@
 import React from 'react';
-import BaseModal from './BaseModal';
-import Button from '../ui/Button';
+import WBaseModal from './WBaseModal';
+import Button from '../ui/WButton';
 import Text from '../ui/Text';
 import useUIStore from '../utils/useUIStore';
 
@@ -63,7 +63,7 @@ const ConfirmationModal = () => {
   if (!showConfirmationModal) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       isOpen={showConfirmationModal}
       title={confirmationModalData.title}
       onClose={handleCancel}
@@ -92,7 +92,7 @@ const ConfirmationModal = () => {
           }}
         />
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 };
 

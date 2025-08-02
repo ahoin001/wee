@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
-import Button from '../ui/Button';
+import WBaseModal from './WBaseModal';
+import Button from '../ui/WButton';
 import './ImageModal.css';
 
 const ImageModal = ({ isOpen, onClose, imageUrl, title }) => {
   if (!isOpen || !imageUrl) return null;
 
   return (
-    <BaseModal isOpen={isOpen} onClose={onClose} size="large">
+    <WBaseModal isOpen={isOpen} onClose={onClose} size="large">
       <div className="image-modal-content">
         <div className="image-modal-header">
           <h3 style={{ 
@@ -50,7 +50,7 @@ const ImageModal = ({ isOpen, onClose, imageUrl, title }) => {
           />
         </div>
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import KenBurnsImage from './KenBurnsImage';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import Text from '../ui/Text';
 import Card from '../ui/Card';
 

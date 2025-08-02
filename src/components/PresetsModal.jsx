@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import './BaseModal.css';
 import JSZip from 'jszip';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import '../styles/design-system.css';
 import Text from '../ui/Text';
 import Card from '../ui/Card';
@@ -29,7 +29,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
   const [overwriteMap, setOverwriteMap] = useState({});
   const [selectedPresets, setSelectedPresets] = useState([]);
   const [selectMode, setSelectMode] = useState(false);
-  const handleCloseRef = useRef(null); // ref to store BaseModal's handleClose function
+  const handleCloseRef = useRef(null); // ref to store WBaseModal's handleClose function
   const [draggingPreset, setDraggingPreset] = useState(null); // name of preset being dragged
   const [dropTarget, setDropTarget] = useState(null); // name of preset being hovered over for drop
   
@@ -369,7 +369,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     // Call onApplyPreset (which will set showPresetsModal to false)
     onApplyPreset(preset);
     
-    // Use BaseModal's handleClose for proper fade-out
+            // Use WBaseModal's handleClose for proper fade-out
     if (handleCloseRef.current) {
       handleCloseRef.current();
     }
@@ -671,7 +671,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
 
   return (
     <>
-    <BaseModal
+    <WBaseModal
         isOpen={isOpen}
       title="Save Presets"
       onClose={onClose}
@@ -1060,7 +1060,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
           )}
       </Card>
      
-    </BaseModal>
+    </WBaseModal>
     </>
   );
 }

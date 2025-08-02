@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import UnifiedAppPathSearch from './UnifiedAppPathSearch';
 import useUnifiedAppStore from '../utils/useUnifiedAppStore';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 
 const UnifiedAppPathCard = ({
   value = {},

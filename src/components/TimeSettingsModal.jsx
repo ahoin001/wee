@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
-import Button from '../ui/Button';
+import WBaseModal from './WBaseModal';
+import Button from '../ui/WButton';
 import './BaseModal.css';
 
 function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
@@ -73,7 +73,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
   if (!isOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Customize Time"
       onClose={onClose}
       maxWidth="480px"
@@ -245,7 +245,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
           )}
         </div>
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

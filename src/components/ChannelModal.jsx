@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import './ChannelModal.css';
 import ImageSearchModal from './ImageSearchModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 // Remove unused imports related to old fetching/caching logic
 // import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
 import UnifiedAppPathCard from './UnifiedAppPathCard';
@@ -15,7 +15,7 @@ import Text from '../ui/Text';
 
 const channelsApi = window.api?.channels;
 
-function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode }) {
+function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode, isOpen = true }) {
   const [media, setMedia] = useState(currentMedia);
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
@@ -551,13 +551,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
         <Button variant="secondary" onClick={handleClose}>Cancel</Button>
         <Button 
-          variant="secondary" 
+          variant="danger-secondary" 
           onClick={() => handleClearChannel(handleClose)}
-          style={{ 
-            border: '1.5px solid hsl(var(--error))', 
-            color: 'hsl(var(--error))', 
-            background: 'transparent'
-          }}
         >
           Clear Channel
         </Button>
@@ -1063,11 +1058,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   return (
     <>
-      <BaseModal
+      <WBaseModal
         title="Configure Channel"
         onClose={onClose}
         maxWidth="700px"
         footerContent={footerContent}
+        isOpen={isOpen}
       >
         {/* Channel Image Selection/Upload Card */}
         <Card title="Channel Image" separator desc="Choose or upload an image, GIF, or MP4 for this channel.">
@@ -1113,7 +1109,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         <Card title="Ken Burns Effect" separator desc="Override the global Ken Burns setting for this channel. Adds cinematic zoom and pan to images.">
           {renderKenBurnsSection()}
         </Card>
-      </BaseModal>
+      </WBaseModal>
       {showImageSearch && (
         <ImageSearchModal
           onClose={() => setShowImageSearch(false)}
@@ -1136,7 +1132,8 @@ ChannelModal.propTypes = {
   currentAsAdmin: PropTypes.bool,
   currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global']),
   currentKenBurnsEnabled: PropTypes.oneOf([true, false, 'global']),
-  currentKenBurnsMode: PropTypes.oneOf(['hover', 'autoplay', 'slideshow', 'global'])
+  currentKenBurnsMode: PropTypes.oneOf(['hover', 'autoplay', 'slideshow', 'global']),
+  isOpen: PropTypes.bool
 };
 
 export default ChannelModal; 

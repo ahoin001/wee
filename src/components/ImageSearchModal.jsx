@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
+import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import Text from '../ui/Text';
 import { searchMedia, uploadMedia, downloadMedia } from '../utils/supabase';
 
@@ -211,7 +211,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
   };
 
   return (
-    <BaseModal
+    <WBaseModal
       isOpen={isOpen}
       title="Media Library"
       onClose={onClose}
@@ -449,7 +449,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
           </div>
         </Card>
       )}
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

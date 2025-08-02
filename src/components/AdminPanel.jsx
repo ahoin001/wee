@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import BaseModal from './BaseModal';
-import Button from '../ui/Button';
+import WBaseModal from './WBaseModal';
+import Button from '../ui/WButton';
 import Toggle from '../ui/Toggle';
 import ActionCommand from './ActionCommand';
 import QuickAccessItem from './QuickAccessItem';
@@ -243,7 +243,7 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
   if (!isOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Admin Panel"
       onClose={onClose}
       maxWidth="800px"
@@ -534,7 +534,7 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
           </div>
         </div>
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import BaseModal from './BaseModal';
-import Button from '../ui/Button';
+import WBaseModal from './WBaseModal';
+import Button from '../ui/WButton';
 import useIconsStore from '../utils/useIconsStore';
 import './BaseModal.css';
 import './SoundModal.css';
@@ -81,7 +81,7 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
   if (!isOpen) return null;
 
   return (
-    <BaseModal
+    <WBaseModal
       title="Customize SD Card Icon"
       onClose={onClose}
       maxWidth="600px"
@@ -330,7 +330,7 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
           )}
         </div>
       </div>
-    </BaseModal>
+    </WBaseModal>
   );
 }
 

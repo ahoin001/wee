@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
-import Button from '../ui/Button';
+import Button from '../ui/WButton';
 import ImageModal from './ImageModal';
 import { getSharedPresets, downloadPreset } from '../utils/supabase';
 
