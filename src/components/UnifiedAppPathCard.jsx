@@ -100,24 +100,14 @@ const UnifiedAppPathCard = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="flex flex-col">
       {/* Launch Type Selection */}
-      <div>
-        <label style={{ 
-          display: 'block', 
-          fontWeight: '600', 
-          marginBottom: '8px',
-          color: 'hsl(var(--text-primary))'
-        }}>
+      <div className='mb-4'>
+        <label className="block font-semibold mb-2 text-[hsl(var(--text-primary))]">
           Launch Type
         </label>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <label style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            cursor: 'pointer'
-          }}>
+        <div className="flex gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
               name="launchType"
@@ -125,16 +115,11 @@ const UnifiedAppPathCard = ({
               checked={launchType === 'application'}
               onChange={(e) => handleLaunchTypeChange(e.target.value)}
               disabled={disabled}
-              style={{ margin: 0 }}
+              className="m-0"
             />
-            <span style={{ color: 'hsl(var(--text-primary))' }}>Application</span>
+            <span className="text-[hsl(var(--text-primary))]">Application</span>
           </label>
-          <label style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            cursor: 'pointer'
-          }}>
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
               name="launchType"
@@ -142,23 +127,19 @@ const UnifiedAppPathCard = ({
               checked={launchType === 'url'}
               onChange={(e) => handleLaunchTypeChange(e.target.value)}
               disabled={disabled}
-              style={{ margin: 0 }}
+              className="m-0"
             />
-            <span style={{ color: 'hsl(var(--text-primary))' }}>Website (URL)</span>
+            <span className="text-[hsl(var(--text-primary))]">Website (URL)</span>
           </label>
         </div>
       </div>
 
       {/* Application Selection */}
+      <>
       {launchType === 'application' && (
         <>
-          <div>
-            <label style={{ 
-              display: 'block', 
-              fontWeight: '600', 
-              marginBottom: '8px',
-              color: 'hsl(var(--text-primary))'
-            }}>
+          <div className='mt-2'>
+            <label className="block font-semibold mb-2 text-[hsl(var(--text-primary))]">
               Application
             </label>
             <UnifiedAppPathSearch
@@ -170,60 +151,46 @@ const UnifiedAppPathCard = ({
           </div>
 
           <div>
-            <label style={{ 
-              display: 'block', 
-              fontWeight: '600', 
-              marginBottom: '8px',
-              color: 'hsl(var(--text-primary))'
-            }}>
+            <label className="block font-semibold mb-2 text-[hsl(var(--text-primary))]">
               Path
             </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="flex gap-2">
               <input
                 type="text"
-                className="text-input"
+                className={`text-input flex-1 px-[14px] py-3 text-base rounded-lg border-[1.5px] ${
+                  pathError
+                    ? 'border-[hsl(var(--state-error))]'
+                    : 'border-[hsl(var(--border-primary))]'
+                } bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))]`}
                 placeholder="C:\Path\To\Application.exe or paste path here"
                 value={path}
                 onChange={(e) => handlePathChange(e.target.value)}
                 disabled={disabled}
-                style={{ 
-                  flex: 1,
-                  padding: '12px 14px', 
-                  fontSize: '16px', 
-                  borderRadius: '8px', 
-                  border: `1.5px solid ${pathError ? 'hsl(var(--state-error))' : 'hsl(var(--border-primary))'}`,
-                  background: 'hsl(var(--surface-primary))',
-                  color: 'hsl(var(--text-primary))'
-                }}
               />
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={handleBrowseFile}
                 disabled={disabled}
-                style={{ whiteSpace: 'nowrap' }}
+                className="whitespace-nowrap"
               >
                 Browse
               </Button>
             </div>
             {pathError && (
-              <div style={{ color: 'hsl(var(--state-error))', fontSize: '13px', marginTop: '4px' }}>
+              <div className="text-[hsl(var(--state-error))] text-xs mt-1">
                 {pathError}
               </div>
             )}
           </div>
 
           {/* Help Text */}
-          <div style={{ 
-            fontSize: '14px', 
-            color: 'hsl(var(--text-secondary))',
-            lineHeight: '1.4'
-          }}>
+          <div className="mt-4 text-sm text-[hsl(var(--text-secondary))] leading-[1.4]">
             <p>
               <strong>Tip:</strong> Search for applications in the search bar above, or manually enter a path. 
               You can also use the Browse button to select executable files.
             </p>
-            <p style={{ fontSize: '13px', marginTop: '8px' }}>
+            <p className="text-xs mt-2">
               <strong>Examples:</strong><br />
               • <code>C:\Program Files\Discord\Discord.exe</code><br />
               • <code>steam://rungameid/252950</code><br />
@@ -233,51 +200,40 @@ const UnifiedAppPathCard = ({
         </>
       )}
 
+      </>
+      
       {/* URL Input */}
       {launchType === 'url' && (
         <>
           <div>
-            <label style={{ 
-              display: 'block', 
-              fontWeight: '600', 
-              marginBottom: '8px',
-              color: 'hsl(var(--text-primary))'
-            }}>
+            <label className="block font-semibold mb-2 text-[hsl(var(--text-primary))]">
               Website URL
             </label>
             <input
               type="text"
-              className="text-input"
+              className={`text-input w-full px-[14px] py-3 text-base rounded-lg border-[1.5px] ${
+                pathError
+                  ? 'border-[hsl(var(--state-error))]'
+                  : 'border-[hsl(var(--border-primary))]'
+              } bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))]`}
               placeholder="https://example.com"
               value={path}
               onChange={(e) => handlePathChange(e.target.value)}
               disabled={disabled}
-              style={{ 
-                width: '100%',
-                padding: '12px 14px', 
-                fontSize: '16px', 
-                borderRadius: '8px', 
-                border: `1.5px solid ${pathError ? 'hsl(var(--state-error))' : 'hsl(var(--border-primary))'}`,
-                background: 'hsl(var(--surface-primary))',
-                color: 'hsl(var(--text-primary))'
-              }}
             />
             {pathError && (
-              <div style={{ color: 'hsl(var(--state-error))', fontSize: '13px', marginTop: '4px' }}>
+              <div className="text-[hsl(var(--state-error))] text-xs mt-1">
                 {pathError}
               </div>
             )}
           </div>
 
           {/* Help Text */}
-          <div style={{ 
-            fontSize: '14px', 
-            color: 'hsl(var(--text-secondary))'
-          }}>
+          <div className="mt-4 text-sm text-[hsl(var(--text-secondary))]">
             <p>
               <strong>Tip:</strong> Enter the complete URL including https:// to open a website in your default browser.
             </p>
-            <p style={{ fontSize: '13px', marginTop: '8px' }}>
+            <p className="text-xs mt-2">
               <strong>Examples:</strong><br />
               • <code>https://www.google.com</code><br />
               • <code>https://github.com</code><br />
@@ -289,67 +245,32 @@ const UnifiedAppPathCard = ({
 
       {/* Selected App Info */}
       {selectedApp && launchType === 'application' && (
-        <div style={{
-          padding: '12px',
-          background: 'hsl(var(--state-success) / 0.1)',
-          border: '1px solid hsl(var(--state-success))',
-          borderRadius: '8px',
-          marginTop: '8px'
-        }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '12px',
-            marginBottom: '8px'
-          }}>
+        <div
+          className="p-3 bg-[hsl(var(--state-success)_/_0.1)] border border-[hsl(var(--state-success))] rounded-lg mt-2"
+        >
+          <div className="flex items-center gap-3 mb-2">
             {selectedApp.icon ? (
               <img 
                 src={selectedApp.icon} 
                 alt={`${selectedApp.name} icon`}
-                style={{ 
-                  width: '24px', 
-                  height: '24px', 
-                  borderRadius: '4px',
-                  objectFit: 'cover'
-                }}
+                className="w-6 h-6 rounded object-cover"
                 onError={e => {
                   e.target.style.display = 'none';
                 }}
               />
             ) : (
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '4px',
-                background: 'hsl(var(--surface-secondary))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px'
-              }}>
+              <div className="w-6 h-6 rounded bg-[hsl(var(--surface-secondary))] flex items-center justify-center text-xs">
                 {selectedApp.type === 'steam' || selectedApp.type === 'epic' ? '🎮' : '💻'}
               </div>
             )}
-            <span style={{ fontWeight: '600', color: 'hsl(var(--text-primary))' }}>
+            <span className="font-semibold text-[hsl(var(--text-primary))]">
               {selectedApp.name}
             </span>
-            <span style={{
-              padding: '2px 6px',
-              borderRadius: '8px',
-              fontSize: '11px',
-              fontWeight: '600',
-              background: 'hsl(var(--state-success))',
-              color: 'hsl(var(--text-inverse))'
-            }}>
+            <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--state-success))] text-[hsl(var(--text-inverse))]">
               {selectedApp.category}
             </span>
           </div>
-          <div style={{ 
-            fontSize: '13px', 
-            color: 'hsl(var(--text-secondary))',
-            fontFamily: 'monospace',
-            wordBreak: 'break-all'
-          }}>
+          <div className="text-xs text-[hsl(var(--text-secondary))] font-mono break-all">
             {selectedApp.path}
           </div>
         </div>

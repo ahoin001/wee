@@ -122,7 +122,7 @@ function AppShortcutsModal({ isOpen, onClose }) {
     <WBaseModal
       title="Keyboard Shortcuts"
       onClose={onClose}
-      maxWidth="800px"
+      maxWidth="1200px"
     >
       <div style={{ padding: '20px' }}>
         {/* Header Actions */}

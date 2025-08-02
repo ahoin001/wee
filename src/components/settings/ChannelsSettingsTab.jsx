@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
-import Toggle from '../../ui/Toggle';
+import WToggle from '../../ui/WToggle';
 
 const ChannelsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => {
   // Memoize callback functions to prevent unnecessary re-renders
@@ -32,7 +32,7 @@ const ChannelsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) =
         separator
         desc="When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel. When disabled, animations will play automatically."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.channels?.animatedOnHover ?? false}
             onChange={handleAnimatedOnHoverChange}
           />
@@ -45,7 +45,7 @@ const ChannelsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) =
         separator
         desc="When enabled, channels will play subtle idle animations when not being interacted with."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.channels?.idleAnimations ?? true}
             onChange={handleIdleAnimationsChange}
           />
@@ -58,7 +58,7 @@ const ChannelsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) =
         separator
         desc="When enabled, static channel images will have a subtle pan and zoom effect to add visual interest."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.channels?.kenBurns ?? true}
             onChange={handleKenBurnsChange}
           />
@@ -71,7 +71,7 @@ const ChannelsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) =
         separator
         desc="When enabled, channels will be displayed in a grid layout instead of a single row."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.channels?.channelGrid ?? false}
             onChange={handleChannelGridChange}
           />
@@ -84,7 +84,7 @@ const ChannelsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) =
         separator
         desc="When enabled, channels will have visual effects when you hover over them."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.channels?.hoverEffects ?? true}
             onChange={handleHoverEffectsChange}
           />

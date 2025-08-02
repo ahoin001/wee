@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
 import useNavigationModalStore from '../utils/useNavigationModalStore';
 import useIconsStore from '../utils/useIconsStore';
 
@@ -188,7 +188,7 @@ function NavigationCustomizationModal() {
     <WBaseModal
       title={`Customize ${side === 'left' ? 'Left' : 'Right'} Navigation Button`}
       onClose={closeModal}
-      maxWidth="600px"
+      maxWidth="800px"
       footerContent={() => (
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <button
@@ -470,7 +470,7 @@ function NavigationCustomizationModal() {
         title="Glass Effect"
         separator={true}
         headerActions={
-          <Toggle
+          <WToggle
             checked={useGlassEffect}
             onChange={setUseGlassEffect}
             label="Enable"

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
+import WToggle from '../../ui/WToggle';
 import PresetListItem from '../PresetListItem';
 import CommunityPresets from '../CommunityPresets';
 import JSZip from 'jszip';
@@ -458,24 +459,18 @@ const PresetManager = ({
             </div>
             
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={includeChannels}
-                  onChange={e => setIncludeChannels(e.target.checked)}
-                  style={{ width: 16, height: 16 }}
-                />
-                <span style={{ fontSize: 14 }}>Include Channel Settings</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={includeSounds}
-                  onChange={e => setIncludeSounds(e.target.checked)}
-                  style={{ width: 16, height: 16 }}
-                />
-                <span style={{ fontSize: 14 }}>Include Sound Settings</span>
-              </label>
+              <WToggle
+                checked={includeChannels}
+                onChange={(checked) => setIncludeChannels(checked)}
+                label="Include Channel Settings"
+                style={{ fontSize: 14 }}
+              />
+              <WToggle
+                checked={includeSounds}
+                onChange={(checked) => setIncludeSounds(checked)}
+                label="Include Sound Settings"
+                style={{ fontSize: 14 }}
+              />
             </div>
             
             <Button 

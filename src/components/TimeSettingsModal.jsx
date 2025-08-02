@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
+import WToggle from '../ui/WToggle';
 import './BaseModal.css';
 
 function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
@@ -76,7 +77,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
     <WBaseModal
       title="Customize Time"
       onClose={onClose}
-      maxWidth="480px"
+      maxWidth="700px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
           <Button 
@@ -96,155 +97,147 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
       )}
     >
       {/* Time Display Color Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Time Display Color</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Choose the color for the time and date display text.
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <input
-                type="color"
-                value={timeColor}
-                onChange={(e) => updateTimeColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {timeColor.toUpperCase()}
-              </span>
-            </div>
-            {recentTimeColors.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
-                {recentTimeColors.map((color, idx) => (
-                  <button
-                    key={color}
-                    onClick={() => updateTimeColor(color)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      border: color === timeColor ? '2px solid #0099ff' : '1.5px solid #bbb',
-                      background: color,
-                      cursor: 'pointer',
-                      outline: 'none',
-                      marginLeft: idx === 0 ? 0 : 2
-                    }}
-                    title={color}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          {/* Font Selection */}
-          <div style={{ marginTop: 18 }}>
-            <label style={{ fontWeight: 500, marginRight: 10 }}>Time Font</label>
-            <select
-              value={timeFont}
-              onChange={e => setTimeFont(e.target.value)}
-              style={{ padding: 4, borderRadius: 6 }}
-            >
-              <option value="default">Default</option>
-              <option value="digital">DigitalDisplayRegular-ODEO</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Time Format Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Time Format</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Choose between 12-hour and 24-hour time format.
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', gap: 18 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  type="radio"
-                  name="timeFormat"
-                  value="24hr"
-                  checked={timeFormat24hr}
-                  onChange={() => setTimeFormat24hr(true)}
-                />
-                24-Hour (13:30)
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  type="radio"
-                  name="timeFormat"
-                  value="12hr"
-                  checked={!timeFormat24hr}
-                  onChange={() => setTimeFormat24hr(false)}
-                />
-                12-Hour (1:30 PM)
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Time Pill Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Time Pill Display</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
+      <Card 
+        title="Time Display Color"
+        separator
+        desc="Choose the color for the time and date display text."
+        style={{ marginTop: 18, marginBottom: 0 }}
+      >
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
             <input
-              type="checkbox"
-              checked={enableTimePill}
-              onChange={(e) => setEnableTimePill(e.target.checked)}
+              type="color"
+              value={timeColor}
+              onChange={(e) => updateTimeColor(e.target.value)}
+              style={{
+                width: 50,
+                height: 40,
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer'
+              }}
             />
-            <span className="slider" />
-          </label>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Enable the Apple-style liquid glass pill container for the time display.
-          {enableTimePill && (
-            <>
-              <div style={{ marginTop: 14 }}>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
-                    Backdrop Blur: {timePillBlur}px
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="20"
-                    value={timePillBlur}
-                    onChange={(e) => setTimePillBlur(Number(e.target.value))}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
-                    Background Opacity: {Math.round(timePillOpacity * 100)}%
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="0.3"
-                    step="0.01"
-                    value={timePillOpacity}
-                    onChange={(e) => setTimePillOpacity(Number(e.target.value))}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            </>
+            <span style={{ color: '#888', fontSize: 14 }}>
+              {timeColor.toUpperCase()}
+            </span>
+          </div>
+          {recentTimeColors.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+              {recentTimeColors.map((color, idx) => (
+                <button
+                  key={color}
+                  onClick={() => updateTimeColor(color)}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    border: color === timeColor ? '2px solid #0099ff' : '1.5px solid #bbb',
+                    background: color,
+                    cursor: 'pointer',
+                    outline: 'none',
+                    marginLeft: idx === 0 ? 0 : 2
+                  }}
+                  title={color}
+                />
+              ))}
+            </div>
           )}
         </div>
-      </div>
+        {/* Font Selection */}
+        <div style={{ marginTop: 18 }}>
+          <label style={{ fontWeight: 500, marginRight: 10 }}>Time Font</label>
+          <select
+            value={timeFont}
+            onChange={e => setTimeFont(e.target.value)}
+            style={{ padding: 4, borderRadius: 6 }}
+          >
+            <option value="default">Default</option>
+            <option value="digital">DigitalDisplayRegular-ODEO</option>
+          </select>
+        </div>
+      </Card>
+
+      {/* Time Format Card */}
+      <Card 
+        title="Time Format"
+        separator
+        desc="Choose between 12-hour and 24-hour time format."
+        style={{ marginTop: 18, marginBottom: 0 }}
+      >
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', gap: 18 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="radio"
+                name="timeFormat"
+                value="24hr"
+                checked={timeFormat24hr}
+                onChange={() => setTimeFormat24hr(true)}
+              />
+              24-Hour (13:30)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="radio"
+                name="timeFormat"
+                value="12hr"
+                checked={!timeFormat24hr}
+                onChange={() => setTimeFormat24hr(false)}
+              />
+              12-Hour (1:30 PM)
+            </label>
+          </div>
+        </div>
+      </Card>
+
+      {/* Time Pill Card */}
+      <Card 
+        title="Time Pill Display"
+        separator
+        desc="Enable the Apple-style liquid glass pill container for the time display."
+        headerActions={
+          <WToggle
+            checked={enableTimePill}
+            onChange={(checked) => setEnableTimePill(checked)}
+          />
+        }
+        style={{ marginTop: 18, marginBottom: 0 }}
+      >
+        {enableTimePill && (
+          <>
+            <div style={{ marginTop: 14 }}>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+                  Backdrop Blur: {timePillBlur}px
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="20"
+                  value={timePillBlur}
+                  onChange={(e) => setTimePillBlur(Number(e.target.value))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+                  Background Opacity: {Math.round(timePillOpacity * 100)}%
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="0.3"
+                  step="0.01"
+                  value={timePillOpacity}
+                  onChange={(e) => setTimePillOpacity(Number(e.target.value))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </>
+        )}
+      </Card>
     </WBaseModal>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
-import Toggle from '../../ui/Toggle';
+import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
 
 const WallpaperSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => {
@@ -90,7 +90,7 @@ const WallpaperSettingsTab = React.memo(({ localSettings, updateLocalSetting }) 
         separator
         desc="When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.wallpaper?.cycling ?? false}
             onChange={handleCyclingChange}
           />
@@ -134,7 +134,7 @@ const WallpaperSettingsTab = React.memo(({ localSettings, updateLocalSetting }) 
         separator
         desc="Add beautiful animated overlay effects to your wallpaper, like snow, rain, leaves, fireflies, or dust particles."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.wallpaper?.overlayEnabled ?? false}
             onChange={handleOverlayEnabledChange}
           />

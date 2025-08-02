@@ -4,7 +4,7 @@ import WBaseModal from './WBaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Text from '../ui/Text';
 import Button from '../ui/WButton';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
 import './SoundModal.css';
 
 const SOUND_CATEGORIES = [
@@ -438,7 +438,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
       title="Manage App Sounds"
       onClose={onClose}
       className="sound-modal"
-      maxWidth="900px"
+      maxWidth="1200px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
@@ -497,7 +497,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <Toggle
+                      <WToggle
                         checked={backgroundMusicSettings.enabled}
                         onChange={(checked) => handleBackgroundMusicSettingChange('enabled', checked)}
                         label="Enable Background Music"
@@ -505,13 +505,13 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                       
                       {backgroundMusicSettings.enabled && (
                         <>
-                          <Toggle
+                          <WToggle
                             checked={backgroundMusicSettings.looping}
                             onChange={(checked) => handleBackgroundMusicSettingChange('looping', checked)}
                             label="Loop Music"
                           />
                           
-                          <Toggle
+                          <WToggle
                             checked={backgroundMusicSettings.playlistMode}
                             onChange={(checked) => handleBackgroundMusicSettingChange('playlistMode', checked)}
                             label="Playlist Mode (Play liked sounds in order)"
@@ -634,7 +634,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                               🗑️
                             </Button>
                           )}
-                          <Toggle
+                          <WToggle
                               checked={!!sound.enabled}
                             onChange={(checked) => handleToggleEnable(cat.key, sound.id)}
                               disabled={!backgroundMusicSettings.enabled}
@@ -736,7 +736,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
                           🗑️
                         </Button>
                       )}
-                      <Toggle
+                      <WToggle
                           checked={!!sound.enabled}
                         onChange={(checked) => handleToggleEnable(cat.key, sound.id)}
                         />

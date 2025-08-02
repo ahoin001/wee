@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import Button from '../ui/WButton';
+import WToggle from '../ui/WToggle';
 import useMonitorStore from '../utils/useMonitorStore';
 import MonitorWallpaperCard from './MonitorWallpaperCard';
 
@@ -86,7 +87,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
       <WBaseModal
         title="Monitor Settings"
         onClose={onClose}
-        maxWidth="600px"
+        maxWidth="800px"
         footerContent={({ handleClose }) => (
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <Button variant="secondary" onClick={handleClose}>
@@ -116,7 +117,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
     <WBaseModal
       title="Monitor Settings"
       onClose={onClose}
-      maxWidth="600px"
+      maxWidth="800px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Button variant="secondary" onClick={handleClose}>
@@ -287,16 +288,11 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
 
           {/* Remember Last Used */}
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={rememberLastMonitor}
-                onChange={(e) => setRememberLastMonitor(e.target.checked)}
-              />
-              <span style={{ color: 'hsl(var(--text-primary))' }}>
-                Remember last used monitor
-              </span>
-            </label>
+            <WToggle
+              checked={rememberLastMonitor}
+              onChange={(checked) => setRememberLastMonitor(checked)}
+              label="Remember last used monitor"
+            />
             <div style={{ fontSize: '13px', color: 'hsl(var(--text-secondary))', marginTop: '4px', marginLeft: '24px' }}>
               When enabled, the launcher will remember which monitor you last used and return to it on startup.
             </div>

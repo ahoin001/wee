@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
-import Toggle from '../../ui/Toggle';
+import WToggle from '../../ui/WToggle';
 
 const TimeSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => {
   // Memoize callback functions to prevent unnecessary re-renders
@@ -138,7 +138,7 @@ const TimeSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => {
         separator
         desc="Enable the Apple-style liquid glass pill container for the time display."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.time?.enableTimePill ?? true}
             onChange={handleEnableTimePillChange}
           />

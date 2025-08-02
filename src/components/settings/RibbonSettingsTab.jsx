@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
-import Toggle from '../../ui/Toggle';
+import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import { spacing } from '../../ui/tokens';
@@ -156,7 +156,7 @@ const RibbonSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => 
               
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                 <label style={{ fontWeight: 500, minWidth: 120 }}>Shine Effect</label>
-                <Toggle
+                <WToggle
                   checked={localSettings.ribbon?.glassShine ?? true}
                   onChange={handleGlassShineChange}
                 />

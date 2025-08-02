@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
-import Toggle from '../../ui/Toggle';
+import WToggle from '../../ui/WToggle';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 
@@ -81,7 +81,7 @@ const GeneralSettingsTab = React.memo(({
         separator
         desc="When enabled, video overlays will use immersive PiP mode for a more cinematic experience."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.general?.immersivePip ?? false}
             onChange={handleImmersivePipChange}
           />
@@ -95,7 +95,7 @@ const GeneralSettingsTab = React.memo(({
         separator
         desc="When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.general?.startInFullscreen ?? false}
             onChange={handleStartInFullscreenChange}
           />
@@ -109,7 +109,7 @@ const GeneralSettingsTab = React.memo(({
         separator
         desc="When enabled, shows a presets button near the time display that allows quick access to saved appearance presets. Right-click the button to customize its icon."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.general?.showPresetsButton ?? true}
             onChange={handleShowPresetsButtonChange}
           />
@@ -123,7 +123,7 @@ const GeneralSettingsTab = React.memo(({
         separator
         desc="When enabled, the app will launch automatically when your computer starts."
         headerActions={
-          <Toggle
+          <WToggle
             checked={localSettings.general?.startOnBoot ?? false}
             onChange={handleStartOnBootChange}
           />

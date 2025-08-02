@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
+import WToggle from '../../ui/WToggle';
 import PresetListItem from '../PresetListItem';
 import CommunityPresets from '../CommunityPresets';
 import AuthModal from '../AuthModal';
@@ -123,15 +124,12 @@ const ThemesSettingsTab = ({
                   <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
                     <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
                     {exists && (
-                      <label style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
-                        <input
-                          type="checkbox"
-                          checked={overwriteMap[preset.name]}
-                          onChange={() => handleToggleOverwrite(preset.name)}
-                          style={{ marginRight: 4 }}
-                        />
-                        Overwrite existing
-                      </label>
+                      <WToggle
+                        checked={overwriteMap[preset.name]}
+                        onChange={() => handleToggleOverwrite(preset.name)}
+                        label="Overwrite existing"
+                        style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8 }}
+                      />
                     )}
                     {exists && !overwriteMap[preset.name] && <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 13 }}>(Will skip)</span>}
                   </li>

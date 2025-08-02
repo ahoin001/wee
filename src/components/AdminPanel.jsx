@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
+import Card from '../ui/Card';
 import ActionCommand from './ActionCommand';
 import QuickAccessItem from './QuickAccessItem';
 
@@ -246,11 +247,11 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
     <WBaseModal
       title="Admin Panel"
       onClose={onClose}
-      maxWidth="800px"
+      maxWidth="1400px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {/* <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Toggle
+            <WToggle
               checked={showQuickAccess}
               onChange={setShowQuickAccess}
               label="Show Quick Access"
@@ -284,15 +285,12 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
       <div style={{ display: 'flex', gap: 20, height: '600px' }}>
         {/* Left Panel - Action Browser */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div className="wee-card" style={{ marginBottom: 16 }}>
-            <div className="wee-card-header">
-              <span className="wee-card-title">System Actions</span>
-            </div>
-            <div className="wee-card-separator" />
-            <div className="wee-card-desc">
-              Browse and add Windows system actions to your quick access menu.
-            </div>
-          </div>
+          <Card 
+            title="System Actions"
+            separator
+            desc="Browse and add Windows system actions to your quick access menu."
+            style={{ marginBottom: 16 }}
+          />
 
           {/* Search and Category Filter */}
           <div style={{ marginBottom: 16 }}>
@@ -489,18 +487,12 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
 
         {/* Right Panel - Quick Access */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div className="wee-card" style={{ marginBottom: 16 }}>
-            <div className="wee-card-header">
-              <span className="wee-card-title">Quick Access Menu</span>
-            </div>
-            <div className="wee-card-separator" />
-            <div className="wee-card-desc">
-              {showQuickAccess 
-                ? "Actions that will appear in your quick access menu. Drag to reorder."
-                : "Actions that will appear in your quick access menu. Drag to reorder."
-              }
-            </div>
-          </div>
+          <Card 
+            title="Quick Access Menu"
+            separator
+            desc="Actions that will appear in your quick access menu. Drag to reorder."
+            style={{ marginBottom: 16 }}
+          />
 
           <div style={{ 
             flex: 1, 

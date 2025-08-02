@@ -215,7 +215,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
       isOpen={isOpen}
       title="Media Library"
       onClose={onClose}
-      maxWidth="1200px"
+      maxWidth="1400px"
       maxHeight="80vh"
     >
       {error && (

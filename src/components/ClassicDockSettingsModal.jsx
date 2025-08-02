@@ -4,6 +4,7 @@ import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import Slider from '../ui/Slider';
 import Text from '../ui/Text';
+import WToggle from '../ui/WToggle';
 import SDCardiconModal from './SDCardiconModal';
 import { spacing } from '../ui/tokens';
 import './BaseModal.css';
@@ -791,7 +792,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
     <WBaseModal
       title="Customize Classic Dock"
       onClose={onClose}
-      maxWidth="600px"
+      maxWidth="1000px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
           <button 
@@ -1240,14 +1241,10 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
       <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
         <div className="wee-card-header">
           <span className="wee-card-title">Glass Effect</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={glassEnabled}
-              onChange={(e) => setGlassEnabled(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
+          <WToggle
+            checked={glassEnabled}
+            onChange={(checked) => setGlassEnabled(checked)}
+          />
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">

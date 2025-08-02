@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
-import Toggle from '../ui/Toggle';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
 import Input from '../ui/Input';
@@ -153,39 +152,27 @@ function DesignSystemModal({ isOpen, onClose }) {
           <h3 className="text-lg font-semibold text-text-primary">Options</h3>
           
           <div className="space-y-3">
-            <label className="flex items-center space-x-2">
-              <input 
-                type="checkbox" 
-                checked={isRounded} 
-                onChange={(e) => setIsRounded(e.target.checked)}
-                className="w-4 h-4 text-wii-blue border-border-primary rounded focus:ring-wii-blue"
-              />
-              <span className="text-sm font-medium text-text-secondary">Rounded</span>
-            </label>
+            <WToggle
+              checked={isRounded}
+              onChange={(checked) => setIsRounded(checked)}
+              label="Rounded"
+            />
           </div>
 
           <div className="space-y-3">
-            <label className="flex items-center space-x-2">
-              <input 
-                type="checkbox" 
-                checked={isFullWidth} 
-                onChange={(e) => setIsFullWidth(e.target.checked)}
-                className="w-4 h-4 text-wii-blue border-border-primary rounded focus:ring-wii-blue"
-              />
-              <span className="text-sm font-medium text-text-secondary">Full Width</span>
-            </label>
+            <WToggle
+              checked={isFullWidth}
+              onChange={(checked) => setIsFullWidth(checked)}
+              label="Full Width"
+            />
           </div>
 
           <div className="space-y-3">
-            <label className="flex items-center space-x-2">
-              <input 
-                type="checkbox" 
-                checked={isDisabled} 
-                onChange={(e) => setIsDisabled(e.target.checked)}
-                className="w-4 h-4 text-wii-blue border-border-primary rounded focus:ring-wii-blue"
-              />
-              <span className="text-sm font-medium text-text-secondary">Disabled</span>
-            </label>
+            <WToggle
+              checked={isDisabled}
+              onChange={(checked) => setIsDisabled(checked)}
+              label="Disabled"
+            />
           </div>
         </div>
       </div>
@@ -443,14 +430,14 @@ function DesignSystemModal({ isOpen, onClose }) {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-text-primary">Legacy Toggle</h3>
           <div className="p-6 bg-surface-secondary rounded-lg min-h-[200px] flex flex-col items-center justify-center space-y-4">
-            <Toggle 
+            <WToggle 
               checked={toggleValue}
               onChange={setToggleValue}
             />
             
             {showCode && (
               <pre className="text-xs bg-surface-primary p-3 rounded border border-border-primary overflow-x-auto w-full">
-                {`<Toggle 
+                {`<WToggle 
   checked={${toggleValue}}
   onChange={setToggleValue}
 />`}
@@ -784,20 +771,16 @@ function DesignSystemModal({ isOpen, onClose }) {
     <WBaseModal
       title="Design System Components"
       onClose={onClose}
-      maxWidth="1200px"
+      maxWidth="1400px"
       maxHeight="90vh"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="flex items-center space-x-4">
-            <label className="flex items-center space-x-2">
-              <input 
-                type="checkbox" 
-                checked={showCode} 
-                onChange={(e) => setShowCode(e.target.checked)}
-                className="w-4 h-4 text-wii-blue border-border-primary rounded focus:ring-wii-blue"
-              />
-              <span className="text-sm font-medium text-text-secondary">Show Code</span>
-            </label>
+            <WToggle
+              checked={showCode}
+              onChange={(checked) => setShowCode(checked)}
+              label="Show Code"
+            />
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <Button variant="secondary" onClick={handleClose}>Close</Button>

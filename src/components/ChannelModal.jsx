@@ -5,6 +5,7 @@ import './ChannelModal.css';
 import ImageSearchModal from './ImageSearchModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Button from '../ui/WButton';
+import WToggle from '../ui/WToggle';
 // Remove unused imports related to old fetching/caching logic
 // import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
 import UnifiedAppPathCard from './UnifiedAppPathCard';
@@ -668,12 +669,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                     ) : null}
                   </>
                 )}
-                <Button variant="secondary" onClick={handleRemoveImage}>
+                <button className="remove-image-button" onClick={handleRemoveImage}>
                   Remove
-                </Button>
+                </button>
               </div>
             ) : (
-              <Button variant="secondary" onClick={() => setShowImageSearch(true)}>
+              <Button variant="primary" onClick={() => setShowImageSearch(true)}>
                 Add Channel Image
               </Button>
             )}
@@ -1061,7 +1062,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       <WBaseModal
         title="Configure Channel"
         onClose={onClose}
-        maxWidth="700px"
+        maxWidth="1000px"
         footerContent={footerContent}
         isOpen={isOpen}
       >
@@ -1083,14 +1084,10 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           separator
           desc="Set a custom sound to play when hovering over this channel."
           headerActions={
-            <label className="toggle-switch" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={hoverSoundEnabled}
-                onChange={e => setHoverSoundEnabled(e.target.checked)}
-              />
-              <span className="slider" />
-            </label>
+            <WToggle
+              checked={hoverSoundEnabled}
+              onChange={(checked) => setHoverSoundEnabled(checked)}
+            />
           }
         >
           {hoverSoundEnabled && (

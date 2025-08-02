@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
+import Card from '../ui/Card';
 import './BaseModal.css';
 
 const ChannelSettingsModal = ({ 
@@ -124,7 +125,7 @@ const ChannelSettingsModal = ({
     <WBaseModal
       title="Channel Settings"
       onClose={onClose}
-      maxWidth="800px"
+      maxWidth="1200px"
       footerContent={({ handleClose }) => (
         <div style={{  textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
@@ -133,17 +134,17 @@ const ChannelSettingsModal = ({
       )}
     >
       {/* Adaptive Empty Channel Backgrounds */}
-      <div className="wee-card">
-        <div className="wee-card-header">
-          <span className="wee-card-title">Adaptive Empty Channel Backgrounds</span>
-          <Toggle
-              checked={localAdaptiveEmptyChannels}
+      <Card
+        title="Adaptive Empty Channel Backgrounds"
+        separator
+        desc="When enabled, empty channel slots will automatically adapt their background to match the current wallpaper, creating a more cohesive visual experience."
+        headerActions={
+          <WToggle
+            checked={localAdaptiveEmptyChannels}
             onChange={setLocalAdaptiveEmptyChannels}
-            />
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">When enabled, empty channel slots will automatically adapt their background to match the current wallpaper, creating a more cohesive visual experience.</div>
-      </div>
+          />
+        }
+      />
 
       {/* Channel Animation */}
       {/* <div className="wee-card">
@@ -170,45 +171,43 @@ const ChannelSettingsModal = ({
       </div> */}
 
       {/* Only play channel animations on hover */}
-      <div className="wee-card">
-        <div className="wee-card-header">
-          <span className="wee-card-title">Only play channel animations on hover</span>
-          <Toggle
-              checked={localAnimatedOnHover}
+      <Card
+        title="Only play channel animations on hover"
+        separator
+        desc="When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel. When disabled, animations will play automatically."
+        headerActions={
+          <WToggle
+            checked={localAnimatedOnHover}
             onChange={setLocalAnimatedOnHover}
-            />
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel. When disabled, animations will play automatically.</div>
-      </div>
+          />
+        }
+      />
 
       {/* Idle Channel Animations */}
-      <div className="wee-card">
-        <div className="wee-card-header">
-          <span className="wee-card-title">Idle Channel Animations</span>
-          <Toggle
-              checked={localIdleAnimationEnabled}
+      <Card
+        title="Idle Channel Animations"
+        separator
+        desc="When enabled, channels will play subtle animations when not being interacted with, adding life to the interface."
+        headerActions={
+          <WToggle
+            checked={localIdleAnimationEnabled}
             onChange={setLocalIdleAnimationEnabled}
-            />
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">When enabled, channels will play subtle animations when not being interacted with, adding life to the interface.</div>
-        
+          />
+        }
+      >
         {localIdleAnimationEnabled && (
           <>
             <div style={{ marginTop: 16 }}>
               <div style={{ fontWeight: 500, marginBottom: 8 }}>Animation Types:</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {['pulse', 'bounce', 'glow', 'heartbeat', 'shake', 'wiggle'].map(type => (
-                  <label key={type} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={localIdleAnimationTypes.includes(type)}
-                      onChange={() => handleIdleAnimationTypeToggle(type)}
-                      style={{ width: 16, height: 16 }}
-                    />
-                    <span style={{ fontSize: 14, textTransform: 'capitalize' }}>{type}</span>
-                  </label>
+                  <WToggle
+                    key={type}
+                    checked={localIdleAnimationTypes.includes(type)}
+                    onChange={() => handleIdleAnimationTypeToggle(type)}
+                    label={type.charAt(0).toUpperCase() + type.slice(1)}
+                    style={{ fontSize: 14 }}
+                  />
                 ))}
               </div>
             </div>
@@ -226,19 +225,20 @@ const ChannelSettingsModal = ({
             </div>
           </>
         )}
-      </div>
+      </Card>
 
       {/* Ken Burns Effect */}
-      <div className="wee-card">
-        <div className="wee-card-header">
-          <span className="wee-card-title">Ken Burns Effect</span>
-          <Toggle
-              checked={localKenBurnsEnabled}
+      <Card
+        title="Ken Burns Effect"
+        separator
+        desc="Add cinematic zoom and pan effects to channel images, creating dynamic visual interest."
+        headerActions={
+          <WToggle
+            checked={localKenBurnsEnabled}
             onChange={setLocalKenBurnsEnabled}
-            />
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">Add cinematic zoom and pan effects to channel images, creating dynamic visual interest.</div>
+          />
+        }
+      >
         
         {localKenBurnsEnabled && (
           <>
@@ -371,20 +371,20 @@ const ChannelSettingsModal = ({
             </div> */}
           </>
         )}
-      </div>
+      </Card>
 
       {/* Channel Auto-Fade */}
-      <div className="wee-card">
-        <div className="wee-card-header">
-          <span className="wee-card-title">Channel Auto-Fade</span>
-          <Toggle
-              checked={localChannelAutoFadeTimeout > 0}
+      <Card
+        title="Channel Auto-Fade"
+        separator
+        desc="Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity."
+        headerActions={
+          <WToggle
+            checked={localChannelAutoFadeTimeout > 0}
             onChange={(checked) => setLocalChannelAutoFadeTimeout(checked ? 5 : 0)}
-            />
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity.</div>
-        
+          />
+        }
+      >
         {localChannelAutoFadeTimeout > 0 && (
           <div style={{ marginTop: 16 }}>
             <div style={{ fontWeight: 500, marginBottom: 8 }}>Fade Timeout: {localChannelAutoFadeTimeout}s</div>
@@ -402,7 +402,7 @@ const ChannelSettingsModal = ({
             </div>
           </div>
         )}
-      </div>
+      </Card>
     </WBaseModal>
   );
 };

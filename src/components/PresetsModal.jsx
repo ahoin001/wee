@@ -8,7 +8,7 @@ import '../styles/design-system.css';
 import Text from '../ui/Text';
 import Card from '../ui/Card';
 import PresetListItem from './PresetListItem';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
 import CommunityPresets from './CommunityPresets';
 import useUIStore from '../utils/useUIStore';
 import { uploadPreset } from '../utils/supabase';
@@ -675,7 +675,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
         isOpen={isOpen}
       title="Save Presets"
       onClose={onClose}
-        maxWidth="980px"
+        maxWidth="1400px"
       footerContent={({ handleClose }) => {
         handleCloseRef.current = handleClose;
         return (
@@ -718,7 +718,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
             
             {/* Include Channel Data Toggle */}
             <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Toggle
+              <WToggle
                   checked={includeChannels}
                 onChange={setIncludeChannels}
                 label="Include Channel Data"
@@ -772,15 +772,12 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
                   {exists && (
-                      <label style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8, cursor: 'pointer', userSelect: 'none' }}>
-                      <input
-                        type="checkbox"
-                        checked={overwriteMap[preset.name]}
-                        onChange={() => handleToggleOverwrite(preset.name)}
-                        style={{ marginRight: 4 }}
-                      />
-                      Overwrite existing
-                    </label>
+                    <WToggle
+                      checked={overwriteMap[preset.name]}
+                      onChange={() => handleToggleOverwrite(preset.name)}
+                      label="Overwrite existing"
+                      style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8 }}
+                    />
                   )}
                     {exists && !overwriteMap[preset.name] && <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 13 }}>(Will skip)</span>}
                 </li>

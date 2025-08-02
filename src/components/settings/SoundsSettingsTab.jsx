@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
-import Toggle from '../../ui/Toggle';
+import WToggle from '../../ui/WToggle';
 
 const SoundsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => {
   // Memoize callback functions to prevent unnecessary re-renders
@@ -53,7 +53,7 @@ const SoundsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => 
           {/* Background Music Settings */}
           <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <Toggle
+              <WToggle
                 checked={localSettings.sounds?.backgroundMusicEnabled ?? true}
                 onChange={handleBackgroundMusicEnabledChange}
               />
@@ -63,7 +63,7 @@ const SoundsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => 
             {localSettings.sounds?.backgroundMusicEnabled && (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                  <Toggle
+                  <WToggle
                     checked={localSettings.sounds?.backgroundMusicLooping ?? true}
                     onChange={handleBackgroundMusicLoopingChange}
                   />
@@ -71,7 +71,7 @@ const SoundsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => 
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                  <Toggle
+                  <WToggle
                     checked={localSettings.sounds?.backgroundMusicPlaylistMode ?? false}
                     onChange={handleBackgroundMusicPlaylistModeChange}
                   />
@@ -124,7 +124,7 @@ const SoundsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => 
       >
         <div style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-            <Toggle
+            <WToggle
               checked={localSettings.sounds?.channelClickEnabled ?? true}
               onChange={handleChannelClickEnabledChange}
             />
@@ -164,7 +164,7 @@ const SoundsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => 
       >
         <div style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-            <Toggle
+            <WToggle
               checked={localSettings.sounds?.channelHoverEnabled ?? true}
               onChange={handleChannelHoverEnabledChange}
             />
@@ -204,7 +204,7 @@ const SoundsSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => 
       >
         <div style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-            <Toggle
+            <WToggle
               checked={localSettings.sounds?.startupEnabled ?? true}
               onChange={handleStartupEnabledChange}
             />

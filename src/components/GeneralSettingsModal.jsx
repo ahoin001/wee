@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import './BaseModal.css';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
 import Text from '../ui/Text';
 import Button from '../ui/WButton';
+import Card from '../ui/Card';
 
 function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, glassWiiRibbon, setGlassWiiRibbon, startInFullscreen, setStartInFullscreen, showPresetsButton, setShowPresetsButton, onSettingsChange, ...props }) {
   const [pip, setPip] = useState(immersivePip);
@@ -46,7 +47,7 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
     <WBaseModal 
       title="General Settings" 
       onClose={onClose} 
-      maxWidth="900px"
+      maxWidth="1200px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
@@ -56,56 +57,56 @@ function GeneralSettingsModal({ isOpen, onClose, immersivePip, setImmersivePip, 
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
         {/* Immersive PiP */}
-        <div className="wee-card">
-          <div className="wee-card-header">
-            <span className="wee-card-title">Immersive Picture in Picture mode</span>
-            <Toggle
-                checked={pip}
+        <Card
+          title="Immersive Picture in Picture mode"
+          separator
+          desc="When enabled, video overlays will use immersive PiP mode for a more cinematic experience."
+          headerActions={
+            <WToggle
+              checked={pip}
               onChange={setPip}
-              />
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">When enabled, video overlays will use immersive PiP mode for a more cinematic experience.</div>
-        </div>
+            />
+          }
+        />
 
         {/* Start in Fullscreen */}
-        <div className="wee-card">
-          <div className="wee-card-header">
-            <span className="wee-card-title">Start in Fullscreen</span>
-            <Toggle
-                checked={fullscreen}
+        <Card
+          title="Start in Fullscreen"
+          separator
+          desc="When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode."
+          headerActions={
+            <WToggle
+              checked={fullscreen}
               onChange={setFullscreen}
-              />
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode.</div>
-        </div>
+            />
+          }
+        />
 
         {/* Show Presets Button */}
-        <div className="wee-card">
-          <div className="wee-card-header">
-            <span className="wee-card-title">Show Presets Button</span>
-            <Toggle
-                checked={showPresets}
+        <Card
+          title="Show Presets Button"
+          separator
+          desc="When enabled, shows a presets button near the time display that allows quick access to saved appearance presets. Right-click the button to customize its icon."
+          headerActions={
+            <WToggle
+              checked={showPresets}
               onChange={setShowPresets}
-              />
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">When enabled, shows a presets button near the time display that allows quick access to saved appearance presets. Right-click the button to customize its icon.</div>
-        </div>
+            />
+          }
+        />
 
         {/* Launch on Startup */}
-        <div className="wee-card">
-          <div className="wee-card-header">
-            <span className="wee-card-title">Launch app when my computer starts</span>
-            <Toggle
-                checked={startOnBoot}
-                onChange={handleStartOnBootToggle}
-              />
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">When enabled, the app will launch automatically when your computer starts.</div>
-        </div>
+        <Card
+          title="Launch app when my computer starts"
+          separator
+          desc="When enabled, the app will launch automatically when your computer starts."
+          headerActions={
+            <WToggle
+              checked={startOnBoot}
+              onChange={handleStartOnBootToggle}
+            />
+          }
+        />
       </div>
     </WBaseModal>
   );

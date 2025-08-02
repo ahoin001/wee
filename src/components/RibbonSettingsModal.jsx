@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import Slider from '../ui/Slider';
+import WToggle from '../ui/WToggle';
+import Card from '../ui/Card';
 import { spacing } from '../ui/tokens';
 import './BaseModal.css';
 import './SoundModal.css';
@@ -91,7 +93,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
     <WBaseModal
       title="Customize Ribbon"
       onClose={onClose}
-      maxWidth="480px"
+      maxWidth="700px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
           <button 
@@ -124,176 +126,170 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
         </div>
       )}
     >
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Ribbon Styles</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Customize the appearance of the Wii Ribbon including colors and glow effects.
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 120 }}>Ribbon Color</label>
-              <input
-                type="color"
-                value={ribbonColor}
-                onChange={e => setRibbonColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {ribbonColor.toUpperCase()}
-              </span>
-            </div>
-            {recentRibbonColors.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
-                <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
-                {recentRibbonColors.map((color, idx) => (
-                  <button
-                    key={color}
-                    onClick={() => setRibbonColor(color)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      border: color === ribbonColor ? '2px solid #0099ff' : '1.5px solid #bbb',
-                      background: color,
-                      cursor: 'pointer',
-                      outline: 'none',
-                      marginLeft: idx === 0 ? 0 : 2
-                    }}
-                    title={color}
-                  />
-                ))}
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 120 }}>Ribbon Glow Color</label>
-              <input
-                type="color"
-                value={ribbonGlowColor}
-                onChange={e => setRibbonGlowColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {ribbonGlowColor.toUpperCase()}
-              </span>
-            </div>
-            {recentRibbonGlowColors.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
-                <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
-                {recentRibbonGlowColors.map((color, idx) => (
-                  <button
-                    key={color}
-                    onClick={() => setRibbonGlowColor(color)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      border: color === ribbonGlowColor ? '2px solid #0099ff' : '1.5px solid #bbb',
-                      background: color,
-                      cursor: 'pointer',
-                      outline: 'none',
-                      marginLeft: idx === 0 ? 0 : 2
-                    }}
-                    title={color}
-                  />
-                ))}
-              </div>
-            )}
-            <Slider
-              label="Glow Strength"
-              value={ribbonGlowStrength}
-              min={0}
-              max={64}
-              step={1}
-              onChange={value => setRibbonGlowStrength(value)}
-            />
-            <Slider
-              label="Glow Strength on Hover"
-              value={ribbonGlowStrengthHover}
-              min={0}
-              max={96}
-              step={1}
-              onChange={value => setRibbonGlowStrengthHover(value)}
-            />
-            {!glassEnabled && (
-              <Slider
-                label="Dock Transparency"
-                value={ribbonDockOpacity}
-                min={0.1}
-                max={1}
-                step={0.01}
-                onChange={value => setRibbonDockOpacity(value)}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Glass Effect</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
+      <Card 
+        title="Ribbon Styles"
+        separator
+        desc="Customize the appearance of the Wii Ribbon including colors and glow effects."
+        style={{ marginTop: 18, marginBottom: 0 }}
+      >
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <label style={{ fontWeight: 500, minWidth: 120 }}>Ribbon Color</label>
             <input
-              type="checkbox"
-              checked={glassEnabled}
-              onChange={e => setGlassEnabled(e.target.checked)}
+              type="color"
+              value={ribbonColor}
+              onChange={e => setRibbonColor(e.target.value)}
+              style={{
+                width: 50,
+                height: 40,
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer'
+              }}
             />
-            <span className="slider" />
-          </label>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Add a frosted glass effect to the Wii Ribbon for a more modern look.
-          {glassEnabled && (
-            <div style={{ marginTop: 14 }}>
-              <Slider
-                label="Background Opacity"
-                value={glassOpacity}
-                min={0.05}
-                max={0.4}
-                step={0.01}
-                onChange={value => setGlassOpacity(value)}
-              />
-              <Slider
-                label="Backdrop Blur"
-                value={glassBlur}
-                min={0}
-                max={8}
-                step={0.1}
-                onChange={value => setGlassBlur(value)}
-              />
-              <Slider
-                label="Border Opacity"
-                value={glassBorderOpacity}
-                min={0}
-                max={1}
-                step={0.05}
-                onChange={value => setGlassBorderOpacity(value)}
-              />
-              <Slider
-                label="Shine Effect"
-                value={glassShineOpacity}
-                min={0}
-                max={1}
-                step={0.05}
-                onChange={value => setGlassShineOpacity(value)}
-              />
+            <span style={{ color: '#888', fontSize: 14 }}>
+              {ribbonColor.toUpperCase()}
+            </span>
+          </div>
+          {recentRibbonColors.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
+              <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+              {recentRibbonColors.map((color, idx) => (
+                <button
+                  key={color}
+                  onClick={() => setRibbonColor(color)}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    border: color === ribbonColor ? '2px solid #0099ff' : '1.5px solid #bbb',
+                    background: color,
+                    cursor: 'pointer',
+                    outline: 'none',
+                    marginLeft: idx === 0 ? 0 : 2
+                  }}
+                  title={color}
+                />
+              ))}
             </div>
           )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <label style={{ fontWeight: 500, minWidth: 120 }}>Ribbon Glow Color</label>
+            <input
+              type="color"
+              value={ribbonGlowColor}
+              onChange={e => setRibbonGlowColor(e.target.value)}
+              style={{
+                width: 50,
+                height: 40,
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer'
+              }}
+            />
+            <span style={{ color: '#888', fontSize: 14 }}>
+              {ribbonGlowColor.toUpperCase()}
+            </span>
+          </div>
+          {recentRibbonGlowColors.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
+              <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
+              {recentRibbonGlowColors.map((color, idx) => (
+                <button
+                  key={color}
+                  onClick={() => setRibbonGlowColor(color)}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    border: color === ribbonGlowColor ? '2px solid #0099ff' : '1.5px solid #bbb',
+                    background: color,
+                    cursor: 'pointer',
+                    outline: 'none',
+                    marginLeft: idx === 0 ? 0 : 2
+                  }}
+                  title={color}
+                />
+              ))}
+            </div>
+          )}
+          <Slider
+            label="Glow Strength"
+            value={ribbonGlowStrength}
+            min={0}
+            max={64}
+            step={1}
+            onChange={value => setRibbonGlowStrength(value)}
+          />
+          <Slider
+            label="Glow Strength on Hover"
+            value={ribbonGlowStrengthHover}
+            min={0}
+            max={96}
+            step={1}
+            onChange={value => setRibbonGlowStrengthHover(value)}
+          />
+          {!glassEnabled && (
+            <Slider
+              label="Dock Transparency"
+              value={ribbonDockOpacity}
+              min={0.1}
+              max={1}
+              step={0.01}
+              onChange={value => setRibbonDockOpacity(value)}
+            />
+          )}
         </div>
-      </div>
+      </Card>
+      <Card 
+        title="Glass Effect"
+        separator
+        desc="Add a frosted glass effect to the Wii Ribbon for a more modern look."
+        headerActions={
+          <WToggle
+            checked={glassEnabled}
+            onChange={(checked) => setGlassEnabled(checked)}
+          />
+        }
+        style={{ marginTop: 18, marginBottom: 0 }}
+      >
+        {glassEnabled && (
+          <div style={{ marginTop: 14 }}>
+            <Slider
+              label="Background Opacity"
+              value={glassOpacity}
+              min={0.05}
+              max={0.4}
+              step={0.01}
+              onChange={value => setGlassOpacity(value)}
+            />
+            <Slider
+              label="Backdrop Blur"
+              value={glassBlur}
+              min={0}
+              max={8}
+              step={0.1}
+              onChange={value => setGlassBlur(value)}
+            />
+            <Slider
+              label="Border Opacity"
+              value={glassBorderOpacity}
+              min={0}
+              max={1}
+              step={0.05}
+              onChange={value => setGlassBorderOpacity(value)}
+            />
+            <Slider
+              label="Shine Effect"
+              value={glassShineOpacity}
+              min={0}
+              max={1}
+              step={0.05}
+              onChange={value => setGlassShineOpacity(value)}
+            />
+          </div>
+        )}
+      </Card>
     </WBaseModal>
   );
 }

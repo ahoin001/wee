@@ -9,7 +9,7 @@ function WBaseModal({
   children, 
   footerContent,
   className = '',
-  maxWidth = '900px',
+  maxWidth = '1200px',
   isOpen = true
 }) {
   const [isAnimating, setIsAnimating] = useState(false);
@@ -44,7 +44,7 @@ function WBaseModal({
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             <Dialog.Panel 
-              className={`w-[90%] max-h-[80vh] min-w-[700px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col md:w-[95%] md:min-w-[320px] ${className}`}
+              className={`w-[95%] max-h-[85vh] min-w-[800px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[600px] md:w-[95%] md:min-w-[400px] sm:w-[98%] sm:min-w-[320px] ${className}`}
               style={{ 
                 maxWidth,
                 animation: isAnimating 

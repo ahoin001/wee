@@ -6,7 +6,7 @@ import Text from '../ui/Text';
 import Button from '../ui/WButton';
 import './BaseModal.css';
 import Card from '../ui/Card';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
 
 const WALLPAPER_ANIMATIONS = [
   { value: 'none', label: 'None' },
@@ -284,7 +284,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
     <WBaseModal
       title="Manage Wallpapers"
       onClose={onClose}
-      maxWidth="900px"
+      maxWidth="1200px"
       footerContent={({ handleClose }) => (
         <div style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
@@ -487,7 +487,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         separator
         desc="When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below."
         headerActions={
-          <Toggle
+          <WToggle
             checked={cycling}
             onChange={setCycling}
           
@@ -764,15 +764,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
               <span style={{ fontWeight: 500, minWidth: 120 }}>Enable Overlay</span>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={overlayEnabled}
-                  onChange={e => setOverlayEnabled(e.target.checked)}
-                  style={{ width: 18, height: 18 }}
-                />
-                <span style={{ fontSize: 15, color: '#333' }}>Show overlay effects</span>
-              </label>
+              <WToggle
+                checked={overlayEnabled}
+                onChange={(checked) => setOverlayEnabled(checked)}
+                label="Show overlay effects"
+              />
             </div>
             
             {overlayEnabled && (

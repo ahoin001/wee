@@ -17,34 +17,45 @@
 
 .image-preview {
   position: relative;
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: hsl(var(--surface-secondary));
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border-primary));
 }
 
-.image-preview img {
+.image-preview img,
+.image-preview video {
   width: 100%;
-  max-width: 200px;
-  height: 120px;
+  max-width: 300px;
+  height: 180px;
   object-fit: cover;
   border-radius: 8px;
-  border: 2px solid #e0e0e6;
+  border: 2px solid hsl(var(--border-primary));
+  box-shadow: var(--shadow-sm);
 }
 
 .remove-image-button {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(220, 53, 69, 0.9);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  background: transparent;
+  color: hsl(var(--state-error));
+  border: 1.5px solid hsl(var(--state-error));
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 80px;
 }
 
 .remove-image-button:hover {
-  background: rgba(220, 53, 69, 1);
+  background: hsl(var(--state-error));
+  color: hsl(var(--text-inverse));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .file-button {
@@ -250,8 +261,14 @@ label {
 
 /* Dark mode styles are now handled by design system CSS variables */
 
-.dark-mode .image-preview img {
-  border-color: #555;
+.dark-mode .image-preview {
+  background: hsl(var(--surface-secondary));
+  border-color: hsl(var(--border-primary));
+}
+
+.dark-mode .image-preview img,
+.dark-mode .image-preview video {
+  border-color: hsl(var(--border-primary));
 }
 
 /* Dark mode styles are now handled by design system CSS variables */

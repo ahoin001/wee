@@ -3,7 +3,8 @@ import WBaseModal from './WBaseModal';
 // import AppPathSectionCard from './AppPathSectionCard'; // LEGACY: No longer used
 import UnifiedAppPathCard from './UnifiedAppPathCard';
 import Button from '../ui/WButton';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
+import Card from '../ui/Card';
 import AdminPanel from './AdminPanel';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import useIconsStore from '../utils/useIconsStore';
@@ -786,7 +787,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     <WBaseModal
       title={isPresetsButton ? "Customize Presets Button" : isAccessoryButton ? "Customize Accessory Button" : "Primary Actions"}
       onClose={onClose}
-      maxWidth="480px"
+      maxWidth="700px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
@@ -800,102 +801,97 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       )}
     >
       {/* Icon Selection/Upload Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">
-            {isPresetsButton ? "Presets Button Icon" : isAccessoryButton ? "Accessory Button Icon" : "Channel Icon"}
-          </span>
+      <Card
+        title={isPresetsButton ? "Presets Button Icon" : isAccessoryButton ? "Accessory Button Icon" : "Channel Icon"}
+        separator
+        desc={isPresetsButton 
+          ? "Choose or upload a custom icon for the presets button. This button opens the presets modal when clicked."
+          : isAccessoryButton
+          ? "Choose or upload a custom icon for the accessory button. This button can be configured to launch apps or URLs."
+          : "Choose or upload a custom icon for this channel. PNG recommended for best results."
+        }
+        style={{ marginTop: 18, marginBottom: 0 }}
+      >
+        <div style={{ marginTop: 14 }}>
+          {/* Icon selection/upload UI here */}
+          {renderIconSection && renderIconSection()}
         </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          {isPresetsButton 
-            ? "Choose or upload a custom icon for the presets button. This button opens the presets modal when clicked."
-            : isAccessoryButton
-            ? "Choose or upload a custom icon for the accessory button. This button can be configured to launch apps or URLs."
-            : "Choose or upload a custom icon for this channel. PNG recommended for best results."
-          }
-          <div style={{ marginTop: 14 }}>
-            {/* Icon selection/upload UI here */}
-            {renderIconSection && renderIconSection()}
-          </div>
-        </div>
-      </div>
+      </Card>
       {/* Icon Color Settings Card - Only show when using icon and not presets button or accessory button */}
       {type === 'icon' && !isPresetsButton && !isAccessoryButton && (
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <span className="wee-card-title">Icon Color Settings</span>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            <div style={{ marginBottom: 16 }}>
-              <Toggle
-                checked={useWiiGrayFilter}
-                onChange={handleWiiGrayFilterToggle}
-                label="Use Wii Button Color Filter"
-              />
-              <div style={{ marginLeft: 54, marginTop: 4, fontSize: 14, color: '#666' }}>
-                Make the icon Wii gray to match the classic Wii button style.
-              </div>
-            </div>
-            
-            <div>
-              <Toggle
-                checked={useAdaptiveColor}
-                onChange={handleAdaptiveColorToggle}
-                label="Use Adaptive Color"
-              />
-              <div style={{ marginLeft: 54, marginTop: 4, fontSize: 14, color: '#666' }}>
-                Make the icon color match the ribbon glow color ({ribbonGlowColor}).
-              </div>
+        <Card
+          title="Icon Color Settings"
+          separator
+          style={{ marginTop: 18, marginBottom: 0 }}
+        >
+          <div style={{ marginBottom: 16 }}>
+            <WToggle
+              checked={useWiiGrayFilter}
+              onChange={handleWiiGrayFilterToggle}
+              label="Use Wii Button Color Filter"
+            />
+            <div style={{ marginLeft: 54, marginTop: 4, fontSize: 14, color: '#666' }}>
+              Make the icon Wii gray to match the classic Wii button style.
             </div>
           </div>
-        </div>
+          
+          <div>
+            <WToggle
+              checked={useAdaptiveColor}
+              onChange={handleAdaptiveColorToggle}
+              label="Use Adaptive Color"
+            />
+            <div style={{ marginLeft: 54, marginTop: 4, fontSize: 14, color: '#666' }}>
+              Make the icon color match the ribbon glow color ({ribbonGlowColor}).
+            </div>
+          </div>
+        </Card>
       )}
       {/* Admin Mode Card - Only show for left button (index 0) and not presets/accessory buttons */}
       {buttonIndex === 0 && !isPresetsButton && !isAccessoryButton && (
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <span className="wee-card-title">Admin Mode</span>
-            <Toggle
+        <Card
+          title="Admin Mode"
+          separator
+          desc="When enabled, this button becomes a powerful admin menu with Windows system actions instead of launching a single app."
+          headerActions={
+            <WToggle
               checked={adminMode}
               onChange={setAdminMode}
             />
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            When enabled, this button becomes a powerful admin menu with Windows system actions instead of launching a single app.
-            {adminMode && (
-            <div style={{ marginTop: 14 }}>
-                <div style={{ fontWeight: 500, marginBottom: 8 }}>Configure Windows system actions for your admin menu:</div>
-              <Button
-                variant="primary"
-                onClick={() => setShowAdminPanel(true)}
-              >
-                Open Admin Panel
-              </Button>
-              {powerActions.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: '13px', color: '#666', marginBottom: 6 }}>
-                    Selected actions: {powerActions.length}
-                  </div>
-                  <div style={{ 
-                    display: 'flex', 
-                    flexWrap: 'wrap', 
-                    gap: '4px',
-                    maxHeight: '60px',
-                    overflowY: 'auto'
-                  }}>
-                    {powerActions.slice(0, 5).map(action => (
-                      <span
-                        key={action.id}
-                        style={{
-                          background: '#f0f8ff',
-                          color: '#0099ff',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          border: '1px solid #e0f0ff'
+          }
+          style={{ marginTop: 18, marginBottom: 0 }}
+        >
+          {adminMode && (
+          <div style={{ marginTop: 14 }}>
+              <div style={{ fontWeight: 500, marginBottom: 8 }}>Configure Windows system actions for your admin menu:</div>
+            <Button
+              variant="primary"
+              onClick={() => setShowAdminPanel(true)}
+            >
+              Open Admin Panel
+            </Button>
+            {powerActions.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: '13px', color: '#666', marginBottom: 6 }}>
+                  Selected actions: {powerActions.length}
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: '4px',
+                  maxHeight: '60px',
+                  overflowY: 'auto'
+                }}>
+                  {powerActions.slice(0, 5).map(action => (
+                    <span
+                      key={action.id}
+                      style={{
+                        background: '#f0f8ff',
+                        color: '#0099ff',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        border: '1px solid #e0f0ff'
                         }}
                       >
                         {action.icon} {action.name}
@@ -910,44 +906,41 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 </div>
               )}
             </div>
-            )}
-          </div>
-        </div>
+          )}
+        </Card>
       )}
 
       {/* Unified App Path Card - Only show for non-presets buttons when not in admin mode */}
       {!isPresetsButton && !adminMode && (
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <span className="wee-card-title">Unified App Path (NEW)</span>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            NEW: Unified app search that consolidates all app types (EXE, Steam, Epic, Microsoft Store) into a single interface.
-            <div style={{ marginTop: 14 }}>
-              <UnifiedAppPathCard
-                value={{
-                  launchType: actionType === 'url' ? 'url' : 'application',
-                  appName: appName,
-                  path: action
-                }}
-                onChange={(config) => {
-                  if (config.launchType === 'url') {
-                    setActionType('url');
-                    setAction(config.path || '');
-                    setAppName('');
-                  } else {
-                    setActionType('exe');
-                    setAction(config.path || '');
-                    if (config.selectedApp) {
-                      setAppName(config.selectedApp.name);
-                    }
+        <Card
+          title="Unified App Path (NEW)"
+          separator
+          desc="NEW: Unified app search that consolidates all app types (EXE, Steam, Epic, Microsoft Store) into a single interface."
+          style={{ marginTop: 18, marginBottom: 0 }}
+        >
+          <div style={{ marginTop: 14 }}>
+            <UnifiedAppPathCard
+              value={{
+                launchType: actionType === 'url' ? 'url' : 'application',
+                appName: appName,
+                path: action
+              }}
+              onChange={(config) => {
+                if (config.launchType === 'url') {
+                  setActionType('url');
+                  setAction(config.path || '');
+                  setAppName('');
+                } else {
+                  setActionType('exe');
+                  setAction(config.path || '');
+                  if (config.selectedApp) {
+                    setAppName(config.selectedApp.name);
                   }
-                }}
-              />
-            </div>
+                }
+              }}
+            />
           </div>
-        </div>
+        </Card>
       )}
 
       {/* App Path/URL Card - Only show for non-presets buttons when not in admin mode */}
@@ -1003,117 +996,106 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       )} */}
 
       {/* Hover Effect Card - Show for all buttons */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Hover Effect</span>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Choose how the button looks when you hover over it.
-          <div style={{ marginTop: 14 }}>
-            {/* Border Effect Option */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="hover-effect"
-                  checked={!useGlowEffect}
-                  onChange={() => setUseGlowEffect(false)}
-                />
-                <span style={{ fontWeight: 500 }}>Border Effect</span>
-              </label>
-              <div style={{ marginLeft: 24, marginTop: 4 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={useAdaptiveColor && !useGlowEffect}
-                    onChange={(e) => setUseAdaptiveColor(e.target.checked)}
-                    disabled={useGlowEffect}
-                  />
-                  <span style={{ fontSize: 14, color: '#666' }}>Use adaptive color (matches ribbon glow)</span>
-                </label>
-              </div>
-            </div>
-            
-            {/* Glow Effect Option */}
-            <div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="hover-effect"
-                  checked={useGlowEffect}
-                  onChange={() => setUseGlowEffect(true)}
-                />
-                <span style={{ fontWeight: 500 }}>Glow Effect</span>
-              </label>
-              {useGlowEffect && (
-                <div style={{ marginLeft: 24, marginTop: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                    <span style={{ fontSize: 14, color: '#666', minWidth: 60 }}>Strength:</span>
-                    <input
-                      type="range"
-                      min="5"
-                      max="50"
-                      value={glowStrength}
-                      onChange={(e) => setGlowStrength(Number(e.target.value))}
-                      style={{ flex: 1 }}
-                    />
-                    <span style={{ fontSize: 14, color: '#666', minWidth: 30 }}>{glowStrength}px</span>
-                  </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={useAdaptiveColor && useGlowEffect}
-                      onChange={(e) => setUseAdaptiveColor(e.target.checked)}
-                    />
-                    <span style={{ fontSize: 14, color: '#666' }}>Use adaptive color (matches ribbon glow)</span>
-                  </label>
-                </div>
-              )}
+      <Card
+        title="Hover Effect"
+        separator
+        desc="Choose how the button looks when you hover over it."
+        style={{ marginTop: 18, marginBottom: 0 }}
+      >
+        <div style={{ marginTop: 14 }}>
+          {/* Border Effect Option */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="hover-effect"
+                checked={!useGlowEffect}
+                onChange={() => setUseGlowEffect(false)}
+              />
+              <span style={{ fontWeight: 500 }}>Border Effect</span>
+            </label>
+            <div style={{ marginLeft: 24, marginTop: 4 }}>
+              <WToggle
+                checked={useAdaptiveColor && !useGlowEffect}
+                onChange={(checked) => setUseAdaptiveColor(checked)}
+                disabled={useGlowEffect}
+                label="Use adaptive color (matches ribbon glow)"
+              />
             </div>
           </div>
-        </div>
-      </div>
-      {/* Glass Effect Card - Show for all buttons */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
-          <span className="wee-card-title">Glass Effect</span>
-          <label className="toggle-switch" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={useGlassEffect}
-              onChange={(e) => setUseGlassEffect(e.target.checked)}
-            />
-            <span className="slider" />
-          </label>
-        </div>
-        <div className="wee-card-separator" />
-        <div className="wee-card-desc">
-          Apply a glass morphism effect to the button background. Text and icons will appear above the glass effect.
-          {useGlassEffect && (
-            <div style={{ marginTop: 14 }}>
-              {/* Glass Opacity */}
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, color: '#666' }}>Glass Opacity</span>
-                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassOpacity * 100)}%</span>
+          
+          {/* Glow Effect Option */}
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="hover-effect"
+                checked={useGlowEffect}
+                onChange={() => setUseGlowEffect(true)}
+              />
+              <span style={{ fontWeight: 500 }}>Glow Effect</span>
+            </label>
+            {useGlowEffect && (
+              <div style={{ marginLeft: 24, marginTop: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <span style={{ fontSize: 14, color: '#666', minWidth: 60 }}>Strength:</span>
+                  <input
+                    type="range"
+                    min="5"
+                    max="50"
+                    value={glowStrength}
+                    onChange={(e) => setGlowStrength(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ fontSize: 14, color: '#666', minWidth: 30 }}>{glowStrength}px</span>
                 </div>
-                <input
-                  type="range"
-                  min="0.05"
-                  max="0.5"
-                  step="0.01"
-                  value={glassOpacity}
-                  onChange={(e) => setGlassOpacity(Number(e.target.value))}
-                  style={{ width: '100%' }}
+                <WToggle
+                  checked={useAdaptiveColor && useGlowEffect}
+                  onChange={(checked) => setUseAdaptiveColor(checked)}
+                  label="Use adaptive color (matches ribbon glow)"
                 />
               </div>
-              
-              {/* Glass Blur */}
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, color: '#666' }}>Glass Blur</span>
-                  <span style={{ fontSize: 14, color: '#666' }}>{glassBlur}px</span>
+            )}
+          </div>
+        </div>
+      </Card>
+      {/* Glass Effect Card - Show for all buttons */}
+      <Card
+        title="Glass Effect"
+        separator
+        desc="Apply a glass morphism effect to the button background. Text and icons will appear above the glass effect."
+        headerActions={
+          <WToggle
+            checked={useGlassEffect}
+            onChange={(checked) => setUseGlassEffect(checked)}
+          />
+        }
+        style={{ marginTop: 18, marginBottom: 0 }}
+      >
+        {useGlassEffect && (
+          <div style={{ marginTop: 14 }}>
+            {/* Glass Opacity */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 14, color: '#666' }}>Glass Opacity</span>
+                <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassOpacity * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0.05"
+                max="0.5"
+                step="0.01"
+                value={glassOpacity}
+                onChange={(e) => setGlassOpacity(Number(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+            
+            {/* Glass Blur */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 14, color: '#666' }}>Glass Blur</span>
+                <span style={{ fontSize: 14, color: '#666' }}>{glassBlur}px</span>
                 </div>
                 <input
                   type="range"
@@ -1161,8 +1143,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </Card>
 
       {/* Admin Panel Modal */}
       <AdminPanel

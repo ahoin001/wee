@@ -67,7 +67,7 @@ const ConfirmationModal = () => {
       isOpen={showConfirmationModal}
       title={confirmationModalData.title}
       onClose={handleCancel}
-      maxWidth="500px"
+      maxWidth="600px"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Button variant="secondary" onClick={handleCancel}>

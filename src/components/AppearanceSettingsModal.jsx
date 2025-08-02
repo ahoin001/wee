@@ -4,7 +4,7 @@ import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import Slider from '../ui/Slider';
 import Card from '../ui/Card';
-import Toggle from '../ui/Toggle';
+import WToggle from '../ui/WToggle';
 import Text from '../ui/Text';
 import useAppearanceSettingsStore from '../utils/useAppearanceSettingsStore';
 import { spacing } from '../ui/tokens';
@@ -999,7 +999,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
     <WBaseModal
       title="Settings"
       onClose={onClose}
-      maxWidth="1000px"
+      maxWidth="1400px"
       maxHeight="85vh"
       footerContent={({ handleClose }) => (
         <div style={{ display: 'flex', gap: 10,justifyContent: 'space-between', alignItems: 'center' }}>
