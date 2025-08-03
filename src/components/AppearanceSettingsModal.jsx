@@ -18,7 +18,7 @@ import { uploadPreset } from '../utils/supabase';
 import AuthModal from './AuthModal';
 import useAuthModalStore from '../utils/useAuthModalStore';
 import MonitorSelectionModal from './MonitorSelectionModal';
-import DesignSystemModal from './DesignSystemModal';
+
 
 // Lazy load settings tabs
 const LazyChannelsSettingsTab = React.lazy(() => import('./settings/ChannelsSettingsTab'));
@@ -114,7 +114,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   const [showMonitorModal, setShowMonitorModal] = useState(false);
   
   // Design system modal state
-  const [showDesignSystemModal, setShowDesignSystemModal] = useState(false);
+
   
   // Auth modal store
   const { openModal: openAuthModal } = useAuthModalStore();
@@ -1032,7 +1032,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
             <Button 
               variant="secondary" 
               size="sm"
-              onClick={() => setShowDesignSystemModal(true)}
+              
             >
               Design System
             </Button>
@@ -1134,10 +1134,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
       />
 
       {/* Design System Modal */}
-      <DesignSystemModal
-        isOpen={showDesignSystemModal}
-        onClose={() => setShowDesignSystemModal(false)}
-      />
+      
 
     </WBaseModal>
   );

@@ -42,13 +42,14 @@ import useUnifiedAppStore from './utils/useUnifiedAppStore';
 import AdminPanel from './components/AdminPanel';
 import ConfirmationModal from './components/ConfirmationModal';
 import LoadingSpinner from './components/LoadingSpinner';
-import ButtonTest from './components/ButtonTest';
+
 
 
 // Lazy load heavy modals
 const LazyPresetsModal = React.lazy(() => import('./components/PresetsModal'));
 const LazyAppearanceSettingsModal = React.lazy(() => import('./components/AppearanceSettingsModal'));
-const LazyDesignSystemModal = React.lazy(() => import('./components/DesignSystemModal'));
+
+
 const LazyPrimaryActionsModal = React.lazy(() => import('./components/PrimaryActionsModal'));
 const LazyChannelModal = React.lazy(() => import('./components/ChannelModal'));
 const LazyWallpaperModal = React.lazy(() => import('./components/WallpaperModal'));
@@ -223,7 +224,8 @@ function App() {
     showUpdateModal,
     showPrimaryActionsModal,
     showAppearanceSettingsModal,
-    showDesignSystemModal,
+  
+  
     showImageSearchModal,
     imageSearchModalData,
     showNavigationCustomizationModal,
@@ -242,7 +244,8 @@ function App() {
     closeUpdateModal,
     closePrimaryActionsModal,
     closeAppearanceSettingsModal,
-    closeDesignSystemModal,
+  
+  
     closeImageSearchModal,
     closeNavigationCustomizationModal,
     closeMonitorSelectionModal,
@@ -2790,12 +2793,8 @@ function App() {
                 }}>
                   🎨 Settings
                 </div>
-                <div className="context-menu-item" onClick={() => { 
-                  useUIStore.getState().openDesignSystemModal();
-                  closeSettingsMenu(); 
-                }}>
-                  🎨 Design System
-                </div>
+                
+                
                 <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
                   🎨 Presets (Ctrl+P)
                 </div>
@@ -2947,10 +2946,10 @@ function App() {
           />
         </Suspense>
         <Suspense fallback={<LoadingSpinner message="Loading Design System..." />}>
-          <LazyDesignSystemModal
-            isOpen={showDesignSystemModal}
-            onClose={closeDesignSystemModal}
-          />
+          
+        </Suspense>
+        <Suspense fallback={<LoadingSpinner message="Loading Input Components Demo..." />}>
+          
         </Suspense>
         <Suspense fallback={<LoadingSpinner message="Loading Primary Actions..." />}>
           <LazyPrimaryActionsModal

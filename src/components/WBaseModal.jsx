@@ -33,10 +33,9 @@ function WBaseModal({
       <Dialog as="div" className="relative z-[10000]" onClose={handleClose}>
         {/* Backdrop - synchronized with modal animation */}
         <div 
-          className="fixed inset-0 bg-[hsl(var(--bg-overlay))] backdrop-blur-[4px] transition-opacity duration-300"
-          style={{
-            opacity: isAnimating ? 1 : 0
-          }}
+          className={`fixed inset-0 bg-[hsl(var(--bg-overlay))] backdrop-blur-[4px] transition-opacity duration-300 ${
+            isAnimating ? 'opacity-100' : 'opacity-0'
+          }`}
           aria-hidden="true"
         />
 
@@ -67,7 +66,7 @@ function WBaseModal({
               </div>
 
               {/* Content */}
-              <div className="p-6 overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: 40 }}>
+              <div className="p-6 overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none] pb-10">
                 {children}
               </div>
 

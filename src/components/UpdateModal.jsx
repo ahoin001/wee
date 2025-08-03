@@ -220,22 +220,22 @@ function UpdateModal({ isOpen, onClose }) {
   const renderStatusContent = () => {
     if (updateStatus?.status === 'checking') {
       return (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#007bff' }}>
+        <div className="text-center p-5">
+          <div className="text-lg font-bold mb-2.5 text-blue-600">
             🔍 Checking for Updates...
           </div>
-          <div style={{ width: '40px', height: '40px', border: '3px solid #f3f3f3', borderTop: '3px solid #007bff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }}></div>
+          <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
         </div>
       );
     }
 
     if (updateStatus?.status === 'available') {
       return (
-        <div style={{ padding: '20px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
+        <div className="p-5">
+          <div className="text-lg font-bold mb-2.5 text-green-600">
             🎉 Update Available!
           </div>
-          <div style={{ marginBottom: '15px', color: '#666' }}>
+          <div className="mb-4 text-gray-600">
             <div><strong>New Version:</strong> {updateStatus.version}</div>
             <div><strong>Current Version:</strong> {appVersion}</div>
             {updateStatus.releaseDate && (
@@ -245,19 +245,9 @@ function UpdateModal({ isOpen, onClose }) {
           
           {/* Release Notes Section */}
           {updateStatus.releaseNotes && (
-            <div style={{ marginBottom: '15px' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>📋 What's New:</div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666', 
-                maxHeight: '200px', 
-                overflowY: 'auto', 
-                padding: '12px', 
-                backgroundColor: '#f8f9fa', 
-                borderRadius: '8px',
-                border: '1px solid #e9ecef',
-                lineHeight: '1.5'
-              }}>
+            <div className="mb-4">
+              <div className="font-bold mb-2 text-gray-800">📋 What's New:</div>
+              <div className="text-sm text-gray-600 max-h-[200px] overflow-y-auto p-3 bg-gray-50 rounded-lg border border-gray-200 leading-relaxed">
                 {updateStatus.releaseNotes}
               </div>
               
@@ -267,46 +257,20 @@ function UpdateModal({ isOpen, onClose }) {
                   loadChangelogData();
                   setShowFullChangelog(true);
                 }}
-                style={{
-                  backgroundColor: '#f8f9fa',
-                  color: '#007bff',
-                  border: '1px solid #007bff',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  marginTop: '8px',
-                  transition: 'background 0.2s, color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#007bff';
-                  e.currentTarget.style.color = 'white';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#f8f9fa';
-                  e.currentTarget.style.color = '#007bff';
-                }}
+                className="bg-gray-50 text-blue-600 border border-blue-600 px-4 py-2 rounded-md cursor-pointer text-sm mt-2 hover:bg-blue-600 hover:text-white transition-colors duration-200"
               >
                 📜 View Full Changelog
               </button>
             </div>
           )}
           
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="flex gap-2.5 justify-center flex-wrap">
             <button
               onClick={handleDownloadUpdate}
               disabled={isDownloading}
-              style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                cursor: isDownloading ? 'not-allowed' : 'pointer',
-                opacity: isDownloading ? 0.6 : 1,
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
+              className={`bg-blue-600 text-white border-none px-6 py-3 rounded-md text-sm font-medium transition-opacity duration-200 ${
+                isDownloading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'
+              }`}
             >
               {isDownloading ? '⏳ Downloading...' : '⬇️ Download Update'}
             </button>
@@ -332,15 +296,7 @@ function UpdateModal({ isOpen, onClose }) {
             </a>
             <button
               onClick={onClose}
-              style={{
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
+              className="bg-gray-500 text-white border-none px-6 py-3 rounded-md cursor-pointer text-sm"
             >
               Later
             </button>
@@ -351,24 +307,16 @@ function UpdateModal({ isOpen, onClose }) {
 
     if (updateStatus?.status === 'not-available') {
       return (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
+        <div className="text-center p-5">
+          <div className="text-lg font-bold mb-2.5 text-green-600">
             ✓ Up to Date
           </div>
-          <div style={{ color: '#666', marginBottom: '20px' }}>
+          <div className="text-gray-600 mb-5">
             You're running the latest version ({appVersion})
           </div>
           <button
             onClick={handleCheckForUpdates}
-            style={{
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
+            className="bg-blue-600 text-white border-none px-6 py-3 rounded-md cursor-pointer text-sm"
           >
             🔄 Check Again
           </button>
@@ -378,22 +326,18 @@ function UpdateModal({ isOpen, onClose }) {
 
     if (updateStatus?.status === 'downloading') {
       return (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#007bff' }}>
+        <div className="text-center p-5">
+          <div className="text-lg font-bold mb-2.5 text-blue-600">
             ⏳ Downloading Update...
           </div>
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ width: '100%', height: '8px', backgroundColor: '#e9ecef', borderRadius: '4px', overflow: 'hidden' }}>
+          <div className="mb-4">
+            <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
               <div 
-                style={{ 
-                  width: `${updateStatus.progress || 0}%`, 
-                  height: '100%', 
-                  backgroundColor: '#007bff',
-                  transition: 'width 0.3s ease'
-                }}
+                className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
+                style={{ width: `${updateStatus.progress || 0}%` }}
               />
             </div>
-            <div style={{ fontSize: '14px', color: '#666', marginTop: '8px' }}>
+            <div className="text-sm text-gray-600 mt-2">
               {Math.round(updateStatus.progress || 0)}% Complete
             </div>
           </div>
@@ -403,26 +347,17 @@ function UpdateModal({ isOpen, onClose }) {
 
     if (updateStatus?.status === 'downloaded') {
       return (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#28a745' }}>
+        <div className="text-center p-5">
+          <div className="text-lg font-bold mb-2.5 text-green-600">
             ✅ Update Downloaded!
           </div>
-          <div style={{ color: '#666', marginBottom: '20px' }}>
+          <div className="text-gray-600 mb-5">
             Version {updateStatus.version} is ready to install
           </div>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <div className="flex gap-2.5 justify-center">
             <button
               onClick={handleInstallUpdate}
-              style={{
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
+              className="bg-green-600 text-white border-none px-6 py-3 rounded-md cursor-pointer text-sm font-medium"
             >
               🔄 Install & Restart
             </button>
@@ -503,15 +438,7 @@ function UpdateModal({ isOpen, onClose }) {
         </div>
         <button
           onClick={handleCheckForUpdates}
-          style={{
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
+          className="bg-blue-600 text-white border-none px-6 py-3 rounded-md cursor-pointer text-sm"
         >
           🔍 Check for Updates
         </button>
@@ -524,35 +451,20 @@ function UpdateModal({ isOpen, onClose }) {
     if (!changelogData) return null;
 
     return (
-      <div style={{ padding: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '20px',
-          borderBottom: '1px solid #e9ecef',
-          paddingBottom: '10px'
-        }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#333' }}>
+      <div className="p-5 max-h-[70vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-5 border-b border-gray-200 pb-2.5">
+          <div className="text-lg font-bold text-gray-800">
             📜 Full Changelog
           </div>
           <button
             onClick={() => setShowFullChangelog(false)}
-            style={{
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '13px'
-            }}
+            className="bg-gray-500 text-white border-none px-4 py-2 rounded-md cursor-pointer text-sm"
           >
             ✕ Close
           </button>
         </div>
         
-        <div style={{ marginBottom: '20px', color: '#666' }}>
+        <div className="mb-5 text-gray-600">
           <div><strong>Current Version:</strong> {changelogData.currentVersion}</div>
           {changelogData.latestVersion && (
             <div><strong>Latest Version:</strong> {changelogData.latestVersion}</div>
@@ -560,40 +472,26 @@ function UpdateModal({ isOpen, onClose }) {
         </div>
         
         {changelogData.releases.map((release, index) => (
-          <div key={index} style={{ 
-            marginBottom: '20px',
-            padding: '15px',
-            backgroundColor: release.type === 'latest' ? '#f8f9fa' : '#fff',
-            borderRadius: '8px',
-            border: release.type === 'latest' ? '2px solid #007bff' : '1px solid #e9ecef'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '10px'
-            }}>
-              <div style={{ 
-                fontSize: '16px', 
-                fontWeight: 'bold', 
-                color: release.type === 'latest' ? '#007bff' : '#333'
-              }}>
+          <div key={index} className={`mb-5 p-4 rounded-lg ${
+            release.type === 'latest' 
+              ? 'bg-gray-50 border-2 border-blue-600' 
+              : 'bg-white border border-gray-200'
+          }`}>
+            <div className="flex justify-between items-center mb-2.5">
+              <div className={`text-base font-bold ${
+                release.type === 'latest' ? 'text-blue-600' : 'text-gray-800'
+              }`}>
                 Version {release.version}
-                {release.type === 'latest' && <span style={{ marginLeft: '8px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>LATEST</span>}
+                {release.type === 'latest' && <span className="ml-2 text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded">LATEST</span>}
               </div>
               {release.date && (
-                <div style={{ fontSize: '13px', color: '#666' }}>
+                <div className="text-sm text-gray-600">
                   {new Date(release.date).toLocaleDateString()}
                 </div>
               )}
             </div>
             
-            <div style={{ 
-              fontSize: '14px', 
-              color: '#666', 
-              lineHeight: '1.6',
-              whiteSpace: 'pre-line'
-            }}>
+            <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
               {release.notes}
             </div>
           </div>

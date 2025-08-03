@@ -286,14 +286,14 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       onClose={onClose}
       maxWidth="1200px"
       footerContent={({ handleClose }) => (
-        <div style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div className="text-right flex justify-end gap-2.5">
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => handleSaveAll(handleClose)} style={{ minWidth: 90 }}>Save</Button>
+          <Button variant="primary" onClick={() => handleSaveAll(handleClose)} className="min-w-[90px]">Save</Button>
         </div>
       )}
     >
       {message.text && (
-        <div className={`message ${message.type}`} style={{ marginBottom: 10, fontWeight: 500 }}>
+        <div className={`message ${message.type} mb-2.5 font-medium`}>
           {message.text}
         </div>
       )}
@@ -303,7 +303,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         separator
         desc="Add a new wallpaper from your computer. Supported formats: JPG, PNG, GIF, MP4, WEBM, etc."
         actions={
-          <div style={{ marginTop: 14 }}>
+          <div className="mt-3.5">
             {/* Upload button and logic here */}
             <Button variant="secondary" onClick={handleUpload} disabled={uploading}>
               {uploading ? 'Uploading...' : 'Upload New Wallpaper'}

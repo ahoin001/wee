@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
+import WInput from '../ui/WInput';
+import WSelect from '../ui/WSelect';
 import Card from '../ui/Card';
 import ActionCommand from './ActionCommand';
 import QuickAccessItem from './QuickAccessItem';
@@ -249,15 +251,15 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
       onClose={onClose}
       maxWidth="1400px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {/* <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="flex justify-between items-center">
+          {/* <div className="flex items-center gap-3">
             <WToggle
               checked={showQuickAccess}
               onChange={setShowQuickAccess}
               label="Show Quick Access"
             />
           </div> */}
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="flex gap-2.5">
             <Button variant="secondary" onClick={handleClose}>Cancel</Button>
             <Button variant="primary" onClick={handleSave}>Save</Button>
           </div>
@@ -266,56 +268,41 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
     >
       {/* Notification */}
       {showNotification && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: '#4caf50',
-          color: '#fff',
-          padding: '12px 16px',
-          borderRadius: '6px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          zIndex: 10000,
-          animation: 'slideIn 0.3s ease-out'
-        }}>
+        <div className="fixed top-5 right-5 bg-green-500 text-white px-4 py-3 rounded-md shadow-lg z-[10000] animate-[slideIn_0.3s_ease-out]">
           {notificationMessage}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 20, height: '600px' }}>
+      <div className="flex gap-5 h-[600px]">
         {/* Left Panel - Action Browser */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div className="flex-1 flex flex-col">
           <Card 
             title="System Actions"
             separator
             desc="Browse and add Windows system actions to your quick access menu."
-            style={{ marginBottom: 16 }}
+            className="mb-4"
           />
 
           {/* Search and Category Filter */}
-          <div style={{ marginBottom: 16 }}>
-            <input
-              type="text"
-              className="text-input"
+          <div className="mb-4 space-y-3">
+            <WInput
               placeholder="Search actions..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ width: '100%', marginBottom: 8 }}
             />
-            <select
+            <WSelect
+              placeholder="All Categories"
+              options={[
+                { value: 'All', label: 'All Categories' },
+                ...categories.map(category => ({ value: category, label: category }))
+              ]}
               value={selectedCategory}
-              onChange={e => setSelectedCategory(e.target.value)}
-              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1.5px solid #ccc' }}
-            >
-              <option value="All">All Categories</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+              onChange={setSelectedCategory}
+            />
           </div>
 
           {/* Add Custom Action Button */}
-          <div style={{ marginBottom: 16 }}>
+          <div className="mb-4">
             <Button
               variant="primary"
               onClick={() => setShowCustomForm(true)}
@@ -328,67 +315,49 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
 
           {/* Custom Action Form */}
           {showCustomForm && (
-            <div style={{ 
-              marginBottom: 16, 
-              padding: '16px', 
-              border: '1px solid #ddd', 
-              borderRadius: '8px',
-              background: '#f9f9f9'
-            }}>
-              <div style={{ fontWeight: '600', marginBottom: '12px', color: '#333' }}>
+            <div className="mb-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
+              <div className="font-semibold mb-3 text-gray-800">
                 Add Custom Action
               </div>
               
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: '#666' }}>
-                  Action Name *
-                </label>
-                <input
-                  type="text"
-                  className="text-input"
+              <div className="mb-3">
+                <WInput
+                  label="Action Name"
                   placeholder="e.g., Time & Language Settings"
                   value={customAction.name}
                   onChange={e => handleCustomActionChange('name', e.target.value)}
-                  style={{ width: '100%' }}
+                  required
                 />
               </div>
               
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: '#666' }}>
-                  Command *
-                </label>
-                <input
-                  type="text"
-                  className="text-input"
+              <div className="mb-3">
+                <WInput
+                  label="Command"
                   placeholder="e.g., start ms-settings:dateandtime"
                   value={customAction.command}
                   onChange={e => handleCustomActionChange('command', e.target.value)}
-                  style={{ width: '100%' }}
+                  required
                 />
-                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                <div className="text-xs text-gray-600 mt-1">
                   Common commands: <code>start [program]</code>, <code>cmd /c [command]</code>, <code>powershell -Command [script]</code>
                 </div>
               </div>
               
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: '#666' }}>
+              <div className="mb-3">
+                <label className="block text-sm mb-1 text-gray-600">
                   Icon
                 </label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div className="flex gap-2 flex-wrap">
                   {['⚙️', '🕐', '🔧', '🎛️', '📁', '💻', '🔍', '⚡', '🎮', '🔊', '🌐', '🔒'].map(icon => (
                     <button
                       key={icon}
                       type="button"
                       onClick={() => handleCustomActionChange('icon', icon)}
-                      style={{
-                        fontSize: '20px',
-                        padding: '8px',
-                        border: customAction.icon === icon ? '2px solid #0099ff' : '1px solid #ccc',
-                        borderRadius: '6px',
-                        background: customAction.icon === icon ? '#e6f3ff' : '#fff',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
+                                              className={`text-xl p-2 rounded-md cursor-pointer transition-all duration-200 ${
+                          customAction.icon === icon 
+                            ? 'border-2 border-blue-500 bg-blue-50' 
+                            : 'border border-gray-300 bg-white'
+                        }`}
                     >
                       {icon}
                     </button>
@@ -397,60 +366,23 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
               </div>
               
               {customActionError && (
-                <div style={{ 
-                  color: '#dc3545', 
-                  fontSize: '13px', 
-                  marginBottom: '12px',
-                  padding: '8px',
-                  background: '#ffeaea',
-                  borderRadius: '4px',
-                  border: '1px solid #ffcccc'
-                }}>
+                                <div className="text-red-600 text-sm mb-3 p-2 bg-red-50 rounded border border-red-200">
                   {customActionError}
                 </div>
               )}
               
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleAddCustomAction}
-                  style={{
-                    background: '#28a745',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = '#218838';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = '#28a745';
-                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white border-none rounded px-4 py-2 text-sm cursor-pointer font-medium transition-colors duration-200"
                 >
                   Add Action
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelCustomAction}
-                  style={{
-                    background: '#6c757d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = '#5a6268';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = '#6c757d';
-                  }}
+                  className="bg-gray-500 hover:bg-gray-600 text-white border-none rounded px-4 py-2 text-sm cursor-pointer transition-colors duration-200"
                 >
                   Cancel
                 </button>
@@ -459,14 +391,7 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
           )}
 
           {/* Actions List */}
-          <div style={{ 
-            flex: 1, 
-            overflowY: 'auto', 
-            border: '1px solid #ddd', 
-            borderRadius: 8,
-            padding: 8,
-            maxHeight: '400px'
-          }}>
+          <div className="flex-1 overflow-y-auto border border-gray-300 rounded-lg p-2 max-h-[400px]">
             {filteredActions.map(action => {
               const isAdded = powerActions.find(pa => pa.id === action.id);
               const isRecentlyAdded = recentlyAdded === action.id;
@@ -486,30 +411,17 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
         </div>
 
         {/* Right Panel - Quick Access */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div className="flex-1 flex flex-col">
           <Card 
             title="Quick Access Menu"
             separator
             desc="Actions that will appear in your quick access menu. Drag to reorder."
-            style={{ marginBottom: 16 }}
+            className="mb-4"
           />
 
-          <div style={{ 
-            flex: 1, 
-            border: '1px solid hsl(var(--border-primary))', 
-            borderRadius: 8, 
-            padding: 8,
-            background: 'hsl(var(--surface-secondary))',
-            overflowY: 'auto',
-            maxHeight: '400px'
-          }}>
+          <div className="flex-1 border border-[hsl(var(--border-primary))] rounded-lg p-2 bg-[hsl(var(--surface-secondary))] overflow-y-auto max-h-[400px]">
             {powerActions.length === 0 ? (
-              <div style={{ 
-                textAlign: 'center', 
-                color: 'hsl(var(--text-tertiary))', 
-                padding: '40px 20px',
-                fontStyle: 'italic'
-              }}>
+              <div className="text-center text-[hsl(var(--text-tertiary))] py-10 px-5 italic">
                 No actions selected. Click on actions from the left panel to add them here.
               </div>
             ) : (

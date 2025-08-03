@@ -23,7 +23,8 @@ const useUIStore = create((set, get) => ({
   showNavigationCustomizationModal: false,
   showMonitorSelectionModal: false,
   showClassicDockSettingsModal: false,
-  showDesignSystemModal: false,
+
+
   
 
   
@@ -165,8 +166,8 @@ const useUIStore = create((set, get) => ({
   closeNavigationCustomizationModal: () => set({ showNavigationCustomizationModal: false }),
   openMonitorSelectionModal: () => set({ showMonitorSelectionModal: true }),
   closeMonitorSelectionModal: () => set({ showMonitorSelectionModal: false }),
-  openDesignSystemModal: () => set({ showDesignSystemModal: true }),
-  closeDesignSystemModal: () => set({ showDesignSystemModal: false }),
+
+
   
 
   
@@ -208,7 +209,7 @@ const useUIStore = create((set, get) => ({
       showUpdateModal,
       showPrimaryActionsModal,
       showAppearanceSettingsModal,
-      showDesignSystemModal,
+  
       showCommunitySection,
       keyboardShortcuts 
     } = get();
@@ -251,7 +252,7 @@ const useUIStore = create((set, get) => ({
                       showChannelSettingsModal || showAppShortcutsModal ||
                       showGeneralSettingsModal || showTimeSettingsModal ||
                       showRibbonSettingsModal || showUpdateModal || showPrimaryActionsModal ||
-                      showAppearanceSettingsModal || showDesignSystemModal;
+                      showAppearanceSettingsModal;
     
     // Get the current key and modifier
     const key = event.key.toLowerCase();

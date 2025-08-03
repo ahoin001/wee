@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
+import WSelect from '../../ui/WSelect';
 
 const TimeSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => {
   // Memoize callback functions to prevent unnecessary re-renders
@@ -85,15 +86,15 @@ const TimeSettingsTab = React.memo(({ localSettings, updateLocalSetting }) => {
             
             {/* Font Selection */}
             <div style={{ marginTop: 18 }}>
-              <label style={{ fontWeight: 500, marginRight: 10 }}>Time Font</label>
-              <select
+              <WSelect
+                label="Time Font"
+                options={[
+                  { value: 'default', label: 'Default' },
+                  { value: 'digital', label: 'DigitalDisplayRegular-ODEO' }
+                ]}
                 value={localSettings.time?.timeFont ?? 'default'}
                 onChange={handleTimeFontChange}
-                style={{ padding: 4, borderRadius: 6 }}
-              >
-                <option value="default">Default</option>
-                <option value="digital">DigitalDisplayRegular-ODEO</option>
-              </select>
+              />
             </div>
           </>
         }

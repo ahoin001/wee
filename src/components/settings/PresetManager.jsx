@@ -3,6 +3,7 @@ import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
+import WInput from '../../ui/WInput';
 import PresetListItem from '../PresetListItem';
 import CommunityPresets from '../CommunityPresets';
 import JSZip from 'jszip';
@@ -440,21 +441,11 @@ const PresetManager = ({
         actions={
           <>
             <div style={{ marginBottom: 16 }}>
-              <input
-                type="text"
+              <WInput
                 placeholder="Preset name"
                 value={newPresetName}
                 onChange={e => setNewPresetName(e.target.value)}
                 onKeyPress={handleKeyPress}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '1px solid hsl(var(--border-primary))',
-                  fontSize: 14,
-                  background: 'hsl(var(--surface-primary))',
-                  color: 'hsl(var(--text-primary))'
-                }}
               />
             </div>
             

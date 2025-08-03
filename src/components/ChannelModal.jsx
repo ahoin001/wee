@@ -6,6 +6,7 @@ import ImageSearchModal from './ImageSearchModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
+import WRadioGroup from '../ui/WRadioGroup';
 // Remove unused imports related to old fetching/caching logic
 // import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
 import UnifiedAppPathCard from './UnifiedAppPathCard';
@@ -549,7 +550,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   const footerContent = ({ handleClose }) => (
     <>
-      <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
+      <div className="flex flex-row gap-2">
         <Button variant="secondary" onClick={handleClose}>Cancel</Button>
         <Button 
           variant="danger-secondary" 
@@ -560,7 +561,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         <Button variant="primary" onClick={() => handleSave(handleClose)} title={saveTooltip}>Save Channel</Button>
       </div>
       {showError && saveTooltip && (
-        <div style={{ color: '#dc3545', fontSize: 13, marginTop: 8, fontWeight: 500 }}>{saveTooltip}</div>
+        <div className="text-red-600 text-sm mt-2 font-medium">{saveTooltip}</div>
       )}
     </>
   );
@@ -574,31 +575,19 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       <div className="image-section">
         {/* Gallery Mode Toggle - only show when Ken Burns is enabled */}
         {showGalleryOption && (
-          <div style={{ marginBottom: 16 }}>
-            <Text as="label" size="md" weight={600} style={{ display: 'block', marginBottom: 8 }}>
+          <div className="mb-4">
+            <Text as="label" size="md" weight={600} className="block mb-2">
               Image Mode
             </Text>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
-                  type="radio"
-                  name="imageMode"
-                  checked={!galleryMode}
-                  onChange={() => setGalleryMode(false)}
-                />
-                Single Image
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
-                  type="radio"
-                  name="imageMode"
-                  checked={galleryMode}
-                  onChange={() => setGalleryMode(true)}
-                />
-                Image Gallery (slideshow)
-              </label>
-            </div>
-            <Text variant="help" style={{ marginTop: 8 }}>
+            <WRadioGroup
+              options={[
+                { value: 'single', label: 'Single Image' },
+                { value: 'gallery', label: 'Image Gallery (slideshow)' }
+              ]}
+              value={galleryMode ? 'gallery' : 'single'}
+              onChange={(value) => setGalleryMode(value === 'gallery')}
+            />
+            <Text variant="help" className="mt-2">
               {galleryMode 
                 ? 'Upload multiple images for Ken Burns slideshow effect. Make sure Ken Burns mode is set to "Always Active" for best results.'
                 : 'Use a single image with Ken Burns animation.'}
@@ -608,13 +597,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
         {/* Gallery Feature Notice */}
         {!showGalleryOption && (
-          <div style={{ 
-            background: '#fff3cd', 
-            border: '1px solid #ffeaa7', 
-            borderRadius: 8, 
-            padding: 12, 
-            marginBottom: 16 
-          }}>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
             <Text size="sm" color="#856404">
               🚧 <strong>Multi-image gallery feature is not ready yet.</strong> Currently focusing on perfecting the single image experience with Ken Burns effects.
             </Text>
@@ -627,24 +610,15 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             {media ? (
               <div className="image-preview">
                 {media.loading ? (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    minHeight: 120, 
-                    backgroundColor: '#f5f5f5', 
-                    borderRadius: 8, 
-                    color: '#666',
-                    fontSize: 14
-                  }}>
+                  <div className="flex items-center justify-center min-h-[120px] bg-gray-100 rounded-lg text-gray-600 text-sm">
                     <span>⏳ Processing image...</span>
                   </div>
                 ) : media.temporary ? (
-                  <div style={{ position: 'relative' }}>
+                  <div className="relative">
                     {media && typeof media.type === 'string' && media.type.startsWith('image/') ? (
                       <img src={media.url} alt="Channel preview" />
                     ) : media && typeof media.type === 'string' && media.type.startsWith('video/') ? (
-                      <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
+                      <video src={media.url} autoPlay loop muted className="max-w-full max-h-[120px]" />
                     ) : null}
                     <div style={{
                       position: 'absolute',
@@ -693,97 +667,37 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 marginBottom: 12
               }}>
                 {imageGallery.map((image, index) => (
-                  <div key={image.id} style={{ position: 'relative' }}>
-                    <div style={{
-                      width: '100%',
-                      height: 80,
-                      borderRadius: 8,
-                      overflow: 'hidden',
-                      border: '2px solid #e0e0e6',
-                      background: '#f5f5f5'
-                    }}>
+                  <div key={image.id} className="relative">
+                    <div className="w-full h-20 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-100">
                       {image.loading ? (
-                        <div style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: '#f0f0f0',
-                          color: '#666',
-                          fontSize: 12
-                        }}>
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-600 text-xs">
                           Saving...
                         </div>
                       ) : image.error ? (
-                        <div style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: '#ffe6e6',
-                          color: '#cc0000',
-                          fontSize: 11,
-                          textAlign: 'center',
-                          padding: 4
-                        }}>
+                        <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-600 text-xs text-center p-1">
                           {image.error}
                         </div>
                       ) : image.type.startsWith('image/') ? (
                         <img 
                           src={image.url} 
                           alt={`Gallery ${index + 1}`}
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'cover' 
-                          }}
+                          className="w-full h-full object-cover"
                         />
                       ) : image.type.startsWith('video/') ? (
                         <video 
                           src={image.url} 
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'cover' 
-                          }}
+                          className="w-full h-full object-cover"
                           muted
                         />
                       ) : null}
                     </div>
                     <button 
                       onClick={() => handleRemoveGalleryImage(image.id)}
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        background: 'rgba(220, 53, 69, 0.9)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        width: 20,
-                        height: 20,
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
+                      className="absolute top-1 right-1 bg-red-600/90 text-white border-none rounded w-5 h-5 text-xs cursor-pointer flex items-center justify-center"
                     >
                       ×
                     </button>
-                    <div style={{
-                      position: 'absolute',
-                      bottom: 4,
-                      left: 4,
-                      background: 'rgba(0, 0, 0, 0.7)',
-                      color: 'white',
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      fontSize: 11,
-                      fontWeight: 500
-                    }}>
+                    <div className="absolute bottom-1 left-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-xs font-medium">
                       {index + 1}
                     </div>
                   </div>
