@@ -1,0 +1,82 @@
+/* Dock Effects Modal Styles */
+
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: hsl(var(--surface-secondary));
+  border-radius: 5px;
+  height: 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: hsl(var(--wii-blue));
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(0, 153, 255, 0.7);
+  border: 2px solid white;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: hsl(var(--wii-blue));
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(0, 153, 255, 0.7);
+  border: 2px solid white;
+}
+
+/* Color picker styling */
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* Effect type buttons */
+.effect-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.effect-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Preview section */
+.preview-container {
+  background: linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-primary)) 100%);
+  border: 1px solid hsl(var(--border));
+}
+
+/* Adaptive color indicator */
+.adaptive-color-indicator {
+  background: linear-gradient(45deg, hsl(var(--wii-blue)), hsl(var(--wii-blue) / 0.7));
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+} 

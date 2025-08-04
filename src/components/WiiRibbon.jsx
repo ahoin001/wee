@@ -6,7 +6,9 @@ const LazyPrimaryActionsModal = React.lazy(() => import('./PrimaryActionsModal')
 const LazyTimeSettingsModal = React.lazy(() => import('./TimeSettingsModal'));
 const LazyRibbonSettingsModal = React.lazy(() => import('./RibbonSettingsModal'));
 const LazyUpdateModal = React.lazy(() => import('./UpdateModal'));
+const LazyDockEffectsModal = React.lazy(() => import('./DockEffectsModal'));
 import WiiStyleButton from './WiiStyleButton';
+import DockParticleSystem from './DockParticleSystem';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 import intervalManager from '../utils/IntervalManager';
@@ -20,7 +22,7 @@ function hexAlpha(opacity) {
   return a === 255 ? '' : a.toString(16).padStart(2, '0');
 }
 
-const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity }) => {
+const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, startInFullscreen, setStartInFullscreen, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, setShowPresetsModal, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity, particleSettings = {} }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // Debug logging for ribbon props
@@ -50,6 +52,7 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const [showTimeSettingsModal, setShowTimeSettingsModal] = useState(false);
   const [showRibbonSettingsModal, setShowRibbonSettingsModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showDockEffectsModal, setShowDockEffectsModal] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [immersivePip, setImmersivePip] = useState(() => {
     // Try to load from localStorage or default to false
@@ -128,6 +131,12 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   const handleRibbonContextMenu = (e) => {
     e.preventDefault();
     setShowRibbonSettingsModal(true);
+  };
+
+  const handleDockEffectsContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowDockEffectsModal(true);
   };
 
   const handlePrimaryActionsSave = (newConfig) => {
@@ -409,6 +418,21 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
   return (
     <>
       <footer className="interactive-footer" onContextMenu={handleRibbonContextMenu}>
+        {/* Particle System */}
+        <DockParticleSystem
+          enabled={particleSettings.enabled || false}
+          effectType={particleSettings.effectType || 'normal'}
+          direction={particleSettings.direction || 'upward'}
+          speed={particleSettings.speed || 2}
+          particleCount={particleSettings.particleCount || 3}
+          spawnRate={particleSettings.spawnRate || 60}
+          settings={{
+            size: particleSettings.size || 3,
+            gravity: particleSettings.gravity || 0.02,
+            fadeSpeed: particleSettings.fadeSpeed || 0.008,
+            sizeDecay: particleSettings.sizeDecay || 0.02
+          }}
+        />
           <div
             className="absolute inset-0 z-0 svg-container-glow"
             style={{
@@ -683,7 +707,8 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
             className={`sd-card-button absolute z-10 settings-cog-button glass-effect`}
             style={{ left: '220px', top: '158px', backdropFilter: 'blur(12px) saturate(1.5)', background: 'rgba(255,255,255,0.45)', border: '1.5px solid rgba(180,180,200,0.18)', boxShadow: '0 2px 16px 0 rgba(80,80,120,0.07)' }}
             onClick={handleSettingsClick}
-            title="Settings"
+            onContextMenu={handleDockEffectsContextMenu}
+            title="Settings (Right-click for Dock Effects)"
           >
               <svg width="28" height="28" viewBox="0 0 24 24" className="text-wii-gray-dark">
                 <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
@@ -1035,6 +1060,19 @@ const WiiRibbon = ({ onSettingsClick, onSettingsChange, onToggleDarkMode, onTogg
             onSettingsChange={onSettingsChange}
             glassWiiRibbon={glassWiiRibbon}
             setGlassWiiRibbon={onGlassWiiRibbonChange}
+          />
+        </Suspense>
+      )}
+
+      {/* Dock Effects Modal */}
+      {showDockEffectsModal && (
+        <Suspense fallback={<div>Loading Dock Effects Modal...</div>}>
+          <LazyDockEffectsModal
+            isOpen={showDockEffectsModal}
+            onClose={() => setShowDockEffectsModal(false)}
+            onSettingsChange={onSettingsChange}
+            settings={particleSettings}
+            ribbonGlowColor={propRibbonGlowColor}
           />
         </Suspense>
       )}

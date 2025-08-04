@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './ClassicWiiDock.css';
+import DockParticleSystem from './DockParticleSystem';
 
 const WiiDock = ({ 
   dockSettings = {}, 
@@ -9,7 +10,8 @@ const WiiDock = ({
   onButtonContextMenu,
   onButtonClick,
   buttonConfigs = [],
-  accessoryButtonConfig = {}
+  accessoryButtonConfig = {},
+  particleSettings = {}
 }) => {
   const [activeButton, setActiveButton] = useState(null);
 
@@ -149,6 +151,29 @@ const WiiDock = ({
 
   return (
     <div className="wii-dock-container" onContextMenu={handleContextMenu}>
+      {/* Particle System */}
+      <DockParticleSystem
+        enabled={particleSettings.enabled || false}
+        effectType={particleSettings.effectType || 'normal'}
+        direction={particleSettings.direction || 'upward'}
+        speed={particleSettings.speed || 2}
+        particleCount={particleSettings.particleCount || 3}
+        spawnRate={particleSettings.spawnRate || 60}
+        settings={{
+          size: particleSettings.size || 3,
+          gravity: particleSettings.gravity || 0.02,
+          fadeSpeed: particleSettings.fadeSpeed || 0.008,
+          sizeDecay: particleSettings.sizeDecay || 0.02,
+          useAdaptiveColor: particleSettings.useAdaptiveColor || false,
+          customColors: particleSettings.customColors || [],
+          colorIntensity: particleSettings.colorIntensity || 1.0,
+          colorVariation: particleSettings.colorVariation || 0.3,
+          rotationSpeed: particleSettings.rotationSpeed || 0.05,
+          particleLifetime: particleSettings.particleLifetime || 3.0
+        }}
+        ribbonGlowColor={colors.dockAccentColor}
+      />
+      
       <div 
         id="dock-container" 
         className="wii-dock-base"
@@ -319,7 +344,8 @@ const ClassicWiiDock = ({
   openPresetsModal,
   dockSettings,
   onDockContextMenu,
-  accessoryButtonConfig
+  accessoryButtonConfig,
+  particleSettings = {}
 }) => {
   return (
     <div className="wii-dock-wrapper">
@@ -332,6 +358,7 @@ const ClassicWiiDock = ({
         onButtonClick={onButtonClick}
         buttonConfigs={buttonConfigs}
         accessoryButtonConfig={accessoryButtonConfig}
+        particleSettings={particleSettings}
       />
     </div>
   );

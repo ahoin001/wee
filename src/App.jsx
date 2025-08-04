@@ -321,6 +321,20 @@ function App() {
   const [showDock, setShowDock] = useState(true); // Show/hide the Wii Ribbon dock
   const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  
+  // Particle effects settings
+  const [particleSettings, setParticleSettings] = useState({
+    enabled: false,
+    effectType: 'normal',
+    direction: 'upward',
+    speed: 2,
+    particleCount: 3,
+    spawnRate: 60,
+    size: 3,
+    gravity: 0.02,
+    fadeSpeed: 0.008,
+    sizeDecay: 0.02
+  });
   const [showCountdown, setShowCountdown] = useState(false);
   const [isScreenshotInProgress, setIsScreenshotInProgress] = useState(false);
   
@@ -1019,8 +1033,22 @@ function App() {
     setKenBurnsForVideos(settings.kenBurnsForVideos ?? false);
     setKenBurnsEasing(settings.kenBurnsEasing || 'ease-out');
     setKenBurnsAnimationType(settings.kenBurnsAnimationType || 'both');
-    setKenBurnsCrossfadeReturn(settings.kenBurnsCrossfadeReturn !== false);
-    setKenBurnsTransitionType(settings.kenBurnsTransitionType || 'cross-dissolve');
+            setKenBurnsCrossfadeReturn(settings.kenBurnsCrossfadeReturn !== false);
+        setKenBurnsTransitionType(settings.kenBurnsTransitionType || 'cross-dissolve');
+        
+        // Load particle settings
+        setParticleSettings(settings.particleSettings || {
+          enabled: false,
+          effectType: 'normal',
+          direction: 'upward',
+          speed: 2,
+          particleCount: 3,
+          spawnRate: 60,
+          size: 3,
+          gravity: 0.02,
+          fadeSpeed: 0.008,
+          sizeDecay: 0.02
+        });
         
         // Load ribbonButtonConfigs to ensure they're preserved during persistence
         if (settings.ribbonButtonConfigs) {
@@ -1154,8 +1182,9 @@ function App() {
         kenBurnsCrossfadeReturn, // Persist Ken Burns crossfade return
         kenBurnsTransitionType, // Persist Ken Burns transition type
         showDock, // Persist showDock setting
-    dockSettings, // Persist dockSettings
-    ...getConfigurationsForPersistence(), // Persist ClassicWiiDock button configurations
+        dockSettings, // Persist dockSettings
+        particleSettings, // Persist particle settings
+        ...getConfigurationsForPersistence(), // Persist ClassicWiiDock button configurations
       };
       
       // Double-check: if we had button configs before, make sure they're still there
@@ -1170,7 +1199,7 @@ function App() {
       await settingsApi?.set(merged);
     }
     persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, classicMode, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings, classicDockButtonConfigs, accessoryButtonConfig]);
+  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, classicMode, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings, particleSettings, classicDockButtonConfigs, accessoryButtonConfig]);
 
   // Persist keyboard shortcuts when they change
   useEffect(() => {
@@ -1562,6 +1591,9 @@ function App() {
     }
     if (newSettings.dockSettings !== undefined) {
       setDockSettings(newSettings.dockSettings);
+    }
+    if (newSettings.particleSettings !== undefined) {
+      setParticleSettings(newSettings.particleSettings);
     }
     if (newSettings.wallpaperBlur !== undefined) {
       setWallpaperBlur(newSettings.wallpaperBlur);
@@ -2646,6 +2678,7 @@ function App() {
             glassBlur={glassBlur}
             glassBorderOpacity={glassBorderOpacity}
             glassShineOpacity={glassShineOpacity}
+            particleSettings={particleSettings}
           />
         )}
         {showDock && classicMode && (
@@ -2667,6 +2700,7 @@ function App() {
             dockSettings={dockSettings}
             onDockContextMenu={handleOpenClassicDockSettingsModal}
             accessoryButtonConfig={accessoryButtonConfig}
+            particleSettings={particleSettings}
           />
         )}
         

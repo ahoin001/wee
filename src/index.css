@@ -60,3 +60,36 @@ h1 {
   font-style: normal;
   font-display: swap;
 }
+
+/* Slider styling for dock effects */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: hsl(var(--surface-secondary));
+  border-radius: 5px;
+  height: 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: hsl(var(--wii-blue));
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.7);
+  border: 2px solid #fff;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: hsl(var(--wii-blue));
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.7);
+  border: 2px solid #fff;
+}
