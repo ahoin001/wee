@@ -165,11 +165,11 @@ const PaginatedChannels = ({
 
   // Modal opening is now handled by Zustand store
 
-  // Handle page navigation - now using Zustand store
+  // Handle page navigation - now using Zustand store with circular navigation
   const handlePageChange = useCallback((newPage) => {
-    if (newPage >= 0 && newPage < totalPages) {
-      setCurrentPage(newPage);
-    }
+    // For circular navigation, we allow wrapping around
+    const wrappedPage = ((newPage % totalPages) + totalPages) % totalPages;
+    setCurrentPage(wrappedPage);
   }, [totalPages, setCurrentPage]);
 
   // Handle animation - now using Zustand store
@@ -195,40 +195,68 @@ const PaginatedChannels = ({
     onHover: onChannelHover
   }), [onMediaChange, onAppPathChange, onChannelSave, animatedOnHover, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, onChannelHover]);
 
+  // Calculate the transform offset for circular navigation
+  const getTransformOffset = () => {
+    return -currentPage * 100;
+  };
+
+  // Create infinite scroll effect by duplicating pages
+  const createInfinitePages = () => {
+    const pages = [];
+    
+    // Add pages before current (for seamless left navigation)
+    for (let i = 0; i < totalPages; i++) {
+      const pageIndex = i;
+      const { startIndex, endIndex } = getChannelIndexRange(pageIndex);
+      const pageChannels = allPagesChannels.slice(startIndex, endIndex + 1);
+      
+      pages.push({
+        key: `page-${pageIndex}`,
+        pageIndex,
+        channels: pageChannels,
+        transform: `translateX(${i * 100}%)`
+      });
+    }
+    
+    return pages;
+  };
+
+  const infinitePages = createInfinitePages();
+
   return (
     <div className="paginated-channels">
       <div 
-        className={`pages-container ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''}`}
+        className={`pages-container infinite-scroll ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''}`}
         style={{
-          transform: `translateX(-${currentPage * 100}%)`,
-          transition: isAnimating ? 'transform 0.3s ease-in-out' : 'none'
+          transform: `translateX(${getTransformOffset()}%)`,
+          transition: isAnimating ? 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none',
+          '--animation-direction': animationDirection
         }}
       >
-        {/* Render all pages */}
-        {Array.from({ length: totalPages }, (_, pageIndex) => {
-          const { startIndex, endIndex } = getChannelIndexRange(pageIndex);
-          const pageChannels = allPagesChannels.slice(startIndex, endIndex + 1);
-          
-          return (
-            <div key={pageIndex} className={`channels-page ${pageIndex === currentPage ? 'active' : ''}`}>
-              <div className="channels-grid">
-                {pageChannels
-                  .filter(channel => channel.isVisible) // Only show visible channels
-                  .map((channel) => (
-                    <Channel
-                      key={channel.id}
-                      {...channel}
-                      {...channelProps}
-                      channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
-                      animationStyle={channel.animationStyle}
-                      idleAnimationClass={getChannelAnimationClass(channel.id)}
-                      isIdleAnimating={isChannelAnimating(channel.id)}
-                    />
-                  ))}
-              </div>
+        {/* Render infinite pages */}
+        {infinitePages.map(({ key, pageIndex, channels, transform }) => (
+          <div 
+            key={key} 
+            className={`channels-page ${pageIndex === currentPage ? 'active' : ''}`}
+            style={{ transform }}
+          >
+            <div className="channels-grid">
+              {channels
+                .filter(channel => channel.isVisible) // Only show visible channels
+                .map((channel) => (
+                  <Channel
+                    key={channel.id}
+                    {...channel}
+                    {...channelProps}
+                    channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
+                    animationStyle={channel.animationStyle}
+                    idleAnimationClass={getChannelAnimationClass(channel.id)}
+                    isIdleAnimating={isChannelAnimating(channel.id)}
+                  />
+                ))}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
       
       {/* Channel Modal */}

@@ -23,6 +23,10 @@ contextBridge.exposeInMainWorld('api', {
   steam: {
     getInstalledGames: () => ipcRenderer.invoke('steam:getInstalledGames'),
     pickLibraryFolder: () => ipcRenderer.invoke('steam:pickLibraryFolder'),
+    // New Steam APIs for enhanced integration
+    detectInstallation: () => ipcRenderer.invoke('detectSteamInstallation'),
+    getLibraries: (args) => ipcRenderer.invoke('getSteamLibraries', args),
+    scanGames: (args) => ipcRenderer.invoke('scanSteamGames', args),
   },
   epic: {
     getInstalledGames: () => ipcRenderer.invoke('epic:getInstalledGames'),

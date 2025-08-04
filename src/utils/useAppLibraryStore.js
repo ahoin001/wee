@@ -124,6 +124,8 @@ const useAppLibraryStore = create((set, get) => ({
     // Cache miss, expired, or custom path - fetch from API
     try {
       const api = window.api?.steam;
+      console.log('[Zustand] Steam API available:', !!api);
+      console.log('[Zustand] window.api available:', !!window.api);
       const args = customSteamPath ? { customPath: customSteamPath } : undefined;
       const result = await api?.getInstalledGames(args);
       console.log('[Zustand] fetchSteamGames result:', result);

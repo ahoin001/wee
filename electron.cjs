@@ -2665,28 +2665,64 @@ async function getInstalledSteamGames() {
     if (!libraryPaths.includes(steamPath)) {
       libraryPaths.push(steamPath);
     }
+    
+    console.log('[SteamScan] Scanning libraries:', libraryPaths);
     let games = [];
     for (const libPath of libraryPaths) {
       const steamapps = path.join(libPath, 'steamapps');
       if (!fs.existsSync(steamapps)) continue;
       const files = fs.readdirSync(steamapps);
-      for (const file of files) {
-        if (file.startsWith('appmanifest_') && file.endsWith('.acf')) {
+      const manifestFiles = files.filter(file => file.startsWith('appmanifest_') && file.endsWith('.acf'));
+      console.log(`[SteamScan] Found ${manifestFiles.length} manifest files in ${libPath}`);
+      
+      for (const file of manifestFiles) {
           try {
             const manifest = vdf.parse(fs.readFileSync(path.join(steamapps, file), 'utf-8'));
-            const appid = manifest.AppState.appid;
-            const name = manifest.AppState.name;
+            const appState = manifest.AppState;
+            const appid = appState.appid;
+            const name = appState.name;
             if (appid && name) {
-              games.push({ name, appid });
+              // Debug: Log the StateFlags value to understand what we're getting
+              console.log(`[SteamScan] Game: ${name} (${appid}), StateFlags: "${appState.StateFlags}", SizeOnDisk: ${appState.SizeOnDisk}`);
+              
+              // More robust installation check: if SizeOnDisk > 0, the game is installed
+              const isInstalled = parseInt(appState.SizeOnDisk) > 0;
+              
+              // Only include games that are actually installed
+              if (isInstalled) {
+                games.push({
+                  appId: appid,
+                  name: name,
+                  installed: isInstalled,
+                  sizeOnDisk: parseInt(appState.SizeOnDisk) || 0,
+                  lastUpdated: parseInt(appState.LastUpdated) || 0,
+                  installdir: appState.installdir || '',
+                  // Calculate file size in GB
+                  sizeGB: Math.round((parseInt(appState.SizeOnDisk) || 0) / (1024 * 1024 * 1024) * 100) / 100
+                });
+              } else {
+                console.log(`[SteamScan] Skipping uninstalled game: ${name} (${appid})`);
+              }
             }
           } catch (err) {
             console.warn('[SteamScan] Failed to parse', file, err);
           }
         }
       }
-    }
-    console.log(`[SteamScan] Found ${games.length} installed Steam games.`);
-    return { games };
+    // Remove duplicates based on appId, but keep the first occurrence (usually from primary library)
+    const uniqueGames = games.filter((game, index, self) => {
+      const firstIndex = self.findIndex(g => g.appId === game.appId);
+      if (index === firstIndex) {
+        console.log(`[SteamScan] Keeping game: ${game.name} (${game.appId}) from library ${game.installdir || 'unknown'}`);
+        return true;
+      } else {
+        console.log(`[SteamScan] Skipping duplicate: ${game.name} (${game.appId}) from library ${game.installdir || 'unknown'}`);
+        return false;
+      }
+    });
+    
+    console.log(`[SteamScan] Found ${games.length} total games, ${uniqueGames.length} unique installed Steam games.`);
+    return { games: uniqueGames };
   } catch (err) {
     console.error('[SteamScan] Error scanning Steam games:', err);
     return { error: err.message };
@@ -2695,6 +2731,144 @@ async function getInstalledSteamGames() {
 
 ipcMain.handle('steam:getInstalledGames', async () => {
   return await getInstalledSteamGames();
+});
+
+// Additional Steam APIs for the new integration
+ipcMain.handle('detectSteamInstallation', async () => {
+  try {
+    const steamPaths = [
+      'C:\\Program Files (x86)\\Steam',
+      'C:\\Program Files\\Steam',
+      'D:\\Steam',
+      'E:\\Steam',
+      'F:\\Steam'
+    ];
+
+    for (const steamPath of steamPaths) {
+      try {
+        // Check if Steam.exe exists
+        const steamExePath = path.join(steamPath, 'Steam.exe');
+        if (fs.existsSync(steamExePath)) {
+          console.log(`[Steam] Found Steam installation at: ${steamPath}`);
+          return { steamPath };
+        }
+      } catch (error) {
+        console.warn(`[Steam] Error checking path ${steamPath}:`, error.message);
+      }
+    }
+
+    console.log('[Steam] Steam installation not found');
+    return { steamPath: null };
+  } catch (error) {
+    console.error('[Steam] Error detecting Steam installation:', error);
+    return { steamPath: null };
+  }
+});
+
+ipcMain.handle('getSteamLibraries', async (event, { steamPath }) => {
+  try {
+    const libraryFoldersPath = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
+    
+    if (!fs.existsSync(libraryFoldersPath)) {
+      console.log('[Steam] libraryfolders.vdf not found');
+      return { libraries: [] };
+    }
+
+    const libraryFoldersContent = fs.readFileSync(libraryFoldersPath, 'utf8');
+    const libraryFoldersData = vdf.parse(libraryFoldersContent);
+
+    const libraries = [];
+    
+    // Extract library paths from VDF data
+    if (libraryFoldersData.libraryfolders) {
+      Object.keys(libraryFoldersData.libraryfolders).forEach(key => {
+        const folder = libraryFoldersData.libraryfolders[key];
+        if (folder.path) {
+          const libraryPath = path.join(folder.path, 'steamapps');
+          if (fs.existsSync(libraryPath)) {
+            libraries.push(libraryPath);
+          }
+        }
+      });
+    }
+
+    console.log(`[Steam] Found ${libraries.length} library folders:`, libraries);
+    return { libraries };
+
+  } catch (error) {
+    console.error('[Steam] Error parsing library folders:', error);
+    return { libraries: [] };
+  }
+});
+
+ipcMain.handle('scanSteamGames', async (event, { libraryPaths }) => {
+  const games = [];
+
+  for (const libraryPath of libraryPaths) {
+    try {
+      // Get all appmanifest files
+      const files = fs.readdirSync(libraryPath);
+      const manifestFiles = files.filter(file => 
+        file.startsWith('appmanifest_') && file.endsWith('.acf')
+      );
+
+      console.log(`[Steam] Found ${manifestFiles.length} games in ${libraryPath}`);
+
+      for (const manifestFile of manifestFiles) {
+        try {
+          const manifestPath = path.join(libraryPath, manifestFile);
+          const manifestContent = fs.readFileSync(manifestPath, 'utf8');
+          const manifestData = vdf.parse(manifestContent);
+
+          if (manifestData.AppState) {
+            const appState = manifestData.AppState;
+            
+            // More robust installation check: if SizeOnDisk > 0, the game is installed
+            const isInstalled = parseInt(appState.SizeOnDisk) > 0;
+            
+            // Only include games that are actually installed
+            if (isInstalled) {
+              const game = {
+                appId: appState.appid,
+                name: appState.name,
+                installed: isInstalled,
+                sizeOnDisk: parseInt(appState.SizeOnDisk) || 0,
+                lastUpdated: parseInt(appState.LastUpdated) || 0,
+                installdir: appState.installdir,
+                // Calculate file size in GB
+                sizeGB: Math.round((parseInt(appState.SizeOnDisk) || 0) / (1024 * 1024 * 1024) * 100) / 100
+              };
+
+              games.push(game);
+            } else {
+              console.log(`[SteamScan] Skipping uninstalled game: ${appState.name} (${appState.appid})`);
+            }
+          }
+
+        } catch (error) {
+          console.warn(`[Steam] Error parsing manifest ${manifestFile}:`, error.message);
+        }
+      }
+
+    } catch (error) {
+      console.error(`[Steam] Error scanning library ${libraryPath}:`, error);
+    }
+  }
+
+  // Remove duplicates based on appId, but keep the first occurrence
+  const uniqueGames = games.filter((game, index, self) => {
+    const firstIndex = self.findIndex(g => g.appId === game.appId);
+    if (index === firstIndex) {
+      console.log(`[Steam] Keeping game: ${game.name} (${game.appId})`);
+      return true;
+    } else {
+      console.log(`[Steam] Skipping duplicate: ${game.name} (${game.appId})`);
+      return false;
+    }
+  });
+  
+  console.log(`[Steam] Total games found: ${games.length}, unique games: ${uniqueGames.length}`);
+  return { games: uniqueGames };
 });
 
 // Helper to get all installed Epic Games
