@@ -156,32 +156,11 @@ const PaginatedChannels = ({
     }
   }, [getTotalChannelsCount, effectiveChannelConfigs, currentPage, totalPages, DEBUG]);
 
-
   // Get channels for current page
   const currentPageChannels = useMemo(() => {
     const { startIndex, endIndex } = getChannelIndexRange(currentPage);
     return allPagesChannels.slice(startIndex, endIndex + 1);
   }, [allPagesChannels, currentPage, getChannelIndexRange]);
-
-  // Modal opening is now handled by Zustand store
-
-  // Handle page navigation - now using Zustand store with circular navigation
-  const handlePageChange = useCallback((newPage) => {
-    // For circular navigation, we allow wrapping around
-    const wrappedPage = ((newPage % totalPages) + totalPages) % totalPages;
-    setCurrentPage(wrappedPage);
-  }, [totalPages, setCurrentPage]);
-
-  // Handle animation - now using Zustand store
-  const handleAnimation = useCallback((direction) => {
-    setIsAnimating(true);
-    setAnimationDirection(direction);
-    
-    setTimeout(() => {
-      setIsAnimating(false);
-      setAnimationDirection('none');
-    }, 300);
-  }, [setIsAnimating, setAnimationDirection]);
 
   // Memoize Channel component props to prevent unnecessary re-renders
   const channelProps = useMemo(() => ({
@@ -195,16 +174,15 @@ const PaginatedChannels = ({
     onHover: onChannelHover
   }), [onMediaChange, onAppPathChange, onChannelSave, animatedOnHover, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, onChannelHover]);
 
-  // Calculate the transform offset for circular navigation
+  // Calculate the transform offset for simple navigation
   const getTransformOffset = () => {
     return -currentPage * 100;
   };
 
-  // Create infinite scroll effect by duplicating pages
-  const createInfinitePages = () => {
+  // Create pages for navigation
+  const createPages = () => {
     const pages = [];
     
-    // Add pages before current (for seamless left navigation)
     for (let i = 0; i < totalPages; i++) {
       const pageIndex = i;
       const { startIndex, endIndex } = getChannelIndexRange(pageIndex);
@@ -221,20 +199,29 @@ const PaginatedChannels = ({
     return pages;
   };
 
-  const infinitePages = createInfinitePages();
+  const pages = createPages();
+
+  // Handle animation completion
+  useEffect(() => {
+    if (isAnimating) {
+      const timer = setTimeout(() => {
+        finishAnimation();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isAnimating, finishAnimation]);
 
   return (
     <div className="paginated-channels">
       <div 
-        className={`pages-container infinite-scroll ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''}`}
+        className={`pages-container ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''}`}
         style={{
           transform: `translateX(${getTransformOffset()}%)`,
-          transition: isAnimating ? 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none',
-          '--animation-direction': animationDirection
+          transition: isAnimating ? 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none'
         }}
       >
-        {/* Render infinite pages */}
-        {infinitePages.map(({ key, pageIndex, channels, transform }) => (
+        {/* Render pages */}
+        {pages.map(({ key, pageIndex, channels, transform }) => (
           <div 
             key={key} 
             className={`channels-page ${pageIndex === currentPage ? 'active' : ''}`}
@@ -258,9 +245,6 @@ const PaginatedChannels = ({
           </div>
         ))}
       </div>
-      
-      {/* Channel Modal */}
-      {/* The ChannelModal component is now managed by the App component */}
     </div>
   );
 };
@@ -281,7 +265,6 @@ PaginatedChannels.propTypes = {
   onAppPathChange: PropTypes.func.isRequired,
   onChannelSave: PropTypes.func.isRequired,
   onChannelHover: PropTypes.func,
-
 };
 
 export default PaginatedChannels;

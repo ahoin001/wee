@@ -1,10 +1,16 @@
 import React from "react";
-import { colors } from "./tokens";
 
 export default function Slider({ label, value, min, max, step, onChange }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      {label && <div style={{ color: colors.textSecondary, marginBottom: 4 }}>{label}</div>}
+      {label && (
+        <div 
+          className="text-[hsl(var(--text-secondary))] mb-1" 
+          style={{ marginBottom: 4 }}
+        >
+          {label}
+        </div>
+      )}
       <input
         type="range"
         value={value}
@@ -14,7 +20,12 @@ export default function Slider({ label, value, min, max, step, onChange }) {
         onChange={(e) => onChange(parseFloat(e.target.value))}
         style={{ width: "100%" }}
       />
-      <span style={{ color: colors.textSecondary, marginLeft: 8 }}>{value}</span>
+      <span 
+        className="text-[hsl(var(--text-secondary))] ml-2"
+        style={{ marginLeft: 8 }}
+      >
+        {value}
+      </span>
     </div>
   );
 } 

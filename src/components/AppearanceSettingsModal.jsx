@@ -43,7 +43,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'ribbon', label: 'Ribbon', icon: '🎗️', color: '#ff6b35', description: 'Colors & glass effects' },
   { id: 'wallpaper', label: 'Wallpaper', icon: '🖼️', color: '#4ecdc4', description: 'Background & cycling' },
   { id: 'time', label: 'Time', icon: '🕐', color: '#45b7d1', description: 'Clock & pill display' },
-  { id: 'api-integrations', label: 'API Integrations', icon: '🔌', color: '#1db954', description: 'External service connections' },
+  { id: 'api-integrations', label: 'API & Widgets', icon: '🔌', color: '#1db954', description: 'External services & floating widgets' },
 //   { id: 'sounds', label: 'Sounds', icon: '🎵', color: '#96ceb4', description: 'Audio & feedback' },
 //   { id: 'dock', label: 'Dock', icon: '⚓', color: '#feca57', description: 'Classic dock settings' },
   { id: 'themes', label: 'Themes', icon: '🎨', color: '#ff9ff3', description: 'Preset themes' },

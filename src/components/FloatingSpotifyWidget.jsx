@@ -27,7 +27,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   } = useSpotifyStore();
 
   const { spotify, updateSpotifySettings } = useApiIntegrationsStore();
-  const { position, setPosition } = useFloatingWidgetStore();
+  const { spotifyPosition, setSpotifyPosition } = useFloatingWidgetStore();
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -70,8 +70,8 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
     const newX = e.clientX - dragOffset.x;
     const newY = e.clientY - dragOffset.y;
     
-    setPosition({ x: newX, y: newY });
-  }, [isDragging, dragOffset, setPosition]);
+    setSpotifyPosition({ x: newX, y: newY });
+  }, [isDragging, dragOffset, setSpotifyPosition]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -451,8 +451,8 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
       className={`floating-spotify-widget ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${spotify.settings.useBlurredBackground && currentTrack?.albumArt && currentPage === 'player' ? 'blurred-bg' : ''}`}
       ref={widgetRef}
       style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
+        left: `${spotifyPosition.x}px`,
+        top: `${spotifyPosition.y}px`,
         width: `${size.width}px`,
         height: `${size.height}px`,
         background: getBackground(),

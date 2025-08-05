@@ -111,6 +111,16 @@ export const DEFAULT_SHORTCUTS = [
     icon: '🎵'
   },
   {
+    id: 'toggle-system-info-widget',
+    name: 'Toggle System Info Widget',
+    description: 'Show or hide the system information floating widget',
+    defaultKey: 'i',
+    defaultModifier: 'ctrl',
+    action: 'toggleSystemInfoWidget',
+    category: 'Widgets',
+    icon: '📊'
+  },
+  {
     id: 'toggle-settings-menu',
     name: 'Toggle Settings Menu',
     description: 'Open or close the settings menu',

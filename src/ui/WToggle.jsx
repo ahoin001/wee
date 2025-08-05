@@ -13,7 +13,7 @@ const WToggle = React.memo(({ checked, onChange, label, disabled = false, style,
           group relative flex h-6 w-11 cursor-pointer rounded-[12px] p-0.5 ease-in-out focus:outline-none focus:ring-2 focus:ring-wii-blue focus:ring-offset-2 focus:ring-offset-surface-primary
           ${checked 
             ? 'bg-[hsl(var(--wii-blue))]' 
-            : 'bg-gray-300'
+            : 'bg-[hsl(var(--border-primary))]'
           }
           ${disabled 
             ? 'opacity-50 cursor-not-allowed' 

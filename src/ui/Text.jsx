@@ -7,28 +7,69 @@
 // Supports: color, size, weight, style, as (element override), and auto-contrast in dark mode
 
 import React from "react";
-import { colors, fontSizes } from "./tokens";
+import clsx from "clsx";
 
-const variantDefaults = {
-  h1: { as: "h1", size: "xl", weight: 700, margin: "0 0 0.6em 0", color: "hsl(var(--text-primary))" },
-  h2: { as: "h2", size: "lg", weight: 700, margin: "0 0 0.5em 0", color: "hsl(var(--text-primary))" },
-  h3: { as: "h3", size: "lg", weight: 600, margin: "0 0 0.4em 0", color: "hsl(var(--text-primary))" },
-  h4: { as: "h4", size: "md", weight: 600, margin: "0 0 0.3em 0", color: "hsl(var(--text-primary))" },
-  p:  { as: "p",  size: "md", weight: 400, margin: "0 0 1em 0", color: "hsl(var(--text-primary))" },
-  label: { as: "label", size: "md", weight: 500, margin: "0 0 0.2em 0", color: "hsl(var(--text-primary))" },
-  span: { as: "span", size: "md", weight: 400, margin: 0, color: "hsl(var(--text-primary))" },
-  desc: { as: "p", size: "sm", weight: 400, margin: "0 0 0.5em 0", color: "hsl(var(--text-secondary))" },
-  help: { as: "p", size: "sm", weight: 400, margin: "0.25em 0 0 0", color: "hsl(var(--text-tertiary))" },
-  error: { as: "p", size: "sm", weight: 500, margin: "0.25em 0 0 0", color: "hsl(var(--state-error))" },
-  caption: { as: "p", size: "sm", weight: 400, margin: "0.25em 0 0 0", color: "hsl(var(--text-tertiary))" },
-  small: { as: "span", size: "sm", weight: 400, margin: 0, color: "hsl(var(--text-secondary))" },
+// CSS custom properties-based variant mapping for text styles
+const variantMap = {
+  h1: {
+    as: "h1",
+    className:
+      "text-4xl font-bold text-[hsl(var(--text-primary))] mb-3 leading-tight tracking-tight",
+  },
+  h2: {
+    as: "h2",
+    className:
+      "text-3xl font-bold text-[hsl(var(--text-primary))] mb-2.5 leading-tight tracking-tight",
+  },
+  h3: {
+    as: "h3",
+    className:
+      "text-2xl font-semibold text-[hsl(var(--text-primary))] mb-2 leading-snug tracking-tight",
+  },
+  h4: {
+    as: "h4",
+    className:
+      "text-xl font-semibold text-[hsl(var(--text-primary))] mb-1.5 leading-snug tracking-tight",
+  },
+  p: {
+    as: "p",
+    className:
+      "text-base font-normal text-[hsl(var(--text-primary))] mb-4 leading-relaxed",
+  },
+  label: {
+    as: "label",
+    className:
+      "text-base font-medium text-[hsl(var(--text-secondary))] mb-0.5 leading-normal",
+  },
+  span: {
+    as: "span",
+    className: "text-base font-normal text-[hsl(var(--text-primary))]",
+  },
+  desc: {
+    as: "p",
+    className:
+      "text-sm font-normal text-[hsl(var(--text-secondary))] mb-2 leading-relaxed",
+  },
+  help: {
+    as: "p",
+    className:
+      "text-sm font-normal text-[hsl(var(--text-tertiary))] mt-1 leading-relaxed",
+  },
+  error: {
+    as: "p",
+    className:
+      "text-sm font-semibold text-[hsl(var(--state-error))] mt-1 leading-relaxed",
+  },
+  caption: {
+    as: "p",
+    className:
+      "text-xs font-normal text-[hsl(var(--text-tertiary))] mt-1 leading-relaxed",
+  },
+  small: {
+    as: "span",
+    className: "text-xs font-normal text-[hsl(var(--text-secondary))]",
+  },
 };
-
-function getAutoTextColor(explicitColor) {
-  if (explicitColor) return explicitColor;
-  // Use design system CSS variables that automatically handle dark mode
-  return "hsl(var(--text-primary))";
-}
 
 export default function Text({
   variant = "span",
@@ -36,25 +77,34 @@ export default function Text({
   color,
   size,
   weight,
+  className,
   style,
   children,
   ...props
 }) {
-  const defaults = variantDefaults[variant] || variantDefaults.span;
-  const Tag = as || defaults.as;
-  const resolvedColor = color || defaults.color || getAutoTextColor(color);
+  const variantDef = variantMap[variant] || variantMap.span;
+  const Tag = as || variantDef.as;
+
+  // Compose Tailwind classes, allow override of color/size/weight via props
+  const classes = clsx(
+    variantDef.className,
+    color && !color.startsWith("hsl(") && !color.startsWith("#")
+      ? color // allow tailwind color class e.g. "text-red-500"
+      : undefined,
+    size && `text-${size}`,
+    weight && `font-${weight}`,
+    className
+  );
+
+  // Inline style for custom color (e.g. hsl/hex), otherwise rely on Tailwind
+  const inlineStyle =
+    color && (color.startsWith("hsl(") || color.startsWith("#"))
+      ? { color, ...style }
+      : style;
+
   return (
-    <Tag
-      style={{
-        color: resolvedColor,
-        fontSize: fontSizes[size || defaults.size] || fontSizes.md,
-        fontWeight: weight !== undefined ? weight : defaults.weight,
-        margin: defaults.margin,
-        ...style,
-      }}
-      {...props}
-    >
+    <Tag className={classes} style={inlineStyle} {...props}>
       {children}
     </Tag>
   );
-} 
+}

@@ -45,6 +45,7 @@ import AdminPanel from './components/AdminPanel';
 import ConfirmationModal from './components/ConfirmationModal';
 import LoadingSpinner from './components/LoadingSpinner';
 import FloatingSpotifyWidget from './components/FloatingSpotifyWidget';
+import SystemInfoWidget from './components/SystemInfoWidget';
 
 
 
@@ -215,9 +216,12 @@ function App() {
   
   // Floating widget store
   const {
-    isVisible: isFloatingWidgetVisible,
-    toggleWidget,
-    hideWidget
+    spotifyWidgetVisible,
+    systemInfoWidgetVisible,
+    toggleSpotifyWidget,
+    toggleSystemInfoWidget,
+    hideSpotifyWidget,
+    hideSystemInfoWidget
   } = useFloatingWidgetStore();
   
   // API integrations store for hotkey management
@@ -1308,7 +1312,25 @@ function App() {
         
         if (currentHotkey === expectedHotkey) {
           event.preventDefault();
-          toggleWidget();
+          toggleSpotifyWidget();
+          return;
+        }
+      }
+
+      // Check keyboard shortcuts for System Info widget
+      const systemInfoShortcut = currentKeyboardShortcuts.find(s => s.id === 'toggle-system-info-widget');
+      if (systemInfoShortcut && systemInfoShortcut.enabled) {
+        const key = event.key.toLowerCase();
+        const modifier = (event.ctrlKey ? 'ctrl' : '') + 
+                        (event.altKey ? 'alt' : '') + 
+                        (event.shiftKey ? 'shift' : '') + 
+                        (event.metaKey ? 'meta' : '');
+        const currentHotkey = modifier + key;
+        const expectedHotkey = systemInfoShortcut.modifier + systemInfoShortcut.key;
+        
+        if (currentHotkey === expectedHotkey) {
+          event.preventDefault();
+          toggleSystemInfoWidget();
           return;
         }
       }
@@ -1318,7 +1340,7 @@ function App() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleGlobalKeyPress, spotify.isEnabled, spotify.isConnected, spotify.hotkey, toggleWidget]);
+  }, [handleGlobalKeyPress, spotify.isEnabled, spotify.isConnected, spotify.hotkey, toggleSpotifyWidget, toggleSystemInfoWidget]);
 
   // Apply cursor mode
   useEffect(() => {
@@ -3248,8 +3270,14 @@ function App() {
         
         {/* Floating Spotify Widget */}
         <FloatingSpotifyWidget 
-          isVisible={isFloatingWidgetVisible}
-          onClose={hideWidget}
+          isVisible={spotifyWidgetVisible}
+          onClose={hideSpotifyWidget}
+        />
+        
+        {/* System Info Widget */}
+        <SystemInfoWidget 
+          isVisible={systemInfoWidgetVisible}
+          onClose={hideSystemInfoWidget}
         />
       </div>
     </>

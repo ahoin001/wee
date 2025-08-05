@@ -3792,3 +3792,228 @@ ipcMain.handle('get-current-display', () => {
 });
 
 // Monitor event listeners will be set up after app is ready
+
+// --- System Information Handlers ---
+
+// IPC: Get system information
+ipcMain.handle('get-system-info', async () => {
+  try {
+    const si = require('systeminformation');
+    
+    // Get CPU information
+    const cpuInfo = await si.cpu();
+    const cpuLoad = await si.currentLoad();
+    const cpuTemp = await si.cpuTemperature();
+    
+    // Get memory information
+    const memInfo = await si.mem();
+    
+    // Get disk information
+    const diskInfo = await si.fsSize();
+    
+    // Get GPU information (if available)
+    let gpuInfo = null;
+    try {
+      const gpuData = await si.graphics();
+      if (gpuData.controllers && gpuData.controllers.length > 0) {
+        // Filter out virtual adapters and get the actual GPU
+        const actualGPUs = gpuData.controllers.filter(gpu => {
+          const name = gpu.model.toLowerCase();
+          // Filter out common virtual adapters
+          const virtualAdapters = [
+            'parsec',
+            'virtual',
+            'vmware',
+            'virtualbox',
+            'microsoft basic display',
+            'microsoft remote display',
+            'intel(r) uhd graphics',
+            'intel(r) hd graphics',
+            'amd radeon(tm) graphics'
+          ];
+          
+          return !virtualAdapters.some(adapter => name.includes(adapter));
+        });
+        
+        // If we found actual GPUs, use the first one, otherwise fall back to the first available
+        const gpu = actualGPUs.length > 0 ? actualGPUs[0] : gpuData.controllers[0];
+        
+        // Get GPU memory information
+        let gpuMemory = null;
+        try {
+          const memInfo = await si.memLayout();
+          // Look for dedicated GPU memory or shared memory
+          const dedicatedMemory = memInfo.find(mem => mem.type === 'DDR5' || mem.type === 'DDR4' || mem.type === 'GDDR6' || mem.type === 'GDDR5');
+          if (dedicatedMemory && dedicatedMemory.size) {
+            gpuMemory = {
+              total: dedicatedMemory.size * 1024 * 1024, // Convert to bytes
+              type: dedicatedMemory.type,
+              speed: dedicatedMemory.clockSpeed
+            };
+          }
+        } catch (error) {
+          console.log('[SYSTEM] GPU memory information not available:', error.message);
+        }
+        
+        gpuInfo = {
+          name: gpu.model,
+          memory: gpuMemory && gpuMemory.total ? gpuMemory.total : (gpu.memoryTotal && gpu.memoryTotal > 0 ? gpu.memoryTotal * 1024 * 1024 : 0), // Use dedicated memory if available, otherwise fall back to memoryTotal
+          memoryDetails: gpuMemory,
+          driver: gpu.driverVersion,
+          usage: 0, // GPU usage requires additional tools
+          temperature: 0 // GPU temperature requires additional tools
+        };
+      }
+    } catch (error) {
+      console.log('[SYSTEM] GPU information not available:', error.message);
+    }
+    
+    // Get battery information (if available)
+    let batteryInfo = null;
+    try {
+      const batteryData = await si.battery();
+      if (batteryData.hasBattery) {
+        // Get additional battery information
+        let powerState = 'Unknown';
+        let batteryHealth = 'Unknown';
+        
+        try {
+          // Try to get more detailed battery information
+          const osInfo = await si.osInfo();
+          if (osInfo.platform === 'win32') {
+            // On Windows, we can get more detailed battery info
+            const { exec } = require('child_process');
+            const util = require('util');
+            const execAsync = util.promisify(exec);
+            
+            try {
+              const { stdout } = await execAsync('wmic path win32_battery get EstimatedChargeRemaining,PowerManagementSupported /format:csv');
+              const lines = stdout.trim().split('\n');
+              if (lines.length > 1) {
+                const data = lines[1].split(',');
+                if (data.length >= 2) {
+                  const chargeRemaining = parseInt(data[0]);
+                  const powerManagement = data[1] === 'TRUE';
+                  powerState = powerManagement ? 'Active' : 'Standby';
+                }
+              }
+            } catch (error) {
+              console.log('[SYSTEM] Could not get detailed battery info:', error.message);
+            }
+          }
+        } catch (error) {
+          console.log('[SYSTEM] Could not get OS info for battery details:', error.message);
+        }
+        
+        batteryInfo = {
+          level: Math.round(batteryData.percent),
+          charging: batteryData.isCharging,
+          timeLeft: batteryData.timeRemaining ? `${Math.floor(batteryData.timeRemaining / 60)}h ${batteryData.timeRemaining % 60}m` : null,
+          powerState: powerState,
+          health: batteryHealth,
+          voltage: batteryData.voltage || null,
+          capacity: batteryData.capacity || null,
+          cycleCount: batteryData.cyclecount || null
+        };
+      }
+    } catch (error) {
+      console.log('[SYSTEM] Battery information not available:', error.message);
+    }
+    
+    const systemInfo = {
+      cpu: {
+        model: cpuInfo.manufacturer + ' ' + cpuInfo.brand,
+        cores: cpuInfo.cores,
+        speed: `${cpuInfo.speed} GHz`,
+        usage: Math.round(cpuLoad.currentLoad),
+        temperature: cpuTemp.main || null
+      },
+      memory: {
+        total: memInfo.total,
+        used: memInfo.used,
+        free: memInfo.free,
+        usage: Math.round((memInfo.used / memInfo.total) * 100)
+      },
+      storage: diskInfo.map(disk => ({
+        name: disk.fs,
+        total: disk.size * 1024 * 1024, // Convert to bytes
+        used: (disk.size - disk.available) * 1024 * 1024, // Convert to bytes
+        usage: Math.round(((disk.size - disk.available) / disk.size) * 100)
+      })),
+      gpu: gpuInfo,
+      battery: batteryInfo
+    };
+    
+    console.log('[SYSTEM] Retrieved system information');
+    return systemInfo;
+  } catch (error) {
+    console.error('[SYSTEM] Error getting system information:', error);
+    return {
+      cpu: null,
+      memory: null,
+      storage: [],
+      gpu: null,
+      battery: null
+    };
+  }
+});
+
+// IPC: Open task manager
+ipcMain.handle('open-task-manager', async () => {
+  try {
+    // On Windows, use taskmgr.exe
+    if (process.platform === 'win32') {
+      exec('taskmgr.exe', (error) => {
+        if (error) {
+          console.error('[SYSTEM] Error opening task manager:', error);
+        } else {
+          console.log('[SYSTEM] Task manager opened');
+        }
+      });
+      return { success: true };
+    } else {
+      // For other platforms, try to open system monitor
+      exec('gnome-system-monitor', (error) => {
+        if (error) {
+          console.error('[SYSTEM] Error opening system monitor:', error);
+        } else {
+          console.log('[SYSTEM] System monitor opened');
+        }
+      });
+      return { success: true };
+    }
+  } catch (error) {
+    console.error('[SYSTEM] Error opening task manager:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC: Open file explorer to specific path
+ipcMain.handle('open-file-explorer', async (event, path) => {
+  try {
+    if (process.platform === 'win32') {
+      // On Windows, use explorer.exe with the path
+      exec(`explorer.exe "${path}"`, (error) => {
+        if (error) {
+          console.error('[SYSTEM] Error opening file explorer:', error);
+        } else {
+          console.log('[SYSTEM] File explorer opened to:', path);
+        }
+      });
+      return { success: true };
+    } else {
+      // For other platforms, try to open file manager
+      exec(`xdg-open "${path}"`, (error) => {
+        if (error) {
+          console.error('[SYSTEM] Error opening file manager:', error);
+        } else {
+          console.log('[SYSTEM] File manager opened to:', path);
+        }
+      });
+      return { success: true };
+    }
+  } catch (error) {
+    console.error('[SYSTEM] Error opening file explorer:', error);
+    return { success: false, error: error.message };
+  }
+});

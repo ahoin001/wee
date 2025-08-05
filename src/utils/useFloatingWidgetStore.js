@@ -5,35 +5,95 @@ import useApiIntegrationsStore from './useApiIntegrationsStore';
 const useFloatingWidgetStore = create(
   persist(
     (set, get) => ({
-      // Widget visibility state
-      isVisible: false,
+      // Widget visibility states
+      spotifyWidgetVisible: false,
+      systemInfoWidgetVisible: false,
       
-      // Widget position state - start in center of screen
-      position: { x: 100, y: 100 },
+      // Widget position states - start in center of screen
+      spotifyPosition: { x: 100, y: 100 },
+      systemInfoPosition: { x: 400, y: 100 },
       
-      // Actions
+      // Actions for Spotify widget
+      showSpotifyWidget: () => {
+        set({ spotifyWidgetVisible: true });
+      },
+      
+      hideSpotifyWidget: () => {
+        set({ spotifyWidgetVisible: false });
+      },
+      
+      toggleSpotifyWidget: () => {
+        set(state => ({ spotifyWidgetVisible: !state.spotifyWidgetVisible }));
+      },
+      
+      // Actions for System Info widget
+      showSystemInfoWidget: () => {
+        set({ systemInfoWidgetVisible: true });
+      },
+      
+      hideSystemInfoWidget: () => {
+        set({ systemInfoWidgetVisible: false });
+      },
+      
+      toggleSystemInfoWidget: () => {
+        set(state => ({ systemInfoWidgetVisible: !state.systemInfoWidgetVisible }));
+      },
+      
+      // Legacy support for backward compatibility
+      get isVisible() {
+        return get().spotifyWidgetVisible;
+      },
+      
       showWidget: () => {
-        set({ isVisible: true });
+        set({ spotifyWidgetVisible: true });
       },
       
       hideWidget: () => {
-        set({ isVisible: false });
+        set({ spotifyWidgetVisible: false });
       },
       
       toggleWidget: () => {
-        set(state => ({ isVisible: !state.isVisible }));
+        set(state => ({ spotifyWidgetVisible: !state.spotifyWidgetVisible }));
       },
       
-      // Position management
+      // Position management for Spotify widget
+      setSpotifyPosition: (position) => {
+        set({ spotifyPosition: position });
+      },
+      
+      resetSpotifyPosition: () => {
+        // Calculate center of screen
+        const centerX = Math.max(0, (window.innerWidth - 280) / 2);
+        const centerY = Math.max(0, (window.innerHeight - 400) / 2);
+        set({ spotifyPosition: { x: centerX, y: centerY } });
+      },
+      
+      // Position management for System Info widget
+      setSystemInfoPosition: (position) => {
+        set({ systemInfoPosition: position });
+      },
+      
+      resetSystemInfoPosition: () => {
+        // Calculate center of screen
+        const centerX = Math.max(0, (window.innerWidth - 320) / 2);
+        const centerY = Math.max(0, (window.innerHeight - 450) / 2);
+        set({ systemInfoPosition: { x: centerX, y: centerY } });
+      },
+      
+      // Legacy support for backward compatibility
+      get position() {
+        return get().spotifyPosition;
+      },
+      
       setPosition: (position) => {
-        set({ position });
+        set({ spotifyPosition: position });
       },
       
       resetPosition: () => {
         // Calculate center of screen
         const centerX = Math.max(0, (window.innerWidth - 280) / 2);
         const centerY = Math.max(0, (window.innerHeight - 400) / 2);
-        set({ position: { x: centerX, y: centerY } });
+        set({ spotifyPosition: { x: centerX, y: centerY } });
       },
       
       // Handle playback start - check if auto-show is enabled for any integration
@@ -63,8 +123,10 @@ const useFloatingWidgetStore = create(
     {
       name: 'floating-widget-storage',
       partialize: (state) => ({
-        isVisible: state.isVisible,
-        position: state.position
+        spotifyWidgetVisible: state.spotifyWidgetVisible,
+        systemInfoWidgetVisible: state.systemInfoWidgetVisible,
+        spotifyPosition: state.spotifyPosition,
+        systemInfoPosition: state.systemInfoPosition
       })
     }
   )

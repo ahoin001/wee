@@ -125,4 +125,8 @@ contextBridge.exposeInMainWorld('api', {
   // Fresh install API
   getFreshInstallInfo: () => ipcRenderer.invoke('get-fresh-install-info'),
   triggerFreshInstall: () => ipcRenderer.invoke('trigger-fresh-install'),
+  // System information API
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  openTaskManager: () => ipcRenderer.invoke('open-task-manager'),
+  openFileExplorer: (path) => ipcRenderer.invoke('open-file-explorer', path),
 });
