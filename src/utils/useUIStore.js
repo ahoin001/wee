@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { DEFAULT_SHORTCUTS, parseShortcut, validateShortcut, checkShortcutConflict } from './keyboardShortcuts';
+import { DEFAULT_SHORTCUTS, parseShortcut, validateShortcut, checkShortcutConflict, formatShortcut } from './keyboardShortcuts';
 
 const useUIStore = create((set, get) => ({
   // Settings menu state
@@ -178,6 +178,21 @@ const useUIStore = create((set, get) => ({
       shortcut.id === shortcutId ? { ...shortcut, ...updates } : shortcut
     );
     set({ keyboardShortcuts: updatedShortcuts });
+    
+    // Sync Spotify widget hotkey with API integrations store
+    if (shortcutId === 'toggle-spotify-widget' && (updates.key || updates.modifier)) {
+      try {
+        const apiStore = require('./useApiIntegrationsStore').default;
+        const spotify = apiStore.getState().spotify;
+        const newKey = updates.key || spotify.hotkeyKey;
+        const newModifier = updates.modifier || spotify.hotkeyModifier;
+        const newHotkey = formatShortcut({ key: newKey, modifier: newModifier });
+        
+        apiStore.getState().updateSpotifyHotkey(newHotkey, newKey, newModifier);
+      } catch (error) {
+        console.warn('[UI STORE] Failed to sync with API integrations:', error);
+      }
+    }
   },
   
   resetKeyboardShortcuts: () => {

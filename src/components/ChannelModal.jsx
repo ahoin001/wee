@@ -4,7 +4,7 @@ import WBaseModal from './WBaseModal';
 import './ChannelModal.css';
 import ImageSearchModal from './ImageSearchModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
-import Button from '../ui/WButton';
+import WButton from '../ui/WButton';
 import WToggle from '../ui/WToggle';
 import WRadioGroup from '../ui/WRadioGroup';
 // Remove unused imports related to old fetching/caching logic
@@ -24,6 +24,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
   const [pathError, setPathError] = useState('');
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState('setup');
   
   // Multi-image gallery state for Ken Burns slideshow
   const [imageGallery, setImageGallery] = useState(currentMedia?.gallery || []);
@@ -504,27 +507,18 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       setShowError(true);
       return;
     }
-    
-    // Warn about temporary URLs that may not persist after app restart
-    if (media && (media.url?.startsWith('blob:') || media.temporary)) {
-      console.warn('Saving channel with temporary media URL that may not persist after app restart:', media.url);
-    }
-    
-    setShowError(false);
-    
-    // Prepare media object (single image only - gallery feature not ready)
-    const mediaObject = media;
-      
+
     const newChannel = {
-        media: mediaObject,
-        path: path.trim(),
-        type,
+      media,
+      path: path.trim(),
+      type,
       asAdmin,
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
       animatedOnHover: animatedOnHover !== 'global' ? animatedOnHover : undefined,
       kenBurnsEnabled: kenBurnsEnabled !== 'global' ? kenBurnsEnabled : undefined,
-      kenBurnsMode: kenBurnsMode !== 'global' ? kenBurnsMode : undefined,
+      kenBurnsMode: kenBurnsMode !== 'global' ? kenBurnsMode : undefined
     };
+    
     // Save to channels API
     const allChannels = await window.api?.channels?.get();
     const updatedChannels = { ...allChannels, [channelId]: newChannel };
@@ -569,8 +563,17 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     handleClose();
   };
 
+  // Debug logging for save button state
+  console.log('[ChannelModal] Save button debug:', {
+    hasMedia: !!media,
+    hasPath: !!path.trim(),
+    pathError,
+    canSave: media && path.trim() && !pathError
+  });
+  
   const canSave = media && path.trim() && !pathError;
   let saveTooltip = '';
+  
   if (!media && !path.trim()) {
     saveTooltip = 'Please select a channel image and provide a launch path or URL.';
   } else if (!media) {
@@ -584,14 +587,21 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const footerContent = ({ handleClose }) => (
     <>
       <div className="flex flex-row gap-2">
-        <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-        <Button 
+        <WButton variant="secondary" onClick={handleClose}>Cancel</WButton>
+        <WButton 
           variant="danger-secondary" 
           onClick={() => handleClearChannel(handleClose)}
         >
           Clear Channel
-        </Button>
-        <Button variant="primary" onClick={() => handleSave(handleClose)} title={saveTooltip}>Save Channel</Button>
+        </WButton>
+        <WButton 
+          variant="primary" 
+          onClick={() => handleSave(handleClose)} 
+          disabled={!canSave}
+          title={saveTooltip}
+        >
+          Save Channel
+        </WButton>
       </div>
       {showError && saveTooltip && (
         <div className="text-red-600 text-sm mt-2 font-medium">{saveTooltip}</div>
@@ -681,9 +691,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 </button>
               </div>
             ) : (
-              <Button variant="primary" onClick={() => setShowImageSearch(true)}>
+              <WButton variant="primary" onClick={() => setShowImageSearch(true)}>
                 Add Channel Image
-              </Button>
+              </WButton>
             )}
           </>
         )}
@@ -819,10 +829,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   // Suggested games section (Steam and Epic games, expandable for other launchers)
   const renderSuggestedGames = () => {
-    const {
-      steamGames, steamLoading, steamError, rescanSteamGames,
-      epicGames, epicLoading, epicError, rescanEpicGames
-    } = useAppLibraryStore();
 
     const realSteamGames = steamGames || [];
     const realEpicGames = epicGames || [];
@@ -1080,7 +1086,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   </span>
                 </button>
                 
-                <Button
+                <WButton
                   variant="secondary"
                   size="sm"
                   onClick={() => {
@@ -1091,7 +1097,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   disabled={steamLoading || epicLoading}
                 >
                   {(steamLoading || epicLoading) ? 'Scanning...' : 'Refresh'}
-                </Button>
+                </WButton>
               </div>
             </div>
             
@@ -1113,7 +1119,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                   {paginatedGames.map((game, index) => (
-                    <button
+                    <div
                       key={game.appid || game.appId || game.id || game.appName}
                       onClick={() => {
                         try {
@@ -1394,7 +1400,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                           {path.trim() ? 'Replace Channel' : 'Add to Channel'}
                         </div>
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
                 
@@ -1405,22 +1411,22 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                       Page {gamesPage + 1} of {totalGamesPages}
                     </div>
                     <div className="flex gap-2">
-                      <Button
+                      <WButton
                         variant="secondary"
                         size="sm"
                         onClick={() => setGamesPage(Math.max(0, gamesPage - 1))}
                         disabled={gamesPage === 0}
                       >
                         Previous
-                      </Button>
-                      <Button
+                      </WButton>
+                      <WButton
                         variant="secondary"
                         size="sm"
                         onClick={() => setGamesPage(Math.min(totalGamesPages - 1, gamesPage + 1))}
                         disabled={gamesPage === totalGamesPages - 1}
                       >
                         Next
-                      </Button>
+                      </WButton>
                     </div>
                   </div>
                 )}
@@ -1459,7 +1465,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 Debug: Steam games loaded: {realSteamGames.length}, Installed: {realSteamGames.filter(g => g.installed).length} | Epic games loaded: {realEpicGames.length}, Installed: {realEpicGames.filter(g => g.installed !== false).length}
               </div>
               <div className="mt-4 flex gap-2 justify-center">
-                <Button
+                <WButton
                   variant="secondary"
                   size="sm"
                   onClick={() => {
@@ -1471,8 +1477,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   disabled={steamLoading}
                 >
                   {steamLoading ? 'Scanning...' : 'Rescan Steam'}
-                </Button>
-                <Button
+                </WButton>
+                <WButton
                   variant="secondary"
                   size="sm"
                   onClick={() => {
@@ -1484,7 +1490,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   disabled={epicLoading}
                 >
                   {epicLoading ? 'Scanning...' : 'Rescan Epic'}
-                </Button>
+                </WButton>
               </div>
             </div>
           </div>
@@ -1494,6 +1500,46 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       </Card>
     );
   };
+
+  // Channel Behavior Tab
+  const renderChannelBehaviorTab = () => (
+    <div className="space-y-6">
+      {/* Launch Options */}
+      <Card title="Launch Options" separator desc="Choose how this application should be launched when the channel is clicked.">
+        {renderDisplayOptionsSection()}
+      </Card>
+
+      {/* Hover Sound */}
+      <Card
+        title="Custom Hover Sound"
+        separator
+        desc="Set a custom sound to play when hovering over this channel."
+        headerActions={
+          <WToggle
+            checked={hoverSoundEnabled}
+            onChange={(checked) => setHoverSoundEnabled(checked)}
+          />
+        }
+      >
+        {hoverSoundEnabled && (
+          <div style={{ marginTop: 0 }}>
+            {renderHoverSoundSection()}
+          </div>
+        )}
+        {!hoverSoundEnabled && <span style={{ color: '#888' }}>Set a custom sound to play when hovering over this channel.</span>}
+      </Card>
+
+      {/* Animation Toggle */}
+      <Card title="Animation on Hover" separator desc="Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.">
+        {renderAnimationToggleSection()}
+      </Card>
+
+      {/* Ken Burns Effect */}
+      <Card title="Ken Burns Effect" separator desc="Override the global Ken Burns setting for this channel. Adds cinematic zoom and pan to images.">
+        {renderKenBurnsSection()}
+      </Card>
+    </div>
+  );
 
   const renderDisplayOptionsSection = () => (
     <div style={{ display: 'flex', gap: '1.5em', alignItems: 'center', fontSize: '1em' }}>
@@ -1710,6 +1756,32 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </div>
   );
 
+  // Tab navigation component
+  const renderTabNavigation = () => (
+    <div className="flex border-b border-[hsl(var(--border-primary))] mb-6">
+      <div
+        onClick={() => setActiveTab('setup')}
+        className={`px-4 py-2 font-medium text-sm transition-colors cursor-pointer ${
+          activeTab === 'setup'
+            ? 'text-[hsl(var(--wii-blue))] border-b-2 border-[hsl(var(--wii-blue))]'
+            : 'text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))]'
+        }`}
+      >
+        Channel Setup
+      </div>
+      <div
+        onClick={() => setActiveTab('behavior')}
+        className={`px-4 py-2 font-medium text-sm transition-colors cursor-pointer ${
+          activeTab === 'behavior'
+            ? 'text-[hsl(var(--wii-blue))] border-b-2 border-[hsl(var(--wii-blue))]'
+            : 'text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))]'
+        }`}
+      >
+        Channel Behavior
+      </div>
+    </div>
+  );
+
   return (
     <>
       <WBaseModal
@@ -1719,48 +1791,27 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         footerContent={footerContent}
         isOpen={isOpen}
       >
-        {/* Channel Image Selection/Upload Card */}
-        <Card title="Channel Image" separator desc="Choose or upload an image, GIF, or MP4 for this channel.">
-          {renderImageSection()}
-        </Card>
-        {/* App Path/URL Card */}
-        <Card title="Unified App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
-          {renderUnifiedAppPathSection()}
-        </Card>
-        {/* Suggested Games Card */}
-        {renderSuggestedGames()}
-        {/* Launch Options Card */}
-        <Card title="Launch Options" separator desc="Choose how this application should be launched when the channel is clicked.">
-          {renderDisplayOptionsSection()}
-        </Card>
-        {/* Hover Sound Card */}
-        <Card
-          title="Custom Hover Sound"
-          separator
-          desc="Set a custom sound to play when hovering over this channel."
-          headerActions={
-            <WToggle
-              checked={hoverSoundEnabled}
-              onChange={(checked) => setHoverSoundEnabled(checked)}
-            />
-          }
-        >
-          {hoverSoundEnabled && (
-            <div style={{ marginTop: 0 }}>
-              {renderHoverSoundSection()}
-            </div>
-          )}
-          {!hoverSoundEnabled && <span style={{ color: '#888' }}>Set a custom sound to play when hovering over this channel.</span>}
-        </Card>
-        {/* Per-Channel Animation Toggle Card */}
-        <Card title="Animation on Hover" separator desc="Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.">
-          {renderAnimationToggleSection()}
-        </Card>
-
-        {/* Ken Burns Effect Card */}
-        <Card title="Ken Burns Effect" separator desc="Override the global Ken Burns setting for this channel. Adds cinematic zoom and pan to images.">
-          {renderKenBurnsSection()}
-        </Card>
+        {renderTabNavigation()}
+        
+        {/* Tab Content */}
+        {activeTab === 'setup' && (
+          <div className="space-y-6">
+            {/* Channel Image Selection/Upload Card */}
+            <Card title="Channel Image" separator desc="Choose or upload an image, GIF, or MP4 for this channel.">
+              {renderImageSection()}
+            </Card>
+            
+            {/* App Path/URL Card */}
+            <Card title="Unified App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
+              {renderUnifiedAppPathSection()}
+            </Card>
+            
+            {/* Suggested Games Card */}
+            {renderSuggestedGames()}
+          </div>
+        )}
+        
+        {activeTab === 'behavior' && renderChannelBehaviorTab()}
       </WBaseModal>
       {showImageSearch && (
         <ImageSearchModal

@@ -32,6 +32,7 @@ const LazySoundsSettingsTab = React.lazy(() => import('./settings/SoundsSettings
 const LazyDockSettingsTab = React.lazy(() => import('./settings/DockSettingsTab'));
 const LazyMonitorSettingsTab = React.lazy(() => import('./settings/MonitorSettingsTab'));
 const LazyAdvancedSettingsTab = React.lazy(() => import('./settings/AdvancedSettingsTab'));
+const LazyApiIntegrationsSettingsTab = React.lazy(() => import('./settings/ApiIntegrationsSettingsTab'));
 
 // Auth service (we'll create this)
 import { authService } from '../utils/authService';
@@ -42,6 +43,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'ribbon', label: 'Ribbon', icon: '🎗️', color: '#ff6b35', description: 'Colors & glass effects' },
   { id: 'wallpaper', label: 'Wallpaper', icon: '🖼️', color: '#4ecdc4', description: 'Background & cycling' },
   { id: 'time', label: 'Time', icon: '🕐', color: '#45b7d1', description: 'Clock & pill display' },
+  { id: 'api-integrations', label: 'API Integrations', icon: '🔌', color: '#1db954', description: 'External service connections' },
 //   { id: 'sounds', label: 'Sounds', icon: '🎵', color: '#96ceb4', description: 'Audio & feedback' },
 //   { id: 'dock', label: 'Dock', icon: '⚓', color: '#feca57', description: 'Classic dock settings' },
   { id: 'themes', label: 'Themes', icon: '🎨', color: '#ff9ff3', description: 'Preset themes' },
@@ -966,6 +968,12 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
     </Suspense>
   );
 
+  const renderApiIntegrationsTab = () => (
+    <Suspense fallback={<div>Loading API Integrations Settings...</div>}>
+      <LazyApiIntegrationsSettingsTab />
+    </Suspense>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'channels':
@@ -988,6 +996,8 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         return renderMonitorTab();
       case 'advanced':
         return renderAdvancedTab();
+      case 'api-integrations':
+        return renderApiIntegrationsTab();
       default:
         return renderChannelsTab();
     }
@@ -1029,13 +1039,7 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
             >
               Reset to Default
             </button>
-            <Button 
-              variant="secondary" 
-              size="sm"
-              
-            >
-              Design System
-            </Button>
+           
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <Button variant="secondary" onClick={handleClose}>Cancel</Button>

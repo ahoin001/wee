@@ -101,6 +101,16 @@ export const DEFAULT_SHORTCUTS = [
     icon: '🖼️'
   },
   {
+    id: 'toggle-spotify-widget',
+    name: 'Toggle Spotify Widget',
+    description: 'Show or hide the Spotify floating widget',
+    defaultKey: 'l',
+    defaultModifier: 'ctrl',
+    action: 'toggleSpotifyWidget',
+    category: 'Widgets',
+    icon: '🎵'
+  },
+  {
     id: 'toggle-settings-menu',
     name: 'Toggle Settings Menu',
     description: 'Open or close the settings menu',

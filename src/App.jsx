@@ -39,9 +39,12 @@ import useChannelStore from './utils/useChannelStore';
 import useAppearanceSettingsStore from './utils/useAppearanceSettingsStore';
 import useAuthModalStore from './utils/useAuthModalStore';
 import useUnifiedAppStore from './utils/useUnifiedAppStore';
+import useFloatingWidgetStore from './utils/useFloatingWidgetStore';
+import useApiIntegrationsStore from './utils/useApiIntegrationsStore';
 import AdminPanel from './components/AdminPanel';
 import ConfirmationModal from './components/ConfirmationModal';
 import LoadingSpinner from './components/LoadingSpinner';
+import FloatingSpotifyWidget from './components/FloatingSpotifyWidget';
 
 
 
@@ -209,6 +212,16 @@ function App() {
   const { 
     appLibrary
   } = useAppLibraryStore();
+  
+  // Floating widget store
+  const {
+    isVisible: isFloatingWidgetVisible,
+    toggleWidget,
+    hideWidget
+  } = useFloatingWidgetStore();
+  
+  // API integrations store for hotkey management
+  const { spotify } = useApiIntegrationsStore();
   
   // UI Store for global keyboard shortcuts and modal management
   const { 
@@ -800,85 +813,96 @@ function App() {
   // On mount, load all modular data
   useEffect(() => {
     async function loadAll() {
-      
-      // Load sounds
-      const soundData = await soundsApi.get();
-      setSoundSettings(soundData || {});
-      
-      // Load auto-launch setting
-      if (window.api && window.api.getAutoLaunch) {
-        const autoLaunchEnabled = await window.api.getAutoLaunch();
-        setStartOnBoot(autoLaunchEnabled);
-      }
-      // Load wallpapers
-      const wallpaperData = await wallpapersApi.get();
-      // setWallpaper(wallpaperData?.wallpaper || null); // Remove - wallpaper now loaded from general settings
-      setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
-      setSavedWallpapers(wallpaperData?.savedWallpapers || []);
-      setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-      setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
-      setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
-      setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-      setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
-      setCrossfadeDuration(wallpaperData?.cyclingSettings?.crossfadeDuration ?? 1.2);
-      setCrossfadeEasing(wallpaperData?.cyclingSettings?.crossfadeEasing ?? 'ease-out');
-      setSlideRandomDirection(wallpaperData?.cyclingSettings?.slideRandomDirection ?? false);
-      setSlideDuration(wallpaperData?.cyclingSettings?.slideDuration ?? 1.5);
-      setSlideEasing(wallpaperData?.cyclingSettings?.slideEasing ?? 'ease-out');
-      
-      // Load overlay settings
-      setOverlayEnabled(wallpaperData?.overlayEnabled ?? false);
-      setOverlayEffect(wallpaperData?.overlayEffect ?? 'snow');
-      setOverlayIntensity(wallpaperData?.overlayIntensity ?? 50);
-      setOverlaySpeed(wallpaperData?.overlaySpeed ?? 1);
-      setOverlayWind(wallpaperData?.overlayWind ?? 0.02);
-      setOverlayGravity(wallpaperData?.overlayGravity ?? 0.1);
-      
-      // Note: showDock is now loaded from general settings API in loadSettings()
-      // to avoid conflicts with ribbon button configs and other general settings
-      
-      // Utility function to validate media URLs
-      const validateMediaUrl = (media) => {
-        if (!media || !media.url) return null;
+      try {
+        console.log('[APP] Starting application initialization...');
         
-        // Check for invalid blob URLs (should not persist after restart)
-        if (media.url.startsWith('blob:')) {
-          console.warn('Found invalid blob URL in saved channel data:', media.url);
-          return null;
+        // Initialize API integrations
+        const apiIntegrationsStore = useApiIntegrationsStore.getState();
+        await apiIntegrationsStore.initializeConnections();
+        
+        // Load sounds
+        const soundData = await soundsApi.get();
+        setSoundSettings(soundData || {});
+        
+        // Load auto-launch setting
+        if (window.api && window.api.getAutoLaunch) {
+          const autoLaunchEnabled = await window.api.getAutoLaunch();
+          setStartOnBoot(autoLaunchEnabled);
         }
+        // Load wallpapers
+        const wallpaperData = await wallpapersApi.get();
+        // setWallpaper(wallpaperData?.wallpaper || null); // Remove - wallpaper now loaded from general settings
+        setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
+        setSavedWallpapers(wallpaperData?.savedWallpapers || []);
+        setLikedWallpapers(wallpaperData?.likedWallpapers || []);
+        setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
+        setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
+        setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
+        setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
+        setCrossfadeDuration(wallpaperData?.cyclingSettings?.crossfadeDuration ?? 1.2);
+        setCrossfadeEasing(wallpaperData?.cyclingSettings?.crossfadeEasing ?? 'ease-out');
+        setSlideRandomDirection(wallpaperData?.cyclingSettings?.slideRandomDirection ?? false);
+        setSlideDuration(wallpaperData?.cyclingSettings?.slideDuration ?? 1.5);
+        setSlideEasing(wallpaperData?.cyclingSettings?.slideEasing ?? 'ease-out');
         
-        // Validate userdata URLs format
-        if (media.url.startsWith('userdata://')) {
-          const validPrefixes = ['userdata://wallpapers/', 'userdata://sounds/', 'userdata://icons/'];
-          const isValidPrefix = validPrefixes.some(prefix => media.url.startsWith(prefix));
-          if (!isValidPrefix) {
-            console.warn('Found invalid userdata URL format:', media.url);
+        // Load overlay settings
+        setOverlayEnabled(wallpaperData?.overlayEnabled ?? false);
+        setOverlayEffect(wallpaperData?.overlayEffect ?? 'snow');
+        setOverlayIntensity(wallpaperData?.overlayIntensity ?? 50);
+        setOverlaySpeed(wallpaperData?.overlaySpeed ?? 1);
+        setOverlayWind(wallpaperData?.overlayWind ?? 0.02);
+        setOverlayGravity(wallpaperData?.overlayGravity ?? 0.1);
+        
+        // Note: showDock is now loaded from general settings API in loadSettings()
+        // to avoid conflicts with ribbon button configs and other general settings
+        
+        // Utility function to validate media URLs
+        const validateMediaUrl = (media) => {
+          if (!media || !media.url) return null;
+          
+          // Check for invalid blob URLs (should not persist after restart)
+          if (media.url.startsWith('blob:')) {
+            console.warn('Found invalid blob URL in saved channel data:', media.url);
             return null;
           }
-        }
+          
+          // Validate userdata URLs format
+          if (media.url.startsWith('userdata://')) {
+            const validPrefixes = ['userdata://wallpapers/', 'userdata://sounds/', 'userdata://icons/'];
+            const isValidPrefix = validPrefixes.some(prefix => media.url.startsWith(prefix));
+            if (!isValidPrefix) {
+              console.warn('Found invalid userdata URL format:', media.url);
+              return null;
+            }
+          }
+          
+          return media;
+        };
         
-        return media;
-      };
-      
-      // Channel data now managed by Zustand store with automatic persistence
-      // Initialize persistent default channels
-      const { initializeUserDefaultChannels } = useChannelStore.getState();
-      initializeUserDefaultChannels();
-      
-      // --- SplashScreen logic ---
-      // Mark app as ready first
-      setAppReady(true);
-      
-      // Initialize monitor system (with delay to ensure APIs are loaded)
-      setTimeout(() => {
-        initializeMonitorStore();
-      }, 100);
-      
-      // Then fade out splash screen
-      setSplashFading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 800); // match fade-out duration
+        // Channel data now managed by Zustand store with automatic persistence
+        // Initialize persistent default channels
+        const { initializeUserDefaultChannels } = useChannelStore.getState();
+        initializeUserDefaultChannels();
+        
+
+        
+        // --- SplashScreen logic ---
+        // Mark app as ready first
+        setAppReady(true);
+        
+        // Initialize monitor system (with delay to ensure APIs are loaded)
+        setTimeout(() => {
+          initializeMonitorStore();
+        }, 100);
+        
+        // Then fade out splash screen
+        setSplashFading(true);
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 800); // match fade-out duration
+      } catch (error) {
+        console.error('[APP] Error during initialization:', error);
+      }
     }
     loadAll();
     
@@ -1253,12 +1277,48 @@ function App() {
         return;
       }
       
+      // Spotify widget shortcut
+      if (spotify.isEnabled && spotify.isConnected) {
+        const key = event.key.toLowerCase();
+        const modifier = (event.ctrlKey ? 'ctrl' : '') + 
+                        (event.altKey ? 'alt' : '') + 
+                        (event.shiftKey ? 'shift' : '') + 
+                        (event.metaKey ? 'meta' : '');
+        const currentHotkey = modifier + key;
+        const expectedHotkey = spotify.hotkeyModifier + spotify.hotkeyKey;
+        
+        if (currentHotkey === expectedHotkey) {
+          event.preventDefault();
+          toggleWidget();
+          return;
+        }
+      }
+
+      // Check keyboard shortcuts for Spotify widget
+      const currentKeyboardShortcuts = useUIStore.getState().keyboardShortcuts;
+      const spotifyShortcut = currentKeyboardShortcuts.find(s => s.id === 'toggle-spotify-widget');
+      if (spotifyShortcut && spotifyShortcut.enabled && spotify.isEnabled && spotify.isConnected) {
+        const key = event.key.toLowerCase();
+        const modifier = (event.ctrlKey ? 'ctrl' : '') + 
+                        (event.altKey ? 'alt' : '') + 
+                        (event.shiftKey ? 'shift' : '') + 
+                        (event.metaKey ? 'meta' : '');
+        const currentHotkey = modifier + key;
+        const expectedHotkey = spotifyShortcut.modifier + spotifyShortcut.key;
+        
+        if (currentHotkey === expectedHotkey) {
+          event.preventDefault();
+          toggleWidget();
+          return;
+        }
+      }
+      
       handleGlobalKeyPress(event);
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleGlobalKeyPress]);
+  }, [handleGlobalKeyPress, spotify.isEnabled, spotify.isConnected, spotify.hotkey, toggleWidget]);
 
   // Apply cursor mode
   useEffect(() => {
@@ -3184,6 +3244,12 @@ function App() {
             setIsScreenshotInProgress(false);
             handleTakeScreenshot();
           }}
+        />
+        
+        {/* Floating Spotify Widget */}
+        <FloatingSpotifyWidget 
+          isVisible={isFloatingWidgetVisible}
+          onClose={hideWidget}
         />
       </div>
     </>

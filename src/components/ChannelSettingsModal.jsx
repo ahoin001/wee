@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import WToggle from '../ui/WToggle';
+import WButton from '../ui/WButton';
 import Card from '../ui/Card';
 import './BaseModal.css';
 
@@ -128,8 +129,8 @@ const ChannelSettingsModal = ({
       maxWidth="1200px"
       footerContent={({ handleClose }) => (
         <div style={{  textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-          <Button variant="primary" onClick={handleSave} style={{ minWidth: 90 }}>Save</Button>
+          <WButton variant="secondary" onClick={handleClose}>Cancel</WButton>
+          <WButton variant="primary" onClick={handleSave} style={{ minWidth: 90 }}>Save</WButton>
         </div>
       )}
     >

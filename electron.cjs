@@ -14,6 +14,9 @@ const wsQuery = promisify(ws.query);
 const { nativeImage } = require('electron');
 const { exec } = require('child_process');
 
+// Import the Spotify backend
+// Spotify backend removed - using direct client-side API calls
+
 // --- Version Constants for Manual Fresh Install ---
 const CURRENT_VERSION = '2.7.4';
 
@@ -1940,6 +1943,17 @@ async function createWindow(opts = {}) {
 }
 
 app.whenReady().then(async () => {
+  // Register custom protocol for Spotify OAuth
+  if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+      app.setAsDefaultProtocolClient('wee-desktop-launcher', process.execPath, [path.resolve(process.argv[1])]);
+    }
+  } else {
+    app.setAsDefaultProtocolClient('wee-desktop-launcher');
+  }
+  
+  // Spotify backend server removed - using direct client-side API calls
+  
   // Check if this is the first run (installer mode)
   const isFirstRun = await checkIfFirstRun();
   
@@ -2110,6 +2124,142 @@ if (app.isPackaged) {
     }
   });
   
+  // Register wee-desktop-launcher:// protocol for Spotify OAuth callback
+  protocol.registerFileProtocol('wee-desktop-launcher', (request, callback) => {
+    try {
+      const url = request.url;
+      console.log('[Spotify Protocol] Received callback:', url);
+      
+      // Extract the authorization code from the URL
+      const urlObj = new URL(url);
+      const code = urlObj.searchParams.get('code');
+      const error = urlObj.searchParams.get('error');
+      
+      if (error) {
+        console.error('[Spotify Protocol] OAuth error:', error);
+        // Send error to renderer process
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('spotify-auth-error', { error });
+        }
+      } else if (code) {
+        console.log('[Spotify Protocol] OAuth code received:', code);
+        // Send code to renderer process
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('spotify-auth-success', { code });
+        }
+      }
+      
+      // Return a simple HTML page to close the window
+      callback({
+        mimeType: 'text/html',
+        data: Buffer.from(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Spotify Authentication</title>
+              <style>
+                body { 
+                  font-family: Arial, sans-serif; 
+                  text-align: center; 
+                  padding: 50px; 
+                  background: #1db954; 
+                  color: white; 
+                }
+                .success { background: #1db954; }
+                .error { background: #dc3545; }
+              </style>
+            </head>
+            <body class="${error ? 'error' : 'success'}">
+              <h2>${error ? 'Authentication Failed' : 'Authentication Successful!'}</h2>
+              <p>${error ? 'Please try again.' : 'You can close this window now.'}</p>
+              <script>
+                setTimeout(() => window.close(), 2000);
+              </script>
+            </body>
+          </html>
+        `)
+      });
+      
+    } catch (protocolError) {
+      console.error('[Spotify Protocol] Protocol handler error:', protocolError);
+      callback({ error: -2 }); // net::ERR_FAILED
+    }
+  });
+  
+  // Handle protocol activation (when app is launched via custom protocol)
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    console.log('[Spotify Protocol] App launched via protocol:', url);
+    
+    // Extract the authorization code from the URL
+    try {
+      const urlObj = new URL(url);
+      const code = urlObj.searchParams.get('code');
+      const error = urlObj.searchParams.get('error');
+      
+      if (error) {
+        console.error('[Spotify Protocol] OAuth error:', error);
+        // Send error to renderer process
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('spotify-auth-error', { error });
+        }
+      } else if (code) {
+        console.log('[Spotify Protocol] OAuth code received:', code);
+        // Send code to renderer process
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('spotify-auth-success', { code });
+        }
+      }
+    } catch (error) {
+      console.error('[Spotify Protocol] Error parsing URL:', error);
+    }
+  });
+
+  // Handle protocol activation via command line arguments (Windows)
+  const gotTheLock = app.requestSingleInstanceLock();
+  
+  if (!gotTheLock) {
+    app.quit();
+  } else {
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+      // Someone tried to run a second instance, we should focus our window instead.
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+      }
+      
+      // Check if the second instance was launched with a protocol URL
+      const protocolUrl = commandLine.find(arg => arg.startsWith('wee-desktop-launcher://'));
+      if (protocolUrl) {
+        console.log('[Spotify Protocol] Second instance launched with protocol:', protocolUrl);
+        
+        // Extract the authorization code from the URL
+        try {
+          const urlObj = new URL(protocolUrl);
+          const code = urlObj.searchParams.get('code');
+          const error = urlObj.searchParams.get('error');
+          
+          if (error) {
+            console.error('[Spotify Protocol] OAuth error:', error);
+            // Send error to renderer process
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('spotify-auth-error', { error });
+            }
+          } else if (code) {
+            console.log('[Spotify Protocol] OAuth code received:', code);
+            // Send code to renderer process
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('spotify-auth-success', { code });
+            }
+          }
+        } catch (error) {
+          console.error('[Spotify Protocol] Error parsing URL:', error);
+        }
+      }
+    });
+  }
+  
+
   // Installer functions
   async function checkIfFirstRun() {
     try {
@@ -2379,6 +2529,8 @@ ipcMain.on('minimize-window', () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
+// Spotify backend server cleanup removed - using direct client-side API calls
 
 ipcMain.on('open-pip-window', (event, urlToOpen) => {
   const pipWindow = new BrowserWindow({

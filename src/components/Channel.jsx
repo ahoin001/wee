@@ -7,6 +7,7 @@ import audioManager from '../utils/AudioManager';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import KenBurnsImage from './KenBurnsImage';
 import useChannelStore from '../utils/useChannelStore';
+import useFloatingWidgetStore from '../utils/useFloatingWidgetStore';
 import './Channel.css';
 
 // Guard for window.api to prevent errors in browser
@@ -37,6 +38,9 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   const { getChannelConfig, isChannelEmpty, setChannel, openChannelModal } = useChannelStore();
   const storeChannelConfig = getChannelConfig(id);
   const storeIsEmpty = isChannelEmpty(id);
+  
+  // Floating widget store
+  const { showWidget } = useFloatingWidgetStore();
   
   // Use store data if available, fallback to props for backward compatibility
   const effectiveConfig = storeChannelConfig || channelConfig;
@@ -183,8 +187,35 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
       channelConfig: effectiveConfig
     });
     
+    // Handle API channels (Spotify, etc.)
+    if (effectiveConfig?.isApiChannel && effectiveConfig?.apiConfig?.selectedApi) {
+      // Play channel click sound if enabled
+      try {
+        const soundLibrary = await soundsApi.getLibrary();
+        const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
+        if (enabledClickSound) {
+          await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
+        }
+      } catch (error) {
+        console.warn('Failed to load sound library:', error);
+      }
+      
+      // Handle different API types
+      const apiType = effectiveConfig.apiConfig.selectedApi;
+      
+      if (apiType === 'spotify') {
+        // Show floating widget for Spotify integration
+        showWidget();
+      } else {
+        // Future API integrations can be added here
+        console.log(`[Channel] API channel clicked: ${apiType}`);
+      }
+      
+      return;
+    }
+    
     if (isChannelEmpty) {
-      setShowChannelModal(true);
+      handleConfigure();
     } else if (effectivePath) {
       // Play channel click sound if enabled
       try {
@@ -223,7 +254,8 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
     const isChannelEmpty = !effectiveConfig || (!effectiveConfig.media && !effectiveConfig.path);
     
     // Play per-channel hover sound if set, else global
-    if (!isChannelEmpty && effectivePath) {
+    // For API channels, we don't need a path to play hover sounds
+    if (!isChannelEmpty && (effectivePath || effectiveConfig?.isApiChannel)) {
       // console.log('Channel: Hover sound data:', hoverSound);
       if (effectiveHoverSound && effectiveHoverSound.url) {
         // Play custom hover sound once
@@ -254,7 +286,7 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   };
 
   const handleConfigure = () => {
-    setShowChannelModal(true);
+    openChannelModal(id);
   };
 
   const handleClearChannel = () => {
@@ -614,6 +646,9 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
           onUploadClick={handleUploadClick}
         />
       )}
+
+      {/* Spotify Music Channel Modal */}
+      {/* Removed */}
 
     </>
   );

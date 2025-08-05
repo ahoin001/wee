@@ -98,6 +98,9 @@ contextBridge.exposeInMainWorld('api', {
   onUpdateNotificationInstall: (cb) => ipcRenderer.on('update-notification-install', (e) => cb()),
   offUpdateNotificationInstall: (cb) => ipcRenderer.removeListener('update-notification-install', cb),
   getFullscreenState: () => ipcRenderer.invoke('get-fullscreen-state'),
+  // Spotify OAuth APIs
+  onSpotifyAuthSuccess: (cb) => ipcRenderer.on('spotify-auth-success', (e, data) => cb(data)),
+  onSpotifyAuthError: (cb) => ipcRenderer.on('spotify-auth-error', (e, data) => cb(data)),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   apps: {
     getInstalled: () => ipcRenderer.invoke('apps:getInstalled'),
