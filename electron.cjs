@@ -13,6 +13,8 @@ const { promisify } = require('util');
 const wsQuery = promisify(ws.query);
 const { nativeImage } = require('electron');
 const { exec } = require('child_process');
+const { globalShortcut } = require('electron');
+const { Menu } = require('electron');
 
 // Import the Spotify backend
 // Spotify backend removed - using direct client-side API calls
@@ -1931,6 +1933,34 @@ async function createWindow(opts = {}) {
   mainWindow.on('leave-full-screen', onLeaveFullScreen);
   mainWindow.once('ready-to-show', sendWindowState);
   
+  // Add global shortcut for developer tools
+  globalShortcut.register('CommandOrControl+Shift+I', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.openDevTools();
+    }
+  });
+  
+  // Add menu with developer tools option
+  const template = [
+    {
+      label: 'Developer',
+      submenu: [
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: 'CmdOrCtrl+Shift+I',
+          click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.openDevTools();
+            }
+          }
+        }
+      ]
+    }
+  ];
+  
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+  
   // Store cleanup function for potential future use
   mainWindow.cleanup = () => {
     if (mainWindow) {
@@ -1938,8 +1968,9 @@ async function createWindow(opts = {}) {
       mainWindow.removeListener('enter-full-screen', onEnterFullScreen);
       mainWindow.removeListener('leave-full-screen', onLeaveFullScreen);
     }
+    // Unregister global shortcut
+    globalShortcut.unregister('CommandOrControl+Shift+I');
   };
-  
 }
 
 app.whenReady().then(async () => {

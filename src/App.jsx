@@ -919,12 +919,32 @@ function App() {
     };
   }, []);
 
-  // Initialize global mouse navigation
+  // Load homescreen settings and apply to navigation store
   useEffect(() => {
-   
-    const cleanup = usePageNavigationStore.getState().initializeGlobalNavigation();
+    const loadHomescreenSettings = async () => {
+      try {
+        const settings = await settingsApi?.get();
+        if (settings?.homescreen) {
+          const {
+            navigationMode = 'simple',
+            gridColumns = 4,
+            gridRows = 3,
+            peekVisibility = 0.2,
+            slideAnimation = 'slide',
+            preloadAdjacentPages = true,
+            lazyLoadChannels = false
+          } = settings.homescreen;
+          
+          // Apply settings to navigation store using the new API
+          const navigationStore = usePageNavigationStore.getState();
+          navigationStore.loadSettings(settings.homescreen);
+        }
+      } catch (error) {
+        console.warn('Failed to load homescreen settings:', error);
+      }
+    };
     
-    return cleanup; // This will clean up the event listeners when component unmounts
+    loadHomescreenSettings();
   }, []);
 
   // Listen for update notification events
@@ -1212,6 +1232,7 @@ function App() {
         showDock, // Persist showDock setting
         dockSettings, // Persist dockSettings
         particleSettings, // Persist particle settings
+        homescreen: usePageNavigationStore.getState().getSettings(), // Persist homescreen settings
         ...getConfigurationsForPersistence(), // Persist ClassicWiiDock button configurations
       };
       
@@ -1228,6 +1249,34 @@ function App() {
     }
     persistSettings();
   }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, classicMode, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings, particleSettings, classicDockButtonConfigs, accessoryButtonConfig]);
+
+  // Persist navigation settings when they change
+  useEffect(() => {
+    if (hasInitialized && settingsApi) {
+      const unsubscribe = usePageNavigationStore.subscribe(
+        (state) => ({ mode: state.mode, gridColumns: state.gridColumns, gridRows: state.gridRows, peekVisibility: state.peekVisibility }),
+        async (navigationSettings) => {
+          console.log('[App] Navigation settings changed, persisting:', navigationSettings);
+          const persistNavigationSettings = async () => {
+            let current = await settingsApi.get();
+            if (!current) current = {};
+            
+            const updated = {
+              ...current,
+              homescreen: usePageNavigationStore.getState().getSettings()
+            };
+            
+            console.log('[App] Persisting navigation settings:', updated.homescreen);
+            await settingsApi.set(updated);
+          };
+          
+          persistNavigationSettings();
+        }
+      );
+      
+      return unsubscribe;
+    }
+  }, [hasInitialized, settingsApi]);
 
   // Persist keyboard shortcuts when they change
   useEffect(() => {
@@ -1276,6 +1325,12 @@ function App() {
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // Debug logging for Ctrl+Shift+I
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'i') {
+        console.log('[App] Ctrl+Shift+I detected, allowing to pass through');
+        return;
+      }
+      
       // Don't handle shortcuts if user is typing in an input field
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
         return;
@@ -1338,8 +1393,44 @@ function App() {
       handleGlobalKeyPress(event);
     };
 
+    // Mouse wheel navigation handler
+    const handleWheel = (event) => {
+      // Don't handle if user is in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
+        return;
+      }
+
+      // Check for Shift + wheel for horizontal navigation
+      if (event.shiftKey) {
+        event.preventDefault();
+        
+        const { goToNextPage, goToPreviousPage } = usePageNavigationStore.getState();
+        
+        if (event.deltaX > 0 || event.deltaY > 0) {
+          // Scroll right/forward
+          goToNextPage();
+        } else if (event.deltaX < 0 || event.deltaY < 0) {
+          // Scroll left/backward
+          goToPreviousPage();
+        }
+      }
+    };
+
+    // Debug global keyboard events
+    const handleGlobalKeyDown = (event) => {
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'i') {
+        console.log('[App] Global Ctrl+Shift+I detected');
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
   }, [handleGlobalKeyPress, spotify.isEnabled, spotify.isConnected, spotify.hotkey, toggleSpotifyWidget, toggleSystemInfoWidget]);
 
   // Apply cursor mode
@@ -1714,6 +1805,13 @@ function App() {
     }
     if (newSettings.animatedOnHover !== undefined) {
       setAnimatedOnHover(newSettings.animatedOnHover);
+    }
+    
+    // Handle homescreen settings
+    if (newSettings.homescreen !== undefined) {
+      console.log('[App] Received homescreen settings:', newSettings.homescreen);
+      const navigationStore = usePageNavigationStore.getState();
+      navigationStore.loadSettings({ homescreen: newSettings.homescreen });
     }
     
     // Handle general settings
@@ -2705,7 +2803,17 @@ function App() {
           </div>
         )}
         
-        <div style={{ opacity: channelOpacity, transition: 'opacity 0.5s ease-in-out', position: 'relative', zIndex: 100, pointerEvents: 'auto' }}>
+        <div style={{ 
+          opacity: channelOpacity, 
+          transition: 'opacity 0.5s ease-in-out', 
+          position: 'relative', 
+          zIndex: 100, 
+          pointerEvents: 'auto',
+          height: 'calc(100vh - 240px)', /* Full height minus WiiRibbon */
+          width: '100vw',
+          margin: 0,
+          padding: 0
+        }}>
                   <PaginatedChannels
           animatedOnHover={animatedOnHover}
           adaptiveEmptyChannels={adaptiveEmptyChannels}

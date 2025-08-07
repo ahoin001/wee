@@ -186,6 +186,11 @@ const WiiSideNavigation = () => {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // Don't interfere with important system shortcuts like Ctrl+Shift+I
+      if (event.ctrlKey || event.metaKey) {
+        return;
+      }
+      
       // Only handle navigation when not in a modal or input field
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
         return;

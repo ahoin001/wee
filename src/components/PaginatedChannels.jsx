@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import Channel from './Channel';
 import useChannelStore from '../utils/useChannelStore';
 import useIdleChannelAnimations from '../utils/useIdleChannelAnimations';
-import usePageNavigationStore from '../utils/usePageNavigationStore';
+import usePageNavigationStore, { NavigationModes } from '../utils/usePageNavigationStore';
 import './PaginatedChannels.css';
 
 const PaginatedChannels = ({
@@ -23,24 +23,26 @@ const PaginatedChannels = ({
   onChannelSave,
   onChannelHover
 }) => {
-  // Debug flag - set to true only when debugging is needed
-  const DEBUG = false;
-  
-  // Use Zustand store for page navigation instead of local state
+  // Use the navigation store
   const {
+    mode,
     currentPage,
     totalPages,
     isAnimating,
     animationDirection,
-    setCurrentPage,
-    setTotalPages,
-    setIsAnimating,
-    setAnimationDirection,
+    gridColumns,
+    gridRows,
+    peekVisibility,
+    getWiiStyleTransform,
+    getVisiblePages,
+    getChannelIndexRange,
+    getTotalChannelsCount,
+    loadSettings,
     finishAnimation
   } = usePageNavigationStore();
   
   // Get channel data from Zustand store
-  const { getChannelDataForComponents, getHighestConfiguredIndex } = useChannelStore();
+  const { getChannelDataForComponents } = useChannelStore();
   const { mediaMap: storeMediaMap, appPathMap: storeAppPathMap, channelConfigs: storeChannelConfigs } = getChannelDataForComponents();
   
   // Use store data if available, fallback to props for backward compatibility
@@ -48,41 +50,18 @@ const PaginatedChannels = ({
   const effectiveAppPathMap = storeAppPathMap && Object.keys(storeAppPathMap).length > 0 ? storeAppPathMap : appPathMap;
   const effectiveChannelConfigs = storeChannelConfigs && Object.keys(storeChannelConfigs).length > 0 ? storeChannelConfigs : channelConfigs;
 
-  // Calculate total channels needed first
-  const getTotalChannelsCount = useMemo(() => {
-    // Find the highest configured channel index
-    let highestIndex = -1;
-    
-    if (effectiveChannelConfigs) {
-      Object.keys(effectiveChannelConfigs).forEach(channelId => {
-        const match = channelId.match(/channel-(\d+)/);
-        if (match) {
-          const index = parseInt(match[1]);
-          if (effectiveChannelConfigs[channelId] && (effectiveChannelConfigs[channelId].media || effectiveChannelConfigs[channelId].path)) {
-            highestIndex = Math.max(highestIndex, index);
-          }
-        }
-      });
-    }
-    
-    // Ensure we have at least 3 pages worth of channels (36 channels) to start with
-    const minChannels = 12 * 3; // At least 3 pages
-    const neededForConfigured = highestIndex >= 0 ? highestIndex + 1 : 0;
-    const result = Math.max(minChannels, neededForConfigured);
-    
-    return result;
-  }, [effectiveChannelConfigs]);
+  // Calculate total channels needed
+  const totalChannelsCount = useMemo(() => getTotalChannelsCount(), [getTotalChannelsCount]);
 
-  // Generate all channels for all pages (with full configuration data)
+  // Generate all channels for all pages
   const allPagesChannels = useMemo(() => {
-    const totalChannels = getTotalChannelsCount;
+    const totalChannels = totalChannelsCount;
     const channels = [];
     
     for (let i = 0; i < totalChannels; i++) {
       const channelId = `channel-${i}`;
       const config = effectiveChannelConfigs ? effectiveChannelConfigs[channelId] : null;
       const isConfigured = config && (config.media || config.path);
-      const isVisible = config?.isVisible !== false; // Default to visible unless explicitly hidden
       
       channels.push({
         id: channelId,
@@ -94,15 +73,14 @@ const PaginatedChannels = ({
         title: config?.title,
         hoverSound: config?.hoverSound,
         asAdmin: config?.asAdmin,
-        isVisible: isVisible,
         ...(config || {})
       });
     }
     
     return channels;
-  }, [getTotalChannelsCount, effectiveChannelConfigs, effectiveMediaMap, effectiveAppPathMap]);
+  }, [totalChannelsCount, effectiveChannelConfigs, effectiveMediaMap, effectiveAppPathMap]);
 
-  // Idle animation system (now using processed channels with full data)
+  // Idle animation system
   const idleAnimationParams = useMemo(() => ({
     enabled: idleAnimationEnabled,
     types: idleAnimationTypes,
@@ -117,50 +95,61 @@ const PaginatedChannels = ({
     idleAnimationParams.channels
   );
 
-  // Page navigation logic - now using Zustand store
-  const channelsPerPage = 12;
-  
-  const getChannelIndexRange = useCallback((page) => {
-    const startIndex = page * channelsPerPage;
-    const endIndex = startIndex + channelsPerPage - 1;
-    return { startIndex, endIndex };
-  }, [channelsPerPage]);
-
-  // Update total pages when needed - now using Zustand store
-  const prevTotalChannelsRef = useRef(getTotalChannelsCount);
-  
+  // Load settings when component mounts
   useEffect(() => {
-    const currentTotalChannels = getTotalChannelsCount;
-    const requiredPages = Math.ceil(currentTotalChannels / channelsPerPage);
-    const targetPages = Math.max(3, requiredPages); // Ensure minimum 3 pages
-    
-    // Only update if the number of channels changed or if we need more pages
-    if (currentTotalChannels !== prevTotalChannelsRef.current || targetPages !== totalPages) {
-      if (DEBUG) {
-        console.log('[PaginatedChannels] Setting total pages from', totalPages, 'to', targetPages, 'due to channel count change:', currentTotalChannels);
-      }
-      prevTotalChannelsRef.current = currentTotalChannels;
-      setTotalPages(targetPages);
+    if (window.settings?.homescreen) {
+      loadSettings(window.settings);
     }
-  }, [getTotalChannelsCount, channelsPerPage, totalPages, setTotalPages, DEBUG]);
+  }, [loadSettings]);
 
-  // Debug logging for channel data changes (only when DEBUG is true)
+  // Handle animation completion
   useEffect(() => {
-    if (DEBUG) {
-      console.log('[PaginatedChannels] Channel data updated:', {
-        totalChannels: getTotalChannelsCount,
-        configuredChannels: Object.keys(effectiveChannelConfigs || {}).length,
-        currentPage,
-        totalPages
+    if (isAnimating) {
+      const timer = setTimeout(() => {
+        finishAnimation();
+      }, 500); // Match CSS transition duration
+      return () => clearTimeout(timer);
+    }
+  }, [isAnimating, finishAnimation]);
+
+  // Calculate the transform offset for simple mode
+  const getTransformOffset = useCallback(() => {
+    return -currentPage * 33.333; // Each page is 33.333% wide
+  }, [currentPage]);
+
+  // Create pages based on current mode
+  const pages = useMemo(() => {
+    const pages = [];
+    const channelsPerPage = gridColumns * gridRows;
+    
+    // Simple mode: Create separate pages
+    for (let i = 0; i < totalPages; i++) {
+      const pageIndex = i;
+      const { startIndex, endIndex } = getChannelIndexRange(pageIndex);
+      const pageChannels = allPagesChannels.slice(startIndex, endIndex + 1);
+      
+      pages.push({
+        key: `page-${pageIndex}`,
+        pageIndex,
+        channels: pageChannels,
+        transform: 'translateX(0%)',
+        isVisible: true
       });
     }
-  }, [getTotalChannelsCount, effectiveChannelConfigs, currentPage, totalPages, DEBUG]);
+    
+    return pages;
+  }, [totalPages, gridColumns, gridRows, allPagesChannels, getChannelIndexRange]);
 
-  // Get channels for current page
-  const currentPageChannels = useMemo(() => {
-    const { startIndex, endIndex } = getChannelIndexRange(currentPage);
-    return allPagesChannels.slice(startIndex, endIndex + 1);
-  }, [allPagesChannels, currentPage, getChannelIndexRange]);
+  // CSS Grid styles
+  const gridStyles = useMemo(() => ({
+    display: 'grid',
+    gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
+    gridTemplateRows: `repeat(${gridRows}, 1fr)`,
+    gap: '20px',
+    width: '100%',
+    height: '100%',
+    padding: '20px'
+  }), [gridColumns, gridRows]);
 
   // Memoize Channel component props to prevent unnecessary re-renders
   const channelProps = useMemo(() => ({
@@ -174,73 +163,37 @@ const PaginatedChannels = ({
     onHover: onChannelHover
   }), [onMediaChange, onAppPathChange, onChannelSave, animatedOnHover, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, onChannelHover]);
 
-  // Calculate the transform offset for simple navigation
-  const getTransformOffset = () => {
-    return -currentPage * 100;
-  };
-
-  // Create pages for navigation
-  const createPages = () => {
-    const pages = [];
-    
-    for (let i = 0; i < totalPages; i++) {
-      const pageIndex = i;
-      const { startIndex, endIndex } = getChannelIndexRange(pageIndex);
-      const pageChannels = allPagesChannels.slice(startIndex, endIndex + 1);
-      
-      pages.push({
-        key: `page-${pageIndex}`,
-        pageIndex,
-        channels: pageChannels,
-        transform: `translateX(${i * 100}%)`
-      });
-    }
-    
-    return pages;
-  };
-
-  const pages = createPages();
-
-  // Handle animation completion
-  useEffect(() => {
-    if (isAnimating) {
-      const timer = setTimeout(() => {
-        finishAnimation();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isAnimating, finishAnimation]);
-
   return (
     <div className="paginated-channels">
       <div 
-        className={`pages-container ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''}`}
+        className={`pages-container ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''} simple`}
         style={{
           transform: `translateX(${getTransformOffset()}%)`,
           transition: isAnimating ? 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none'
         }}
       >
         {/* Render pages */}
-        {pages.map(({ key, pageIndex, channels, transform }) => (
+        {pages.map(({ key, pageIndex, channels, transform, isVisible }) => (
           <div 
             key={key} 
-            className={`channels-page ${pageIndex === currentPage ? 'active' : ''}`}
-            style={{ transform }}
+            className="channels-page"
+            style={{ 
+              transform: transform,
+              display: isVisible ? 'block' : 'none'
+            }}
           >
-            <div className="channels-grid">
-              {channels
-                .filter(channel => channel.isVisible) // Only show visible channels
-                .map((channel) => (
-                  <Channel
-                    key={channel.id}
-                    {...channel}
-                    {...channelProps}
-                    channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
-                    animationStyle={channel.animationStyle}
-                    idleAnimationClass={getChannelAnimationClass(channel.id)}
-                    isIdleAnimating={isChannelAnimating(channel.id)}
-                  />
-                ))}
+            <div className="channels-grid" style={gridStyles}>
+              {channels.map((channel) => (
+                <Channel
+                  key={channel.id}
+                  {...channel}
+                  {...channelProps}
+                  channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
+                  animationStyle={channel.animationStyle}
+                  idleAnimationClass={getChannelAnimationClass(channel.id)}
+                  isIdleAnimating={isChannelAnimating(channel.id)}
+                />
+              ))}
             </div>
           </div>
         ))}

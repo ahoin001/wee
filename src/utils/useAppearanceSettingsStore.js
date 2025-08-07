@@ -92,6 +92,16 @@ const useAppearanceSettingsStore = create((set, get) => ({
       channelHoverVolume: 0.5,
       startupEnabled: true,
       startupVolume: 0.5,
+    },
+    homescreen: {
+      navigationMode: 'simple',
+      gridColumns: 4,
+      gridRows: 3,
+      peekVisibility: 0.2,
+      slideAnimation: 'slide',
+      preloadAdjacentPages: true,
+      lazyLoadChannels: false,
+      enableChannelCaching: true,
     }
   },
 
@@ -135,7 +145,8 @@ const useAppearanceSettingsStore = create((set, get) => ({
       wallpaper: state.tabs.wallpaper,
       time: state.tabs.time,
       general: state.tabs.general,
-      sounds: state.tabs.sounds
+      sounds: state.tabs.sounds,
+      homescreen: state.tabs.homescreen
     };
   },
 

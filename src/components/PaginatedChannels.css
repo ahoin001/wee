@@ -1,139 +1,122 @@
-/* Paginated Channels Component Styles */
+/* ===== PAGINATED CHANNELS - SIMPLE MODE ONLY ===== */
 
+/* Base container - take full available space */
 .paginated-channels {
-  width: 100vw;
-  max-width: 100vw;
+  position: relative;
+  width: 100vw !important; /* Full viewport width - override any parent constraints */
+  height: calc(100vh - 240px) !important; /* Account for WiiRibbon dock height */
   overflow: hidden;
-  position: relative;
-}
-
-.pages-container {
   display: flex;
-  width: 100%;
-  will-change: transform;
-  position: relative;
-}
-
-.channels-page {
-  flex: 0 0 100%;
-  width: 100%;
-  min-height: 100%;
-  position: relative;
-}
-
-.channels-page .channels-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
-  grid-template-rows: repeat(3, 1fr);
-  gap: 2rem;
-  padding: 2rem 2vw;
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
+  flex-direction: column;
+  margin: 0 !important;
+  padding: 0 !important;
   box-sizing: border-box;
-  min-height: 400px; /* Ensure consistent height */
+  /* Override any parent flex constraints */
+  flex: none !important;
+  align-self: stretch !important;
 }
 
-/* Animation States */
-.pages-container.animating {
+/* Pages container - simple mode only */
+.pages-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1;
   transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
-/* Slide animations */
-.pages-container.slide-right {
-  /* When sliding right (previous page), we want to show the next page coming from the right */
-  animation: slideRight 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+/* Simple mode layout */
+.pages-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 pages side by side */
+  gap: 0;
+  width: 300%; /* 3x width to accommodate all pages */
+}
+
+.pages-container .channels-page {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== CHANNEL GRID ===== */
+.channels-grid {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Grid template is set dynamically via inline styles */
+.channels-grid {
+  grid-template-columns: repeat(4, 1fr); /* Default 4 columns */
+  grid-template-rows: repeat(3, 1fr);    /* Default 3 rows */
+}
+
+/* ===== ANIMATION STATES ===== */
+.pages-container.animating {
+  pointer-events: none;
 }
 
 .pages-container.slide-left {
-  /* When sliding left (next page), we want to show the next page coming from the left */
-  animation: slideLeft 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform: translateX(-33.333%);
 }
 
-@keyframes slideRight {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(0%);
-  }
+.pages-container.slide-right {
+  transform: translateX(33.333%);
 }
 
-@keyframes slideLeft {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(0%);
-  }
+/* Animation transition */
+.pages-container {
+  transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
-/* Performance optimizations */
-.channels-page {
-  backface-visibility: hidden;
-  perspective: 1000px;
-  transform-style: preserve-3d;
-}
-
-.channels-page:not(.active) {
-  pointer-events: none; /* Prevent interaction with off-screen pages */
-}
-
-/* Responsive Design */
+/* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1200px) {
-  .channels-page .channels-grid {
-    grid-template-columns: repeat(3, minmax(160px, 1fr));
-    grid-template-rows: repeat(4, 1fr);
-    gap: 1.5rem;
+  .channels-grid {
+    gap: 15px;
+    padding: 15px;
   }
 }
 
 @media (max-width: 768px) {
-  .channels-page .channels-grid {
-    grid-template-columns: repeat(2, minmax(140px, 1fr));
-    grid-template-rows: repeat(6, 1fr);
-    gap: 1.25rem;
-    padding: 1.5rem 1rem;
+  .channels-grid {
+    gap: 10px;
+    padding: 10px;
   }
 }
 
-@media (max-width: 480px) {
-  .channels-page .channels-grid {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
-    gap: 1rem;
-    padding: 1rem 0.5rem;
+/* ===== PERFORMANCE OPTIMIZATIONS ===== */
+.channels-page {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.channels-grid > * {
+  aspect-ratio: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ===== ACCESSIBILITY ===== */
+.pages-container:focus-within {
+  outline: 2px solid hsl(var(--wii-blue));
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .pages-container {
+    transition: none;
   }
-}
-
-/* Ensure smooth transitions */
-* {
-  box-sizing: border-box;
-}
-
-/* Loading state */
-.channels-page.loading {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.channels-page.loading .channels-grid {
-  filter: blur(1px);
-}
-
-/* Error state */
-.channels-page.error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-}
-
-.channels-page.error .error-message {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1.1rem;
-  text-align: center;
-  background: rgba(255, 0, 0, 0.1);
-  padding: 2rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 0, 0, 0.2);
+  
+  .pages-container.animating {
+    transition: none;
+  }
 } 

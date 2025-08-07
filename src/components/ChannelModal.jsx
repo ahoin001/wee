@@ -72,44 +72,93 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   }, [isOpen]);
 
+  // Reset state when channel data changes (when opening modal for different channel)
+  useEffect(() => {
+    if (isOpen) {
+      // console.log('[ChannelModal] Resetting state for channel:', channelId, {
+      //   currentMedia,
+      //   currentPath,
+      //   currentType,
+      //   currentAsAdmin,
+      //   currentHoverSound,
+      //   currentAnimatedOnHover,
+      //   currentKenBurnsEnabled,
+      //   currentKenBurnsMode
+      // });
+      
+      // Reset all state to match the current channel's data
+      setMedia(currentMedia);
+      setPath(currentPath || '');
+      setType(currentType || 'exe');
+      setPathError('');
+      setActiveTab('setup');
+      setImageGallery(currentMedia?.gallery || []);
+      setGalleryMode(false);
+      setAsAdmin(currentAsAdmin);
+      setShowImageSearch(false);
+      
+      // Reset hover sound state
+      setHoverSound(currentHoverSound || null);
+      setHoverSoundName(currentHoverSound ? currentHoverSound.name : '');
+      setHoverSoundUrl(currentHoverSound ? currentHoverSound.url : '');
+      setHoverSoundVolume(currentHoverSound ? currentHoverSound.volume : 0.7);
+      setHoverSoundEnabled(!!currentHoverSound);
+      setHoverSoundAudio(null);
+      setShowError(false);
+      setAnimatedOnHover(currentAnimatedOnHover);
+      
+      // Reset Ken Burns settings
+      setKenBurnsEnabled(currentKenBurnsEnabled);
+      setKenBurnsMode(
+        currentKenBurnsMode === 'slideshow' ? 'hover' : currentKenBurnsMode
+      );
+      
+      // Clear selection feedback
+      setSelectedGameFeedback(null);
+      
+      // Clear unified app store selection
+      useUnifiedAppStore.getState().clearSelection();
+    }
+  }, [isOpen, channelId, currentMedia, currentPath, currentType, currentAsAdmin, currentHoverSound, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode]);
+
   // Fetch app library data when modal opens (for unified system)
   useEffect(() => {
-    console.log('[ChannelModal] useEffect triggered - checking data:', {
-      steamGames: steamGames.length,
-      steamLoading,
-      installedApps: installedApps.length,
-      appsLoading
-    });
+    // console.log('[ChannelModal] useEffect triggered - checking data:', {
+    //   steamGames: steamGames.length,
+    //   steamLoading,
+    //   installedApps: installedApps.length,
+    //   appsLoading
+    // });
     
     // Fetch installed apps if not already loaded
     if (installedApps.length === 0 && !appsLoading) {
-      console.log('[ChannelModal] Fetching installed apps...');
+      // console.log('[ChannelModal] Fetching installed apps...');
       fetchInstalledApps();
     }
     // Fetch UWP apps if not already loaded
     if (uwpApps.length === 0 && !uwpLoading) {
-      console.log('[ChannelModal] Fetching UWP apps...');
+      // console.log('[ChannelModal] Fetching UWP apps...');
       fetchUwpApps();
     }
     // Fetch Steam games if not already loaded
     if (steamGames.length === 0 && !steamLoading) {
-      console.log('[ChannelModal] Fetching Steam games...');
+      // console.log('[ChannelModal] Fetching Steam games...');
       fetchSteamGames(customSteamPath);
     } else {
-      console.log('[ChannelModal] Steam games already loaded or loading:', steamGames.length);
+      // console.log('[ChannelModal] Steam games already loaded or loading:', steamGames.length);
     }
     // Fetch Epic games if not already loaded
     if (epicGames.length === 0 && !epicLoading) {
-      console.log('[ChannelModal] Fetching Epic games...');
+      // console.log('[ChannelModal] Fetching Epic games...');
       fetchEpicGames();
     } else {
-      console.log('[ChannelModal] Epic games already loaded or loading:', epicGames.length);
+      // console.log('[ChannelModal] Epic games already loaded or loading:', epicGames.length);
     }
     
     // Preload media library cache for Epic game thumbnails
     preloadMediaLibrary().then(() => {
       const status = getCacheStatus();
-      console.log('[ChannelModal] Media library cache status after preload:', status);
+      // console.log('[ChannelModal] Media library cache status after preload:', status);
     });
   }, [installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, fetchInstalledApps, fetchUwpApps, fetchSteamGames, fetchEpicGames, customSteamPath]);
 
@@ -375,7 +424,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
 
   const handleImageSelect = (mediaItem) => {
-    console.log('ChannelModal: handleImageSelect called with:', mediaItem);
+    // console.log('ChannelModal: handleImageSelect called with:', mediaItem);
     
     // Convert Supabase media item to the format expected by ChannelModal
     const mediaUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${mediaItem.file_url}`;
@@ -397,7 +446,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       isBuiltin: true 
     };
     
-    console.log('ChannelModal: Setting media to:', convertedMedia);
+    // console.log('ChannelModal: Setting media to:', convertedMedia);
     setMedia(convertedMedia);
     setShowImageSearch(false);
   };
@@ -564,12 +613,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   };
 
   // Debug logging for save button state
-  console.log('[ChannelModal] Save button debug:', {
-    hasMedia: !!media,
-    hasPath: !!path.trim(),
-    pathError,
-    canSave: media && path.trim() && !pathError
-  });
+  // console.log('[ChannelModal] Save button debug:', {
+  //   hasMedia: !!media,
+  //   hasPath: !!path,
+  //   pathError,
+  //   canSave: canSave
+  // });
   
   const canSave = media && path.trim() && !pathError;
   let saveTooltip = '';
@@ -789,6 +838,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   // Unified app path section
   const renderUnifiedAppPathSection = () => (
     <UnifiedAppPathCard
+      key={`unified-app-path-${channelId}`} // Force remount when channel changes
       value={{
         launchType: type === 'url' ? 'url' : 'application',
         appName: '', // Will be set by the unified system
@@ -955,47 +1005,45 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     const paginatedGames = paginateGames(sortedGames, gamesPage, gamesPerPage);
     const totalGamesPages = Math.ceil(sortedGames.length / gamesPerPage);
     
-
+    // Debug the filtering results - REMOVED TO REDUCE CONSOLE SPAM
+    // console.log('[ChannelModal] Game filtering debug:', {
+    //   steamTotal: realSteamGames.length,
+    //   steamUnique: uniqueSteamGames.length,
+    //   steamInstalled: installedSteamGames.length,
+    //   epicTotal: realEpicGames.length,
+    //   epicInstalled: installedEpicGames.length,
+    //   allGamesTotal: allGames.length,
+    //   filteredGames: filteredGames.length,
+    //   gamesBySource: {
+    //     steam: allGames.filter(g => g.source === 'steam').length,
+    //     epic: allGames.filter(g => g.source === 'epic').length
+    //   }
+    // });
     
-    // Debug the filtering results
-    console.log('[ChannelModal] Game filtering debug:', {
-      steamTotal: realSteamGames.length,
-      steamUnique: uniqueSteamGames.length,
-      steamInstalled: installedSteamGames.length,
-      epicTotal: realEpicGames.length,
-      epicInstalled: installedEpicGames.length,
-      allGamesTotal: allGames.length,
-      filteredGames: filteredGames.length,
-      gamesBySource: {
-        steam: allGames.filter(g => g.source === 'steam').length,
-        epic: allGames.filter(g => g.source === 'epic').length
-      }
-    });
-    
-    // Enhanced Steam games debugging
-    if (realSteamGames.length > 0) {
-      console.log('[ChannelModal] Steam games detailed debug:', {
-        totalGames: realSteamGames.length,
-        uniqueGames: uniqueSteamGames.length,
-        installedGames: installedSteamGames.length,
-        sampleGame: realSteamGames[0],
-        sampleGameProperties: realSteamGames[0] ? Object.keys(realSteamGames[0]) : [],
-        gamesWithSize: realSteamGames.filter(g => g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0).length,
-        gamesWithInstalledTrue: realSteamGames.filter(g => g.installed === true).length,
-        gamesWithInstalledUndefined: realSteamGames.filter(g => g.installed === undefined).length,
-        gamesWithInstalledFalse: realSteamGames.filter(g => g.installed === false).length
-      });
+    // Enhanced Steam games debugging - REMOVED TO REDUCE CONSOLE SPAM
+    // if (realSteamGames.length > 0) {
+    //   console.log('[ChannelModal] Steam games detailed debug:', {
+    //     totalGames: realSteamGames.length,
+    //     uniqueGames: uniqueSteamGames.length,
+    //     installedGames: installedSteamGames.length,
+    //     sampleGame: realSteamGames[0],
+    //     sampleGameProperties: realSteamGames[0] ? Object.keys(realSteamGames[0]) : [],
+    //     gamesWithSize: realSteamGames.filter(g => g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0).length,
+    //     gamesWithInstalledTrue: realSteamGames.filter(g => g.installed === true).length,
+    //     gamesWithInstalledUndefined: realSteamGames.filter(g => g.installed === undefined).length,
+    //     gamesWithInstalledFalse: realSteamGames.filter(g => g.installed === false).length
+    //   });
       
-      // Log first few games for inspection
-      console.log('[ChannelModal] First 3 Steam games:', realSteamGames.slice(0, 3).map(g => ({
-        name: g.name,
-        appid: g.appid,
-        installed: g.installed,
-        sizeOnDisk: g.sizeOnDisk,
-        hasSize: g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0,
-        wouldBeInstalled: (g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0) || (g.installed === true || g.installed === undefined)
-      })));
-    }
+    //   // Log first few games for inspection
+    //   console.log('[ChannelModal] First 3 Steam games:', realSteamGames.slice(0, 3).map(g => ({
+    //     name: g.name,
+    //     appid: g.appid,
+    //     installed: g.installed,
+    //     sizeOnDisk: g.sizeOnDisk,
+    //     hasSize: g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0,
+    //     wouldBeInstalled: (g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0) || (g.installed === true || g.installed === undefined)
+    //   })));
+    // }
     
     // Check for duplicates in Steam games
     const steamGameNames = realSteamGames.map(g => g.name);
@@ -1090,7 +1138,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   variant="secondary"
                   size="sm"
                   onClick={() => {
-                    console.log('[ChannelModal] Manual games refresh triggered');
+                    // console.log('[ChannelModal] Manual games refresh triggered');
                     rescanSteamGames();
                     rescanEpicGames();
                   }}
@@ -1123,14 +1171,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                       key={game.appid || game.appId || game.id || game.appName}
                       onClick={() => {
                         try {
-                          console.log('[ChannelModal] Game clicked!');
-                          console.log('[ChannelModal] Game object:', game);
-                          console.log('[ChannelModal] Game source:', game.source);
+                          // console.log('[ChannelModal] Game clicked!');
+                          // console.log('[ChannelModal] Game object:', game);
+                          // console.log('[ChannelModal] Game source:', game.source);
                           
                           if (game.source === 'steam') {
                             // Handle Steam game
                             const gameId = game.appId || game.appid || game.id;
-                            console.log('[ChannelModal] Steam game ID:', gameId);
+                            // console.log('[ChannelModal] Steam game ID:', gameId);
                             
                             // Create Steam app object
                             const steamApp = {
@@ -1146,17 +1194,17 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                               sizeOnDisk: game.sizeOnDisk
                             };
                             
-                            console.log('[ChannelModal] Created steamApp:', steamApp);
+                            // console.log('[ChannelModal] Created steamApp:', steamApp);
                             
                             // Set the selected app in the unified store
                             useUnifiedAppStore.getState().setSelectedApp(steamApp);
                             
                             // Set the game's cover art as the channel image
                             const coverUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${gameId}/header.jpg`;
-                            console.log(`[ChannelModal] Setting Steam media for ${game.name}:`, {
-                              coverUrl,
-                              gameId
-                            });
+                            // console.log(`[ChannelModal] Setting Steam media for ${game.name}:`, {
+                            //   coverUrl,
+                            //   gameId
+                            // });
                             
                             setMedia({
                               url: coverUrl,
@@ -1171,8 +1219,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                             
                           } else if (game.source === 'epic') {
                             // Handle Epic game
-                            console.log('[ChannelModal] Epic game clicked!');
-                            console.log('[ChannelModal] Epic game object:', game);
+                            // console.log('[ChannelModal] Epic game clicked!');
+                            // console.log('[ChannelModal] Epic game object:', game);
                             
                             // Auto-fill the channel with Epic game data
                             setType('epic');
@@ -1210,7 +1258,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                               category: 'Epic Game'
                             };
                             
-                            console.log('[ChannelModal] Created epicApp:', epicApp);
+                            // console.log('[ChannelModal] Created epicApp:', epicApp);
                             
                             // Set the selected app in the unified store
                             useUnifiedAppStore.getState().setSelectedApp(epicApp);
@@ -1222,12 +1270,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                               ? `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${selectedMedia.file_url}`
                               : coverUrl;
                             
-                            console.log(`[ChannelModal] Setting media for ${game.name}:`, {
-                              selectedMedia: selectedMedia ? selectedMedia.title : 'None',
-                              fileType: selectedMedia ? selectedMedia.file_type : 'fallback',
-                              finalCoverUrl,
-                              carouselIndex: currentIndex
-                            });
+                            // console.log(`[ChannelModal] Setting media for ${game.name}:`, {
+                            //   selectedMedia: selectedMedia ? selectedMedia.title : 'None',
+                            //   fileType: selectedMedia ? selectedMedia.file_type : 'fallback',
+                            //   finalCoverUrl,
+                            //   carouselIndex: currentIndex
+                            // });
                             
                             setMedia({
                               url: finalCoverUrl,
@@ -1469,7 +1517,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   variant="secondary"
                   size="sm"
                   onClick={() => {
-                    console.log('[ChannelModal] Force clearing Steam cache and rescanning...');
+                    // console.log('[ChannelModal] Force clearing Steam cache and rescanning...');
                     localStorage.removeItem('app_cache_steamGames');
                     localStorage.removeItem('app_cache_timestamp_steamGames');
                     rescanSteamGames();
@@ -1482,7 +1530,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                   variant="secondary"
                   size="sm"
                   onClick={() => {
-                    console.log('[ChannelModal] Force clearing Epic cache and rescanning...');
+                    // console.log('[ChannelModal] Force clearing Epic cache and rescanning...');
                     localStorage.removeItem('app_cache_epicGames');
                     localStorage.removeItem('app_cache_timestamp_epicGames');
                     rescanEpicGames();
@@ -1785,6 +1833,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   return (
     <>
       <WBaseModal
+        key={`channel-modal-${channelId}`} // Force remount when channel changes
         title="Configure Channel"
         onClose={onClose}
         maxWidth="1000px"

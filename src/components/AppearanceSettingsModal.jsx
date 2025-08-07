@@ -33,12 +33,14 @@ const LazyDockSettingsTab = React.lazy(() => import('./settings/DockSettingsTab'
 const LazyMonitorSettingsTab = React.lazy(() => import('./settings/MonitorSettingsTab'));
 const LazyAdvancedSettingsTab = React.lazy(() => import('./settings/AdvancedSettingsTab'));
 const LazyApiIntegrationsSettingsTab = React.lazy(() => import('./settings/ApiIntegrationsSettingsTab'));
+const LazyHomescreenLayoutSettingsTab = React.lazy(() => import('./settings/HomescreenLayoutSettingsTab'));
 
 // Auth service (we'll create this)
 import { authService } from '../utils/authService';
 
 // Sidebar navigation configuration
 const SIDEBAR_SECTIONS = [
+  { id: 'homescreen-layout', label: 'Homescreen & Layout', icon: '🏠', color: '#0099ff', description: 'Navigation modes & grid layout' },
   { id: 'channels', label: 'Channels', icon: '📺', color: '#0099ff', description: 'Animation & display settings' },
   { id: 'ribbon', label: 'Ribbon', icon: '🎗️', color: '#ff6b35', description: 'Colors & glass effects' },
   { id: 'wallpaper', label: 'Wallpaper', icon: '🖼️', color: '#4ecdc4', description: 'Background & cycling' },
@@ -219,8 +221,15 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
             channelHoverVolume: window.settings.channelHoverVolume ?? 0.5,
             startupEnabled: window.settings.startupEnabled ?? true,
             startupVolume: window.settings.startupVolume ?? 0.5,
+          },
+          homescreen: window.settings.homescreen || {
+            navigationMode: 'simple',
+            gridColumns: 4,
+            gridRows: 3,
+            peekVisibility: 0.2
           }
         };
+        console.log('[AppearanceSettingsModal] Loading homescreen settings:', currentSettings.homescreen);
         loadSettings(currentSettings);
         setLocalSettings(currentSettings);
       }
@@ -321,6 +330,9 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         channelHoverVolume: allSettings.sounds.channelHoverVolume,
         startupEnabled: allSettings.sounds.startupEnabled,
         startupVolume: allSettings.sounds.startupVolume,
+        
+        // Homescreen settings
+        homescreen: allSettings.homescreen,
         
         // Presets
         presets: presets,
@@ -974,8 +986,19 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
     </Suspense>
   );
 
+  const renderHomescreenLayoutTab = () => (
+    <Suspense fallback={<div>Loading Homescreen & Layout Settings...</div>}>
+      <LazyHomescreenLayoutSettingsTab 
+        localSettings={localSettings} 
+        updateLocalSetting={updateLocalSetting}
+      />
+    </Suspense>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'homescreen-layout':
+        return renderHomescreenLayoutTab();
       case 'channels':
         return renderChannelsTab();
       case 'ribbon':
