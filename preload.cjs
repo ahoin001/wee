@@ -129,4 +129,7 @@ contextBridge.exposeInMainWorld('api', {
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
   openTaskManager: () => ipcRenderer.invoke('open-task-manager'),
   openFileExplorer: (path) => ipcRenderer.invoke('open-file-explorer', path),
+  openAdminPanel: () => ipcRenderer.invoke('open-admin-panel'),
+  onShowAdminPanel: (cb) => ipcRenderer.on('show-admin-panel', cb),
+  offShowAdminPanel: (cb) => ipcRenderer.removeListener('show-admin-panel', cb),
 });

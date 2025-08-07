@@ -46,8 +46,10 @@ import ConfirmationModal from './components/ConfirmationModal';
 import LoadingSpinner from './components/LoadingSpinner';
 import FloatingSpotifyWidget from './components/FloatingSpotifyWidget';
 import SystemInfoWidget from './components/SystemInfoWidget';
+import AdminPanelWidget from './components/AdminPanelWidget';
 
-
+// Import the settings manager
+import useSettingsStore from './utils/settingsManager';
 
 // Lazy load heavy modals
 const LazyPresetsModal = React.lazy(() => import('./components/PresetsModal'));
@@ -215,17 +217,19 @@ function App() {
   } = useAppLibraryStore();
   
   // Floating widget store
+  // Get widget states from settings manager
   const {
-    spotifyWidgetVisible,
-    systemInfoWidgetVisible,
+    floatingWidgets,
+    apiIntegrations,
     toggleSpotifyWidget,
     toggleSystemInfoWidget,
+    toggleAdminPanelWidget,
     hideSpotifyWidget,
-    hideSystemInfoWidget
-  } = useFloatingWidgetStore();
-  
-  // API integrations store for hotkey management
-  const { spotify } = useApiIntegrationsStore();
+    hideSystemInfoWidget,
+    hideAdminPanelWidget,
+  } = useSettingsStore();
+
+
   
   // UI Store for global keyboard shortcuts and modal management
   const { 
@@ -1322,6 +1326,23 @@ function App() {
     }
   }, [isDarkMode]);
 
+  // Admin panel event listener
+  useEffect(() => {
+    const handleShowAdminPanel = () => {
+      toggleAdminPanelWidget();
+    };
+
+    if (window.api && window.api.onShowAdminPanel) {
+      window.api.onShowAdminPanel(handleShowAdminPanel);
+    }
+
+    return () => {
+      if (window.api && window.api.offShowAdminPanel) {
+        window.api.offShowAdminPanel(handleShowAdminPanel);
+      }
+    };
+  }, [toggleAdminPanelWidget]);
+
   // Optimize event handlers with useCallback
   const handleKeyDown = useCallback((event) => {
     // Prevent default behavior for specific keys
@@ -1332,14 +1353,14 @@ function App() {
     // Handle keyboard shortcuts
     const { key, ctrlKey, altKey, shiftKey, metaKey } = event;
     
-    // Global shortcuts
+    // Global shortcuts - avoid conflicts with standard browser shortcuts
     if (ctrlKey && !altKey && !shiftKey && !metaKey) {
       switch (key.toLowerCase()) {
         case 's':
           event.preventDefault();
           showAppShortcutsModal();
           break;
-        case 'v':
+        case 'h': // Changed from 'v' to avoid conflict with Ctrl+V (paste)
           event.preventDefault();
           showChannelSettingsModal();
           break;
@@ -1357,10 +1378,8 @@ function App() {
           break;
         case 'a':
           event.preventDefault();
-          // For admin panel, we need to check if it's available
-          if (window.api?.openAdminPanel) {
-            window.api.openAdminPanel();
-          }
+          // Show admin panel widget
+          toggleAdminPanelWidget();
           break;
         case 'i':
           event.preventDefault();
@@ -1370,6 +1389,7 @@ function App() {
           event.preventDefault();
           toggleSpotifyWidget();
           break;
+        // Note: Ctrl+C and Ctrl+V are reserved for copy/paste operations
       }
     }
 
@@ -1386,7 +1406,22 @@ function App() {
           break;
         case 'Escape':
           event.preventDefault();
-          useUIStore.getState().openSettingsMenu();
+          // Close any open modals first, then toggle settings menu
+          const uiStore = useUIStore.getState();
+          if (uiStore.showAppShortcutsModal || uiStore.showChannelSettingsModal || 
+              uiStore.showPresetsModal || uiStore.showSoundModal || uiStore.showWallpaperModal ||
+              uiStore.showImageModal || uiStore.showUpdateModal || uiStore.showAuthModal ||
+              uiStore.showGeneralSettingsModal || uiStore.showTimeSettingsModal || 
+              uiStore.showRibbonSettingsModal || uiStore.showPrimaryActionsModal ||
+              uiStore.showAppearanceSettingsModal || uiStore.showNavigationCustomizationModal ||
+              uiStore.showMonitorSelectionModal || uiStore.showClassicDockSettingsModal ||
+              uiStore.showConfirmationModal) {
+            // Close all modals (standard Escape behavior)
+            uiStore.closeAllModals();
+          } else {
+            // Toggle settings menu when no modals are open
+            uiStore.toggleSettingsMenu();
+          }
           break;
       }
     }
@@ -2060,6 +2095,14 @@ function App() {
     // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
     // are preserved and not overwritten by direct settings saves.
   };
+
+  // Expose handleSettingsChange globally for use by settings tabs
+  useEffect(() => {
+    window.handleSettingsChange = handleSettingsChange;
+    return () => {
+      delete window.handleSettingsChange;
+    };
+  }, []);
 
   // Pass settings to SettingsButton via window.settings for now (could use context for better solution)
   window.settings = {
@@ -2739,6 +2782,11 @@ function App() {
     }
   };
 
+  // Handle admin panel widget toggle
+  const handleAdminPanelToggle = useCallback(() => {
+    toggleAdminPanelWidget();
+  }, [toggleAdminPanelWidget]);
+
   return (
     <>
       {/* Always render the main UI, but overlay the splash screen while loading */}
@@ -2998,7 +3046,14 @@ function App() {
             <div className="settings-menu">
               <div
                 className={`context-menu-content settings-menu-fade${settingsMenuFadeIn ? ' in' : ''}`}
-                style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)', zIndex: 1002 }}
+                style={{ 
+                  position: 'absolute', 
+                  bottom: '60px', 
+                  left: '50%', 
+                  transform: 'translateX(-50%)', 
+                  zIndex: 1002,
+                  animation: settingsMenuFadeIn ? 'settingsMenuSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'settingsMenuSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                }}
               >
                 {/* Appearance Group */}
                 <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
@@ -3428,17 +3483,32 @@ function App() {
           }}
         />
         
-        {/* Floating Spotify Widget */}
-        <FloatingSpotifyWidget 
-          isVisible={spotifyWidgetVisible}
-          onClose={hideSpotifyWidget}
-        />
-        
-        {/* System Info Widget */}
-        <SystemInfoWidget 
-          isVisible={systemInfoWidgetVisible}
-          onClose={hideSystemInfoWidget}
-        />
+        {/* Floating Widgets */}
+        {floatingWidgets?.spotify?.visible && (
+          <FloatingSpotifyWidget
+            isVisible={floatingWidgets.spotify.visible}
+            onClose={hideSpotifyWidget}
+            position={floatingWidgets.spotify.position}
+            onPositionChange={(position) => {
+              const { setSpotifyWidgetPosition } = useSettingsStore.getState();
+              setSpotifyWidgetPosition(position);
+            }}
+          />
+        )}
+
+        {floatingWidgets?.systemInfo?.visible && (
+          <SystemInfoWidget
+            isVisible={floatingWidgets.systemInfo.visible}
+            onClose={hideSystemInfoWidget}
+          />
+        )}
+
+        {floatingWidgets?.adminPanel?.visible && (
+          <AdminPanelWidget
+            isVisible={floatingWidgets.adminPanel.visible}
+            onClose={hideAdminPanelWidget}
+          />
+        )}
       </div>
     </>
   );

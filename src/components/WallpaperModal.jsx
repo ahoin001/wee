@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
@@ -7,11 +7,43 @@ import Button from '../ui/WButton';
 import './BaseModal.css';
 import Card from '../ui/Card';
 import WToggle from '../ui/WToggle';
+import WSelect from '../ui/WSelect';
 
 const WALLPAPER_ANIMATIONS = [
-  { value: 'none', label: 'None' },
-  { value: 'fade', label: 'Fade' },
-  { value: 'slide', label: 'Slide' },
+  { value: 'fade', label: 'Fade - Smooth crossfade between wallpapers' },
+  { value: 'slide', label: 'Slide - Slide one wallpaper out while sliding the next in' },
+  { value: 'zoom', label: 'Zoom - Zoom out current wallpaper while zooming in the next' },
+  { value: 'ken-burns', label: 'Ken Burns - Classic documentary-style pan and zoom effect' },
+  { value: 'dissolve', label: 'Dissolve - Pixel-based dissolve transition' },
+  { value: 'wipe', label: 'Wipe - Clean wipe transition in the selected direction' },
+];
+
+const EASING_OPTIONS = [
+  { value: 'ease-out', label: 'Ease Out (Smooth)' },
+  { value: 'ease-in', label: 'Ease In (Accelerate)' },
+  { value: 'ease-in-out', label: 'Ease In-Out (Smooth)' },
+  { value: 'linear', label: 'Linear (Constant)' },
+];
+
+const SLIDE_DIRECTION_OPTIONS = [
+  { value: 'left', label: 'Left' },
+  { value: 'right', label: 'Right' },
+  { value: 'up', label: 'Up' },
+  { value: 'down', label: 'Down' },
+];
+
+const SLIDE_DIRECTION_MODE_OPTIONS = [
+  { value: 'fixed', label: 'Fixed Direction' },
+  { value: 'random', label: 'Random Direction' },
+];
+
+const OVERLAY_EFFECT_OPTIONS = [
+  { value: 'snow', label: '❄️ Snow' },
+  { value: 'rain', label: '🌧️ Rain' },
+  { value: 'leaves', label: '🍃 Leaves' },
+  { value: 'fireflies', label: '✨ Fireflies' },
+  { value: 'dust', label: '💨 Dust' },
+  { value: 'fire', label: '🔥 Fire' },
 ];
 
 const api = window.api?.wallpapers || {};
@@ -25,11 +57,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [cycleInterval, setCycleInterval] = useState(30);
   const [cycleAnimation, setCycleAnimation] = useState('fade');
   const [slideDirection, setSlideDirection] = useState('right');
-  const [crossfadeDuration, setCrossfadeDuration] = useState(1.2); // Duration in seconds
-  const [crossfadeEasing, setCrossfadeEasing] = useState('ease-out'); // Easing function
-  const [slideRandomDirection, setSlideRandomDirection] = useState(false); // Random vs fixed direction
-  const [slideDuration, setSlideDuration] = useState(1.5); // Duration in seconds
-  const [slideEasing, setSlideEasing] = useState('ease-out'); // Easing function
+  const [crossfadeDuration, setCrossfadeDuration] = useState(1.2);
+  const [crossfadeEasing, setCrossfadeEasing] = useState('ease-out');
+  const [slideRandomDirection, setSlideRandomDirection] = useState(false);
+  const [slideDuration, setSlideDuration] = useState(1.5);
+  const [slideEasing, setSlideEasing] = useState('ease-out');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [uploading, setUploading] = useState(false);
@@ -38,7 +70,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [selectedWallpaper, setSelectedWallpaper] = useState(null);
   const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
   const [wallpaperBlur, setWallpaperBlur] = useState(0);
-  
+
   // Overlay effect settings
   const [overlayEnabled, setOverlayEnabled] = useState(false);
   const [overlayEffect, setOverlayEffect] = useState('snow');
@@ -67,7 +99,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setSlideEasing(data.cyclingSettings?.slideEasing ?? 'ease-out');
       setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
       setWallpaperBlur(data.wallpaperBlur ?? 0);
-      
+
       // Load overlay settings
       setOverlayEnabled(data.overlayEnabled ?? false);
       setOverlayEffect(data.overlayEffect ?? 'snow');
@@ -81,8 +113,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setLoading(false);
     }
   };
-
-
 
   useEffect(() => {
     if (isOpen) loadWallpapers();
@@ -240,7 +270,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       wallpaperData.overlayWind = overlayWind;
       wallpaperData.overlayGravity = overlayGravity;
       await api.set(wallpaperData);
-      
+
       // Handle wallpaper and cycling settings
       if (selectedWallpaper) {
         await api.setActive({ url: selectedWallpaper.url });
@@ -256,11 +286,10 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         slideDuration: slideDuration,
         slideEasing: slideEasing,
       });
-      
+
       setMessage({ type: 'success', text: 'Wallpaper and settings saved.' });
-      
+
       // Call onSettingsChange to notify parent component of the new settings
-      // This will trigger the main App's settings persistence which preserves ribbonButtonConfigs
       if (onSettingsChange) {
         onSettingsChange({
           wallpaperOpacity: wallpaperOpacity,
@@ -304,7 +333,6 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         desc="Add a new wallpaper from your computer. Supported formats: JPG, PNG, GIF, MP4, WEBM, etc."
         actions={
           <div className="mt-3.5">
-            {/* Upload button and logic here */}
             <Button variant="secondary" onClick={handleUpload} disabled={uploading}>
               {uploading ? 'Uploading...' : 'Upload New Wallpaper'}
             </Button>
@@ -318,90 +346,62 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         desc="Browse, select, and manage your saved wallpapers below."
         actions={
           <>
-            <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                marginBottom: 20,
-                padding: '12px 16px',
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(240,248,255,0.9) 100%)',
-                borderRadius: 12,
-                border: '1px solid rgba(0,153,255,0.15)',
-                boxShadow: '0 2px 8px rgba(0,153,255,0.08)'
-              }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 12,
-                cursor: 'pointer',
-                padding: '8px 16px',
-                borderRadius: 8,
-                background: activeWallpaper === null ? 'rgba(0,153,255,0.12)' : 'rgba(255,255,255,0.7)',
-                border: activeWallpaper === null ? '2px solid #0099ff' : '1px solid rgba(0,153,255,0.2)',
-                transition: 'all 0.2s ease',
-                minWidth: 200,
-                justifyContent: 'center'
-              }}
-              onClick={handleRemoveWallpaper}
-              onMouseEnter={e => {
-                if (activeWallpaper !== null) {
-                  e.currentTarget.style.background = 'rgba(0,153,255,0.08)';
-                  e.currentTarget.style.border = '1px solid rgba(0,153,255,0.3)';
-                }
-              }}
-              onMouseLeave={e => {
-                if (activeWallpaper !== null) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.7)';
-                  e.currentTarget.style.border = '1px solid rgba(0,153,255,0.2)';
-                }
-              }}
+            <div className="flex items-center justify-center mb-5 py-3 px-4 bg-gradient-to-br from-white/80 to-blue-50/90 rounded-xl border border-blue-300/15 shadow-md">
+              <div
+                className={`flex items-center gap-3 cursor-pointer px-4 py-2 rounded-lg min-w-[200px] justify-center transition-all duration-200
+                  ${activeWallpaper === null
+                    ? 'bg-blue-100/60 border-2 border-blue-400'
+                    : 'bg-white/70 border border-blue-300/20'}
+                `}
+                onClick={handleRemoveWallpaper}
+                onMouseEnter={e => {
+                  if (activeWallpaper !== null) {
+                    e.currentTarget.classList.remove('bg-white/70', 'border-blue-300/20');
+                    e.currentTarget.classList.add('bg-blue-100/40', 'border-blue-300/30');
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (activeWallpaper !== null) {
+                    e.currentTarget.classList.remove('bg-blue-100/40', 'border-blue-300/30');
+                    e.currentTarget.classList.add('bg-white/70', 'border-blue-300/20');
+                  }
+                }}
               >
-                <div style={{
-                  width: 40,
-                  height: 25,
-                  background: 'linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%)',
-                  backgroundSize: '8px 8px',
-                  backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
-                  borderRadius: 4,
-                  border: '1px solid #ddd'
-                }} />
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ 
-                    fontWeight: 600, 
-                    fontSize: 14, 
-                    color: activeWallpaper === null ? '#0099ff' : '#333',
-                    marginBottom: 2
-                  }}>
+                <div
+                  className="w-10 h-[25px] rounded border border-gray-200"
+                  style={{
+                    background:
+                      'linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%)',
+                    backgroundSize: '8px 8px',
+                    backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
+                  }}
+                />
+                <div className="text-left">
+                  <div className={`font-semibold text-[14px] mb-0.5 ${activeWallpaper === null ? 'text-blue-500' : 'text-gray-900'}`}>
                     Default Background
                   </div>
-                  <div style={{ 
-                    fontSize: 12, 
-                    color: activeWallpaper === null ? '#0099ff' : '#666'
-                  }}>
+                  <div className={`text-xs ${activeWallpaper === null ? 'text-blue-500' : 'text-gray-500'}`}>
                     {activeWallpaper === null ? 'Currently active' : 'Remove wallpaper'}
                   </div>
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', alignItems: 'flex-start' }}>
+            <div className="flex flex-wrap gap-4 justify-center items-start">
               {wallpapers.length === 0 && <Text variant="help">No saved wallpapers yet.</Text>}
               {wallpapers.map((wallpaper, idx) => (
-                <div key={wallpaper.url || idx} style={{ minWidth: 120, maxWidth: 160, flex: '1 1 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
+                <div
+                  key={wallpaper.url || idx}
+                  className="min-w-[120px] max-w-[160px] flex flex-col items-center justify-start"
+                >
                   <div
-                    style={{
-                      position: 'relative',
-                      width: 110,
-                      height: 70,
-                      borderRadius: 10,
-                      overflow: 'hidden',
-                      border: selectedWallpaper && selectedWallpaper.url === wallpaper.url ? '2.5px solid #0099ff' : '1.5px solid #ccc',
-                      background: '#fff',
-                      cursor: 'pointer',
-                      boxShadow: selectedWallpaper && selectedWallpaper.url === wallpaper.url ? '0 0 0 2px #b0e0ff' : '0 2px 8px #0001',
-                      transition: 'border 0.2s, box-shadow 0.2s, transform 0.18s cubic-bezier(.4,1.3,.5,1)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      marginBottom: 2,
-                    }}
+                    className={`
+                      relative w-[110px] h-[70px] rounded-xl overflow-hidden
+                      ${selectedWallpaper && selectedWallpaper.url === wallpaper.url
+                        ? 'border-2.5 border-blue-400 shadow-[0_0_0_2px_#b0e0ff]'
+                        : 'border border-gray-300 shadow-md'}
+                      bg-white cursor-pointer flex items-center justify-center mb-0.5
+                      transition-all duration-200
+                    `}
                     tabIndex={0}
                     aria-label={`Select wallpaper ${wallpaper.name}`}
                     onClick={() => setSelectedWallpaper(wallpaper)}
@@ -412,67 +412,51 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     <img
                       src={wallpaper.url}
                       alt={wallpaper.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }}
+                      className="w-full h-full object-cover rounded-xl"
                     />
                     {/* Like button */}
                     <button
-                      className="wallpaper-action-btn like-btn"
-                      style={{
-                        position: 'absolute',
-                        top: 7,
-                        left: 7,
-                        background: likedWallpapers.includes(wallpaper.url) ? 'rgba(231,76,60,0.13)' : 'rgba(255,255,255,0.92)',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 28,
-                        height: 28,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 16,
-                        color: likedWallpapers.includes(wallpaper.url) ? '#e74c3c' : '#333',
-                        zIndex: 2,
-                        cursor: 'pointer',
-                        boxShadow: '0 1px 6px rgba(0,0,0,0.10)',
-                        transition: 'color 0.2s, background 0.2s',
-                      }}
+                      className={`
+                        absolute top-2 left-2 flex items-center justify-center rounded-full w-7 h-7 z-20
+                        text-base shadow
+                        transition-colors duration-200
+                        ${likedWallpapers.includes(wallpaper.url)
+                          ? 'bg-red-100 text-red-500'
+                          : 'bg-white/90 text-gray-800'}
+                      `}
                       title={likedWallpapers.includes(wallpaper.url) ? 'Unlike' : 'Like'}
                       aria-label={likedWallpapers.includes(wallpaper.url) ? 'Unlike wallpaper' : 'Like wallpaper'}
                       onClick={e => { e.stopPropagation(); handleLike(wallpaper.url); }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(231,76,60,0.18)'; e.currentTarget.style.color = '#e74c3c'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = likedWallpapers.includes(wallpaper.url) ? 'rgba(231,76,60,0.13)' : 'rgba(255,255,255,0.92)'; e.currentTarget.style.color = likedWallpapers.includes(wallpaper.url) ? '#e74c3c' : '#333'; }}
+                      onMouseEnter={e => {
+                        e.currentTarget.classList.add('bg-red-200', 'text-red-500');
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.classList.remove('bg-red-200');
+                        if (likedWallpapers.includes(wallpaper.url)) {
+                          e.currentTarget.classList.add('bg-red-100', 'text-red-500');
+                        } else {
+                          e.currentTarget.classList.remove('text-red-500');
+                          e.currentTarget.classList.add('bg-white/90', 'text-gray-800');
+                        }
+                      }}
                     >
                       {likedWallpapers.includes(wallpaper.url) ? '♥' : '♡'}
                     </button>
                     {/* Delete button */}
                     <button
-                      className="wallpaper-action-btn delete-btn"
-                      style={{
-                        position: 'absolute',
-                        top: 7,
-                        right: 7,
-                        background: 'rgba(255,255,255,0.92)',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 28,
-                        height: 28,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 16,
-                        color: '#222',
-                        zIndex: 2,
-                        cursor: 'pointer',
-                        transition: 'background 0.2s, color 0.2s',
-                      }}
+                      className={`
+                        absolute top-2 right-2 flex items-center justify-center rounded-full w-7 h-7 z-20
+                        text-base shadow
+                        transition-colors duration-200
+                        bg-white/90 text-gray-800
+                        hover:bg-gray-500 hover:text-white
+                      `}
                       title="Remove saved wallpaper"
                       aria-label="Remove saved wallpaper"
                       onClick={e => { e.stopPropagation(); handleDelete(wallpaper.url); }}
                       disabled={deleting[wallpaper.url]}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#888'; e.currentTarget.style.color = '#fff'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.92)'; e.currentTarget.style.color = '#222'; }}
                     >
-                      {deleting[wallpaper.url] ? '⏳' : <span style={{ color: 'inherit' }}>🗑️</span>}
+                      {deleting[wallpaper.url] ? '⏳' : <span>🗑️</span>}
                     </button>
                   </div>
                 </div>
@@ -490,44 +474,39 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
           <WToggle
             checked={cycling}
             onChange={setCycling}
-          
           />
         }
         actions={
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
-              <span style={{ fontWeight: 500, minWidth: 120 }}>Time per wallpaper</span>
+            <div className="flex items-center gap-4 mt-4">
+              <span className="font-medium min-w-[120px] text-gray-700">Time per wallpaper</span>
               <input
                 type="number"
                 min={2}
                 max={600}
                 value={cycleInterval}
                 onChange={e => setCycleInterval(Number(e.target.value))}
-                style={{ width: 70, fontSize: 15, padding: '4px 8px', borderRadius: 6, border: '1px solid #ccc', marginRight: 8 }}
+                className="w-[70px] text-[15px] px-2 py-1 rounded border border-gray-300 mr-2"
               />
-              <Text variant="small" style={{ color: 'hsl(var(--text-secondary))' }}>seconds</Text>
+              <Text variant="small" className="text-gray-500">seconds</Text>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-              <span style={{ fontWeight: 500, minWidth: 120 }}>Animation</span>
-              <select
-                value={cycleAnimation}
-                onChange={e => setCycleAnimation(e.target.value)}
-                style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-              >
-                <option value="fade">Fade - Smooth crossfade between wallpapers</option>
-                <option value="slide">Slide - Slide one wallpaper out while sliding the next in</option>
-                <option value="zoom">Zoom - Zoom out current wallpaper while zooming in the next</option>
-                <option value="ken-burns">Ken Burns - Classic documentary-style pan and zoom effect</option>
-                <option value="dissolve">Dissolve - Pixel-based dissolve transition</option>
-                <option value="wipe">Wipe - Clean wipe transition in the selected direction</option>
-              </select>
+            <div className="flex items-center gap-4 mt-3.5">
+              <span className="font-medium min-w-[120px] text-gray-700">Animation</span>
+              <div className="flex-1">
+                <WSelect
+                  options={WALLPAPER_ANIMATIONS}
+                  value={cycleAnimation}
+                  onChange={setCycleAnimation}
+                  className="w-full"
+                />
+              </div>
             </div>
-            
+
             {/* Crossfade Animation Parameters */}
             {cycleAnimation === 'fade' && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Crossfade Duration</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Crossfade Duration</span>
                   <input
                     type="range"
                     min={0.5}
@@ -535,31 +514,29 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={0.1}
                     value={crossfadeDuration}
                     onChange={e => setCrossfadeDuration(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <Text variant="small" style={{ minWidth: 40, fontWeight: 600, color: 'hsl(var(--text-secondary))' }}>{crossfadeDuration}s</Text>
+                  <Text variant="small" className="min-w-[40px] font-semibold text-gray-500">{crossfadeDuration}s</Text>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
-                  <select
-                    value={crossfadeEasing}
-                    onChange={e => setCrossfadeEasing(e.target.value)}
-                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                  >
-                    <option value="ease-out">Ease Out (Smooth)</option>
-                    <option value="ease-in">Ease In (Accelerate)</option>
-                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
-                    <option value="linear">Linear (Constant)</option>
-                  </select>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Easing Function</span>
+                  <div className="flex-1">
+                    <WSelect
+                      options={EASING_OPTIONS}
+                      value={crossfadeEasing}
+                      onChange={setCrossfadeEasing}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
               </>
             )}
-            
+
             {/* Zoom Animation Parameters */}
             {cycleAnimation === 'zoom' && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Zoom Duration</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Zoom Duration</span>
                   <input
                     type="range"
                     min={0.5}
@@ -567,31 +544,29 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={0.1}
                     value={crossfadeDuration}
                     onChange={e => setCrossfadeDuration(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{crossfadeDuration}s</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
-                  <select
-                    value={crossfadeEasing}
-                    onChange={e => setCrossfadeEasing(e.target.value)}
-                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                  >
-                    <option value="ease-out">Ease Out (Smooth)</option>
-                    <option value="ease-in">Ease In (Accelerate)</option>
-                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
-                    <option value="linear">Linear (Constant)</option>
-                  </select>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Easing Function</span>
+                  <div className="flex-1">
+                    <WSelect
+                      options={EASING_OPTIONS}
+                      value={crossfadeEasing}
+                      onChange={setCrossfadeEasing}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
               </>
             )}
-            
+
             {/* Ken Burns Animation Parameters */}
             {cycleAnimation === 'ken-burns' && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Ken Burns Duration</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Ken Burns Duration</span>
                   <input
                     type="range"
                     min={0.5}
@@ -599,31 +574,29 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={0.1}
                     value={crossfadeDuration}
                     onChange={e => setCrossfadeDuration(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{crossfadeDuration}s</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
-                  <select
-                    value={crossfadeEasing}
-                    onChange={e => setCrossfadeEasing(e.target.value)}
-                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                  >
-                    <option value="ease-out">Ease Out (Smooth)</option>
-                    <option value="ease-in">Ease In (Accelerate)</option>
-                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
-                    <option value="linear">Linear (Constant)</option>
-                  </select>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Easing Function</span>
+                  <div className="flex-1">
+                    <WSelect
+                      options={EASING_OPTIONS}
+                      value={crossfadeEasing}
+                      onChange={setCrossfadeEasing}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
               </>
             )}
-            
+
             {/* Dissolve Animation Parameters */}
             {cycleAnimation === 'dissolve' && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Dissolve Duration</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Dissolve Duration</span>
                   <input
                     type="range"
                     min={0.5}
@@ -631,59 +604,53 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={0.1}
                     value={crossfadeDuration}
                     onChange={e => setCrossfadeDuration(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{crossfadeDuration}s</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{crossfadeDuration}s</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
-                  <select
-                    value={crossfadeEasing}
-                    onChange={e => setCrossfadeEasing(e.target.value)}
-                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                  >
-                    <option value="ease-out">Ease Out (Smooth)</option>
-                    <option value="ease-in">Ease In (Accelerate)</option>
-                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
-                    <option value="linear">Linear (Constant)</option>
-                  </select>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Easing Function</span>
+                  <div className="flex-1">
+                    <WSelect
+                      options={EASING_OPTIONS}
+                      value={crossfadeEasing}
+                      onChange={setCrossfadeEasing}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
               </>
             )}
-            
+
             {/* Slide Animation Parameters */}
             {cycleAnimation === 'slide' && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Direction Mode</span>
-                  <select
-                    value={slideRandomDirection ? 'random' : 'fixed'}
-                    onChange={e => setSlideRandomDirection(e.target.value === 'random')}
-                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                  >
-                    <option value="fixed">Fixed Direction</option>
-                    <option value="random">Random Direction</option>
-                  </select>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Direction Mode</span>
+                  <div className="flex-1">
+                    <WSelect
+                      options={SLIDE_DIRECTION_MODE_OPTIONS}
+                      value={slideRandomDirection ? 'random' : 'fixed'}
+                      onChange={val => setSlideRandomDirection(val === 'random')}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
-                
                 {!slideRandomDirection && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                    <span style={{ fontWeight: 500, minWidth: 120 }}>Slide Direction</span>
-                    <select
-                      value={slideDirection}
-                      onChange={e => setSlideDirection(e.target.value)}
-                      style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                    >
-                      <option value="left">Left</option>
-                      <option value="right">Right</option>
-                      <option value="up">Up</option>
-                      <option value="down">Down</option>
-                    </select>
+                  <div className="flex items-center gap-4 mt-3.5">
+                    <span className="font-medium min-w-[120px] text-gray-700">Slide Direction</span>
+                    <div className="flex-1">
+                      <WSelect
+                        options={SLIDE_DIRECTION_OPTIONS}
+                        value={slideDirection}
+                        onChange={setSlideDirection}
+                        className="w-full"
+                      />
+                    </div>
                   </div>
                 )}
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Slide Duration</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Slide Duration</span>
                   <input
                     type="range"
                     min={0.8}
@@ -691,23 +658,20 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={0.1}
                     value={slideDuration}
                     onChange={e => setSlideDuration(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{slideDuration}s</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{slideDuration}s</span>
                 </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Easing Function</span>
-                  <select
-                    value={slideEasing}
-                    onChange={e => setSlideEasing(e.target.value)}
-                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                  >
-                    <option value="ease-out">Ease Out (Smooth)</option>
-                    <option value="ease-in">Ease In (Accelerate)</option>
-                    <option value="ease-in-out">Ease In-Out (Smooth)</option>
-                    <option value="linear">Linear (Constant)</option>
-                  </select>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Easing Function</span>
+                  <div className="flex-1">
+                    <WSelect
+                      options={EASING_OPTIONS}
+                      value={slideEasing}
+                      onChange={setSlideEasing}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -721,25 +685,25 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         desc="Adjust the transparency and blur of the wallpaper background."
         actions={
           <>
-            <div style={{ fontSize: 14, color: '#666', marginTop: 0 }}>
+            <div className="text-[14px] text-gray-600 mt-0">
               <strong>Wallpaper Opacity:</strong> Adjust the transparency of the wallpaper background.
             </div>
             {/* Wallpaper Opacity Slider */}
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
-                <input
+            <div className="mt-2.5 flex items-center gap-4">
+              <input
                 type="range"
                 min="0"
                 max="1"
                 step="0.01"
                 value={wallpaperOpacity}
                 onChange={e => setWallpaperOpacity(Number(e.target.value))}
-                style={{ flex: 1 }}
-                />
-              <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{Math.round(wallpaperOpacity * 100)}%</span>
+                className="flex-1"
+              />
+              <span className="min-w-[38px] font-semibold text-gray-500">{Math.round(wallpaperOpacity * 100)}%</span>
             </div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
+            <div className="text-[13px] text-gray-400 mt-0.5">Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
             {/* Wallpaper Blur Slider */}
-            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="mt-4.5 flex items-center gap-4">
               <input
                 type="range"
                 min="0"
@@ -747,11 +711,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 step="0.5"
                 value={wallpaperBlur}
                 onChange={e => setWallpaperBlur(Number(e.target.value))}
-                style={{ flex: 1 }}
-                  />
-              <span style={{ minWidth: 38, fontWeight: 600, color: '#555' }}>{wallpaperBlur}px</span>
+                className="flex-1"
+              />
+              <span className="min-w-[38px] font-semibold text-gray-500">{wallpaperBlur}px</span>
             </div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
+            <div className="text-[13px] text-gray-400 mt-0.5">Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
           </>
         }
       />
@@ -762,35 +726,29 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         desc="Add beautiful animated overlay effects to your wallpaper, like snow, rain, leaves, fireflies, or dust particles."
         actions={
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 16 }}>
-              <span style={{ fontWeight: 500, minWidth: 120 }}>Enable Overlay</span>
+            <div className="flex items-center gap-4 mt-4">
+              <span className="font-medium min-w-[120px] text-gray-700">Enable Overlay</span>
               <WToggle
                 checked={overlayEnabled}
-                onChange={(checked) => setOverlayEnabled(checked)}
+                onChange={setOverlayEnabled}
                 label="Show overlay effects"
               />
             </div>
-            
             {overlayEnabled && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Effect Type</span>
-                  <select
-                    value={overlayEffect}
-                    onChange={e => setOverlayEffect(e.target.value)}
-                    style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc' }}
-                  >
-                    <option value="snow">❄️ Snow</option>
-                    <option value="rain">🌧️ Rain</option>
-                    <option value="leaves">🍃 Leaves</option>
-                    <option value="fireflies">✨ Fireflies</option>
-                    <option value="dust">💨 Dust</option>
-                    <option value="fire">🔥 Fire</option>
-                  </select>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Effect Type</span>
+                  <div className="flex-1">
+                    <WSelect
+                      options={OVERLAY_EFFECT_OPTIONS}
+                      value={overlayEffect}
+                      onChange={setOverlayEffect}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Intensity</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Intensity</span>
                   <input
                     type="range"
                     min={10}
@@ -798,13 +756,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={5}
                     value={overlayIntensity}
                     onChange={e => setOverlayIntensity(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{overlayIntensity}%</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{overlayIntensity}%</span>
                 </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Speed</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Speed</span>
                   <input
                     type="range"
                     min={0.1}
@@ -812,13 +769,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={0.05}
                     value={overlaySpeed}
                     onChange={e => setOverlaySpeed(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{overlaySpeed}x</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{overlaySpeed}x</span>
                 </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Wind</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Wind</span>
                   <input
                     type="range"
                     min={-0.1}
@@ -826,13 +782,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={0.005}
                     value={overlayWind}
                     onChange={e => setOverlayWind(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{overlayWind.toFixed(3)}</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{overlayWind.toFixed(3)}</span>
                 </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 14 }}>
-                  <span style={{ fontWeight: 500, minWidth: 120 }}>Gravity</span>
+                <div className="flex items-center gap-4 mt-3.5">
+                  <span className="font-medium min-w-[120px] text-gray-700">Gravity</span>
                   <input
                     type="range"
                     min={-0.2}
@@ -840,14 +795,13 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     step={0.01}
                     value={overlayGravity}
                     onChange={e => setOverlayGravity(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
-                  <span style={{ minWidth: 40, fontWeight: 600, color: '#555' }}>{overlayGravity.toFixed(2)}</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{overlayGravity.toFixed(2)}</span>
                 </div>
-                
-                <div style={{ fontSize: 13, color: '#888', marginTop: 8 }}>
-                  <strong>Effect Types:</strong> Snow (gentle falling snowflakes), Rain (falling raindrops), 
-                  Leaves (floating autumn leaves), Fireflies (glowing particles), Dust (floating dust particles), 
+                <div className="text-[13px] text-gray-400 mt-2">
+                  <strong>Effect Types:</strong> Snow (gentle falling snowflakes), Rain (falling raindrops),
+                  Leaves (floating autumn leaves), Fireflies (glowing particles), Dust (floating dust particles),
                   Fire (rising flames).
                 </div>
               </>
@@ -864,4 +818,4 @@ WallpaperModal.propTypes = {
   onClose: PropTypes.func.isRequired,
 };
 
-export default WallpaperModal; 
+export default WallpaperModal;

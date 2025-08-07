@@ -1,64 +1,34 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import useFloatingWidgetStore from '../utils/useFloatingWidgetStore';
-import useSystemInfoStore from '../utils/useSystemInfoStore';
+import Card from '../ui/Card';
+import Text from '../ui/Text';
+import WButton from '../ui/WButton';
 import Slider from '../ui/Slider';
+import useSettingsStore from '../utils/settingsManager';
 import './SystemInfoWidget.css';
 
-const SystemInfoWidget = React.memo(({ isVisible, onClose }) => {
-  const {
-    systemInfo,
-    isLoading,
-    refreshSystemInfo,
-    openTaskManager,
-    updateInterval,
-    setUpdateInterval
-  } = useSystemInfoStore();
-
-  const { systemInfoPosition, setSystemInfoPosition } = useFloatingWidgetStore();
+const SystemInfoWidget = ({ isVisible, onClose }) => {
+  const { 
+    floatingWidgets, 
+    updateSystemInfo, 
+    setSystemInfoLoading, 
+    updateSystemInfoInterval,
+    setSystemInfoWidgetPosition 
+  } = useSettingsStore();
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [size, setSize] = useState({ width: 320, height: 450 });
-  const [currentPage, setCurrentPage] = useState('overview'); // 'overview', 'detailed', 'settings'
-  const [selectedMetric, setSelectedMetric] = useState('cpu');
   const widgetRef = useRef(null);
+  const intervalRef = useRef(null);
 
-  // Memoize expensive calculations
-  const formattedSystemInfo = useMemo(() => {
-    if (!systemInfo.cpu) return null;
-    
-    return {
-      cpu: {
-        usage: systemInfo.cpu.usage,
-        cores: systemInfo.cpu.cores,
-        model: systemInfo.cpu.model,
-        temperature: systemInfo.cpu.temperature
-      },
-      memory: {
-        total: systemInfo.memory?.total,
-        used: systemInfo.memory?.used,
-        free: systemInfo.memory?.free,
-        usage: systemInfo.memory?.usage
-      },
-      gpu: {
-        name: systemInfo.gpu?.name,
-        memory: systemInfo.gpu?.memory,
-        usage: systemInfo.gpu?.usage,
-        temperature: systemInfo.gpu?.temperature
-      },
-      storage: systemInfo.storage?.map(disk => ({
-        ...disk,
-        usagePercent: disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0
-      })) || [],
-      battery: systemInfo.battery
-    };
-  }, [systemInfo]);
+  // Get system info data from settings manager
+  const systemInfo = floatingWidgets?.systemInfo?.systemInfo;
+  const isLoading = floatingWidgets?.systemInfo?.isLoading;
+  const updateInterval = floatingWidgets?.systemInfo?.updateInterval || 0;
+  const systemInfoPosition = floatingWidgets?.systemInfo?.position || { x: 400, y: 100 };
 
-  // Memoize event handlers
+  // Dragging logic
   const handleMouseDown = useCallback((e) => {
-    if (e.target.closest('.control-btn') || e.target.closest('.page-btn') || e.target.closest('.metric-btn') || e.target.closest('.resize-handle') || e.target.closest('.clickable-item')) return;
+    if (e.target.closest('.metric-card') || e.target.closest('.close-btn') || e.target.closest('.refresh-btn')) return;
     
     setIsDragging(true);
     const rect = widgetRef.current.getBoundingClientRect();
@@ -74,59 +44,12 @@ const SystemInfoWidget = React.memo(({ isVisible, onClose }) => {
     const newX = e.clientX - dragOffset.x;
     const newY = e.clientY - dragOffset.y;
     
-    setSystemInfoPosition({ x: newX, y: newY });
-  }, [isDragging, dragOffset, setSystemInfoPosition]);
+    setSystemInfoWidgetPosition({ x: newX, y: newY });
+  }, [isDragging, dragOffset, setSystemInfoWidgetPosition]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
-
-  // Resizing logic
-  const handleResizeStart = useCallback((e) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    const rect = widgetRef.current.getBoundingClientRect();
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: rect.width,
-      height: rect.height
-    });
-  }, []);
-
-  const handleResizeMove = useCallback((e) => {
-    if (!isResizing) return;
-    
-    const deltaX = e.clientX - resizeStart.x;
-    const deltaY = e.clientY - resizeStart.y;
-    
-    const newWidth = Math.max(280, Math.min(500, resizeStart.width + deltaX));
-    const newHeight = Math.max(350, Math.min(600, resizeStart.height + deltaY));
-    
-    setSize({ width: newWidth, height: newHeight });
-  }, [isResizing, resizeStart]);
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  // Refresh system info periodically
-  useEffect(() => {
-    if (!isVisible || updateInterval === 0) return;
-    
-    const interval = setInterval(() => {
-      refreshSystemInfo(false); // Don't show loading for periodic updates
-    }, updateInterval);
-    
-    return () => clearInterval(interval);
-  }, [isVisible, refreshSystemInfo, updateInterval]);
-
-  // Initial load with loading state
-  useEffect(() => {
-    if (isVisible && !systemInfo.cpu) {
-      refreshSystemInfo(true); // Show loading only on initial load
-    }
-  }, [isVisible, systemInfo.cpu, refreshSystemInfo]);
 
   // Global mouse event listeners for dragging
   useEffect(() => {
@@ -141,454 +64,289 @@ const SystemInfoWidget = React.memo(({ isVisible, onClose }) => {
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Global mouse event listeners for resizing
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleResizeMove);
-      document.addEventListener('mouseup', handleResizeEnd);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleResizeMove);
-        document.removeEventListener('mouseup', handleResizeEnd);
-      };
+  // Fetch system info
+  const fetchSystemInfo = useCallback(async () => {
+    if (!isVisible) return;
+    
+    setSystemInfoLoading(true);
+    try {
+      const response = await window.api.getSystemInfo();
+      if (response.success) {
+        updateSystemInfo(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch system info:', error);
+    } finally {
+      setSystemInfoLoading(false);
     }
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
+  }, [isVisible, setSystemInfoLoading, updateSystemInfo]);
 
-  // Format helper functions
-  const formatPercentage = (value) => `${Math.round(value || 0)}%`;
-  const formatBytes = (bytes) => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-  };
-  const formatTemperature = (temp) => temp ? `${Math.round(temp)}°C` : 'N/A';
-
-  // Handle clickable items
-  const handleItemClick = (type, data) => {
-    switch (type) {
-      case 'cpu':
-        openTaskManager();
-        break;
-      case 'memory':
-        openTaskManager();
-        break;
-      case 'storage':
-        // Open File Explorer to the specific drive
-        if (window.electronAPI && window.electronAPI.openFileExplorer) {
-          window.electronAPI.openFileExplorer(data.name);
+  // Set up interval for automatic updates
+  useEffect(() => {
+    if (updateInterval > 0 && isVisible) {
+      intervalRef.current = setInterval(fetchSystemInfo, updateInterval * 1000);
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
         }
+      };
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    }
+  }, [updateInterval, isVisible, fetchSystemInfo]);
+
+  // Initial fetch when widget becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      fetchSystemInfo();
+    }
+  }, [isVisible, fetchSystemInfo]);
+
+  // Handle item click to open relevant applications
+  const handleItemClick = useCallback((itemType) => {
+    switch (itemType) {
+      case 'taskManager':
+        window.api?.openTaskManager();
         break;
-      case 'gpu':
-        // Could open GPU monitoring software if available
-        openTaskManager();
+      case 'fileExplorer':
+        window.api?.openFileExplorer();
+        break;
+      case 'systemInfo':
+        window.api?.openSystemInfo();
+        break;
+      case 'powerOptions':
+        window.api?.openPowerOptions();
         break;
       default:
         break;
     }
-  };
+  }, []);
 
-  // Render metric card with click functionality
-  const renderMetricCard = (title, value, subtitle, icon, color = '#4CAF50', clickable = false, clickData = null) => (
-    <div 
-      className={`metric-card ${clickable ? 'clickable-item' : ''}`}
-      style={{ borderColor: color }}
-      onClick={clickable ? () => handleItemClick(title.toLowerCase(), clickData) : undefined}
-    >
-      <div className="metric-header">
-        <span className="metric-icon">{icon}</span>
-        <span className="metric-title">{title}</span>
+  // Format system info for display
+  const formattedSystemInfo = useMemo(() => {
+    if (!systemInfo) return null;
+
+    return {
+      cpu: {
+        model: systemInfo.cpu?.model || 'Unknown',
+        usage: systemInfo.cpu?.usage || 0,
+        cores: systemInfo.cpu?.cores || 0,
+        temperature: systemInfo.cpu?.temperature || 0
+      },
+      memory: {
+        total: systemInfo.memory?.total || 0,
+        used: systemInfo.memory?.used || 0,
+        free: systemInfo.memory?.free || 0,
+        usage: systemInfo.memory?.usage || 0
+      },
+      gpu: {
+        model: systemInfo.gpu?.model || 'Unknown',
+        usage: systemInfo.gpu?.usage || 0,
+        memory: systemInfo.gpu?.memory || 0,
+        temperature: systemInfo.gpu?.temperature || 0
+      },
+      storage: {
+        total: systemInfo.storage?.total || 0,
+        used: systemInfo.storage?.used || 0,
+        free: systemInfo.storage?.free || 0,
+        usage: systemInfo.storage?.usage || 0
+      },
+      battery: {
+        level: systemInfo.battery?.level || 0,
+        charging: systemInfo.battery?.charging || false,
+        timeRemaining: systemInfo.battery?.timeRemaining || 0
+      }
+    };
+  }, [systemInfo]);
+
+  // Render metric card
+  const renderMetricCard = useCallback((title, value, unit, percentage, icon, onClick, className = '') => {
+    return (
+      <div 
+        className={`metric-card ${onClick ? 'clickable-item' : ''} ${className}`}
+        onClick={onClick ? () => onClick() : undefined}
+      >
+        <div className="metric-header">
+          <span className="metric-icon">{icon}</span>
+          <Text variant="caption" className="metric-title">{title}</Text>
+        </div>
+        <div className="metric-value">
+          <Text variant="h3" className="metric-number">{value}</Text>
+          {unit && <Text variant="caption" className="metric-unit">{unit}</Text>}
+        </div>
+        {percentage !== undefined && (
+          <div className="metric-progress">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${Math.min(percentage, 100)}%` }}
+              />
+            </div>
+            <Text variant="caption" className="progress-text">{percentage.toFixed(1)}%</Text>
+          </div>
+        )}
       </div>
-      <div className="metric-value" style={{ color }}>
-        {value}
-      </div>
-      {subtitle && (
-        <div className="metric-subtitle">{subtitle}</div>
-      )}
-    </div>
-  );
+    );
+  }, []);
 
   if (!isVisible) return null;
 
   return (
     <div 
-      className={`system-info-widget ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
       ref={widgetRef}
+      className="system-info-widget"
       style={{
+        position: 'fixed',
         left: `${systemInfoPosition.x}px`,
         top: `${systemInfoPosition.y}px`,
-        width: `${size.width}px`,
-        height: `${size.height}px`
+        zIndex: 10000,
+        cursor: isDragging ? 'grabbing' : 'grab'
       }}
       onMouseDown={handleMouseDown}
     >
+      {/* Widget Header */}
+      <div className="widget-header">
+        <div className="header-content">
+          <div className="header-icon">📊</div>
+          <Text variant="h4" className="header-title">
+            System Info
+          </Text>
+        </div>
+        <div className="header-actions">
+          <WButton
+            variant="tertiary"
+            onClick={fetchSystemInfo}
+            disabled={isLoading}
+            className="refresh-btn"
+          >
+            {isLoading ? '⟳' : '↻'}
+          </WButton>
+          <WButton
+            variant="tertiary"
+            onClick={onClose}
+            className="close-btn"
+          >
+            ✕
+          </WButton>
+        </div>
+      </div>
+
       {/* Widget Content */}
       <div className="widget-content">
-        {/* Header with page navigation and quick actions */}
-        <div className="widget-header">
-          <div className="page-navigation">
-            <button 
-              className={`page-btn ${currentPage === 'overview' ? 'active' : ''}`}
-              onClick={() => setCurrentPage('overview')}
-              title="System Overview"
-            >
-              <span className="page-icon">📊</span>
-              <span className="page-label">Overview</span>
-            </button>
-            <button 
-              className={`page-btn ${currentPage === 'detailed' ? 'active' : ''}`}
-              onClick={() => setCurrentPage('detailed')}
-              title="Detailed Metrics"
-            >
-              <span className="page-icon">🔍</span>
-              <span className="page-label">Detailed</span>
-            </button>
-            <button 
-              className={`page-btn ${currentPage === 'settings' ? 'active' : ''}`}
-              onClick={() => setCurrentPage('settings')}
-              title="Widget Settings"
-            >
-              <span className="page-icon">⚙️</span>
-              <span className="page-label">Settings</span>
-            </button>
+        {isLoading ? (
+          <div className="loading-state">
+            <div className="loading-spinner">⟳</div>
+            <Text variant="body" className="loading-text">Loading system info...</Text>
           </div>
-        </div>
-        
-        {/* Quick Actions below the tabs */}
-        <div className="quick-actions-top">
-          <button 
-            className="action-btn"
-            onClick={openTaskManager}
-            title="Open Task Manager"
-          >
-            🖥️ Task Manager
-          </button>
-          <button 
-            className="action-btn"
-            onClick={() => refreshSystemInfo(false)}
-            title="Refresh System Info"
-          >
-            🔄 Refresh
-          </button>
-        </div>
-
-        {/* Overview Page */}
-        {currentPage === 'overview' && (
-          <div className="overview-content">
-            {isLoading ? (
-              <div className="loading">Loading system info...</div>
-            ) : (
-              <>
-                {/* CPU Section */}
-                <div className="metric-section">
-                  <h3 className="section-title">CPU</h3>
-                  <div className="metrics-grid">
-                    {renderMetricCard(
-                      'Usage',
-                      formatPercentage(systemInfo.cpu?.usage),
-                      `${systemInfo.cpu?.cores || 0} cores`,
-                      '🖥️',
-                      systemInfo.cpu?.usage > 80 ? '#FF5722' : systemInfo.cpu?.usage > 60 ? '#FF9800' : '#4CAF50',
-                      true,
-                      'cpu'
-                    )}
-                    {renderMetricCard(
-                      'Temperature',
-                      formatTemperature(systemInfo.cpu?.temperature),
-                      'CPU Temp',
-                      '🌡️',
-                      systemInfo.cpu?.temperature > 80 ? '#FF5722' : systemInfo.cpu?.temperature > 60 ? '#FF9800' : '#4CAF50',
-                      true,
-                      'cpu'
-                    )}
-                  </div>
-                </div>
-
-                {/* Memory Section */}
-                <div className="metric-section">
-                  <h3 className="section-title">Memory</h3>
-                  <div className="metrics-grid">
-                    {renderMetricCard(
-                      'Usage',
-                      formatPercentage(systemInfo.memory?.usage),
-                      `${formatBytes(systemInfo.memory?.used)} / ${formatBytes(systemInfo.memory?.total)}`,
-                      '💾',
-                      systemInfo.memory?.usage > 80 ? '#FF5722' : systemInfo.memory?.usage > 60 ? '#FF9800' : '#4CAF50',
-                      true,
-                      'memory'
-                    )}
-                    {renderMetricCard(
-                      'Available',
-                      formatBytes(systemInfo.memory?.free),
-                      'Free Memory',
-                      '📈',
-                      '#2196F3',
-                      true,
-                      'memory'
-                    )}
-                  </div>
-                </div>
-
-                {/* GPU Section */}
-                {systemInfo.gpu && (
-                  <div className="metric-section">
-                    <h3 className="section-title">GPU</h3>
-                    <div className="metrics-grid">
-                      {renderMetricCard(
-                        'Usage',
-                        formatPercentage(systemInfo.gpu?.usage),
-                        systemInfo.gpu?.name || 'GPU',
-                        '🎮',
-                        systemInfo.gpu?.usage > 80 ? '#FF5722' : systemInfo.gpu?.usage > 60 ? '#FF9800' : '#4CAF50',
-                        true,
-                        'gpu'
-                      )}
-                      {renderMetricCard(
-                        'Temperature',
-                        formatTemperature(systemInfo.gpu?.temperature),
-                        'GPU Temp',
-                        '🌡️',
-                        systemInfo.gpu?.temperature > 80 ? '#FF5722' : systemInfo.gpu?.temperature > 60 ? '#FF9800' : '#4CAF50',
-                        true,
-                        'gpu'
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Storage Section */}
-                {systemInfo.storage && systemInfo.storage.length > 0 && (
-                  <div className="metric-section">
-                    <h3 className="section-title">Storage</h3>
-                    <div className="storage-list">
-                      {systemInfo.storage.map((disk, index) => (
-                        <div 
-                          key={index} 
-                          className="storage-item clickable-item"
-                          onClick={() => handleItemClick('storage', disk)}
-                        >
-                          <div className="storage-info">
-                            <span className="storage-name">{disk.name}</span>
-                            <span className="storage-usage">
-                              {formatBytes(disk.used)} / {formatBytes(disk.total)}
-                            </span>
-                          </div>
-                          <div className="storage-bar">
-                            <div 
-                              className="storage-fill"
-                              style={{ 
-                                width: `${disk.usage}%`,
-                                backgroundColor: disk.usage > 80 ? '#FF5722' : disk.usage > 60 ? '#FF9800' : '#4CAF50'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Battery Section */}
-                {systemInfo.battery && (
-                  <div className="metric-section">
-                    <h3 className="section-title">Battery</h3>
-                    <div className="metrics-grid">
-                      {renderMetricCard(
-                        'Level',
-                        `${systemInfo.battery.level}%`,
-                        systemInfo.battery.charging ? 'Charging' : 'Discharging',
-                        systemInfo.battery.charging ? '🔌' : '🔋',
-                        systemInfo.battery.level < 20 ? '#FF5722' : systemInfo.battery.level < 50 ? '#FF9800' : '#4CAF50'
-                      )}
-                      {renderMetricCard(
-                        'Power State',
-                        systemInfo.battery.powerState || 'Unknown',
-                        'System Power',
-                        '⚡',
-                        '#2196F3'
-                      )}
-                    </div>
-                    <div className="battery-details">
-                      <div className="detail-row">
-                        <span className="detail-label">Time Left:</span>
-                        <span className="detail-value">{systemInfo.battery.timeLeft || 'N/A'}</span>
-                      </div>
-                      {systemInfo.battery.voltage && (
-                        <div className="detail-row">
-                          <span className="detail-label">Voltage:</span>
-                          <span className="detail-value">{systemInfo.battery.voltage}V</span>
-                        </div>
-                      )}
-                      {systemInfo.battery.capacity && (
-                        <div className="detail-row">
-                          <span className="detail-label">Capacity:</span>
-                          <span className="detail-value">{systemInfo.battery.capacity}mAh</span>
-                        </div>
-                      )}
-                      {systemInfo.battery.cycleCount && (
-                        <div className="detail-row">
-                          <span className="detail-label">Cycles:</span>
-                          <span className="detail-value">{systemInfo.battery.cycleCount}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </>
+        ) : formattedSystemInfo ? (
+          <div className="metrics-grid">
+            {/* CPU */}
+            {renderMetricCard(
+              'CPU',
+              formattedSystemInfo.cpu.usage.toFixed(1),
+              '%',
+              formattedSystemInfo.cpu.usage,
+              '🖥️',
+              () => handleItemClick('taskManager'),
+              'cpu-card'
             )}
-          </div>
-        )}
 
-        {/* Detailed Page */}
-        {currentPage === 'detailed' && (
-          <div className="detailed-content">
-            <div className="metric-tabs">
-              <button 
-                className={`metric-btn ${selectedMetric === 'cpu' ? 'active' : ''}`}
-                onClick={() => setSelectedMetric('cpu')}
-              >
-                CPU
-              </button>
-              <button 
-                className={`metric-btn ${selectedMetric === 'memory' ? 'active' : ''}`}
-                onClick={() => setSelectedMetric('memory')}
-              >
-                Memory
-              </button>
-              <button 
-                className={`metric-btn ${selectedMetric === 'gpu' ? 'active' : ''}`}
-                onClick={() => setSelectedMetric('gpu')}
-              >
-                GPU
-              </button>
-            </div>
+            {/* Memory */}
+            {renderMetricCard(
+              'Memory',
+              formattedSystemInfo.memory.usage.toFixed(1),
+              '%',
+              formattedSystemInfo.memory.usage,
+              '💾',
+              () => handleItemClick('taskManager'),
+              'memory-card'
+            )}
 
-            <div className="detailed-metrics">
-              {selectedMetric === 'cpu' && systemInfo.cpu && (
-                <div className="detailed-section">
-                  <h3>CPU Details</h3>
-                  <div className="detail-grid">
-                    <div className="detail-item clickable-item" onClick={() => handleItemClick('cpu')}>
-                      <span className="detail-label">Model:</span>
-                      <span className="detail-value">{systemInfo.cpu.model || 'Unknown'}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Cores:</span>
-                      <span className="detail-value">{systemInfo.cpu.cores || 0}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Speed:</span>
-                      <span className="detail-value">{systemInfo.cpu.speed || 'N/A'}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Temperature:</span>
-                      <span className="detail-value">{formatTemperature(systemInfo.cpu.temperature)}</span>
-                    </div>
-                  </div>
+            {/* GPU */}
+            {renderMetricCard(
+              'GPU',
+              formattedSystemInfo.gpu.usage.toFixed(1),
+              '%',
+              formattedSystemInfo.gpu.usage,
+              '🎮',
+              () => handleItemClick('taskManager'),
+              'gpu-card'
+            )}
+
+            {/* Storage */}
+            {renderMetricCard(
+              'Storage',
+              formattedSystemInfo.storage.usage.toFixed(1),
+              '%',
+              formattedSystemInfo.storage.usage,
+              '💿',
+              () => handleItemClick('fileExplorer'),
+              'storage-card'
+            )}
+
+            {/* Battery */}
+            {formattedSystemInfo.battery.level > 0 && (
+              <div className="battery-card">
+                <div className="battery-header">
+                  <span className="battery-icon">
+                    {formattedSystemInfo.battery.charging ? '🔌' : '🔋'}
+                  </span>
+                  <Text variant="caption" className="battery-title">Battery</Text>
                 </div>
-              )}
-
-              {selectedMetric === 'memory' && systemInfo.memory && (
-                <div className="detailed-section">
-                  <h3>Memory Details</h3>
-                  <div className="detail-grid">
-                    <div className="detail-item clickable-item" onClick={() => handleItemClick('memory')}>
-                      <span className="detail-label">Total:</span>
-                      <span className="detail-value">{formatBytes(systemInfo.memory.total)}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Used:</span>
-                      <span className="detail-value">{formatBytes(systemInfo.memory.used)}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Free:</span>
-                      <span className="detail-value">{formatBytes(systemInfo.memory.free)}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Usage:</span>
-                      <span className="detail-value">{formatPercentage(systemInfo.memory.usage)}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedMetric === 'gpu' && systemInfo.gpu && (
-                <div className="detailed-section">
-                  <h3>GPU Details</h3>
-                  <div className="detail-grid">
-                    <div className="detail-item clickable-item" onClick={() => handleItemClick('gpu')}>
-                      <span className="detail-label">Name:</span>
-                      <span className="detail-value">{systemInfo.gpu.name || 'Unknown'}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Memory:</span>
-                      <span className="detail-value">{formatBytes(systemInfo.gpu.memory)}</span>
-                    </div>
-                    {systemInfo.gpu.memoryDetails && (
-                      <>
-                        <div className="detail-item">
-                          <span className="detail-label">Memory Type:</span>
-                          <span className="detail-value">{systemInfo.gpu.memoryDetails.type || 'Unknown'}</span>
-                        </div>
-                        {systemInfo.gpu.memoryDetails.speed && (
-                          <div className="detail-item">
-                            <span className="detail-label">Memory Speed:</span>
-                            <span className="detail-value">{systemInfo.gpu.memoryDetails.speed} MHz</span>
-                          </div>
-                        )}
-                      </>
+                <div className="battery-details">
+                  <Text variant="h3" className="battery-level">
+                    {formattedSystemInfo.battery.level}%
+                  </Text>
+                  <div className="battery-status">
+                    <Text variant="caption" className="battery-status-text">
+                      {formattedSystemInfo.battery.charging ? 'Charging' : 'Discharging'}
+                    </Text>
+                    {formattedSystemInfo.battery.timeRemaining > 0 && (
+                      <Text variant="caption" className="battery-time">
+                        {Math.floor(formattedSystemInfo.battery.timeRemaining / 60)}h {formattedSystemInfo.battery.timeRemaining % 60}m
+                      </Text>
                     )}
-                    <div className="detail-item">
-                      <span className="detail-label">Driver:</span>
-                      <span className="detail-value">{systemInfo.gpu.driver || 'N/A'}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Temperature:</span>
-                      <span className="detail-value">{formatTemperature(systemInfo.gpu.temperature)}</span>
-                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Settings Page */}
-        {currentPage === 'settings' && (
-          <div className="settings-content">
-            <div className="settings-section">
-              <h3 className="settings-title">Widget Settings</h3>
-              
-              <div className="setting-item">
-                <div style={{ marginBottom: 8, color: '#ffffff' }}>Update Interval</div>
-                <Slider
-                  value={updateInterval / 1000}
-                  min={0}
-                  max={10}
-                  step={1}
-                  onChange={(value) => setUpdateInterval(value * 1000)}
-                />
-                <div style={{ fontSize: '12px', opacity: 0.8, color: '#ffffff' }}>
-                  {updateInterval === 0 ? 'Off' : `${updateInterval / 1000} seconds`}
                 </div>
               </div>
-            </div>
+            )}
+          </div>
+        ) : (
+          <div className="error-state">
+            <div className="error-icon">⚠️</div>
+            <Text variant="body" className="error-text">Failed to load system info</Text>
+            <WButton
+              variant="secondary"
+              onClick={fetchSystemInfo}
+              className="retry-btn"
+            >
+              Retry
+            </WButton>
           </div>
         )}
       </div>
 
-      {/* Resize Handle */}
-      <div 
-        className="resize-handle"
-        onMouseDown={handleResizeStart}
-        onMouseMove={handleResizeMove}
-        onMouseUp={handleResizeEnd}
-      >
-        ↙
+      {/* Update Interval Control */}
+      <div className="widget-footer">
+        <div className="interval-control">
+          <Text variant="caption" className="interval-label">Update Interval</Text>
+          <Slider
+            value={updateInterval}
+            onChange={(value) => updateSystemInfoInterval(value)}
+            min={0}
+            max={60}
+            step={5}
+            className="interval-slider"
+          />
+          <Text variant="caption" className="interval-value">
+            {updateInterval === 0 ? 'Off' : `${updateInterval}s`}
+          </Text>
+        </div>
       </div>
     </div>
   );
-});
+};
 
 export default SystemInfoWidget; 

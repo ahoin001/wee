@@ -1,0 +1,210 @@
+.admin-panel-widget {
+  width: 300px;
+  background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  border: 1px solid rgba(255, 107, 53, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  user-select: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-panel-widget:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 40px rgba(255, 107, 53, 0.4);
+}
+
+/* Widget Header */
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.header-title {
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  margin: 0;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: auto !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.1) !important;
+}
+
+/* Widget Content */
+.widget-content {
+  padding: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.widget-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.widget-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.widget-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.widget-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Actions Grid */
+.actions-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  text-align: left !important;
+  height: auto !important;
+  min-height: 48px !important;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: translateX(4px) scale(1.02) !important;
+  box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3) !important;
+}
+
+.action-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.action-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.action-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-name {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  margin: 0 !important;
+}
+
+.action-description {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 11px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  margin: 0 !important;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.empty-title {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  margin: 0 0 8px 0 !important;
+}
+
+.empty-description {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 12px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Animation for widget appearance */
+.admin-panel-widget {
+  animation: adminPanelSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes adminPanelSlideIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .admin-panel-widget {
+    width: 280px;
+  }
+  
+  .widget-content {
+    padding: 16px;
+  }
+  
+  .action-btn {
+    padding: 10px 14px !important;
+    min-height: 44px !important;
+  }
+}

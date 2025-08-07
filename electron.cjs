@@ -4048,3 +4048,21 @@ ipcMain.handle('open-file-explorer', async (event, path) => {
     return { success: false, error: error.message };
   }
 });
+
+// IPC: Open admin panel
+ipcMain.handle('open-admin-panel', async () => {
+  try {
+    // Send a message to the renderer to show the admin panel
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('show-admin-panel');
+      console.log('[SYSTEM] Admin panel opened');
+      return { success: true };
+    } else {
+      console.error('[SYSTEM] Main window not available');
+      return { success: false, error: 'Main window not available' };
+    }
+  } catch (error) {
+    console.error('[SYSTEM] Error opening admin panel:', error);
+    return { success: false, error: error.message };
+  }
+});

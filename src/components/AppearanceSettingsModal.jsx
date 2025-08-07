@@ -14,6 +14,7 @@ import JSZip from 'jszip';
 import PresetListItem from './PresetListItem';
 import CommunityPresets from './CommunityPresets';
 import useUIStore from '../utils/useUIStore';
+import useApiIntegrationsStore from '../utils/useApiIntegrationsStore';
 import { uploadPreset } from '../utils/supabase';
 import AuthModal from './AuthModal';
 import useAuthModalStore from '../utils/useAuthModalStore';
@@ -69,6 +70,8 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   // Local state for form inputs
   const [localSettings, setLocalSettings] = useState({});
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [tabChanges, setTabChanges] = useState({});
+  const [originalSettings, setOriginalSettings] = useState({});
 
   // Presets state and functions
   const [presets, setPresets] = useState([]);
@@ -225,11 +228,17 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
             gridColumns: 4,
             gridRows: 3,
             peekVisibility: 0.2
+          },
+          apiIntegrations: window.settings.apiIntegrations || {
+            spotify: useApiIntegrationsStore.getState().spotify,
+            adminPanel: window.settings?.adminPanel || { powerActions: [] }
           }
         };
         console.log('[AppearanceSettingsModal] Loading homescreen settings:', currentSettings.homescreen);
         loadSettings(currentSettings);
         setLocalSettings(currentSettings);
+        setOriginalSettings(currentSettings);
+        setTabChanges({});
       }
     } else {
       closeModal();
@@ -332,6 +341,12 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         // Homescreen settings
         homescreen: allSettings.homescreen,
         
+        // API & Widgets settings
+        apiIntegrations: {
+          spotify: useApiIntegrationsStore.getState().spotify,
+          adminPanel: window.settings?.adminPanel || { powerActions: [] }
+        },
+        
         // Presets
         presets: presets,
       };
@@ -357,6 +372,23 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
     }
   };
 
+  const handleTabSave = useCallback((tabId) => {
+    // Save changes for the specific tab
+    const tabSettings = localSettings[tabId];
+    if (tabSettings) {
+      updateTabSettings(tabId, tabSettings);
+      
+      // Clear the change flag for this tab
+      setTabChanges(prev => ({
+        ...prev,
+        [tabId]: false
+      }));
+      
+      setMessage({ type: 'success', text: `${SIDEBAR_SECTIONS.find(s => s.id === tabId)?.label || tabId} settings saved!` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 2000);
+    }
+  }, [localSettings, updateTabSettings]);
+
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
   };
@@ -370,6 +402,12 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
       }
     }));
     updateTabSettings(tab, { [key]: value });
+    
+    // Track changes for this tab
+    setTabChanges(prev => ({
+      ...prev,
+      [tab]: true
+    }));
   }, [updateTabSettings]);
 
   // Presets functions
@@ -985,31 +1023,55 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   );
 
   const renderTabContent = () => {
+    const hasChanges = tabChanges[activeTab];
+    const tabLabel = SIDEBAR_SECTIONS.find(s => s.id === activeTab)?.label || activeTab;
+    
+    const renderTabWithSave = (content) => (
+      <div>
+        {content}
+        <div className="mt-6 pt-4 border-t border-[hsl(var(--border-primary))]">
+          <div className="flex justify-end">
+            <Button
+              variant="primary"
+              onClick={() => handleTabSave(activeTab)}
+              disabled={!hasChanges}
+              style={{
+                opacity: hasChanges ? 1 : 0.5,
+                cursor: hasChanges ? 'pointer' : 'not-allowed'
+              }}
+            >
+              {hasChanges ? 'Save Changes' : 'No Changes'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+
     switch (activeTab) {
       case 'channels':
-        return renderChannelsTab();
+        return renderTabWithSave(renderChannelsTab());
       case 'ribbon':
-        return renderRibbonTab();
+        return renderTabWithSave(renderRibbonTab());
       case 'wallpaper':
-        return renderWallpaperTab();
+        return renderTabWithSave(renderWallpaperTab());
       case 'time':
-        return renderTimeTab();
+        return renderTabWithSave(renderTimeTab());
       case 'general':
-        return renderGeneralTab();
+        return renderTabWithSave(renderGeneralTab());
       case 'sounds':
-        return renderSoundsTab();
+        return renderTabWithSave(renderSoundsTab());
       case 'dock':
-        return renderDockTab();
+        return renderTabWithSave(renderDockTab());
       case 'themes':
-        return renderThemesTab();
+        return renderTabWithSave(renderThemesTab());
       case 'monitor':
-        return renderMonitorTab();
+        return renderTabWithSave(renderMonitorTab());
       case 'advanced':
-        return renderAdvancedTab();
+        return renderTabWithSave(renderAdvancedTab());
       case 'api-integrations':
-        return renderApiIntegrationsTab();
+        return renderTabWithSave(renderApiIntegrationsTab());
       default:
-        return renderChannelsTab();
+        return renderTabWithSave(renderChannelsTab());
     }
   };
 

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import WToggle from './WToggle';
 import Text from './Text';
 
 const CollapsibleSection = ({ 
@@ -10,19 +9,14 @@ const CollapsibleSection = ({
   gradientBg = 'linear-gradient(135deg, #1DB954 0%, #1ed760 100%)',
   borderColor = '#1DB954',
   shadowColor = 'rgba(29, 185, 84, 0.3)',
-  isEnabled = false,
-  onToggle,
   defaultCollapsed = false,
   children,
   className = ''
 }) => {
-  const [isExpanded, setIsExpanded] = useState(isEnabled && !defaultCollapsed);
+  const [isExpanded, setIsExpanded] = useState(!defaultCollapsed);
 
-  const handleToggle = (checked) => {
-    setIsExpanded(checked);
-    if (onToggle) {
-      onToggle(checked);
-    }
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
   };
 
   return (
@@ -42,7 +36,7 @@ const CollapsibleSection = ({
           background: 'rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(10px)'
         }}
-        onClick={() => handleToggle(!isExpanded)}
+        onClick={handleToggle}
       >
         {/* Icon */}
         <div 
@@ -82,12 +76,16 @@ const CollapsibleSection = ({
           </Text>
         </div>
         
-        {/* Toggle */}
-        <WToggle
-          checked={isExpanded}
-          onChange={handleToggle}
-          label={isExpanded ? "Enabled" : "Disabled"}
-        />
+        {/* Caret */}
+        <div 
+          className="text-white text-2xl transition-transform duration-200"
+          style={{
+            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          ▼
+        </div>
       </div>
 
       {/* Expandable content */}

@@ -33,7 +33,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [size, setSize] = useState({ width: 280, height: 400 });
+  const [size, setSize] = useState({ width: 450, height: 400 });
   const [audioData, setAudioData] = useState(new Array(32).fill(0));
   const [currentPage, setCurrentPage] = useState('player'); // 'player', 'browse', or 'settings'
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,9 +52,10 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   const widgetRef = useRef(null);
   const animationRef = useRef(null);
 
-  // Simple dragging logic
-  const handleMouseDown = useCallback((e) => {
-    if (e.target.closest('.control-btn') || e.target.closest('.page-btn') || e.target.closest('.tab-btn') || e.target.closest('.progress-bar') || e.target.closest('.resize-handle')) return;
+  // Header dragging logic - only allow dragging from header
+  const handleHeaderMouseDown = useCallback((e) => {
+    // Prevent dragging if clicking on interactive elements
+    if (e.target.closest('.page-btn')) return;
     
     setIsDragging(true);
     const rect = widgetRef.current.getBoundingClientRect();
@@ -96,7 +97,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
     const deltaX = e.clientX - resizeStart.x;
     const deltaY = e.clientY - resizeStart.y;
     
-    const newWidth = Math.max(250, Math.min(500, resizeStart.width + deltaX));
+    const newWidth = Math.max(550, Math.min(800, resizeStart.width + deltaX));
     const newHeight = Math.max(300, Math.min(600, resizeStart.height + deltaY));
     
     setSize({ width: newWidth, height: newHeight });
@@ -377,30 +378,62 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   };
 
   // Enhanced seeker bar interaction with draggable circle
-  const handleSeekerMouseDown = (e) => {
-    if (!currentTrack || !currentTrack.duration) return;
-    
-    setIsSeeking(true);
-    handleSeekerMove(e);
-  };
+  const progressBarRef = useRef(null);
 
-  const handleSeekerMove = (e) => {
-    if (!isSeeking || !currentTrack || !currentTrack.duration) return;
+  const handleSeekerMove = useCallback((e) => {
+    if (!progressBarRef.current || !currentTrack || !currentTrack.duration) return;
     
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = progressBarRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const newPosition = Math.floor(currentTrack.duration * percentage);
     
-    setSeekPosition(newPosition);
-  };
+    if (isSeeking) {
+      setSeekPosition(newPosition);
+    }
+  }, [isSeeking, currentTrack]);
 
-  const handleSeekerMouseUp = () => {
+  const handleSeekerMouseDown = useCallback((e) => {
+    if (!currentTrack || !currentTrack.duration) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setIsSeeking(true);
+    handleSeekerMove(e);
+  }, [currentTrack, handleSeekerMove]);
+
+  const handleSeekerMouseUp = useCallback(() => {
     if (!isSeeking) return;
     
     setIsSeeking(false);
     seekToPosition(seekPosition);
-  };
+  }, [isSeeking, seekPosition, seekToPosition]);
+
+  // Handle click-to-seek on progress bar
+  const handleProgressBarClick = useCallback((e) => {
+    if (!currentTrack || !currentTrack.duration || isSeeking) return;
+    
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+    const newPosition = Math.floor(currentTrack.duration * percentage);
+    
+    seekToPosition(newPosition);
+  }, [currentTrack, isSeeking, seekToPosition]);
+
+  // Global mouse event listeners for seeking
+  useEffect(() => {
+    if (isSeeking) {
+      document.addEventListener('mousemove', handleSeekerMove);
+      document.addEventListener('mouseup', handleSeekerMouseUp);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleSeekerMove);
+        document.removeEventListener('mouseup', handleSeekerMouseUp);
+      };
+    }
+  }, [isSeeking, handleSeekerMove, handleSeekerMouseUp]);
 
   // Format time helper function
   const formatTime = (ms) => {
@@ -419,7 +452,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
     }
     
     if (spotify.settings.useBlurredBackground && currentTrack?.albumArt) {
-      return `url(${currentTrack.albumArt}) center/cover, ${blurredBackground || 'linear-gradient(135deg, #1db954 0%, #1ed760 100%)'}`;
+      return `url(${currentTrack.albumArt}) center/cover`;
     }
     
     return dynamicBackground || 'linear-gradient(135deg, #1db954 0%, #1ed760 100%)';
@@ -448,7 +481,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
 
   return (
     <div 
-      className={`floating-spotify-widget ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${spotify.settings.useBlurredBackground && currentTrack?.albumArt && currentPage === 'player' ? 'blurred-bg' : ''}`}
+      className={`floating-spotify-widget ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
       ref={widgetRef}
       style={{
         left: `${spotifyPosition.x}px`,
@@ -456,14 +489,23 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
         width: `${size.width}px`,
         height: `${size.height}px`,
         background: getBackground(),
-        '--blur-amount': spotify.settings.useBlurredBackground && currentTrack?.albumArt && currentPage === 'player' ? `${spotify.settings.blurAmount}px` : '20px',
         '--glow-primary': spotify.settings.dynamicColors && currentTrack?.albumArt && currentPage === 'player' ? dynamicColors.primary : '#1db954',
         '--glow-secondary': spotify.settings.dynamicColors && currentTrack?.albumArt && currentPage === 'player' ? dynamicColors.secondary : '#1ed760',
         '--glow-opacity': spotify.settings.dynamicColors && currentTrack?.albumArt && currentPage === 'player' ? '0.4' : '0.3',
         '--glow-brightness': spotify.settings.dynamicColors && currentTrack?.albumArt && currentPage === 'player' ? '1.1' : '1'
       }}
-      onMouseDown={handleMouseDown}
     >
+      {/* Blurred Background Layer - only for player page with album art */}
+      {spotify.settings.useBlurredBackground && currentTrack?.albumArt && currentPage === 'player' && (
+        <div 
+          className="blurred-background-layer"
+          style={{
+            background: `url(${currentTrack.albumArt}) center/cover`,
+            filter: `blur(${spotify.settings.blurAmount || 0}px)`,
+          }}
+        />
+      )}
+
       {/* Visualizer - only show on player page */}
       {currentPage === 'player' && (
         <div className={`visualizer visualizer-${spotify.settings.visualizerType || 'bars'}`}>
@@ -485,7 +527,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
       {/* Widget Content */}
       <div className="widget-content">
         {/* Header with page navigation */}
-        <div className="widget-header">
+        <div className="widget-header" onMouseDown={handleHeaderMouseDown}>
           {/* Modern Page Navigation */}
           <div className="page-navigation">
             <button 
@@ -566,14 +608,12 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
 
             {/* Enhanced Progress Bar with Draggable Circle */}
             {currentTrack && (
-              <div className="progress-container">
+              <div className={`progress-container ${isSeeking ? 'seeking' : ''}`}>
                 <div 
+                  ref={progressBarRef}
                   className="progress-bar" 
                   style={{ backgroundColor: dynamicColors.secondary }}
-                  onMouseDown={handleSeekerMouseDown}
-                  onMouseMove={handleSeekerMove}
-                  onMouseUp={handleSeekerMouseUp}
-                  onMouseLeave={handleSeekerMouseUp}
+                  onClick={handleProgressBarClick}
                 >
                   <div 
                     className="progress-fill"
@@ -588,6 +628,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                       backgroundColor: dynamicColors.accent,
                       left: `${((isSeeking ? seekPosition : (currentTrack.progress || 0)) / (currentTrack.duration || 1)) * 100}%`
                     }}
+                    onMouseDown={handleSeekerMouseDown}
                   />
                 </div>
                 <div className="progress-time" style={{ color: dynamicColors.textSecondary }}>
@@ -818,14 +859,22 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
               
               {spotify.settings.useBlurredBackground && (
                 <div className="setting-item">
-                  <Slider
-                    label="Blur Amount"
-                    value={spotify.settings.blurAmount}
-                    min={10}
-                    max={50}
-                    step={5}
-                    onChange={handleBlurAmountChange}
-                  />
+                  <div style={{ color: '#ffffff', marginBottom: 8 }}>Blur Amount</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="24"
+                      step="0.5"
+                      value={spotify.settings.blurAmount || 0}
+                      onChange={e => handleBlurAmountChange(Number(e.target.value))}
+                      style={{ flex: 1 }}
+                    />
+                    <span style={{ minWidth: 38, fontWeight: 600, color: '#ffffff' }}>{spotify.settings.blurAmount || 0}px</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#ffffff', opacity: 0.7, marginTop: 2 }}>
+                    Higher blur makes the album art more blurry. 0px = no blur, 24px = very blurry.
+                  </div>
                 </div>
               )}
               

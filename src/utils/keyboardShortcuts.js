@@ -24,7 +24,7 @@ export const DEFAULT_SHORTCUTS = [
     id: 'open-channel-settings-modal',
     name: 'Open Channel Settings Modal',
     description: 'Open the channel settings modal',
-    defaultKey: 'v',
+    defaultKey: 'h',
     defaultModifier: 'ctrl',
     action: 'openChannelSettingsModal',
     category: 'Modals',

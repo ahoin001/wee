@@ -60,8 +60,8 @@ const useUIStore = create((set, get) => ({
   
   closeSettingsMenu: () => {
     set({ settingsMenuFadeIn: false });
-    // Close menu after fade-out animation completes
-    setTimeout(() => set({ showSettingsMenu: false }), 200);
+    // Close menu after bounce-out animation completes
+    setTimeout(() => set({ showSettingsMenu: false }), 300);
   },
   
   toggleSettingsMenu: () => {
@@ -166,6 +166,27 @@ const useUIStore = create((set, get) => ({
   closeNavigationCustomizationModal: () => set({ showNavigationCustomizationModal: false }),
   openMonitorSelectionModal: () => set({ showMonitorSelectionModal: true }),
   closeMonitorSelectionModal: () => set({ showMonitorSelectionModal: false }),
+  
+  // Close all modals at once
+  closeAllModals: () => set({
+    showPresetsModal: false,
+    showWallpaperModal: false,
+    showSoundModal: false,
+    showChannelSettingsModal: false,
+    showAppShortcutsModal: false,
+    showGeneralSettingsModal: false,
+    showTimeSettingsModal: false,
+    showRibbonSettingsModal: false,
+    showUpdateModal: false,
+    showPrimaryActionsModal: false,
+    showAppearanceSettingsModal: false,
+    showImageSearchModal: false,
+    showNavigationCustomizationModal: false,
+    showMonitorSelectionModal: false,
+    showClassicDockSettingsModal: false,
+    showConfirmationModal: false,
+    imageSearchModalData: null
+  }),
 
 
   
