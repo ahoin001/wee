@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import UnifiedAppPathSearch from './UnifiedAppPathSearch';
 import useUnifiedAppStore from '../utils/useUnifiedAppStore';
 import Button from '../ui/WButton';
 
-const UnifiedAppPathCard = ({
+const UnifiedAppPathCard = React.memo(({
   value = {},
   onChange,
   disabled = false
 }) => {
   const {
     selectedApp,
-    customPath,
-    setCustomPath,
     clearSelection,
     getConfiguration
   } = useUnifiedAppStore();
@@ -22,15 +20,31 @@ const UnifiedAppPathCard = ({
   const [path, setPath] = useState(value.path || '');
   const [pathError, setPathError] = useState('');
 
+  // Memoize the configuration to prevent unnecessary recalculations
+  const configuration = useMemo(() => {
+    return getConfiguration();
+  }, [getConfiguration, selectedApp]);
+
+  // Sync with value prop when it changes (for channel switching)
+  useEffect(() => {
+    console.log('[UnifiedAppPathCard] Syncing with new value prop:', value);
+    setLaunchType(value.launchType || 'application');
+    setAppName(value.appName || '');
+    setPath(value.path || '');
+    setPathError('');
+  }, [value.launchType, value.appName, value.path]);
+
   // Sync with store when selected app changes
   useEffect(() => {
     if (selectedApp) {
+      console.log('[UnifiedAppPathCard] Selected app changed:', selectedApp);
       setAppName(selectedApp.name);
       // Use the generated path that includes arguments
-      const generatedPath = getConfiguration().generatedPath;
+      const generatedPath = configuration.generatedPath;
+      console.log('[UnifiedAppPathCard] Generated path:', generatedPath);
       setPath(generatedPath);
     }
-  }, [selectedApp, getConfiguration]);
+  }, [selectedApp, configuration.generatedPath]);
 
   // Update parent when form changes
   useEffect(() => {
@@ -39,32 +53,33 @@ const UnifiedAppPathCard = ({
       appName,
       path,
       selectedApp,
-      ...getConfiguration()
+      ...configuration
     };
     
     onChange?.(config);
-  }, [launchType, appName, path, selectedApp, onChange, getConfiguration]);
+  }, [launchType, appName, path, selectedApp, onChange, configuration]);
 
-  const handleLaunchTypeChange = (type) => {
+  // Memoize event handlers
+  const handleLaunchTypeChange = useCallback((type) => {
     setLaunchType(type);
     if (type === 'url') {
       clearSelection();
       setAppName('');
       setPath('');
     }
-  };
+  }, [clearSelection]);
 
-  const handleAppNameChange = (name) => {
+  const handleAppNameChange = useCallback((name) => {
     setAppName(name);
     setPathError('');
-  };
+  }, []);
 
-  const handlePathChange = (newPath) => {
+  const handlePathChange = useCallback((newPath) => {
     setPath(newPath);
     setPathError('');
-  };
+  }, []);
 
-  const handleBrowseFile = async () => {
+  const handleBrowseFile = useCallback(async () => {
     if (window.api && window.api.selectExeOrShortcutFile) {
       try {
         const result = await window.api.selectExeOrShortcutFile();
@@ -82,9 +97,9 @@ const UnifiedAppPathCard = ({
         setPathError('Failed to browse for file');
       }
     }
-  };
+  }, []);
 
-  const validatePath = () => {
+  const validatePath = useCallback(() => {
     if (launchType === 'url') {
       if (!path.startsWith('http://') && !path.startsWith('https://')) {
         setPathError('URL must start with http:// or https://');
@@ -97,7 +112,7 @@ const UnifiedAppPathCard = ({
       }
     }
     return true;
-  };
+  }, [launchType, path]);
 
   return (
     <div className="flex flex-col">
@@ -277,6 +292,6 @@ const UnifiedAppPathCard = ({
       )}
     </div>
   );
-};
+});
 
 export default UnifiedAppPathCard; 

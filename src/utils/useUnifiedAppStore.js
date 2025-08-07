@@ -44,7 +44,7 @@ const useUnifiedAppStore = create((set, get) => ({
     
     switch (app.type) {
       case 'steam':
-        return `steam://rungameid/${app.appid}`;
+        return `steam://rungameid/${app.appId}`;
       case 'epic':
         return `com.epicgames.launcher://apps/${app.appName}?action=launch&silent=true`;
       case 'microsoft':
@@ -157,16 +157,26 @@ const useUnifiedAppStore = create((set, get) => ({
     
     // Add Steam games (highest priority)
     steamGames.forEach(game => {
-      addAppIfUnique({
-        id: `steam-${game.appid}`,
+      const steamApp = {
+        id: `steam-${game.appId}`,
         name: game.name,
         type: 'steam',
-        appid: game.appid,
-        path: `steam://rungameid/${game.appid}`,
-        icon: `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg`,
+        appId: game.appId, // Use appId (capital I) to match Steam game structure
+        path: `steam://rungameid/${game.appId}`,
+        icon: `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appId}/header.jpg`,
         source: 'steam',
         category: 'Steam Game'
-      });
+      };
+      
+      // Debug: Log first few Steam games to verify structure
+      if (steamGames.indexOf(game) < 3) {
+        console.log('[UnifiedAppStore] Steam game object:', {
+          original: { name: game.name, appId: game.appId },
+          unified: steamApp
+        });
+      }
+      
+      addAppIfUnique(steamApp);
     });
     
     // Add Epic games (high priority)
@@ -218,16 +228,44 @@ const useUnifiedAppStore = create((set, get) => ({
   getFilteredApps: () => {
     const { unifiedApps, searchQuery, selectedAppType } = get();
     
+    // Early return if no apps
+    if (!unifiedApps.length) return [];
+    
+    // Early return if no search query and showing all types
+    if (!searchQuery && selectedAppType === 'all') {
+      return unifiedApps;
+    }
+    
+    const searchLower = searchQuery.toLowerCase();
+    const isAllTypes = selectedAppType === 'all';
+    
     const filtered = unifiedApps.filter(app => {
-      // Filter by type
-      const matchesType = selectedAppType === 'all' || app.type === selectedAppType;
+      // Filter by type first (faster than string search)
+      if (!isAllTypes && app.type !== selectedAppType) {
+        return false;
+      }
       
-      // Filter by search query (fuzzy search)
-      const matchesSearch = !searchQuery || 
-        app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.category.toLowerCase().includes(searchQuery.toLowerCase());
+      // Skip search filtering if no query
+      if (!searchQuery) {
+        return true;
+      }
       
-      return matchesType && matchesSearch;
+      // Optimized search - check name first (most common match)
+      if (app.name.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+      
+      // Check category if name doesn't match
+      if (app.category && app.category.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+      
+      // Check path for EXE apps (optional, can be slow)
+      if (app.type === 'exe' && app.path && app.path.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+      
+      return false;
     });
     
     return filtered;

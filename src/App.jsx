@@ -1322,107 +1322,159 @@ function App() {
     }
   }, [isDarkMode]);
 
-  // Global keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      // Debug logging for Ctrl+Shift+I
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'i') {
-        console.log('[App] Ctrl+Shift+I detected, allowing to pass through');
-        return;
-      }
-      
-      // Don't handle shortcuts if user is typing in an input field
-      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
-        return;
-      }
-      
-      // Spotify widget shortcut
-      if (spotify.isEnabled && spotify.isConnected) {
-        const key = event.key.toLowerCase();
-        const modifier = (event.ctrlKey ? 'ctrl' : '') + 
-                        (event.altKey ? 'alt' : '') + 
-                        (event.shiftKey ? 'shift' : '') + 
-                        (event.metaKey ? 'meta' : '');
-        const currentHotkey = modifier + key;
-        const expectedHotkey = spotify.hotkeyModifier + spotify.hotkeyKey;
-        
-        if (currentHotkey === expectedHotkey) {
-          event.preventDefault();
-          toggleWidget();
-          return;
-        }
-      }
+  // Optimize event handlers with useCallback
+  const handleKeyDown = useCallback((event) => {
+    // Prevent default behavior for specific keys
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter'].includes(event.key)) {
+      event.preventDefault();
+    }
 
-      // Check keyboard shortcuts for Spotify widget
-      const currentKeyboardShortcuts = useUIStore.getState().keyboardShortcuts;
-      const spotifyShortcut = currentKeyboardShortcuts.find(s => s.id === 'toggle-spotify-widget');
-      if (spotifyShortcut && spotifyShortcut.enabled && spotify.isEnabled && spotify.isConnected) {
-        const key = event.key.toLowerCase();
-        const modifier = (event.ctrlKey ? 'ctrl' : '') + 
-                        (event.altKey ? 'alt' : '') + 
-                        (event.shiftKey ? 'shift' : '') + 
-                        (event.metaKey ? 'meta' : '');
-        const currentHotkey = modifier + key;
-        const expectedHotkey = spotifyShortcut.modifier + spotifyShortcut.key;
-        
-        if (currentHotkey === expectedHotkey) {
+    // Handle keyboard shortcuts
+    const { key, ctrlKey, altKey, shiftKey, metaKey } = event;
+    
+    // Global shortcuts
+    if (ctrlKey && !altKey && !shiftKey && !metaKey) {
+      switch (key.toLowerCase()) {
+        case 's':
           event.preventDefault();
-          toggleSpotifyWidget();
-          return;
-        }
-      }
-
-      // Check keyboard shortcuts for System Info widget
-      const systemInfoShortcut = currentKeyboardShortcuts.find(s => s.id === 'toggle-system-info-widget');
-      if (systemInfoShortcut && systemInfoShortcut.enabled) {
-        const key = event.key.toLowerCase();
-        const modifier = (event.ctrlKey ? 'ctrl' : '') + 
-                        (event.altKey ? 'alt' : '') + 
-                        (event.shiftKey ? 'shift' : '') + 
-                        (event.metaKey ? 'meta' : '');
-        const currentHotkey = modifier + key;
-        const expectedHotkey = systemInfoShortcut.modifier + systemInfoShortcut.key;
-        
-        if (currentHotkey === expectedHotkey) {
+          showAppShortcutsModal();
+          break;
+        case 'v':
+          event.preventDefault();
+          showChannelSettingsModal();
+          break;
+        case 'p':
+          event.preventDefault();
+          showPresetsModal();
+          break;
+        case 'o':
+          event.preventDefault();
+          showSoundModal();
+          break;
+        case 'w':
+          event.preventDefault();
+          showWallpaperModal();
+          break;
+        case 'a':
+          event.preventDefault();
+          // For admin panel, we need to check if it's available
+          if (window.api?.openAdminPanel) {
+            window.api.openAdminPanel();
+          }
+          break;
+        case 'i':
           event.preventDefault();
           toggleSystemInfoWidget();
-          return;
-        }
+          break;
+        case 'l':
+          event.preventDefault();
+          toggleSpotifyWidget();
+          break;
       }
+    }
+
+    // Navigation shortcuts
+    if (!ctrlKey && !altKey && !metaKey) {
+      switch (key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          usePageNavigationStore.getState().goToPreviousPage();
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          usePageNavigationStore.getState().goToNextPage();
+          break;
+        case 'Escape':
+          event.preventDefault();
+          useUIStore.getState().openSettingsMenu();
+          break;
+      }
+    }
+  }, [showAppShortcutsModal, showChannelSettingsModal, showPresetsModal, showSoundModal, showWallpaperModal, toggleSystemInfoWidget, toggleSpotifyWidget]);
+
+  const handleWheel = useCallback((event) => {
+    // Handle mouse wheel navigation
+    const { deltaX, deltaY, shiftKey } = event;
+    
+    // Horizontal scroll or Shift + vertical scroll
+    if (Math.abs(deltaX) > Math.abs(deltaY) || shiftKey) {
+      event.preventDefault();
       
-      handleGlobalKeyPress(event);
-    };
-
-    // Mouse wheel navigation handler
-    const handleWheel = (event) => {
-      // Don't handle if user is in an input field
-      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
-        return;
+      if (deltaX > 0 || (shiftKey && deltaY > 0)) {
+        usePageNavigationStore.getState().goToNextPage();
+      } else if (deltaX < 0 || (shiftKey && deltaY < 0)) {
+        usePageNavigationStore.getState().goToPreviousPage();
       }
+    }
+  }, []);
 
-      // Check for Shift + wheel for horizontal navigation
-      if (event.shiftKey) {
-        event.preventDefault();
-        
-        const { goToNextPage, goToPreviousPage } = usePageNavigationStore.getState();
-        
-        if (event.deltaX > 0 || event.deltaY > 0) {
-          // Scroll right/forward
-          goToNextPage();
-        } else if (event.deltaX < 0 || event.deltaY < 0) {
-          // Scroll left/backward
-          goToPreviousPage();
+  const handleGlobalKeyDown = useCallback((event) => {
+    const { key, ctrlKey, altKey, shiftKey, metaKey } = event;
+    
+    // Developer tools
+    if (ctrlKey && shiftKey && key === 'I') {
+      event.preventDefault();
+      window.api?.toggleDevTools?.();
+      return;
+    }
+
+    // Screenshot
+    if (ctrlKey && shiftKey && key === 'S') {
+      event.preventDefault();
+      // Call the function directly since it's defined later
+      (async () => {
+        try {
+          console.log('Taking screenshot...');
+          const result = await window.api.takeScreenshot();
+          if (result.success) {
+            console.log('Screenshot saved successfully:', result.filePath);
+          } else if (result.error !== 'Save cancelled by user') {
+            console.error('Screenshot failed:', result.error);
+          }
+        } catch (error) {
+          console.error('Screenshot error:', error);
         }
-      }
-    };
+      })();
+      return;
+    }
 
-    // Debug global keyboard events
-    const handleGlobalKeyDown = (event) => {
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'i') {
-        console.log('[App] Global Ctrl+Shift+I detected');
+    // Reset all
+    if (ctrlKey && shiftKey && key === 'R') {
+      event.preventDefault();
+      if (window.confirm('Are you sure you want to reset all settings? This cannot be undone.')) {
+        // Call the function directly since it's defined later
+        (async () => {
+          try {
+            console.log('Resetting all settings...');
+            await resetAllApi();
+            console.log('All settings reset successfully');
+            // Reload the page to apply reset
+            window.location.reload();
+          } catch (error) {
+            console.error('Reset failed:', error);
+          }
+        })();
       }
-    };
+      return;
+    }
 
+    // Toggle cursor
+    if (ctrlKey && shiftKey && key === 'C') {
+      event.preventDefault();
+      setUseCustomCursor(!useCustomCursor);
+      return;
+    }
+
+    // Toggle dark mode
+    if (ctrlKey && shiftKey && key === 'D') {
+      event.preventDefault();
+      setIsDarkMode(!isDarkMode);
+      return;
+    }
+  }, []);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -1431,7 +1483,7 @@ function App() {
       document.removeEventListener('wheel', handleWheel);
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
-  }, [handleGlobalKeyPress, spotify.isEnabled, spotify.isConnected, spotify.hotkey, toggleSpotifyWidget, toggleSystemInfoWidget]);
+  }, [handleKeyDown, handleWheel, handleGlobalKeyDown]);
 
   // Apply cursor mode
   useEffect(() => {

@@ -1,10 +1,20 @@
 // Default keyboard shortcuts configuration
 export const DEFAULT_SHORTCUTS = [
   {
+    id: 'open-admin-panel',
+    name: 'Open Admin Panel',
+    description: 'Open the admin panel with Windows system actions',
+    defaultKey: 'a',
+    defaultModifier: 'ctrl',
+    action: 'openAdminPanel',
+    category: 'Admin',
+    icon: '⚙️'
+  },
+  {
     id: 'open-app-shortcuts-modal',
     name: 'Open App Shortcuts Modal',
     description: 'Open the app shortcuts management modal',
-    defaultKey: 'a',
+    defaultKey: 's',
     defaultModifier: 'ctrl',
     action: 'openAppShortcutsModal',
     category: 'Modals',
@@ -64,7 +74,7 @@ export const DEFAULT_SHORTCUTS = [
     id: 'open-sound-modal',
     name: 'Open Sound Modal',
     description: 'Open the sound settings modal',
-    defaultKey: 's',
+    defaultKey: 'o',
     defaultModifier: 'ctrl',
     action: 'openSoundModal',
     category: 'Modals',

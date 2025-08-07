@@ -5,7 +5,6 @@ import UnifiedAppPathCard from './UnifiedAppPathCard';
 import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
-import AdminPanel from './AdminPanel';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import useIconsStore from '../utils/useIconsStore';
 
@@ -28,8 +27,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [glassShineOpacity, setGlassShineOpacity] = useState(config?.glassShineOpacity || 0.7);
   const [textFont, setTextFont] = useState(config?.textFont || 'default');
   const [path, setPath] = useState('');
-  const [adminMode, setAdminMode] = useState(config?.adminMode || false);
-  const [powerActions, setPowerActions] = useState(config?.powerActions || []);
   
   // App/game path logic state
   const [gameType, setGameType] = useState('exe');
@@ -100,8 +97,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       setGlassBorderOpacity(config.glassBorderOpacity || 0.5);
       setGlassShineOpacity(config.glassShineOpacity || 0.7);
       setTextFont(config.textFont || 'default');
-      setAdminMode(config.adminMode || false);
-      setPowerActions(config.powerActions || []);
     }
   }, [config, buttonIndex]);
 
@@ -396,8 +391,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       glassBorderOpacity,
       glassShineOpacity,
       textFont: type === 'text' ? textFont : 'default', // Include font in save
-      adminMode,
-      powerActions,
     };
     
     onSave(saveData);
@@ -654,12 +647,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     );
   }
 
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [tintedImages, setTintedImages] = useState({});
-
-  const handleAdminPanelSave = (adminConfig) => {
-    setPowerActions(adminConfig.powerActions || []);
-  };
 
   if (!isOpen) return null;
 
@@ -727,71 +715,9 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </Card>
       )}
-      {/* Admin Mode Card - Only show for left button (index 0) and not presets/accessory buttons */}
-      {buttonIndex === 0 && !isPresetsButton && !isAccessoryButton && (
-        <Card
-          title="Admin Mode"
-          separator
-          desc="When enabled, this button becomes a powerful admin menu with Windows system actions instead of launching a single app."
-          headerActions={
-            <WToggle
-              checked={adminMode}
-              onChange={setAdminMode}
-            />
-          }
-          style={{ marginTop: 18, marginBottom: 0 }}
-        >
-          {adminMode && (
-          <div style={{ marginTop: 14 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Configure Windows system actions for your admin menu:</div>
-            <Button
-              variant="primary"
-              onClick={() => setShowAdminPanel(true)}
-            >
-              Open Admin Panel
-            </Button>
-            {powerActions.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: '13px', color: '#666', marginBottom: 6 }}>
-                  Selected actions: {powerActions.length}
-                </div>
-                <div style={{ 
-                  display: 'flex', 
-                  flexWrap: 'wrap', 
-                  gap: '4px',
-                  maxHeight: '60px',
-                  overflowY: 'auto'
-                }}>
-                  {powerActions.slice(0, 5).map(action => (
-                    <span
-                      key={action.id}
-                      style={{
-                        background: '#f0f8ff',
-                        color: '#0099ff',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        border: '1px solid #e0f0ff'
-                        }}
-                      >
-                        {action.icon} {action.name}
-                      </span>
-                    ))}
-                    {powerActions.length > 5 && (
-                      <span style={{ color: '#666', fontSize: '11px', padding: '2px 6px' }}>
-                        +{powerActions.length - 5} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </Card>
-      )}
 
-      {/* Unified App Path Card - Only show for non-presets buttons when not in admin mode */}
-      {!isPresetsButton && !adminMode && (
+      {/* Unified App Path Card - Only show for non-presets buttons */}
+      {!isPresetsButton && (
         <Card
           title="Unified App Path (NEW)"
           separator
@@ -822,58 +748,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           </div>
         </Card>
       )}
-
-      {/* App Path/URL Card - Only show for non-presets buttons when not in admin mode */}
-      {/* {!isPresetsButton && !adminMode && (
-        <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-          <div className="wee-card-header">
-            <span className="wee-card-title">App Path or URL</span>
-          </div>
-          <div className="wee-card-separator" />
-          <div className="wee-card-desc">
-            Set the path to an app or a URL to launch when this button is clicked.
-            <div style={{ marginTop: 14 }}>
-              <UnifiedAppPathCard
-                value={{
-                  launchType: actionType === 'url' ? 'url' : 'application',
-                  appName: text,
-                  path: action,
-                  selectedApp: null // Will be set by the store
-                }}
-                onChange={(config) => {
-                  if (config.launchType === 'url') {
-                    setActionType('url');
-                    setAction(config.path || '');
-                  } else {
-                    // Map app type to actionType
-                    let newActionType = 'exe'; // default
-                    if (config.selectedApp) {
-                      switch (config.selectedApp.type) {
-                        case 'steam':
-                          newActionType = 'steam';
-                          break;
-                        case 'epic':
-                          newActionType = 'epic';
-                          break;
-                        case 'microsoft':
-                          newActionType = 'microsoftstore';
-                          break;
-                        case 'exe':
-                        default:
-                          newActionType = 'exe';
-                          break;
-                      }
-                      setText(config.selectedApp.name);
-                    }
-                    setActionType(newActionType);
-                    setAction(config.path || '');
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )} */}
 
       {/* Hover Effect Card - Show for all buttons */}
       <Card
@@ -1024,14 +898,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             </div>
           )}
         </Card>
-
-      {/* Admin Panel Modal */}
-      <AdminPanel
-        isOpen={showAdminPanel}
-        onClose={() => setShowAdminPanel(false)}
-        onSave={handleAdminPanelSave}
-        config={{ powerActions }}
-      />
     </WBaseModal>
   );
 }

@@ -12,10 +12,11 @@ const CollapsibleSection = ({
   shadowColor = 'rgba(29, 185, 84, 0.3)',
   isEnabled = false,
   onToggle,
+  defaultCollapsed = false,
   children,
   className = ''
 }) => {
-  const [isExpanded, setIsExpanded] = useState(isEnabled);
+  const [isExpanded, setIsExpanded] = useState(isEnabled && !defaultCollapsed);
 
   const handleToggle = (checked) => {
     setIsExpanded(checked);

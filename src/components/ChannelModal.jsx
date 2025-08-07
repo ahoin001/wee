@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import './ChannelModal.css';
@@ -13,7 +13,6 @@ import UnifiedAppPathCard from './UnifiedAppPathCard';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import useUnifiedAppStore from '../utils/useUnifiedAppStore';
 import { preloadMediaLibrary, findGameMedia, getCacheStatus, getCachedMediaLibrary, getAllMatchingMedia } from '../utils/mediaLibraryCache';
-import { useCallback } from 'react';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
 
@@ -75,16 +74,16 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   // Reset state when channel data changes (when opening modal for different channel)
   useEffect(() => {
     if (isOpen) {
-      // console.log('[ChannelModal] Resetting state for channel:', channelId, {
-      //   currentMedia,
-      //   currentPath,
-      //   currentType,
-      //   currentAsAdmin,
-      //   currentHoverSound,
-      //   currentAnimatedOnHover,
-      //   currentKenBurnsEnabled,
-      //   currentKenBurnsMode
-      // });
+      console.log('[ChannelModal] Resetting state for channel:', channelId, {
+        currentMedia: currentMedia ? 'has media' : 'no media',
+        currentPath: currentPath || 'no path',
+        currentType: currentType || 'exe',
+        currentAsAdmin,
+        currentHoverSound: currentHoverSound ? 'has sound' : 'no sound',
+        currentAnimatedOnHover,
+        currentKenBurnsEnabled,
+        currentKenBurnsMode
+      });
       
       // Reset all state to match the current channel's data
       setMedia(currentMedia);
@@ -116,8 +115,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       // Clear selection feedback
       setSelectedGameFeedback(null);
       
-      // Clear unified app store selection
-      useUnifiedAppStore.getState().clearSelection();
+      // Clear unified app store selection and reset search
+      const unifiedStore = useUnifiedAppStore.getState();
+      unifiedStore.clearSelection();
+      unifiedStore.setSearchQuery('');
+      unifiedStore.setSelectedAppType('all');
     }
   }, [isOpen, channelId, currentMedia, currentPath, currentType, currentAsAdmin, currentHoverSound, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode]);
 
@@ -835,19 +837,78 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     );
   };
 
-  // Unified app path section
-  const renderUnifiedAppPathSection = () => (
-    <UnifiedAppPathCard
-      key={`unified-app-path-${channelId}`} // Force remount when channel changes
-      value={{
-        launchType: type === 'url' ? 'url' : 'application',
-        appName: '', // Will be set by the unified system
-        path: path,
-        selectedApp: null // Will be set by the unified system
-      }}
-      onChange={handleUnifiedAppPathChange}
-    />
-  );
+  // Helper function to find matching app for existing path - memoized for performance
+  const findMatchingAppForPath = useCallback((path, type) => {
+    if (!path || !type) return null;
+    
+    const unifiedApps = useUnifiedAppStore.getState().unifiedApps;
+    
+    // If unified apps haven't loaded yet, return null
+    if (unifiedApps.length === 0) {
+      return null;
+    }
+    
+    // For Steam games, extract app ID from path
+    if (type === 'steam' && path.startsWith('steam://rungameid/')) {
+      const appId = path.replace('steam://rungameid/', '');
+      const match = unifiedApps.find(app => app.type === 'steam' && app.appId === appId);
+      return match;
+    }
+    
+    // For Epic games, extract app name from path
+    if (type === 'epic' && path.includes('com.epicgames.launcher://apps/')) {
+      const appName = path.match(/com\.epicgames\.launcher:\/\/apps\/([^?]+)/)?.[1];
+      if (appName) {
+        return unifiedApps.find(app => app.type === 'epic' && app.appName === appName);
+      }
+    }
+    
+    // For Microsoft Store apps
+    if (type === 'microsoftstore' && path.includes('!')) {
+      return unifiedApps.find(app => app.type === 'microsoft' && app.appId === path);
+    }
+    
+    // For EXE apps, try to match by path
+    if (type === 'exe') {
+      return unifiedApps.find(app => app.type === 'exe' && app.path === path);
+    }
+    
+    return null;
+  }, []);
+
+  // Memoize the matching app to prevent recalculation
+  const matchingApp = useMemo(() => {
+    return findMatchingAppForPath(path, type);
+  }, [findMatchingAppForPath, path, type]);
+
+  // Unified app path section - memoized to prevent unnecessary re-renders
+  const renderUnifiedAppPathSection = useCallback(() => {
+    // Only render when modal is open
+    if (!isOpen) {
+      return null;
+    }
+    
+    // Set the selected app in the unified store if we found a match
+    if (matchingApp && isOpen) {
+      // Use setTimeout to ensure this runs after the component mounts
+      setTimeout(() => {
+        useUnifiedAppStore.getState().setSelectedApp(matchingApp);
+      }, 100);
+    }
+    
+    return (
+      <UnifiedAppPathCard
+        key={`unified-app-path-${channelId}-${isOpen}`} // Force remount when channel changes or modal opens
+        value={{
+          launchType: type === 'url' ? 'url' : 'application',
+          appName: matchingApp ? matchingApp.name : '', // Use app name if found
+          path: path,
+          selectedApp: matchingApp // Pass the matching app
+        }}
+        onChange={handleUnifiedAppPathChange}
+      />
+    );
+  }, [isOpen, matchingApp, channelId, type, path, handleUnifiedAppPathChange]);
 
   // State for Epic game media carousel
   const [epicMediaIndexes, setEpicMediaIndexes] = useState({});
@@ -877,8 +938,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   // State for collapsible sections
   const [gamesSectionExpanded, setGamesSectionExpanded] = useState(true);
 
-  // Suggested games section (Steam and Epic games, expandable for other launchers)
-  const renderSuggestedGames = () => {
+  // Suggested games section (Steam and Epic games, expandable for other launchers) - memoized to prevent unnecessary re-renders
+  const renderSuggestedGames = useCallback(() => {
+    // Only render when modal is open
+    if (!isOpen) {
+      return null;
+    }
 
     const realSteamGames = steamGames || [];
     const realEpicGames = epicGames || [];
@@ -1047,9 +1112,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     
     // Check for duplicates in Steam games
     const steamGameNames = realSteamGames.map(g => g.name);
-    const steamGameAppIds = realSteamGames.map(g => g.appid);
+    const steamGameAppIds = realSteamGames.map(g => g.appId); // Fixed: use appId with capital I
     const duplicateNames = steamGameNames.filter((name, index) => steamGameNames.indexOf(name) !== index);
-    const duplicateAppIds = steamGameAppIds.filter((appid, index) => steamGameAppIds.indexOf(appid) !== index);
+    const duplicateAppIds = steamGameAppIds.filter((appId, index) => steamGameAppIds.indexOf(appId) !== index);
     
     if (duplicateNames.length > 0) {
       console.warn('[ChannelModal] Duplicate Steam game names found:', duplicateNames);
@@ -1168,7 +1233,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                   {paginatedGames.map((game, index) => (
                     <div
-                      key={game.appid || game.appId || game.id || game.appName}
+                      key={game.appId || game.id || game.appName}
                       onClick={() => {
                         try {
                           // console.log('[ChannelModal] Game clicked!');
@@ -1177,8 +1242,13 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                           
                           if (game.source === 'steam') {
                             // Handle Steam game
-                            const gameId = game.appId || game.appid || game.id;
-                            // console.log('[ChannelModal] Steam game ID:', gameId);
+                            const gameId = game.appId; // Steam games use appId (capital I)
+                            console.log('[ChannelModal] Steam game ID:', gameId);
+                            
+                            if (!gameId) {
+                              console.error('[ChannelModal] No valid Steam app ID found for game:', game.name);
+                              return;
+                            }
                             
                             // Create Steam app object
                             const steamApp = {
@@ -1300,7 +1370,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                       <div className="relative w-full aspect-video rounded overflow-hidden mb-2">
                         {game.source === 'steam' ? (
                           <img
-                            src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appId || game.appid || game.id}/header.jpg`}
+                            src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appId}/header.jpg`}
                             alt={`${game.name} cover`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                             loading={index < 3 ? "eager" : "lazy"}
@@ -1547,7 +1617,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
       </Card>
     );
-  };
+  }, [isOpen, steamGames, epicGames, steamLoading, epicLoading, steamError, epicError, gamesSearchTerm, gamesPage, sortOrder, gamesSectionExpanded, showSelectionFeedback, handleUnifiedAppPathChange, setMedia, setType, epicMediaIndexes]);
 
   // Channel Behavior Tab
   const renderChannelBehaviorTab = () => (

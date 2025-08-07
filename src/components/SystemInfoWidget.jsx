@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import useFloatingWidgetStore from '../utils/useFloatingWidgetStore';
 import useSystemInfoStore from '../utils/useSystemInfoStore';
 import Slider from '../ui/Slider';
 import './SystemInfoWidget.css';
 
-const SystemInfoWidget = ({ isVisible, onClose }) => {
+const SystemInfoWidget = React.memo(({ isVisible, onClose }) => {
   const {
     systemInfo,
     isLoading,
@@ -25,7 +25,38 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
   const [selectedMetric, setSelectedMetric] = useState('cpu');
   const widgetRef = useRef(null);
 
-  // Simple dragging logic
+  // Memoize expensive calculations
+  const formattedSystemInfo = useMemo(() => {
+    if (!systemInfo.cpu) return null;
+    
+    return {
+      cpu: {
+        usage: systemInfo.cpu.usage,
+        cores: systemInfo.cpu.cores,
+        model: systemInfo.cpu.model,
+        temperature: systemInfo.cpu.temperature
+      },
+      memory: {
+        total: systemInfo.memory?.total,
+        used: systemInfo.memory?.used,
+        free: systemInfo.memory?.free,
+        usage: systemInfo.memory?.usage
+      },
+      gpu: {
+        name: systemInfo.gpu?.name,
+        memory: systemInfo.gpu?.memory,
+        usage: systemInfo.gpu?.usage,
+        temperature: systemInfo.gpu?.temperature
+      },
+      storage: systemInfo.storage?.map(disk => ({
+        ...disk,
+        usagePercent: disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0
+      })) || [],
+      battery: systemInfo.battery
+    };
+  }, [systemInfo]);
+
+  // Memoize event handlers
   const handleMouseDown = useCallback((e) => {
     if (e.target.closest('.control-btn') || e.target.closest('.page-btn') || e.target.closest('.metric-btn') || e.target.closest('.resize-handle') || e.target.closest('.clickable-item')) return;
     
@@ -558,6 +589,6 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       </div>
     </div>
   );
-};
+});
 
 export default SystemInfoWidget; 

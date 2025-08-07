@@ -163,87 +163,110 @@ function AppShortcutsModal({ isOpen, onClose }) {
           maxHeight: '500px',
           overflowY: 'auto'
         }}>
-          {keyboardShortcuts.map((shortcut) => (
-            <Card key={shortcut.id} style={{ padding: '16px' }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 16 
-              }}>
-                {/* Shortcut Icon */}
-                <div style={{ flexShrink: 0 }}>
-                  <span style={{ fontSize: '24px' }}>{shortcut.icon}</span>
-                </div>
-                
-                {/* Shortcut Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text weight={600} size="lg" style={{ marginBottom: 4 }}>
-                    {shortcut.name}
-                  </Text>
-                  <br />
-                  <Text color="#666" size="sm" style={{ marginBottom: 2 }}>
-                    {shortcut.description}
-                  </Text>
-                  <Text color="#888" size="sm">
-                    Category: {shortcut.category}
-                  </Text>
-                </div>
-                
-                {/* Shortcut Key */}
-                <div style={{ 
-                  display: 'flex', 
-                  gap: 8,
-                  flexShrink: 0,
-                  alignItems: 'center'
-                }}>
-                  {editingShortcut?.id === shortcut.id ? (
-                    <ShortcutInput
-                      shortcut={shortcut}
-                      onSave={handleSaveShortcut}
-                      onCancel={handleCancelEditShortcut}
-                    />
-                  ) : (
-                    <>
-                      <div style={{
-                        padding: '4px 8px',
-                        background: shortcut.enabled ? '#e6f3ff' : '#f5f5f5',
-                        border: `1px solid ${shortcut.enabled ? '#0099ff' : '#ddd'}`,
-                        borderRadius: 4,
-                        fontSize: '12px',
-                        fontFamily: 'monospace',
-                        color: shortcut.enabled ? '#0099ff' : '#999',
-                        minWidth: 80,
-                        textAlign: 'center'
+          {(() => {
+            // Group shortcuts by category and sort alphabetically
+            const groupedShortcuts = getShortcutsByCategory(keyboardShortcuts);
+            const sortedCategories = Object.keys(groupedShortcuts).sort();
+            
+            return sortedCategories.map(category => (
+              <div key={category}>
+                <Text 
+                  weight={600} 
+                  size="md" 
+                  style={{ 
+                    marginBottom: 8, 
+                    padding: '8px 0',
+                    borderBottom: '1px solid #eee',
+                    color: '#666'
+                  }}
+                >
+                  {category}
+                </Text>
+                <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+                  {groupedShortcuts[category]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((shortcut) => (
+                    <Card key={shortcut.id} style={{ padding: '16px' }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 16 
                       }}>
-                        {formatShortcut(shortcut)}
+                        {/* Shortcut Icon */}
+                        <div style={{ flexShrink: 0 }}>
+                          <span style={{ fontSize: '24px' }}>{shortcut.icon}</span>
+                        </div>
+                        
+                        {/* Shortcut Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text weight={600} size="lg" style={{ marginBottom: 4 }}>
+                            {shortcut.name}
+                          </Text>
+                          <br />
+                          <Text color="#666" size="sm" style={{ marginBottom: 2 }}>
+                            {shortcut.description}
+                          </Text>
+                        </div>
+                        
+                        {/* Shortcut Key */}
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: 8,
+                          flexShrink: 0,
+                          alignItems: 'center'
+                        }}>
+                          {editingShortcut?.id === shortcut.id ? (
+                            <ShortcutInput
+                              shortcut={shortcut}
+                              onSave={handleSaveShortcut}
+                              onCancel={handleCancelEditShortcut}
+                            />
+                          ) : (
+                            <>
+                              <div style={{
+                                padding: '4px 8px',
+                                background: shortcut.enabled ? '#e6f3ff' : '#f5f5f5',
+                                border: `1px solid ${shortcut.enabled ? '#0099ff' : '#ddd'}`,
+                                borderRadius: 4,
+                                fontSize: '12px',
+                                fontFamily: 'monospace',
+                                color: shortcut.enabled ? '#0099ff' : '#999',
+                                minWidth: 80,
+                                textAlign: 'center'
+                              }}>
+                                {formatShortcut(shortcut)}
+                              </div>
+                              
+                              {/* Actions */}
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleEditShortcut(shortcut)}
+                                  title="Edit shortcut"
+                                  disabled={!shortcut.enabled}
+                                >
+                                  ✏️
+                                </Button>
+                                <Button
+                                  variant={shortcut.enabled ? "danger" : "primary"}
+                                  size="sm"
+                                  onClick={() => handleToggleShortcut(shortcut.id)}
+                                  title={shortcut.enabled ? "Disable shortcut" : "Enable shortcut"}
+                                >
+                                  {shortcut.enabled ? '🔴' : '🟢'}
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      
-                      {/* Actions */}
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleEditShortcut(shortcut)}
-                          title="Edit shortcut"
-                          disabled={!shortcut.enabled}
-                        >
-                          ✏️
-                        </Button>
-                        <Button
-                          variant={shortcut.enabled ? "danger" : "primary"}
-                          size="sm"
-                          onClick={() => handleToggleShortcut(shortcut.id)}
-                          title={shortcut.enabled ? "Disable shortcut" : "Enable shortcut"}
-                        >
-                          {shortcut.enabled ? '🔴' : '🟢'}
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                    </Card>
+                  ))}
                 </div>
               </div>
-            </Card>
-          ))}
+            ));
+          })()}
         </div>
       </div>
     </WBaseModal>

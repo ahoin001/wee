@@ -44,8 +44,21 @@ const useAppLibraryStore = create((set, get) => ({
   installedApps: [],
   appsLoading: false,
   appsError: '',
+  
+  // Add loading states for individual app types
+  steamLoading: false,
+  epicLoading: false,
+  uwpLoading: false,
+  
   fetchInstalledApps: async () => {
     console.log('[Zustand] fetchInstalledApps called');
+    
+    // Check if already loading
+    if (get().appsLoading) {
+      console.log('[Zustand] Already loading installed apps, skipping');
+      return;
+    }
+    
     set({ appsLoading: true, appsError: '' });
     
     // Check cache first

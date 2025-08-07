@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
@@ -22,7 +22,28 @@ const soundsApi = window.api?.sounds || {
   getLibrary: async () => ({}),
 };
 
-const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange, onAppPathChange, onChannelSave, asAdmin, hoverSound, animatedOnHover: globalAnimatedOnHover, channelConfig, onHover, animationStyle, adaptiveEmptyChannels, kenBurnsEnabled: globalKenBurnsEnabled, kenBurnsMode: globalKenBurnsMode, idleAnimationClass, isIdleAnimating }) => {
+const Channel = React.memo(({ 
+  id, 
+  type, 
+  path, 
+  icon, 
+  empty, 
+  media, 
+  onMediaChange, 
+  onAppPathChange, 
+  onChannelSave, 
+  asAdmin, 
+  hoverSound, 
+  animatedOnHover: globalAnimatedOnHover, 
+  channelConfig, 
+  onHover, 
+  animationStyle, 
+  adaptiveEmptyChannels, 
+  kenBurnsEnabled: globalKenBurnsEnabled, 
+  kenBurnsMode: globalKenBurnsMode, 
+  idleAnimationClass, 
+  isIdleAnimating 
+}) => {
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
@@ -42,29 +63,36 @@ const Channel = React.memo(({ id, type, path, icon, empty, media, onMediaChange,
   // Floating widget store
   const { showWidget } = useFloatingWidgetStore();
   
-  // Use store data if available, fallback to props for backward compatibility
-  const effectiveConfig = storeChannelConfig || channelConfig;
-  const effectiveIsEmpty = storeChannelConfig ? storeIsEmpty : empty;
-  const effectiveMedia = storeChannelConfig?.media || media;
-  const effectivePath = storeChannelConfig?.path || path;
-  const effectiveType = storeChannelConfig?.type || type;
-  const effectiveAsAdmin = storeChannelConfig?.asAdmin || asAdmin;
-  const effectiveHoverSound = storeChannelConfig?.hoverSound || hoverSound;
+  // Memoize effective values to prevent unnecessary recalculations
+  const effectiveConfig = useMemo(() => storeChannelConfig || channelConfig, [storeChannelConfig, channelConfig]);
+  const effectiveIsEmpty = useMemo(() => storeChannelConfig ? storeIsEmpty : empty, [storeChannelConfig, storeIsEmpty, empty]);
+  const effectiveMedia = useMemo(() => storeChannelConfig?.media || media, [storeChannelConfig?.media, media]);
+  const effectivePath = useMemo(() => storeChannelConfig?.path || path, [storeChannelConfig?.path, path]);
+  const effectiveType = useMemo(() => storeChannelConfig?.type || type, [storeChannelConfig?.type, type]);
+  const effectiveAsAdmin = useMemo(() => storeChannelConfig?.asAdmin || asAdmin, [storeChannelConfig?.asAdmin, asAdmin]);
+  const effectiveHoverSound = useMemo(() => storeChannelConfig?.hoverSound || hoverSound, [storeChannelConfig?.hoverSound, hoverSound]);
   
-  // Determine which animatedOnHover setting to use
-  // Note: animatedOnHover = true means "only play on hover", false means "autoplay"
-  const effectiveAnimatedOnHover = (effectiveConfig && effectiveConfig.animatedOnHover !== undefined)
-    ? effectiveConfig.animatedOnHover
-    : globalAnimatedOnHover;
+  // Memoize animation settings
+  const effectiveAnimatedOnHover = useMemo(() => 
+    (effectiveConfig && effectiveConfig.animatedOnHover !== undefined)
+      ? effectiveConfig.animatedOnHover
+      : globalAnimatedOnHover, 
+    [effectiveConfig?.animatedOnHover, globalAnimatedOnHover]
+  );
   
-  // Determine Ken Burns settings (channel-specific overrides global)
-  const effectiveKenBurnsEnabled = (effectiveConfig && effectiveConfig.kenBurnsEnabled !== undefined)
-    ? effectiveConfig.kenBurnsEnabled
-    : globalKenBurnsEnabled;
+  const effectiveKenBurnsEnabled = useMemo(() => 
+    (effectiveConfig && effectiveConfig.kenBurnsEnabled !== undefined)
+      ? effectiveConfig.kenBurnsEnabled
+      : globalKenBurnsEnabled,
+    [effectiveConfig?.kenBurnsEnabled, globalKenBurnsEnabled]
+  );
     
-  const effectiveKenBurnsMode = (effectiveConfig && effectiveConfig.kenBurnsMode !== undefined)
-    ? effectiveConfig.kenBurnsMode
-    : globalKenBurnsMode;
+  const effectiveKenBurnsMode = useMemo(() => 
+    (effectiveConfig && effectiveConfig.kenBurnsMode !== undefined)
+      ? effectiveConfig.kenBurnsMode
+      : globalKenBurnsMode,
+    [effectiveConfig?.kenBurnsMode, globalKenBurnsMode]
+  );
   
   // console.log('Channel', id, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover, 'globalAnimatedOnHover:', globalAnimatedOnHover, 'channelConfig:', channelConfig);
 

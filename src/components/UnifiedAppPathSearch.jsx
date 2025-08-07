@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import useUnifiedAppStore from '../utils/useUnifiedAppStore';
 import Button from '../ui/WButton';
+import { useAppSearchPerformance } from '../utils/performanceHooks';
 
 const UnifiedAppPathSearch = ({ 
   value, 
@@ -29,57 +30,76 @@ const UnifiedAppPathSearch = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState(value || '');
   const [forceUpdate, setForceUpdate] = useState(0); // Force re-renders
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(localSearchQuery);
+
+  // Debounce search query updates
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(localSearchQuery);
+    }, 150); // 150ms debounce
+
+    return () => clearTimeout(timer);
+  }, [localSearchQuery]);
 
   // Fetch apps on mount
   useEffect(() => {
     if (unifiedApps.length === 0) {
-      fetchUnifiedApps();
+      useUnifiedAppStore.getState().fetchUnifiedApps();
     }
-  }, [fetchUnifiedApps, unifiedApps.length]);
+  }, [unifiedApps.length]);
 
   // Sync local search with store
   useEffect(() => {
     setLocalSearchQuery(value || '');
   }, [value]);
 
-  // Update store when local search changes
+  // Update store when debounced search changes
   useEffect(() => {
-    setSearchQuery(localSearchQuery);
+    useUnifiedAppStore.getState().setSearchQuery(debouncedSearchQuery);
     setForceUpdate(prev => prev + 1); // Force re-render
-  }, [localSearchQuery, setSearchQuery]);
+  }, [debouncedSearchQuery]);
 
-  // Get filtered apps - this will recalculate when searchQuery or selectedAppType changes
-  const filteredApps = getFilteredApps();
-  
-  // Debug logging removed - search is working correctly
+  // Memoize filtered apps to prevent unnecessary recalculations
+  const filteredApps = useMemo(() => {
+    return getFilteredApps();
+  }, [getFilteredApps, searchQuery, selectedAppType, unifiedApps.length]);
 
-  const handleAppSelect = (app) => {
-    setSelectedApp(app);
+  // Performance monitoring
+  useAppSearchPerformance(searchQuery, filteredApps, selectedAppType);
+
+  // Memoize event handlers
+  const handleAppSelect = useCallback((app) => {
+    console.log('[UnifiedAppPathSearch] App selected:', app);
+    useUnifiedAppStore.getState().setSelectedApp(app);
     onChange?.(app.name);
     setDropdownOpen(false);
     setLocalSearchQuery(app.name);
-  };
+  }, [onChange]);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const newValue = e.target.value;
     setLocalSearchQuery(newValue);
     onChange?.(newValue);
     setDropdownOpen(true);
-  };
+  }, [onChange]);
 
-  const handleInputFocus = () => {
+  const handleInputFocus = useCallback(() => {
     setDropdownOpen(true);
     onFocus?.();
-  };
+  }, [onFocus]);
 
-  const handleInputBlur = () => {
+  const handleInputBlur = useCallback(() => {
     setTimeout(() => setDropdownOpen(false), 150);
     onBlur?.();
-  };
+  }, [onBlur]);
 
-  const handleRescan = () => {
-    rescanUnifiedApps();
-  };
+  const handleRescan = useCallback(() => {
+    useUnifiedAppStore.getState().rescanUnifiedApps();
+  }, []);
+
+  const handleTypeFilterChange = useCallback((type) => {
+    useUnifiedAppStore.getState().setSelectedAppType(type);
+  }, []);
 
   const getAppTypeIcon = (type) => {
     switch (type) {
@@ -127,7 +147,7 @@ const UnifiedAppPathSearch = ({
             <button
               key={value}
               type="button"
-              onClick={() => setSelectedAppType(value)}
+              onClick={() => handleTypeFilterChange(value)}
               style={{
                 padding: '4px 12px',
                 borderRadius: '16px',
@@ -216,15 +236,16 @@ const UnifiedAppPathSearch = ({
           maxHeight: '300px',
           overflowY: 'auto'
         }}>
-          {filteredApps.map((app, idx) => (
+          {/* Virtual scrolling for large lists - show only first 50 items initially */}
+          {filteredApps.slice(0, 50).map((app, idx) => (
             <div
               key={app.id}
               style={{ 
                 padding: '12px 16px', 
                 cursor: 'pointer', 
-                borderBottom: idx < filteredApps.length - 1 ? '1px solid hsl(var(--border-primary))' : 'none',
+                borderBottom: idx < Math.min(filteredApps.length, 50) - 1 ? '1px solid hsl(var(--border-primary))' : 'none',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                borderRadius: idx === 0 ? '8px 8px 0 0' : idx === filteredApps.length - 1 ? '0 0 8px 8px' : '0',
+                borderRadius: idx === 0 ? '8px 8px 0 0' : idx === Math.min(filteredApps.length, 50) - 1 ? '0 0 8px 8px' : '0',
                 position: 'relative',
                 fontSize: '16px',
                 fontWeight: '500',
@@ -318,6 +339,20 @@ const UnifiedAppPathSearch = ({
               </div>
             </div>
           ))}
+          
+          {/* Show message if there are more results */}
+          {filteredApps.length > 50 && (
+            <div style={{
+              padding: '8px 16px',
+              fontSize: '12px',
+              color: 'hsl(var(--text-secondary))',
+              textAlign: 'center',
+              borderTop: '1px solid hsl(var(--border-primary))',
+              background: 'hsl(var(--surface-secondary))'
+            }}>
+              Showing first 50 results. Refine your search to see more.
+            </div>
+          )}
         </div>
       )}
 
