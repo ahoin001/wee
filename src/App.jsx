@@ -354,7 +354,12 @@ function App() {
     size: 3,
     gravity: 0.02,
     fadeSpeed: 0.008,
-    sizeDecay: 0.02
+    sizeDecay: 0.02,
+    useAdaptiveColor: false,
+    colorIntensity: 1.0,
+    colorVariation: 0.3,
+    rotationSpeed: 0.05,
+    particleLifetime: 3.0
   });
   const [showCountdown, setShowCountdown] = useState(false);
   const [isScreenshotInProgress, setIsScreenshotInProgress] = useState(false);
@@ -1099,7 +1104,12 @@ function App() {
           size: 3,
           gravity: 0.02,
           fadeSpeed: 0.008,
-          sizeDecay: 0.02
+          sizeDecay: 0.02,
+          useAdaptiveColor: false,
+          colorIntensity: 1.0,
+          colorVariation: 0.3,
+          rotationSpeed: 0.05,
+          particleLifetime: 3.0
         });
         
         // Load ribbonButtonConfigs to ensure they're preserved during persistence
@@ -1368,24 +1378,7 @@ function App() {
           event.preventDefault();
           usePageNavigationStore.getState().goToNextPage();
           break;
-        case 'Escape':
-          event.preventDefault();
-          // Close any open modals first, then toggle settings menu
-          if (uiStore.showAppShortcutsModal || uiStore.showChannelSettingsModal || 
-              uiStore.showPresetsModal || uiStore.showSoundModal || uiStore.showWallpaperModal ||
-              uiStore.showImageModal || uiStore.showUpdateModal || uiStore.showAuthModal ||
-              uiStore.showGeneralSettingsModal || uiStore.showTimeSettingsModal || 
-              uiStore.showRibbonSettingsModal || uiStore.showPrimaryActionsModal ||
-              uiStore.showAppearanceSettingsModal || uiStore.showNavigationCustomizationModal ||
-              uiStore.showMonitorSelectionModal || uiStore.showClassicDockSettingsModal ||
-              uiStore.showConfirmationModal) {
-            // Close all modals (standard Escape behavior)
-            uiStore.closeAllModals();
-          } else {
-            // Toggle settings menu when no modals are open
-            uiStore.toggleSettingsMenu();
-          }
-          break;
+
       }
     }
 
@@ -1836,6 +1829,43 @@ function App() {
     }
     if (newSettings.particleSettings !== undefined) {
       setParticleSettings(newSettings.particleSettings);
+    }
+    
+    // Handle dock settings from AppearanceSettingsModal
+    if (newSettings.particleSystemEnabled !== undefined || 
+        newSettings.particleEffectType !== undefined || 
+        newSettings.particleDirection !== undefined || 
+        newSettings.particleSpeed !== undefined || 
+        newSettings.particleCount !== undefined || 
+        newSettings.particleSpawnRate !== undefined || 
+        newSettings.particleSize !== undefined || 
+        newSettings.particleGravity !== undefined || 
+        newSettings.particleFadeSpeed !== undefined || 
+        newSettings.particleSizeDecay !== undefined || 
+        newSettings.particleUseAdaptiveColor !== undefined || 
+        newSettings.particleColorIntensity !== undefined || 
+        newSettings.particleColorVariation !== undefined || 
+        newSettings.particleRotationSpeed !== undefined || 
+        newSettings.particleLifetime !== undefined) {
+      
+      setParticleSettings(prev => ({
+        ...prev,
+        enabled: newSettings.particleSystemEnabled !== undefined ? newSettings.particleSystemEnabled : prev.enabled,
+        effectType: newSettings.particleEffectType !== undefined ? newSettings.particleEffectType : prev.effectType,
+        direction: newSettings.particleDirection !== undefined ? newSettings.particleDirection : prev.direction,
+        speed: newSettings.particleSpeed !== undefined ? newSettings.particleSpeed : prev.speed,
+        particleCount: newSettings.particleCount !== undefined ? newSettings.particleCount : prev.particleCount,
+        spawnRate: newSettings.particleSpawnRate !== undefined ? newSettings.particleSpawnRate : prev.spawnRate,
+        size: newSettings.particleSize !== undefined ? newSettings.particleSize : prev.size,
+        gravity: newSettings.particleGravity !== undefined ? newSettings.particleGravity : prev.gravity,
+        fadeSpeed: newSettings.particleFadeSpeed !== undefined ? newSettings.particleFadeSpeed : prev.fadeSpeed,
+        sizeDecay: newSettings.particleSizeDecay !== undefined ? newSettings.particleSizeDecay : prev.sizeDecay,
+        useAdaptiveColor: newSettings.particleUseAdaptiveColor !== undefined ? newSettings.particleUseAdaptiveColor : prev.useAdaptiveColor,
+        colorIntensity: newSettings.particleColorIntensity !== undefined ? newSettings.particleColorIntensity : prev.colorIntensity,
+        colorVariation: newSettings.particleColorVariation !== undefined ? newSettings.particleColorVariation : prev.colorVariation,
+        rotationSpeed: newSettings.particleRotationSpeed !== undefined ? newSettings.particleRotationSpeed : prev.rotationSpeed,
+        particleLifetime: newSettings.particleLifetime !== undefined ? newSettings.particleLifetime : prev.particleLifetime
+      }));
     }
     if (newSettings.wallpaperBlur !== undefined) {
       setWallpaperBlur(newSettings.wallpaperBlur);

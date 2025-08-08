@@ -5,6 +5,8 @@ import UnifiedAppPathCard from './UnifiedAppPathCard';
 import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
+import WInput from '../ui/WInput';
+import WSelect from '../ui/WSelect';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import useIconsStore from '../utils/useIconsStore';
 import useUnifiedAppStore from '../utils/useUnifiedAppStore';
@@ -15,7 +17,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [icon, setIcon] = useState(config?.icon || null);
   const [actionType, setActionType] = useState(config?.actionType === 'none' ? 'exe' : config?.actionType || 'exe');
   const [action, setAction] = useState(config?.action || '');
-  const [appName, setAppName] = useState(''); // Separate state for app name in UnifiedAppPathCard
+  const [appName, setAppName] = useState('');
   const [pathError, setPathError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
   const [useAdaptiveColor, setUseAdaptiveColor] = useState(config?.useAdaptiveColor || false);
@@ -28,7 +30,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [glassShineOpacity, setGlassShineOpacity] = useState(config?.glassShineOpacity || 0.7);
   const [textFont, setTextFont] = useState(config?.textFont || 'default');
   const [path, setPath] = useState('');
-  
+
   // App/game path logic state
   const [gameType, setGameType] = useState('exe');
   const [appQuery, setAppQuery] = useState('');
@@ -77,8 +79,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
     app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
   );
-  
-  // Update state when config changes (important for when modal reopens)
+
   useEffect(() => {
     if (config) {
       setType(config.type || 'text');
@@ -86,8 +87,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       setIcon(config.icon || null);
       setActionType(config.actionType === 'none' ? 'exe' : config.actionType || 'exe');
       setAction(config.action || '');
-      setPath(config.action || ''); // Sync path with action
-      setGameType(config.actionType === 'none' ? 'exe' : config.actionType || 'exe'); // Default to 'exe' if actionType is 'none'
+      setPath(config.action || '');
+      setGameType(config.actionType === 'none' ? 'exe' : config.actionType || 'exe');
       setUseWiiGrayFilter(config.useWiiGrayFilter || false);
       setUseAdaptiveColor(config.useAdaptiveColor || false);
       setUseGlowEffect(config.useGlowEffect || false);
@@ -101,19 +102,17 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     }
   }, [config, buttonIndex]);
 
-  // Fetch saved icons on open
   useEffect(() => {
     if (isOpen) {
       fetchIcons();
     }
   }, [isOpen, fetchIcons]);
 
-  // Regenerate tinted images when ribbon glow color changes and adaptive color is enabled
   useEffect(() => {
     if (useAdaptiveColor && savedIcons.length > 0) {
       const rgbColor = hexToRgb(ribbonGlowColor);
       const newTintedImages = {};
-      
+
       savedIcons.forEach(icon => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -131,29 +130,23 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     }
   }, [ribbonGlowColor, useAdaptiveColor, savedIcons]);
 
-  // Fetch app library data when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Fetch installed apps if not already loaded
       if (installedApps.length === 0 && !appsLoading) {
         fetchInstalledApps();
       }
-      // Fetch UWP apps if not already loaded
       if (uwpApps.length === 0 && !uwpLoading) {
         fetchUwpApps();
       }
-      // Fetch Steam games if not already loaded
       if (steamGames.length === 0 && !steamLoading) {
         fetchSteamGames(customSteamPath);
       }
-      // Fetch Epic games if not already loaded
       if (epicGames.length === 0 && !epicLoading) {
         fetchEpicGames();
       }
     }
   }, [isOpen, installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, fetchInstalledApps, fetchUwpApps, fetchSteamGames, fetchEpicGames, customSteamPath]);
 
-  // Best-practice: useEffect to sync dropdown open state with results
   useEffect(() => {
     if (gameType === 'exe') {
       if (appQuery && appResults.length > 0) setAppDropdownOpen(true);
@@ -175,7 +168,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     }
   }, [gameType, uwpQuery, filteredUwpApps.length]);
 
-  // Helper function to get icon color based on adaptive color setting
   const getIconColor = () => {
     if (useAdaptiveColor) {
       return ribbonGlowColor;
@@ -183,7 +175,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     return '#0099ff';
   };
 
-  // Helper function to get icon filter based on settings
   const getIconFilter = () => {
     if (useWiiGrayFilter) {
       return 'grayscale(100%) brightness(0.6) contrast(1.2)';
@@ -191,7 +182,6 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     return 'none';
   };
 
-  // Helper function to get the appropriate image source for adaptive color
   const getImageSource = (originalUrl) => {
     if (useAdaptiveColor && tintedImages[originalUrl]) {
       return tintedImages[originalUrl];

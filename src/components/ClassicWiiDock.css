@@ -24,6 +24,18 @@
   position: relative;
   width: 100%;
   margin: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.wii-dock-glass-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
 }
 
 /* Base Dock SVG */
@@ -43,6 +55,10 @@
   cursor: pointer;
   transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out;
   transform-origin: center;
+  border-radius: 4px;
+  overflow: hidden;
+  backdrop-filter: blur(0px);
+  z-index: 10;
 }
 
 .wii-sd-card:hover {
@@ -97,12 +113,13 @@
 .wii-left-pod {
   position: absolute;
   top: 50%;
-  left: 0;
-  width: 15.9%;
+  left: -2%;
+  width: 17%;
   height: auto;
   transform: translateY(-50%);
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   transform-origin: center;
+  z-index: 10;
 }
 
 .wii-left-pod:hover {
@@ -112,12 +129,13 @@
 .wii-right-pod {
   position: absolute;
   top: 50%;
-  right: 0;
-  width: 15.9%;
+  right: -2%;
+  width: 17%;
   height: auto;
   transform: translateY(-50%);
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   transform-origin: center;
+  z-index: 10;
 }
 
 .wii-right-pod:hover {
@@ -138,30 +156,34 @@
 /* Buttons */
 .wii-left-button {
   position: absolute;
-  width: 57.7%;
-  height: 78.2%;
-  top: 5.6%;
-  left: 31.6%;
+  width: 52.7%;
+  height: 72%;
+  top: 9%;
+  left: 33%;
   border-radius: 50%;
   border: 2px solid;
   transition: all 0.2s ease;
   cursor: pointer;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(0px);
+  z-index: 15;
 }
 
 .wii-right-button {
   position: absolute;
-  width: 5.4%;
+  width: 5%;
   aspect-ratio: 1/1;
   top: 5.6%;
-  right: 33.7%;
+  right: 20.7%;
   border-radius: 50%;
   border: 2px solid;
   transition: all 0.2s ease;
   cursor: pointer;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(0px);
+  z-index: 15;
 }
 
 /* Button Content */

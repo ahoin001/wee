@@ -380,19 +380,27 @@ const useUIStore = create((set, get) => ({
           }
         },
         'toggleSettingsMenu': () => {
-          if (modalsOpen) {
-            // If any modal is open, let it handle the key
-            return;
-          }
+          // Check if any modals are open
+          const modalsOpen = showPresetsModal || showWallpaperModal || showSoundModal || 
+                            showChannelSettingsModal || showAppShortcutsModal ||
+                            showGeneralSettingsModal || showTimeSettingsModal ||
+                            showRibbonSettingsModal || showUpdateModal || showPrimaryActionsModal ||
+                            showAppearanceSettingsModal;
           
-          if (showSettingsMenu) {
-            get().closeSettingsMenu();
+          if (modalsOpen) {
+            // Close all modals (standard Escape behavior)
+            get().closeAllModals();
           } else {
-            // Check if any other modals are open by looking for elements with modal-related classes
-            const otherModalsOpen = document.querySelector('.modal-overlay, .base-modal, [role="dialog"]');
-            
-            if (!otherModalsOpen) {
-              get().openSettingsMenu();
+            // Toggle settings menu when no modals are open
+            if (showSettingsMenu) {
+              get().closeSettingsMenu();
+            } else {
+              // Check if any other modals are open by looking for elements with modal-related classes
+              const otherModalsOpen = document.querySelector('.modal-overlay, .base-modal, [role="dialog"]');
+              
+              if (!otherModalsOpen) {
+                get().openSettingsMenu();
+              }
             }
           }
         }

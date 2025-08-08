@@ -45,8 +45,8 @@ const SIDEBAR_SECTIONS = [
   { id: 'wallpaper', label: 'Wallpaper', icon: '🖼️', color: '#4ecdc4', description: 'Background & cycling' },
   { id: 'time', label: 'Time', icon: '🕐', color: '#45b7d1', description: 'Clock & pill display' },
   { id: 'api-integrations', label: 'API & Widgets', icon: '🔌', color: '#1db954', description: 'External services & floating widgets' },
+  { id: 'dock', label: 'Dock', icon: '⚓', color: '#feca57', description: 'Classic dock animations' },
 //   { id: 'sounds', label: 'Sounds', icon: '🎵', color: '#96ceb4', description: 'Audio & feedback' },
-//   { id: 'dock', label: 'Dock', icon: '⚓', color: '#feca57', description: 'Classic dock settings' },
   { id: 'themes', label: 'Themes', icon: '🎨', color: '#ff9ff3', description: 'Preset themes' },
   { id: 'monitor', label: 'Monitor (beta)', icon: '🖥️', color: '#ff6b9d', description: 'Multi-monitor settings' },
   { id: 'general', label: 'General', icon: '⚙️', color: '#6c5ce7', description: 'App behavior & startup' },
@@ -212,6 +212,52 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
             startOnBoot: window.settings.startOnBoot ?? false,
             settingsShortcut: window.settings.settingsShortcut || '',
           },
+          dock: {
+            // Pod hover animations
+            podHoverEnabled: window.settings.podHoverEnabled ?? true,
+            podHoverDistance: window.settings.podHoverDistance ?? 15,
+            podHoverDuration: window.settings.podHoverDuration ?? 0.3,
+            podHoverEasing: window.settings.podHoverEasing ?? 'cubic-bezier(0.25, 0.8, 0.25, 1)',
+            
+            // Button animations
+            buttonHoverEnabled: window.settings.buttonHoverEnabled ?? true,
+            buttonHoverScale: window.settings.buttonHoverScale ?? 1.05,
+            buttonHoverBrightness: window.settings.buttonHoverBrightness ?? 1.1,
+            buttonActiveScale: window.settings.buttonActiveScale ?? 0.95,
+            buttonActiveBrightness: window.settings.buttonActiveBrightness ?? 0.9,
+            
+            // SD Card animations
+            sdCardHoverEnabled: window.settings.sdCardHoverEnabled ?? true,
+            sdCardHoverScale: window.settings.sdCardHoverScale ?? 1.1,
+            sdCardHoverBrightness: window.settings.sdCardHoverBrightness ?? 1.2,
+            sdCardGlowEnabled: window.settings.sdCardGlowEnabled ?? true,
+            sdCardGlowColor: window.settings.sdCardGlowColor ?? '#33BEED',
+            sdCardGlowStrength: window.settings.sdCardGlowStrength ?? 0.6,
+            
+            // Glass effects
+            glassEnabled: window.settings.glassEnabled ?? false,
+            glassOpacity: window.settings.glassOpacity ?? 0.18,
+            glassBlur: window.settings.glassBlur ?? 2.5,
+            glassBorderOpacity: window.settings.glassBorderOpacity ?? 0.5,
+            glassShineOpacity: window.settings.glassShineOpacity ?? 0.7,
+            
+            // Particle system
+            particleSystemEnabled: window.settings.particleSystemEnabled ?? false,
+            particleEffectType: window.settings.particleEffectType ?? 'normal',
+            particleDirection: window.settings.particleDirection ?? 'upward',
+            particleSpeed: window.settings.particleSpeed ?? 2,
+            particleCount: window.settings.particleCount ?? 3,
+            particleSpawnRate: window.settings.particleSpawnRate ?? 60,
+            particleSize: window.settings.particleSize ?? 3,
+            particleGravity: window.settings.particleGravity ?? 0.02,
+            particleFadeSpeed: window.settings.particleFadeSpeed ?? 0.008,
+            particleSizeDecay: window.settings.particleSizeDecay ?? 0.02,
+            particleUseAdaptiveColor: window.settings.particleUseAdaptiveColor ?? false,
+            particleColorIntensity: window.settings.particleColorIntensity ?? 1.0,
+            particleColorVariation: window.settings.particleColorVariation ?? 0.3,
+            particleRotationSpeed: window.settings.particleRotationSpeed ?? 0.05,
+            particleLifetime: window.settings.particleLifetime ?? 3.0,
+          },
           sounds: {
             backgroundMusicEnabled: window.settings.backgroundMusicEnabled ?? true,
             backgroundMusicLooping: window.settings.backgroundMusicLooping ?? true,
@@ -337,6 +383,52 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
         channelHoverVolume: allSettings.sounds.channelHoverVolume,
         startupEnabled: allSettings.sounds.startupEnabled,
         startupVolume: allSettings.sounds.startupVolume,
+        
+        // Dock settings
+        // Pod hover animations
+        podHoverEnabled: allSettings.dock.podHoverEnabled,
+        podHoverDistance: allSettings.dock.podHoverDistance,
+        podHoverDuration: allSettings.dock.podHoverDuration,
+        podHoverEasing: allSettings.dock.podHoverEasing,
+        
+        // Button animations
+        buttonHoverEnabled: allSettings.dock.buttonHoverEnabled,
+        buttonHoverScale: allSettings.dock.buttonHoverScale,
+        buttonHoverBrightness: allSettings.dock.buttonHoverBrightness,
+        buttonActiveScale: allSettings.dock.buttonActiveScale,
+        buttonActiveBrightness: allSettings.dock.buttonActiveBrightness,
+        
+        // SD Card animations
+        sdCardHoverEnabled: allSettings.dock.sdCardHoverEnabled,
+        sdCardHoverScale: allSettings.dock.sdCardHoverScale,
+        sdCardHoverBrightness: allSettings.dock.sdCardHoverBrightness,
+        sdCardGlowEnabled: allSettings.dock.sdCardGlowEnabled,
+        sdCardGlowColor: allSettings.dock.sdCardGlowColor,
+        sdCardGlowStrength: allSettings.dock.sdCardGlowStrength,
+        
+        // Glass effects
+        glassEnabled: allSettings.dock.glassEnabled,
+        glassOpacity: allSettings.dock.glassOpacity,
+        glassBlur: allSettings.dock.glassBlur,
+        glassBorderOpacity: allSettings.dock.glassBorderOpacity,
+        glassShineOpacity: allSettings.dock.glassShineOpacity,
+        
+        // Particle system
+        particleSystemEnabled: allSettings.dock.particleSystemEnabled,
+        particleEffectType: allSettings.dock.particleEffectType,
+        particleDirection: allSettings.dock.particleDirection,
+        particleSpeed: allSettings.dock.particleSpeed,
+        particleCount: allSettings.dock.particleCount,
+        particleSpawnRate: allSettings.dock.particleSpawnRate,
+        particleSize: allSettings.dock.particleSize,
+        particleGravity: allSettings.dock.particleGravity,
+        particleFadeSpeed: allSettings.dock.particleFadeSpeed,
+        particleSizeDecay: allSettings.dock.particleSizeDecay,
+        particleUseAdaptiveColor: allSettings.dock.particleUseAdaptiveColor,
+        particleColorIntensity: allSettings.dock.particleColorIntensity,
+        particleColorVariation: allSettings.dock.particleColorVariation,
+        particleRotationSpeed: allSettings.dock.particleRotationSpeed,
+        particleLifetime: allSettings.dock.particleLifetime,
         
         // Homescreen settings
         homescreen: allSettings.homescreen,
@@ -931,9 +1023,531 @@ function AppearanceSettingsModal({ isOpen, onClose, onSettingsChange }) {
   );
 
   const renderDockTab = () => (
-    <Suspense fallback={<div>Loading Dock Settings...</div>}>
-      <LazyDockSettingsTab />
-    </Suspense>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+        Dock Animation System
+      </Text>
+      
+      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+        Customize the animation effects and visual appearance of the Classic Wii Dock.
+      </Text>
+
+      {/* Pod Hover Animations */}
+      <Card>
+        <div style={{ padding: '20px' }}>
+          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+            Pod Hover Effects
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <WToggle
+                checked={localSettings.dock?.podHoverEnabled ?? true}
+                onChange={(checked) => updateLocalSetting('dock', 'podHoverEnabled', checked)}
+                label="Enable pod hover animations"
+              />
+            </div>
+            
+            {localSettings.dock?.podHoverEnabled && (
+              <>
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Hover Distance (px)
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.podHoverDistance ?? 15}
+                    min={5}
+                    max={30}
+                    step={1}
+                    onChange={(value) => updateLocalSetting('dock', 'podHoverDistance', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.podHoverDistance ?? 15}px
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Animation Duration (s)
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.podHoverDuration ?? 0.3}
+                    min={0.1}
+                    max={1.0}
+                    step={0.05}
+                    onChange={(value) => updateLocalSetting('dock', 'podHoverDuration', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.podHoverDuration ?? 0.3}s
+                  </Text>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Button Animations */}
+      <Card>
+        <div style={{ padding: '20px' }}>
+          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+            Button Animations
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <WToggle
+                checked={localSettings.dock?.buttonHoverEnabled ?? true}
+                onChange={(checked) => updateLocalSetting('dock', 'buttonHoverEnabled', checked)}
+                label="Enable button hover effects"
+              />
+            </div>
+            
+            {localSettings.dock?.buttonHoverEnabled && (
+              <>
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Hover Scale
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.buttonHoverScale ?? 1.05}
+                    min={1.0}
+                    max={1.2}
+                    step={0.01}
+                    onChange={(value) => updateLocalSetting('dock', 'buttonHoverScale', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.buttonHoverScale ?? 1.05}x
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Hover Brightness
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.buttonHoverBrightness ?? 1.1}
+                    min={1.0}
+                    max={1.5}
+                    step={0.05}
+                    onChange={(value) => updateLocalSetting('dock', 'buttonHoverBrightness', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.buttonHoverBrightness ?? 1.1}x
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Active Scale
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.buttonActiveScale ?? 0.95}
+                    min={0.8}
+                    max={1.0}
+                    step={0.01}
+                    onChange={(value) => updateLocalSetting('dock', 'buttonActiveScale', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.buttonActiveScale ?? 0.95}x
+                  </Text>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* SD Card Animations */}
+      <Card>
+        <div style={{ padding: '20px' }}>
+          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+            SD Card Animations
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <WToggle
+                checked={localSettings.dock?.sdCardHoverEnabled ?? true}
+                onChange={(checked) => updateLocalSetting('dock', 'sdCardHoverEnabled', checked)}
+                label="Enable SD card hover effects"
+              />
+            </div>
+            
+            {localSettings.dock?.sdCardHoverEnabled && (
+              <>
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Hover Scale
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.sdCardHoverScale ?? 1.1}
+                    min={1.0}
+                    max={1.3}
+                    step={0.01}
+                    onChange={(value) => updateLocalSetting('dock', 'sdCardHoverScale', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.sdCardHoverScale ?? 1.1}x
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Hover Brightness
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.sdCardHoverBrightness ?? 1.2}
+                    min={1.0}
+                    max={1.5}
+                    step={0.05}
+                    onChange={(value) => updateLocalSetting('dock', 'sdCardHoverBrightness', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.sdCardHoverBrightness ?? 1.2}x
+                  </Text>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <WToggle
+                    checked={localSettings.dock?.sdCardGlowEnabled ?? true}
+                    onChange={(checked) => updateLocalSetting('dock', 'sdCardGlowEnabled', checked)}
+                    label="Enable glow effect"
+                  />
+                </div>
+                
+                {localSettings.dock?.sdCardGlowEnabled && (
+                  <>
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Glow Strength
+                      </Text>
+                      <Slider
+                        value={localSettings.dock?.sdCardGlowStrength ?? 0.6}
+                        min={0.1}
+                        max={1.0}
+                        step={0.05}
+                        onChange={(value) => updateLocalSetting('dock', 'sdCardGlowStrength', value)}
+                      />
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                        {localSettings.dock?.sdCardGlowStrength ?? 0.6}
+                      </Text>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Glass Effects */}
+      <Card>
+        <div style={{ padding: '20px' }}>
+          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+            Glass Effects
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <WToggle
+                checked={localSettings.dock?.glassEnabled ?? false}
+                onChange={(checked) => updateLocalSetting('dock', 'glassEnabled', checked)}
+                label="Enable glass effect"
+              />
+            </div>
+            
+            {localSettings.dock?.glassEnabled && (
+              <>
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Glass Opacity
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.glassOpacity ?? 0.18}
+                    min={0.05}
+                    max={0.5}
+                    step={0.01}
+                    onChange={(value) => updateLocalSetting('dock', 'glassOpacity', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.glassOpacity ?? 0.18}
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Glass Blur
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.glassBlur ?? 2.5}
+                    min={0.5}
+                    max={10}
+                    step={0.5}
+                    onChange={(value) => updateLocalSetting('dock', 'glassBlur', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.glassBlur ?? 2.5}px
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Border Opacity
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.glassBorderOpacity ?? 0.5}
+                    min={0.1}
+                    max={1.0}
+                    step={0.05}
+                    onChange={(value) => updateLocalSetting('dock', 'glassBorderOpacity', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.glassBorderOpacity ?? 0.5}
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Shine Opacity
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.glassShineOpacity ?? 0.7}
+                    min={0.1}
+                    max={1.0}
+                    step={0.05}
+                    onChange={(value) => updateLocalSetting('dock', 'glassShineOpacity', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.glassShineOpacity ?? 0.7}
+                  </Text>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Particle System */}
+      <Card>
+        <div style={{ padding: '20px' }}>
+          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+            Particle System
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <WToggle
+                checked={localSettings.dock?.particleSystemEnabled ?? false}
+                onChange={(checked) => updateLocalSetting('dock', 'particleSystemEnabled', checked)}
+                label="Enable particle effects"
+              />
+            </div>
+            
+            {localSettings.dock?.particleSystemEnabled && (
+              <>
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Effect Type
+                  </Text>
+                  <select
+                    value={localSettings.dock?.particleEffectType ?? 'normal'}
+                    onChange={(e) => updateLocalSetting('dock', 'particleEffectType', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid hsl(var(--border-primary))',
+                      background: 'hsl(var(--surface-primary))',
+                      color: 'hsl(var(--text-primary))',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="sparkle">Sparkle</option>
+                    <option value="confetti">Confetti</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Direction
+                  </Text>
+                  <select
+                    value={localSettings.dock?.particleDirection ?? 'upward'}
+                    onChange={(e) => updateLocalSetting('dock', 'particleDirection', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid hsl(var(--border-primary))',
+                      background: 'hsl(var(--surface-primary))',
+                      color: 'hsl(var(--text-primary))',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="upward">Upward</option>
+                    <option value="downward">Downward</option>
+                    <option value="outward">Outward</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Speed
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.particleSpeed ?? 2}
+                    min={0.5}
+                    max={5}
+                    step={0.1}
+                    onChange={(value) => updateLocalSetting('dock', 'particleSpeed', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.particleSpeed ?? 2}
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Particle Count
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.particleCount ?? 3}
+                    min={1}
+                    max={10}
+                    step={1}
+                    onChange={(value) => updateLocalSetting('dock', 'particleCount', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.particleCount ?? 3} particles
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Spawn Rate (ms)
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.particleSpawnRate ?? 60}
+                    min={20}
+                    max={200}
+                    step={10}
+                    onChange={(value) => updateLocalSetting('dock', 'particleSpawnRate', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.particleSpawnRate ?? 60}ms
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Particle Size
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.particleSize ?? 3}
+                    min={1}
+                    max={8}
+                    step={0.5}
+                    onChange={(value) => updateLocalSetting('dock', 'particleSize', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.particleSize ?? 3}px
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Gravity
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.particleGravity ?? 0.02}
+                    min={0.001}
+                    max={0.1}
+                    step={0.001}
+                    onChange={(value) => updateLocalSetting('dock', 'particleGravity', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.particleGravity ?? 0.02}
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Fade Speed
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.particleFadeSpeed ?? 0.008}
+                    min={0.001}
+                    max={0.02}
+                    step={0.001}
+                    onChange={(value) => updateLocalSetting('dock', 'particleFadeSpeed', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.particleFadeSpeed ?? 0.008}
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Size Decay
+                  </Text>
+                  <Slider
+                    value={localSettings.dock?.particleSizeDecay ?? 0.02}
+                    min={0.001}
+                    max={0.05}
+                    step={0.001}
+                    onChange={(value) => updateLocalSetting('dock', 'particleSizeDecay', value)}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {localSettings.dock?.particleSizeDecay ?? 0.02}
+                  </Text>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <WToggle
+                    checked={localSettings.dock?.particleUseAdaptiveColor ?? false}
+                    onChange={(checked) => updateLocalSetting('dock', 'particleUseAdaptiveColor', checked)}
+                    label="Use adaptive colors"
+                  />
+                </div>
+                
+                {localSettings.dock?.particleUseAdaptiveColor && (
+                  <>
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Color Intensity
+                      </Text>
+                      <Slider
+                        value={localSettings.dock?.particleColorIntensity ?? 1.0}
+                        min={0.5}
+                        max={2.0}
+                        step={0.1}
+                        onChange={(value) => updateLocalSetting('dock', 'particleColorIntensity', value)}
+                      />
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                        {localSettings.dock?.particleColorIntensity ?? 1.0}
+                      </Text>
+                    </div>
+                    
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Color Variation
+                      </Text>
+                      <Slider
+                        value={localSettings.dock?.particleColorVariation ?? 0.3}
+                        min={0.1}
+                        max={0.8}
+                        step={0.05}
+                        onChange={(value) => updateLocalSetting('dock', 'particleColorVariation', value)}
+                      />
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                        {localSettings.dock?.particleColorVariation ?? 0.3}
+                      </Text>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 
   const renderThemesTab = () => (
