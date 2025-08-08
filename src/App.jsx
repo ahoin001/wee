@@ -1350,50 +1350,14 @@ function App() {
       event.preventDefault();
     }
 
-    // Handle keyboard shortcuts
+    // Handle keyboard shortcuts using the UI store system
     const { key, ctrlKey, altKey, shiftKey, metaKey } = event;
     
-    // Global shortcuts - avoid conflicts with standard browser shortcuts
-    if (ctrlKey && !altKey && !shiftKey && !metaKey) {
-      switch (key.toLowerCase()) {
-        case 's':
-          event.preventDefault();
-          showAppShortcutsModal();
-          break;
-        case 'h': // Changed from 'v' to avoid conflict with Ctrl+V (paste)
-          event.preventDefault();
-          showChannelSettingsModal();
-          break;
-        case 'p':
-          event.preventDefault();
-          useUIStore.getState().openPresetsModal();
-          break;
-        case 'o':
-          event.preventDefault();
-          showSoundModal();
-          break;
-        case 'w':
-          event.preventDefault();
-          showWallpaperModal();
-          break;
-        case 'a':
-          event.preventDefault();
-          // Show admin panel widget
-          toggleAdminPanelWidget();
-          break;
-        case 'i':
-          event.preventDefault();
-          toggleSystemInfoWidget();
-          break;
-        case 'l':
-          event.preventDefault();
-          toggleSpotifyWidget();
-          break;
-        // Note: Ctrl+C and Ctrl+V are reserved for copy/paste operations
-      }
-    }
+    // Let the UI store handle keyboard shortcuts (this includes all modal shortcuts)
+    const uiStore = useUIStore.getState();
+    uiStore.handleGlobalKeyPress(event);
 
-    // Navigation shortcuts
+    // Navigation shortcuts (these are always active)
     if (!ctrlKey && !altKey && !metaKey) {
       switch (key) {
         case 'ArrowLeft':
@@ -1407,7 +1371,6 @@ function App() {
         case 'Escape':
           event.preventDefault();
           // Close any open modals first, then toggle settings menu
-          const uiStore = useUIStore.getState();
           if (uiStore.showAppShortcutsModal || uiStore.showChannelSettingsModal || 
               uiStore.showPresetsModal || uiStore.showSoundModal || uiStore.showWallpaperModal ||
               uiStore.showImageModal || uiStore.showUpdateModal || uiStore.showAuthModal ||
@@ -1425,7 +1388,26 @@ function App() {
           break;
       }
     }
-  }, [showAppShortcutsModal, showChannelSettingsModal, showPresetsModal, showSoundModal, showWallpaperModal, toggleSystemInfoWidget, toggleSpotifyWidget]);
+
+    // Widget shortcuts (these are always active regardless of keyboard shortcuts config)
+    if (ctrlKey && !altKey && !shiftKey && !metaKey) {
+      switch (key.toLowerCase()) {
+        case 'a':
+          event.preventDefault();
+          toggleAdminPanelWidget();
+          break;
+        case 'i':
+          event.preventDefault();
+          toggleSystemInfoWidget();
+          break;
+        case 'l':
+          event.preventDefault();
+          toggleSpotifyWidget();
+          break;
+        // Note: Ctrl+C and Ctrl+V are reserved for copy/paste operations
+      }
+    }
+  }, [toggleSystemInfoWidget, toggleSpotifyWidget]);
 
   const handleWheel = useCallback((event) => {
     // Handle mouse wheel navigation
