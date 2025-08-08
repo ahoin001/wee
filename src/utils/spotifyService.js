@@ -40,27 +40,44 @@ class SpotifyService {
       
       if (accessToken) {
         this.spotifyApi.setAccessToken(accessToken);
-        const isValid = await this.validateToken();
-        
-        if (isValid) {
-          console.log('[SPOTIFY] Restored authentication from stored token');
-          return true;
-        } else {
-          // Token is invalid, try to refresh it
-          console.log('[SPOTIFY] Stored token is invalid, attempting refresh...');
-          if (refreshToken) {
-            const refreshResult = await this.refreshAccessToken(refreshToken);
-            if (refreshResult.success) {
-              console.log('[SPOTIFY] Successfully refreshed access token');
-              return true;
+        try {
+          const isValid = await this.validateToken();
+          if (isValid) {
+            console.log('[SPOTIFY] Restored authentication from stored token');
+            return true;
+          }
+        } catch (error) {
+          // Token validation failed, try to refresh if it's an auth error
+          if (error.status === 401 && refreshToken) {
+            console.log('[SPOTIFY] Stored token is invalid, attempting refresh...');
+            try {
+              const refreshResult = await this.refreshAccessToken(refreshToken);
+              if (refreshResult.success) {
+                console.log('[SPOTIFY] Successfully refreshed access token');
+                // Validate the new token
+                const isValid = await this.validateToken();
+                if (isValid) {
+                  return true;
+                }
+              }
+            } catch (refreshError) {
+              console.error('[SPOTIFY] Token refresh failed:', refreshError);
             }
           }
-          
-          // Clear invalid tokens
-          localStorage.removeItem('spotify_access_token');
-          localStorage.removeItem('spotify_refresh_token');
-          return false;
         }
+      }
+      
+      // If we get here, either no tokens or refresh failed
+      console.log('[SPOTIFY] No valid tokens found, clearing storage...');
+      localStorage.removeItem('spotify_access_token');
+      localStorage.removeItem('spotify_refresh_token');
+      this.isAuthenticated = false;
+      this.currentUser = null;
+      
+      // Update the Zustand store
+      if (window.spotifyStore) {
+        window.spotifyStore.setAuthenticated(false);
+        window.spotifyStore.setCurrentUser(null);
       }
       
       return false;
@@ -262,6 +279,35 @@ class SpotifyService {
       return this.currentTrack;
     } catch (error) {
       console.error('[SPOTIFY] Get current playback error:', error);
+      
+      // Check if it's an auth error
+      if (error.status === 401) {
+        console.log('[SPOTIFY] Token expired, attempting refresh...');
+        const refreshToken = localStorage.getItem('spotify_refresh_token');
+        
+        if (refreshToken) {
+          try {
+            const refreshResult = await this.refreshAccessToken(refreshToken);
+            if (refreshResult.success) {
+              console.log('[SPOTIFY] Token refreshed, retrying playback request...');
+              return this.getCurrentPlayback(); // Retry the request
+            }
+          } catch (refreshError) {
+            console.error('[SPOTIFY] Token refresh failed:', refreshError);
+          }
+        }
+        
+        // If we get here, refresh failed or no refresh token
+        console.log('[SPOTIFY] Auth failed, clearing tokens...');
+        this.logout();
+        
+        // Update the Zustand store
+        if (window.spotifyStore) {
+          window.spotifyStore.setAuthenticated(false);
+          window.spotifyStore.setCurrentUser(null);
+        }
+      }
+      
       return null;
     }
   }

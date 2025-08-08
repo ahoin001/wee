@@ -1366,7 +1366,7 @@ function App() {
           break;
         case 'p':
           event.preventDefault();
-          showPresetsModal();
+          useUIStore.getState().openPresetsModal();
           break;
         case 'o':
           event.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import WBaseModal from './WBaseModal';
 // import AppPathSectionCard from './AppPathSectionCard'; // LEGACY: No longer used
 import UnifiedAppPathCard from './UnifiedAppPathCard';
@@ -7,6 +7,7 @@ import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
 import useAppLibraryStore from '../utils/useAppLibraryStore';
 import useIconsStore from '../utils/useIconsStore';
+import useUnifiedAppStore from '../utils/useUnifiedAppStore';
 
 function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [], ribbonGlowColor = '#0099ff' }) {
   const [type, setType] = useState(config?.type || 'text');
@@ -726,10 +727,12 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
         >
           <div style={{ marginTop: 14 }}>
             <UnifiedAppPathCard
+              key={`unified-app-path-${buttonIndex}-${isOpen}`} // Force remount when button or modal changes
               value={{
                 launchType: actionType === 'url' ? 'url' : 'application',
                 appName: appName,
-                path: action
+                path: action,
+                selectedApp: useUnifiedAppStore.getState().selectedApp // Pass the selected app directly
               }}
               onChange={(config) => {
                 if (config.launchType === 'url') {
@@ -737,7 +740,26 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                   setAction(config.path || '');
                   setAppName('');
                 } else {
-                  setActionType('exe');
+                  // Map app type to action type
+                  let newActionType = 'exe'; // default
+                  if (config.selectedApp) {
+                    switch (config.selectedApp.type) {
+                      case 'steam':
+                        newActionType = 'steam';
+                        break;
+                      case 'epic':
+                        newActionType = 'epic';
+                        break;
+                      case 'microsoft':
+                        newActionType = 'microsoftstore';
+                        break;
+                      case 'exe':
+                      default:
+                        newActionType = 'exe';
+                        break;
+                    }
+                  }
+                  setActionType(newActionType);
                   setAction(config.path || '');
                   if (config.selectedApp) {
                     setAppName(config.selectedApp.name);

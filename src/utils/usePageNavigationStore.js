@@ -169,6 +169,26 @@ const usePageNavigationStore = create((set, get) => ({
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('wheel', handleWheel);
     };
+  },
+
+  // Settings management
+  getSettings: () => {
+    const { currentPage, totalPages, channelsPerPage } = get();
+    return {
+      currentPage,
+      totalPages,
+      channelsPerPage
+    };
+  },
+
+  loadSettings: (settings) => {
+    if (settings) {
+      set({
+        currentPage: settings.currentPage || 0,
+        totalPages: settings.totalPages || 3,
+        channelsPerPage: settings.channelsPerPage || 12
+      });
+    }
   }
 }));
 

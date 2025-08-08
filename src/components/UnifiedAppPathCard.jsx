@@ -25,39 +25,35 @@ const UnifiedAppPathCard = React.memo(({
     return getConfiguration();
   }, [getConfiguration, selectedApp]);
 
-  // Sync with value prop when it changes (for channel switching)
+  // Initial setup from value prop
   useEffect(() => {
-    console.log('[UnifiedAppPathCard] Syncing with new value prop:', value);
     setLaunchType(value.launchType || 'application');
     setAppName(value.appName || '');
     setPath(value.path || '');
     setPathError('');
-  }, [value.launchType, value.appName, value.path]);
+  }, []);
 
-  // Sync with store when selected app changes
+  // Sync with selected app from value prop
   useEffect(() => {
-    if (selectedApp) {
-      console.log('[UnifiedAppPathCard] Selected app changed:', selectedApp);
-      setAppName(selectedApp.name);
-      // Use the generated path that includes arguments
-      const generatedPath = configuration.generatedPath;
-      console.log('[UnifiedAppPathCard] Generated path:', generatedPath);
-      setPath(generatedPath);
+    if (value.selectedApp) {
+      setAppName(value.selectedApp.name);
+      const config = getConfiguration();
+      setPath(config.generatedPath);
     }
-  }, [selectedApp, configuration.generatedPath]);
+  }, [value.selectedApp, getConfiguration]);
 
-  // Update parent when form changes
+  // Update parent when form changes - memoize config to prevent unnecessary onChange calls
+  const memoizedConfig = useMemo(() => ({
+    launchType,
+    appName,
+    path,
+    selectedApp,
+    ...configuration
+  }), [launchType, appName, path, selectedApp, configuration]);
+
   useEffect(() => {
-    const config = {
-      launchType,
-      appName,
-      path,
-      selectedApp,
-      ...configuration
-    };
-    
-    onChange?.(config);
-  }, [launchType, appName, path, selectedApp, onChange, configuration]);
+    onChange?.(memoizedConfig);
+  }, [onChange, memoizedConfig]);
 
   // Memoize event handlers
   const handleLaunchTypeChange = useCallback((type) => {
