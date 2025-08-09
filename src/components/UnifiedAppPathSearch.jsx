@@ -71,10 +71,17 @@ const UnifiedAppPathSearch = ({
   const handleAppSelect = useCallback((app) => {
     console.log('[UnifiedAppPathSearch] App selected:', app);
     useUnifiedAppStore.getState().setSelectedApp(app);
-    onChange?.(app.name);
+    
+    // Generate the proper path for the selected app
+    const generatedPath = useUnifiedAppStore.getState().generatePathFromApp(app);
+    console.log('[UnifiedAppPathSearch] Generated path:', generatedPath);
+    
+    // Don't call onChange here - let the parent component handle the configuration
+    // The UnifiedAppPathCard will handle the path updates based on the store's selectedApp
+    
     setDropdownOpen(false);
     setLocalSearchQuery(app.name);
-  }, [onChange]);
+  }, []);
 
   const handleInputChange = useCallback((e) => {
     const newValue = e.target.value;

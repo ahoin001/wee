@@ -24,7 +24,7 @@ const useClassicDockStore = create((set, get) => ({
     },
     {
       type: 'text',
-      text: '',
+      text: 'Mail',
       icon: null,
       actionType: 'none',
       action: '',

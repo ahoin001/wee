@@ -33,14 +33,22 @@ const UnifiedAppPathCard = React.memo(({
     setPathError('');
   }, []);
 
-  // Sync with selected app from value prop
+  // Sync with selected app from value prop or store
   useEffect(() => {
-    if (value.selectedApp) {
-      setAppName(value.selectedApp.name);
-      const config = getConfiguration();
-      setPath(config.generatedPath);
+    const currentSelectedApp = value.selectedApp || selectedApp;
+    console.log('[UnifiedAppPathCard] Selected app changed:', {
+      valueSelectedApp: value.selectedApp,
+      storeSelectedApp: selectedApp,
+      currentSelectedApp
+    });
+    
+    if (currentSelectedApp) {
+      setAppName(currentSelectedApp.name);
+      const generatedPath = useUnifiedAppStore.getState().generatePathFromApp(currentSelectedApp);
+      console.log('[UnifiedAppPathCard] Generated path:', generatedPath);
+      setPath(generatedPath);
     }
-  }, [value.selectedApp, getConfiguration]);
+  }, [value.selectedApp, selectedApp]);
 
   // Update parent when form changes - memoize config to prevent unnecessary onChange calls
   const memoizedConfig = useMemo(() => ({
@@ -66,8 +74,13 @@ const UnifiedAppPathCard = React.memo(({
   }, [clearSelection]);
 
   const handleAppNameChange = useCallback((name) => {
+    console.log('[UnifiedAppPathCard] handleAppNameChange called with:', name);
+    console.log('[UnifiedAppPathCard] Current selectedApp:', selectedApp);
+    
     setAppName(name);
     setPathError('');
+    
+    // Don't update path here - let the useEffect handle it when selectedApp changes
   }, []);
 
   const handlePathChange = useCallback((newPath) => {

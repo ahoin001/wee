@@ -329,7 +329,7 @@ function App() {
   const [appReady, setAppReady] = useState(false);
   const [timeColor, setTimeColor] = useState('#ffffff'); // Time display color
   const [recentTimeColors, setRecentTimeColors] = useState([]); // Time color history
-  const [timeFormat24hr, setTimeFormat24hr] = useState(true); // Time format (24hr/12hr)
+  const [timeFormat24hr, setTimeFormat24hr] = useState(false); // Time format (24hr/12hr)
   const [enableTimePill, setEnableTimePill] = useState(true); // Time pill enabled
   const [timePillBlur, setTimePillBlur] = useState(8); // Time pill backdrop blur
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
@@ -1116,6 +1116,24 @@ function App() {
         if (settings.ribbonButtonConfigs) {
           setRibbonButtonConfigs(settings.ribbonButtonConfigs);
         }
+        // Load classicDockButtonConfigs to ensure they're preserved during persistence
+        if (settings.classicDockButtonConfigs) {
+          console.log('[App] Loading classicDockButtonConfigs from settings:', settings.classicDockButtonConfigs);
+          setClassicDockButtonConfigs(settings.classicDockButtonConfigs);
+        } else {
+          console.log('[App] No classicDockButtonConfigs found in settings, using defaults');
+        }
+        // Load accessoryButtonConfig to ensure it's preserved during persistence
+        if (settings.accessoryButtonConfig) {
+          console.log('[App] Loading accessoryButtonConfig from settings:', settings.accessoryButtonConfig);
+          setAccessoryButtonConfig(settings.accessoryButtonConfig);
+        } else {
+          console.log('[App] No accessoryButtonConfig found in settings, using defaults');
+        }
+        // Load dockSettings to ensure they're preserved during persistence
+        if (settings.dockSettings) {
+          setDockSettings(settings.dockSettings);
+        }
         // Load ribbonColor from settings
         setRibbonColor(settings.ribbonColor || '#e0e6ef');
         // Load recentRibbonColors from settings
@@ -1687,6 +1705,7 @@ function App() {
   const handleClassicButtonContextMenu = (index, e) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('[App] Classic button context menu opened for index:', index);
     setActiveButtonIndex(index);
     useUIStore.getState().openPrimaryActionsModal();
   };
@@ -1694,6 +1713,7 @@ function App() {
   const handleAccessoryButtonContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('[App] Accessory button context menu opened');
     setActiveButtonIndex('accessory');
     useUIStore.getState().openPrimaryActionsModal();
   };
@@ -3305,11 +3325,30 @@ function App() {
               }
             }}
             onSave={(newConfig) => {
-              const newConfigs = [...(ribbonButtonConfigs || [])];
-              if (activeButtonIndex !== null && activeButtonIndex >= 0) {
-                newConfigs[activeButtonIndex] = newConfig;
-                setRibbonButtonConfigs(newConfigs);
-                handleSettingsChange({ ribbonButtonConfigs: newConfigs });
+              console.log('[App] PrimaryActionsModal onSave called with:', { newConfig, activeButtonIndex, classicMode });
+              // Determine if this is a classic dock button or ribbon button based on activeButtonIndex
+              if (activeButtonIndex === 'accessory') {
+                // This is the accessory button (SD card)
+                console.log('[App] Saving accessory button config:', newConfig);
+                setAccessoryButtonConfig(newConfig);
+                handleSettingsChange({ accessoryButtonConfig: newConfig });
+              } else if (activeButtonIndex !== null && activeButtonIndex >= 0) {
+                // Check if we're in classic mode to determine which configs to use
+                if (classicMode) {
+                  // Classic dock button
+                  console.log('[App] Saving classic dock button config:', { index: activeButtonIndex, config: newConfig });
+                  const newConfigs = [...(classicDockButtonConfigs || [])];
+                  newConfigs[activeButtonIndex] = newConfig;
+                  setClassicDockButtonConfigs(newConfigs);
+                  handleSettingsChange({ classicDockButtonConfigs: newConfigs });
+                } else {
+                  // Ribbon button
+                  console.log('[App] Saving ribbon button config:', { index: activeButtonIndex, config: newConfig });
+                  const newConfigs = [...(ribbonButtonConfigs || [])];
+                  newConfigs[activeButtonIndex] = newConfig;
+                  setRibbonButtonConfigs(newConfigs);
+                  handleSettingsChange({ ribbonButtonConfigs: newConfigs });
+                }
               }
               if (closePrimaryActionsModal) {
                 closePrimaryActionsModal();
@@ -3317,7 +3356,13 @@ function App() {
                 setShowPrimaryActionsModal(false);
               }
             }}
-            config={ribbonButtonConfigs && activeButtonIndex !== null ? ribbonButtonConfigs[activeButtonIndex] : null}
+            config={
+              activeButtonIndex === 'accessory' 
+                ? accessoryButtonConfig 
+                : activeButtonIndex !== null && activeButtonIndex >= 0
+                  ? (classicMode ? classicDockButtonConfigs?.[activeButtonIndex] : ribbonButtonConfigs?.[activeButtonIndex])
+                  : null
+            }
             buttonIndex={activeButtonIndex}
             preavailableIcons={[]}
             ribbonGlowColor={ribbonGlowColor}

@@ -6,6 +6,7 @@ import Slider from '../ui/Slider';
 import Text from '../ui/Text';
 import WToggle from '../ui/WToggle';
 import SDCardiconModal from './SDCardiconModal';
+import WSelect from '../ui/WSelect';
 import { spacing } from '../ui/tokens';
 import './BaseModal.css';
 import './SoundModal.css';
@@ -39,11 +40,10 @@ const THEME_GROUPS = {
           buttonGradientEnd: '#CBCBCB',
           buttonIconColor: '#979796',
           rightButtonIconColor: '#A4A4A4',
-          buttonHighlightColor: '#E4E4E4',
+          buttonHighlightColor: 'rgba(255, 255, 255, 0.5)',
         }
       },
       chrome: {
-        // Refer to gemini for pulsing glow effect
         name: 'Monochrome',
         description: 'Monochrome effect',
         colors: {
@@ -70,13 +70,12 @@ const THEME_GROUPS = {
         }
       },
       cyberpunk: {
-        // Refer to gemini for pulsing glow effect
         name: 'Cyberpunk',
         description: 'Cyberpunk esque effect',
         colors: {
           dockBaseGradientStart: '#2C2C40',
           dockBaseGradientEnd: '#1a1a2e',
-          dockAccentColor: '#FF00FF', // Magenta neon
+          dockAccentColor: '#FF00FF',
           sdCardBodyColor: '#1a1a2e',
           sdCardBorderColor: '#00FFFF',
           sdCardLabelColor: '#00FFFF',
@@ -88,12 +87,64 @@ const THEME_GROUPS = {
           rightPodBaseColor: '#33334F',
           rightPodAccentColor: '#5A5A82',
           rightPodDetailColor: '#424268',
-          buttonBorderColor: '#00FFFF', // Cyan neon
+          buttonBorderColor: '#00FFFF',
           buttonGradientStart: '#1a1a2e',
           buttonGradientEnd: '#1a1a2e',
           buttonIconColor: '#00FFFF',
           rightButtonIconColor: '#00FFFF',
           buttonHighlightColor: 'rgba(255, 0, 255, 0.4)',
+        }
+      },
+      dark: {
+        name: 'Dark Mode',
+        description: 'Modern dark theme',
+        colors: {
+          dockBaseGradientStart: 'rgba(10,10,10,255)',
+          dockBaseGradientEnd: 'rgba(20,20,20,255)',
+          dockAccentColor: 'rgba(51,185,234,255)',
+          sdCardBodyColor: 'rgba(15,15,15,255)',
+          sdCardBorderColor: 'rgba(51,185,234,255)',
+          sdCardLabelColor: 'rgba(25,25,25,255)',
+          sdCardLabelBorderColor: 'rgba(30,30,30,255)',
+          sdCardBottomColor: 'rgba(51,185,234,255)',
+          leftPodBaseColor: 'rgba(18,18,18,255)',
+          leftPodAccentColor: 'rgba(25,25,25,255)',
+          leftPodDetailColor: 'rgba(22,22,22,255)',
+          rightPodBaseColor: 'rgba(18,18,18,255)',
+          rightPodAccentColor: 'rgba(25,25,25,255)',
+          rightPodDetailColor: 'rgba(22,22,22,255)',
+          buttonBorderColor: 'rgba(51,185,234,255)',
+          buttonGradientStart: 'rgba(33,33,33,255)',
+          buttonGradientEnd: 'rgba(28,28,28,255)',
+          buttonIconColor: 'rgba(38,39,38,255)',
+          rightButtonIconColor: 'rgba(38,39,38,255)',
+          buttonHighlightColor: 'rgba(51,185,234,255)',
+        }
+      },
+      ice: {
+        name: 'Frozen Ice',
+        description: 'Cool ice theme',
+        colors: {
+          dockBaseGradientStart: '#0F172A',
+          dockBaseGradientEnd: '#1E293B',
+          dockAccentColor: '#38BDF8',
+          sdCardBodyColor: '#1E293B',
+          sdCardBorderColor: '#38BDF8',
+          sdCardLabelColor: '#334155',
+          sdCardLabelBorderColor: '#475569',
+          sdCardBottomColor: '#38BDF8',
+          leftPodBaseColor: '#1E293B',
+          leftPodAccentColor: '#334155',
+          leftPodDetailColor: '#475569',
+          rightPodBaseColor: '#1E293B',
+          rightPodAccentColor: '#334155',
+          rightPodDetailColor: '#475569',
+          buttonBorderColor: '#38BDF8',
+          buttonGradientStart: '#334155',
+          buttonGradientEnd: '#1E293B',
+          buttonIconColor: '#0EA5E9',
+          rightButtonIconColor: '#0EA5E9',
+          buttonHighlightColor: '#38BDF8',
         }
       },
       retro: {
@@ -206,84 +257,6 @@ const THEME_GROUPS = {
           buttonHighlightColor: 'rgba(254, 252, 232, 0.6)',
         }
       },
-      dark: {
-        name: 'Dark Mode',
-        description: 'Modern dark theme',
-        colors: {
-          dockBaseGradientStart: 'rgba(10,10,10,255)',
-          dockBaseGradientEnd: 'rgba(20,20,20,255)',
-          dockAccentColor: 'rgba(51,185,234,255)',
-          sdCardBodyColor: 'rgba(15,15,15,255)',
-          sdCardBorderColor: 'rgba(51,185,234,255)',
-          sdCardLabelColor: 'rgba(25,25,25,255)',
-          sdCardLabelBorderColor: 'rgba(30,30,30,255)',
-          sdCardBottomColor: 'rgba(51,185,234,255)',
-          leftPodBaseColor: 'rgba(18,18,18,255)',
-          leftPodAccentColor: 'rgba(25,25,25,255)',
-          leftPodDetailColor: 'rgba(22,22,22,255)',
-          rightPodBaseColor: 'rgba(18,18,18,255)',
-          rightPodAccentColor: 'rgba(25,25,25,255)',
-          rightPodDetailColor: 'rgba(22,22,22,255)',
-          buttonBorderColor: 'rgba(51,185,234,255)',
-          buttonGradientStart: 'rgba(33,33,33,255)',
-          buttonGradientEnd: 'rgba(28,28,28,255)',
-          buttonIconColor: 'rgba(38,39,38,255)',
-          rightButtonIconColor: 'rgba(38,39,38,255)',
-          buttonHighlightColor: 'rgba(51,185,234,255)',
-        }
-      },
-      neon: {
-        name: 'Neon Cyberpunk',
-        description: 'Futuristic neon theme',
-        colors: {
-          dockBaseGradientStart: '#0A0A0F',
-          dockBaseGradientEnd: '#1A1A2E',
-          dockAccentColor: '#00FFFF',
-          sdCardBodyColor: '#16213E',
-          sdCardBorderColor: '#00FFFF',
-          sdCardLabelColor: '#0F3460',
-          sdCardLabelBorderColor: '#1A1A2E',
-          sdCardBottomColor: '#00FFFF',
-          leftPodBaseColor: '#16213E',
-          leftPodAccentColor: '#0F3460',
-          leftPodDetailColor: '#1A1A2E',
-          rightPodBaseColor: '#16213E',
-          rightPodAccentColor: '#0F3460',
-          rightPodDetailColor: '#1A1A2E',
-          buttonBorderColor: '#00FFFF',
-          buttonGradientStart: '#0F3460',
-          buttonGradientEnd: '#16213E',
-          buttonIconColor: '#FF00FF',
-          rightButtonIconColor: '#FF00FF',
-          buttonHighlightColor: '#00FFFF',
-        }
-      },
-      ice: {
-        name: 'Frozen Ice',
-        description: 'Cool ice theme',
-        colors: {
-          dockBaseGradientStart: '#0F172A',
-          dockBaseGradientEnd: '#1E293B',
-          dockAccentColor: '#38BDF8',
-          sdCardBodyColor: '#1E293B',
-          sdCardBorderColor: '#38BDF8',
-          sdCardLabelColor: '#334155',
-          sdCardLabelBorderColor: '#475569',
-          sdCardBottomColor: '#38BDF8',
-          leftPodBaseColor: '#1E293B',
-          leftPodAccentColor: '#334155',
-          leftPodDetailColor: '#475569',
-          rightPodBaseColor: '#1E293B',
-          rightPodAccentColor: '#334155',
-          rightPodDetailColor: '#475569',
-          buttonBorderColor: '#38BDF8',
-          buttonGradientStart: '#334155',
-          buttonGradientEnd: '#1E293B',
-          buttonIconColor: '#0EA5E9',
-          rightButtonIconColor: '#0EA5E9',
-          buttonHighlightColor: '#38BDF8',
-        }
-      }
     }
   },
   pastel: {
@@ -419,13 +392,7 @@ const THEME_GROUPS = {
           rightButtonIconColor: '#E91E63',
           buttonHighlightColor: '#FFFFFF',
         }
-      }
-    }
-  },
-  modern: {
-    name: 'Modern Themes',
-    description: 'Contemporary and sleek designs',
-    themes: {
+      },
       dark: {
         name: 'Dark Mode',
         description: 'Modern dark theme',
@@ -506,173 +473,172 @@ const THEME_GROUPS = {
       }
     }
   },
-  nature: {
-    name: 'Nature Themes',
-    description: 'Inspired by natural elements',
+  vibrant: {
+    name: 'Vibrant & Nature Themes',
+    description: 'Bold and energetic colors, inspired by natural elements',
     themes: {
-  sunset: {
-    name: 'Sunset Orange',
-    description: 'Warm sunset gradient',
-    colors: {
-      dockBaseGradientStart: '#FF6B35',
-      dockBaseGradientEnd: '#F7931E',
-      dockAccentColor: '#FFD700',
-      sdCardBodyColor: '#FF8C42',
-      sdCardBorderColor: '#FFD700',
-      sdCardLabelColor: '#FFA500',
-      sdCardLabelBorderColor: '#FFB347',
-      sdCardBottomColor: '#FFD700',
-      leftPodBaseColor: '#FF8C42',
-      leftPodAccentColor: '#FFA500',
-      leftPodDetailColor: '#FFB347',
-      rightPodBaseColor: '#FF8C42',
-      rightPodAccentColor: '#FFA500',
-      rightPodDetailColor: '#FFB347',
-      buttonBorderColor: '#FFD700',
-      buttonGradientStart: '#FFA500',
-      buttonGradientEnd: '#FF8C42',
-      buttonIconColor: '#FF4500',
-      rightButtonIconColor: '#FF4500',
-      buttonHighlightColor: '#FFD700',
-    }
-  },
-  forest: {
-    name: 'Forest Green',
-    description: 'Natural forest theme',
-    colors: {
-      dockBaseGradientStart: '#2D5016',
-      dockBaseGradientEnd: '#4A7C59',
-      dockAccentColor: '#90EE90',
-      sdCardBodyColor: '#3B5323',
-      sdCardBorderColor: '#90EE90',
-      sdCardLabelColor: '#556B2F',
-      sdCardLabelBorderColor: '#4A7C59',
-      sdCardBottomColor: '#90EE90',
-      leftPodBaseColor: '#3B5323',
-      leftPodAccentColor: '#556B2F',
-      leftPodDetailColor: '#4A7C59',
-      rightPodBaseColor: '#3B5323',
-      rightPodAccentColor: '#556B2F',
-      rightPodDetailColor: '#4A7C59',
-      buttonBorderColor: '#90EE90',
-      buttonGradientStart: '#556B2F',
-      buttonGradientEnd: '#3B5323',
-      buttonIconColor: '#228B22',
-      rightButtonIconColor: '#228B22',
-      buttonHighlightColor: '#90EE90',
-    }
-  },
-  ocean: {
-    name: 'Ocean Blue',
-    description: 'Deep ocean depths',
-    colors: {
-      dockBaseGradientStart: '#1E3A8A',
-      dockBaseGradientEnd: '#3B82F6',
-      dockAccentColor: '#06B6D4',
-      sdCardBodyColor: '#1E40AF',
-      sdCardBorderColor: '#06B6D4',
-      sdCardLabelColor: '#1D4ED8',
-      sdCardLabelBorderColor: '#3B82F6',
-      sdCardBottomColor: '#06B6D4',
-      leftPodBaseColor: '#1E40AF',
-      leftPodAccentColor: '#1D4ED8',
-      leftPodDetailColor: '#3B82F6',
-      rightPodBaseColor: '#1E40AF',
-      rightPodAccentColor: '#1D4ED8',
-      rightPodDetailColor: '#3B82F6',
-      buttonBorderColor: '#06B6D4',
-      buttonGradientStart: '#1D4ED8',
-      buttonGradientEnd: '#1E40AF',
-      buttonIconColor: '#0EA5E9',
-      rightButtonIconColor: '#0EA5E9',
-      buttonHighlightColor: '#06B6D4',
+      purple: {
+        name: 'Royal Purple',
+        description: 'Elegant purple theme',
+        colors: {
+          dockBaseGradientStart: '#4C1D95',
+          dockBaseGradientEnd: '#7C3AED',
+          dockAccentColor: '#A855F7',
+          sdCardBodyColor: '#581C87',
+          sdCardBorderColor: '#A855F7',
+          sdCardLabelColor: '#6B21A8',
+          sdCardLabelBorderColor: '#7C3AED',
+          sdCardBottomColor: '#A855F7',
+          leftPodBaseColor: '#581C87',
+          leftPodAccentColor: '#6B21A8',
+          leftPodDetailColor: '#7C3AED',
+          rightPodBaseColor: '#581C87',
+          rightPodAccentColor: '#6B21A8',
+          rightPodDetailColor: '#7C3AED',
+          buttonBorderColor: '#A855F7',
+          buttonGradientStart: '#6B21A8',
+          buttonGradientEnd: '#581C87',
+          buttonIconColor: '#C084FC',
+          rightButtonIconColor: '#C084FC',
+          buttonHighlightColor: '#A855F7',
+        }
+      },
+      fire: {
+        name: 'Fiery Red',
+        description: 'Hot fire theme',
+        colors: {
+          dockBaseGradientStart: '#7F1D1D',
+          dockBaseGradientEnd: '#DC2626',
+          dockAccentColor: '#F59E0B',
+          sdCardBodyColor: '#991B1B',
+          sdCardBorderColor: '#F59E0B',
+          sdCardLabelColor: '#B91C1C',
+          sdCardLabelBorderColor: '#DC2626',
+          sdCardBottomColor: '#F59E0B',
+          leftPodBaseColor: '#991B1B',
+          leftPodAccentColor: '#B91C1C',
+          leftPodDetailColor: '#DC2626',
+          rightPodBaseColor: '#991B1B',
+          rightPodAccentColor: '#B91C1C',
+          rightPodDetailColor: '#DC2626',
+          buttonBorderColor: '#F59E0B',
+          buttonGradientStart: '#B91C1C',
+          buttonGradientEnd: '#991B1B',
+          buttonIconColor: '#EF4444',
+          rightButtonIconColor: '#EF4444',
+          buttonHighlightColor: '#F59E0B',
+        }
+      },
+      gold: {
+        name: 'Golden Luxury',
+        description: 'Premium gold theme',
+        colors: {
+          dockBaseGradientStart: '#92400E',
+          dockBaseGradientEnd: '#F59E0B',
+          dockAccentColor: '#FCD34D',
+          sdCardBodyColor: '#A16207',
+          sdCardBorderColor: '#FCD34D',
+          sdCardLabelColor: '#B45309',
+          sdCardLabelBorderColor: '#F59E0B',
+          sdCardBottomColor: '#FCD34D',
+          leftPodBaseColor: '#A16207',
+          leftPodAccentColor: '#B45309',
+          leftPodDetailColor: '#F59E0B',
+          rightPodBaseColor: '#A16207',
+          rightPodAccentColor: '#B45309',
+          rightPodDetailColor: '#F59E0B',
+          buttonBorderColor: '#FCD34D',
+          buttonGradientStart: '#B45309',
+          buttonGradientEnd: '#A16207',
+          buttonIconColor: '#F59E0B',
+          rightButtonIconColor: '#F59E0B',
+          buttonHighlightColor: '#FCD34D',
+        }
+      },
+      sunset: {
+        name: 'Sunset Orange',
+        description: 'Warm sunset gradient',
+        colors: {
+          dockBaseGradientStart: '#FF6B35',
+          dockBaseGradientEnd: '#F7931E',
+          dockAccentColor: '#FFD700',
+          sdCardBodyColor: '#FF8C42',
+          sdCardBorderColor: '#FFD700',
+          sdCardLabelColor: '#FFA500',
+          sdCardLabelBorderColor: '#FFB347',
+          sdCardBottomColor: '#FFD700',
+          leftPodBaseColor: '#FF8C42',
+          leftPodAccentColor: '#FFA500',
+          leftPodDetailColor: '#FFB347',
+          rightPodBaseColor: '#FF8C42',
+          rightPodAccentColor: '#FFA500',
+          rightPodDetailColor: '#FFB347',
+          buttonBorderColor: '#FFD700',
+          buttonGradientStart: '#FFA500',
+          buttonGradientEnd: '#FF8C42',
+          buttonIconColor: '#FF4500',
+          rightButtonIconColor: '#FF4500',
+          buttonHighlightColor: '#FFD700',
+        }
+      },
+      forest: {
+        name: 'Forest Green',
+        description: 'Natural forest theme',
+        colors: {
+          dockBaseGradientStart: '#2D5016',
+          dockBaseGradientEnd: '#4A7C59',
+          dockAccentColor: '#90EE90',
+          sdCardBodyColor: '#3B5323',
+          sdCardBorderColor: '#90EE90',
+          sdCardLabelColor: '#556B2F',
+          sdCardLabelBorderColor: '#4A7C59',
+          sdCardBottomColor: '#90EE90',
+          leftPodBaseColor: '#3B5323',
+          leftPodAccentColor: '#556B2F',
+          leftPodDetailColor: '#4A7C59',
+          rightPodBaseColor: '#3B5323',
+          rightPodAccentColor: '#556B2F',
+          rightPodDetailColor: '#4A7C59',
+          buttonBorderColor: '#90EE90',
+          buttonGradientStart: '#556B2F',
+          buttonGradientEnd: '#3B5323',
+          buttonIconColor: '#228B22',
+          rightButtonIconColor: '#228B22',
+          buttonHighlightColor: '#90EE90',
+        }
+      },
+      ocean: {
+        name: 'Ocean Blue',
+        description: 'Deep ocean depths',
+        colors: {
+          dockBaseGradientStart: '#1E3A8A',
+          dockBaseGradientEnd: '#3B82F6',
+          dockAccentColor: '#06B6D4',
+          sdCardBodyColor: '#1E40AF',
+          sdCardBorderColor: '#06B6D4',
+          sdCardLabelColor: '#1D4ED8',
+          sdCardLabelBorderColor: '#3B82F6',
+          sdCardBottomColor: '#06B6D4',
+          leftPodBaseColor: '#1E40AF',
+          leftPodAccentColor: '#1D4ED8',
+          leftPodDetailColor: '#3B82F6',
+          rightPodBaseColor: '#1E40AF',
+          rightPodAccentColor: '#1D4ED8',
+          rightPodDetailColor: '#3B82F6',
+          buttonBorderColor: '#06B6D4',
+          buttonGradientStart: '#1D4ED8',
+          buttonGradientEnd: '#1E40AF',
+          buttonIconColor: '#0EA5E9',
+          rightButtonIconColor: '#0EA5E9',
+          buttonHighlightColor: '#06B6D4',
         }
       }
     }
   },
-  vibrant: {
-    name: 'Vibrant Themes',
-    description: 'Bold and energetic colors',
-    themes: {
-  purple: {
-    name: 'Royal Purple',
-    description: 'Elegant purple theme',
-    colors: {
-      dockBaseGradientStart: '#4C1D95',
-      dockBaseGradientEnd: '#7C3AED',
-      dockAccentColor: '#A855F7',
-      sdCardBodyColor: '#581C87',
-      sdCardBorderColor: '#A855F7',
-      sdCardLabelColor: '#6B21A8',
-      sdCardLabelBorderColor: '#7C3AED',
-      sdCardBottomColor: '#A855F7',
-      leftPodBaseColor: '#581C87',
-      leftPodAccentColor: '#6B21A8',
-      leftPodDetailColor: '#7C3AED',
-      rightPodBaseColor: '#581C87',
-      rightPodAccentColor: '#6B21A8',
-      rightPodDetailColor: '#7C3AED',
-      buttonBorderColor: '#A855F7',
-      buttonGradientStart: '#6B21A8',
-      buttonGradientEnd: '#581C87',
-      buttonIconColor: '#C084FC',
-      rightButtonIconColor: '#C084FC',
-      buttonHighlightColor: '#A855F7',
-    }
-  },
-  fire: {
-    name: 'Fiery Red',
-    description: 'Hot fire theme',
-    colors: {
-      dockBaseGradientStart: '#7F1D1D',
-      dockBaseGradientEnd: '#DC2626',
-      dockAccentColor: '#F59E0B',
-      sdCardBodyColor: '#991B1B',
-      sdCardBorderColor: '#F59E0B',
-      sdCardLabelColor: '#B91C1C',
-      sdCardLabelBorderColor: '#DC2626',
-      sdCardBottomColor: '#F59E0B',
-      leftPodBaseColor: '#991B1B',
-      leftPodAccentColor: '#B91C1C',
-      leftPodDetailColor: '#DC2626',
-      rightPodBaseColor: '#991B1B',
-      rightPodAccentColor: '#B91C1C',
-      rightPodDetailColor: '#DC2626',
-      buttonBorderColor: '#F59E0B',
-      buttonGradientStart: '#B91C1C',
-      buttonGradientEnd: '#991B1B',
-      buttonIconColor: '#EF4444',
-      rightButtonIconColor: '#EF4444',
-      buttonHighlightColor: '#F59E0B',
-    }
-  },
-  gold: {
-    name: 'Golden Luxury',
-    description: 'Premium gold theme',
-    colors: {
-      dockBaseGradientStart: '#92400E',
-      dockBaseGradientEnd: '#F59E0B',
-      dockAccentColor: '#FCD34D',
-      sdCardBodyColor: '#A16207',
-      sdCardBorderColor: '#FCD34D',
-      sdCardLabelColor: '#B45309',
-      sdCardLabelBorderColor: '#F59E0B',
-      sdCardBottomColor: '#FCD34D',
-      leftPodBaseColor: '#A16207',
-      leftPodAccentColor: '#B45309',
-      leftPodDetailColor: '#F59E0B',
-      rightPodBaseColor: '#A16207',
-      rightPodAccentColor: '#B45309',
-      rightPodDetailColor: '#F59E0B',
-      buttonBorderColor: '#FCD34D',
-      buttonGradientStart: '#B45309',
-      buttonGradientEnd: '#A16207',
-      buttonIconColor: '#F59E0B',
-      rightButtonIconColor: '#F59E0B',
-      buttonHighlightColor: '#FCD34D',
-    }
-      }
-    }
+  custom: {
+    name: 'Your Themes',
+    description: 'Your saved custom themes',
+    themes: {}
   }
 };
 
@@ -708,6 +674,13 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
 
   // SD Card icon state
   const [sdCardIcon, setSdCardIcon] = useState(dockSettings.sdCardIcon || 'default');
+
+  // Custom themes state
+  const [customThemes, setCustomThemes] = useState(dockSettings.customThemes || {});
+  const [showSaveThemeModal, setShowSaveThemeModal] = useState(false);
+  const [editingTheme, setEditingTheme] = useState(null);
+  const [themeName, setThemeName] = useState('');
+  const [themeDescription, setThemeDescription] = useState('');
 
   // Helper function to normalize icon value
   const normalizeIconValue = (iconValue) => {
@@ -770,7 +743,8 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
     pastel: false,
     modern: false,
     nature: false,
-    vibrant: false
+    vibrant: false,
+    custom: false
   });
 
   // Recent colors
@@ -812,8 +786,93 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
       setButtonSize(dockSettings.buttonSize || 1.0);
       setSdCardSize(dockSettings.sdCardSize || 1.0);
       setRecentColors(dockSettings.recentColors || []);
+      setCustomThemes(dockSettings.customThemes || {});
     }
   }, [dockSettings]);
+
+  // Update THEME_GROUPS with custom themes
+  useEffect(() => {
+    THEME_GROUPS.custom.themes = customThemes;
+  }, [customThemes]);
+
+  // Save custom theme
+  const saveCustomTheme = () => {
+    if (!themeName.trim()) return;
+
+    const newTheme = {
+      name: themeName.trim(),
+      description: themeDescription.trim() || 'Custom theme',
+      colors: {
+        dockBaseGradientStart,
+        dockBaseGradientEnd,
+        dockAccentColor,
+        sdCardBodyColor,
+        sdCardBorderColor,
+        sdCardLabelColor,
+        sdCardLabelBorderColor,
+        sdCardBottomColor,
+        leftPodBaseColor,
+        leftPodAccentColor,
+        leftPodDetailColor,
+        rightPodBaseColor,
+        rightPodAccentColor,
+        rightPodDetailColor,
+        buttonBorderColor,
+        buttonGradientStart,
+        buttonGradientEnd,
+        buttonIconColor,
+        rightButtonIconColor,
+        buttonHighlightColor,
+      }
+    };
+
+    const themeKey = themeName.trim().toLowerCase().replace(/\s+/g, '_');
+    
+    if (editingTheme) {
+      // Edit existing theme
+      const updatedThemes = { ...customThemes };
+      delete updatedThemes[editingTheme];
+      updatedThemes[themeKey] = newTheme;
+      setCustomThemes(updatedThemes);
+    } else {
+      // Save new theme
+      setCustomThemes(prev => ({
+        ...prev,
+        [themeKey]: newTheme
+      }));
+    }
+
+    setThemeName('');
+    setThemeDescription('');
+    setEditingTheme(null);
+    setShowSaveThemeModal(false);
+  };
+
+  // Edit custom theme
+  const editCustomTheme = (themeKey) => {
+    const theme = customThemes[themeKey];
+    setThemeName(theme.name);
+    setThemeDescription(theme.description);
+    setEditingTheme(themeKey);
+    setShowSaveThemeModal(true);
+  };
+
+  // Delete custom theme
+  const deleteCustomTheme = (themeKey) => {
+    if (window.confirm(`Are you sure you want to delete "${customThemes[themeKey].name}"?`)) {
+      const updatedThemes = { ...customThemes };
+      delete updatedThemes[themeKey];
+      setCustomThemes(updatedThemes);
+    }
+  };
+
+  // Open save theme modal
+  const openSaveThemeModal = () => {
+    setThemeName('');
+    setThemeDescription('');
+    setEditingTheme(null);
+    setShowSaveThemeModal(true);
+  };
 
   // Reset to default values
   const resetToDefault = () => {
@@ -866,6 +925,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
         buttonSize,
         sdCardSize,
         recentColors: newRecentColors,
+        customThemes,
       };
 
       if (onSettingsChange) {
@@ -957,29 +1017,11 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
       onClose={onClose}
       maxWidth="1000px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
-          <button 
-            className="reset-button" 
+        <div className="flex justify-end items-center gap-2">
+          <button
+            className="reset-button px-4 py-2 rounded-md border-2 border-[#0099ff] bg-transparent text-[#0099ff] font-medium text-sm transition-all hover:bg-[#0099ff] hover:text-white"
             onClick={resetToDefault}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: '2px solid #0099ff',
-              background: 'transparent',
-              color: '#0099ff',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = '#0099ff';
-              e.target.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent';
-              e.target.style.color = '#0099ff';
-            }}
+            type="button"
           >
             Reset to Default
           </button>
@@ -989,24 +1031,18 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
       )}
     >
       {/* Preset Themes */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+      <div className="wee-card mt-4 mb-0">
         <div className="wee-card-header">
           <span className="wee-card-title">Preset Themes</span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           Choose from pre-made themes or customize your own.
-          <div style={{ marginTop: '14px' }}>
+          <div className="mt-3.5">
             {Object.entries(THEME_GROUPS).map(([groupKey, group]) => (
-              <div key={groupKey} style={{ marginBottom: '20px' }}>
-                <div 
-                  className="wee-card-header" 
-                  style={{ 
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
+              <div key={groupKey} className="mb-5">
+                <div
+                  className="wee-card-header flex justify-between items-center cursor-pointer"
                   onClick={() => setExpandedGroups(prev => ({
                     ...prev,
                     [groupKey]: !prev[groupKey]
@@ -1014,125 +1050,64 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                 >
                   <div>
                     <span className="wee-card-title">{group.name}</span>
-                    <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                    <div className="text-xs text-gray-600 mt-0.5">
                       {group.description}
                     </div>
                   </div>
-                  <div style={{ 
-                    transform: expandedGroups[groupKey] ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s ease',
-                    fontSize: '18px',
-                    color: '#666'
-                  }}>
+                  <div
+                    className={`transition-transform text-lg text-gray-600 ${expandedGroups[groupKey] ? 'rotate-180' : ''}`}
+                  >
                     ▼
                   </div>
                 </div>
                 {expandedGroups[groupKey] && (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-            gap: '12px', 
-                    marginTop: '14px',
-                    padding: '12px',
-                    background: '#f8f9fa',
-                    borderRadius: '8px'
-          }}>
+                  <div className="grid gap-3.5 mt-3.5 p-3 bg-gray-50 rounded-lg"
+                    style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                     {Object.entries(group.themes).map(([themeKey, theme]) => {
                       const themePath = `${groupKey}.${themeKey}`;
                       const isSelected = getCurrentTheme() === themePath;
-                      
+                      const isCustomTheme = groupKey === 'custom';
                       return (
-              <button
+                        <button
                           key={themeKey}
                           onClick={() => applyTheme(themePath)}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                            border: isSelected ? '2px solid #0099ff' : '2px solid #e0e0e0',
-                            background: isSelected ? '#f0f8ff' : 'white',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                            gap: '4px',
-                            position: 'relative'
-                }}
-                onMouseEnter={(e) => {
-                            if (!isSelected) {
-                  e.target.style.borderColor = '#0099ff';
-                  e.target.style.background = '#f8f9fa';
-                            }
-                }}
-                onMouseLeave={(e) => {
-                            if (!isSelected) {
-                  e.target.style.borderColor = '#e0e0e0';
-                  e.target.style.background = 'white';
-                            }
-                }}
-              >
-                <div style={{ fontWeight: '600', fontSize: '14px', color: '#333' }}>
-                  {theme.name}
-                </div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  {theme.description}
-                </div>
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '4px', 
-                  marginTop: '4px' 
-                }}>
-                  <div style={{ 
-                    width: '16px', 
-                    height: '16px', 
-                    borderRadius: '50%', 
-                    background: theme.colors.dockBaseGradientStart,
-                    border: '1px solid #ddd'
-                  }} />
-                  <div style={{ 
-                    width: '16px', 
-                    height: '16px', 
-                    borderRadius: '50%', 
-                    background: theme.colors.dockAccentColor,
-                    border: '1px solid #ddd'
-                  }} />
-                  <div style={{ 
-                    width: '16px', 
-                    height: '16px', 
-                    borderRadius: '50%', 
-                    background: theme.colors.buttonGradientStart,
-                    border: '1px solid #ddd'
-                  }} />
-                  <div style={{ 
-                    width: '16px', 
-                    height: '16px', 
-                    borderRadius: '50%', 
-                    background: theme.colors.buttonIconColor,
-                    border: '1px solid #ddd'
-                  }} />
-                </div>
-                        {isSelected && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '8px',
-                            right: '8px',
-                            width: '16px',
-                            height: '16px',
-                            borderRadius: '50%',
-                            background: '#0099ff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontSize: '10px',
-                            fontWeight: 'bold'
-                          }}>
-                            ✓
+                          type="button"
+                          className={`relative flex flex-col gap-1.5 text-left p-3 rounded-lg border-2 transition-all
+                            ${isSelected ? 'border-[#0099ff] bg-blue-50' : 'border-gray-200 bg-white'}
+                            hover:border-[#0099ff] hover:bg-gray-50`}
+                        >
+                          <div className="font-semibold text-sm text-gray-800">{theme.name}</div>
+                          <div className="text-xs text-gray-600">{theme.description}</div>
+                          <div className="flex gap-1 mt-1">
+                            <div className="w-4 h-4 rounded-full border border-gray-200" style={{ background: theme.colors.dockBaseGradientStart }} />
+                            <div className="w-4 h-4 rounded-full border border-gray-200" style={{ background: theme.colors.dockAccentColor }} />
+                            <div className="w-4 h-4 rounded-full border border-gray-200" style={{ background: theme.colors.buttonGradientStart }} />
+                            <div className="w-4 h-4 rounded-full border border-gray-200" style={{ background: theme.colors.buttonIconColor }} />
                           </div>
-                        )}
-              </button>
-                    );
-                  })}
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#0099ff] flex items-center justify-center text-white text-xs font-bold">
+                              ✓
+                            </div>
+                          )}
+                          {isCustomTheme && (
+                            <div className="absolute top-2 right-2 flex gap-1">
+                              <button
+                                onClick={e => { e.stopPropagation(); editCustomTheme(themeKey); }}
+                                className="w-5 h-5 rounded-full bg-[#0099ff] border-none text-white text-xs flex items-center justify-center"
+                                title="Edit theme"
+                                type="button"
+                              >✏️</button>
+                              <button
+                                onClick={e => { e.stopPropagation(); deleteCustomTheme(themeKey); }}
+                                className="w-5 h-5 rounded-full bg-red-600 border-none text-white text-xs flex items-center justify-center"
+                                title="Delete theme"
+                                type="button"
+                              >🗑️</button>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1141,87 +1116,76 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
         </div>
       </div>
 
+      {/* Save Current Theme Button */}
+      <div className="wee-card mt-4 mb-0">
+        <div className="wee-card-header">
+          <span className="wee-card-title">Save Current Theme</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Save your current color configuration as a custom theme for future use.
+          <div className="mt-3.5">
+            <Button
+              variant="primary"
+              onClick={openSaveThemeModal}
+              className="text-sm px-4 py-2"
+            >
+              Save Current Theme
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Dock Base Colors */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+      <div className="wee-card mt-4 mb-0">
         <div className="wee-card-header">
           <span className="wee-card-title">Dock Base Colors</span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           Customize the main dock structure colors.
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Gradient Start</label>
+          <div className="mt-3.5">
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Gradient Start</label>
               <input
                 type="color"
                 value={dockBaseGradientStart}
                 onChange={e => setDockBaseGradientStart(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {dockBaseGradientStart.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{dockBaseGradientStart.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Gradient End</label>
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Gradient End</label>
               <input
                 type="color"
                 value={dockBaseGradientEnd}
                 onChange={e => setDockBaseGradientEnd(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {dockBaseGradientEnd.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{dockBaseGradientEnd.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Accent Color</label>
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Accent Color</label>
               <input
                 type="color"
                 value={dockAccentColor}
                 onChange={e => setDockAccentColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {dockAccentColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{dockAccentColor.toUpperCase()}</span>
             </div>
             {recentColors.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
-                <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Recent:</span>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs text-gray-500 mr-0.5">Recent:</span>
                 {recentColors.map((color, idx) => (
                   <button
                     key={color}
                     onClick={() => setDockAccentColor(color)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      border: color === dockAccentColor ? '2px solid #0099ff' : '1.5px solid #bbb',
-                      background: color,
-                      cursor: 'pointer',
-                      outline: 'none',
-                      marginLeft: idx === 0 ? 0 : 2
-                    }}
+                    className={`w-7 h-7 rounded-full outline-none cursor-pointer border ${color === dockAccentColor ? 'border-2 border-[#0099ff]' : 'border border-gray-400'}`}
+                    style={{ background: color, marginLeft: idx === 0 ? 0 : 2 }}
                     title={color}
+                    type="button"
                   />
                 ))}
               </div>
@@ -1231,178 +1195,114 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
       </div>
 
       {/* SD Card Colors */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+      <div className="wee-card mt-4 mb-0">
         <div className="wee-card-header">
           <span className="wee-card-title">SD Card Colors</span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           Customize the SD card appearance.
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Card Body</label>
+          <div className="mt-3.5">
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Card Body</label>
               <input
                 type="color"
                 value={sdCardBodyColor}
                 onChange={e => setSdCardBodyColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {sdCardBodyColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{sdCardBodyColor.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Card Border</label>
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Card Border</label>
               <input
                 type="color"
                 value={sdCardBorderColor}
                 onChange={e => setSdCardBorderColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {sdCardBorderColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{sdCardBorderColor.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Label Area</label>
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Label Area</label>
               <input
                 type="color"
                 value={sdCardLabelColor}
                 onChange={e => setSdCardLabelColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {sdCardLabelColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{sdCardLabelColor.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Bottom Section</label>
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Bottom Section</label>
               <input
                 type="color"
                 value={sdCardBottomColor}
                 onChange={e => setSdCardBottomColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {sdCardBottomColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{sdCardBottomColor.toUpperCase()}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Button Pod Colors */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+      <div className="wee-card mt-4 mb-0">
         <div className="wee-card-header">
           <span className="wee-card-title">Button Pod Colors</span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           Customize the button pod appearance.
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Left Pod Base</label>
+          <div className="mt-3.5">
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Left Pod Base</label>
               <input
                 type="color"
                 value={leftPodBaseColor}
                 onChange={e => setLeftPodBaseColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {leftPodBaseColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{leftPodBaseColor.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Right Pod Base</label>
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Right Pod Base</label>
               <input
                 type="color"
                 value={rightPodBaseColor}
                 onChange={e => setRightPodBaseColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {rightPodBaseColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{rightPodBaseColor.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Button Border</label>
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Button Border</label>
               <input
                 type="color"
                 value={buttonBorderColor}
                 onChange={e => setButtonBorderColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {buttonBorderColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{buttonBorderColor.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 140 }}>Button Icon</label>
+            <div className="flex items-center gap-3 mb-4">
+              <label className="font-medium min-w-[140px]">Button Icon</label>
               <input
                 type="color"
                 value={buttonIconColor}
                 onChange={e => setButtonIconColor(e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="w-[50px] h-10 rounded-lg border-none cursor-pointer"
               />
-              <span style={{ color: '#888', fontSize: 14 }}>
-                {buttonIconColor.toUpperCase()}
-              </span>
+              <span className="text-gray-500 text-sm">{buttonIconColor.toUpperCase()}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Glass Effect Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
-        <div className="wee-card-header">
+      <div className="wee-card mt-4 mb-0">
+        <div className="wee-card-header flex items-center justify-between">
           <span className="wee-card-title">Glass Effect</span>
           <WToggle
             checked={glassEnabled}
@@ -1413,11 +1313,11 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
         <div className="wee-card-desc">
           Apply a glass morphism effect to the dock. Creates a frosted glass appearance.
           {glassEnabled && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, color: '#666' }}>Glass Opacity</span>
-                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassOpacity * 100)}%</span>
+            <div className="mt-3.5">
+              <div className="mb-3">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-sm text-gray-600">Glass Opacity</span>
+                  <span className="text-sm text-gray-600">{Math.round(glassOpacity * 100)}%</span>
                 </div>
                 <Slider
                   value={glassOpacity}
@@ -1427,11 +1327,10 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                   step={0.01}
                 />
               </div>
-              
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, color: '#666' }}>Glass Blur</span>
-                  <span style={{ fontSize: 14, color: '#666' }}>{glassBlur}px</span>
+              <div className="mb-3">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-sm text-gray-600">Glass Blur</span>
+                  <span className="text-sm text-gray-600">{glassBlur}px</span>
                 </div>
                 <Slider
                   value={glassBlur}
@@ -1441,11 +1340,10 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                   step={0.1}
                 />
               </div>
-              
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, color: '#666' }}>Border Opacity</span>
-                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassBorderOpacity * 100)}%</span>
+              <div className="mb-3">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-sm text-gray-600">Border Opacity</span>
+                  <span className="text-sm text-gray-600">{Math.round(glassBorderOpacity * 100)}%</span>
                 </div>
                 <Slider
                   value={glassBorderOpacity}
@@ -1455,11 +1353,10 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                   step={0.05}
                 />
               </div>
-              
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, color: '#666' }}>Shine Opacity</span>
-                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassShineOpacity * 100)}%</span>
+              <div className="mb-3">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-sm text-gray-600">Shine Opacity</span>
+                  <span className="text-sm text-gray-600">{Math.round(glassShineOpacity * 100)}%</span>
                 </div>
                 <Slider
                   value={glassShineOpacity}
@@ -1475,18 +1372,18 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
       </div>
 
       {/* Size Settings Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+      <div className="wee-card mt-4 mb-0">
         <div className="wee-card-header">
           <span className="wee-card-title">Size Settings</span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           Adjust the height of dock elements. The dock maintains full width while scaling height.
-          <div style={{ marginTop: 14 }}>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 14, color: '#666' }}>Dock Height</span>
-                <span style={{ fontSize: 14, color: '#666' }}>{Math.round(dockScale * 100)}%</span>
+          <div className="mt-3.5">
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-sm text-gray-600">Dock Height</span>
+                <span className="text-sm text-gray-600">{Math.round(dockScale * 100)}%</span>
               </div>
               <Slider
                 value={dockScale}
@@ -1496,11 +1393,10 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                 step={0.05}
               />
             </div>
-            
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 14, color: '#666' }}>Button Size</span>
-                <span style={{ fontSize: 14, color: '#666' }}>{Math.round(buttonSize * 100)}%</span>
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-sm text-gray-600">Button Size</span>
+                <span className="text-sm text-gray-600">{Math.round(buttonSize * 100)}%</span>
               </div>
               <Slider
                 value={buttonSize}
@@ -1510,11 +1406,10 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                 step={0.05}
               />
             </div>
-            
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 14, color: '#666' }}>SD Card Size</span>
-                <span style={{ fontSize: 14, color: '#666' }}>{Math.round(sdCardSize * 100)}%</span>
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-sm text-gray-600">SD Card Size</span>
+                <span className="text-sm text-gray-600">{Math.round(sdCardSize * 100)}%</span>
               </div>
               <Slider
                 value={sdCardSize}
@@ -1528,28 +1423,56 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
         </div>
       </div>
 
+      {/* Button Customization Card */}
+      <div className="wee-card mt-4 mb-0">
+        <div className="wee-card-header">
+          <span className="wee-card-title">Button Customization</span>
+        </div>
+        <div className="wee-card-separator" />
+        <div className="wee-card-desc">
+          Customize the dock buttons. Right-click on any button to open the customization menu.
+          <div className="mt-3.5">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 border border-gray-200 rounded-lg">
+                <div className="text-sm font-medium mb-2">Left Button</div>
+                <div className="text-xs text-gray-600 mb-3">
+                  Right-click to customize
+                </div>
+                <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-300">
+                  <span className="text-xs text-gray-600">Wii</span>
+                </div>
+              </div>
+              <div className="text-center p-4 border border-gray-200 rounded-lg">
+                <div className="text-sm font-medium mb-2">Right Button</div>
+                <div className="text-xs text-gray-600 mb-3">
+                  Right-click to customize
+                </div>
+                <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-300">
+                  <span className="text-xs text-gray-600">Mail</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 text-xs text-gray-500">
+              💡 Tip: Right-click on any dock button to open the customization menu where you can change icons, text, and add actions.
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* SD Card Icon Card */}
-      <div className="wee-card" style={{ marginTop: 18, marginBottom: 0 }}>
+      <div className="wee-card mt-4 mb-0">
         <div className="wee-card-header">
           <span className="wee-card-title">SD Card Icon</span>
         </div>
         <div className="wee-card-separator" />
         <div className="wee-card-desc">
           Customize the SD card icon that appears on the dock.
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ 
-                width: 48, 
-                height: 48, 
-                border: '2px solid #ddd', 
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#f8f8f8'
-              }}>
+          <div className="mt-3.5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 border-2 border-gray-200 rounded-md flex items-center justify-center bg-gray-100">
                 {(normalizedSdCardIcon === 'default' || !normalizedSdCardIcon || normalizedSdCardIcon === '') ? (
                   <svg width="32" height="32" viewBox="0 0 147 198" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* ...svg paths unchanged... */}
                     <path d="M0 12C0 5.37258 5.37258 0 12 0H116.327C119.629 0 122.785 1.36025 125.052 3.76052L143.724 23.5315C145.828 25.759 147 28.707 147 31.7709V186C147 192.627 141.627 198 135 198H12C5.37259 198 0 192.627 0 186V12Z" fill="#B9E1F2"/>
                     <path d="M0 186V12C1.93277e-07 5.37258 5.37258 4.83208e-08 12 0H116.327C119.629 0 122.785 1.36048 125.052 3.76074L143.725 23.5312C145.828 25.7587 147 28.7067 147 31.7705V186C147 192.627 141.627 198 135 198V191C137.761 191 140 188.761 140 186V31.7705C140 30.494 139.511 29.2659 138.635 28.3379L119.963 8.56641C119.018 7.56633 117.703 7 116.327 7H12C9.23858 7 7 9.23858 7 12V186C7 188.761 9.23858 191 12 191V198C5.47609 198 0.168106 192.794 0.00390625 186.31L0 186ZM135 191V198H12V191H135Z" fill="#33BEED"/>
                     <path d="M19 36C19 34.3431 20.3431 33 22 33H124C125.657 33 127 34.3431 127 36V149C127 150.657 125.657 152 124 152H22C20.3431 152 19 150.657 19 149V36Z" fill="white"/>
@@ -1561,34 +1484,29 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
                     <path d="M98 77L89.5 83.5L78 82.5L82 77H98Z" fill="#33BEED"/>
                   </svg>
                 ) : isBuiltInIcon(normalizedSdCardIcon) ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="flex items-center justify-center">
                     {renderBuiltInIcon(normalizedSdCardIcon)}
                   </div>
                 ) : (
-                  <img 
-                    src={normalizedSdCardIcon} 
-                    alt="Custom SD Card Icon" 
-                    style={{
-                      width: 32,
-                      height: 32,
-                      objectFit: 'contain',
-                      borderRadius: '4px'
-                    }}
+                  <img
+                    src={normalizedSdCardIcon}
+                    alt="Custom SD Card Icon"
+                    className="w-8 h-8 object-contain rounded"
                   />
                 )}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+              <div className="flex-1">
+                <div className="text-sm font-medium mb-1">
                   {(normalizedSdCardIcon === 'default' || !normalizedSdCardIcon || normalizedSdCardIcon === '') ? 'Default SD Card' : isBuiltInIcon(normalizedSdCardIcon) ? 'Built-in Icon' : 'Custom Icon'}
                 </div>
-                <div style={{ fontSize: 12, color: '#666' }}>
+                <div className="text-xs text-gray-600">
                   {(normalizedSdCardIcon === 'default' || !normalizedSdCardIcon || normalizedSdCardIcon === '') ? 'Classic Wii SD card icon' : isBuiltInIcon(normalizedSdCardIcon) ? `${normalizedSdCardIcon.charAt(0).toUpperCase() + normalizedSdCardIcon.slice(1)} icon` : 'Custom uploaded icon'}
                 </div>
               </div>
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 onClick={() => setShowSdCardIconModal(true)}
-                style={{ fontSize: 12, padding: '6px 12px' }}
+                className="text-xs px-3 py-1.5"
               >
                 Change Icon
               </Button>
@@ -1604,6 +1522,66 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
         onSettingsChange={handleSdCardIconChange}
         sdCardIcon={normalizedSdCardIcon}
       />
+
+      {/* Save Theme Modal */}
+      {showSaveThemeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
+          <div className="bg-white rounded-xl p-6 w-[400px] max-w-[90vw] shadow-xl">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="m-0 text-lg font-semibold">
+                {editingTheme ? 'Edit Theme' : 'Save Theme'}
+              </h3>
+              <button
+                onClick={() => setShowSaveThemeModal(false)}
+                className="bg-none border-none text-2xl cursor-pointer text-gray-500"
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1.5 font-medium">
+                Theme Name *
+              </label>
+              <input
+                type="text"
+                value={themeName}
+                onChange={(e) => setThemeName(e.target.value)}
+                placeholder="Enter theme name"
+                className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm"
+                autoFocus
+              />
+            </div>
+            <div className="mb-5">
+              <label className="block mb-1.5 font-medium">
+                Description (optional)
+              </label>
+              <textarea
+                value={themeDescription}
+                onChange={(e) => setThemeDescription(e.target.value)}
+                placeholder="Enter theme description"
+                rows={3}
+                className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm resize-vertical"
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => setShowSaveThemeModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={saveCustomTheme}
+                disabled={!themeName.trim()}
+              >
+                {editingTheme ? 'Update Theme' : 'Save Theme'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </WBaseModal>
   );
 }
@@ -1615,4 +1593,4 @@ ClassicDockSettingsModal.propTypes = {
   dockSettings: PropTypes.object,
 };
 
-export default ClassicDockSettingsModal; 
+export default ClassicDockSettingsModal;

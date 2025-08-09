@@ -888,13 +888,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       return null;
     }
     
-    // Set the selected app in the unified store if we found a match
-    if (matchingApp && isOpen) {
-      // Use setTimeout to ensure this runs after the component mounts
-      setTimeout(() => {
-        useUnifiedAppStore.getState().setSelectedApp(matchingApp);
-      }, 100);
-    }
+    // Don't automatically set the selected app here - let the user select it manually
+    // This prevents infinite loops when the component re-renders
     
     return (
       <UnifiedAppPathCard

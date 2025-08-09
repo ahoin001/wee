@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ClassicWiiDock.css';
 import DockParticleSystem from './DockParticleSystem';
 
@@ -112,6 +112,23 @@ const WiiDock = ({
   };
 
   const normalizedSdCardIcon = normalizeIconValue(sdCardIcon);
+
+  // Helper function to get icon filter based on settings
+  const getIconFilter = (useWiiGrayFilter) => {
+    if (useWiiGrayFilter) {
+      return 'grayscale(100%) brightness(0.6) contrast(1.2)';
+    }
+    return 'none';
+  };
+
+  // Debug logging for button rendering
+  useEffect(() => {
+    console.log('[WiiDock] Rendering buttons with configs:', {
+      buttonConfigs,
+      leftButton: buttonConfigs?.[0],
+      rightButton: buttonConfigs?.[1]
+    });
+  }, [buttonConfigs]);
 
   // Icon normalization and validation
 
@@ -313,16 +330,64 @@ const WiiDock = ({
                 ...getGlassStyles(glassOpacity * 0.8)
               }}
           >
-              <div className="wii-button-content">
-                  <div className="wii-button-icon">
-                      <svg viewBox="0 0 176 80" className="wii-icon-svg">
-                          <path d="M32.949 43.142L47.711 6.407C49.083 2.992 52.397 0.757 56.077 0.763C59.758 0.769 63.064 3.016 64.425 6.436L79.381 44.029L92.147 1.021L111.663 0.763L89.02 73.671C87.888 77.313 84.584 79.846 80.773 79.993C76.963 80.141 73.472 77.871 72.063 74.327L56.02 34.005L40.547 72.514C39.141 76.012 35.704 78.263 31.936 78.154C28.167 78.045 24.866 75.598 23.665 72.024L0 1.021L18.647 0.763L32.949 43.142Z" fill={colors.buttonIconColor}/>
-                          <path d="M119.063 26H134.063V80H119.063V26Z" fill={colors.buttonIconColor}/>
-                          <path d="M151.063 26H166.063V80H151.063V26Z" fill={colors.buttonIconColor}/>
-                          <circle cx="126.063" cy="8" r="10" fill={colors.buttonIconColor}/>
-                          <circle cx="158.063" cy="8" r="10" fill={colors.buttonIconColor}/>
-                      </svg>
-                  </div>
+                                <div className="wii-button-content">
+                      <div className="wii-button-icon">
+                                                     {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
+                             <span 
+                               className="text-wii-gray-dark font-bold"
+                               style={{
+                                 fontFamily: buttonConfigs[0].textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
+                                 color: colors.buttonIconColor,
+                                 fontSize: '18px',
+                                 lineHeight: '1.2',
+                                 textAlign: 'center',
+                                 display: 'flex',
+                                 alignItems: 'center',
+                                 justifyContent: 'center',
+                                 width: '100%',
+                                 height: '100%'
+                               }}
+                             >
+                               {buttonConfigs[0].text || 'Wii'}
+                             </span>
+                           ) : buttonConfigs[0] && buttonConfigs[0].icon === 'palette' ? (
+                             <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                               <circle cx="13.5" cy="6.5" r="2.5"/>
+                               <circle cx="17.5" cy="10.5" r="2.5"/>
+                               <circle cx="8.5" cy="7.5" r="2.5"/>
+                               <circle cx="6.5" cy="12.5" r="2.5"/>
+                               <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                             </svg>
+                           ) : buttonConfigs[0] && buttonConfigs[0].icon === 'star' ? (
+                             <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                               <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                             </svg>
+                           ) : buttonConfigs[0] && buttonConfigs[0].icon === 'heart' ? (
+                             <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                             </svg>
+                           ) : buttonConfigs[0] && buttonConfigs[0].icon ? (
+                             <img 
+                               src={buttonConfigs[0].icon} 
+                               alt="icon" 
+                               style={{ 
+                                 maxHeight: 48, 
+                                 maxWidth: 48,
+                                 filter: getIconFilter(buttonConfigs[0].useWiiGrayFilter),
+                                 display: 'block',
+                                 margin: 'auto'
+                               }} 
+                             />
+                          ) : (
+                            <svg viewBox="0 0 176 80" className="wii-icon-svg">
+                                <path d="M32.949 43.142L47.711 6.407C49.083 2.992 52.397 0.757 56.077 0.763C59.758 0.769 63.064 3.016 64.425 6.436L79.381 44.029L92.147 1.021L111.663 0.763L89.02 73.671C87.888 77.313 84.584 79.846 80.773 79.993C76.963 80.141 73.472 77.871 72.063 74.327L56.02 34.005L40.547 72.514C39.141 76.012 35.704 78.263 31.936 78.154C28.167 78.045 24.866 75.598 23.665 72.024L0 1.021L18.647 0.763L32.949 43.142Z" fill={colors.buttonIconColor}/>
+                                <path d="M119.063 26H134.063V80H119.063V26Z" fill={colors.buttonIconColor}/>
+                                <path d="M151.063 26H166.063V80H151.063V26Z" fill={colors.buttonIconColor}/>
+                                <circle cx="126.063" cy="8" r="10" fill={colors.buttonIconColor}/>
+                                <circle cx="158.063" cy="8" r="10" fill={colors.buttonIconColor}/>
+                            </svg>
+                          )}
+                      </div>
                   <div className="wii-button-highlight">
                      <svg viewBox="0 0 352 352" className="wii-highlight-svg">
                           <path 
@@ -367,10 +432,58 @@ const WiiDock = ({
                   >
                       <div className="wii-button-content">
                           <div className="wii-button-icon">
-                              <svg viewBox="0 0 191 128" className="wii-icon-svg">
-                                  <path d="M96.9788 90.094L191 42.125V124C191 126.209 189.209 128 187 128H4C1.79086 128 0 126.209 0 124V41.082L96.9788 90.094Z" fill={colors.rightButtonIconColor}/>
-                                  <path d="M187 0C189.209 0 191 1.79086 191 4V21.915L96.9788 69.905L0 20.917V4C0 1.79086 1.79086 0 4 0H187Z" fill={colors.rightButtonIconColor}/>
-                              </svg>
+                              {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
+                                <span 
+                                  className="text-wii-gray-dark font-bold"
+                                  style={{
+                                    fontFamily: buttonConfigs[1].textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
+                                    color: colors.rightButtonIconColor,
+                                    fontSize: '18px',
+                                    lineHeight: '1.2',
+                                    textAlign: 'center',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '100%',
+                                    height: '100%'
+                                  }}
+                                >
+                                  {buttonConfigs[1].text || 'Mail'}
+                                </span>
+                              ) : buttonConfigs[1] && buttonConfigs[1].icon === 'palette' ? (
+                                <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.rightButtonIconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                                  <circle cx="13.5" cy="6.5" r="2.5"/>
+                                  <circle cx="17.5" cy="10.5" r="2.5"/>
+                                  <circle cx="8.5" cy="7.5" r="2.5"/>
+                                  <circle cx="6.5" cy="12.5" r="2.5"/>
+                                  <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                                </svg>
+                              ) : buttonConfigs[1] && buttonConfigs[1].icon === 'star' ? (
+                                <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.rightButtonIconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                                  <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                                </svg>
+                              ) : buttonConfigs[1] && buttonConfigs[1].icon === 'heart' ? (
+                                <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.rightButtonIconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                              ) : buttonConfigs[1] && buttonConfigs[1].icon ? (
+                                <img 
+                                  src={buttonConfigs[1].icon} 
+                                  alt="icon" 
+                                  style={{ 
+                                    maxHeight: 48, 
+                                    maxWidth: 48,
+                                    filter: getIconFilter(buttonConfigs[1].useWiiGrayFilter),
+                                    display: 'block',
+                                    margin: 'auto'
+                                  }} 
+                                />
+                              ) : (
+                                <svg viewBox="0 0 191 128" className="wii-icon-svg">
+                                    <path d="M96.9788 90.094L191 42.125V124C191 126.209 189.209 128 187 128H4C1.79086 128 0 126.209 0 124V41.082L96.9788 90.094Z" fill={colors.rightButtonIconColor}/>
+                                    <path d="M187 0C189.209 0 191 1.79086 191 4V21.915L96.9788 69.905L0 20.917V4C0 1.79086 1.79086 0 4 0H187Z" fill={colors.rightButtonIconColor}/>
+                                </svg>
+                              )}
                           </div>
                           <div className="wii-button-highlight">
                              <svg viewBox="0 0 352 352" className="wii-highlight-svg">
@@ -411,6 +524,10 @@ const ClassicWiiDock = ({
   accessoryButtonConfig,
   particleSettings = {}
 }) => {
+  // Debug logging for button configs
+  useEffect(() => {
+    console.log('[ClassicWiiDock] Button configs received:', buttonConfigs);
+  }, [buttonConfigs]);
   return (
     <div className="wii-dock-wrapper">
       <WiiDock 
