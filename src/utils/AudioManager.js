@@ -8,17 +8,32 @@ class AudioManager {
 
   // Get or create an audio instance for a URL
   getAudioInstance(url) {
+    console.log('[AudioManager] getAudioInstance called for URL:', url);
+    
     if (!this.audioInstances.has(url)) {
+      console.log('[AudioManager] Creating new audio instance for:', url);
       const audio = new Audio(url);
       audio.preload = 'none'; // Don't preload to save memory
       
       // Add error handling to prevent memory leaks from failed loads
-      audio.addEventListener('error', () => {
-        console.warn('Audio failed to load, removing from cache:', url);
+      audio.addEventListener('error', (e) => {
+        console.error('[AudioManager] Audio failed to load:', url, e);
+        console.error('[AudioManager] Audio error details:', {
+          error: audio.error,
+          readyState: audio.readyState,
+          networkState: audio.networkState
+        });
         this.audioInstances.delete(url);
       }, { once: true });
       
+      // Add load event to confirm successful loading
+      audio.addEventListener('canplaythrough', () => {
+        console.log('[AudioManager] Audio loaded successfully:', url);
+      }, { once: true });
+      
       this.audioInstances.set(url, audio);
+    } else {
+      console.log('[AudioManager] Reusing existing audio instance for:', url);
     }
     return this.audioInstances.get(url);
   }
@@ -218,13 +233,17 @@ class AudioManager {
 
   // Set background music (single track)
   async setBackgroundMusic(url, volume = 0.4, loop = true) {
+    console.log('[AudioManager] setBackgroundMusic called with:', { url, volume, loop });
+    
     // Stop previous background music
     if (this.backgroundAudio) {
+      console.log('[AudioManager] Stopping previous background music');
       this.backgroundAudio.pause();
       this.backgroundAudio.currentTime = 0;
     }
 
     if (url) {
+      console.log('[AudioManager] Creating new background audio instance for:', url);
       this.backgroundAudio = this.getAudioInstance(url);
       
       // Get the current volume from sound library if available
@@ -236,6 +255,7 @@ class AudioManager {
             const enabledMusic = library.backgroundMusic.find(s => s.enabled);
             if (enabledMusic && enabledMusic.volume !== undefined) {
               volume = enabledMusic.volume;
+              console.log('[AudioManager] Using volume from library:', volume);
             }
           }
         }
@@ -243,6 +263,7 @@ class AudioManager {
         console.warn('Failed to get current background music volume:', error);
       }
       
+      console.log('[AudioManager] Setting background audio properties:', { volume, loop });
       this.backgroundAudio.volume = volume;
       this.backgroundAudio.loop = loop;
       
@@ -256,10 +277,22 @@ class AudioManager {
         this.backgroundAudio.addEventListener('ended', onEnded);
       }
       
-      this.backgroundAudio.play().catch(error => {
-        console.error('Failed to play background music:', error);
+      console.log('[AudioManager] Attempting to play background music...');
+      this.backgroundAudio.play().then(() => {
+        console.log('[AudioManager] Background music started successfully');
+      }).catch(error => {
+        console.error('[AudioManager] Failed to play background music:', error);
+        console.error('[AudioManager] Error details:', {
+          url,
+          volume,
+          loop,
+          audioReadyState: this.backgroundAudio.readyState,
+          audioNetworkState: this.backgroundAudio.networkState,
+          audioError: this.backgroundAudio.error
+        });
       });
     } else {
+      console.log('[AudioManager] No URL provided, clearing background audio');
       this.backgroundAudio = null;
     }
   }

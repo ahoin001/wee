@@ -180,12 +180,11 @@ const PresetsSettingsTab = React.memo(() => {
         glassShineOpacity: ribbon.glassShineOpacity
       },
       time: {
-        timeColor: time.timeColor,
-        timeFormat24hr: time.timeFormat24hr,
-        enableTimePill: time.enableTimePill,
-        timePillBlur: time.timePillBlur,
-        timePillOpacity: time.timePillOpacity,
-        timeFont: time.timeFont
+        color: time.color,
+        enablePill: time.enablePill,
+        pillBlur: time.pillBlur,
+        pillOpacity: time.pillOpacity,
+        font: time.font
       },
       overlay: {
         enabled: overlay.enabled,
@@ -264,12 +263,11 @@ const PresetsSettingsTab = React.memo(() => {
         glassShineOpacity: ribbon.glassShineOpacity
       },
       time: {
-        timeColor: time.timeColor,
-        timeFormat24hr: time.timeFormat24hr,
-        enableTimePill: time.enableTimePill,
-        timePillBlur: time.timePillBlur,
-        timePillOpacity: time.timePillOpacity,
-        timeFont: time.timeFont
+        color: time.color,
+        enablePill: time.enablePill,
+        pillBlur: time.pillBlur,
+        pillOpacity: time.pillOpacity,
+        font: time.font
       },
       overlay: {
         enabled: overlay.enabled,
@@ -415,6 +413,65 @@ const PresetsSettingsTab = React.memo(() => {
       console.log('[DEBUG] 📋 [PresetsSettingsTab] Using nested settings for community preset:', settingsToApply);
     }
     
+    // Check if this is using the old flat structure (properties at top level)
+    const hasOldStructure = settingsToApply && (
+      settingsToApply.timeColor !== undefined ||
+      settingsToApply.enableTimePill !== undefined ||
+      settingsToApply.ribbonColor !== undefined ||
+      settingsToApply.glassWiiRibbon !== undefined ||
+      settingsToApply.wallpaperOpacity !== undefined
+    );
+    
+    if (hasOldStructure) {
+      console.log('[DEBUG] 📋 [PresetsSettingsTab] Detected old flat structure, converting to new nested structure');
+      
+      // Convert old flat structure to new nested structure
+      settingsToApply = {
+        time: {
+          color: settingsToApply.timeColor,
+          enablePill: settingsToApply.enableTimePill,
+          pillBlur: settingsToApply.timePillBlur,
+          pillOpacity: settingsToApply.timePillOpacity,
+          font: settingsToApply.timeFont
+        },
+        ribbon: {
+          ribbonColor: settingsToApply.ribbonColor,
+          ribbonGlowColor: settingsToApply.ribbonGlowColor,
+          ribbonGlowStrength: settingsToApply.ribbonGlowStrength,
+          ribbonGlowStrengthHover: settingsToApply.ribbonGlowStrengthHover,
+          glassWiiRibbon: settingsToApply.glassWiiRibbon,
+          glassOpacity: settingsToApply.glassOpacity,
+          glassBlur: settingsToApply.glassBlur,
+          glassBorderOpacity: settingsToApply.glassBorderOpacity,
+          glassShineOpacity: settingsToApply.glassShineOpacity,
+          ribbonButtonConfigs: settingsToApply.ribbonButtonConfigs,
+          recentRibbonColors: settingsToApply.recentRibbonColors,
+          recentRibbonGlowColors: settingsToApply.recentRibbonGlowColors
+        },
+        wallpaper: {
+          current: settingsToApply.wallpaper,
+          opacity: settingsToApply.wallpaperOpacity,
+          blur: settingsToApply.wallpaperBlur,
+          cycleWallpapers: settingsToApply.cycleWallpapers,
+          cycleInterval: settingsToApply.cycleInterval,
+          cycleAnimation: settingsToApply.cycleAnimation,
+          savedWallpapers: settingsToApply.savedWallpapers,
+          likedWallpapers: settingsToApply.likedWallpapers,
+          slideDirection: settingsToApply.slideDirection,
+          slideDuration: settingsToApply.slideDuration,
+          slideEasing: settingsToApply.slideEasing,
+          slideRandomDirection: settingsToApply.slideRandomDirection,
+          crossfadeDuration: settingsToApply.crossfadeDuration,
+          crossfadeEasing: settingsToApply.crossfadeEasing
+        },
+        ui: {
+          presetsButtonConfig: settingsToApply.presetsButtonConfig
+        }
+      };
+      
+      console.log('[DEBUG] 📋 [PresetsSettingsTab] Converted to new nested structure:', settingsToApply);
+    }
+    
     // Validate that we have the expected structure
     if (!settingsToApply || typeof settingsToApply !== 'object') {
       console.error('[DEBUG] 📋 [PresetsSettingsTab] ❌ Invalid settings structure:', settingsToApply);
@@ -438,10 +495,49 @@ const PresetsSettingsTab = React.memo(() => {
       setRibbonState(settingsToApply.ribbon);
     }
     
-    // Apply time settings
+    // Apply time settings with backward compatibility
     if (settingsToApply.time) {
       console.log('[PresetsSettingsTab] Applying time settings:', settingsToApply.time);
-      setTimeState(settingsToApply.time);
+      
+      // Handle both old and new property names for backward compatibility
+      const timeSettings = {};
+      
+      // Map old property names to new ones
+      if (settingsToApply.time.timeColor !== undefined) {
+        timeSettings.color = settingsToApply.time.timeColor;
+      }
+      if (settingsToApply.time.enableTimePill !== undefined) {
+        timeSettings.enablePill = settingsToApply.time.enableTimePill;
+      }
+      if (settingsToApply.time.timePillBlur !== undefined) {
+        timeSettings.pillBlur = settingsToApply.time.timePillBlur;
+      }
+      if (settingsToApply.time.timePillOpacity !== undefined) {
+        timeSettings.pillOpacity = settingsToApply.time.timePillOpacity;
+      }
+      if (settingsToApply.time.timeFont !== undefined) {
+        timeSettings.font = settingsToApply.time.timeFont;
+      }
+      
+      // Also handle new property names
+      if (settingsToApply.time.color !== undefined) {
+        timeSettings.color = settingsToApply.time.color;
+      }
+      if (settingsToApply.time.enablePill !== undefined) {
+        timeSettings.enablePill = settingsToApply.time.enablePill;
+      }
+      if (settingsToApply.time.pillBlur !== undefined) {
+        timeSettings.pillBlur = settingsToApply.time.pillBlur;
+      }
+      if (settingsToApply.time.pillOpacity !== undefined) {
+        timeSettings.pillOpacity = settingsToApply.time.pillOpacity;
+      }
+      if (settingsToApply.time.font !== undefined) {
+        timeSettings.font = settingsToApply.time.font;
+      }
+      
+      console.log('[PresetsSettingsTab] Normalized time settings:', timeSettings);
+      setTimeState(timeSettings);
     }
     
     // Apply overlay settings
@@ -473,23 +569,18 @@ const PresetsSettingsTab = React.memo(() => {
     
     // Save the applied settings to backend to ensure they persist
     try {
+      // Save general settings (time, ribbon, ui, channels, sounds)
       if (window.api?.settings?.get && window.api?.settings?.set) {
         const currentSettings = await window.api.settings.get();
         
         // Update settings with the applied preset values
         const updatedSettings = { ...currentSettings };
         
-        if (settingsToApply.wallpaper) {
-          updatedSettings.wallpaper = settingsToApply.wallpaper;
-        }
         if (settingsToApply.ribbon) {
           updatedSettings.ribbon = settingsToApply.ribbon;
         }
         if (settingsToApply.time) {
           updatedSettings.time = settingsToApply.time;
-        }
-        if (settingsToApply.overlay) {
-          updatedSettings.overlay = settingsToApply.overlay;
         }
         if (settingsToApply.ui) {
           updatedSettings.ui = settingsToApply.ui;
@@ -502,8 +593,90 @@ const PresetsSettingsTab = React.memo(() => {
         }
         
         await window.api.settings.set(updatedSettings);
-        console.log('[PresetsSettingsTab] Applied settings saved to backend');
+        console.log('[PresetsSettingsTab] General settings saved to backend');
       }
+      
+      // Save wallpaper settings separately using wallpaper API
+      if (settingsToApply.wallpaper && window.api?.wallpapers?.get && window.api?.wallpapers?.set) {
+        try {
+          const currentWallpaperData = await window.api.wallpapers.get();
+          const updatedWallpaperData = { ...currentWallpaperData };
+          
+          // Update wallpaper-specific settings
+          if (settingsToApply.wallpaper.current !== undefined) {
+            updatedWallpaperData.wallpaper = settingsToApply.wallpaper.current;
+          }
+          if (settingsToApply.wallpaper.opacity !== undefined) {
+            updatedWallpaperData.wallpaperOpacity = settingsToApply.wallpaper.opacity;
+          }
+          if (settingsToApply.wallpaper.blur !== undefined) {
+            updatedWallpaperData.wallpaperBlur = settingsToApply.wallpaper.blur;
+          }
+          if (settingsToApply.wallpaper.savedWallpapers !== undefined) {
+            updatedWallpaperData.savedWallpapers = settingsToApply.wallpaper.savedWallpapers;
+          }
+          if (settingsToApply.wallpaper.likedWallpapers !== undefined) {
+            updatedWallpaperData.likedWallpapers = settingsToApply.wallpaper.likedWallpapers;
+          }
+          
+          // Update cycling settings
+          if (settingsToApply.wallpaper.cycleWallpapers !== undefined ||
+              settingsToApply.wallpaper.cycleInterval !== undefined ||
+              settingsToApply.wallpaper.cycleAnimation !== undefined) {
+            updatedWallpaperData.cyclingSettings = {
+              ...updatedWallpaperData.cyclingSettings,
+              enabled: settingsToApply.wallpaper.cycleWallpapers ?? updatedWallpaperData.cyclingSettings?.enabled ?? false,
+              interval: settingsToApply.wallpaper.cycleInterval ?? updatedWallpaperData.cyclingSettings?.interval ?? 30,
+              animation: settingsToApply.wallpaper.cycleAnimation ?? updatedWallpaperData.cyclingSettings?.animation ?? 'fade',
+              slideDirection: settingsToApply.wallpaper.slideDirection ?? updatedWallpaperData.cyclingSettings?.slideDirection ?? 'right',
+              crossfadeDuration: settingsToApply.wallpaper.crossfadeDuration ?? updatedWallpaperData.cyclingSettings?.crossfadeDuration ?? 1.2,
+              crossfadeEasing: settingsToApply.wallpaper.crossfadeEasing ?? updatedWallpaperData.cyclingSettings?.crossfadeEasing ?? 'ease-out',
+              slideRandomDirection: settingsToApply.wallpaper.slideRandomDirection ?? updatedWallpaperData.cyclingSettings?.slideRandomDirection ?? false,
+              slideDuration: settingsToApply.wallpaper.slideDuration ?? updatedWallpaperData.cyclingSettings?.slideDuration ?? 1.5,
+              slideEasing: settingsToApply.wallpaper.slideEasing ?? updatedWallpaperData.cyclingSettings?.slideEasing ?? 'ease-out'
+            };
+          }
+          
+          await window.api.wallpapers.set(updatedWallpaperData);
+          console.log('[PresetsSettingsTab] Wallpaper settings saved to backend');
+        } catch (wallpaperError) {
+          console.error('[PresetsSettingsTab] Failed to save wallpaper settings:', wallpaperError);
+        }
+      }
+      
+      // Save overlay settings separately (they're also stored in wallpaper data)
+      if (settingsToApply.overlay && window.api?.wallpapers?.get && window.api?.wallpapers?.set) {
+        try {
+          const currentWallpaperData = await window.api.wallpapers.get();
+          const updatedWallpaperData = { ...currentWallpaperData };
+          
+          if (settingsToApply.overlay.enabled !== undefined) {
+            updatedWallpaperData.overlayEnabled = settingsToApply.overlay.enabled;
+          }
+          if (settingsToApply.overlay.effect !== undefined) {
+            updatedWallpaperData.overlayEffect = settingsToApply.overlay.effect;
+          }
+          if (settingsToApply.overlay.intensity !== undefined) {
+            updatedWallpaperData.overlayIntensity = settingsToApply.overlay.intensity;
+          }
+          if (settingsToApply.overlay.speed !== undefined) {
+            updatedWallpaperData.overlaySpeed = settingsToApply.overlay.speed;
+          }
+          if (settingsToApply.overlay.wind !== undefined) {
+            updatedWallpaperData.overlayWind = settingsToApply.overlay.wind;
+          }
+          if (settingsToApply.overlay.gravity !== undefined) {
+            updatedWallpaperData.overlayGravity = settingsToApply.overlay.gravity;
+          }
+          
+          await window.api.wallpapers.set(updatedWallpaperData);
+          console.log('[PresetsSettingsTab] Overlay settings saved to backend');
+        } catch (overlayError) {
+          console.error('[PresetsSettingsTab] Failed to save overlay settings:', overlayError);
+        }
+      }
+      
+      console.log('[PresetsSettingsTab] All applied settings saved to backend');
     } catch (error) {
       console.error('[PresetsSettingsTab] Failed to save applied settings to backend:', error);
     }
@@ -545,8 +718,60 @@ const PresetsSettingsTab = React.memo(() => {
       
       // If the preset.settings doesn't have the expected structure, try to normalize it
       if (presetSettings && typeof presetSettings === 'object') {
-        // Ensure we have the expected top-level properties
-        if (!presetSettings.wallpaper && presetSettings.current) {
+        // Check if this is using the old flat structure (properties at top level)
+        const hasOldStructure = presetSettings.timeColor !== undefined ||
+          presetSettings.enableTimePill !== undefined ||
+          presetSettings.ribbonColor !== undefined ||
+          presetSettings.glassWiiRibbon !== undefined ||
+          presetSettings.wallpaperOpacity !== undefined;
+        
+        if (hasOldStructure) {
+          console.log('[DEBUG] 📋 [PresetsSettingsTab] Converting old flat structure to new nested structure during import');
+          
+          // Convert old flat structure to new nested structure
+          presetSettings = {
+            time: {
+              color: presetSettings.timeColor,
+              enablePill: presetSettings.enableTimePill,
+              pillBlur: presetSettings.timePillBlur,
+              pillOpacity: presetSettings.timePillOpacity,
+              font: presetSettings.timeFont
+            },
+            ribbon: {
+              ribbonColor: presetSettings.ribbonColor,
+              ribbonGlowColor: presetSettings.ribbonGlowColor,
+              ribbonGlowStrength: presetSettings.ribbonGlowStrength,
+              ribbonGlowStrengthHover: presetSettings.ribbonGlowStrengthHover,
+              glassWiiRibbon: presetSettings.glassWiiRibbon,
+              glassOpacity: presetSettings.glassOpacity,
+              glassBlur: presetSettings.glassBlur,
+              glassBorderOpacity: presetSettings.glassBorderOpacity,
+              glassShineOpacity: presetSettings.glassShineOpacity,
+              ribbonButtonConfigs: presetSettings.ribbonButtonConfigs,
+              recentRibbonColors: presetSettings.recentRibbonColors,
+              recentRibbonGlowColors: presetSettings.recentRibbonGlowColors
+            },
+            wallpaper: {
+              current: presetSettings.wallpaper,
+              opacity: presetSettings.wallpaperOpacity,
+              blur: presetSettings.wallpaperBlur,
+              cycleWallpapers: presetSettings.cycleWallpapers,
+              cycleInterval: presetSettings.cycleInterval,
+              cycleAnimation: presetSettings.cycleAnimation,
+              savedWallpapers: presetSettings.savedWallpapers,
+              likedWallpapers: presetSettings.likedWallpapers,
+              slideDirection: presetSettings.slideDirection,
+              slideDuration: presetSettings.slideDuration,
+              slideEasing: presetSettings.slideEasing,
+              slideRandomDirection: presetSettings.slideRandomDirection,
+              crossfadeDuration: presetSettings.crossfadeDuration,
+              crossfadeEasing: presetSettings.crossfadeEasing
+            },
+            ui: {
+              presetsButtonConfig: presetSettings.presetsButtonConfig
+            }
+          };
+        } else if (!presetSettings.wallpaper && presetSettings.current) {
           // If wallpaper settings are at the top level, wrap them
           presetSettings = {
             wallpaper: presetSettings,

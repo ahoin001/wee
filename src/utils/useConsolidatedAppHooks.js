@@ -302,9 +302,7 @@ export const useTimeColor = () => {
   return useConsolidatedAppStore((state) => state.time.color);
 };
 
-export const useTimeFormat24hr = () => {
-  return useConsolidatedAppStore((state) => state.time.format24hr);
-};
+
 
 export const useEnableTimePill = () => {
   return useConsolidatedAppStore((state) => state.time.enablePill);

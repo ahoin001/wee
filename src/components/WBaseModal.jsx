@@ -32,26 +32,27 @@ function WBaseModal({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-[10000]" onClose={handleClose}>
+      <Dialog as="div" className="relative z-[99999]" onClose={handleClose}>
         {/* Backdrop - synchronized with modal animation */}
         <div 
-          className={`fixed inset-0 bg-[hsl(var(--bg-overlay))] backdrop-blur-[4px] transition-opacity duration-300 ${
+          className={`fixed inset-0 bg-[hsl(var(--bg-overlay))] backdrop-blur-[4px] transition-opacity duration-300 z-[99998] ${
             isAnimating ? 'opacity-100' : 'opacity-0'
           }`}
           aria-hidden="true"
         />
 
         {/* Modal */}
-        <div className="fixed inset-0 overflow-y-auto">
+        <div className="fixed inset-0 overflow-y-auto z-[99999]">
           <div className="flex min-h-full items-center justify-center p-4">
             <Dialog.Panel 
-              className={`w-[95%] max-h-[85vh] min-w-[800px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[600px] md:w-[95%] md:min-w-[400px] sm:w-[98%] sm:min-w-[320px] ${className}`}
+              className={`w-[95%] max-h-[85vh] min-w-[800px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[600px] md:w-[95%] md:min-w-[400px] sm:w-[98%] sm:min-w-[320px] relative z-[99999] ${className}`}
               style={{ 
                 maxWidth,
                 animation: isAnimating 
                   ? 'modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
                   : 'modalSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
               }}
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex justify-between items-center p-6 border-b border-[hsl(var(--border-primary))]">

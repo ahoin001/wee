@@ -90,8 +90,7 @@ export const migrateToConsolidatedStore = (legacyState) => {
     time: {
       color: legacyState.timeColor || '#ffffff',
       recentColors: legacyState.recentTimeColors || [],
-      format24hr: legacyState.timeFormat24hr || false,
-      enablePill: legacyState.enableTimePill || true,
+      enablePill: legacyState.enableTimePill ?? true,
       pillBlur: legacyState.timePillBlur || 8,
       pillOpacity: legacyState.timePillOpacity || 0.05,
       font: legacyState.timeFont || 'default',

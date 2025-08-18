@@ -765,7 +765,6 @@ const useConsolidatedAppStore = create(
         time: {
           color: '#ffffff',
           recentColors: [],
-          format24hr: false,
           enablePill: true,
           pillBlur: 8,
           pillOpacity: 0.05,
@@ -922,6 +921,17 @@ const useConsolidatedAppStore = create(
           lastMusicEnabled: false,
           lastBgmEnabled: true,
           lastPlaylistMode: false,
+        },
+
+        // Sounds state
+        sounds: {
+          backgroundMusicEnabled: true,
+          backgroundMusicLooping: true,
+          backgroundMusicPlaylistMode: false,
+          channelClickEnabled: true,
+          channelClickVolume: 0.5,
+          channelHoverEnabled: true,
+          channelHoverVolume: 0.5,
         },
 
         // Icon management state
@@ -1153,6 +1163,11 @@ const useConsolidatedAppStore = create(
           // Audio actions
           setAudioState: (updates) => set((state) => ({
             audio: { ...state.audio, ...updates }
+          })),
+
+          // Sounds actions
+          setSoundsState: (updates) => set((state) => ({
+            sounds: { ...state.sounds, ...updates }
           })),
 
           // Icon actions

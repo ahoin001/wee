@@ -11,38 +11,25 @@ const TimeSettingsTab = React.memo(() => {
   const { time } = useConsolidatedAppStore();
   const { setTimeState } = useConsolidatedAppStore(state => state.actions);
   
-  // Debug logging
-  console.log('[TimeSettingsTab] Current time state:', time);
-  
   // Memoize callback functions to prevent unnecessary re-renders
   const handleTimeColorChange = useCallback((e) => {
-    setTimeState({ timeColor: e.target.value });
+    setTimeState({ color: e.target.value });
   }, [setTimeState]);
 
   const handleTimeFontChange = useCallback((value) => {
-    setTimeState({ timeFont: value });
-  }, [setTimeState]);
-
-  const handleTimeFormat24hrChange = useCallback(() => {
-    console.log('[TimeSettingsTab] Setting timeFormat24hr to true');
-    setTimeState({ timeFormat24hr: true });
-  }, [setTimeState]);
-
-  const handleTimeFormat12hrChange = useCallback(() => {
-    console.log('[TimeSettingsTab] Setting timeFormat24hr to false');
-    setTimeState({ timeFormat24hr: false });
+    setTimeState({ font: value });
   }, [setTimeState]);
 
   const handleEnableTimePillChange = useCallback((checked) => {
-    setTimeState({ enableTimePill: checked });
+    setTimeState({ enablePill: checked });
   }, [setTimeState]);
 
   const handleTimePillBlurChange = useCallback((value) => {
-    setTimeState({ timePillBlur: value });
+    setTimeState({ pillBlur: value });
   }, [setTimeState]);
 
   const handleTimePillOpacityChange = useCallback((value) => {
-    setTimeState({ timePillOpacity: value });
+    setTimeState({ pillOpacity: value });
   }, [setTimeState]);
 
   return (
@@ -66,7 +53,7 @@ const TimeSettingsTab = React.memo(() => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                 <input
                   type="color"
-                  value={time?.timeColor ?? '#ffffff'}
+                  value={time?.color ?? '#ffffff'}
                   onChange={handleTimeColorChange}
                   style={{
                     width: 50,
@@ -77,21 +64,21 @@ const TimeSettingsTab = React.memo(() => {
                   }}
                 />
                 <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 14 }}>
-                  {(time?.timeColor ?? '#ffffff').toUpperCase()}
+                  {(time?.color ?? '#ffffff').toUpperCase()}
                 </span>
               </div>
-              {(time?.recentTimeColors ?? []).length > 0 && (
+              {(time?.recentColors ?? []).length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <span style={{ fontSize: 13, color: 'hsl(var(--text-secondary))', marginRight: 2 }}>Previous:</span>
-                  {(time?.recentTimeColors ?? []).map((color, idx) => (
+                  {(time?.recentColors ?? []).map((color, idx) => (
                     <button
                       key={color}
-                      onClick={() => setTimeState({ timeColor: color })}
+                      onClick={() => setTimeState({ color: color })}
                       style={{
                         width: 28,
                         height: 28,
                         borderRadius: '50%',
-                        border: color === (time?.timeColor ?? '#ffffff') ? '2px solid hsl(var(--wii-blue))' : '1.5px solid hsl(var(--border-secondary))',
+                        border: color === (time?.color ?? '#ffffff') ? '2px solid hsl(var(--wii-blue))' : '1.5px solid hsl(var(--border-secondary))',
                         background: color,
                         cursor: 'pointer',
                         outline: 'none',
@@ -112,54 +99,11 @@ const TimeSettingsTab = React.memo(() => {
                   { value: 'default', label: 'Default' },
                   { value: 'digital', label: 'DigitalDisplayRegular-ODEO' }
                 ]}
-                value={time?.timeFont ?? 'default'}
+                value={time?.font ?? 'default'}
                 onChange={handleTimeFontChange}
               />
             </div>
           </>
-        }
-      />
-
-      {/* Time Format */}
-      <Card
-        title="Time Format"
-        separator
-        desc="Choose between 12-hour and 24-hour time format."
-        actions={
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', gap: 18 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  type="radio"
-                  name="timeFormat"
-                  value="24hr"
-                  checked={time?.timeFormat24hr ?? true}
-                  onChange={(e) => {
-                    console.log('[TimeSettingsTab] 24hr radio clicked, checked:', e.target.checked);
-                    if (e.target.checked) {
-                      handleTimeFormat24hrChange();
-                    }
-                  }}
-                />
-                24-Hour (13:30)
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  type="radio"
-                  name="timeFormat"
-                  value="12hr"
-                  checked={!(time?.timeFormat24hr ?? true)}
-                  onChange={(e) => {
-                    console.log('[TimeSettingsTab] 12hr radio clicked, checked:', e.target.checked);
-                    if (e.target.checked) {
-                      handleTimeFormat12hrChange();
-                    }
-                  }}
-                />
-                12-Hour (1:30 PM)
-              </label>
-            </div>
-          </div>
         }
       />
 
@@ -170,12 +114,12 @@ const TimeSettingsTab = React.memo(() => {
         desc="Enable the Apple-style liquid glass pill container for the time display."
         headerActions={
           <WToggle
-            checked={time?.enableTimePill ?? true}
+            checked={time?.enablePill ?? true}
             onChange={handleEnableTimePillChange}
           />
         }
         actions={
-          time?.enableTimePill && (
+          time?.enablePill && (
             <>
               <div style={{ marginTop: 14 }}>
                 <div style={{ marginBottom: 16 }}>
@@ -183,14 +127,14 @@ const TimeSettingsTab = React.memo(() => {
                     Backdrop Blur
                   </Text>
                   <Slider
-                    value={time?.timePillBlur ?? 8}
+                    value={time?.pillBlur ?? 8}
                     min={0}
                     max={20}
                     step={1}
                     onChange={handleTimePillBlurChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {time?.timePillBlur ?? 8}px
+                    {time?.pillBlur ?? 8}px
                   </Text>
                 </div>
                 <div>
@@ -198,14 +142,14 @@ const TimeSettingsTab = React.memo(() => {
                     Background Opacity
                   </Text>
                   <Slider
-                    value={time?.timePillOpacity ?? 0.05}
+                    value={time?.pillOpacity ?? 0.05}
                     min={0}
                     max={0.3}
                     step={0.01}
                     onChange={handleTimePillOpacityChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {Math.round((time?.timePillOpacity ?? 0.05) * 100)}%
+                    {Math.round((time?.pillOpacity ?? 0.05) * 100)}%
                   </Text>
                 </div>
               </div>

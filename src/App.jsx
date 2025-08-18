@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 import useWallpaperCycling from './utils/useWallpaperCycling';
+import useSoundManager from './utils/useSoundManager';
+import { 
+  useTimeColor, 
+  useEnableTimePill, 
+  useTimePillBlur, 
+  useTimePillOpacity, 
+  useTimeFont 
+} from './utils/useConsolidatedAppHooks';
 import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen from './components/SplashScreen';
 import WallpaperOverlay from './components/WallpaperOverlay';
@@ -65,16 +73,15 @@ function App() {
       wind,
       gravity
     },
-    time: {
-      timeColor,
-      recentTimeColors,
-      timeFormat24hr,
-      enableTimePill,
-      timePillBlur,
-      timePillOpacity,
-      timeFont
-    }
+    // Time settings using individual hooks for proper property mapping
   } = useConsolidatedAppStore();
+
+  // Time settings using individual hooks for proper property mapping
+  const timeColor = useTimeColor();
+  const enableTimePill = useEnableTimePill();
+  const timePillBlur = useTimePillBlur();
+  const timePillOpacity = useTimePillOpacity();
+  const timeFont = useTimeFont();
 
   // Initialize wallpaper cycling
   const {
@@ -84,6 +91,38 @@ function App() {
     nextWallpaper,
     cycleToNextWallpaper
   } = useWallpaperCycling();
+
+  // Initialize sound manager for background music
+  const {
+    soundSettings,
+    startBackgroundMusic,
+    stopBackgroundMusic,
+    updateBackgroundMusic
+  } = useSoundManager();
+
+  // Initialize background music when app is ready
+  useEffect(() => {
+    if (appReady && soundSettings?.backgroundMusicEnabled) {
+      console.log('[App] App ready and background music enabled - starting background music...');
+      startBackgroundMusic();
+    }
+  }, [appReady, soundSettings?.backgroundMusicEnabled, startBackgroundMusic]);
+
+  // Handle background music updates when sound settings change
+  useEffect(() => {
+    if (appReady && soundSettings?.backgroundMusicEnabled) {
+      console.log('[App] Sound settings changed - updating background music...');
+      updateBackgroundMusic();
+    }
+  }, [appReady, soundSettings, updateBackgroundMusic]);
+
+  // Cleanup background music on unmount
+  useEffect(() => {
+    return () => {
+      console.log('[App] App unmounting - stopping background music...');
+      stopBackgroundMusic();
+    };
+  }, [stopBackgroundMusic]);
 
   // Actions from consolidated store
   const {
@@ -348,12 +387,143 @@ function App() {
       console.log('[DEBUG] 🧪 === END CHANNEL TEST ===');
     };
     
+    // Test DevTools functionality
+    window.testDevTools = async () => {
+      console.log('[DEBUG] 🧪 === TESTING DEVTOOLS FUNCTIONALITY ===');
+      try {
+        console.log('[DEBUG] 🧪 Testing DevTools methods...');
+        
+        // Test 1: Standard openDevTools
+        if (window.api?.openDevTools) {
+          console.log('[DEBUG] 🧪 Testing openDevTools...');
+          const result1 = await window.api.openDevTools();
+          console.log('[DEBUG] 🧪 openDevTools result:', result1);
+        }
+        
+        // Test 2: Force DevTools
+        if (window.api?.forceDevTools) {
+          console.log('[DEBUG] 🧪 Testing forceDevTools...');
+          const result2 = await window.api.forceDevTools();
+          console.log('[DEBUG] 🧪 forceDevTools result:', result2);
+        }
+        
+        // Test 3: Check window state
+        console.log('[DEBUG] 🧪 Window state check...');
+        console.log('[DEBUG] 🧪 - window.api available:', !!window.api);
+        console.log('[DEBUG] 🧪 - openDevTools available:', !!window.api?.openDevTools);
+        console.log('[DEBUG] 🧪 - forceDevTools available:', !!window.api?.forceDevTools);
+        
+      } catch (error) {
+        console.error('[DEBUG] 🧪 Error testing DevTools:', error);
+      }
+    };
+    
+    // Test community preset structure
+    window.testCommunityPresetStructure = async () => {
+      console.log('[DEBUG] 🧪 === TESTING COMMUNITY PRESET STRUCTURE ===');
+      try {
+        // Simulate a community preset download structure
+        const communityPreset = {
+          name: 'Community Test Preset',
+          settings: {
+            time: {
+              color: '#00ff00',
+              enablePill: false,
+              pillBlur: 5,
+              pillOpacity: 0.05,
+              font: 'default'
+            },
+            wallpaper: {
+              current: null,
+              opacity: 1,
+              blur: 0
+            },
+            ribbon: {
+              ribbonColor: '#e0e6ef',
+              ribbonGlowColor: '#0099ff'
+            }
+          },
+          id: 'test-community-id',
+          wallpaper: null
+        };
+        
+        console.log('[DEBUG] 🧪 Community preset structure:', communityPreset);
+        
+        // Simulate the import process
+        const convertedPreset = {
+          name: communityPreset.name,
+          data: communityPreset.settings,
+          timestamp: new Date().toISOString(),
+          isCommunity: true,
+          communityId: communityPreset.id
+        };
+        
+        console.log('[DEBUG] 🧪 Converted preset structure:', convertedPreset);
+        
+        // Test the apply process
+        const { setTimeState, setWallpaperState, setRibbonState } = useConsolidatedAppStore.getState().actions;
+        
+        if (convertedPreset.data.time) {
+          console.log('[DEBUG] 🧪 Applying time settings:', convertedPreset.data.time);
+          setTimeState(convertedPreset.data.time);
+        }
+        
+        if (convertedPreset.data.wallpaper) {
+          console.log('[DEBUG] 🧪 Applying wallpaper settings:', convertedPreset.data.wallpaper);
+          setWallpaperState(convertedPreset.data.wallpaper);
+        }
+        
+        if (convertedPreset.data.ribbon) {
+          console.log('[DEBUG] 🧪 Applying ribbon settings:', convertedPreset.data.ribbon);
+          setRibbonState(convertedPreset.data.ribbon);
+        }
+        
+        console.log('[DEBUG] 🧪 Community preset test completed');
+        
+      } catch (error) {
+        console.error('[DEBUG] 🧪 Error testing community preset structure:', error);
+      }
+    };
+    
+    // Test wallpaper persistence
+    window.testWallpaperPersistence = async () => {
+      console.log('[DEBUG] 🧪 === TESTING WALLPAPER PERSISTENCE ===');
+      try {
+        // Check current wallpaper state
+        const { wallpaper } = useConsolidatedAppStore.getState();
+        console.log('[DEBUG] 🧪 Current wallpaper state:', wallpaper);
+        
+        // Check backend wallpaper data
+        if (window.api?.wallpapers?.get) {
+          const backendData = await window.api.wallpapers.get();
+          console.log('[DEBUG] 🧪 Backend wallpaper data:', backendData);
+          console.log('[DEBUG] 🧪 Backend current wallpaper:', backendData?.wallpaper);
+          console.log('[DEBUG] 🧪 Backend wallpaper opacity:', backendData?.wallpaperOpacity);
+          console.log('[DEBUG] 🧪 Backend wallpaper blur:', backendData?.wallpaperBlur);
+        }
+        
+        // Check general settings
+        if (window.api?.settings?.get) {
+          const settingsData = await window.api.settings.get();
+          console.log('[DEBUG] 🧪 General settings data:', settingsData);
+        }
+        
+        console.log('[DEBUG] 🧪 Wallpaper persistence test completed');
+        
+      } catch (error) {
+        console.error('[DEBUG] 🧪 Error testing wallpaper persistence:', error);
+      }
+    };
+    
     console.log('[DEBUG] 🔧 DevTools functions exposed to window:');
     console.log('[DEBUG] 🔧 - window.openDevTools()');
     console.log('[DEBUG] 🔧 - window.forceDevTools()');
     console.log('[DEBUG] 🔧 - window.testPresetFunctions()');
     console.log('[DEBUG] 🔧 - window.comparePresetStructures()');
     console.log('[DEBUG] 🔧 - window.testChannelOperations()');
+    console.log('[DEBUG] 🔧 - window.testDevTools()');
+    console.log('[DEBUG] 🔧 - window.testCommunityPresetStructure()');
+    console.log('[DEBUG] 🔧 - window.testWallpaperPersistence()');
     
     return () => {
       delete window.openDevTools;
@@ -361,6 +531,9 @@ function App() {
       delete window.testPresetFunctions;
       delete window.comparePresetStructures;
       delete window.testChannelOperations;
+      delete window.testDevTools;
+      delete window.testCommunityPresetStructure;
+      delete window.testWallpaperPersistence;
     };
   }, [openDevTools]);
 
@@ -647,9 +820,8 @@ function App() {
                 onDockContextMenu={() => {}}
   
                 showPresetsButton={true}
-                timeColor="#ffffff"
-                timeFormat24hr={false}
-                timeFont="DigitalDisplayRegular-ODEO"
+                timeColor={timeColor ?? '#ffffff'}
+                timeFont={timeFont ?? 'default'}
                 ribbonGlowColor={ribbonGlowColor}
                 accessoryButtonConfig={{}}
               />
@@ -678,7 +850,6 @@ function App() {
                 timePillBlur={timePillBlur ?? 8}
                 timePillOpacity={timePillOpacity ?? 0.05}
                 timeColor={timeColor ?? '#ffffff'}
-                timeFormat24hr={timeFormat24hr ?? true}
                 timeFont={timeFont ?? 'default'}
               />
             )}

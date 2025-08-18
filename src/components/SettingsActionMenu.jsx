@@ -160,6 +160,11 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
     handleClose();
   }, [actions, handleClose]);
 
+  const openSoundModal = useCallback(() => {
+    actions.setUIState({ showSettingsModal: true, settingsActiveTab: 'sounds' });
+    handleClose();
+  }, [actions, handleClose]);
+
   const closeApp = useCallback(() => {
     if (window.api?.closeApp) {
       window.api.closeApp();
@@ -268,6 +273,15 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
               className="action-button"
             >
               Open Settings
+            </Button>
+          </div>
+          <div className="toggle-item">
+            <Button
+              variant="secondary"
+              onClick={openSoundModal}
+              className="action-button"
+            >
+              Manage Sounds
             </Button>
           </div>
           <div className="toggle-item">

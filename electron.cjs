@@ -246,10 +246,9 @@ const unifiedData = {
           time: {
             color: '#ffffff',
             recentColors: [],
-            format24hr: true,
-            enableTimePill: true,
-            timePillBlur: 8,
-            timePillOpacity: 0.05,
+            enablePill: true,
+            pillBlur: 8,
+            pillOpacity: 0.05,
             font: 'default',
           },
           dock: {
@@ -2274,17 +2273,34 @@ async function createWindow(opts = {}) {
             try {
               console.log('[DEBUG] 🔧 F12: Attempting to open DevTools...');
               
+              // Check if window is in fullscreen mode
+              const isFullscreen = mainWindow.isFullScreen();
+              console.log('[DEBUG] 🔧 F12: Window fullscreen state:', isFullscreen);
+              
+              // Ensure window is focused before opening DevTools in windowed mode
+              if (!isFullscreen) {
+                mainWindow.focus();
+                console.log('[DEBUG] 🔧 F12: Window focused for DevTools');
+              }
+              
               // Method 1: Try standard openDevTools
               mainWindow.webContents.openDevTools();
               console.log('[DEBUG] 🔧 F12: openDevTools() called');
               
-              // Method 2: Try with specific mode
+              // Method 2: Try with specific mode (especially for windowed mode)
               setTimeout(() => {
                 try {
-                  mainWindow.webContents.openDevTools({ mode: 'detach' });
-                  console.log('[DEBUG] 🔧 F12: openDevTools(detach) called');
-                } catch (detachError) {
-                  console.error('[DEBUG] 🔧 F12: Error with detach mode:', detachError);
+                  if (!isFullscreen) {
+                    // In windowed mode, try detach mode to ensure visibility
+                    mainWindow.webContents.openDevTools({ mode: 'detach' });
+                    console.log('[DEBUG] 🔧 F12: openDevTools(detach) called for windowed mode');
+                  } else {
+                    // In fullscreen mode, try standard mode
+                    mainWindow.webContents.openDevTools();
+                    console.log('[DEBUG] 🔧 F12: openDevTools() called for fullscreen mode');
+                  }
+                } catch (modeError) {
+                  console.error('[DEBUG] 🔧 F12: Error with mode-specific DevTools:', modeError);
                 }
               }, 500);
               
@@ -4739,8 +4755,35 @@ ipcMain.handle('open-dev-tools', async () => {
   console.log('[DEBUG] 🔧 IPC: open-dev-tools called');
   try {
     if (mainWindow && !mainWindow.isDestroyed()) {
+      // Check if window is in fullscreen mode
+      const isFullscreen = mainWindow.isFullScreen();
+      console.log('[DEBUG] 🔧 IPC: Window fullscreen state:', isFullscreen);
+      
+      // Ensure window is focused before opening DevTools
+      if (!isFullscreen) {
+        mainWindow.focus();
+        console.log('[DEBUG] 🔧 IPC: Window focused for DevTools');
+      }
+      
+      // Try to open DevTools
       mainWindow.webContents.openDevTools();
       console.log('[DEBUG] 🔧 IPC: Developer tools opened successfully');
+      
+      // If in windowed mode, try to ensure DevTools are visible
+      if (!isFullscreen) {
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+              // Try to focus the DevTools window
+              mainWindow.webContents.focus();
+              console.log('[DEBUG] 🔧 IPC: DevTools focused in windowed mode');
+            } catch (focusError) {
+              console.error('[DEBUG] 🔧 IPC: Error focusing DevTools:', focusError);
+            }
+          }
+        }, 100);
+      }
+      
       return { success: true, message: 'Developer tools opened' };
     } else {
       console.log('[DEBUG] 🔧 IPC: Window not available');
@@ -4757,13 +4800,43 @@ ipcMain.handle('force-dev-tools', async () => {
   console.log('[DEBUG] 🔧 IPC: force-dev-tools called');
   try {
     if (mainWindow && !mainWindow.isDestroyed()) {
+      // Check if window is in fullscreen mode
+      const isFullscreen = mainWindow.isFullScreen();
+      console.log('[DEBUG] 🔧 IPC: Force DevTools - Window fullscreen state:', isFullscreen);
+      
+      // Ensure window is focused before opening DevTools
+      if (!isFullscreen) {
+        mainWindow.focus();
+        console.log('[DEBUG] 🔧 IPC: Force DevTools - Window focused');
+      }
+      
       // Try multiple methods
       mainWindow.webContents.openDevTools();
+      
+      // If in windowed mode, try additional methods
+      if (!isFullscreen) {
+        // Try with detach mode
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+              mainWindow.webContents.openDevTools({ mode: 'detach' });
+              console.log('[DEBUG] 🔧 IPC: Force DevTools - Detached mode attempted');
+            } catch (detachError) {
+              console.error('[DEBUG] 🔧 IPC: Force DevTools - Detach mode error:', detachError);
+            }
+          }
+        }, 200);
+      }
       
       // Also try to focus the DevTools window
       setTimeout(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.focus();
+          try {
+            mainWindow.webContents.focus();
+            console.log('[DEBUG] 🔧 IPC: Force DevTools - WebContents focused');
+          } catch (focusError) {
+            console.error('[DEBUG] 🔧 IPC: Force DevTools - Focus error:', focusError);
+          }
         }
       }, 100);
       

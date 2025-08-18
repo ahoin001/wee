@@ -21,7 +21,7 @@ function hexAlpha(opacity) {
   return a === 255 ? '' : a.toString(16).padStart(2, '0');
 }
 
-const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFormat24hr, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity, particleSettings = {} }) => {
+const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity, particleSettings = {} }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // Debug logging for ribbon props
@@ -36,11 +36,10 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       glassBlur: propGlassBlur,
       glassBorderOpacity: propGlassBorderOpacity,
       glassShineOpacity: propGlassShineOpacity,
-      timeFormat24hr,
       timeColor,
       timeFont
     });
-  }, [propRibbonColor, propRibbonGlowColor, propRibbonGlowStrength, propRibbonGlowStrengthHover, glassWiiRibbon, propGlassOpacity, propGlassBlur, propGlassBorderOpacity, propGlassShineOpacity, timeFormat24hr, timeColor, timeFont]);
+  }, [propRibbonColor, propRibbonGlowColor, propRibbonGlowStrength, propRibbonGlowStrengthHover, glassWiiRibbon, propGlassOpacity, propGlassBlur, propGlassBorderOpacity, propGlassShineOpacity, timeColor, timeFont]);
   
   // Use consolidated store for modal states and UI settings
   const { 
@@ -297,9 +296,8 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   }, [showAdminMenu]);
 
   const formatTime = (date) => {
-    console.log('[WiiRibbon] formatTime called with timeFormat24hr:', timeFormat24hr);
     return date.toLocaleTimeString('en-US', {
-      hour12: !timeFormat24hr,
+      hour12: true,
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -1087,7 +1085,7 @@ const arePropsEqual = (prevProps, nextProps) => {
     prevProps.ribbonGlowStrengthHover === nextProps.ribbonGlowStrengthHover &&
     prevProps.ribbonDockOpacity === nextProps.ribbonDockOpacity &&
     prevProps.timeColor === nextProps.timeColor &&
-    prevProps.timeFormat24hr === nextProps.timeFormat24hr &&
+  
     prevProps.timeFont === nextProps.timeFont &&
     prevProps.showPresetsButton === nextProps.showPresetsButton &&
     prevProps.glassOpacity === nextProps.glassOpacity &&

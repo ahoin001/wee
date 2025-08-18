@@ -16,7 +16,6 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
   
   const [timeColor, setTimeColor] = useState('#ffffff'); // Default white
   const [recentTimeColors, setRecentTimeColors] = useState([]); // Color history
-  const [timeFormat24hr, setTimeFormat24hr] = useState(true); // Default 24hr format
   const [enableTimePill, setEnableTimePill] = useState(true); // Default enabled
   const [timePillBlur, setTimePillBlur] = useState(8); // Default blur amount
   const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Default background opacity
@@ -26,13 +25,12 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
   useEffect(() => {
     if (isOpen && timeSettings) {
       // Load current settings from unified data layer
-      setTimeColor(timeSettings.timeColor || '#ffffff');
-      setRecentTimeColors(timeSettings.recentTimeColors || []);
-      setTimeFormat24hr(timeSettings.timeFormat24hr ?? true);
-      setEnableTimePill(timeSettings.enableTimePill ?? true);
-      setTimePillBlur(timeSettings.timePillBlur ?? 8);
-      setTimePillOpacity(timeSettings.timePillOpacity ?? 0.05);
-      setTimeFont(timeSettings.timeFont || 'default');
+      setTimeColor(timeSettings.color || '#ffffff');
+      setRecentTimeColors(timeSettings.recentColors || []);
+      setEnableTimePill(timeSettings.enablePill ?? true);
+      setTimePillBlur(timeSettings.pillBlur ?? 8);
+      setTimePillOpacity(timeSettings.pillOpacity ?? 0.05);
+      setTimeFont(timeSettings.font || 'default');
     }
   }, [isOpen, timeSettings]);
 
@@ -49,7 +47,6 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
   // Reset to default values
   const resetToDefault = () => {
     setTimeColor('#ffffff');
-    setTimeFormat24hr(true);
     setEnableTimePill(true);
     setTimePillBlur(8);
     setTimePillOpacity(0.05);
@@ -60,20 +57,18 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
   const handleSave = async (handleClose) => {
     try {
       // Update using unified data layer
-      updateTimeSetting('timeColor', timeColor);
-      updateTimeSetting('recentTimeColors', recentTimeColors);
-      updateTimeSetting('timeFormat24hr', timeFormat24hr);
-      updateTimeSetting('enableTimePill', enableTimePill);
-      updateTimeSetting('timePillBlur', timePillBlur);
-      updateTimeSetting('timePillOpacity', timePillOpacity);
-      updateTimeSetting('timeFont', timeFont);
+      updateTimeSetting('color', timeColor);
+      updateTimeSetting('recentColors', recentTimeColors);
+      updateTimeSetting('enablePill', enableTimePill);
+      updateTimeSetting('pillBlur', timePillBlur);
+      updateTimeSetting('pillOpacity', timePillOpacity);
+      updateTimeSetting('font', timeFont);
       
       // Call onSettingsChange to notify parent component of the new settings
       if (onSettingsChange) {
         onSettingsChange({
           timeColor: timeColor,
           recentTimeColors: recentTimeColors,
-          timeFormat24hr: timeFormat24hr,
           enableTimePill: enableTimePill,
           timePillBlur: timePillBlur,
           timePillOpacity: timePillOpacity,
@@ -173,38 +168,7 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
         </div>
       </Card>
 
-      {/* Time Format Card */}
-      <Card 
-        title="Time Format"
-        separator
-        desc="Choose between 12-hour and 24-hour time format."
-        style={{ marginTop: 18, marginBottom: 0 }}
-      >
-        <div style={{ marginTop: 14 }}>
-          <div style={{ display: 'flex', gap: 18 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="radio"
-                name="timeFormat"
-                value="24hr"
-                checked={timeFormat24hr}
-                onChange={() => setTimeFormat24hr(true)}
-              />
-              24-Hour (13:30)
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="radio"
-                name="timeFormat"
-                value="12hr"
-                checked={!timeFormat24hr}
-                onChange={() => setTimeFormat24hr(false)}
-              />
-              12-Hour (1:30 PM)
-            </label>
-          </div>
-        </div>
-      </Card>
+
 
       {/* Time Pill Card */}
       <Card 

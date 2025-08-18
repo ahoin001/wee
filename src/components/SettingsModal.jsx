@@ -5,6 +5,7 @@ import Button from '../ui/WButton';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import SoundModal from './SoundModal';
 
 // Legacy settings system imports
 
@@ -199,6 +200,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
   const [tabChanges, setTabChanges] = useState({});
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showMonitorModal, setShowMonitorModal] = useState(false);
+  const [showSoundModal, setShowSoundModal] = useState(false);
 
   // Load settings when modal opens
   useEffect(() => {
@@ -459,13 +461,22 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
                 window.api.settings.get().then(currentSettings => {
                   const updatedSettings = {
                     ...currentSettings,
-                    timeColor: time.timeColor,
-                    recentTimeColors: time.recentTimeColors,
-                    timeFormat24hr: time.timeFormat24hr,
-                    enableTimePill: time.enableTimePill,
-                    timePillBlur: time.timePillBlur,
-                    timePillOpacity: time.timePillOpacity,
-                    timeFont: time.timeFont,
+                    // Use new property names for consistency with consolidated store
+                    time: {
+                      color: time.color,
+                      recentColors: time.recentColors,
+                      enablePill: time.enablePill,
+                      pillBlur: time.pillBlur,
+                      pillOpacity: time.pillOpacity,
+                      font: time.font,
+                    },
+                    // Keep old property names for backward compatibility
+                    timeColor: time.color,
+                    recentTimeColors: time.recentColors,
+                    enableTimePill: time.enablePill,
+                    timePillBlur: time.pillBlur,
+                    timePillOpacity: time.pillOpacity,
+                    timeFont: time.font,
                   };
                   return window.api.settings.set(updatedSettings);
                 }).then(() => {
@@ -740,6 +751,11 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
     setActiveTab(tabId);
   };
 
+  // Open sound modal
+  const handleOpenSoundModal = () => {
+    setShowSoundModal(true);
+  };
+
   // Get settings for current tab
   const getTabSettings = (tabId) => {
     // Return the appropriate settings structure based on tab type
@@ -781,20 +797,8 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
         };
         break;
       case 'sounds':
-        // SoundsSettingsTab expects localSettings.sounds
-        tabSettings = {
-          sounds: {
-            backgroundMusicEnabled: localSettings.backgroundMusicEnabled,
-            backgroundMusicLooping: localSettings.backgroundMusicLooping,
-            backgroundMusicPlaylistMode: localSettings.backgroundMusicPlaylistMode,
-            channelClickEnabled: localSettings.channelClickEnabled,
-            channelClickVolume: localSettings.channelClickVolume,
-            channelHoverEnabled: localSettings.channelHoverEnabled,
-            channelHoverVolume: localSettings.channelHoverVolume,
-            startupEnabled: localSettings.startupEnabled,
-            startupVolume: localSettings.startupVolume,
-          }
-        };
+        // SoundsSettingsTab uses consolidated store directly - no props needed
+        tabSettings = {};
         break;
       case 'dock':
         // UnifiedDockSettingsTab uses consolidated store directly - no props needed
@@ -881,14 +885,14 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
           <Suspense fallback={<div>Loading {currentTab.label} Settings...</div>}>
             <TabComponent 
               // Pass props based on the tab's expected interface
-              {...(activeTab === 'general' || activeTab === 'sounds' || activeTab === 'monitor' || activeTab === 'advanced' || activeTab === 'api-integrations' ? {
+              {...(activeTab === 'general' || activeTab === 'monitor' || activeTab === 'advanced' || activeTab === 'api-integrations' ? {
                 localSettings: tabSettings,
                 updateLocalSetting: handleGeneralSettingUpdate
               } : activeTab === 'channels' ? {
                 settings: tabSettings,
                 onSettingChange: handleDirectSettingUpdate
-              } : activeTab === 'ribbon' || activeTab === 'wallpaper' || activeTab === 'time' || activeTab === 'themes' || activeTab === 'layout' || activeTab === 'updates' ? {
-                // RibbonSettingsTab, WallpaperSettingsTab, TimeSettingsTab, ThemesSettingsTab, LayoutSettingsTab, and UpdatesSettingsTab use consolidated store directly - no props needed
+              } : activeTab === 'ribbon' || activeTab === 'wallpaper' || activeTab === 'time' || activeTab === 'themes' || activeTab === 'layout' || activeTab === 'updates' || activeTab === 'sounds' || activeTab === 'dock' ? {
+                // RibbonSettingsTab, WallpaperSettingsTab, TimeSettingsTab, ThemesSettingsTab, LayoutSettingsTab, UpdatesSettingsTab, SoundsSettingsTab, and UnifiedDockSettingsTab use consolidated store directly - no props needed
               } : {
                 localSettings: tabSettings,
                 updateLocalSetting: handleGeneralSettingUpdate
@@ -994,6 +998,13 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
           {renderTabContent()}
         </div>
       </div>
+
+      {/* Sound Modal */}
+      <SoundModal
+        isOpen={showSoundModal}
+        onClose={() => setShowSoundModal(false)}
+        onSettingsChange={onSettingsChange}
+      />
     </WBaseModal>
   );
 }

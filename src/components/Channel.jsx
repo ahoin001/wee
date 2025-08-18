@@ -238,16 +238,18 @@ const Channel = React.memo(({
     
     // Handle API channels (Spotify, etc.)
     if (effectiveConfig?.isApiChannel && effectiveConfig?.apiConfig?.selectedApi) {
-      // Play channel click sound if enabled - TEMPORARILY DISABLED TO STOP INFINITE LOOP
-      // try {
-      //   const soundLibrary = await soundsApi.getLibrary();
-      //   const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
-      //   if (enabledClickSound) {
-      //     await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
-      //   }
-      // } catch (error) {
-      //   console.warn('Failed to load sound library:', error);
-      // }
+      // Play channel click sound if enabled
+      try {
+        if (window.api?.sounds?.getLibrary) {
+          const library = await window.api.sounds.getLibrary();
+          const enabledClickSound = library?.channelClick?.find(s => s.enabled);
+          if (enabledClickSound) {
+            await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load sound library:', error);
+      }
       
       // Handle different API types
       const apiType = effectiveConfig.apiConfig.selectedApi;
@@ -266,16 +268,19 @@ const Channel = React.memo(({
     if (isChannelEmpty) {
       handleConfigure();
     } else if (effectivePath) {
-      // Play channel click sound if enabled - TEMPORARILY DISABLED TO STOP INFINITE LOOP
-      // try {
-      //   const soundLibrary = await soundsApi.getLibrary();
-      //   const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
-      //   if (enabledClickSound) {
-      //     await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
-      //   }
-      // } catch (error) {
-      //   console.warn('Failed to load sound library:', error);
-      // }
+      // Play channel click sound if enabled
+      try {
+        if (window.api?.sounds?.getLibrary) {
+          const library = await window.api.sounds.getLibrary();
+          const enabledClickSound = library?.channelClick?.find(s => s.enabled);
+          if (enabledClickSound) {
+            await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load sound library:', error);
+      }
+      
       // Launch app or URL
       if (effectiveType === 'url' && effectivePath.startsWith('http')) {
         const immersivePip = (() => { try { return JSON.parse(localStorage.getItem('immersivePip')) || false; } catch { return false; } })();
@@ -287,7 +292,6 @@ const Channel = React.memo(({
           window.open(effectivePath, '_blank'); // fallback for browser only
         }
       } else {
-
         api.launchApp({ type: effectiveType, path: effectivePath, asAdmin: effectiveAsAdmin });
       }
     }
@@ -311,16 +315,18 @@ const Channel = React.memo(({
         // Play custom hover sound once
         await audioManager.playSound(effectiveHoverSound.url, effectiveHoverSound.volume || 0.7);
       } else {
-        // TEMPORARILY DISABLED TO STOP INFINITE LOOP
-        // try {
-        //   const soundLibrary = await soundsApi.getLibrary();
-        //   const enabledHoverSound = soundLibrary.channelHover?.find(s => s.enabled);
-        //   if (enabledHoverSound) {
-        //     await audioManager.playSound(enabledHoverSound.url, enabledHoverSound.volume ?? 0.3);
-        //   }
-        // } catch (error) {
-        //   console.warn('Failed to load sound library:', error);
-        // }
+        // Play global hover sound if enabled
+        try {
+          if (window.api?.sounds?.getLibrary) {
+            const library = await window.api.sounds.getLibrary();
+            const enabledHoverSound = library?.channelHover?.find(s => s.enabled);
+            if (enabledHoverSound) {
+              await audioManager.playSound(enabledHoverSound.url, enabledHoverSound.volume ?? 0.3);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load sound library:', error);
+        }
       }
     }
   };

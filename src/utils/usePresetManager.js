@@ -22,19 +22,16 @@ export const usePresetManager = () => {
         
         // Apply time settings
         if (data.timeColor !== undefined) {
-          updateTimeSetting('timeColor', data.timeColor);
-        }
-        if (data.timeFormat24hr !== undefined) {
-          updateTimeSetting('timeFormat24hr', data.timeFormat24hr);
+          updateTimeSetting('color', data.timeColor);
         }
         if (data.enableTimePill !== undefined) {
-          updateTimeSetting('enableTimePill', data.enableTimePill);
+          updateTimeSetting('enablePill', data.enableTimePill);
         }
         if (data.timePillBlur !== undefined) {
-          updateTimeSetting('timePillBlur', data.timePillBlur);
+          updateTimeSetting('pillBlur', data.timePillBlur);
         }
         if (data.timePillOpacity !== undefined) {
-          updateTimeSetting('timePillOpacity', data.timePillOpacity);
+          updateTimeSetting('pillOpacity', data.timePillOpacity);
         }
 
         // Apply ribbon settings

@@ -412,6 +412,61 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
         ...preset.settings,
       };
       
+      // Check if this is using the old flat structure (properties at top level)
+      const hasOldStructure = presetSettings.timeColor !== undefined ||
+        presetSettings.enableTimePill !== undefined ||
+        presetSettings.ribbonColor !== undefined ||
+        presetSettings.glassWiiRibbon !== undefined ||
+        presetSettings.wallpaperOpacity !== undefined;
+      
+      if (hasOldStructure) {
+        console.log(`[PresetsModal] Converting old flat structure to new nested structure for preset ${index}`);
+        
+        // Convert old flat structure to new nested structure
+        presetSettings = {
+          time: {
+            color: presetSettings.timeColor,
+            enablePill: presetSettings.enableTimePill,
+            pillBlur: presetSettings.timePillBlur,
+            pillOpacity: presetSettings.timePillOpacity,
+            font: presetSettings.timeFont
+          },
+          ribbon: {
+            ribbonColor: presetSettings.ribbonColor,
+            ribbonGlowColor: presetSettings.ribbonGlowColor,
+            ribbonGlowStrength: presetSettings.ribbonGlowStrength,
+            ribbonGlowStrengthHover: presetSettings.ribbonGlowStrengthHover,
+            glassWiiRibbon: presetSettings.glassWiiRibbon,
+            glassOpacity: presetSettings.glassOpacity,
+            glassBlur: presetSettings.glassBlur,
+            glassBorderOpacity: presetSettings.glassBorderOpacity,
+            glassShineOpacity: presetSettings.glassShineOpacity,
+            ribbonButtonConfigs: presetSettings.ribbonButtonConfigs,
+            recentRibbonColors: presetSettings.recentRibbonColors,
+            recentRibbonGlowColors: presetSettings.recentRibbonGlowColors
+          },
+          wallpaper: {
+            current: presetSettings.wallpaper,
+            opacity: presetSettings.wallpaperOpacity,
+            blur: presetSettings.wallpaperBlur,
+            cycleWallpapers: presetSettings.cycleWallpapers,
+            cycleInterval: presetSettings.cycleInterval,
+            cycleAnimation: presetSettings.cycleAnimation,
+            savedWallpapers: presetSettings.savedWallpapers,
+            likedWallpapers: presetSettings.likedWallpapers,
+            slideDirection: presetSettings.slideDirection,
+            slideDuration: presetSettings.slideDuration,
+            slideEasing: presetSettings.slideEasing,
+            slideRandomDirection: presetSettings.slideRandomDirection,
+            crossfadeDuration: presetSettings.crossfadeDuration,
+            crossfadeEasing: presetSettings.crossfadeEasing
+          },
+          ui: {
+            presetsButtonConfig: presetSettings.presetsButtonConfig
+          }
+        };
+      }
+      
       // Handle wallpaper download and conversion
       if (preset.wallpaper && preset.wallpaper.data) {
         try {
@@ -500,8 +555,8 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       console.log(`[PresetsModal] Converted preset ${index} structure:`, convertedPreset);
       console.log(`[PresetsModal] Preset ${index} data structure check:`, {
         hasData: !!convertedPreset.data,
-        hasTimeColor: !!convertedPreset.data?.timeColor,
-        timeColorValue: convertedPreset.data?.timeColor,
+        hasTimeColor: !!convertedPreset.data?.time?.color,
+        timeColorValue: convertedPreset.data?.time?.color,
         dataKeys: convertedPreset.data ? Object.keys(convertedPreset.data) : 'no data',
         hasWallpaper: !!convertedPreset.data?.wallpaper,
         wallpaperUrl: convertedPreset.data?.wallpaper?.url
