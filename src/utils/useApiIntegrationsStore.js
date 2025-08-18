@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useSpotifyStore } from './useSpotifyStore';
+// import { useSpotifyStore } from './useSpotifyStore';
 
 const useApiIntegrationsStore = create(
   persist(
@@ -127,11 +127,9 @@ const useApiIntegrationsStore = create(
         
         // Sync Spotify hotkey with keyboard shortcuts system
         try {
-          const uiStore = require('./useUIStore').default;
-          uiStore.getState().updateKeyboardShortcut('toggle-spotify-widget', {
-            key: state.spotify.hotkeyKey,
-            modifier: state.spotify.hotkeyModifier
-          });
+          // Temporarily disable hotkey sync to prevent require error
+          // TODO: Implement proper hotkey sync when UI store is available
+          console.log('[API INTEGRATIONS] Hotkey sync temporarily disabled');
         } catch (error) {
           console.warn('[API INTEGRATIONS] Failed to sync hotkey on initialization:', error);
         }

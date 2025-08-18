@@ -162,13 +162,216 @@ const settingsData = {
   },
 };
 
+// --- Unified Data Module ---
+const unifiedDataFile = path.join(dataDir, 'unified-data.json');
+const unifiedData = {
+  async get() {
+    await ensureDataDir();
+    try { 
+      const data = JSON.parse(await fsPromises.readFile(unifiedDataFile, 'utf-8'));
+      console.log('[UNIFIED-DATA] Successfully loaded unified data');
+      return data;
+    } catch (error) { 
+      console.warn('[UNIFIED-DATA] Failed to load unified data, using defaults:', error.message);
+      return {
+        settings: {
+          appearance: {
+            theme: 'light',
+            useCustomCursor: false,
+            immersivePip: false,
+            startInFullscreen: false,
+            showPresetsButton: true,
+          },
+          channels: {
+            adaptiveEmptyChannels: true,
+            channelAnimation: 'none',
+            animatedOnHover: false,
+            idleAnimationEnabled: false,
+            idleAnimationTypes: ['pulse', 'bounce', 'glow'],
+            idleAnimationInterval: 8,
+            kenBurnsEnabled: false,
+            kenBurnsMode: 'hover',
+            kenBurnsHoverScale: 1.1,
+            kenBurnsAutoplayScale: 1.15,
+            kenBurnsSlideshowScale: 1.08,
+            kenBurnsHoverDuration: 8000,
+            kenBurnsAutoplayDuration: 12000,
+            kenBurnsSlideshowDuration: 10000,
+            kenBurnsCrossfadeDuration: 1000,
+            kenBurnsForGifs: false,
+            kenBurnsForVideos: false,
+            kenBurnsEasing: 'ease-out',
+            kenBurnsAnimationType: 'both',
+            kenBurnsCrossfadeReturn: true,
+            kenBurnsTransitionType: 'cross-dissolve',
+            channelAutoFadeTimeout: 5,
+          },
+          ribbon: {
+            glassWiiRibbon: false,
+            glassOpacity: 0.18,
+            glassBlur: 2.5,
+            glassBorderOpacity: 0.5,
+            glassShineOpacity: 0.7,
+            ribbonColor: '#e0e6ef',
+            recentRibbonColors: [],
+            ribbonGlowColor: '#0099ff',
+            recentRibbonGlowColors: [],
+            ribbonGlowStrength: 20,
+            ribbonGlowStrengthHover: 28,
+            ribbonDockOpacity: 1,
+          },
+          wallpaper: {
+            opacity: 1,
+            blur: 0,
+            cycling: {
+              enabled: false,
+              interval: 30,
+              animation: 'fade',
+              slideDirection: 'right',
+              crossfadeDuration: 1.2,
+              crossfadeEasing: 'ease-out',
+              slideRandomDirection: false,
+              slideDuration: 1.5,
+              slideEasing: 'ease-out',
+            },
+            overlay: {
+              enabled: false,
+              effect: 'snow',
+              intensity: 50,
+              speed: 1,
+              wind: 0.02,
+              gravity: 0.1,
+            },
+          },
+          time: {
+            color: '#ffffff',
+            recentColors: [],
+            format24hr: true,
+            enableTimePill: true,
+            timePillBlur: 8,
+            timePillOpacity: 0.05,
+            font: 'default',
+          },
+          dock: {
+            showDock: true,
+            classicMode: false,
+            podHoverEnabled: true,
+            podHoverDistance: 15,
+            podHoverDuration: 0.3,
+            podHoverEasing: 'cubic-bezier(0.25, 0.8, 0.25, 1)',
+            buttonHoverEnabled: true,
+            buttonHoverScale: 1.05,
+            buttonHoverBrightness: 1.1,
+            buttonActiveScale: 0.95,
+            buttonActiveBrightness: 0.9,
+            sdCardHoverEnabled: true,
+            sdCardHoverScale: 1.1,
+            sdCardHoverBrightness: 1.2,
+            sdCardGlowEnabled: true,
+            sdCardGlowColor: '#33BEED',
+            sdCardGlowStrength: 0.6,
+            glassEnabled: false,
+            glassOpacity: 0.18,
+            glassBlur: 2.5,
+            glassBorderOpacity: 0.5,
+            glassShineOpacity: 0.7,
+            particleSystemEnabled: false,
+            particleEffectType: 'normal',
+            particleDirection: 'upward',
+            particleSpeed: 2,
+            particleCount: 3,
+            particleSpawnRate: 60,
+            particleSize: 3,
+            particleGravity: 0.02,
+            particleFadeSpeed: 0.008,
+            particleSizeDecay: 0.02,
+            particleUseAdaptiveColor: false,
+            particleColorIntensity: 1.0,
+            particleColorVariation: 0.3,
+            particleRotationSpeed: 0.05,
+            particleLifetime: 3.0,
+          },
+          sounds: {
+            backgroundMusicEnabled: true,
+            backgroundMusicLooping: true,
+            backgroundMusicPlaylistMode: false,
+            channelClickEnabled: true,
+            channelClickVolume: 0.5,
+            channelHoverEnabled: true,
+            channelHoverVolume: 0.5,
+            startupEnabled: true,
+            startupVolume: 0.5,
+          },
+          system: {
+            startOnBoot: false,
+            settingsShortcut: '',
+            showDock: true,
+          },
+        },
+        content: {
+          channels: [],
+          wallpapers: {
+            saved: [],
+            liked: [],
+            active: null,
+          },
+          sounds: {
+            backgroundMusic: [],
+            channelClick: [],
+            channelHover: [],
+            startup: [],
+          },
+          presets: [],
+          icons: [],
+        },
+      };
+    }
+  },
+  async set(data) {
+    await ensureDataDir();
+    await fsPromises.writeFile(unifiedDataFile, JSON.stringify(data, null, 2), 'utf-8');
+    console.log('[UNIFIED-DATA] Successfully saved unified data');
+  },
+  async reset() {
+    const defaultData = await this.get();
+    await this.set(defaultData);
+  }
+};
+
 // --- IPC Handlers ---
-ipcMain.handle('sounds:get', async () => await soundsData.get());
+// Unified Data API (new)
+ipcMain.handle('data:get', async () => await unifiedData.get());
+ipcMain.handle('data:set', async (e, data) => { await unifiedData.set(data); return true; });
+
+// Legacy APIs (for migration)
+ipcMain.handle('sounds:get', async () => {
+  console.log('[DEBUG] 📡 IPC: sounds:get called');
+  const result = await soundsData.get();
+  console.log('[DEBUG] 📡 IPC: sounds:get completed');
+  return result;
+});
 ipcMain.handle('sounds:set', async (e, data) => { await soundsData.set(data); return true; });
 ipcMain.handle('sounds:reset', async () => { await soundsData.reset(); return true; });
 
-ipcMain.handle('wallpapers:get', async () => await wallpapersData.get());
+// Re-enabled wallpaper API - infinite loop fixed
+  ipcMain.handle('wallpapers:get', async (event) => {
+    console.log('[DEBUG] 📡 IPC: wallpapers:get called');
+    const result = await wallpapersData.get();
+    console.log('[DEBUG] 📡 IPC: wallpapers:get completed');
+    return result;
+  });
 ipcMain.handle('wallpapers:set', async (e, data) => { await wallpapersData.set(data); return true; });
+
+ipcMain.handle('channels:get', async () => {
+  console.log('[DEBUG] 📡 IPC: channels:get called');
+  const result = await channelsData.get();
+  console.log('[DEBUG] 📡 IPC: channels:get completed');
+  return result;
+});
+ipcMain.handle('channels:set', async (e, data) => { await channelsData.set(data); return true; });
+
+ipcMain.handle('settings:get', async () => await settingsData.get());
+ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data); return true; });
 
 // Monitor-specific wallpaper handlers
 ipcMain.handle('wallpapers:getMonitorWallpaper', async (e, monitorId) => {
@@ -213,12 +416,7 @@ ipcMain.handle('update-notification:install-update', () => {
 });
 ipcMain.handle('wallpapers:reset', async () => { await wallpapersData.reset(); return true; });
 
-ipcMain.handle('channels:get', async () => await channelsData.get());
-ipcMain.handle('channels:set', async (e, data) => { await channelsData.set(data); return true; });
 ipcMain.handle('channels:reset', async () => { await channelsData.reset(); return true; });
-
-ipcMain.handle('settings:get', async () => await settingsData.get());
-ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data); return true; });
 
 // --- Auto-Updater IPC Handlers ---
 ipcMain.handle('check-for-updates', async () => {
@@ -1868,8 +2066,11 @@ function sendWindowState() {
 }
 
 async function createWindow(opts = {}) {
+  console.log('[DEBUG] 🪟 Creating window with options:', opts);
+  
   // Close existing window if it exists to prevent memory leaks
   if (mainWindow) {
+    console.log('[DEBUG] 🧹 Closing existing window');
     if (mainWindow.cleanup) {
       mainWindow.cleanup();
     }
@@ -1883,11 +2084,30 @@ async function createWindow(opts = {}) {
   // If no explicit fullscreen option is provided, check the settings
   if (opts.fullscreen === undefined) {
     try {
+      console.log('[DEBUG] 📋 Loading settings for fullscreen preference');
       const settings = await settingsData.get();
-      shouldStartFullscreen = settings.startInFullscreen !== false; // Default to true if not set
+      
+      // Check both old and new settings structure for backward compatibility
+      let fullscreenSetting = false;
+      if (settings.ui && settings.ui.startInFullscreen !== undefined) {
+        // New architecture: settings.ui.startInFullscreen
+        fullscreenSetting = settings.ui.startInFullscreen;
+        console.log('[DEBUG] 📋 Found startInFullscreen in ui settings:', fullscreenSetting);
+      } else if (settings.startInFullscreen !== undefined) {
+        // Legacy architecture: settings.startInFullscreen
+        fullscreenSetting = settings.startInFullscreen;
+        console.log('[DEBUG] 📋 Found startInFullscreen in legacy settings:', fullscreenSetting);
+      } else {
+        // Default to false if not set
+        fullscreenSetting = false;
+        console.log('[DEBUG] 📋 No startInFullscreen setting found, defaulting to false');
+      }
+      
+      shouldStartFullscreen = fullscreenSetting;
+      console.log('[DEBUG] 📋 Final fullscreen preference:', shouldStartFullscreen);
     } catch (error) {
-      console.log('Could not load settings for fullscreen preference, defaulting to true');
-      shouldStartFullscreen = true;
+      console.log('[DEBUG] ⚠️ Could not load settings for fullscreen preference, defaulting to false');
+      shouldStartFullscreen = false;
     }
   }
   
@@ -1903,13 +2123,50 @@ async function createWindow(opts = {}) {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      devTools: true, // Explicitly enable DevTools
+      webSecurity: false, // Disable web security for debugging
     },
   });
 
+  console.log('[DEBUG] 🌐 Loading window content...');
   if (process.env.NODE_ENV === 'development') {
+    console.log('[DEBUG] 🔧 Development mode: loading from localhost:5173');
     mainWindow.loadURL('http://localhost:5173');
-    // mainWindow.webContents.openDevTools(); // Commented out to prevent auto-opening console in dev
+    
+    // Force open DevTools immediately and multiple times
+    console.log('[DEBUG] 🔧 Attempting to open DevTools immediately...');
+    try {
+      mainWindow.webContents.openDevTools();
+      console.log('[DEBUG] 🔧 DevTools opened immediately');
+    } catch (error) {
+      console.error('[DEBUG] 🔧 Error opening DevTools immediately:', error);
+    }
+    
+    // Force open DevTools after a short delay to ensure window is ready
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          mainWindow.webContents.openDevTools();
+          console.log('[DEBUG] 🔧 Developer tools opened after delay');
+        } catch (error) {
+          console.error('[DEBUG] 🔧 Error opening DevTools after delay:', error);
+        }
+      }
+    }, 1000);
+    
+    // Try again after 3 seconds
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          mainWindow.webContents.openDevTools({ mode: 'detach' });
+          console.log('[DEBUG] 🔧 Developer tools opened in detach mode');
+        } catch (error) {
+          console.error('[DEBUG] 🔧 Error opening DevTools in detach mode:', error);
+        }
+      }
+    }, 3000);
   } else {
+    console.log('[DEBUG] 📦 Production mode: loading from dist/index.html');
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
 
@@ -1926,19 +2183,249 @@ async function createWindow(opts = {}) {
   const onLeaveFullScreen = () => {
     isCurrentlyFullscreen = false;
     sendWindowState();
+    
+    // Ensure DevTools remain accessible when exiting fullscreen
+    console.log('[DEBUG] 🔧 Exiting fullscreen, ensuring DevTools accessibility...');
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          // Try to re-open DevTools if they were lost
+          if (!mainWindow.webContents.isDevToolsOpened()) {
+            mainWindow.webContents.openDevTools();
+            console.log('[DEBUG] 🔧 DevTools re-opened after exiting fullscreen');
+          } else {
+            console.log('[DEBUG] 🔧 DevTools still open after exiting fullscreen');
+          }
+        } catch (error) {
+          console.error('[DEBUG] 🔧 Error re-opening DevTools after fullscreen exit:', error);
+        }
+      }
+    }, 500);
   };
 
   mainWindow.on('closed', onClosed);
   mainWindow.on('enter-full-screen', onEnterFullScreen);
   mainWindow.on('leave-full-screen', onLeaveFullScreen);
-  mainWindow.once('ready-to-show', sendWindowState);
-  
-  // Add global shortcut for developer tools
-  globalShortcut.register('CommandOrControl+Shift+I', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.openDevTools();
+  mainWindow.once('ready-to-show', () => {
+    sendWindowState();
+    
+    // Force open DevTools immediately in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DEBUG] 🔧 Forcing DevTools open in development mode');
+      try {
+        mainWindow.webContents.openDevTools();
+        console.log('[DEBUG] 🔧 Initial DevTools openDevTools() called');
+        
+        // Try again after a delay
+        setTimeout(() => {
+          try {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.openDevTools();
+              console.log('[DEBUG] 🔧 Delayed DevTools openDevTools() called');
+            }
+          } catch (delayedError) {
+            console.error('[DEBUG] 🔧 Error with delayed DevTools:', delayedError);
+          }
+        }, 2000);
+        
+      } catch (initialError) {
+        console.error('[DEBUG] 🔧 Error with initial DevTools:', initialError);
+      }
+      
+      // Register multiple shortcuts with different approaches
+      try {
+        // Method 1: Standard shortcuts
+        globalShortcut.register('CommandOrControl+Shift+I', () => {
+          console.log('[DEBUG] 🔧 Ctrl+Shift+I pressed');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+              console.log('[DEBUG] 🔧 Attempting to open DevTools...');
+              console.log('[DEBUG] 🔧 Window state:', {
+                isDestroyed: mainWindow.isDestroyed(),
+                isVisible: mainWindow.isVisible(),
+                isFocused: mainWindow.isFocused(),
+                webContents: !!mainWindow.webContents
+              });
+              
+              mainWindow.webContents.openDevTools();
+              console.log('[DEBUG] 🔧 openDevTools() called successfully');
+              
+              // Try to focus the DevTools window
+              setTimeout(() => {
+                try {
+                  mainWindow.webContents.focus();
+                  console.log('[DEBUG] 🔧 Focused webContents');
+                } catch (focusError) {
+                  console.error('[DEBUG] 🔧 Error focusing webContents:', focusError);
+                }
+              }, 100);
+              
+            } catch (error) {
+              console.error('[DEBUG] 🔧 Error opening DevTools:', error);
+            }
+          } else {
+            console.log('[DEBUG] 🔧 Window not available for DevTools');
+          }
+        });
+        
+        globalShortcut.register('F12', () => {
+          console.log('[DEBUG] 🔧 F12 pressed');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+              console.log('[DEBUG] 🔧 F12: Attempting to open DevTools...');
+              
+              // Method 1: Try standard openDevTools
+              mainWindow.webContents.openDevTools();
+              console.log('[DEBUG] 🔧 F12: openDevTools() called');
+              
+              // Method 2: Try with specific mode
+              setTimeout(() => {
+                try {
+                  mainWindow.webContents.openDevTools({ mode: 'detach' });
+                  console.log('[DEBUG] 🔧 F12: openDevTools(detach) called');
+                } catch (detachError) {
+                  console.error('[DEBUG] 🔧 F12: Error with detach mode:', detachError);
+                }
+              }, 500);
+              
+            } catch (error) {
+              console.error('[DEBUG] 🔧 F12: Error opening DevTools:', error);
+            }
+          }
+        });
+        
+        // Method 2: Alternative shortcuts
+        globalShortcut.register('CommandOrControl+Shift+J', () => {
+          console.log('[DEBUG] 🔧 Ctrl+Shift+J pressed');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+              console.log('[DEBUG] 🔧 Ctrl+Shift+J: Trying alternative DevTools method...');
+              
+              // Try to toggle DevTools instead of just opening
+              if (mainWindow.webContents.isDevToolsOpened()) {
+                mainWindow.webContents.closeDevTools();
+                console.log('[DEBUG] 🔧 Ctrl+Shift+J: DevTools closed');
+              } else {
+                mainWindow.webContents.openDevTools();
+                console.log('[DEBUG] 🔧 Ctrl+Shift+J: DevTools opened');
+              }
+              
+            } catch (error) {
+              console.error('[DEBUG] 🔧 Ctrl+Shift+J: Error with DevTools:', error);
+            }
+          }
+        });
+        
+        globalShortcut.register('F11', () => {
+          console.log('[DEBUG] 🔧 F11 pressed');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+              console.log('[DEBUG] 🔧 F11: Trying session-based DevTools...');
+              
+              // Try using the session's DevTools
+              const session = mainWindow.webContents.session;
+              if (session) {
+                console.log('[DEBUG] 🔧 F11: Session available, trying DevTools...');
+                mainWindow.webContents.openDevTools();
+                
+                // Also try to show the DevTools in a separate window
+                setTimeout(() => {
+                  try {
+                    mainWindow.webContents.openDevTools({ mode: 'right' });
+                    console.log('[DEBUG] 🔧 F11: DevTools opened in right mode');
+                  } catch (rightError) {
+                    console.error('[DEBUG] 🔧 F11: Error with right mode:', rightError);
+                  }
+                }, 200);
+              } else {
+                console.log('[DEBUG] 🔧 F11: No session available');
+              }
+              
+            } catch (error) {
+              console.error('[DEBUG] 🔧 F11: Error opening DevTools:', error);
+            }
+          }
+        });
+        
+        console.log('[DEBUG] 🔧 All global shortcuts registered for developer tools');
+        
+        // Also try to create a separate DevTools window as a fallback
+        const createDevToolsWindow = () => {
+          try {
+            const devToolsWindow = new BrowserWindow({
+              width: 1200,
+              height: 800,
+              title: 'Developer Tools',
+              webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                enableRemoteModule: false
+              }
+            });
+            
+            devToolsWindow.loadURL('chrome-devtools://devtools/bundled/devtools_app.html');
+            console.log('[DEBUG] 🔧 Created separate DevTools window');
+            
+            devToolsWindow.on('closed', () => {
+              console.log('[DEBUG] 🔧 DevTools window closed');
+            });
+            
+            return devToolsWindow;
+          } catch (error) {
+            console.error('[DEBUG] 🔧 Error creating DevTools window:', error);
+            return null;
+          }
+        };
+        
+        // Register a special shortcut for the separate DevTools window
+        globalShortcut.register('CommandOrControl+Shift+D', () => {
+          console.log('[DEBUG] 🔧 Ctrl+Shift+D pressed - creating separate DevTools window');
+          createDevToolsWindow();
+        });
+        
+        // Register a special shortcut for fullscreen + DevTools fix
+        globalShortcut.register('CommandOrControl+Shift+F', () => {
+          console.log('[DEBUG] 🔧 Ctrl+Shift+F pressed - fullscreen + DevTools fix');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            // Toggle fullscreen and ensure DevTools are accessible
+            const wasFullScreen = mainWindow.isFullScreen();
+            mainWindow.setFullScreen(!wasFullScreen);
+            isCurrentlyFullscreen = !wasFullScreen;
+            
+            // If we're exiting fullscreen, ensure DevTools are accessible
+            if (wasFullScreen) {
+              setTimeout(() => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                  try {
+                    mainWindow.webContents.openDevTools();
+                    console.log('[DEBUG] 🔧 DevTools opened after fullscreen exit (Ctrl+Shift+F)');
+                  } catch (error) {
+                    console.error('[DEBUG] 🔧 Error opening DevTools after fullscreen exit:', error);
+                  }
+                }
+              }, 500);
+            }
+          }
+        });
+      } catch (error) {
+        console.error('[DEBUG] 🔧 Error registering shortcuts:', error);
+      }
     }
   });
+  
+  // Add global shortcut for developer tools - moved to after window creation
+  // globalShortcut.register('CommandOrControl+Shift+I', () => {
+  //   if (mainWindow && !mainWindow.isDestroyed()) {
+  //     mainWindow.webContents.openDevTools();
+  //   }
+  // });
+  
+  // Also register F12 as a backup
+  // globalShortcut.register('F12', () => {
+  //   if (mainWindow && !mainWindow.isDestroyed()) {
+  //     mainWindow.webContents.openDevTools();
+  //   }
+  // });
   
   // Add menu with developer tools option
   const template = [
@@ -1947,10 +2434,39 @@ async function createWindow(opts = {}) {
       submenu: [
         {
           label: 'Toggle Developer Tools',
-          accelerator: 'CmdOrCtrl+Shift+I',
+          accelerator: 'F12',
           click: () => {
+            console.log('[DEBUG] 🔧 Menu: Toggle Developer Tools clicked');
             if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.openDevTools();
+              try {
+                mainWindow.webContents.openDevTools();
+                console.log('[DEBUG] 🔧 Menu: DevTools opened');
+              } catch (error) {
+                console.error('[DEBUG] 🔧 Menu: Error opening DevTools:', error);
+              }
+            }
+          }
+        },
+        {
+          label: 'Force Developer Tools',
+          accelerator: 'CommandOrControl+Shift+D',
+          click: () => {
+            console.log('[DEBUG] 🔧 Menu: Force Developer Tools clicked');
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              try {
+                // Try multiple methods
+                mainWindow.webContents.openDevTools();
+                setTimeout(() => {
+                  try {
+                    mainWindow.webContents.openDevTools({ mode: 'detach' });
+                  } catch (detachError) {
+                    console.error('[DEBUG] 🔧 Menu: Error with detach mode:', detachError);
+                  }
+                }, 100);
+                console.log('[DEBUG] 🔧 Menu: Force DevTools attempted');
+              } catch (error) {
+                console.error('[DEBUG] 🔧 Menu: Error forcing DevTools:', error);
+              }
             }
           }
         }
@@ -1974,6 +2490,8 @@ async function createWindow(opts = {}) {
 }
 
 app.whenReady().then(async () => {
+  console.log('[DEBUG] 🚀 App is ready, starting initialization...');
+  
   // Register custom protocol for Spotify OAuth
   if (process.defaultApp) {
     if (process.argv.length >= 2) {
@@ -2531,14 +3049,42 @@ ipcMain.on('close-window', () => {
 });
 ipcMain.on('toggle-fullscreen', () => {
   if (!mainWindow) return;
-  if (mainWindow.isFullScreen()) {
+  console.log('[DEBUG] 🔧 Toggle fullscreen requested');
+  const wasFullScreen = mainWindow.isFullScreen();
+  
+  if (wasFullScreen) {
+    // Exiting fullscreen - ensure DevTools remain accessible
     mainWindow.setFullScreen(false);
     isCurrentlyFullscreen = false;
+    
+    // Re-open DevTools after a short delay to ensure they're accessible
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        try {
+          if (!mainWindow.webContents.isDevToolsOpened()) {
+            mainWindow.webContents.openDevTools();
+            console.log('[DEBUG] 🔧 DevTools re-opened after fullscreen toggle');
+          }
+        } catch (error) {
+          console.error('[DEBUG] 🔧 Error re-opening DevTools after fullscreen toggle:', error);
+        }
+      }
+    }, 300);
   } else {
+    // Entering fullscreen
     mainWindow.setFullScreen(true);
     isCurrentlyFullscreen = true;
   }
   sendWindowState();
+});
+
+ipcMain.on('set-fullscreen', (event, shouldBeFullscreen) => {
+  if (!mainWindow) return;
+  if (shouldBeFullscreen !== mainWindow.isFullScreen()) {
+    mainWindow.setFullScreen(shouldBeFullscreen);
+    isCurrentlyFullscreen = shouldBeFullscreen;
+    sendWindowState();
+  }
 });
 ipcMain.on('toggle-frame', () => {
   if (!mainWindow) return;
@@ -3168,6 +3714,33 @@ async function scanInstalledApps() {
     },
   ];
 
+  // Add common apps that might have updater issues
+  const commonApps = [
+    {
+      name: 'Discord',
+      paths: [
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9013\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9012\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9011\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9010\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9009\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9008\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9007\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9006\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9005\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9004\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9003\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9002\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9001\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9000\\Discord.exe',
+        'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\Discord.exe'
+      ],
+      args: '',
+      icon: null,
+      lnk: null,
+    }
+  ];
+
   // Add system apps to results if they exist
   for (const app of systemApps) {
     if (fs.existsSync(app.path)) {
@@ -3184,6 +3757,82 @@ async function scanInstalledApps() {
       results.push(app);
     } else {
       console.log(`[scanInstalledApps] System app not found: ${app.name} -> ${app.path}`);
+    }
+  }
+
+  // Add common apps to results if they exist
+  for (const app of commonApps) {
+    if (app.name === 'Discord') {
+      // Special handling for Discord - scan the Discord directory for the latest version
+      const discordBasePath = path.join(os.homedir(), 'AppData', 'Local', 'Discord');
+      if (fs.existsSync(discordBasePath)) {
+        try {
+          const discordDirs = await fsPromises.readdir(discordBasePath);
+          const appDirs = discordDirs.filter(dir => dir.startsWith('app-')).sort().reverse();
+          
+          // For Discord, we need to use Update.exe with the correct arguments
+          const discordUpdatePath = path.join(discordBasePath, 'Update.exe');
+          if (fs.existsSync(discordUpdatePath)) {
+            try {
+              // Try to extract icon from the Discord.exe in the latest app directory
+              let iconDataUrl = null;
+              for (const appDir of appDirs) {
+                const discordExePath = path.join(discordBasePath, appDir, 'Discord.exe');
+                if (fs.existsSync(discordExePath)) {
+                  try {
+                    const iconImg = nativeImage.createFromPath(discordExePath);
+                    if (!iconImg.isEmpty()) {
+                      iconDataUrl = iconImg.toDataURL();
+                    }
+                  } catch (iconErr) {
+                    // Ignore icon extraction errors
+                  }
+                  break; // Use the first (latest) version for icon
+                }
+              }
+              
+              console.log(`[scanInstalledApps] Adding Discord: ${app.name} -> ${discordUpdatePath} --processStart Discord.exe`);
+              results.push({
+                name: app.name,
+                path: discordUpdatePath,
+                args: '--processStart Discord.exe',
+                icon: iconDataUrl,
+                lnk: null,
+              });
+              break; // Only add Discord once
+            } catch (err) {
+              console.log(`[scanInstalledApps] Error processing Discord: ${err.message}`);
+            }
+          }
+        } catch (err) {
+          console.log(`[scanInstalledApps] Error scanning Discord directory: ${err.message}`);
+        }
+      }
+    } else {
+      // Handle other common apps with static paths
+      for (const appPath of app.paths) {
+        const resolvedPath = appPath.replace('%USERNAME%', os.userInfo().username);
+        if (fs.existsSync(resolvedPath)) {
+          try {
+            // Try to extract icon from the executable
+            const iconImg = nativeImage.createFromPath(resolvedPath);
+            if (!iconImg.isEmpty()) {
+              app.icon = iconImg.toDataURL();
+            }
+          } catch (iconErr) {
+            // Ignore icon extraction errors
+          }
+          console.log(`[scanInstalledApps] Adding common app: ${app.name} -> ${resolvedPath}`);
+          results.push({
+            name: app.name,
+            path: resolvedPath,
+            args: app.args || '',
+            icon: app.icon,
+            lnk: null,
+          });
+          break; // Only add the first found path for each app
+        }
+      }
     }
   }
 
@@ -3228,14 +3877,32 @@ async function scanInstalledApps() {
             // Only add if we have a valid target path
             if (shortcut && shortcut.target && fs.existsSync(shortcut.target)) {
               const appName = path.basename(entry.name, '.lnk');
-              console.log(`[scanInstalledApps] Adding shortcut: ${appName} -> ${shortcut.target}`);
-              results.push({
-                name: appName,
-                path: shortcut.target,
-                args: shortcut.args || '',
-                icon: iconDataUrl,
-                lnk: fullPath,
-              });
+              
+              // Filter out updater executables and other non-main executables
+              // But allow Discord's Update.exe since it's the correct launcher
+              const targetPath = shortcut.target.toLowerCase();
+              const isDiscordUpdate = targetPath.includes('discord') && targetPath.includes('update.exe');
+              const isUpdater = !isDiscordUpdate && (
+                targetPath.includes('update.exe') || 
+                targetPath.includes('updater.exe') || 
+                targetPath.includes('installer.exe') ||
+                targetPath.includes('uninstall.exe') ||
+                targetPath.includes('launcher.exe') ||
+                targetPath.includes('helper.exe')
+              );
+              
+              if (!isUpdater) {
+                console.log(`[scanInstalledApps] Adding shortcut: ${appName} -> ${shortcut.target}`);
+                results.push({
+                  name: appName,
+                  path: shortcut.target,
+                  args: shortcut.args || '',
+                  icon: iconDataUrl,
+                  lnk: fullPath,
+                });
+              } else {
+                console.log(`[scanInstalledApps] Skipping updater: ${appName} -> ${shortcut.target}`);
+              }
             } else if (shortcut && shortcut.target) {
               console.log(`[scanInstalledApps] Shortcut target not found: ${path.basename(entry.name, '.lnk')} -> ${shortcut.target}`);
             }
@@ -4064,5 +4731,73 @@ ipcMain.handle('open-admin-panel', async () => {
   } catch (error) {
     console.error('[SYSTEM] Error opening admin panel:', error);
     return { success: false, error: error.message };
+  }
+});
+
+// IPC: Open developer tools
+ipcMain.handle('open-dev-tools', async () => {
+  console.log('[DEBUG] 🔧 IPC: open-dev-tools called');
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.openDevTools();
+      console.log('[DEBUG] 🔧 IPC: Developer tools opened successfully');
+      return { success: true, message: 'Developer tools opened' };
+    } else {
+      console.log('[DEBUG] 🔧 IPC: Window not available');
+      return { success: false, message: 'Window not available' };
+    }
+  } catch (error) {
+    console.error('[DEBUG] 🔧 IPC: Error opening DevTools:', error);
+    return { success: false, message: error.message };
+  }
+});
+
+// Additional IPC handler for forcing DevTools
+ipcMain.handle('force-dev-tools', async () => {
+  console.log('[DEBUG] 🔧 IPC: force-dev-tools called');
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // Try multiple methods
+      mainWindow.webContents.openDevTools();
+      
+      // Also try to focus the DevTools window
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.focus();
+        }
+      }, 100);
+      
+      console.log('[DEBUG] 🔧 IPC: Force DevTools completed');
+      return { success: true, message: 'Developer tools forced open' };
+    } else {
+      console.log('[DEBUG] 🔧 IPC: Window not available for force');
+      return { success: false, message: 'Window not available' };
+    }
+  } catch (error) {
+    console.error('[DEBUG] 🔧 IPC: Error forcing DevTools:', error);
+    return { success: false, message: error.message };
+  }
+});
+
+// IPC: Close app completely
+ipcMain.handle('closeApp', async () => {
+  console.log('[SYSTEM] IPC: closeApp called - shutting down application');
+  try {
+    // Close all windows
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.close();
+    }
+    
+    // Force quit the app after a short delay to ensure cleanup
+    setTimeout(() => {
+      app.quit();
+    }, 100);
+    
+    return { success: true, message: 'Application closing' };
+  } catch (error) {
+    console.error('[SYSTEM] Error closing app:', error);
+    // Force quit even if there's an error
+    app.quit();
+    return { success: true, message: 'Application force closed' };
   }
 });

@@ -3,11 +3,12 @@ import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
 import ImageSearchModal from './ImageSearchModal';
+import ChannelModal from './ChannelModal';
 import audioManager from '../utils/AudioManager';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import KenBurnsImage from './KenBurnsImage';
-import useChannelStore from '../utils/useChannelStore';
-import useFloatingWidgetStore from '../utils/useFloatingWidgetStore';
+import { useUIState, useRibbonState } from '../utils/useConsolidatedAppHooks';
+import useChannelOperations from '../utils/useChannelOperations';
 import './Channel.css';
 
 // Guard for window.api to prevent errors in browser
@@ -47,6 +48,7 @@ const Channel = React.memo(({
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
+  const [showChannelModal, setShowChannelModal] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [mp4Preview, setMp4Preview] = useState(null);
   const [imageError, setImageError] = useState(false);
@@ -55,13 +57,30 @@ const Channel = React.memo(({
   const previewVideoRef = useRef(null);
   const previewCanvasRef = useRef(null);
 
-  // Get channel data from Zustand store
-  const { getChannelConfig, isChannelEmpty, setChannel, openChannelModal } = useChannelStore();
+  // ✅ DATA LAYER: Use the new channel operations hook
+  const {
+    getChannelConfig,
+    isChannelEmpty,
+    updateChannelConfig,
+    updateChannelMedia,
+    updateChannelPath,
+    updateChannelIcon,
+    updateChannelType
+  } = useChannelOperations();
+  
   const storeChannelConfig = getChannelConfig(id);
   const storeIsEmpty = isChannelEmpty(id);
   
+  // ✅ DATA LAYER: Get ribbon state from consolidated store
+  const { ribbon } = useRibbonState();
+  const ribbonSettings = ribbon || {};
+  
+  // ✅ DATA LAYER: Get channel settings from consolidated store
+  const { channels } = useUIState();
+  const channelSettings = channels?.settings || {};
+  
   // Floating widget store
-  const { showWidget } = useFloatingWidgetStore();
+  const { showWidget } = useUIState();
   
   // Memoize effective values to prevent unnecessary recalculations
   const effectiveConfig = useMemo(() => storeChannelConfig || channelConfig, [storeChannelConfig, channelConfig]);
@@ -204,29 +223,31 @@ const Channel = React.memo(({
     audioManager.stopAllSounds();
     
     // Determine if channel is empty based on channelConfig, not the empty prop
-    const isChannelEmpty = !effectiveConfig || (!effectiveConfig.media && !effectiveConfig.path);
+    // A channel is considered empty if it has no path (regardless of media)
+    const isChannelEmpty = !effectiveConfig || !effectiveConfig.path;
     
     console.log('[Channel] Clicked channel:', id, {
       empty,
       isChannelEmpty,
-      path,
-      type,
-      media: media?.url,
-      channelConfig: effectiveConfig
+      effectivePath,
+      effectiveType,
+      effectiveConfig,
+      storeChannelConfig,
+      channelConfig
     });
     
     // Handle API channels (Spotify, etc.)
     if (effectiveConfig?.isApiChannel && effectiveConfig?.apiConfig?.selectedApi) {
-      // Play channel click sound if enabled
-      try {
-        const soundLibrary = await soundsApi.getLibrary();
-        const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
-        if (enabledClickSound) {
-          await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
-        }
-      } catch (error) {
-        console.warn('Failed to load sound library:', error);
-      }
+      // Play channel click sound if enabled - TEMPORARILY DISABLED TO STOP INFINITE LOOP
+      // try {
+      //   const soundLibrary = await soundsApi.getLibrary();
+      //   const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
+      //   if (enabledClickSound) {
+      //     await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
+      //   }
+      // } catch (error) {
+      //   console.warn('Failed to load sound library:', error);
+      // }
       
       // Handle different API types
       const apiType = effectiveConfig.apiConfig.selectedApi;
@@ -245,16 +266,16 @@ const Channel = React.memo(({
     if (isChannelEmpty) {
       handleConfigure();
     } else if (effectivePath) {
-      // Play channel click sound if enabled
-      try {
-        const soundLibrary = await soundsApi.getLibrary();
-        const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
-        if (enabledClickSound) {
-          await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
-        }
-      } catch (error) {
-        console.warn('Failed to load sound library:', error);
-      }
+      // Play channel click sound if enabled - TEMPORARILY DISABLED TO STOP INFINITE LOOP
+      // try {
+      //   const soundLibrary = await soundsApi.getLibrary();
+      //   const enabledClickSound = soundLibrary.channelClick?.find(s => s.enabled);
+      //   if (enabledClickSound) {
+      //     await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
+      //   }
+      // } catch (error) {
+      //   console.warn('Failed to load sound library:', error);
+      // }
       // Launch app or URL
       if (effectiveType === 'url' && effectivePath.startsWith('http')) {
         const immersivePip = (() => { try { return JSON.parse(localStorage.getItem('immersivePip')) || false; } catch { return false; } })();
@@ -279,7 +300,8 @@ const Channel = React.memo(({
     }
     
     // Determine if channel is empty based on channelConfig
-    const isChannelEmpty = !effectiveConfig || (!effectiveConfig.media && !effectiveConfig.path);
+    // A channel is considered empty if it has no path (regardless of media)
+    const isChannelEmpty = !effectiveConfig || !effectiveConfig.path;
     
     // Play per-channel hover sound if set, else global
     // For API channels, we don't need a path to play hover sounds
@@ -289,15 +311,16 @@ const Channel = React.memo(({
         // Play custom hover sound once
         await audioManager.playSound(effectiveHoverSound.url, effectiveHoverSound.volume || 0.7);
       } else {
-        try {
-          const soundLibrary = await soundsApi.getLibrary();
-          const enabledHoverSound = soundLibrary.channelHover?.find(s => s.enabled);
-          if (enabledHoverSound) {
-            await audioManager.playSound(enabledHoverSound.url, enabledHoverSound.volume ?? 0.3);
-          }
-        } catch (error) {
-          console.warn('Failed to load sound library:', error);
-        }
+        // TEMPORARILY DISABLED TO STOP INFINITE LOOP
+        // try {
+        //   const soundLibrary = await soundsApi.getLibrary();
+        //   const enabledHoverSound = soundLibrary.channelHover?.find(s => s.enabled);
+        //   if (enabledHoverSound) {
+        //     await audioManager.playSound(enabledHoverSound.url, enabledHoverSound.volume ?? 0.3);
+        //   }
+        // } catch (error) {
+        //   console.warn('Failed to load sound library:', error);
+        // }
       }
     }
   };
@@ -308,17 +331,37 @@ const Channel = React.memo(({
   };
 
   const handleChannelSave = (channelId, channelData) => {
+    console.log('[DEBUG] 📺 [Channel] Save channel:', channelId, channelData);
+    updateChannelConfig(channelId, channelData);
     if (onChannelSave) {
       onChannelSave(channelId, channelData);
     }
   };
 
   const handleConfigure = () => {
-    openChannelModal(id);
+    console.log('[DEBUG] 📺 [Channel] Configure channel:', id);
+    setShowChannelModal(true);
+  };
+
+  const handleChannelModalSave = (channelId, channelData) => {
+    console.log('[DEBUG] 📺 [Channel] Channel modal save:', channelId, channelData);
+    updateChannelConfig(channelId, channelData);
+    if (onChannelSave) {
+      onChannelSave(channelId, channelData);
+    }
   };
 
   const handleClearChannel = () => {
+    console.log('[DEBUG] 📺 [Channel] Clear channel:', id);
     // Clear the channel configuration completely
+    updateChannelConfig(id, {
+      media: null,
+      path: null,
+      icon: null,
+      type: null,
+      empty: true
+    });
+    
     if (onChannelSave) {
       onChannelSave(id, null); // Pass null to indicate complete reset
     }
@@ -332,28 +375,36 @@ const Channel = React.memo(({
   };
 
   const handleImageSelect = (mediaItem) => {
-    if (onMediaChange) {
-      console.log('[handleImageSelect]', mediaItem);
-      // Convert Supabase media item to the format expected by Channel component
-      const mediaUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${mediaItem.file_url}`;
-      
-      // Determine MIME type based on file_type
-      let mimeType = 'image/png'; // default
-      if (mediaItem.file_type === 'gif') {
-        mimeType = 'image/gif';
-      } else if (mediaItem.file_type === 'video') {
-        mimeType = 'video/mp4';
-      } else if (mediaItem.mime_type) {
-        mimeType = mediaItem.mime_type;
-      }
-      
-      onMediaChange(id, {
-        url: mediaUrl,
-        type: mimeType,
-        name: mediaItem.title || mediaItem.file_url,
-        isBuiltin: true
-      });
+    console.log('[DEBUG] 📺 [Channel] Image selected:', mediaItem);
+    
+    // Convert Supabase media item to the format expected by Channel component
+    const mediaUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${mediaItem.file_url}`;
+    
+    // Determine MIME type based on file_type
+    let mimeType = 'image/png'; // default
+    if (mediaItem.file_type === 'gif') {
+      mimeType = 'image/gif';
+    } else if (mediaItem.file_type === 'video') {
+      mimeType = 'video/mp4';
+    } else if (mediaItem.mime_type) {
+      mimeType = mediaItem.mime_type;
     }
+    
+    const mediaData = {
+      url: mediaUrl,
+      type: mimeType,
+      name: mediaItem.title || mediaItem.file_url,
+      isBuiltin: true
+    };
+    
+    // Update channel media in consolidated store
+    updateChannelMedia(id, mediaData);
+    
+    // Call legacy callback if provided
+    if (onMediaChange) {
+      onMediaChange(id, mediaData);
+    }
+    
     setShowImageSearch(false);
   };
   const handleUploadClick = () => {
@@ -363,7 +414,9 @@ const Channel = React.memo(({
 
   const handleRightClick = (e) => {
     e.preventDefault();
-    openChannelModal(id);
+    e.stopPropagation();
+    console.log('[DEBUG] 📺 [Channel] Right-click on channel:', id);
+    setShowChannelModal(true);
   };
 
   let mediaPreview = null;
@@ -371,7 +424,7 @@ const Channel = React.memo(({
     // Check for GIFs first (before general image types)
     if (effectiveMedia.type === 'image/gif' || effectiveMedia.url.match(/\.gif$/i)) {
       // Check if Ken Burns is enabled for GIFs
-      const kenBurnsForGifsEnabled = window.settings?.kenBurnsForGifs ?? false;
+      const kenBurnsForGifsEnabled = channelSettings?.kenBurnsForGifs ?? false;
       
       if (effectiveKenBurnsEnabled && kenBurnsForGifsEnabled) {
         // Use Ken Burns effect for GIFs
@@ -384,21 +437,21 @@ const Channel = React.memo(({
           alt: effectiveMedia.name || 'Channel GIF',
           
           // Use advanced settings from global configuration
-          hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
-          hoverScale: window.settings?.kenBurnsHoverScale ?? 1.1,
-          autoplayDuration: window.settings?.kenBurnsAutoplayDuration ?? 12000,
-          autoplayScale: window.settings?.kenBurnsAutoplayScale ?? 1.15,
-          slideshowDuration: window.settings?.kenBurnsSlideshowDuration ?? 10000,
-          slideshowScale: window.settings?.kenBurnsSlideshowScale ?? 1.2,
-          crossfadeDuration: window.settings?.kenBurnsCrossfadeDuration ?? 1000,
+          hoverDuration: channelSettings?.kenBurnsHoverDuration ?? 8000,
+          hoverScale: channelSettings?.kenBurnsHoverScale ?? 1.1,
+          autoplayDuration: channelSettings?.kenBurnsAutoplayDuration ?? 12000,
+          autoplayScale: channelSettings?.kenBurnsAutoplayScale ?? 1.15,
+          slideshowDuration: channelSettings?.kenBurnsSlideshowDuration ?? 10000,
+          slideshowScale: channelSettings?.kenBurnsSlideshowScale ?? 1.2,
+          crossfadeDuration: channelSettings?.kenBurnsCrossfadeDuration ?? 1000,
           
           // Animation easing
-          easing: window.settings?.kenBurnsEasing || 'ease-out',
+          easing: channelSettings?.kenBurnsEasing || 'ease-out',
           
           // Animation type and effects
-          animationType: window.settings?.kenBurnsAnimationType || 'both',
-          enableCrossfadeReturn: window.settings?.kenBurnsCrossfadeReturn !== false,
-          transitionType: window.settings?.kenBurnsTransitionType || 'cross-dissolve',
+          animationType: channelSettings?.kenBurnsAnimationType || 'both',
+          enableCrossfadeReturn: channelSettings?.kenBurnsCrossfadeReturn !== false,
+          transitionType: channelSettings?.kenBurnsTransitionType || 'cross-dissolve',
           
           // Performance settings
           enableIntersectionObserver: true
@@ -444,7 +497,7 @@ const Channel = React.memo(({
       }
     } else if (effectiveMedia.type.startsWith('video/')) {
       // Check if Ken Burns is enabled for videos
-      const kenBurnsForVideosEnabled = window.settings?.kenBurnsForVideos ?? false;
+      const kenBurnsForVideosEnabled = channelSettings?.kenBurnsForVideos ?? false;
       
       if (effectiveKenBurnsEnabled && kenBurnsForVideosEnabled) {
         // Use Ken Burns effect for videos
@@ -457,21 +510,21 @@ const Channel = React.memo(({
           alt: effectiveMedia.name || 'Channel Video',
           
           // Use advanced settings from global configuration
-          hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
-          hoverScale: window.settings?.kenBurnsHoverScale ?? 1.1,
-          autoplayDuration: window.settings?.kenBurnsAutoplayDuration ?? 12000,
-          autoplayScale: window.settings?.kenBurnsAutoplayScale ?? 1.15,
-          slideshowDuration: window.settings?.kenBurnsSlideshowDuration ?? 10000,
-          slideshowScale: window.settings?.kenBurnsSlideshowScale ?? 1.2,
-          crossfadeDuration: window.settings?.kenBurnsCrossfadeDuration ?? 1000,
+          hoverDuration: channelSettings?.kenBurnsHoverDuration ?? 8000,
+          hoverScale: channelSettings?.kenBurnsHoverScale ?? 1.1,
+          autoplayDuration: channelSettings?.kenBurnsAutoplayDuration ?? 12000,
+          autoplayScale: channelSettings?.kenBurnsAutoplayScale ?? 1.15,
+          slideshowDuration: channelSettings?.kenBurnsSlideshowDuration ?? 10000,
+          slideshowScale: channelSettings?.kenBurnsSlideshowScale ?? 1.2,
+          crossfadeDuration: channelSettings?.kenBurnsCrossfadeDuration ?? 1000,
           
           // Animation easing
-          easing: window.settings?.kenBurnsEasing || 'ease-out',
+          easing: channelSettings?.kenBurnsEasing || 'ease-out',
           
           // Animation type and effects
-          animationType: window.settings?.kenBurnsAnimationType || 'both',
-          enableCrossfadeReturn: window.settings?.kenBurnsCrossfadeReturn !== false,
-          transitionType: window.settings?.kenBurnsTransitionType || 'cross-dissolve',
+          animationType: channelSettings?.kenBurnsAnimationType || 'both',
+          enableCrossfadeReturn: channelSettings?.kenBurnsCrossfadeReturn !== false,
+          transitionType: channelSettings?.kenBurnsTransitionType || 'cross-dissolve',
           
           // Performance settings
           enableIntersectionObserver: true
@@ -543,21 +596,21 @@ const Channel = React.memo(({
           alt: effectiveMedia.name || 'Channel Image',
           
           // Use advanced settings from global configuration
-          hoverDuration: window.settings?.kenBurnsHoverDuration ?? 8000,
-          hoverScale: window.settings?.kenBurnsHoverScale ?? 1.1,
-          autoplayDuration: window.settings?.kenBurnsAutoplayDuration ?? 12000,
-          autoplayScale: window.settings?.kenBurnsAutoplayScale ?? 1.15,
-          slideshowDuration: window.settings?.kenBurnsSlideshowDuration ?? 10000,
-          slideshowScale: window.settings?.kenBurnsSlideshowScale ?? 1.2,
-          crossfadeDuration: window.settings?.kenBurnsCrossfadeDuration ?? 1000,
+          hoverDuration: channelSettings?.kenBurnsHoverDuration ?? 8000,
+          hoverScale: channelSettings?.kenBurnsHoverScale ?? 1.1,
+          autoplayDuration: channelSettings?.kenBurnsAutoplayDuration ?? 12000,
+          autoplayScale: channelSettings?.kenBurnsAutoplayScale ?? 1.15,
+          slideshowDuration: channelSettings?.kenBurnsSlideshowDuration ?? 10000,
+          slideshowScale: channelSettings?.kenBurnsSlideshowScale ?? 1.2,
+          crossfadeDuration: channelSettings?.kenBurnsCrossfadeDuration ?? 1000,
           
           // Animation easing
-          easing: window.settings?.kenBurnsEasing || 'ease-out',
+          easing: channelSettings?.kenBurnsEasing || 'ease-out',
           
           // Animation type and effects
-          animationType: window.settings?.kenBurnsAnimationType || 'both',
-          enableCrossfadeReturn: window.settings?.kenBurnsCrossfadeReturn !== false,
-          transitionType: window.settings?.kenBurnsTransitionType || 'cross-dissolve',
+          animationType: channelSettings?.kenBurnsAnimationType || 'both',
+          enableCrossfadeReturn: channelSettings?.kenBurnsCrossfadeReturn !== false,
+          transitionType: channelSettings?.kenBurnsTransitionType || 'cross-dissolve',
           
           // Performance settings
           enableIntersectionObserver: true
@@ -591,7 +644,7 @@ const Channel = React.memo(({
     <div
       className={
         effectiveIsEmpty && !effectiveMedia 
-          ? `channel empty${adaptiveEmptyChannels && window.settings?.ribbonColor ? ' adaptive' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
+          ? `channel empty${adaptiveEmptyChannels && ribbonSettings?.ribbonColor ? ' adaptive' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
           : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}`
       }
       data-channel-id={id}
@@ -602,8 +655,8 @@ const Channel = React.memo(({
       role="button"
       onContextMenu={handleRightClick}
       style={{
-        ...(effectiveIsEmpty && !effectiveMedia && adaptiveEmptyChannels && window.settings?.ribbonColor && {
-          '--adaptive-bg-color': window.settings.ribbonColor,
+        ...(effectiveIsEmpty && !effectiveMedia && adaptiveEmptyChannels && ribbonSettings?.ribbonColor && {
+          '--adaptive-bg-color': ribbonSettings.ribbonColor,
         })
       }}
     >
@@ -672,6 +725,23 @@ const Channel = React.memo(({
           onClose={() => setShowImageSearch(false)}
           onSelect={handleImageSelect}
           onUploadClick={handleUploadClick}
+        />
+      )}
+
+      {showChannelModal && (
+        <ChannelModal
+          channelId={id}
+          isOpen={showChannelModal}
+          onClose={() => setShowChannelModal(false)}
+          onSave={handleChannelModalSave}
+          currentMedia={effectiveMedia}
+          currentPath={effectivePath}
+          currentType={effectiveType}
+          currentHoverSound={effectiveHoverSound}
+          currentAsAdmin={effectiveAsAdmin}
+          currentAnimatedOnHover={effectiveConfig?.animatedOnHover}
+          currentKenBurnsEnabled={effectiveConfig?.kenBurnsEnabled}
+          currentKenBurnsMode={effectiveConfig?.kenBurnsMode}
         />
       )}
 

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevTools Debug</title>
+</head>
+<body>
+    <h1>DevTools Debug Page</h1>
+    <p>This page is for testing DevTools opening.</p>
+    
+    <button onclick="openDevTools()">Open DevTools</button>
+    <button onclick="console.log('Test log message')">Test Console Log</button>
+    
+    <script>
+        function openDevTools() {
+            console.log('Attempting to open DevTools...');
+            
+            // Try multiple methods
+            try {
+                // Method 1: Standard DevTools
+                if (window.openDevTools) {
+                    window.openDevTools();
+                    console.log('Method 1: window.openDevTools() called');
+                }
+            } catch (e) {
+                console.error('Method 1 failed:', e);
+            }
+            
+            try {
+                // Method 2: Electron API
+                if (window.api && window.api.openDevTools) {
+                    window.api.openDevTools().then(result => {
+                        console.log('Method 2: Electron API result:', result);
+                    }).catch(error => {
+                        console.error('Method 2 failed:', error);
+                    });
+                }
+            } catch (e) {
+                console.error('Method 2 failed:', e);
+            }
+            
+            try {
+                // Method 3: Force DevTools
+                if (window.api && window.api.forceDevTools) {
+                    window.api.forceDevTools().then(result => {
+                        console.log('Method 3: Force DevTools result:', result);
+                    }).catch(error => {
+                        console.error('Method 3 failed:', error);
+                    });
+                }
+            } catch (e) {
+                console.error('Method 3 failed:', e);
+            }
+            
+            console.log('All methods attempted. Check console for results.');
+        }
+        
+        // Auto-attempt to open DevTools on page load
+        window.addEventListener('load', () => {
+            console.log('Page loaded, attempting to open DevTools...');
+            setTimeout(openDevTools, 1000);
+        });
+    </script>
+</body>
+</html>
+
+

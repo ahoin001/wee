@@ -1,80 +1,95 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import CollapsibleSection from '../../ui/CollapsibleSection';
 import SaveButton from './SaveButton';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
-import useSettingsStore from '../../utils/settingsManager';
-import useUIStore from '../../utils/useUIStore';
 import AdminPanel from '../AdminPanel';
-import { useSpotifyStore } from '../../utils/useSpotifyStore';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 const ApiIntegrationsSettingsTab = () => {
-  const {
-    apiIntegrations,
-    floatingWidgets,
-    updateSpotifySettings,
-    toggleSpotifyEnabled,
-    setSpotifyConnection,
-    updateAdminPanelActions,
-    updateSystemInfoInterval,
-    toggleSpotifyWidget,
-    toggleSystemInfoWidget,
-    toggleAdminPanelWidget,
-  } = useSettingsStore();
-
-  const { showAdminPanelModal, hideAdminPanelModal } = useUIStore();
+  // Use consolidated store
+  const { spotify, floatingWidgets, actions } = useConsolidatedAppStore();
   
-  // Spotify store
-  const { 
-    isAuthenticated: spotifyIsAuthenticated, 
-    currentUser: spotifyCurrentUser,
-    authenticate: spotifyAuthenticate,
-    logout: spotifyLogout,
-    isLoading: spotifyIsLoading
-  } = useSpotifyStore();
-
+  // Local state for admin panel
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [adminPanelConfig, setAdminPanelConfig] = useState({ powerActions: [] });
 
+  // Spotify connection handlers
+  const handleSpotifyConnect = useCallback(async () => {
+    try {
+      console.log('[ApiIntegrationsSettingsTab] Connecting to Spotify...');
+      await actions.spotifyManager.connect();
+    } catch (error) {
+      console.error('[ApiIntegrationsSettingsTab] Spotify connection error:', error);
+    }
+  }, [actions]);
+
+  const handleSpotifyDisconnect = useCallback(async () => {
+    try {
+      console.log('[ApiIntegrationsSettingsTab] Disconnecting from Spotify...');
+      actions.spotifyManager.disconnect();
+    } catch (error) {
+      console.error('[ApiIntegrationsSettingsTab] Spotify disconnection error:', error);
+    }
+  }, [actions]);
+
+  // Widget toggle handlers
+  const handleToggleSpotifyWidget = useCallback(() => {
+    console.log('[ApiIntegrationsSettingsTab] Toggling Spotify widget...');
+    actions.toggleSpotifyWidget();
+  }, [actions]);
+
+  const handleToggleSystemInfoWidget = useCallback(() => {
+    console.log('[ApiIntegrationsSettingsTab] Toggling System Info widget...');
+    const isVisible = floatingWidgets.systemInfo.visible;
+    actions.setFloatingWidgetsState({
+      systemInfo: { ...floatingWidgets.systemInfo, visible: !isVisible }
+    });
+  }, [actions, floatingWidgets.systemInfo]);
+
+  const handleToggleAdminPanelWidget = useCallback(() => {
+    console.log('[ApiIntegrationsSettingsTab] Toggling Admin Panel widget...');
+    const isVisible = floatingWidgets.adminPanel.visible;
+    actions.setFloatingWidgetsState({
+      adminPanel: { ...floatingWidgets.adminPanel, visible: !isVisible }
+    });
+  }, [actions, floatingWidgets.adminPanel]);
+
+  const handleUpdateSystemInfoInterval = useCallback((interval) => {
+    console.log('[ApiIntegrationsSettingsTab] Updating system info interval:', interval);
+    actions.setFloatingWidgetsState({
+      systemInfo: { ...floatingWidgets.systemInfo, updateInterval: interval }
+    });
+  }, [actions, floatingWidgets.systemInfo]);
+
+  const handleUpdateSpotifySettings = useCallback((settings) => {
+    console.log('[ApiIntegrationsSettingsTab] Updating Spotify settings:', settings);
+    actions.setFloatingWidgetsState({
+      spotify: { 
+        ...floatingWidgets.spotify, 
+        settings: { ...floatingWidgets.spotify.settings, ...settings }
+      }
+    });
+  }, [actions, floatingWidgets.spotify]);
+
   // Load settings from the unified store
   useEffect(() => {
-    if (apiIntegrations?.adminPanel) {
-      setAdminPanelConfig(apiIntegrations.adminPanel);
-    }
-  }, [apiIntegrations?.adminPanel]);
+    // Load admin panel config if needed
+    console.log('[ApiIntegrationsSettingsTab] Loading admin panel config...');
+  }, []);
 
   // Handle admin panel save
-  const handleAdminPanelSave = (config) => {
+  const handleAdminPanelSave = useCallback((config) => {
     setAdminPanelConfig(config);
-    updateAdminPanelActions(config.powerActions);
-  };
-
-  // Handle Spotify connection
-  const handleSpotifyConnect = async () => {
-    try {
-      await spotifyAuthenticate();
-      // Update the settings store to reflect the connection
-      setSpotifyConnection(true);
-    } catch (error) {
-      console.error('[SPOTIFY] Connection error:', error);
-    }
-  };
-
-  // Handle Spotify disconnection
-  const handleSpotifyDisconnect = () => {
-    spotifyLogout();
-    // Update the settings store to reflect the disconnection
-    setSpotifyConnection(false);
-  };
+    console.log('[ApiIntegrationsSettingsTab] Admin panel config saved:', config);
+  }, []);
 
   // Save API & Widgets settings
-  const handleSaveSettings = async () => {
-    // The settings manager automatically persists changes
-    // No need for manual window.settings updates
-    console.log('[SETTINGS] API & Widgets settings saved via settings manager');
-  };
+  const handleSaveSettings = useCallback(async () => {
+    console.log('[ApiIntegrationsSettingsTab] API & Widgets settings saved');
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -120,18 +135,18 @@ const ApiIntegrationsSettingsTab = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Text variant="caption" className="text-white">
-                  {apiIntegrations?.spotify?.isEnabled ? 'Enabled' : 'Disabled'}
+                  {floatingWidgets.spotify.visible ? 'Enabled' : 'Disabled'}
                 </Text>
                 <WButton
-                  onClick={toggleSpotifyEnabled}
+                  onClick={handleToggleSpotifyWidget}
                   size="sm"
                   style={{
-                    backgroundColor: apiIntegrations?.spotify?.isEnabled ? '#dc2626' : '#1DB954',
-                    borderColor: apiIntegrations?.spotify?.isEnabled ? '#dc2626' : '#1DB954',
+                    backgroundColor: floatingWidgets.spotify.visible ? '#dc2626' : '#1DB954',
+                    borderColor: floatingWidgets.spotify.visible ? '#dc2626' : '#1DB954',
                     color: 'white'
                   }}
                 >
-                  {apiIntegrations?.spotify?.isEnabled ? 'Disable' : 'Enable'}
+                  {floatingWidgets.spotify.visible ? 'Disable' : 'Enable'}
                 </WButton>
               </div>
           </div>
@@ -147,25 +162,35 @@ const ApiIntegrationsSettingsTab = () => {
                 </Text>
                 <div className="space-y-2">
                   <div className={`px-3 py-2 rounded-md text-sm ${
-                    spotifyIsAuthenticated 
+                    spotify.isConnected 
                       ? 'bg-green-500 text-white' 
                       : 'bg-red-500 text-white'
                   }`}>
-                    {spotifyIsAuthenticated ? `Connected ${spotifyCurrentUser?.display_name ? `as ${spotifyCurrentUser.display_name}` : ''}` : 'Disconnected'}
+                    {spotify.isConnected ? 'Connected' : 'Disconnected'}
                   </div>
+                  {spotify.error && (
+                    <div className="px-3 py-2 rounded-md text-sm bg-red-600 text-white">
+                      Error: {spotify.error}
+                    </div>
+                  )}
                   <WButton
-                    onClick={spotifyIsAuthenticated ? handleSpotifyDisconnect : handleSpotifyConnect}
+                    onClick={spotify.isConnected ? handleSpotifyDisconnect : handleSpotifyConnect}
                     size="sm"
-                    disabled={spotifyIsLoading}
+                    disabled={spotify.loading}
                     style={{
-                      backgroundColor: spotifyIsAuthenticated ? '#dc2626' : '#1DB954',
-                      borderColor: spotifyIsAuthenticated ? '#dc2626' : '#1DB954',
+                      backgroundColor: spotify.isConnected ? '#dc2626' : '#1DB954',
+                      borderColor: spotify.isConnected ? '#dc2626' : '#1DB954',
                       color: 'white',
                       width: '100%'
                     }}
                   >
-                    {spotifyIsLoading ? 'Connecting...' : (spotifyIsAuthenticated ? 'Disconnect' : 'Connect to Spotify')}
+                    {spotify.loading ? 'Connecting...' : (spotify.isConnected ? 'Disconnect' : 'Connect to Spotify')}
                   </WButton>
+                  {!spotify.isConnected && !spotify.loading && (
+                    <Text variant="caption" className="text-white opacity-70 text-xs">
+                      Click to authorize with Spotify. You'll be redirected to Spotify to grant permissions.
+                    </Text>
+                  )}
                 </div>
               </div>
 
@@ -173,12 +198,28 @@ const ApiIntegrationsSettingsTab = () => {
                 <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
                   Widget Status
                 </Text>
-                <div className={`px-3 py-2 rounded-md text-sm ${
-                  floatingWidgets?.spotify?.visible 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-500 text-white'
-                }`}>
-                  {floatingWidgets?.spotify?.visible ? 'Visible' : 'Hidden'}
+                <div className="space-y-2">
+                  <div className={`px-3 py-2 rounded-md text-sm ${
+                    floatingWidgets.spotify.visible 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-500 text-white'
+                  }`}>
+                    {floatingWidgets.spotify.visible ? 'Visible' : 'Hidden'}
+                  </div>
+                  {spotify.isConnected && (
+                    <WButton
+                      onClick={handleToggleSpotifyWidget}
+                      size="sm"
+                      style={{
+                        backgroundColor: floatingWidgets.spotify.visible ? '#dc2626' : '#1DB954',
+                        borderColor: floatingWidgets.spotify.visible ? '#dc2626' : '#1DB954',
+                        color: 'white',
+                        width: '100%'
+                      }}
+                    >
+                      {floatingWidgets.spotify.visible ? 'Hide Widget' : 'Show Widget'}
+                    </WButton>
+                  )}
                 </div>
               </div>
             </div>
@@ -199,8 +240,8 @@ const ApiIntegrationsSettingsTab = () => {
                     </Text>
                   </div>
                   <WToggle
-                    checked={apiIntegrations?.spotify?.settings?.autoShowWidget || false}
-                    onChange={(checked) => updateSpotifySettings({ autoShowWidget: checked })}
+                    checked={floatingWidgets.spotify.settings.autoShowWidget}
+                    onChange={(checked) => handleUpdateSpotifySettings({ autoShowWidget: checked })}
                     style={{ '--wii-blue': '#1DB954' }}
                   />
                 </div>
@@ -216,8 +257,8 @@ const ApiIntegrationsSettingsTab = () => {
             </Text>
           </div>
           <WToggle
-                    checked={apiIntegrations?.spotify?.settings?.autoHideWidget || false}
-                    onChange={(checked) => updateSpotifySettings({ autoHideWidget: checked })}
+                    checked={floatingWidgets.spotify.settings.autoHideWidget}
+                    onChange={(checked) => handleUpdateSpotifySettings({ autoHideWidget: checked })}
                     style={{ '--wii-blue': '#1DB954' }}
           />
         </div>
@@ -233,8 +274,8 @@ const ApiIntegrationsSettingsTab = () => {
                     </Text>
                   </div>
                   <WToggle
-                    checked={apiIntegrations?.spotify?.settings?.dynamicColors || false}
-                    onChange={(checked) => updateSpotifySettings({ dynamicColors: checked })}
+                    checked={floatingWidgets.spotify.settings.dynamicColors}
+                    onChange={(checked) => handleUpdateSpotifySettings({ dynamicColors: checked })}
                     style={{ '--wii-blue': '#1DB954' }}
                   />
                 </div>
@@ -276,18 +317,18 @@ const ApiIntegrationsSettingsTab = () => {
                  </div>
               <div className="flex items-center space-x-3">
                 <Text variant="caption" className="text-white">
-                  {floatingWidgets?.systemInfo?.visible ? 'Enabled' : 'Disabled'}
+                  {floatingWidgets.systemInfo.visible ? 'Enabled' : 'Disabled'}
                 </Text>
                  <WButton
-                  onClick={toggleSystemInfoWidget}
+                  onClick={handleToggleSystemInfoWidget}
                    size="sm"
                    style={{
-                    backgroundColor: floatingWidgets?.systemInfo?.visible ? '#dc2626' : '#2196F3',
-                    borderColor: floatingWidgets?.systemInfo?.visible ? '#dc2626' : '#2196F3',
+                    backgroundColor: floatingWidgets.systemInfo.visible ? '#dc2626' : '#2196F3',
+                    borderColor: floatingWidgets.systemInfo.visible ? '#dc2626' : '#2196F3',
                     color: 'white'
                   }}
                 >
-                  {floatingWidgets?.systemInfo?.visible ? 'Disable' : 'Enable'}
+                                      {floatingWidgets.systemInfo.visible ? 'Disable' : 'Enable'}
                  </WButton>
               </div>
             </div>
@@ -304,12 +345,12 @@ const ApiIntegrationsSettingsTab = () => {
                 type="range"
                 min="0"
                 max="60"
-                value={floatingWidgets?.systemInfo?.updateInterval || 0}
-                onChange={(e) => updateSystemInfoInterval(parseInt(e.target.value))}
+                                  value={floatingWidgets.systemInfo.updateInterval || 0}
+                                  onChange={(e) => handleUpdateSystemInfoInterval(parseInt(e.target.value))}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
               <Text variant="caption" className="opacity-70 mt-1 text-white text-[11px]">
-                {floatingWidgets?.systemInfo?.updateInterval === 0 ? 'Off' : `${floatingWidgets?.systemInfo?.updateInterval} seconds`}
+                                  {floatingWidgets.systemInfo.updateInterval === 0 ? 'Off' : `${floatingWidgets.systemInfo.updateInterval} seconds`}
               </Text>
               <Text variant="caption" className="opacity-70 mt-1 text-white text-[11px]">
                 Set to 0 to disable automatic updates
@@ -391,18 +432,18 @@ const ApiIntegrationsSettingsTab = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Text variant="caption" className="text-white">
-                  {floatingWidgets?.adminPanel?.visible ? 'Enabled' : 'Disabled'}
+                  {floatingWidgets.adminPanel.visible ? 'Enabled' : 'Disabled'}
                       </Text>
                         <WButton
-                  onClick={toggleAdminPanelWidget}
+                  onClick={handleToggleAdminPanelWidget}
                           size="sm"
                           style={{
-                    backgroundColor: floatingWidgets?.adminPanel?.visible ? '#dc2626' : '#FF6B35',
-                    borderColor: floatingWidgets?.adminPanel?.visible ? '#dc2626' : '#FF6B35',
+                    backgroundColor: floatingWidgets.adminPanel.visible ? '#dc2626' : '#FF6B35',
+                    borderColor: floatingWidgets.adminPanel.visible ? '#dc2626' : '#FF6B35',
                     color: 'white'
                   }}
                 >
-                  {floatingWidgets?.adminPanel?.visible ? 'Disable' : 'Enable'}
+                                      {floatingWidgets.adminPanel.visible ? 'Disable' : 'Enable'}
                         </WButton>
                       </div>
                     </div>

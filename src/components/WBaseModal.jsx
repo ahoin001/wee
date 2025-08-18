@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Dialog, Transition } from '@headlessui/react';
 import Button from '../ui/WButton';
@@ -17,16 +17,18 @@ function WBaseModal({
   useEffect(() => {
     if (isOpen) {
       setIsAnimating(true);
+    } else {
+      setIsAnimating(false);
     }
   }, [isOpen]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsAnimating(false);
     // Wait for close animation to complete
     setTimeout(() => {
       onClose();
     }, 300);
-  };
+  }, [onClose]);
 
   return (
     <Transition appear show={isOpen} as={Fragment}>

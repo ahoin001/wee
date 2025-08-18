@@ -1,33 +1,28 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSpotifyStore } from '../utils/useSpotifyStore';
-import useApiIntegrationsStore from '../utils/useApiIntegrationsStore';
-import useFloatingWidgetStore from '../utils/useFloatingWidgetStore';
+import { useSpotifyState } from '../utils/useConsolidatedAppHooks';
 import WToggle from '../ui/WToggle';
 import Slider from '../ui/Slider';
 import './FloatingSpotifyWidget.css';
 
 const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
+  const { spotify, spotifyManager } = useSpotifyState();
   const {
+    isConnected,
     currentTrack,
     isPlaying,
-    playlists,
-    savedTracks,
-    searchResults,
-    isLoading,
-    togglePlayback,
-    skipToNext,
-    skipToPrevious,
-    seekToPosition,
-    refreshPlaybackState,
-    searchTracks,
-    loadPlaylists,
-    loadSavedTracks,
-    playTrack,
-    playPlaylist
-  } = useSpotifyStore();
+    volume,
+    deviceId,
+    error,
+    loading
+  } = spotify;
 
-  const { spotify, updateSpotifySettings } = useApiIntegrationsStore();
-  const { spotifyPosition, setSpotifyPosition } = useFloatingWidgetStore();
+  // Mock state for compatibility
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playlists, setPlaylists] = useState([]);
+  const [savedTracks, setSavedTracks] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [spotifyPosition, setSpotifyPosition] = useState({ x: 100, y: 100 });
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });

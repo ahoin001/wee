@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
 import WButton from '../ui/WButton';
-import useSettingsStore from '../utils/settingsManager';
+// import useSettingsStore from '../utils/settingsManager';
 import './AdminPanelWidget.css';
 
 const AdminPanelWidget = ({ isVisible, onClose }) => {

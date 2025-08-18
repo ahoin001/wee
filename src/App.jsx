@@ -1,2836 +1,558 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
-import ChannelModal from './components/ChannelModal';
-import PaginatedChannels from './components/PaginatedChannels';
-import PageNavigation from './components/PageNavigation';
-import usePageNavigationStore from './utils/usePageNavigationStore';
-import WiiSideNavigation from './components/WiiSideNavigation';
-import HomeButton from './components/HomeButton';
-import NotificationsButton from './components/NotificationsButton';
-import WiiRibbon from './components/WiiRibbon';
-import ClassicWiiDock from './components/ClassicWiiDock';
-import ClassicDockSettingsModal from './components/ClassicDockSettingsModal';
-import PrimaryActionsModal from './components/PrimaryActionsModal';
-import WallpaperModal from './components/WallpaperModal';
-import useClassicDockStore from './utils/useClassicDockStore';
-import useUpdateNotificationStore, { getUpdateNotificationManager } from './utils/updateNotificationManager';
-import WallpaperOverlay from './components/WallpaperOverlay';
-import NavigationCustomizationModal from './components/NavigationCustomizationModal';
-import GeneralSettingsModal from './components/GeneralSettingsModal';
-import TimeSettingsModal from './components/TimeSettingsModal';
-import RibbonSettingsModal from './components/RibbonSettingsModal';
-import UpdateModal from './components/UpdateModal';
-import UpdateNotificationBadge from './components/UpdateNotificationBadge';
-import SoundModal from './components/SoundModal';
-import ChannelSettingsModal from './components/ChannelSettingsModal';
-import AppShortcutsModal from './components/AppShortcutsModal';
-import AppearanceSettingsModal from './components/AppearanceSettingsModal';
-import AuthModal from './components/AuthModal';
-import CountdownOverlay from './components/CountdownOverlay';
-import './App.css';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
+import useWallpaperCycling from './utils/useWallpaperCycling';
+import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen from './components/SplashScreen';
-import PresetsModal from './components/PresetsModal';
-import audioManager from './utils/AudioManager';
-import intervalManager from './utils/IntervalManager';
-import useAppLibraryStore from './utils/useAppLibraryStore';
-import useUIStore from './utils/useUIStore';
-import useMonitorStore from './utils/useMonitorStore';
-import Text from './ui/Text';
-import useChannelStore from './utils/useChannelStore';
-import useAppearanceSettingsStore from './utils/useAppearanceSettingsStore';
-import useAuthModalStore from './utils/useAuthModalStore';
-import useUnifiedAppStore from './utils/useUnifiedAppStore';
-import useFloatingWidgetStore from './utils/useFloatingWidgetStore';
-import useApiIntegrationsStore from './utils/useApiIntegrationsStore';
-import AdminPanel from './components/AdminPanel';
-import ConfirmationModal from './components/ConfirmationModal';
-import LoadingSpinner from './components/LoadingSpinner';
-import FloatingSpotifyWidget from './components/FloatingSpotifyWidget';
-import SystemInfoWidget from './components/SystemInfoWidget';
-import AdminPanelWidget from './components/AdminPanelWidget';
+import WallpaperOverlay from './components/WallpaperOverlay';
 
-// Import the settings manager
-import useSettingsStore from './utils/settingsManager';
-
-// Lazy load heavy modals
-const LazyPresetsModal = React.lazy(() => import('./components/PresetsModal'));
-const LazyAppearanceSettingsModal = React.lazy(() => import('./components/AppearanceSettingsModal'));
+// Lazy load components to reduce initial bundle size
+const LazyPaginatedChannels = React.lazy(() => import('./components/PaginatedChannels'));
+const LazyPageNavigation = React.lazy(() => import('./components/PageNavigation'));
+const LazyWiiRibbon = React.lazy(() => import('./components/WiiRibbon'));
+const LazyClassicWiiDock = React.lazy(() => import('./components/ClassicWiiDock'));
+const LazyWiiSideNavigation = React.lazy(() => import('./components/WiiSideNavigation'));
+const LazySettingsModal = React.lazy(() => import('./components/SettingsModal'));
+const LazySettingsActionMenu = React.lazy(() => import('./components/SettingsActionMenu'));
 
 
-const LazyPrimaryActionsModal = React.lazy(() => import('./components/PrimaryActionsModal'));
-const LazyChannelModal = React.lazy(() => import('./components/ChannelModal'));
-const LazyWallpaperModal = React.lazy(() => import('./components/WallpaperModal'));
-const LazySoundModal = React.lazy(() => import('./components/SoundModal'));
-const LazyChannelSettingsModal = React.lazy(() => import('./components/ChannelSettingsModal'));
-const LazyAppShortcutsModal = React.lazy(() => import('./components/AppShortcutsModal'));
-const LazyAuthModal = React.lazy(() => import('./components/AuthModal'));
-const LazyUpdateModal = React.lazy(() => import('./components/UpdateModal'));
-const LazyGeneralSettingsModal = React.lazy(() => import('./components/GeneralSettingsModal'));
-const LazyTimeSettingsModal = React.lazy(() => import('./components/TimeSettingsModal'));
-const LazyRibbonSettingsModal = React.lazy(() => import('./components/RibbonSettingsModal'));
-const LazyClassicDockSettingsModal = React.lazy(() => import('./components/ClassicDockSettingsModal'));
-const LazyNavigationCustomizationModal = React.lazy(() => import('./components/NavigationCustomizationModal'));
-const LazyMonitorSelectionModal = React.lazy(() => import('./components/MonitorSelectionModal'));
-const LazyImageSearchModal = React.lazy(() => import('./components/ImageSearchModal'));
-const LazyAdminPanel = React.lazy(() => import('./components/AdminPanel'));
-
-
-// Safe fallback for modular APIs
-const soundsApi = window.api?.sounds || {
-  get: async () => ({}),
-  set: async () => {},
-  reset: async () => {},
-};
-const wallpapersApi = window.api?.wallpapers || {
-  get: async () => ({}),
-  set: async () => {},
-  reset: async () => {},
-};
-const channelsApi = window.api?.channels || {
-  get: async () => ({}),
-  set: async () => {},
-  reset: async () => {},
-};
-const resetAllApi = window.api?.resetAll || (async () => {});
-
-// Replace all soundsApi.get/set for general settings with settingsApi.get/set
-const settingsApi = window.api?.settings || {
-  get: async () => ({}),
-  set: async () => {},
-};
-
-function WiiCursor() {
-  const cursorRef = useRef(null);
-  const isHoveringRef = useRef(false);
-  const animationFrameRef = useRef(null);
-
-  useEffect(() => {
-    const cursor = cursorRef.current;
-    if (!cursor) return;
-
-    let lastX = 0;
-    let lastY = 0;
-    let isHovering = false;
-
-    // Throttled mouse move handler using requestAnimationFrame
-    const handleMouseMove = (e) => {
-      if (animationFrameRef.current) return; // Skip if already scheduled
-      
-      animationFrameRef.current = requestAnimationFrame(() => {
-        const x = e.clientX;
-        const y = e.clientY;
-        
-        // Only update if position actually changed (prevents unnecessary DOM updates)
-        if (x !== lastX || y !== lastY) {
-          cursor.style.transform = `translate(${x}px, ${y}px)`;
-          lastX = x;
-          lastY = y;
-        }
-        
-        animationFrameRef.current = null;
-      });
-    };
-
-    // Optimized hover detection using event delegation
-    const handleMouseOver = (e) => {
-      const target = e.target;
-      const shouldHover = target.closest('.channel, .circular-button, .context-menu-item');
-      
-      if (shouldHover !== isHovering) {
-        isHovering = shouldHover;
-        isHoveringRef.current = isHovering;
-        
-        if (isHovering) {
-          cursor.classList.add('hover');
-      } else {
-          cursor.classList.remove('hover');
-        }
-      }
-    };
-
-    // Use passive listeners for better performance
-    document.addEventListener('mousemove', handleMouseMove, { passive: true });
-    document.addEventListener('mouseover', handleMouseOver, { passive: true });
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseover', handleMouseOver);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, []);
-
-  return (
-    <div 
-      ref={cursorRef}
-      className="wii-cursor"
-    />
-  );
-}
 
 function App() {
-  // Zustand stores
-  const { 
-    channels, 
-    setChannel, 
-    getChannelConfig, 
-    isChannelEmpty, 
-    getConfiguredChannels, 
-    getChannelDataForComponents,
-    setChannelsFromPreset,
-    clearAllChannels,
-    backupUserChannels,
-    restoreUserChannels,
-    hasUserBackup,
-    clearUserBackup,
-    modalState,
-    openChannelModal,
-    closeChannelModal,
-    updateChannelModal
-  } = useChannelStore();
-  
-  const { 
-    isOpen: isAuthModalOpen, 
-    openModal: openAuthModal, 
-    closeModal: closeAuthModal 
-  } = useAuthModalStore();
-  
-  const { 
-    isOpen: isAppearanceSettingsOpen, 
-    openModal: openAppearanceSettings, 
-    closeModal: closeAppearanceSettings 
-  } = useAppearanceSettingsStore();
-  
-  const { 
-    displays, 
-    currentDisplay, 
-    initialize: initializeMonitors 
-  } = useMonitorStore();
-  
-  const { 
-    unifiedApps, 
-    rescanUnifiedApps 
-  } = useUnifiedAppStore();
-  
-  const { 
-    appLibrary
-  } = useAppLibraryStore();
-  
-  // Floating widget store
-  // Get widget states from settings manager
+  // Use consolidated store for single source of truth
   const {
-    floatingWidgets,
-    apiIntegrations,
-    toggleSpotifyWidget,
-    toggleSystemInfoWidget,
-    toggleAdminPanelWidget,
-    hideSpotifyWidget,
-    hideSystemInfoWidget,
-    hideAdminPanelWidget,
-  } = useSettingsStore();
-
-
-  
-  // UI Store for global keyboard shortcuts and modal management
-  const { 
-    handleGlobalKeyPress,
-    showPresetsModal,
-    showWallpaperModal, 
-    showSoundModal,
-    showChannelSettingsModal,
-    showAppShortcutsModal,
-    showGeneralSettingsModal,
-    showTimeSettingsModal,
-    showRibbonSettingsModal,
-    showUpdateModal,
-    showPrimaryActionsModal,
-    showAppearanceSettingsModal,
-  
-  
-    showImageSearchModal,
-    imageSearchModalData,
-    showNavigationCustomizationModal,
-    showMonitorSelectionModal,
-  
-    openSoundModal,
-    openAppearanceSettingsModal,
-    closePresetsModal,
-    closeWallpaperModal,
-    closeSoundModal,
-    closeChannelSettingsModal,
-    closeAppShortcutsModal,
-    closeGeneralSettingsModal,
-    closeTimeSettingsModal,
-    closeRibbonSettingsModal,
-    closeUpdateModal,
-    closePrimaryActionsModal,
-    closeAppearanceSettingsModal,
-  
-  
-    closeImageSearchModal,
-    closeNavigationCustomizationModal,
-    closeMonitorSelectionModal,
-  
-    loadKeyboardShortcuts
-  } = useUIStore();
-  
-  // Monitor store for multi-monitor support
-  const { 
-    initialize: initializeMonitorStore, 
-    loadMonitorSpecificData 
-  } = useMonitorStore();
-  
-  // Channel state now managed by Zustand store
-  const [presets, setPresets] = useState([]);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [useCustomCursor, setUseCustomCursor] = useState(true);
-  const [soundSettings, setSoundSettings] = useState(null);
-  const [backgroundAudio, setBackgroundAudio] = useState(null);
-  const backgroundAudioRef = useRef(null);
-  const [showDragRegion, setShowDragRegion] = useState(false);
-  // Remove barType, defaultBarType, and related state
-  const [glassWiiRibbon, setGlassWiiRibbon] = useState(false);
-  const [glassOpacity, setGlassOpacity] = useState(0.18);
-  const [glassBlur, setGlassBlur] = useState(2.5);
-  const [glassBorderOpacity, setGlassBorderOpacity] = useState(0.5);
-  const [glassShineOpacity, setGlassShineOpacity] = useState(0.7);
-  const [animatedOnHover, setAnimatedOnHover] = useState(false);
-  const [startInFullscreen, setStartInFullscreen] = useState(true);
-  const [wallpaper, setWallpaper] = useState(null);
-  const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
-  const [nextWallpaper, setNextWallpaper] = useState(null); // For smooth transitions
-  const [isTransitioning, setIsTransitioning] = useState(false); // Track transition state
-  const [slideDirection, setSlideDirection] = useState('right'); // 'left', 'right', 'up', 'down'
-  const [crossfadeProgress, setCrossfadeProgress] = useState(0); // Separate state for crossfade
-  const [slideProgress, setSlideProgress] = useState(0); // Separate state for slide
-  const [savedWallpapers, setSavedWallpapers] = useState([]);
-  const [likedWallpapers, setLikedWallpapers] = useState([]);
-  const [cycleWallpapers, setCycleWallpapers] = useState(false);
-  const [cycleInterval, setCycleInterval] = useState(30);
-  const [cycleAnimation, setCycleAnimation] = useState('fade');
-  const [crossfadeDuration, setCrossfadeDuration] = useState(1.2);
-  const [crossfadeEasing, setCrossfadeEasing] = useState('ease-out');
-  const [slideRandomDirection, setSlideRandomDirection] = useState(false);
-  const [slideDuration, setSlideDuration] = useState(1.5);
-  const [slideEasing, setSlideEasing] = useState('ease-out');
-  // showWallpaperModal now managed by useUIStore
-  const cycleTimeoutRef = useRef();
-  const lastMusicIdRef = useRef(null);
-  const lastMusicUrlRef = useRef(null);
-  const lastMusicEnabledRef = useRef(false);
-  const lastBgmEnabledRef = useRef(true);
-  const lastPlaylistModeRef = useRef(false);
-  const currentWallpaperRef = useRef(null); // Track current wallpaper to prevent re-creation
-  // Remove toast state and logic
-  // const [toast, setToast] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [splashFading, setSplashFading] = useState(false);
-  const [appReady, setAppReady] = useState(false);
-  const [timeColor, setTimeColor] = useState('#ffffff'); // Time display color
-  const [recentTimeColors, setRecentTimeColors] = useState([]); // Time color history
-  const [timeFormat24hr, setTimeFormat24hr] = useState(false); // Time format (24hr/12hr)
-  const [enableTimePill, setEnableTimePill] = useState(true); // Time pill enabled
-  const [timePillBlur, setTimePillBlur] = useState(8); // Time pill backdrop blur
-  const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Time pill background opacity
-  const [channelAutoFadeTimeout, setChannelAutoFadeTimeout] = useState(5); // Channel auto-fade timeout
-  const [ribbonButtonConfigs, setRibbonButtonConfigs] = useState([]); // Track ribbon button configs
-  const [presetsButtonConfig, setPresetsButtonConfig] = useState({ type: 'icon', icon: 'star', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }); // Track presets button config
-  const [showPresetsButton, setShowPresetsButton] = useState(false); // Show/hide presets button, disabled by default
-  const [startOnBoot, setStartOnBoot] = useState(false); // Launch on startup
-  const [immersivePip, setImmersivePip] = useState(false); // Immersive PiP mode
-  const [showDock, setShowDock] = useState(true); // Show/hide the Wii Ribbon dock
-  const [classicMode, setClassicMode] = useState(false); // Classic Mode toggle
-  const [showAdminMenu, setShowAdminMenu] = useState(false);
-  
-  // Particle effects settings
-  const [particleSettings, setParticleSettings] = useState({
-    enabled: false,
-    effectType: 'normal',
-    direction: 'upward',
-    speed: 2,
-    particleCount: 3,
-    spawnRate: 60,
-    size: 3,
-    gravity: 0.02,
-    fadeSpeed: 0.008,
-    sizeDecay: 0.02,
-    useAdaptiveColor: false,
-    colorIntensity: 1.0,
-    colorVariation: 0.3,
-    rotationSpeed: 0.05,
-    particleLifetime: 3.0
-  });
-  const [showCountdown, setShowCountdown] = useState(false);
-  const [isScreenshotInProgress, setIsScreenshotInProgress] = useState(false);
-  
-  // Screenshot function that will be called after countdown
-  const handleTakeScreenshot = async () => {
-    try {
-      console.log('Taking screenshot...');
-      const result = await window.api.takeScreenshot();
-      if (result.success) {
-        // Show success message instead of opening folder
-        console.log('Screenshot saved successfully:', result.filePath);
-        // Optionally show a toast notification here if you have one
-      } else if (result.error !== 'Save cancelled by user') {
-        console.error('Screenshot failed:', result.error);
-      }
-    } catch (error) {
-      console.error('Screenshot error:', error);
-    }
-  };
-  
-  // Modal states for when dock is hidden
-  // These modals are now managed by Zustand store
-  // const [showGeneralModal, setShowGeneralModal] = useState(false);
-  // const [showTimeSettingsModal, setShowTimeSettingsModal] = useState(false);
-  // const [showRibbonSettingsModal, setShowRibbonSettingsModal] = useState(false);
-  // const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  
-  const currentTimeColorRef = useRef('#ffffff');
-  const currentTimeFormatRef = useRef(true);
-  const [lastChannelHoverTime, setLastChannelHoverTime] = useState(Date.now());
-  const [channelOpacity, setChannelOpacity] = useState(1);
-  const fadeTimeoutRef = useRef(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
-  // Add ribbonColor state
-  const [ribbonColor, setRibbonColor] = useState('#e0e6ef');
-  // Add recentRibbonColors state
-  const [recentRibbonColors, setRecentRibbonColors] = useState([]);
-  // Add ribbonGlowColor and recentRibbonGlowColors state
-  const [ribbonGlowColor, setRibbonGlowColor] = useState('#0099ff');
-  const [recentRibbonGlowColors, setRecentRibbonGlowColors] = useState([]);
-  // Add ribbonGlowStrength and ribbonGlowStrengthHover state
-  const [ribbonGlowStrength, setRibbonGlowStrength] = useState(16);
-  const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(20);
-  const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
-  const [wallpaperBlur, setWallpaperBlur] = useState(0);
-  
-  // Overlay effect settings
-  const [overlayEnabled, setOverlayEnabled] = useState(false);
-  const [overlayEffect, setOverlayEffect] = useState('snow');
-  const [overlayIntensity, setOverlayIntensity] = useState(50);
-  const [overlaySpeed, setOverlaySpeed] = useState(1);
-  const [overlayWind, setOverlayWind] = useState(0.02);
-  const [overlayGravity, setOverlayGravity] = useState(0.1);
-  
-  const [timeFont, setTimeFont] = useState('default'); // Add this to state
-  const [channelAnimation, setChannelAnimation] = useState(null); // Add to app state
-  const [adaptiveEmptyChannels, setAdaptiveEmptyChannels] = useState(true);
-  
-  // Idle channel animation settings
-  const [idleAnimationEnabled, setIdleAnimationEnabled] = useState(false);
-  const [idleAnimationTypes, setIdleAnimationTypes] = useState(['pulse', 'bounce', 'glow']);
-  const [idleAnimationInterval, setIdleAnimationInterval] = useState(8);
-  
-  // Ken Burns settings
-  const [kenBurnsEnabled, setKenBurnsEnabled] = useState(false);
-  const [kenBurnsMode, setKenBurnsMode] = useState('hover');
-  
-  // Advanced Ken Burns settings
-  const [kenBurnsHoverScale, setKenBurnsHoverScale] = useState(1.1);
-  const [kenBurnsAutoplayScale, setKenBurnsAutoplayScale] = useState(1.15);
-  const [kenBurnsSlideshowScale, setKenBurnsSlideshowScale] = useState(1.08);
-  const [kenBurnsHoverDuration, setKenBurnsHoverDuration] = useState(8000);
-  const [kenBurnsAutoplayDuration, setKenBurnsAutoplayDuration] = useState(12000);
-  const [kenBurnsSlideshowDuration, setKenBurnsSlideshowDuration] = useState(10000);
-  const [kenBurnsCrossfadeDuration, setKenBurnsCrossfadeDuration] = useState(1000);
-  
-  // Ken Burns media type support
-  const [kenBurnsForGifs, setKenBurnsForGifs] = useState(false);
-  const [kenBurnsForVideos, setKenBurnsForVideos] = useState(false);
-  
-  // Ken Burns animation easing
-  const [kenBurnsEasing, setKenBurnsEasing] = useState('ease-out');
-  const [kenBurnsAnimationType, setKenBurnsAnimationType] = useState('both');
-  const [kenBurnsCrossfadeReturn, setKenBurnsCrossfadeReturn] = useState(true);
-  const [kenBurnsTransitionType, setKenBurnsTransitionType] = useState('cross-dissolve');
-
-  // Classic Dock Settings
-  const [dockSettings, setDockSettings] = useState({
-    dockBaseGradientStart: '#BDBEC2',
-    dockBaseGradientEnd: '#DADDE6',
-    dockAccentColor: '#33BEED',
-    sdCardBodyColor: '#B9E1F2',
-    sdCardBorderColor: '#33BEED',
-    sdCardLabelColor: 'white',
-    sdCardLabelBorderColor: '#F4F0EE',
-    sdCardBottomColor: '#31BEED',
-    leftPodBaseColor: '#D2D3DA',
-    leftPodAccentColor: '#B6B6BB',
-    leftPodDetailColor: '#D7D8DA',
-    rightPodBaseColor: '#DCDCDF',
-    rightPodAccentColor: '#E4E4E4',
-    rightPodDetailColor: '#B6B6BB',
-    buttonBorderColor: '#22BEF3',
-    buttonGradientStart: '#E0DCDC',
-    buttonGradientEnd: '#CBCBCB',
-    buttonIconColor: '#979796',
-    rightButtonIconColor: '#A4A4A4',
-    buttonHighlightColor: '#E4E4E4',
-    glassEnabled: false,
-    glassOpacity: 0.18,
-    glassBlur: 2.5,
-    glassBorderOpacity: 0.5,
-    glassShineOpacity: 0.7,
-    sdCardIcon: 'default',
-    dockScale: 1.0,
-    buttonSize: 1.0,
-    sdCardSize: 1.0,
-    recentColors: []
-  });
-  const [showClassicDockSettingsModal, setShowClassicDockSettingsModal] = useState(false);
-
-  // Classic Dock Button Configurations - using Zustand store
-  const {
-    classicDockButtonConfigs,
-    accessoryButtonConfig,
-    activeButtonIndex,
-    setClassicDockButtonConfigs,
-    setAccessoryButtonConfig,
-    setActiveButtonIndex,
-    loadConfigurations,
-    getConfigurationsForPersistence
-  } = useClassicDockStore();
-
-  // Update notification state
-  const {
-    showUpdateBadge,
-    updateAvailable: notificationUpdateAvailable,
-    updateInfo,
-    dismissNotification,
-    onUpdateInstalled
-  } = useUpdateNotificationStore();
-
-
-
-  const [cachedSteamGames, setCachedSteamGames] = useState([]);
-  const [cachedInstalledApps, setCachedInstalledApps] = useState([]);
-  const [steamGamesLoading, setSteamGamesLoading] = useState(false);
-  const [installedAppsLoading, setInstalledAppsLoading] = useState(false);
-  const [steamGamesError, setSteamGamesError] = useState('');
-  const [installedAppsError, setInstalledAppsError] = useState('');
-
-  // Rescan Steam games
-  const rescanSteamGames = async (customSteamPath) => {
-    setSteamGamesLoading(true);
-    setSteamGamesError('');
-    try {
-      const api = window.api?.steam;
-      const args = customSteamPath ? { customPath: customSteamPath } : undefined;
-      const result = await api.getInstalledGames(args);
-      if (result.error) {
-        setCachedSteamGames([]);
-        setSteamGamesError(result.error);
-      } else {
-        setCachedSteamGames(result.games || []);
-      }
-    } catch (err) {
-      setCachedSteamGames([]);
-      setSteamGamesError(err.message || 'Failed to scan games.');
-    } finally {
-      setSteamGamesLoading(false);
-    }
-  };
-
-  // Rescan installed apps
-  const rescanInstalledAppsLocal = async () => {
-    setInstalledAppsLoading(true);
-    setInstalledAppsError('');
-    try {
-      const api = window.api?.apps;
-      const apps = await api.getInstalled();
-      setCachedInstalledApps(apps || []);
-    } catch (err) {
-      setCachedInstalledApps([]);
-      setInstalledAppsError(err.message || 'Failed to scan apps.');
-    } finally {
-      setInstalledAppsLoading(false);
-    }
-  };
-
-  // Preset handlers (must be inside App)
-  const handleSavePreset = async (name, includeChannels = false, includeSounds = false, importedData = null) => {
-    console.log('[App] handleSavePreset called with:', { name, includeChannels, includeSounds, importedData });
-    
-    try {
-      // Get current settings
-      const currentSettings = {
-        // ... existing settings ...
-        timeColor,
-        timeFormat24hr,
-        enableTimePill,
-        timePillBlur,
-        timePillOpacity,
-        channelAutoFadeTimeout,
-        animatedOnHover,
-        classicMode,
-        crossfadeDuration,
-        crossfadeEasing,
-        cycleAnimation,
-        cycleInterval,
-        cycleWallpapers,
-        glassBlur,
-        glassBorderOpacity,
-        glassOpacity,
-        glassShineOpacity,
-        glassWiiRibbon,
-        immersivePip,
-        likedWallpapers,
-        presetsButtonConfig,
-        recentRibbonColors,
-        recentRibbonGlowColors,
-        ribbonButtonConfigs,
+    app: { appReady, isLoading, splashFading },
+        ui: {
+      isDarkMode,
+      useCustomCursor,
+      cursorStyle,
+      startInFullscreen,
+      showDock,
+      classicMode,
+      showSettingsModal,
+      settingsActiveTab,
+      showSettingsActionMenu
+    },
+    ribbon: {
         ribbonColor,
-        ribbonDockOpacity,
         ribbonGlowColor,
         ribbonGlowStrength,
         ribbonGlowStrengthHover,
-        savedWallpapers,
-        showDock,
-        showPresetsButton,
-        slideDuration,
-        slideEasing,
-        slideRandomDirection,
-        soundSettings,
-        startInFullscreen,
-        startOnBoot,
-        useCustomCursor,
-        wallpaper,
-        wallpaperOpacity
-      };
-
-      // Include channel data if requested and not importing
-      if (!importedData && includeChannels) {
-        // Get channel data from store
-        const { getConfiguredChannels } = useChannelStore.getState();
-        const configuredChannels = getConfiguredChannels();
-        
-        if (configuredChannels.length > 0) {
-          // Create a clean channel data structure
-          const channelData = {};
-          configuredChannels.forEach(([channelId, config]) => {
-            channelData[channelId] = config;
-          });
-          
-          currentSettings.channelData = channelData;
-        }
-      }
-
-      // Include sound library if requested
-      if (includeSounds) {
-        const currentSoundLibrary = await soundsApi?.getLibrary();
-        if (currentSoundLibrary) {
-          currentSettings.soundLibrary = currentSoundLibrary;
-        }
-      }
-
-      const newPreset = {
-        name,
-        data: currentSettings,
-        timestamp: Date.now()
-      };
-
-      setPresets(prev => [...prev, newPreset]);
-      console.log('[App] Saved preset with ribbon settings:', {
-        ribbonColor: newPreset.data.ribbonColor,
-        ribbonGlowColor: newPreset.data.ribbonGlowColor,
-        ribbonGlowStrength: newPreset.data.ribbonGlowStrength,
-        ribbonGlowStrengthHover: newPreset.data.ribbonGlowStrengthHover,
-        recentRibbonColors: newPreset.data.recentRibbonColors,
-        recentRibbonGlowColors: newPreset.data.recentRibbonGlowColors,
-        ribbonDockOpacity: newPreset.data.ribbonDockOpacity
-      });
-      
-    } catch (error) {
-      console.error('[App] Error saving preset:', error);
+        ribbonDockOpacity,
+      glassWiiRibbon,
+      glassOpacity,
+      glassBlur,
+      glassBorderOpacity,
+      glassShineOpacity,
+        ribbonButtonConfigs,
+      presetsButtonConfig
+    },
+    wallpaper: {
+      current,
+      next,
+      opacity,
+      blur,
+        isTransitioning,
+        crossfadeProgress,
+        slideProgress,
+      slideDirection,
+        cycleAnimation,
+      cycleInterval
+    },
+    overlay: {
+      enabled,
+      effect,
+      intensity,
+      speed,
+      wind,
+      gravity
+    },
+    time: {
+      timeColor,
+      recentTimeColors,
+      timeFormat24hr,
+      enableTimePill,
+      timePillBlur,
+      timePillOpacity,
+      timeFont
     }
-  };
-  const handleDeletePreset = (name) => {
-    // Direct deletion since confirmation is already handled in PresetsModal
-    setPresets(prev => prev.filter(p => p.name !== name));
-  };
-  const handleImportPresets = (newPresets) => {
-    setPresets(prev => {
-      // If newPresets is an array, add them to existing presets
-      if (Array.isArray(newPresets)) {
-        // Filter out any presets that already exist (by name)
-        const existingNames = prev.map(p => p.name);
-        const uniqueNewPresets = newPresets.filter(p => !existingNames.includes(p.name));
-        return [...prev, ...uniqueNewPresets];
-      }
-      // If it's a single preset, add it if it doesn't exist
-      else if (newPresets && typeof newPresets === 'object') {
-        const exists = prev.some(p => p.name === newPresets.name);
-        if (!exists) {
-          return [...prev, newPresets];
-        }
-      }
-      return prev;
-    });
-  };
+  } = useConsolidatedAppStore();
 
-  const handleReorderPresets = (reorderedPresets) => {
-    setPresets(reorderedPresets);
-  };
-  const handleApplyPreset = async (preset) => {
-    console.log('[App] handleApplyPreset called with preset:', preset);
-    console.log('[App] Preset structure check:', {
-      hasData: !!preset.data,
-      hasSettings: !!preset.settings,
-      dataKeys: preset.data ? Object.keys(preset.data) : 'no data',
-      settingsKeys: preset.settings ? Object.keys(preset.settings) : 'no settings',
-      timeColorFromData: preset.data?.timeColor,
-      timeColorFromSettings: preset.settings?.timeColor
-    });
+  // Initialize wallpaper cycling
+  const {
+    isCycling,
+    isTransitioning: cyclingTransitioning,
+    currentWallpaper,
+    nextWallpaper,
+    cycleToNextWallpaper
+  } = useWallpaperCycling();
+
+  // Actions from consolidated store
+  const {
+    actions: { 
+      setAppState, 
+      setUIState, 
+      setRibbonState, 
+      setWallpaperState, 
+      setChannelState,
+      setOverlayState,
+      setTimeState,
+      setPresets
+    }
+  } = useConsolidatedAppStore();
+
+  // Settings action menu state and positioning
+  const [settingsMenuPosition, setSettingsMenuPosition] = useState({ x: 0, y: 0 });
+  
+  // Ref to access SettingsActionMenu's handleClose method
+  const settingsActionMenuRef = useRef(null);
+  
+  // Define closeSettingsActionMenu function
+  const closeSettingsActionMenu = useCallback(() => {
+    setUIState({ showSettingsActionMenu: false });
+  }, [setUIState]);
+
+  // Handle settings action menu positioning
+  const handleSettingsActionMenuOpen = useCallback(() => {
+    // Use modal-style centering - no need to calculate position manually
+    setSettingsMenuPosition({ x: 0, y: 0 }); // Will be centered by CSS
+    setUIState({ showSettingsActionMenu: true });
+  }, [setUIState]);
+
+  // Debug function to open developer tools
+  const openDevTools = useCallback(() => {
+    console.log('[DEBUG] 🔧 Attempting to open DevTools...');
+    console.log('[DEBUG] 🔧 window.api available:', !!window.api);
+    console.log('[DEBUG] 🔧 window.api.openDevTools available:', !!window.api?.openDevTools);
+    console.log('[DEBUG] 🔧 window.api.forceDevTools available:', !!window.api?.forceDevTools);
     
-    try {
-      const d = preset.data;
-      
-      // Apply basic settings
-      if (d.timeColor !== undefined) setTimeColor(d.timeColor);
-      if (d.timeFormat24hr !== undefined) setTimeFormat24hr(d.timeFormat24hr);
-      if (d.enableTimePill !== undefined) setEnableTimePill(d.enableTimePill);
-      if (d.timePillBlur !== undefined) setTimePillBlur(d.timePillBlur);
-      if (d.timePillOpacity !== undefined) setTimePillOpacity(d.timePillOpacity);
-      if (d.channelAutoFadeTimeout !== undefined) setChannelAutoFadeTimeout(d.channelAutoFadeTimeout);
-      if (d.ribbonButtonConfigs !== undefined) setRibbonButtonConfigs(d.ribbonButtonConfigs);
-      if (d.presetsButtonConfig !== undefined) setPresetsButtonConfig(d.presetsButtonConfig);
-      if (d.showPresetsButton !== undefined) setShowPresetsButton(d.showPresetsButton);
-      if (d.startOnBoot !== undefined) setStartOnBoot(d.startOnBoot);
-      if (d.immersivePip !== undefined) setImmersivePip(d.immersivePip);
-      if (d.showDock !== undefined) setShowDock(d.showDock);
-      if (d.classicMode !== undefined) setClassicMode(d.classicMode);
-      if (d.glassWiiRibbon !== undefined) setGlassWiiRibbon(d.glassWiiRibbon);
-      if (d.glassOpacity !== undefined) setGlassOpacity(d.glassOpacity);
-      if (d.glassBlur !== undefined) setGlassBlur(d.glassBlur);
-      if (d.glassBorderOpacity !== undefined) setGlassBorderOpacity(d.glassBorderOpacity);
-      if (d.glassShineOpacity !== undefined) setGlassShineOpacity(d.glassShineOpacity);
-      if (d.animatedOnHover !== undefined) setAnimatedOnHover(d.animatedOnHover);
-      if (d.startInFullscreen !== undefined) setStartInFullscreen(d.startInFullscreen);
-      
-      // Apply ribbon color and glow settings
-      if (d.ribbonColor !== undefined) {
-        console.log('[App] Applying ribbon color:', d.ribbonColor);
-        setRibbonColor(d.ribbonColor);
-      }
-      if (d.ribbonGlowColor !== undefined) {
-        console.log('[App] Applying ribbon glow color:', d.ribbonGlowColor);
-        setRibbonGlowColor(d.ribbonGlowColor);
-      }
-      if (d.ribbonGlowStrength !== undefined) {
-        console.log('[App] Applying ribbon glow strength:', d.ribbonGlowStrength);
-        setRibbonGlowStrength(d.ribbonGlowStrength);
-      }
-      if (d.ribbonGlowStrengthHover !== undefined) {
-        console.log('[App] Applying ribbon glow strength hover:', d.ribbonGlowStrengthHover);
-        setRibbonGlowStrengthHover(d.ribbonGlowStrengthHover);
-      }
-      if (d.recentRibbonColors !== undefined) {
-        console.log('[App] Applying recent ribbon colors:', d.recentRibbonColors);
-        setRecentRibbonColors(d.recentRibbonColors);
-      }
-      if (d.recentRibbonGlowColors !== undefined) {
-        console.log('[App] Applying recent ribbon glow colors:', d.recentRibbonGlowColors);
-        setRecentRibbonGlowColors(d.recentRibbonGlowColors);
-      }
-      
-      // Apply glass effect settings
-      if (d.glassWiiRibbon !== undefined) {
-        console.log('[App] Applying glass Wii ribbon:', d.glassWiiRibbon);
-        setGlassWiiRibbon(d.glassWiiRibbon);
-      }
-      if (d.glassOpacity !== undefined) {
-        console.log('[App] Applying glass opacity:', d.glassOpacity);
-        setGlassOpacity(d.glassOpacity);
-      }
-      if (d.glassBlur !== undefined) {
-        console.log('[App] Applying glass blur:', d.glassBlur);
-        setGlassBlur(d.glassBlur);
-      }
-      if (d.glassBorderOpacity !== undefined) {
-        console.log('[App] Applying glass border opacity:', d.glassBorderOpacity);
-        setGlassBorderOpacity(d.glassBorderOpacity);
-      }
-      if (d.glassShineOpacity !== undefined) {
-        console.log('[App] Applying glass shine opacity:', d.glassShineOpacity);
-        setGlassShineOpacity(d.glassShineOpacity);
-      }
-      
-      // Apply wallpaper settings
-      if (d.wallpaper !== undefined) {
-        console.log('[App] Applying wallpaper:', d.wallpaper);
-        setWallpaper(d.wallpaper);
-      }
-      if (d.wallpaperOpacity !== undefined) {
-        console.log('[App] Applying wallpaper opacity:', d.wallpaperOpacity);
-        setWallpaperOpacity(d.wallpaperOpacity);
-      }
-      if (d.cycleWallpapers !== undefined) setCycleWallpapers(d.cycleWallpapers);
-      if (d.cycleInterval !== undefined) setCycleInterval(d.cycleInterval);
-      if (d.cycleAnimation !== undefined) setCycleAnimation(d.cycleAnimation);
-      if (d.crossfadeDuration !== undefined) setCrossfadeDuration(d.crossfadeDuration);
-      if (d.crossfadeEasing !== undefined) setCrossfadeEasing(d.crossfadeEasing);
-      if (d.slideRandomDirection !== undefined) setSlideRandomDirection(d.slideRandomDirection);
-      if (d.slideDuration !== undefined) setSlideDuration(d.slideDuration);
-      if (d.slideEasing !== undefined) setSlideEasing(d.slideEasing);
-      if (d.savedWallpapers !== undefined) setSavedWallpapers(d.savedWallpapers);
-      if (d.likedWallpapers !== undefined) setLikedWallpapers(d.likedWallpapers);
-      if (d.useCustomCursor !== undefined) setUseCustomCursor(d.useCustomCursor);
-      if (d.soundSettings !== undefined) setSoundSettings(d.soundSettings);
-      
-      // Apply channel data if present
-      if (d.channelData) {
-        console.log('[App] Applying channel data from preset:', d.channelData);
-        setChannelsFromPreset(d);
-      } else {
-        console.log('[App] No channel data in preset - will restore user channels if available');
-        setChannelsFromPreset(d);
-      }
-      
-      // Apply sound library if present
-      if (d.soundLibrary) {
-        console.log('[App] Applying sound library from preset');
-        await soundsApi?.setLibrary(d.soundLibrary);
-      }
-      
-      console.log('[App] Preset applied successfully');
-      
-    } catch (error) {
-      console.error('[App] Error applying preset:', error);
+    // Log all available window.api methods
+    if (window.api) {
+      console.log('[DEBUG] 🔧 Available window.api methods:', Object.keys(window.api));
     }
-  };
-
-  // Load monitor-specific wallpaper when current display changes
-  useEffect(() => {
-    if (currentDisplay && window.api?.wallpapers) {
-      const loadMonitorWallpaper = async () => {
-        try {
-          const monitorWallpaper = await window.api.wallpapers.getMonitorWallpaper(currentDisplay.id);
-          if (monitorWallpaper) {
-            console.log('[App] Loading monitor-specific wallpaper for:', currentDisplay.id);
-            setWallpaper(monitorWallpaper);
-            setWallpaperOpacity(monitorWallpaper.opacity || 1);
-          }
-        } catch (error) {
-          console.error('[App] Error loading monitor-specific wallpaper:', error);
-        }
-      };
-      
-      loadMonitorWallpaper();
-    }
-  }, [currentDisplay]);
-
-  // On mount, load all modular data
-  useEffect(() => {
-    async function loadAll() {
+    
+    // Try multiple methods
+    const tryOpenDevTools = async () => {
       try {
-        console.log('[APP] Starting application initialization...');
-        
-        // Initialize API integrations
-        const apiIntegrationsStore = useApiIntegrationsStore.getState();
-        await apiIntegrationsStore.initializeConnections();
-        
-        // Load sounds
-        const soundData = await soundsApi.get();
-        setSoundSettings(soundData || {});
-        
-        // Load auto-launch setting
-        if (window.api && window.api.getAutoLaunch) {
-          const autoLaunchEnabled = await window.api.getAutoLaunch();
-          setStartOnBoot(autoLaunchEnabled);
+        // Method 1: Standard openDevTools
+        if (window.api?.openDevTools) {
+          console.log('[DEBUG] 🔧 Trying openDevTools...');
+          const result = await window.api.openDevTools();
+          console.log('[DEBUG] 🔧 openDevTools result:', result);
+          if (result.success) return;
         }
-        // Load wallpapers
-        const wallpaperData = await wallpapersApi.get();
-        // setWallpaper(wallpaperData?.wallpaper || null); // Remove - wallpaper now loaded from general settings
-        setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
-        setSavedWallpapers(wallpaperData?.savedWallpapers || []);
-        setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-        setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
-        setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
-        setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-        setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
-        setCrossfadeDuration(wallpaperData?.cyclingSettings?.crossfadeDuration ?? 1.2);
-        setCrossfadeEasing(wallpaperData?.cyclingSettings?.crossfadeEasing ?? 'ease-out');
-        setSlideRandomDirection(wallpaperData?.cyclingSettings?.slideRandomDirection ?? false);
-        setSlideDuration(wallpaperData?.cyclingSettings?.slideDuration ?? 1.5);
-        setSlideEasing(wallpaperData?.cyclingSettings?.slideEasing ?? 'ease-out');
         
-        // Load overlay settings
-        setOverlayEnabled(wallpaperData?.overlayEnabled ?? false);
-        setOverlayEffect(wallpaperData?.overlayEffect ?? 'snow');
-        setOverlayIntensity(wallpaperData?.overlayIntensity ?? 50);
-        setOverlaySpeed(wallpaperData?.overlaySpeed ?? 1);
-        setOverlayWind(wallpaperData?.overlayWind ?? 0.02);
-        setOverlayGravity(wallpaperData?.overlayGravity ?? 0.1);
-        
-        // Note: showDock is now loaded from general settings API in loadSettings()
-        // to avoid conflicts with ribbon button configs and other general settings
-        
-        // Utility function to validate media URLs
-        const validateMediaUrl = (media) => {
-          if (!media || !media.url) return null;
-          
-          // Check for invalid blob URLs (should not persist after restart)
-          if (media.url.startsWith('blob:')) {
-            console.warn('Found invalid blob URL in saved channel data:', media.url);
-            return null;
-          }
-          
-          // Validate userdata URLs format
-          if (media.url.startsWith('userdata://')) {
-            const validPrefixes = ['userdata://wallpapers/', 'userdata://sounds/', 'userdata://icons/'];
-            const isValidPrefix = validPrefixes.some(prefix => media.url.startsWith(prefix));
-            if (!isValidPrefix) {
-              console.warn('Found invalid userdata URL format:', media.url);
-              return null;
-            }
-          }
-          
-          return media;
-        };
-        
-        // Channel data now managed by Zustand store with automatic persistence
-        // Initialize persistent default channels
-        const { initializeUserDefaultChannels } = useChannelStore.getState();
-        initializeUserDefaultChannels();
-        
-
-        
-        // --- SplashScreen logic ---
-        // Mark app as ready first
-        setAppReady(true);
-        
-        // Initialize monitor system (with delay to ensure APIs are loaded)
-        setTimeout(() => {
-          initializeMonitorStore();
-        }, 100);
-        
-        // Then fade out splash screen
-        setSplashFading(true);
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 800); // match fade-out duration
-      } catch (error) {
-        console.error('[APP] Error during initialization:', error);
-      }
-    }
-    loadAll();
-    
-    // Initialize update notification manager
-    const notificationManager = getUpdateNotificationManager();
-    
-    // Cleanup on unmount
-    return () => {
-      notificationManager.destroy();
-    };
-  }, []);
-
-  // Load homescreen settings and apply to navigation store
-  useEffect(() => {
-    const loadHomescreenSettings = async () => {
-      try {
-        const settings = await settingsApi?.get();
-        if (settings?.homescreen) {
-          const {
-            navigationMode = 'simple',
-            gridColumns = 4,
-            gridRows = 3,
-            peekVisibility = 0.2,
-            slideAnimation = 'slide',
-            preloadAdjacentPages = true,
-            lazyLoadChannels = false
-          } = settings.homescreen;
-          
-          // Apply settings to navigation store using the new API
-          const navigationStore = usePageNavigationStore.getState();
-          navigationStore.loadSettings(settings.homescreen);
+        // Method 2: Force DevTools
+        if (window.api?.forceDevTools) {
+          console.log('[DEBUG] 🔧 Trying forceDevTools...');
+          const result = await window.api.forceDevTools();
+          console.log('[DEBUG] 🔧 forceDevTools result:', result);
+          if (result.success) return;
         }
-      } catch (error) {
-        console.warn('Failed to load homescreen settings:', error);
-      }
-    };
-    
-    loadHomescreenSettings();
-  }, []);
-
-  // Listen for update notification events
-  useEffect(() => {
-    const handleUpdateNotificationAvailable = (data) => {
-      console.log('[App] Update notification available:', data);
-      const notificationManager = getUpdateNotificationManager();
-      notificationManager.onUpdateAvailable(data);
-    };
-
-    const handleUpdateNotificationNotAvailable = () => {
-      const notificationManager = getUpdateNotificationManager();
-      notificationManager.onUpdateNotAvailable();
-    };
-
-    const handleUpdateNotificationDismissed = () => {
-      dismissNotification();
-    };
-
-    const handleUpdateNotificationInstall = () => {
-      // Trigger the update installation
-      if (window.api?.updater?.installUpdate) {
-        window.api.updater.installUpdate();
-      }
-    };
-
-    window.api?.onUpdateNotificationAvailable(handleUpdateNotificationAvailable);
-    window.api?.onUpdateNotificationNotAvailable(handleUpdateNotificationNotAvailable);
-    window.api?.onUpdateNotificationDismissed(handleUpdateNotificationDismissed);
-    window.api?.onUpdateNotificationInstall(handleUpdateNotificationInstall);
-    
-    return () => {
-      window.api?.offUpdateNotificationAvailable(handleUpdateNotificationAvailable);
-      window.api?.offUpdateNotificationNotAvailable(handleUpdateNotificationNotAvailable);
-      window.api?.offUpdateNotificationDismissed(handleUpdateNotificationDismissed);
-      window.api?.offUpdateNotificationInstall(handleUpdateNotificationInstall);
-    };
-  }, [dismissNotification]);
-
-  // Helper function to infer channel type from path
-  const inferChannelType = (path) => {
-    if (!path || typeof path !== 'string') {
-      return 'exe';
-    }
-    
-    const trimmedPath = path.trim();
-    
-    // Check for URLs
-    if (/^https?:\/\//i.test(trimmedPath)) {
-      return 'url';
-    }
-    
-    // Check for Steam URIs/paths (various formats)
-    if (/^steam:\/\//i.test(trimmedPath) || 
-        /^steam:\/\/rungameid\//i.test(trimmedPath) ||
-        /^steam:\/\/launch\//i.test(trimmedPath) ||
-        // Also handle just numeric AppIDs that might be Steam games
-        (/^\d+$/.test(trimmedPath) && parseInt(trimmedPath) > 0)) {
-      return 'steam';
-    }
-    
-    // Check for Epic Games URIs
-    if (/^com\.epicgames\.launcher:\/\//i.test(trimmedPath)) {
-      return 'epic';
-    }
-    
-    // Check for Microsoft Store AppIDs (contain exclamation marks and follow the pattern)
-    if (trimmedPath.includes('!') && 
-        /^[A-Za-z0-9._-]+\.[A-Za-z0-9._-]+_[A-Za-z0-9._-]+![A-Za-z0-9._-]+$/i.test(trimmedPath)) {
-      return 'microsoftstore';
-    }
-    
-    // Default to exe for executable paths and everything else
-    return 'exe';
-  };
-
-  // Load sound settings and play startup sound
-  useEffect(() => {
-    async function loadSettings() {
-      let settings = await settingsApi?.get();
-
-      if (settings) {
-        setIsDarkMode(settings.isDarkMode ?? false);
-        setUseCustomCursor(settings.useCustomCursor ?? true);
-        setGlassWiiRibbon(settings.glassWiiRibbon ?? false);
-        setClassicMode(settings.classicMode ?? false);
-        setGlassOpacity(settings.glassOpacity ?? 0.18);
-        setGlassBlur(settings.glassBlur ?? 2.5);
-        setGlassBorderOpacity(settings.glassBorderOpacity ?? 0.5);
-        setGlassShineOpacity(settings.glassShineOpacity ?? 0.7);
-        setAnimatedOnHover(settings.animatedOnHover ?? false);
-        setStartInFullscreen(settings.startInFullscreen ?? true);
-        // Remove wallpaper settings - these are loaded from wallpaper backend in loadAll
-        // setWallpaper(settings.wallpaper || null);
-        // setWallpaperOpacity(settings.wallpaperOpacity ?? 1);
-        // setSavedWallpapers(settings.savedWallpapers || []);
-        // setLikedWallpapers(settings.likedWallpapers || []);
-        // setCycleWallpapers(settings.cycleWallpapers ?? false);
-        // setCycleInterval(settings.cycleInterval ?? 30);
-        // setCycleAnimation(settings.cycleAnimation || 'fade');
-        // setSlideDirection(settings.slideDirection || 'right');
-        setWallpaper(settings.wallpaper || null); // Add wallpaper back to match ribbon settings persistence
-        setTimeColor(settings.timeColor || '#ffffff'); // Load timeColor
-        setRecentTimeColors(settings.recentTimeColors || []); // Load recentTimeColors
-        setTimeFormat24hr(settings.timeFormat24hr ?? false); // Load timeFormat24hr
-        setEnableTimePill(settings.enableTimePill ?? true); // Load enableTimePill
-        setTimePillBlur(settings.timePillBlur ?? 3); // Load timePillBlur
-        setTimePillOpacity(settings.timePillOpacity ?? 0.05); // Load timePillOpacity
-        setChannelAutoFadeTimeout(settings.channelAutoFadeTimeout ?? 8); // Load channelAutoFadeTimeout
-        currentTimeColorRef.current = settings.timeColor || '#ffffff';
-        currentTimeFormatRef.current = settings.timeFormat24hr ?? false;
-        setTimeFont(settings.timeFont || 'default');
-              setChannelAnimation(settings.channelAnimation || 'none'); // Load channelAnimation
-      setAdaptiveEmptyChannels(settings.adaptiveEmptyChannels ?? true);
-      
-      // Load idle animation settings
-      setIdleAnimationEnabled(settings.idleAnimationEnabled ?? false);
-      setIdleAnimationTypes(settings.idleAnimationTypes || ['pulse', 'bounce', 'glow']);
-      setIdleAnimationInterval(settings.idleAnimationInterval ?? 8);
         
-        // Load Ken Burns settings
-            setKenBurnsEnabled(settings.kenBurnsEnabled ?? false);
-    setKenBurnsMode(settings.kenBurnsMode || 'hover');
-    
-    // Load advanced Ken Burns settings
-    setKenBurnsHoverScale(settings.kenBurnsHoverScale ?? 1.1);
-    setKenBurnsAutoplayScale(settings.kenBurnsAutoplayScale ?? 1.15);
-          setKenBurnsSlideshowScale(settings.kenBurnsSlideshowScale ?? 1.08);
-    setKenBurnsHoverDuration(settings.kenBurnsHoverDuration ?? 8000);
-    setKenBurnsAutoplayDuration(settings.kenBurnsAutoplayDuration ?? 12000);
-    setKenBurnsSlideshowDuration(settings.kenBurnsSlideshowDuration ?? 10000);
-    setKenBurnsCrossfadeDuration(settings.kenBurnsCrossfadeDuration ?? 1000);
-    setKenBurnsForGifs(settings.kenBurnsForGifs ?? false);
-    setKenBurnsForVideos(settings.kenBurnsForVideos ?? false);
-    setKenBurnsEasing(settings.kenBurnsEasing || 'ease-out');
-    setKenBurnsAnimationType(settings.kenBurnsAnimationType || 'both');
-            setKenBurnsCrossfadeReturn(settings.kenBurnsCrossfadeReturn !== false);
-        setKenBurnsTransitionType(settings.kenBurnsTransitionType || 'cross-dissolve');
-        
-        // Load particle settings
-        setParticleSettings(settings.particleSettings || {
-          enabled: false,
-          effectType: 'normal',
-          direction: 'upward',
-          speed: 2,
-          particleCount: 3,
-          spawnRate: 60,
-          size: 3,
-          gravity: 0.02,
-          fadeSpeed: 0.008,
-          sizeDecay: 0.02,
-          useAdaptiveColor: false,
-          colorIntensity: 1.0,
-          colorVariation: 0.3,
-          rotationSpeed: 0.05,
-          particleLifetime: 3.0
+        // Method 3: Try to trigger keyboard shortcut programmatically
+        console.log('[DEBUG] 🔧 Trying keyboard shortcut simulation...');
+        const event = new KeyboardEvent('keydown', {
+          key: 'F12',
+          code: 'F12',
+          keyCode: 123,
+          which: 123,
+          ctrlKey: false,
+          shiftKey: false,
+          altKey: false,
+          metaKey: false,
+          bubbles: true
         });
+        document.dispatchEvent(event);
         
-        // Load ribbonButtonConfigs to ensure they're preserved during persistence
-        if (settings.ribbonButtonConfigs) {
-          setRibbonButtonConfigs(settings.ribbonButtonConfigs);
-        }
-        // Load classicDockButtonConfigs to ensure they're preserved during persistence
-        if (settings.classicDockButtonConfigs) {
-          console.log('[App] Loading classicDockButtonConfigs from settings:', settings.classicDockButtonConfigs);
-          setClassicDockButtonConfigs(settings.classicDockButtonConfigs);
-        } else {
-          console.log('[App] No classicDockButtonConfigs found in settings, using defaults');
-        }
-        // Load accessoryButtonConfig to ensure it's preserved during persistence
-        if (settings.accessoryButtonConfig) {
-          console.log('[App] Loading accessoryButtonConfig from settings:', settings.accessoryButtonConfig);
-          setAccessoryButtonConfig(settings.accessoryButtonConfig);
-        } else {
-          console.log('[App] No accessoryButtonConfig found in settings, using defaults');
-        }
-        // Load dockSettings to ensure they're preserved during persistence
-        if (settings.dockSettings) {
-          setDockSettings(settings.dockSettings);
-        }
-        // Load ribbonColor from settings
-        setRibbonColor(settings.ribbonColor || '#e0e6ef');
-        // Load recentRibbonColors from settings
-        setRecentRibbonColors(settings.recentRibbonColors || []);
-        // Load ribbonGlowColor and recentRibbonGlowColors from settings
-        setRibbonGlowColor(settings.ribbonGlowColor || '#0099ff');
-        setRecentRibbonGlowColors(settings.recentRibbonGlowColors || []);
-        // Load ribbonGlowStrength and ribbonGlowStrengthHover from settings
-        setRibbonGlowStrength(settings.ribbonGlowStrength || ribbonGlowStrength);
-        setRibbonGlowStrengthHover(settings.ribbonGlowStrengthHover || ribbonGlowStrengthHover);
-        setRibbonDockOpacity(settings.ribbonDockOpacity ?? 1);
-        // Load presets from settings
-        setPresets(settings.presets || []);
-        setPresetsButtonConfig({
-          ...(settings.presetsButtonConfig || { type: 'icon', icon: 'star' }),
-          useAdaptiveColor: settings.presetsButtonConfig?.useAdaptiveColor ?? false,
-          useGlowEffect: settings.presetsButtonConfig?.useGlowEffect ?? false,
-          glowStrength: settings.presetsButtonConfig?.glowStrength ?? 20,
-          useGlassEffect: settings.presetsButtonConfig?.useGlassEffect ?? false,
-          glassOpacity: settings.presetsButtonConfig?.glassOpacity ?? 0.18,
-          glassBlur: settings.presetsButtonConfig?.glassBlur ?? 2.5,
-          glassBorderOpacity: settings.presetsButtonConfig?.glassBorderOpacity ?? 0.5,
-          glassShineOpacity: settings.presetsButtonConfig?.glassShineOpacity ?? 0.7
-        });
-        setShowPresetsButton(settings.showPresetsButton ?? false);
-        setImmersivePip(settings.immersivePip ?? false);
-        setShowDock(settings.showDock ?? true);
-        setWallpaperBlur(settings.wallpaperBlur ?? 0);
-        
-            // Load dockSettings
-    if (settings.dockSettings) {
-      setDockSettings(settings.dockSettings);
-    }
-
-    // Load ClassicWiiDock button configurations using Zustand store
-    loadConfigurations(settings);
-        
-        // Load keyboard shortcuts
-        if (settings.keyboardShortcuts) {
-          loadKeyboardShortcuts(settings.keyboardShortcuts);
-        }
-      }
-      // Mark as initialized after loading settings
-      setHasInitialized(true);
-    }
-    loadSettings();
-  }, []);
-
-  // After soundSettings is loaded, initialize audio manager
-  useEffect(() => {
-    if (!soundSettings) return;
-    async function initSounds() {
-      try {
-        await audioManager.updateVolumesFromLibrary();
-        await audioManager.updateBackgroundMusicFromSettings();
-      } catch (err) {
-        console.warn('Failed to initialize audio manager:', err);
-      }
-    }
-    initSounds();
-  }, [soundSettings]);
-  // Persist barType and other settings when changed
-  useEffect(() => {
-    // Only persist settings after initialization to prevent overwriting ribbonButtonConfigs on startup
-    if (!hasInitialized) return;
-    
-    async function persistSettings() {
-      let current = await settingsApi?.get();
-      if (!current) current = {};
-      
-      // Use the loaded ribbonButtonConfigs from state, or preserve from current settings if not loaded
-      const preservedButtonConfigs = ribbonButtonConfigs || current.ribbonButtonConfigs;
-      
-      // Merge new state with current, preserving ribbonButtonConfigs and other existing data
-      const merged = {
-        ...current, // This preserves any other existing settings not in our state
-        isDarkMode,
-        useCustomCursor,
-        glassWiiRibbon,
-        classicMode,
-        glassOpacity,
-        glassBlur,
-        glassBorderOpacity,
-        glassShineOpacity,
-        animatedOnHover,
-        startInFullscreen,
-        // Remove wallpaper settings - these are loaded from wallpaper backend in loadAll
-        // wallpaper, wallpaperOpacity, savedWallpapers, likedWallpapers, cycleWallpapers, cycleInterval, cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, slideDuration, slideEasing,
-        wallpaper, // Add wallpaper back to ensure persistence like ribbon settings
-        timeColor, // Persist timeColor
-        recentTimeColors, // Persist recentTimeColors
-        timeFormat24hr, // Persist timeFormat24hr
-        enableTimePill, // Persist enableTimePill
-        timePillBlur, // Persist timePillBlur
-        timePillOpacity, // Persist timePillOpacity
-        channelAutoFadeTimeout, // Persist channelAutoFadeTimeout
-        ribbonColor, // Persist ribbonColor
-        recentRibbonColors, // Persist recentRibbonColors
-        ribbonGlowColor, // Persist ribbonGlowColor
-        recentRibbonGlowColors, // Persist recentRibbonGlowColors
-        ribbonGlowStrength, // Persist ribbonGlowStrength
-        ribbonGlowStrengthHover, // Persist ribbonGlowStrengthHover
-        ribbonDockOpacity, // Persist ribbonDockOpacity
-        presets, // Persist presets
-        presetsButtonConfig, // Persist presets button configuration
-        showPresetsButton, // Persist show presets button setting
-        timeFont, // Persist timeFont
-        channelAnimation, // Persist channelAnimation
-        adaptiveEmptyChannels,
-        idleAnimationEnabled,
-        idleAnimationTypes,
-        idleAnimationInterval, // Persist adaptive empty channels setting
-        kenBurnsEnabled, // Persist Ken Burns enabled setting
-        kenBurnsMode, // Persist Ken Burns mode setting
-        kenBurnsHoverScale, // Persist Ken Burns hover scale
-        kenBurnsAutoplayScale, // Persist Ken Burns autoplay scale
-        kenBurnsSlideshowScale, // Persist Ken Burns slideshow scale
-        kenBurnsHoverDuration, // Persist Ken Burns hover duration
-        kenBurnsAutoplayDuration, // Persist Ken Burns autoplay duration
-        kenBurnsSlideshowDuration, // Persist Ken Burns slideshow duration
-        kenBurnsCrossfadeDuration, // Persist Ken Burns crossfade duration
-        kenBurnsForGifs, // Persist Ken Burns for GIFs setting
-        kenBurnsForVideos, // Persist Ken Burns for videos setting
-        kenBurnsEasing, // Persist Ken Burns animation easing
-        kenBurnsAnimationType, // Persist Ken Burns animation type
-        kenBurnsCrossfadeReturn, // Persist Ken Burns crossfade return
-        kenBurnsTransitionType, // Persist Ken Burns transition type
-        showDock, // Persist showDock setting
-        dockSettings, // Persist dockSettings
-        particleSettings, // Persist particle settings
-        homescreen: usePageNavigationStore.getState().getSettings(), // Persist homescreen settings
-        ...getConfigurationsForPersistence(), // Persist ClassicWiiDock button configurations
-      };
-      
-      // Double-check: if we had button configs before, make sure they're still there
-      if (preservedButtonConfigs && !merged.ribbonButtonConfigs) {
-        merged.ribbonButtonConfigs = preservedButtonConfigs;
-        console.log('App: Restored ribbonButtonConfigs that were about to be lost');
-      }
-      
-      console.log('App: Persisting settings with timeFont:', timeFont);
-      console.log('App: Persisting settings:', merged);
-      console.log('App: Preserved ribbonButtonConfigs:', merged.ribbonButtonConfigs);
-      await settingsApi?.set(merged);
-    }
-    persistSettings();
-  }, [hasInitialized, isDarkMode, useCustomCursor, glassWiiRibbon, classicMode, glassOpacity, glassBlur, glassBorderOpacity, glassShineOpacity, animatedOnHover, startInFullscreen, wallpaper, timeColor, recentTimeColors, timeFormat24hr, enableTimePill, timePillBlur, timePillOpacity, channelAutoFadeTimeout, ribbonButtonConfigs, ribbonColor, recentRibbonColors, ribbonGlowColor, recentRibbonGlowColors, ribbonGlowStrength, ribbonGlowStrengthHover, ribbonDockOpacity, presets, presetsButtonConfig, showPresetsButton, timeFont, channelAnimation, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsSlideshowScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration, kenBurnsSlideshowDuration, kenBurnsCrossfadeDuration, kenBurnsForGifs, kenBurnsForVideos, kenBurnsEasing, kenBurnsAnimationType, kenBurnsCrossfadeReturn, kenBurnsTransitionType, showDock, dockSettings, particleSettings, classicDockButtonConfigs, accessoryButtonConfig]);
-
-  // Persist navigation settings when they change
-  useEffect(() => {
-    if (hasInitialized && settingsApi) {
-      const unsubscribe = usePageNavigationStore.subscribe(
-        (state) => ({ mode: state.mode, gridColumns: state.gridColumns, gridRows: state.gridRows, peekVisibility: state.peekVisibility }),
-        async (navigationSettings) => {
-          console.log('[App] Navigation settings changed, persisting:', navigationSettings);
-          const persistNavigationSettings = async () => {
-            let current = await settingsApi.get();
-            if (!current) current = {};
-            
-            const updated = {
-              ...current,
-              homescreen: usePageNavigationStore.getState().getSettings()
-            };
-            
-            console.log('[App] Persisting navigation settings:', updated.homescreen);
-            await settingsApi.set(updated);
-          };
-          
-          persistNavigationSettings();
-        }
-      );
-      
-      return unsubscribe;
-    }
-  }, [hasInitialized, settingsApi]);
-
-  // Persist keyboard shortcuts when they change
-  useEffect(() => {
-    if (hasInitialized) {
-      const unsubscribe = useUIStore.subscribe(
-        (state) => state.keyboardShortcuts,
-        async (keyboardShortcuts) => {
-          const persistKeyboardShortcuts = async () => {
-            let current = await settingsApi?.get();
-            if (!current) current = {};
-            
-            const updated = {
-              ...current,
-              keyboardShortcuts
-            };
-            
-            await settingsApi?.set(updated);
-          };
-          
-          persistKeyboardShortcuts();
-        }
-      );
-      
-      return unsubscribe;
-    }
-  }, [hasInitialized]);
-
-  // Update refs when time settings change
-  useEffect(() => {
-    currentTimeColorRef.current = timeColor;
-  }, [timeColor]);
-
-  useEffect(() => {
-    currentTimeFormatRef.current = timeFormat24hr;
-  }, [timeFormat24hr]);
-
-  // Apply dark mode class to body
-  useEffect(() => {
-    if (isDarkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [isDarkMode]);
-
-  // Admin panel event listener
-  useEffect(() => {
-    const handleShowAdminPanel = () => {
-      toggleAdminPanelWidget();
-    };
-
-    if (window.api && window.api.onShowAdminPanel) {
-      window.api.onShowAdminPanel(handleShowAdminPanel);
-    }
-
-    return () => {
-      if (window.api && window.api.offShowAdminPanel) {
-        window.api.offShowAdminPanel(handleShowAdminPanel);
+        console.log('[DEBUG] 🔧 All methods attempted');
+      } catch (error) {
+        console.error('[DEBUG] 🔧 Error opening DevTools:', error);
       }
     };
-  }, [toggleAdminPanelWidget]);
-
-  // Optimize event handlers with useCallback
-  const handleKeyDown = useCallback((event) => {
-    // Prevent default behavior for specific keys
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter'].includes(event.key)) {
-      event.preventDefault();
-    }
-
-    // Handle keyboard shortcuts using the UI store system
-    const { key, ctrlKey, altKey, shiftKey, metaKey } = event;
     
-    // Let the UI store handle keyboard shortcuts (this includes all modal shortcuts)
-    const uiStore = useUIStore.getState();
-    uiStore.handleGlobalKeyPress(event);
-
-    // Navigation shortcuts (these are always active)
-    if (!ctrlKey && !altKey && !metaKey) {
-      switch (key) {
-        case 'ArrowLeft':
-          event.preventDefault();
-          usePageNavigationStore.getState().goToPreviousPage();
-          break;
-        case 'ArrowRight':
-          event.preventDefault();
-          usePageNavigationStore.getState().goToNextPage();
-          break;
-
-      }
-    }
-
-    // Widget shortcuts (these are always active regardless of keyboard shortcuts config)
-    if (ctrlKey && !altKey && !shiftKey && !metaKey) {
-      switch (key.toLowerCase()) {
-        case 'a':
-          event.preventDefault();
-          toggleAdminPanelWidget();
-          break;
-        case 'i':
-          event.preventDefault();
-          toggleSystemInfoWidget();
-          break;
-        case 'l':
-          event.preventDefault();
-          toggleSpotifyWidget();
-          break;
-        // Note: Ctrl+C and Ctrl+V are reserved for copy/paste operations
-      }
-    }
-  }, [toggleSystemInfoWidget, toggleSpotifyWidget]);
-
-  const handleWheel = useCallback((event) => {
-    // Handle mouse wheel navigation
-    const { deltaX, deltaY, shiftKey } = event;
-    
-    // Horizontal scroll or Shift + vertical scroll
-    if (Math.abs(deltaX) > Math.abs(deltaY) || shiftKey) {
-      event.preventDefault();
-      
-      if (deltaX > 0 || (shiftKey && deltaY > 0)) {
-        usePageNavigationStore.getState().goToNextPage();
-      } else if (deltaX < 0 || (shiftKey && deltaY < 0)) {
-        usePageNavigationStore.getState().goToPreviousPage();
-      }
-    }
+    tryOpenDevTools();
   }, []);
 
-  const handleGlobalKeyDown = useCallback((event) => {
-    const { key, ctrlKey, altKey, shiftKey, metaKey } = event;
-    
-    // Developer tools
-    if (ctrlKey && shiftKey && key === 'I') {
-      event.preventDefault();
-      window.api?.toggleDevTools?.();
-      return;
-    }
-
-    // Screenshot
-    if (ctrlKey && shiftKey && key === 'S') {
-      event.preventDefault();
-      // Call the function directly since it's defined later
-      (async () => {
-        try {
-          console.log('Taking screenshot...');
-          const result = await window.api.takeScreenshot();
-          if (result.success) {
-            console.log('Screenshot saved successfully:', result.filePath);
-          } else if (result.error !== 'Save cancelled by user') {
-            console.error('Screenshot failed:', result.error);
-          }
-        } catch (error) {
-          console.error('Screenshot error:', error);
-        }
-      })();
-      return;
-    }
-
-    // Reset all
-    if (ctrlKey && shiftKey && key === 'R') {
-      event.preventDefault();
-      if (window.confirm('Are you sure you want to reset all settings? This cannot be undone.')) {
-        // Call the function directly since it's defined later
-        (async () => {
-          try {
-            console.log('Resetting all settings...');
-            await resetAllApi();
-            console.log('All settings reset successfully');
-            // Reload the page to apply reset
-            window.location.reload();
-          } catch (error) {
-            console.error('Reset failed:', error);
-          }
-        })();
-      }
-      return;
-    }
-
-    // Toggle cursor
-    if (ctrlKey && shiftKey && key === 'C') {
-      event.preventDefault();
-      setUseCustomCursor(!useCustomCursor);
-      return;
-    }
-
-    // Toggle dark mode
-    if (ctrlKey && shiftKey && key === 'D') {
-      event.preventDefault();
-      setIsDarkMode(!isDarkMode);
-      return;
-    }
-  }, []);
-
-  // Global keyboard shortcuts
+    // Add keyboard event listener for DevTools shortcuts
   useEffect(() => {
+    const handleKeyDown = (event) => {
+      // F12 key
+      if (event.key === 'F12' || event.keyCode === 123) {
+        console.log('[DEBUG] 🔧 F12 pressed in renderer');
+        event.preventDefault();
+        openDevTools();
+      }
+      // Ctrl+Shift+I
+      else if (event.ctrlKey && event.shiftKey && event.key === 'I') {
+        console.log('[DEBUG] 🔧 Ctrl+Shift+I pressed in renderer');
+        event.preventDefault();
+        openDevTools();
+      }
+      // Ctrl+Shift+J
+      else if (event.ctrlKey && event.shiftKey && event.key === 'J') {
+        console.log('[DEBUG] 🔧 Ctrl+Shift+J pressed in renderer');
+        event.preventDefault();
+        openDevTools();
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('keydown', handleGlobalKeyDown);
+    
+    // Handle Escape key to open/close settings action menu
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        if (showSettingsActionMenu) {
+          // Close settings action menu when Escape is pressed - use the menu's own close method
+          if (settingsActionMenuRef.current?.handleClose) {
+            settingsActionMenuRef.current.handleClose();
+          } else {
+            // Fallback to direct close if ref method not available
+            closeSettingsActionMenu();
+          }
+        } else {
+          // Open settings action menu when Escape is pressed and no other menus are open
+          handleSettingsActionMenuOpen();
+        }
+      }
     };
-  }, [handleKeyDown, handleWheel, handleGlobalKeyDown]);
-
-  // Apply cursor mode
-  useEffect(() => {
-    if (useCustomCursor) {
-      document.body.classList.add('custom-cursor');
-    } else {
-      document.body.classList.remove('custom-cursor');
-    }
-  }, [useCustomCursor]);
-
-  useEffect(() => {
-    if (window.api && window.api.onUpdateDragRegion) {
-      window.api.onUpdateDragRegion((shouldShow) => {
-        setShowDragRegion(shouldShow);
-      });
-    } else if (window.require) {
-      // Fallback for Electron context
-      const { ipcRenderer } = window.require('electron');
-      ipcRenderer.on('update-drag-region', (event, shouldShow) => {
-        setShowDragRegion(shouldShow);
-      });
-    }
-  }, []);
-
-  // Listen for wallpaper updates from backend (IPC event)
-  useEffect(() => {
-    if (window.api && window.api.onWallpapersUpdated) {
-      const reloadWallpapers = async () => {
-        const wallpaperData = await wallpapersApi.get();
-        setWallpaper(wallpaperData?.wallpaper || null);
-        setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
-        setSavedWallpapers(wallpaperData?.savedWallpapers || []);
-        setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-        setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
-        setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
-        setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-        setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
-        // Time settings should come from the main settings file, not wallpaper data
-        // These are preserved by the main settings persistence system
-        
-        // Also update window.settings to keep it in sync
-        if (window.settings) {
-          window.settings.cycleWallpapers = wallpaperData?.cyclingSettings?.enabled ?? false;
-          window.settings.cycleInterval = wallpaperData?.cyclingSettings?.interval ?? 30;
-          window.settings.cycleAnimation = wallpaperData?.cyclingSettings?.animation || 'fade';
-          window.settings.slideDirection = wallpaperData?.cyclingSettings?.slideDirection || 'right';
-        }
-      };
-      window.api.onWallpapersUpdated(reloadWallpapers);
-      return () => window.api.offWallpapersUpdated(reloadWallpapers);
-    }
-  }, []);
-
-  // Load cached data and prefetch app/game/UWP lists on app launch
-  useEffect(() => {
-    const {
-      fetchInstalledApps,
-      fetchSteamGames,
-      fetchEpicGames,
-      fetchUwpApps
-    } = useAppLibraryStore.getState();
-
-    // Fetch app data with intelligent caching
-    // The fetch functions now check cache validity internally and only scan if needed
-    fetchInstalledApps();
-    fetchSteamGames();
-    fetchEpicGames();
-    fetchUwpApps();
-  }, []);
-
-  const handleMediaChange = (id, file) => {
-    console.log('[App] handleMediaChange called with:', { id, file });
-    setChannel(id, { media: file });
-  };
-
-  const handleAppPathChange = (id, path) => {
-    console.log('[App] handleAppPathChange called with:', { id, path });
-    setChannel(id, { path });
-  };
-
-  const handleChannelSave = (channelId, channelData) => {
-    console.log('[App] handleChannelSave called with:', { channelId, channelData });
-    setChannel(channelId, channelData);
-  };
-
-  const handleSettingsClick = () => {
-    useUIStore.getState().openSettingsMenu();
-  };
-  
-  // Modal handlers for when dock is hidden
-    const handleOpenGeneralModal = () => {
-    useUIStore.getState().openGeneralSettingsModal();
-  };
-
-  const handleOpenTimeSettingsModal = () => {
-    useUIStore.getState().openTimeSettingsModal();
-  };
-
-  const handleOpenRibbonSettingsModal = () => {
-    useUIStore.getState().openRibbonSettingsModal();
-  };
-
-  const handleOpenUpdateModal = () => {
-    useUIStore.getState().openUpdateModal();
-  };
-
-  const handleOpenClassicDockSettingsModal = () => {
-    setShowClassicDockSettingsModal(true);
-  };
-
-  const handleDockSettingsChange = async (newDockSettings) => {
-    setDockSettings(newDockSettings);
-  };
-
-  const handleToggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
-  const handleToggleCursor = () => {
-    setUseCustomCursor(!useCustomCursor);
-  };
-
-
-
-  const handleClassicButtonClick = (index) => {
-    const config = classicDockButtonConfigs[index];
-    console.log('Classic button clicked:', index, 'Config:', config);
     
-    // Handle admin mode for left button (index 0)
-    if (index === 0 && config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
-      console.log('Opening admin menu with actions:', config.powerActions.length, config.powerActions.map(a => a.name));
-      setShowAdminMenu(true);
-      return;
-    }
+    document.addEventListener('keydown', handleEscapeKey);
     
-    // Handle regular button actions
-    if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
-    if (window.api && window.api.launchApp) {
-      if (config.actionType === 'exe') {
-        window.api.launchApp({ type: 'exe', path: config.action, asAdmin: config.adminMode });
-      } else if (config.actionType === 'url') {
-        window.api.launchApp({ type: 'url', path: config.action });
-      } else if (config.actionType === 'steam') {
-        window.api.launchApp({ type: 'steam', path: config.action });
-      } else if (config.actionType === 'epic') {
-        window.api.launchApp({ type: 'epic', path: config.action });
-      } else if (config.actionType === 'microsoftstore') {
-        window.api.launchApp({ type: 'microsoftstore', path: config.action });
-      }
-    } else {
-      // Fallback: try window.open for URLs
-      if (config.actionType === 'url') {
-        window.open(config.action, '_blank');
-      }
-    }
-  };
-
-  const handleAccessoryButtonClick = () => {
-    const config = accessoryButtonConfig;
-    console.log('Accessory button clicked:', config);
-    
-    // Handle admin mode
-    if (config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
-      console.log('Opening admin menu with actions:', config.powerActions.length, config.powerActions.map(a => a.name));
-      setShowAdminMenu(true);
-      return;
-    }
-    
-    // Handle regular button actions
-    if (!config || !config.actionType || !config.action || config.actionType === 'none') return;
-    if (window.api && window.api.launchApp) {
-      if (config.actionType === 'exe') {
-        window.api.launchApp({ type: 'exe', path: config.action, asAdmin: config.adminMode });
-      } else if (config.actionType === 'url') {
-        window.api.launchApp({ type: 'url', path: config.action });
-      } else if (config.actionType === 'steam') {
-        window.api.launchApp({ type: 'steam', path: config.action });
-      } else if (config.actionType === 'epic') {
-        window.api.launchApp({ type: 'epic', path: config.action });
-      } else if (config.actionType === 'microsoftstore') {
-        window.api.launchApp({ type: 'microsoftstore', path: config.action });
-      }
-    } else {
-      // Fallback: try window.open for URLs
-      if (config.actionType === 'url') {
-        window.open(config.action, '_blank');
-      }
-    }
-  };
-
-  const handleClassicButtonContextMenu = (index, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('[App] Classic button context menu opened for index:', index);
-    setActiveButtonIndex(index);
-    useUIStore.getState().openPrimaryActionsModal();
-  };
-
-  const handleAccessoryButtonContextMenu = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('[App] Accessory button context menu opened');
-    setActiveButtonIndex('accessory');
-    useUIStore.getState().openPrimaryActionsModal();
-  };
-
-  const handleClassicButtonSave = (newConfig) => {
-    console.log('Saving classic button config:', newConfig);
-    if (activeButtonIndex === 'accessory') {
-      setAccessoryButtonConfig(newConfig);
-    } else {
-      const updatedConfigs = [...classicDockButtonConfigs];
-      updatedConfigs[activeButtonIndex] = newConfig;
-      setClassicDockButtonConfigs(updatedConfigs);
-    }
-  };
-
-  // Update notification handlers
-  const handleUpdateNotificationDismiss = () => {
-    console.log('[App] Dismissing update notification');
-    dismissNotification();
-    if (window.api?.updater?.dismissUpdateNotification) {
-      window.api.updater.dismissUpdateNotification();
-    }
-  };
-
-  const handleUpdateNotificationInstall = () => {
-    console.log('[App] Installing update from notification');
-    if (window.api?.updater?.installUpdate) {
-      window.api.updater.installUpdate();
-    }
-    dismissNotification();
-  };
-
-  // Handler for settings changes from WallpaperModal or SoundModal
-  const handleSettingsChange = async (newSettings) => {
-    console.log('handleSettingsChange received:', newSettings);
-    // Update state directly with the new settings passed from the modal
-    if (newSettings.channelAutoFadeTimeout !== undefined) {
-      setChannelAutoFadeTimeout(newSettings.channelAutoFadeTimeout);
-      // Reset the last hover time when the timeout changes to prevent immediate fade
-      setLastChannelHoverTime(Date.now());
-    }
-    if (newSettings.wallpaperOpacity !== undefined) {
-      setWallpaperOpacity(newSettings.wallpaperOpacity);
-    }
-    if (newSettings.ribbonButtonConfigs !== undefined) {
-      setRibbonButtonConfigs(newSettings.ribbonButtonConfigs);
-    }
-    if (newSettings.presetsButtonConfig !== undefined) {
-              if (newSettings.presetsButtonConfig) {
-          setPresetsButtonConfig({
-            ...newSettings.presetsButtonConfig,
-            useAdaptiveColor: newSettings.presetsButtonConfig.useAdaptiveColor ?? false,
-            useGlowEffect: newSettings.presetsButtonConfig.useGlowEffect ?? false,
-            glowStrength: newSettings.presetsButtonConfig.glowStrength ?? 20,
-            useGlassEffect: newSettings.presetsButtonConfig.useGlassEffect ?? false,
-            glassOpacity: newSettings.presetsButtonConfig.glassOpacity ?? 0.18,
-            glassBlur: newSettings.presetsButtonConfig.glassBlur ?? 2.5,
-            glassBorderOpacity: newSettings.presetsButtonConfig.glassBorderOpacity ?? 0.5,
-            glassShineOpacity: newSettings.presetsButtonConfig.glassShineOpacity ?? 0.7
-          });
-        }
-    }
-    if (newSettings.showPresetsButton !== undefined) {
-      setShowPresetsButton(newSettings.showPresetsButton);
-    }
-    if (newSettings.timeColor !== undefined) {
-      setTimeColor(newSettings.timeColor);
-      currentTimeColorRef.current = newSettings.timeColor;
-    }
-    if (newSettings.recentTimeColors !== undefined) {
-      setRecentTimeColors(newSettings.recentTimeColors);
-    }
-    if (newSettings.timeFormat24hr !== undefined) {
-      setTimeFormat24hr(newSettings.timeFormat24hr);
-      currentTimeFormatRef.current = newSettings.timeFormat24hr;
-    }
-    if (newSettings.enableTimePill !== undefined) {
-      setEnableTimePill(newSettings.enableTimePill);
-    }
-    if (newSettings.timePillBlur !== undefined) {
-      setTimePillBlur(newSettings.timePillBlur);
-    }
-    if (newSettings.timePillOpacity !== undefined) {
-      setTimePillOpacity(newSettings.timePillOpacity);
-    }
-    if (newSettings.timeFont !== undefined) {
-      setTimeFont(newSettings.timeFont);
-    }
-    if (newSettings.glassWiiRibbon !== undefined) {
-      setGlassWiiRibbon(newSettings.glassWiiRibbon);
-    }
-    if (newSettings.glassOpacity !== undefined) {
-      setGlassOpacity(newSettings.glassOpacity);
-    }
-    if (newSettings.glassBlur !== undefined) {
-      setGlassBlur(newSettings.glassBlur);
-    }
-    if (newSettings.glassBorderOpacity !== undefined) {
-      setGlassBorderOpacity(newSettings.glassBorderOpacity);
-    }
-    if (newSettings.glassShineOpacity !== undefined) {
-      setGlassShineOpacity(newSettings.glassShineOpacity);
-    }
-    if (newSettings.startInFullscreen !== undefined) {
-      setStartInFullscreen(newSettings.startInFullscreen);
-    }
-    if (newSettings.ribbonColor !== undefined) {
-      setRibbonColor(newSettings.ribbonColor);
-    }
-    if (newSettings.recentRibbonColors !== undefined) {
-      setRecentRibbonColors(newSettings.recentRibbonColors);
-    }
-    if (newSettings.ribbonGlowColor !== undefined) {
-      setRibbonGlowColor(newSettings.ribbonGlowColor);
-    }
-    if (newSettings.recentRibbonGlowColors !== undefined) {
-      setRecentRibbonGlowColors(newSettings.recentRibbonGlowColors);
-    }
-    if (newSettings.ribbonGlowStrength !== undefined) {
-      setRibbonGlowStrength(newSettings.ribbonGlowStrength);
-    }
-    if (newSettings.ribbonGlowStrengthHover !== undefined) {
-      setRibbonGlowStrengthHover(newSettings.ribbonGlowStrengthHover);
-    }
-    if (newSettings.ribbonDockOpacity !== undefined) {
-      setRibbonDockOpacity(newSettings.ribbonDockOpacity);
-    }
-    if (newSettings.presets !== undefined) {
-      setPresets(newSettings.presets);
-    }
-    if (newSettings.dockSettings !== undefined) {
-      setDockSettings(newSettings.dockSettings);
-    }
-    if (newSettings.particleSettings !== undefined) {
-      setParticleSettings(newSettings.particleSettings);
-    }
-    
-    // Handle dock settings from AppearanceSettingsModal
-    if (newSettings.particleSystemEnabled !== undefined || 
-        newSettings.particleEffectType !== undefined || 
-        newSettings.particleDirection !== undefined || 
-        newSettings.particleSpeed !== undefined || 
-        newSettings.particleCount !== undefined || 
-        newSettings.particleSpawnRate !== undefined || 
-        newSettings.particleSize !== undefined || 
-        newSettings.particleGravity !== undefined || 
-        newSettings.particleFadeSpeed !== undefined || 
-        newSettings.particleSizeDecay !== undefined || 
-        newSettings.particleUseAdaptiveColor !== undefined || 
-        newSettings.particleColorIntensity !== undefined || 
-        newSettings.particleColorVariation !== undefined || 
-        newSettings.particleRotationSpeed !== undefined || 
-        newSettings.particleLifetime !== undefined) {
-      
-      setParticleSettings(prev => ({
-        ...prev,
-        enabled: newSettings.particleSystemEnabled !== undefined ? newSettings.particleSystemEnabled : prev.enabled,
-        effectType: newSettings.particleEffectType !== undefined ? newSettings.particleEffectType : prev.effectType,
-        direction: newSettings.particleDirection !== undefined ? newSettings.particleDirection : prev.direction,
-        speed: newSettings.particleSpeed !== undefined ? newSettings.particleSpeed : prev.speed,
-        particleCount: newSettings.particleCount !== undefined ? newSettings.particleCount : prev.particleCount,
-        spawnRate: newSettings.particleSpawnRate !== undefined ? newSettings.particleSpawnRate : prev.spawnRate,
-        size: newSettings.particleSize !== undefined ? newSettings.particleSize : prev.size,
-        gravity: newSettings.particleGravity !== undefined ? newSettings.particleGravity : prev.gravity,
-        fadeSpeed: newSettings.particleFadeSpeed !== undefined ? newSettings.particleFadeSpeed : prev.fadeSpeed,
-        sizeDecay: newSettings.particleSizeDecay !== undefined ? newSettings.particleSizeDecay : prev.sizeDecay,
-        useAdaptiveColor: newSettings.particleUseAdaptiveColor !== undefined ? newSettings.particleUseAdaptiveColor : prev.useAdaptiveColor,
-        colorIntensity: newSettings.particleColorIntensity !== undefined ? newSettings.particleColorIntensity : prev.colorIntensity,
-        colorVariation: newSettings.particleColorVariation !== undefined ? newSettings.particleColorVariation : prev.colorVariation,
-        rotationSpeed: newSettings.particleRotationSpeed !== undefined ? newSettings.particleRotationSpeed : prev.rotationSpeed,
-        particleLifetime: newSettings.particleLifetime !== undefined ? newSettings.particleLifetime : prev.particleLifetime
-      }));
-    }
-    if (newSettings.wallpaperBlur !== undefined) {
-      setWallpaperBlur(newSettings.wallpaperBlur);
-    }
-    
-    // Handle overlay settings
-    if (newSettings.overlayEnabled !== undefined) {
-      setOverlayEnabled(newSettings.overlayEnabled);
-    }
-    if (newSettings.overlayEffect !== undefined) {
-      setOverlayEffect(newSettings.overlayEffect);
-    }
-    if (newSettings.overlayIntensity !== undefined) {
-      setOverlayIntensity(newSettings.overlayIntensity);
-    }
-    if (newSettings.overlaySpeed !== undefined) {
-      setOverlaySpeed(newSettings.overlaySpeed);
-    }
-    if (newSettings.overlayWind !== undefined) {
-      setOverlayWind(newSettings.overlayWind);
-    }
-    if (newSettings.overlayGravity !== undefined) {
-      setOverlayGravity(newSettings.overlayGravity);
-    }
-              if (newSettings.showDock !== undefined) {
-      setShowDock(newSettings.showDock);
-    }
-    if (newSettings.classicMode !== undefined) {
-      setClassicMode(newSettings.classicMode);
-    }
-    if (newSettings.channelAnimation !== undefined) {
-      setChannelAnimation(newSettings.channelAnimation);
-    }
-    if (newSettings.adaptiveEmptyChannels !== undefined) {
-      setAdaptiveEmptyChannels(newSettings.adaptiveEmptyChannels);
-    }
-    if (newSettings.animatedOnHover !== undefined) {
-      setAnimatedOnHover(newSettings.animatedOnHover);
-    }
-    
-    // Handle homescreen settings
-    if (newSettings.homescreen !== undefined) {
-      console.log('[App] Received homescreen settings:', newSettings.homescreen);
-      const navigationStore = usePageNavigationStore.getState();
-      navigationStore.loadSettings({ homescreen: newSettings.homescreen });
-    }
-    
-    // Handle general settings
-    if (newSettings.immersivePip !== undefined) {
-      setImmersivePip(newSettings.immersivePip);
-    }
-    if (newSettings.startInFullscreen !== undefined) {
-      setStartInFullscreen(newSettings.startInFullscreen);
-    }
-    if (newSettings.showPresetsButton !== undefined) {
-      setShowPresetsButton(newSettings.showPresetsButton);
-    }
-    if (newSettings.startOnBoot !== undefined) {
-      if (window.api && window.api.setAutoLaunch) {
-        window.api.setAutoLaunch(newSettings.startOnBoot);
-      }
-    }
-    
-    // Handle sound settings
-    if (newSettings.backgroundMusicEnabled !== undefined) {
-      // Update sound settings via API
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          backgroundMusicSettings: {
-            ...currentSounds.backgroundMusicSettings,
-            enabled: newSettings.backgroundMusicEnabled
-          }
-        });
-      }
-    }
-    if (newSettings.backgroundMusicLooping !== undefined) {
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          backgroundMusicSettings: {
-            ...currentSounds.backgroundMusicSettings,
-            looping: newSettings.backgroundMusicLooping
-          }
-        });
-      }
-    }
-    if (newSettings.backgroundMusicPlaylistMode !== undefined) {
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          backgroundMusicSettings: {
-            ...currentSounds.backgroundMusicSettings,
-            playlistMode: newSettings.backgroundMusicPlaylistMode
-          }
-        });
-      }
-    }
-    if (newSettings.channelClickEnabled !== undefined) {
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          channelClick: {
-            ...currentSounds.channelClick,
-            enabled: newSettings.channelClickEnabled
-          }
-        });
-      }
-    }
-    if (newSettings.channelClickVolume !== undefined) {
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          channelClick: {
-            ...currentSounds.channelClick,
-            volume: newSettings.channelClickVolume
-          }
-        });
-      }
-    }
-    if (newSettings.channelHoverEnabled !== undefined) {
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          channelHover: {
-            ...currentSounds.channelHover,
-            enabled: newSettings.channelHoverEnabled
-          }
-        });
-      }
-    }
-    if (newSettings.channelHoverVolume !== undefined) {
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          channelHover: {
-            ...currentSounds.channelHover,
-            volume: newSettings.channelHoverVolume
-          }
-        });
-      }
-    }
-    if (newSettings.startupEnabled !== undefined) {
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          startup: {
-            ...currentSounds.startup,
-            enabled: newSettings.startupEnabled
-          }
-        });
-      }
-    }
-    if (newSettings.startupVolume !== undefined) {
-      if (soundsApi?.set) {
-        const currentSounds = await soundsApi.get();
-        await soundsApi.set({
-          ...currentSounds,
-          startup: {
-            ...currentSounds.startup,
-            volume: newSettings.startupVolume
-          }
-        });
-      }
-    }
-    
-    // Handle idle animation settings
-    if (newSettings.idleAnimationEnabled !== undefined) {
-      setIdleAnimationEnabled(newSettings.idleAnimationEnabled);
-    }
-    if (newSettings.idleAnimationTypes !== undefined) {
-      setIdleAnimationTypes(newSettings.idleAnimationTypes);
-    }
-    if (newSettings.idleAnimationInterval !== undefined) {
-      setIdleAnimationInterval(newSettings.idleAnimationInterval);
-    }
-    if (newSettings.kenBurnsEnabled !== undefined) {
-      setKenBurnsEnabled(newSettings.kenBurnsEnabled);
-    }
-    if (newSettings.kenBurnsMode !== undefined) {
-      setKenBurnsMode(newSettings.kenBurnsMode);
-    }
-    
-    // Advanced Ken Burns settings
-    if (newSettings.kenBurnsHoverScale !== undefined) {
-      setKenBurnsHoverScale(newSettings.kenBurnsHoverScale);
-    }
-    if (newSettings.kenBurnsAutoplayScale !== undefined) {
-      setKenBurnsAutoplayScale(newSettings.kenBurnsAutoplayScale);
-    }
-    if (newSettings.kenBurnsSlideshowScale !== undefined) {
-      setKenBurnsSlideshowScale(newSettings.kenBurnsSlideshowScale);
-    }
-    if (newSettings.kenBurnsHoverDuration !== undefined) {
-      setKenBurnsHoverDuration(newSettings.kenBurnsHoverDuration);
-    }
-    if (newSettings.kenBurnsAutoplayDuration !== undefined) {
-      setKenBurnsAutoplayDuration(newSettings.kenBurnsAutoplayDuration);
-    }
-    if (newSettings.kenBurnsSlideshowDuration !== undefined) {
-      setKenBurnsSlideshowDuration(newSettings.kenBurnsSlideshowDuration);
-    }
-    if (newSettings.kenBurnsCrossfadeDuration !== undefined) {
-      setKenBurnsCrossfadeDuration(newSettings.kenBurnsCrossfadeDuration);
-    }
-    if (newSettings.kenBurnsForGifs !== undefined) {
-      setKenBurnsForGifs(newSettings.kenBurnsForGifs);
-    }
-    if (newSettings.kenBurnsForVideos !== undefined) {
-      setKenBurnsForVideos(newSettings.kenBurnsForVideos);
-    }
-    if (newSettings.kenBurnsEasing !== undefined) {
-      setKenBurnsEasing(newSettings.kenBurnsEasing);
-    }
-    if (newSettings.kenBurnsAnimationType !== undefined) {
-      setKenBurnsAnimationType(newSettings.kenBurnsAnimationType);
-    }
-    if (newSettings.kenBurnsCrossfadeReturn !== undefined) {
-      setKenBurnsCrossfadeReturn(newSettings.kenBurnsCrossfadeReturn);
-    }
-    if (newSettings.kenBurnsTransitionType !== undefined) {
-      setKenBurnsTransitionType(newSettings.kenBurnsTransitionType);
-    }
-    
-    // Handle keyboard shortcuts
-    if (newSettings.keyboardShortcuts !== undefined) {
-      loadKeyboardShortcuts(newSettings.keyboardShortcuts);
-    }
-    
-    // Note: Settings are automatically persisted by the main persistSettings useEffect
-    // which runs whenever any of the state variables change. This ensures ribbonButtonConfigs
-    // are preserved and not overwritten by direct settings saves.
-  };
-
-  // Expose handleSettingsChange globally for use by settings tabs
-  useEffect(() => {
-    window.handleSettingsChange = handleSettingsChange;
-    return () => {
-      delete window.handleSettingsChange;
-    };
-  }, []);
-
-  // Pass settings to SettingsButton via window.settings for now (could use context for better solution)
-  window.settings = {
-    wallpaper,
-    wallpaperOpacity,
-    savedWallpapers,
-    likedWallpapers,
-    cycleWallpapers,
-    cycleInterval,
-    cycleAnimation,
-    slideDirection,
-    crossfadeDuration,
-    crossfadeEasing,
-    slideRandomDirection,
-    slideDuration,
-    slideEasing,
-    timeColor,
-    recentTimeColors,
-    timeFormat24hr,
-    enableTimePill,
-    timePillBlur,
-    timePillOpacity,
-    channelAutoFadeTimeout,
-    glassWiiRibbon,
-    glassOpacity,
-    glassBlur,
-    glassBorderOpacity,
-    glassShineOpacity,
-    startInFullscreen,
-    ribbonColor,
-    recentRibbonColors,
-    ribbonGlowColor,
-    recentRibbonGlowColors,
-    ribbonGlowStrength,
-    ribbonGlowStrengthHover,
-    ribbonDockOpacity,
-    wallpaperBlur,
-    
-    // Overlay settings
-    overlayEnabled,
-    overlayEffect,
-    overlayIntensity,
-    overlaySpeed,
-    overlayWind,
-    overlayGravity,
-    
-    // Dock visibility
-    showDock,
-    
-    timeFont,
-    channelAnimation,
-      adaptiveEmptyChannels,
-      idleAnimationEnabled,
-      idleAnimationTypes,
-      idleAnimationInterval,
-    kenBurnsEnabled,
-    kenBurnsMode,
-    kenBurnsHoverScale,
-    kenBurnsAutoplayScale,
-    kenBurnsSlideshowScale,
-    kenBurnsHoverDuration,
-    kenBurnsAutoplayDuration,
-    kenBurnsSlideshowDuration,
-    kenBurnsCrossfadeDuration,
-    kenBurnsForGifs,
-    kenBurnsForVideos,
-    kenBurnsEasing,
-    kenBurnsAnimationType,
-    kenBurnsCrossfadeReturn,
-    kenBurnsTransitionType,
-    
-    // General settings
-    immersivePip,
-    showPresetsButton,
-    startOnBoot,
-    
-    // Sound settings
-    backgroundMusicEnabled: soundSettings?.backgroundMusicSettings?.enabled ?? true,
-    backgroundMusicLooping: soundSettings?.backgroundMusicSettings?.looping ?? true,
-    backgroundMusicPlaylistMode: soundSettings?.backgroundMusicSettings?.playlistMode ?? false,
-    channelClickEnabled: soundSettings?.channelClick?.enabled ?? true,
-    channelClickVolume: soundSettings?.channelClick?.volume ?? 0.5,
-    channelHoverEnabled: soundSettings?.channelHover?.enabled ?? true,
-    channelHoverVolume: soundSettings?.channelHover?.volume ?? 0.5,
-    startupEnabled: soundSettings?.startup?.enabled ?? true,
-    startupVolume: soundSettings?.startup?.volume ?? 0.5,
-  };
-
-  // Memoize expensive calculations
-  const getTransitionType = useCallback(() => {
-    if (cycleAnimation === 'fade') return 'crossfade';
-    if (cycleAnimation === 'slide') return 'slide';
-    if (cycleAnimation === 'zoom') return 'zoom';
-    if (cycleAnimation === 'ken-burns') return 'ken-burns';
-    if (cycleAnimation === 'dissolve') return 'dissolve';
-    if (cycleAnimation === 'wipe') return 'wipe';
-    return 'fade';
-  }, [cycleAnimation]);
-
-  const applyEasing = useCallback((progress, easing) => {
-    switch (easing) {
-      case 'ease-in': return progress * progress;
-      case 'ease-out': return 1 - (1 - progress) * (1 - progress);
-      case 'ease-in-out': return progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      default: return progress;
-    }
-  }, []);
-
-  // Function to calculate slide transform based on direction and progress
-  const getSlideTransform = (direction, progress) => {
-    const slideDistance = '100%';
-    const easeProgress = 1 - Math.pow(1 - progress, 3); // Ease-out cubic
-    
-    switch (direction) {
-      case 'left':
-        return `translateX(${(1 - easeProgress) * 100}%)`;
-      case 'right':
-        return `translateX(${-(1 - easeProgress) * 100}%)`;
-      case 'up':
-        return `translateY(${(1 - easeProgress) * 100}%)`;
-      case 'down':
-        return `translateY(${-(1 - easeProgress) * 100}%)`;
-      default:
-        return 'none';
-    }
-  };
-
-  // Function to get infinite scroll slide transform
-  const getInfiniteScrollTransform = (direction, progress, isNextWallpaper = false) => {
-    // Use a smoother easing for infinite scroll
-    const easeProgress = 1 - Math.pow(1 - progress, 2); // Quadratic ease-out
-    
-    switch (direction) {
-      case 'left':
-        if (isNextWallpaper) {
-          // Next wallpaper slides in from the right (starts at 100% right, moves to 0%)
-          return `translateX(${(1 - easeProgress) * 100}%)`;
-        } else {
-          // Current wallpaper slides out to the left (starts at 0%, moves to -100%)
-          return `translateX(${-easeProgress * 100}%)`;
-        }
-      case 'right':
-        if (isNextWallpaper) {
-          // Next wallpaper slides in from the left (starts at -100% left, moves to 0%)
-          return `translateX(${-(1 - easeProgress) * 100}%)`;
-        } else {
-          // Current wallpaper slides out to the right (starts at 0%, moves to 100%)
-          return `translateX(${easeProgress * 100}%)`;
-        }
-      case 'up':
-        if (isNextWallpaper) {
-          // Next wallpaper slides in from below (starts at 100% down, moves to 0%)
-          return `translateY(${(1 - easeProgress) * 100}%)`;
-        } else {
-          // Current wallpaper slides out upward (starts at 0%, moves to -100%)
-          return `translateY(${-easeProgress * 100}%)`;
-        }
-      case 'down':
-        if (isNextWallpaper) {
-          // Next wallpaper slides in from above (starts at -100% up, moves to 0%)
-          return `translateY(${-(1 - easeProgress) * 100}%)`;
-        } else {
-          // Current wallpaper slides out downward (starts at 0%, moves to 100%)
-          return `translateY(${easeProgress * 100}%)`;
-        }
-      default:
-        return 'none';
-    }
-  };
-
-  // Memoize cycleList to prevent unnecessary recalculations
-  const cycleList = useMemo(() => {
-    return savedWallpapers.filter(w => w.url && w.url.trim());
-  }, [savedWallpapers]);
-
-  // Function to cycle to next wallpaper - memoized to prevent unnecessary re-creation
-  const cycleToNextWallpaper = useCallback(() => {
-    if (cycleList.length < 2 || isTransitioning) return;
-    
-    const currentIndex = cycleList.findIndex(w => w.url === wallpaper?.url);
-    const nextIndex = (currentIndex + 1) % cycleList.length;
-    const nextWallpaperItem = cycleList[nextIndex];
-    
-    setNextWallpaper(nextWallpaperItem);
-    setIsTransitioning(true);
-    
-    // Start transition animation
-    if (getTransitionType() === 'crossfade') {
-      setCrossfadeProgress(0);
-      const startTime = Date.now();
-      const duration = crossfadeDuration * 1000;
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = applyEasing(progress, crossfadeEasing);
-        
-        setCrossfadeProgress(easedProgress);
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setWallpaper(nextWallpaperItem);
-          setNextWallpaper(null);
-          setIsTransitioning(false);
-          setCrossfadeProgress(0);
-        }
-      };
-      
-      requestAnimationFrame(animate);
-    } else if (getTransitionType() === 'slide') {
-      setSlideProgress(0);
-      const startTime = Date.now();
-      const duration = slideDuration * 1000;
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = applyEasing(progress, slideEasing);
-        
-        setSlideProgress(easedProgress);
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setWallpaper(nextWallpaperItem);
-          setNextWallpaper(null);
-          setIsTransitioning(false);
-          setSlideProgress(0);
-        }
-      };
-      
-      requestAnimationFrame(animate);
-    } else if (getTransitionType() === 'zoom') {
-      setCrossfadeProgress(0);
-      const startTime = Date.now();
-      const duration = crossfadeDuration * 1000;
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = applyEasing(progress, crossfadeEasing);
-        
-        setCrossfadeProgress(easedProgress);
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setWallpaper(nextWallpaperItem);
-          setNextWallpaper(null);
-          setIsTransitioning(false);
-          setCrossfadeProgress(0);
-        }
-      };
-      
-      requestAnimationFrame(animate);
-    } else if (getTransitionType() === 'ken-burns') {
-      setCrossfadeProgress(0);
-      const startTime = Date.now();
-      const duration = crossfadeDuration * 1000;
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = applyEasing(progress, crossfadeEasing);
-        
-        setCrossfadeProgress(easedProgress);
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setWallpaper(nextWallpaperItem);
-          setNextWallpaper(null);
-          setIsTransitioning(false);
-          setCrossfadeProgress(0);
-        }
-      };
-      
-      requestAnimationFrame(animate);
-    } else if (getTransitionType() === 'dissolve') {
-      setCrossfadeProgress(0);
-      const startTime = Date.now();
-      const duration = crossfadeDuration * 1000;
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = applyEasing(progress, crossfadeEasing);
-        
-        setCrossfadeProgress(easedProgress);
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setWallpaper(nextWallpaperItem);
-          setNextWallpaper(null);
-          setIsTransitioning(false);
-          setCrossfadeProgress(0);
-        }
-      };
-      
-      requestAnimationFrame(animate);
-    } else if (getTransitionType() === 'wipe') {
-      setSlideProgress(0);
-      const startTime = Date.now();
-      const duration = slideDuration * 1000;
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = applyEasing(progress, slideEasing);
-        
-        setSlideProgress(easedProgress);
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setWallpaper(nextWallpaperItem);
-          setNextWallpaper(null);
-          setIsTransitioning(false);
-          setSlideProgress(0);
-        }
-      };
-      
-      requestAnimationFrame(animate);
-    } else {
-      // Simple fade
-      setWallpaper(nextWallpaperItem);
-      setIsTransitioning(false);
-    }
-  }, [cycleList, wallpaper?.url, isTransitioning, getTransitionType, crossfadeDuration, crossfadeEasing, slideDuration, slideEasing, applyEasing]);
-  
-  // Keep currentWallpaperRef in sync with wallpaper state
-  useEffect(() => {
-    currentWallpaperRef.current = wallpaper;
-  }, [wallpaper]);
-
-  // Wallpaper cycling logic with smooth transitions
-  useEffect(() => {
-    console.log('Wallpaper cycling effect triggered:', {
-      cycleWallpapers,
-      cycleListLength: cycleList.length,
-      cycleInterval,
-      showWallpaperModal,
-      isTransitioning
-    });
-    
-    // Don't re-run if currently transitioning
-    if (isTransitioning) {
-      console.log('Currently transitioning, skipping effect re-run');
-      return;
-    }
-    
-    // Clear any existing timeout
-    if (cycleTimeoutRef.current) {
-      console.log('Clearing existing timeout');
-      clearTimeout(cycleTimeoutRef.current);
-      cycleTimeoutRef.current = null;
-    }
-
-    // Don't cycle if disabled, not enough wallpapers, or modal is open
-    if (!cycleWallpapers || cycleList.length < 2 || showWallpaperModal) {
-      console.log('Wallpaper cycling stopped:', {
-        reason: !cycleWallpapers ? 'disabled' : cycleList.length < 2 ? 'not enough wallpapers' : 'modal open'
-      });
-      return;
-    }
-
-    console.log('Starting wallpaper cycling with interval:', cycleInterval, 'seconds');
-
-    // Set up the cycling timeout
-    console.log('Setting up initial timeout for', cycleInterval, 'seconds');
-    cycleTimeoutRef.current = setTimeout(() => {
-      console.log('Initial timeout fired!');
-      cycleToNextWallpaper();
-    }, cycleInterval * 1000);
-
     // Cleanup function
     return () => {
-      if (cycleTimeoutRef.current) {
-        console.log('Cleanup: clearing timeout');
-        clearTimeout(cycleTimeoutRef.current);
-        cycleTimeoutRef.current = null;
-      }
-      // Reset transition states on cleanup
-      if (isTransitioning) {
-        setIsTransitioning(false);
-        setNextWallpaper(null);
-        setCrossfadeProgress(0);
-        setSlideProgress(0);
-        setWallpaperOpacity(1);
-      }
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [cycleWallpapers, cycleList, cycleInterval, showWallpaperModal, cycleToNextWallpaper]); // Removed isTransitioning from dependencies
+  }, [showSettingsActionMenu, closeSettingsActionMenu, handleSettingsActionMenuOpen]);
 
-  // On save for sounds
-  const handleSaveSounds = async (newSounds) => {
-    await soundsApi?.set(newSounds);
-    const soundData = await soundsApi?.get();
-    setSoundSettings(soundData || {});
-    
-    // Update audio manager volumes to reflect new settings
-    await audioManager.updateVolumesFromLibrary();
-  };
-
-  // On save for wallpapers
-  const handleSaveWallpapers = async (newWallpapers) => {
-    await wallpapersApi?.set(newWallpapers);
-    const wallpaperData = await wallpapersApi?.get();
-    setWallpaper(wallpaperData?.wallpaper || null);
-    setWallpaperOpacity(wallpaperData?.wallpaperOpacity ?? 1);
-    setSavedWallpapers(wallpaperData?.savedWallpapers || []);
-    setLikedWallpapers(wallpaperData?.likedWallpapers || []);
-    setCycleWallpapers(wallpaperData?.cyclingSettings?.enabled ?? false);
-    setCycleInterval(wallpaperData?.cyclingSettings?.interval ?? 30);
-    setCycleAnimation(wallpaperData?.cyclingSettings?.animation || 'fade');
-    // setTransitionType(wallpaperData?.cyclingSettings?.transitionType || 'crossfade'); // This line was removed as per the edit hint
-    setSlideDirection(wallpaperData?.cyclingSettings?.slideDirection || 'right');
-    setTimeColor(wallpaperData?.timeColor || '#ffffff'); // Update timeColor
-    setTimeFormat24hr(wallpaperData?.timeFormat24hr ?? true); // Update timeFormat24hr
-    setEnableTimePill(wallpaperData?.enableTimePill ?? true); // Update enableTimePill
-    setTimePillBlur(wallpaperData?.timePillBlur ?? 8); // Update timePillBlur
-    setTimePillOpacity(wallpaperData?.timePillOpacity ?? 0.05); // Update timePillOpacity
-    setChannelAutoFadeTimeout(wallpaperData?.channelAutoFadeTimeout ?? 5); // Update channelAutoFadeTimeout
-    setTimeFont(wallpaperData?.timeFont || 'default'); // Update timeFont
-    // Reset the last hover time when the timeout changes to prevent immediate fade
-    setLastChannelHoverTime(Date.now());
-  };
-
-  // On save for channels
-  const handleSaveChannels = async (newChannels) => {
-    // Channel data now managed by Zustand store
-    console.log('[App] Channel data now managed by Zustand store');
-  };
-
-  // Handle channel hover for auto-fade
-  const handleChannelHover = () => {
-    setLastChannelHoverTime(Date.now());
-  };
-
-  // Handle opening channel modal
-  // On reset all
-  const handleResetAll = async () => {
-    await resetAllApi?.();
-    // Reload all state
-    const soundData = await soundsApi?.get();
-    setSoundSettings(soundData || {});
-    
-    // Set default Nintendo Wii white screen wallpaper
-    const defaultWiiWallpaper = {
-      url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTkyMCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPgo=',
-      name: 'Nintendo Wii White Screen',
-      type: 'default'
-    };
-    
-    setWallpaper(defaultWiiWallpaper);
-    setWallpaperOpacity(1);
-    setSavedWallpapers([]);
-    setLikedWallpapers([]);
-    setCycleWallpapers(false);
-    setCycleInterval(30);
-    setCycleAnimation('fade');
-    setSlideDirection('right');
-    setTimeColor('#ffffff'); // Update timeColor
-    setTimeFormat24hr(true); // Update timeFormat24hr
-    setEnableTimePill(true); // Update enableTimePill
-    setTimePillBlur(8); // Update timePillBlur
-    setTimePillOpacity(0.05); // Update timePillOpacity
-    setChannelAutoFadeTimeout(5); // Update channelAutoFadeTimeout
-    setTimeFont('default'); // Update timeFont
-    
-    // Save the default wallpaper to persistent storage
-    if (wallpapersApi?.set) {
-      await wallpapersApi.set({
-        wallpaper: defaultWiiWallpaper,
-        wallpaperOpacity: 1,
-        savedWallpapers: [],
-        likedWallpapers: [],
-        cyclingSettings: {
-          enabled: false,
-          interval: 30,
-          animation: 'fade',
-          slideDirection: 'right'
-        }
-      });
-    }
-    
-    // Channel data now managed by Zustand store
-    console.log('Channel data now managed by Zustand store');
-    const { clearUserBackup, clearUserDefaultChannels } = useChannelStore.getState();
-    clearUserBackup(); // Clear session backup when user explicitly resets everything
-    clearUserDefaultChannels(); // Clear persistent default channels when user explicitly resets everything
-  };
-
-  // Channel auto-fade logic
+  // Initialize custom cursor on app load
   useEffect(() => {
-    if (channelAutoFadeTimeout <= 0) {
-      setChannelOpacity(1);
-      return;
-    }
-
-    const checkFadeTimeout = () => {
-      const now = Date.now();
-      const timeSinceLastHover = now - lastChannelHoverTime;
-      const timeoutMs = channelAutoFadeTimeout * 1000;
+    if (useCustomCursor) {
+      // Add class to body to enable global cursor hiding
+      document.body.classList.add('custom-cursor-enabled');
       
-      if (timeSinceLastHover >= timeoutMs) {
-        setChannelOpacity(0.3); // Fade to 30% opacity
-      } else {
-        setChannelOpacity(1);
+      // Create custom cursor element if it doesn't exist
+      let customCursor = document.getElementById('wii-custom-cursor');
+      if (!customCursor) {
+        customCursor = document.createElement('div');
+        customCursor.id = 'wii-custom-cursor';
+        document.body.appendChild(customCursor);
       }
-    };
-
-    // Check immediately
-    checkFadeTimeout();
-
-    // Set up interval to check fade timeout
-    const taskId = intervalManager.addTask(checkFadeTimeout, 1000, 'channel-fade-check');
-
-    return () => intervalManager.removeTask(taskId);
-  }, [channelAutoFadeTimeout, lastChannelHoverTime]);
-
-  // Pause/resume background music on window blur/focus
-  useEffect(() => {
-    const handleBlur = () => {
-      audioManager.pauseBackgroundMusic();
-    };
-    const handleFocus = async () => {
-      await audioManager.resumeBackgroundMusic();
-    };
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
-
-  // Cleanup on app unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      // Cleanup audio manager
-      audioManager.cleanup();
       
-      // Cleanup interval manager
-      intervalManager.cleanup();
+      // Set cursor style (get from store)
+      const storeState = useConsolidatedAppStore.getState();
+      customCursor.setAttribute('data-style', storeState.ui.cursorStyle || 'classic');
       
-      // Clear any remaining timeouts
-      if (cycleTimeoutRef.current) {
-        clearTimeout(cycleTimeoutRef.current);
-      }
-      if (fadeTimeoutRef.current) {
-        clearTimeout(fadeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Add a drag region at the top of the window only when not in fullscreen
-  const [isFullscreen, setIsFullscreen] = useState(true);
-  useEffect(() => {
-    if (window.api && window.api.onFullscreenState) {
-      window.api.onFullscreenState((val) => setIsFullscreen(val));
-    }
-  }, []);
-
-  // Toast UI
-  const handleUpdatePreset = async (name, includeChannels = false, includeSounds = false) => {
-    console.log('[App] handleUpdatePreset called with:', { name, includeChannels, includeSounds });
-    
-    try {
-      // Get current sound library
-      const currentSoundLibrary = await soundsApi?.getLibrary();
+      // Show custom cursor
+      customCursor.style.display = 'block';
       
-      // Get current settings
-      const currentSettings = {
-        // ... existing settings ...
-        timeColor,
-        timeFormat24hr,
-        enableTimePill,
-        timePillBlur,
-        timePillOpacity,
-        channelAutoFadeTimeout,
-        ribbonButtonConfigs,
-        presetsButtonConfig,
-        showPresetsButton,
-        startOnBoot,
-        immersivePip,
-        showDock,
-        classicMode,
-        glassWiiRibbon,
-        glassOpacity,
-        glassBlur,
-        glassBorderOpacity,
-        glassShineOpacity,
-        animatedOnHover,
-        startInFullscreen,
-        // Ribbon settings
-        ribbonColor,
-        ribbonGlowColor,
-        ribbonGlowStrength,
-        ribbonGlowStrengthHover,
-        recentRibbonColors,
-        recentRibbonGlowColors,
-        ribbonDockOpacity,
-        wallpaper,
-        wallpaperOpacity,
-        cycleWallpapers,
-        cycleInterval,
-        cycleAnimation,
-        crossfadeDuration,
-        crossfadeEasing,
-        slideRandomDirection,
-        slideDuration,
-        slideEasing,
-        savedWallpapers,
-        likedWallpapers,
-        useCustomCursor,
-        soundSettings
+      // Simple mouse tracking for better performance
+      const handleMouseMove = (e) => {
+        customCursor.style.left = e.clientX + 'px';
+        customCursor.style.top = e.clientY + 'px';
       };
       
-      // Include channel data only if requested
-      if (includeChannels) {
-        const { getConfiguredChannels } = useChannelStore.getState();
-        const configuredChannels = getConfiguredChannels();
-        
-        if (configuredChannels.length > 0) {
-          const channelData = {};
-          configuredChannels.forEach(([channelId, config]) => {
-            channelData[channelId] = config;
-          });
-          currentSettings.channelData = channelData;
-        }
+      // Simple click effects
+      const handleMouseDown = () => {
+        customCursor.classList.add('clicking');
+      };
+      
+      const handleMouseUp = () => {
+        customCursor.classList.remove('clicking');
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mousedown', handleMouseDown);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      // Cleanup function
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mousedown', handleMouseDown);
+        document.removeEventListener('mouseup', handleMouseUp);
+        customCursor.classList.remove('clicking');
+      };
+    } else {
+      // Remove class from body to restore default cursors
+      document.body.classList.remove('custom-cursor-enabled');
+      
+      // Hide custom cursor
+      const customCursor = document.getElementById('wii-custom-cursor');
+      if (customCursor) {
+        customCursor.style.display = 'none';
+        customCursor.classList.remove('clicking');
       }
-      
-      // Include sound library only if requested
-      if (includeSounds && currentSoundLibrary) {
-        currentSettings.soundLibrary = currentSoundLibrary;
-      }
-      
-      setPresets(prev => prev.map(p => p.name === name ? {
-        name,
-        data: currentSettings,
-        timestamp: Date.now()
-      } : p));
-      
-      console.log('[App] Updated preset with ribbon settings:', {
-        name,
-        ribbonColor: currentSettings.ribbonColor,
-        ribbonGlowColor: currentSettings.ribbonGlowColor,
-        ribbonGlowStrength: currentSettings.ribbonGlowStrength,
-        ribbonGlowStrengthHover: currentSettings.ribbonGlowStrengthHover,
-        recentRibbonColors: currentSettings.recentRibbonColors,
-        recentRibbonGlowColors: currentSettings.recentRibbonGlowColors,
-        ribbonDockOpacity: currentSettings.ribbonDockOpacity
-      });
-      
-    } catch (error) {
-      console.error('[App] Error updating preset:', error);
     }
-  };
+  }, [useCustomCursor, cursorStyle]);
 
-  const handleRenamePreset = (oldName, newName) => {
-    console.log('Renaming preset:', oldName, 'to:', newName);
-    setPresets(prev => prev.map(p => p.name === oldName ? { ...p, name: newName } : p));
-  };
-  // Handle right-click on empty space to open wallpaper modal
-  const handleAppRightClick = (e) => {
-    // Check if the click target is not a channel, ribbon, or other interactive element
-    const target = e.target;
-    const isInteractiveElement = target.closest('.channel, .circular-button, .context-menu-item, .wee-card, .modal, .interactive-footer, .time-pill, .wii-style-button, .sd-card-button, .button-container, .liquid-glass');
+  // Expose DevTools and debug functions globally
+  useEffect(() => {
+    // Expose openDevTools globally for console access
+    window.openDevTools = openDevTools;
+    window.forceDevTools = () => {
+      if (window.api?.forceDevTools) {
+        window.api.forceDevTools().then(result => {
+          console.log('[DEBUG] 🔧 Force DevTools result:', result);
+        });
+      }
+    };
     
-    if (!isInteractiveElement) {
-      e.preventDefault();
-      e.stopPropagation();
-      // Open wallpaper modal on right-click
-      useUIStore.getState().openWallpaperModal();
-    }
-  };
+    // Expose test functions for debugging
+    window.testPresetFunctions = () => {
+      console.log('[DEBUG] 🧪 === TESTING PRESET FUNCTIONS ===');
+      console.log('[DEBUG] 🧪 Current store state:', useConsolidatedAppStore.getState());
+      console.log('[DEBUG] 🧪 Available window.api methods:', Object.keys(window.api || {}));
+      console.log('[DEBUG] 🧪 Settings API available:', !!window.api?.settings);
+      console.log('[DEBUG] 🧪 Wallpapers API available:', !!window.api?.wallpapers);
+      console.log('[DEBUG] 🧪 === END TEST ===');
+    };
+    
+    // Test preset structure comparison
+    window.comparePresetStructures = async () => {
+      console.log('[DEBUG] 🧪 === COMPARING PRESET STRUCTURES ===');
+      try {
+        const settings = await window.api.settings.get();
+        const presets = settings.presets || [];
+        
+        console.log('[DEBUG] 🧪 Total presets:', presets.length);
+        
+        presets.forEach((preset, index) => {
+          console.log(`[DEBUG] 🧪 Preset ${index + 1}: ${preset.name}`);
+          console.log(`[DEBUG] 🧪 - Type: ${preset.isCommunity ? 'Community' : 'Local'}`);
+          console.log(`[DEBUG] 🧪 - Has data: ${!!preset.data}`);
+          console.log(`[DEBUG] 🧪 - Data keys: ${preset.data ? Object.keys(preset.data) : 'N/A'}`);
+          
+          if (preset.data) {
+            console.log(`[DEBUG] 🧪 - Wallpaper: ${!!preset.data.wallpaper}`);
+            console.log(`[DEBUG] 🧪 - Ribbon: ${!!preset.data.ribbon}`);
+            console.log(`[DEBUG] 🧪 - Time: ${!!preset.data.time}`);
+            console.log(`[DEBUG] 🧪 - Overlay: ${!!preset.data.overlay}`);
+            console.log(`[DEBUG] 🧪 - UI: ${!!preset.data.ui}`);
+          }
+          console.log('[DEBUG] 🧪 ---');
+        });
+      } catch (error) {
+        console.error('[DEBUG] 🧪 Error comparing presets:', error);
+      }
+      console.log('[DEBUG] 🧪 === END COMPARISON ===');
+    };
+    
+    // Test channel operations
+    window.testChannelOperations = () => {
+      console.log('[DEBUG] 🧪 === TESTING CHANNEL OPERATIONS ===');
+      const { channels } = useConsolidatedAppStore.getState();
+      console.log('[DEBUG] 🧪 Channel state:', channels);
+      console.log('[DEBUG] 🧪 Channel data:', channels?.data);
+      console.log('[DEBUG] 🧪 Channel settings:', channels?.settings);
+      console.log('[DEBUG] 🧪 Configured channels:', channels?.data?.configuredChannels);
+      console.log('[DEBUG] 🧪 Navigation:', channels?.data?.navigation);
+      console.log('[DEBUG] 🧪 === END CHANNEL TEST ===');
+    };
+    
+    console.log('[DEBUG] 🔧 DevTools functions exposed to window:');
+    console.log('[DEBUG] 🔧 - window.openDevTools()');
+    console.log('[DEBUG] 🔧 - window.forceDevTools()');
+    console.log('[DEBUG] 🔧 - window.testPresetFunctions()');
+    console.log('[DEBUG] 🔧 - window.comparePresetStructures()');
+    console.log('[DEBUG] 🔧 - window.testChannelOperations()');
+    
+    return () => {
+      delete window.openDevTools;
+      delete window.forceDevTools;
+      delete window.testPresetFunctions;
+      delete window.comparePresetStructures;
+      delete window.testChannelOperations;
+    };
+  }, [openDevTools]);
 
-  // Handle admin panel widget toggle
-  const handleAdminPanelToggle = useCallback(() => {
-    toggleAdminPanelWidget();
-  }, [toggleAdminPanelWidget]);
+  // Comprehensive logging system
+  useEffect(() => {
+    console.log('[DEBUG] 📊 === APP STATE LOGGING ===');
+    console.log('[DEBUG] 📊 App Ready:', appReady);
+    console.log('[DEBUG] 📊 Is Loading:', isLoading);
+    console.log('[DEBUG] 📊 Splash Fading:', splashFading);
+    console.log('[DEBUG] 📊 Show Settings Modal:', showSettingsModal);
+    console.log('[DEBUG] 📊 Settings Active Tab:', settingsActiveTab);
+    console.log('[DEBUG] 📊 Classic Mode:', classicMode);
+    console.log('[DEBUG] 📊 Start In Fullscreen:', startInFullscreen);
+    console.log('[DEBUG] 📊 Current Wallpaper:', current?.url ? 'Set' : 'Not Set');
+    console.log('[DEBUG] 📊 Next Wallpaper:', next?.url ? 'Set' : 'Not Set');
+    console.log('[DEBUG] 📊 Is Transitioning:', isTransitioning);
+    console.log('[DEBUG] 📊 Overlay Enabled:', enabled);
+    console.log('[DEBUG] 📊 Cycling Active:', isCycling);
+    console.log('[DEBUG] 📊 === END APP STATE ===');
+  }, [appReady, isLoading, splashFading, showSettingsModal, settingsActiveTab, classicMode, startInFullscreen, current, next, isTransitioning, enabled, isCycling]);
+
+  // Initialize app with data loading
+  useEffect(() => {
+    console.log('[DEBUG] 🚀 Starting app initialization with data loading');
+    
+    const initializeApp = async () => {
+      try {
+        // Set app as ready immediately to show interface
+        setAppState({ 
+          appReady: true, 
+          isLoading: false, 
+          splashFading: false 
+        });
+
+        // Load essential data in background
+        console.log('[DEBUG] 📡 Loading essential data...');
+        
+        // Load wallpaper data
+        if (window.api?.wallpapers?.get) {
+          try {
+            const wallpaperData = await window.api.wallpapers.get();
+            console.log('[DEBUG] ✅ Wallpaper data loaded:', wallpaperData ? 'success' : 'null');
+            console.log('[DEBUG] 📊 Cycling settings:', wallpaperData?.cyclingSettings);
+            console.log('[DEBUG] 📊 Liked wallpapers count:', wallpaperData?.likedWallpapers?.length);
+            if (wallpaperData) {
+              setWallpaperState({
+                current: wallpaperData.wallpaper || null, // Load the current wallpaper
+                savedWallpapers: wallpaperData.savedWallpapers || [],
+                likedWallpapers: wallpaperData.likedWallpapers || [],
+                opacity: wallpaperData.wallpaperOpacity ?? 1,
+                blur: wallpaperData.wallpaperBlur ?? 0,
+                // Load cycling settings
+                cycleWallpapers: wallpaperData.cyclingSettings?.enabled ?? false,
+                cycleInterval: wallpaperData.cyclingSettings?.interval ?? 30,
+                cycleAnimation: wallpaperData.cyclingSettings?.animation ?? 'fade',
+                slideDirection: wallpaperData.cyclingSettings?.slideDirection ?? 'right',
+                crossfadeDuration: wallpaperData.cyclingSettings?.crossfadeDuration ?? 1.2,
+                crossfadeEasing: wallpaperData.cyclingSettings?.crossfadeEasing ?? 'ease-out',
+                slideRandomDirection: wallpaperData.cyclingSettings?.slideRandomDirection ?? false,
+                slideDuration: wallpaperData.cyclingSettings?.slideDuration ?? 1.5,
+                slideEasing: wallpaperData.cyclingSettings?.slideEasing ?? 'ease-out'
+              });
+
+              // Load overlay settings
+              setOverlayState({
+                enabled: wallpaperData.overlayEnabled ?? false,
+                effect: wallpaperData.overlayEffect ?? 'snow',
+                intensity: wallpaperData.overlayIntensity ?? 50,
+                speed: wallpaperData.overlaySpeed ?? 1,
+                wind: wallpaperData.overlayWind ?? 0.02,
+                gravity: wallpaperData.overlayGravity ?? 0.1
+              });
+            }
+          } catch (error) {
+            console.warn('[DEBUG] ⚠️ Failed to load wallpaper data:', error);
+          }
+        }
+
+        // Load channel data
+        if (window.api?.channels?.get) {
+          try {
+            const channelData = await window.api.channels.get();
+            console.log('[DEBUG] ✅ Channel data loaded:', channelData ? 'success' : 'null');
+            if (channelData) {
+              setChannelState({
+                configuredChannels: channelData.configuredChannels || []
+              });
+            }
+          } catch (error) {
+            console.warn('[DEBUG] ⚠️ Failed to load channel data:', error);
+          }
+        }
+
+        // Load settings data
+        if (window.api?.settings?.get) {
+          try {
+            const settingsData = await window.api.settings.get();
+            console.log('[DEBUG] ✅ Settings data loaded:', settingsData ? 'success' : 'null');
+            if (settingsData) {
+              // Apply settings to consolidated store
+              if (settingsData.ui) setUIState(settingsData.ui);
+              if (settingsData.ribbon) setRibbonState(settingsData.ribbon);
+              if (settingsData.channels) setChannelState(settingsData.channels);
+              if (settingsData.time) setTimeState(settingsData.time);
+              if (settingsData.presets) setPresets(settingsData.presets);
+            }
+          } catch (error) {
+            console.warn('[DEBUG] ⚠️ Failed to load settings data:', error);
+          }
+        }
+
+        console.log('[DEBUG] ✅ App initialization complete');
+        
+      } catch (error) {
+        console.error('[DEBUG] ❌ Error during app initialization:', error);
+        // Even if there's an error, mark app as ready
+        setAppState({ 
+          appReady: true, 
+          isLoading: false, 
+          splashFading: false 
+        });
+      }
+    };
+      
+    initializeApp();
+  }, [setAppState, setWallpaperState, setChannelState, setUIState, setRibbonState, setTimeState, setPresets]);
+
+  // Apply fullscreen setting when UI state changes
+  useEffect(() => {
+    if (appReady && window.api?.setFullscreen) {
+      console.log('[App] Applying fullscreen setting:', startInFullscreen);
+      window.api.setFullscreen(startInFullscreen);
+    }
+  }, [appReady, startInFullscreen]);
+
+  // Optimized handlers using consolidated store with useCallback
+  const openSettingsModal = useCallback(() => setUIState({ showSettingsModal: true }), [setUIState]);
+  const closeSettingsModal = useCallback(() => setUIState({ showSettingsModal: false }), [setUIState]);
+
+
+
+
+  // Global right-click handler for settings modal (wallpaper tab)
+  const handleGlobalRightClick = useCallback((event) => {
+    // Check if the click target is within the ribbon or dock areas
+    const target = event.target;
+    const isInRibbon = target.closest('.interactive-footer') || target.closest('.wii-dock-wrapper');
+    const isInDock = target.closest('.dock-container');
+    const isInModal = target.closest('.modal-overlay') || target.closest('.modal-content');
+    
+    // Check if Ctrl key is held for DevTools
+    if (event.ctrlKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      console.log('[DEBUG] 🔧 Ctrl+Right-click detected - opening DevTools');
+      openDevTools();
+      return;
+    }
+    
+    // Only open settings modal to wallpaper tab if not clicking on ribbon, dock, or existing modals
+    if (!isInRibbon && !isInDock && !isInModal) {
+      event.preventDefault();
+      event.stopPropagation();
+      // Open settings modal and set active tab to wallpaper
+      setUIState({ 
+        showSettingsModal: true,
+        settingsActiveTab: 'wallpaper' // This will be handled by SettingsModal
+      });
+    }
+  }, [setUIState, openDevTools]);
+  const toggleDock = useCallback(() => setUIState(prev => ({ showDock: !prev.showDock })), [setUIState]);
+  const toggleDarkMode = useCallback(() => setUIState(prev => ({ isDarkMode: !prev.isDarkMode })), [setUIState]);
+  const toggleCustomCursor = useCallback(() => setUIState(prev => ({ useCustomCursor: !prev.useCustomCursor })), [setUIState]);
+
+  // Render splash screen only if not ready
+  if (!appReady || isLoading) {
+    return <SplashScreen fadingOut={splashFading} />;
+  }
+
+  // Validate required data
+  if (!ribbonColor || !ribbonGlowColor) {
+    console.warn('[App] Missing required ribbon configuration, using defaults');
+  }
 
   return (
-    <>
-      {/* Always render the main UI, but overlay the splash screen while loading */}
+    <ErrorBoundary>
       <div 
-        className={`app-container ${useCustomCursor ? 'custom-cursor' : ''}`} 
-        style={{ filter: isLoading ? 'blur(2px)' : 'none', pointerEvents: isLoading ? 'none' : 'auto' }}
-        onContextMenu={handleAppRightClick}
+        className={`app-container ${useCustomCursor ? 'custom-cursor' : ''} ${isDarkMode ? 'dark-mode' : ''}`}
+        onContextMenu={handleGlobalRightClick}
       >
-        {/* Wii Cursor - rendered outside app container to avoid blur filter */}
-        {useCustomCursor && <WiiCursor />}
-        {/* Wallpaper background layer - with smooth transitions */}
-        {wallpaper && wallpaper.url && (
+                    {/* Wallpaper Background with Transitions */}
+            {current && current.url && (
           <div
             className="wallpaper-bg"
             style={{
@@ -2841,19 +563,23 @@ function App() {
               height: '100vh',
               zIndex: 0,
               pointerEvents: 'none',
-              background: `url('${wallpaper.url}') center center / cover no-repeat`,
-              opacity: getTransitionType() === 'crossfade' || getTransitionType() === 'zoom' || getTransitionType() === 'ken-burns' || getTransitionType() === 'dissolve' ? 1 - crossfadeProgress : wallpaperOpacity,
-              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, false) : 
-                        getTransitionType() === 'zoom' ? `scale(${1 + crossfadeProgress * 0.1})` :
-                        getTransitionType() === 'ken-burns' ? `scale(${1 + crossfadeProgress * 0.05}) translate(${crossfadeProgress * 2}%, ${crossfadeProgress * 1}%)` :
-                        getTransitionType() === 'wipe' ? getInfiniteScrollTransform(slideDirection, slideProgress, false) : 'none',
-              transition: 'none', // Remove CSS transitions to prevent conflicts
-              filter: `blur(${wallpaperBlur}px)`,
+                  background: `url('${current.url}') center center / cover no-repeat`,
+                  opacity: isTransitioning && cycleAnimation === 'fade' 
+                    ? opacity * (1 - crossfadeProgress)
+                    : opacity,
+                  filter: `blur(${blur}px)`,
+                  transform: isTransitioning && cycleAnimation === 'slide'
+                    ? `translateX(${slideDirection === 'left' ? slideProgress * 100 : slideDirection === 'right' ? -slideProgress * 100 : 0}%) translateY(${slideDirection === 'up' ? slideProgress * 100 : slideDirection === 'down' ? -slideProgress * 100 : 0}%)`
+                    : isTransitioning && cycleAnimation === 'zoom'
+                    ? `scale(${1 + crossfadeProgress * 0.1})`
+                    : 'none',
+                  transition: isTransitioning ? 'none' : 'opacity 0.3s ease-out, transform 0.3s ease-out',
             }}
           />
         )}
-        {/* Next wallpaper layer for smooth transitions */}
-        {isTransitioning && nextWallpaper && nextWallpaper.url && (
+            
+            {/* Next Wallpaper Background for Transitions */}
+            {isTransitioning && next && next.url && (
           <div
             className="wallpaper-bg-next"
             style={{
@@ -2864,710 +590,185 @@ function App() {
               height: '100vh',
               zIndex: 1,
               pointerEvents: 'none',
-              background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
-              opacity: getTransitionType() === 'crossfade' || getTransitionType() === 'zoom' || getTransitionType() === 'ken-burns' || getTransitionType() === 'dissolve' ? crossfadeProgress : 1,
-              transform: getTransitionType() === 'slide' ? getInfiniteScrollTransform(slideDirection, slideProgress, true) : 
-                        getTransitionType() === 'zoom' ? `scale(${1.1 - crossfadeProgress * 0.1})` :
-                        getTransitionType() === 'ken-burns' ? `scale(${1.05 - crossfadeProgress * 0.05}) translate(${(1 - crossfadeProgress) * -2}%, ${(1 - crossfadeProgress) * -1}%)` :
-                        getTransitionType() === 'wipe' ? getInfiniteScrollTransform(slideDirection, slideProgress, true) : 'none',
-              transition: 'none', // Remove CSS transitions to prevent conflicts
+                  background: `url('${next.url}') center center / cover no-repeat`,
+                  opacity: cycleAnimation === 'fade' 
+                    ? opacity * crossfadeProgress
+                    : cycleAnimation === 'slide'
+                    ? opacity
+                    : 0,
+                  filter: `blur(${blur}px)`,
+                  transform: cycleAnimation === 'slide'
+                    ? `translateX(${slideDirection === 'left' ? -(1 - slideProgress) * 100 : slideDirection === 'right' ? (1 - slideProgress) * 100 : 0}%) translateY(${slideDirection === 'up' ? -(1 - slideProgress) * 100 : slideDirection === 'down' ? (1 - slideProgress) * 100 : 0}%)`
+                    : cycleAnimation === 'zoom'
+                    ? `scale(${1.1 - crossfadeProgress * 0.1})`
+                    : 'none',
+                  transition: 'none',
             }}
           />
         )}
-        
+
         {/* Wallpaper Overlay Effects */}
         <WallpaperOverlay
-          effect={overlayEffect}
-          enabled={overlayEnabled}
-          intensity={overlayIntensity}
-          speed={overlaySpeed}
-          wind={overlayWind}
-          gravity={overlayGravity}
+          effect={effect}
+          enabled={enabled}
+          intensity={intensity}
+          speed={speed}
+          wind={wind}
+          gravity={gravity}
         />
-        
-        {/* Drag region for windowed mode only */}
-        {!isFullscreen && (
-          <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
-        )}
-        {showDragRegion && (
-          <div style={{ width: '100%', height: 32, WebkitAppRegion: 'drag', position: 'fixed', top: 0, left: 0, zIndex: 10000 }} />
-        )}
-        
-        {/* Floating Settings Button - shown when dock is hidden */}
-        {!showDock && (
-          <div
-            style={{
-              position: 'fixed',
-              bottom: '20px',
-              right: '20px',
-              zIndex: 1000,
-              cursor: 'pointer'
-            }}
-            onClick={() => {
-              const { openSettingsMenu } = useUIStore.getState();
-              openSettingsMenu();
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1)';
-              e.currentTarget.style.transition = 'transform 0.2s ease';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
-          >
-            <div
-              style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(10px)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <div style={{ fontSize: '24px', color: '#666' }}>⚙️</div>
-            </div>
-          </div>
-        )}
-        
-        <div style={{ 
-          opacity: channelOpacity, 
-          transition: 'opacity 0.5s ease-in-out', 
-          position: 'relative', 
-          zIndex: 100, 
-          pointerEvents: 'auto',
-          height: 'calc(100vh - 240px)', /* Full height minus WiiRibbon */
-          width: '100vw',
-          margin: 0,
-          padding: 0
-        }}>
-                  <PaginatedChannels
-          animatedOnHover={animatedOnHover}
-          adaptiveEmptyChannels={adaptiveEmptyChannels}
-          kenBurnsEnabled={kenBurnsEnabled}
-          kenBurnsMode={kenBurnsMode}
-          idleAnimationEnabled={idleAnimationEnabled}
-          idleAnimationTypes={idleAnimationTypes}
-          idleAnimationInterval={idleAnimationInterval}
-          onMediaChange={handleMediaChange}
-          onAppPathChange={handleAppPathChange}
-          onChannelSave={handleChannelSave}
-          onChannelHover={handleChannelHover}
-        />
-          <PageNavigation />
-          <WiiSideNavigation />
+
+        {/* Main Content */}
+        <div className="main-content">
+          <LazyPaginatedChannels />
         </div>
-                    {showDock && !classicMode && (
-          <WiiRibbon
-            onSettingsClick={handleSettingsClick}
-            onSettingsChange={handleSettingsChange}
-            onToggleDarkMode={handleToggleDarkMode}
-            onToggleCursor={handleToggleCursor}
-            useCustomCursor={useCustomCursor}
-            glassWiiRibbon={glassWiiRibbon}
-            onGlassWiiRibbonChange={setGlassWiiRibbon}
-            animatedOnHover={animatedOnHover}
-            setAnimatedOnHover={setAnimatedOnHover}
-            startInFullscreen={startInFullscreen}
-            setStartInFullscreen={setStartInFullscreen}
-            ribbonColor={ribbonColor}
-            onRibbonColorChange={setRibbonColor}
-            recentRibbonColors={recentRibbonColors}
-            onRecentRibbonColorChange={setRecentRibbonColors}
-            ribbonGlowColor={ribbonGlowColor}
-            onRibbonGlowColorChange={setRibbonGlowColor}
-            recentRibbonGlowColors={recentRibbonGlowColors}
-            onRecentRibbonGlowColorChange={setRecentRibbonGlowColors}
-            ribbonGlowStrength={ribbonGlowStrength}
-            ribbonGlowStrengthHover={ribbonGlowStrengthHover}
-            setShowPresetsModal={useUIStore.getState().openPresetsModal}
-            ribbonDockOpacity={ribbonDockOpacity}
-            onRibbonDockOpacityChange={setRibbonDockOpacity}
-            timeColor={timeColor}
-            timeFormat24hr={timeFormat24hr}
-            enableTimePill={enableTimePill}
-            timePillBlur={timePillBlur}
-            timePillOpacity={timePillOpacity}
-            timeFont={timeFont}
-            presetsButtonConfig={presetsButtonConfig}
-            showPresetsButton={showPresetsButton}
-            glassOpacity={glassOpacity}
-            glassBlur={glassBlur}
-            glassBorderOpacity={glassBorderOpacity}
-            glassShineOpacity={glassShineOpacity}
-            particleSettings={particleSettings}
-          />
-        )}
-        {showDock && classicMode && (
-          <ClassicWiiDock
-            onSettingsClick={handleSettingsClick}
-            onSettingsChange={handleSettingsChange}
-            buttonConfigs={classicDockButtonConfigs}
-            onButtonContextMenu={handleClassicButtonContextMenu}
-            onButtonClick={handleClassicButtonClick}
-            onAccessoryButtonClick={handleAccessoryButtonClick}
-            onAccessoryButtonContextMenu={handleAccessoryButtonContextMenu}
-            timeColor={timeColor}
-            timeFormat24hr={timeFormat24hr}
-            timeFont={timeFont}
-            ribbonGlowColor={ribbonGlowColor}
-            showPresetsButton={showPresetsButton}
-            presetsButtonConfig={presetsButtonConfig}
-            openPresetsModal={useUIStore.getState().openPresetsModal}
-            dockSettings={dockSettings}
-            onDockContextMenu={handleOpenClassicDockSettingsModal}
-            accessoryButtonConfig={accessoryButtonConfig}
-            particleSettings={particleSettings}
-          />
-        )}
-        
-        {/* Floating Settings Button when dock is hidden */}
-        {!showDock && (
-          <div
-            style={{
-              position: 'fixed',
-              bottom: '20px',
-              right: '20px',
-              zIndex: 1000,
-              cursor: 'pointer'
-            }}
-            onClick={handleSettingsClick}
-            title="Settings (Dock is hidden)"
-          >
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'scale(1.1)';
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" style={{ color: '#666' }}>
-                <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
-              </svg>
-            </div>
+
+        {/* Page Navigation - Positioned independently */}
+        <LazyPageNavigation 
+          position="bottom"
+          showPageIndicator={true}
+        />
+
+        {/* Wii Side Navigation - Available in both modes */}
+        <LazyWiiSideNavigation />
+
+        {/* Dock with proper props from consolidated store */}
+        {showDock && (
+          <div className="dock-container">
+            {classicMode ? (
+              <LazyClassicWiiDock
+                buttonConfigs={ribbonButtonConfigs}
+                presetsButtonConfig={presetsButtonConfig}
+                onSettingsClick={openSettingsModal}
+                onSettingsChange={(settings) => setRibbonState(settings)}
+                onButtonClick={() => {}}
+                onButtonContextMenu={() => {}}
+                onAccessoryButtonClick={() => {}}
+                onAccessoryButtonContextMenu={() => {}}
+                onDockContextMenu={() => {}}
+  
+                showPresetsButton={true}
+                timeColor="#ffffff"
+                timeFormat24hr={false}
+                timeFont="DigitalDisplayRegular-ODEO"
+                ribbonGlowColor={ribbonGlowColor}
+                accessoryButtonConfig={{}}
+              />
+            ) : (
+              <LazyWiiRibbon
+                ribbonColor={ribbonColor}
+                ribbonGlowColor={ribbonGlowColor}
+                ribbonGlowStrength={ribbonGlowStrength}
+                ribbonGlowStrengthHover={ribbonGlowStrengthHover}
+                ribbonDockOpacity={ribbonDockOpacity}
+                glassWiiRibbon={glassWiiRibbon}
+                glassOpacity={glassOpacity}
+                glassBlur={glassBlur}
+                glassBorderOpacity={glassBorderOpacity}
+                glassShineOpacity={glassShineOpacity}
+                ribbonButtonConfigs={ribbonButtonConfigs}
+                presetsButtonConfig={presetsButtonConfig}
+                onSettingsClick={handleSettingsActionMenuOpen}
+                onPresetsClick={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'themes' })}
+                onSettingsChange={(settings) => setRibbonState(settings)}
+                onToggleDarkMode={toggleDarkMode}
+                onToggleCursor={toggleCustomCursor}
+                useCustomCursor={useCustomCursor}
+                // Time settings from consolidated store
+                enableTimePill={enableTimePill ?? true}
+                timePillBlur={timePillBlur ?? 8}
+                timePillOpacity={timePillOpacity ?? 0.05}
+                timeColor={timeColor ?? '#ffffff'}
+                timeFormat24hr={timeFormat24hr ?? true}
+                timeFont={timeFont ?? 'default'}
+              />
+            )}
           </div>
         )}
-        
-        {/* Global Settings Menu - rendered at app level so it works when dock is hidden */}
-        {(() => {
-          const { showSettingsMenu, settingsMenuFadeIn, closeSettingsMenu } = useUIStore.getState();
-          if (!showSettingsMenu) return null;
-          
-          return (
-            <div className="settings-menu">
-              <div
-                className={`context-menu-content settings-menu-fade${settingsMenuFadeIn ? ' in' : ''}`}
-                style={{ 
-                  position: 'absolute', 
-                  bottom: '60px', 
-                  left: '50%', 
-                  transform: 'translateX(-50%)', 
-                  zIndex: 1002,
-                  animation: settingsMenuFadeIn ? 'settingsMenuSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'settingsMenuSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-                }}
-              >
-                {/* Appearance Group */}
-                <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
-                  Quick Toggles
-                </Text>
-                {/* <div className="context-menu-item" onClick={() => { useUIStore.getState().openWallpaperModal(); closeSettingsMenu(); }}>
-                  Change Wallpaper
-                </div> */}
-                {/* <div className="context-menu-item" onClick={() => { 
-                  useUIStore.getState().openChannelSettingsModal();
-                  closeSettingsMenu(); 
-                }}>
-                  Channel Settings
-                </div> */}
-                <div className="context-menu-item" onClick={() => { handleToggleDarkMode(); closeSettingsMenu(); }}>
-                  Toggle Dark Mode
-                </div>
-                <div className="context-menu-item" onClick={() => { handleToggleCursor(); closeSettingsMenu(); }}>
-                  {useCustomCursor ? 'Use Default Cursor' : 'Use Wii Cursor'}
-                </div>
-                <div className="context-menu-item" onClick={async () => {
-                  const newShowDock = !showDock;
-                  setShowDock(newShowDock);
-                  await handleSettingsChange({ showDock: newShowDock });
-                  closeSettingsMenu();
-                }}>
-                  {showDock ? 'Hide Ribbon (Dock)' : 'Show Ribbon'}
-                </div>
-                <div className="context-menu-item" onClick={async () => {
-                  const newClassicMode = !classicMode;
-                  setClassicMode(newClassicMode);
-                  await handleSettingsChange({ classicMode: newClassicMode });
-                  closeSettingsMenu();
-                }}>
-                  {classicMode ? 'Switch to Modern Mode' : 'Switch to Classic Mode'}
-                </div>
-                <div className="settings-menu-separator" />
-                {/* Window Group */}
-                <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
-                  Window
-                </Text>
-                <div className="context-menu-item" onClick={() => { 
-                  if (window.api?.toggleFullscreen) window.api.toggleFullscreen(); 
-                  closeSettingsMenu(); 
-                }}>
-                  Toggle Fullscreen
-                </div>
-                <div className="context-menu-item" onClick={() => { 
-                  if (window.api?.minimize) window.api.minimize(); 
-                  closeSettingsMenu(); 
-                }}>
-                  Minimize Window
-                </div>
-                <div className="settings-menu-separator" />
-                {/* System Group */}
-                <Text variant="label" size="sm" weight={600} color="#0099ff" style={{ padding: '6px 16px 2px 16px', letterSpacing: '0.02em', opacity: 0.85 }}>
-                  System
-                </Text>
-                {/* <div className="context-menu-item" onClick={() => { 
-                  handleOpenGeneralModal();
-                  closeSettingsMenu(); 
-                }}>
-                  General Settings
-                </div> */}
-                 <div className="context-menu-item" onClick={() => { 
-                  useUIStore.getState().openAppearanceSettingsModal();
-                  closeSettingsMenu(); 
-                }}>
-                  🎨 Settings
-                </div>
-                
-                
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openPresetsModal(); closeSettingsMenu(); }}>
-                  🎨 Presets (Ctrl+P)
-                </div>
-                <div className="context-menu-item" onClick={() => { useUIStore.getState().openSoundModal(); closeSettingsMenu(); }}>
-                  🎵 Change Sounds
-                </div>
-                <div className="context-menu-item" onClick={() => { 
-                  useUIStore.getState().openAppShortcutsModal();
-                  closeSettingsMenu(); 
-                }}>
-                  📱 App Shortcuts
-                </div>
-                <div className={`context-menu-item ${isScreenshotInProgress ? 'disabled' : ''}`} onClick={() => {
-                  if (!isScreenshotInProgress) {
-                    setIsScreenshotInProgress(true);
-                    setShowCountdown(true);
-                  }
-                  closeSettingsMenu();
-                }}>
-                  {isScreenshotInProgress ? '⏳ Taking Screenshot...' : '📸 Take Screenshot'}
-                </div>
 
-                <div className="context-menu-item" onClick={() => { 
-                  handleOpenUpdateModal();
-                  closeSettingsMenu(); 
-                }}>
-                  🔄 Check for Updates
-                </div>
-                <div className="context-menu-item" onClick={() => { 
-                  if (window.api?.close) window.api.close(); 
-                  closeSettingsMenu(); 
-                }}>
-                  Close App
-                </div>
-                <div className="settings-menu-separator" />
-                <div className="context-menu-item" style={{ color: '#dc3545', fontWeight: 600 }}
-                  onClick={async () => {
-                    closeSettingsMenu();
-                    if (window.confirm('Are you sure you want to reset all appearance settings to default? This will not affect your saved presets.')) {
-                      // Reset all visual/cosmetic settings to their original first-time user defaults
-                      if (typeof handleSettingsChange === 'function') {
-                        handleSettingsChange({
-                          // Ribbon & Glow
-                          ribbonColor: '#e0e6ef',
-                          ribbonGlowColor: '#0099ff',
-                          ribbonGlowStrength: 20,
-                          ribbonGlowStrengthHover: 28,
-                          ribbonDockOpacity: 1,
-                          glassWiiRibbon: false,
-                          glassOpacity: 0.18,
-                          glassBlur: 2.5,
-                          glassBorderOpacity: 0.5,
-                          glassShineOpacity: 0.7,
-                          recentRibbonColors: [],
-                          recentRibbonGlowColors: [],
-                          // Time & Pill
-                          timeColor: '#ffffff',
-                          timeFormat24hr: true,
-                          enableTimePill: true,
-                          timePillBlur: 8,
-                          timePillOpacity: 0.05,
-                          timeFont: 'default',
-                          // Wallpaper & Effects
-                          wallpaper: null,
-                          wallpaperOpacity: 1,
-                          wallpaperBlur: 0,
-                          savedWallpapers: [],
-                          likedWallpapers: [],
-                          cycleWallpapers: false,
-                          cycleInterval: 30,
-                          cycleAnimation: 'fade',
-                          slideDirection: 'right',
-                          crossfadeDuration: 1.2,
-                          crossfadeEasing: 'ease-out',
-                          slideRandomDirection: false,
-                          slideDuration: 1.5,
-                          slideEasing: 'ease-out',
-                          channelAutoFadeTimeout: 5,
-                          ribbonButtonConfigs: [{ type: 'text', text: 'Wii' }, { type: 'text', text: 'Mail' }]
-                        });
-                      }
-                      // Do NOT reset presets
-                    }
-                  }}
-                >
-                  Reset Appearance
-                </div>
-              </div>
+        {/* Floating Quick Access Buttons */}
+        {!showDock && (
+          <div className="fixed bottom-5 right-5 z-[1000] flex flex-col gap-2">
+            {/* Quick Settings Menu */}
+            <div
+              className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
+              onClick={handleSettingsActionMenuOpen}
+              title="Quick Settings (Escape key)"
+            >
+              ⚙️
             </div>
-          );
-        })()}
-        
-        {/* Click outside to close settings menu */}
-        {(() => {
-          const { showSettingsMenu, closeSettingsMenu } = useUIStore.getState();
-          if (!showSettingsMenu) return null;
-          
-          return (
-            <div 
-              style={{ 
-                position: 'fixed', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                bottom: 0, 
-                zIndex: 1001 
-              }} 
-              onClick={closeSettingsMenu}
-            />
-          );
-        })()}
-        {/* Channel Modal - rendered at top level for proper z-index */}
-        <Suspense fallback={<div>Loading channel modal...</div>}>
-          <LazyChannelModal
-            channelId={modalState.channelId}
-            onClose={closeChannelModal}
-            onSave={handleChannelSave}
-            currentMedia={modalState.currentMedia}
-            currentPath={modalState.currentPath}
-            currentType={modalState.currentType}
-            currentAsAdmin={modalState.currentAsAdmin}
-            currentAnimatedOnHover={modalState.currentAnimatedOnHover}
-            currentHoverSound={modalState.currentHoverSound}
-            currentKenBurnsEnabled={modalState.currentKenBurnsEnabled}
-            currentKenBurnsMode={modalState.currentKenBurnsMode}
-            isOpen={modalState.isOpen}
-          />
-        </Suspense>
-        {(!appReady || isLoading) && <SplashScreen fadingOut={splashFading} />}
-        <Suspense fallback={<LoadingSpinner message="Loading Presets..." />}>
-          <LazyPresetsModal
-            isOpen={showPresetsModal}
-            onClose={closePresetsModal}
-            presets={presets}
-            onSavePreset={handleSavePreset}
-            onDeletePreset={handleDeletePreset}
-            onApplyPreset={handleApplyPreset}
-            onUpdatePreset={handleUpdatePreset}
-            onRenamePreset={handleRenamePreset}
-            onImportPresets={handleImportPresets}
-            onReorderPresets={handleReorderPresets}
-          />
-        </Suspense>
-        <Suspense fallback={<LoadingSpinner message="Loading Appearance Settings..." />}>
-          <LazyAppearanceSettingsModal
-            isOpen={showAppearanceSettingsModal}
-            onClose={closeAppearanceSettingsModal}
-            onSettingsChange={handleSettingsChange}
-          />
-        </Suspense>
-        <Suspense fallback={<LoadingSpinner message="Loading Design System..." />}>
-          
-        </Suspense>
-        <Suspense fallback={<LoadingSpinner message="Loading Input Components Demo..." />}>
-          
-        </Suspense>
-        <Suspense fallback={<LoadingSpinner message="Loading Primary Actions..." />}>
-          <LazyPrimaryActionsModal
-            isOpen={showPrimaryActionsModal}
-            onClose={() => {
-              if (closePrimaryActionsModal) {
-                closePrimaryActionsModal();
-              } else {
-                setShowPrimaryActionsModal(false);
-              }
-            }}
-            onSave={(newConfig) => {
-              console.log('[App] PrimaryActionsModal onSave called with:', { newConfig, activeButtonIndex, classicMode });
-              // Determine if this is a classic dock button or ribbon button based on activeButtonIndex
-              if (activeButtonIndex === 'accessory') {
-                // This is the accessory button (SD card)
-                console.log('[App] Saving accessory button config:', newConfig);
-                setAccessoryButtonConfig(newConfig);
-                handleSettingsChange({ accessoryButtonConfig: newConfig });
-              } else if (activeButtonIndex !== null && activeButtonIndex >= 0) {
-                // Check if we're in classic mode to determine which configs to use
-                if (classicMode) {
-                  // Classic dock button
-                  console.log('[App] Saving classic dock button config:', { index: activeButtonIndex, config: newConfig });
-                  const newConfigs = [...(classicDockButtonConfigs || [])];
-                  newConfigs[activeButtonIndex] = newConfig;
-                  setClassicDockButtonConfigs(newConfigs);
-                  handleSettingsChange({ classicDockButtonConfigs: newConfigs });
-                } else {
-                  // Ribbon button
-                  console.log('[App] Saving ribbon button config:', { index: activeButtonIndex, config: newConfig });
-                  const newConfigs = [...(ribbonButtonConfigs || [])];
-                  newConfigs[activeButtonIndex] = newConfig;
-                  setRibbonButtonConfigs(newConfigs);
-                  handleSettingsChange({ ribbonButtonConfigs: newConfigs });
-                }
-              }
-              if (closePrimaryActionsModal) {
-                closePrimaryActionsModal();
-              } else {
-                setShowPrimaryActionsModal(false);
-              }
-            }}
-            config={
-              activeButtonIndex === 'accessory' 
-                ? accessoryButtonConfig 
-                : activeButtonIndex !== null && activeButtonIndex >= 0
-                  ? (classicMode ? classicDockButtonConfigs?.[activeButtonIndex] : ribbonButtonConfigs?.[activeButtonIndex])
-                  : null
-            }
-            buttonIndex={activeButtonIndex}
-            preavailableIcons={[]}
-            ribbonGlowColor={ribbonGlowColor}
-          />
-        </Suspense>
-        <Suspense fallback={<div>Loading channel settings...</div>}>
-          <LazyChannelSettingsModal
-            isOpen={showChannelSettingsModal}
-            onClose={closeChannelSettingsModal}
-            onSettingsChange={handleSettingsChange}
-            adaptiveEmptyChannels={adaptiveEmptyChannels}
-            channelAnimation={channelAnimation}
-            animatedOnHover={animatedOnHover}
-            idleAnimationEnabled={idleAnimationEnabled}
-            idleAnimationTypes={idleAnimationTypes}
-            idleAnimationInterval={idleAnimationInterval}
-            kenBurnsEnabled={kenBurnsEnabled}
-            kenBurnsMode={kenBurnsMode}
-            kenBurnsHoverScale={kenBurnsHoverScale}
-            kenBurnsAutoplayScale={kenBurnsAutoplayScale}
-            kenBurnsSlideshowScale={kenBurnsSlideshowScale}
-            kenBurnsHoverDuration={kenBurnsHoverDuration}
-            kenBurnsAutoplayDuration={kenBurnsAutoplayDuration}
-            kenBurnsSlideshowDuration={kenBurnsSlideshowDuration}
-            kenBurnsCrossfadeDuration={kenBurnsCrossfadeDuration}
-            kenBurnsForGifs={kenBurnsForGifs}
-            kenBurnsForVideos={kenBurnsForVideos}
-            kenBurnsEasing={kenBurnsEasing}
-            kenBurnsAnimationType={kenBurnsAnimationType}
-            kenBurnsCrossfadeReturn={kenBurnsCrossfadeReturn}
-            kenBurnsTransitionType={kenBurnsTransitionType}
-            channelAutoFadeTimeout={channelAutoFadeTimeout}
-          />
-        </Suspense>
-        <Suspense fallback={<div>Loading sound settings...</div>}>
-          <LazySoundModal
-            isOpen={showSoundModal}
-            onClose={closeSoundModal}
-            onSettingsChange={handleSettingsChange}
-          />
-        </Suspense>
-        <Suspense fallback={<div>Loading wallpaper settings...</div>}>
-          {showWallpaperModal && (
-            <LazyWallpaperModal
-              isOpen={showWallpaperModal}
-              onClose={closeWallpaperModal}
-              onSettingsChange={handleSettingsChange}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading app shortcuts...</div>}>
-          <LazyAppShortcutsModal
-            isOpen={showAppShortcutsModal}
-            onClose={closeAppShortcutsModal}
-          />
-        </Suspense>
-        <Suspense fallback={<div>Loading auth settings...</div>}>
-          {isAuthModalOpen && (
-            <LazyAuthModal />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading update settings...</div>}>
-          {showUpdateModal && (
-            <LazyUpdateModal
-              isOpen={showUpdateModal}
-              onClose={closeUpdateModal}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading general settings...</div>}>
-          {showGeneralSettingsModal && (
-            <LazyGeneralSettingsModal
-              isOpen={showGeneralSettingsModal}
-              onClose={closeGeneralSettingsModal}
-              immersivePip={window.settings?.immersivePip ?? false}
-              setImmersivePip={val => {
-                localStorage.setItem('immersivePip', JSON.stringify(val));
-                handleSettingsChange({ immersivePip: val });
-              }}
-              glassWiiRibbon={glassWiiRibbon}
-              setGlassWiiRibbon={setGlassWiiRibbon}
-              startInFullscreen={startInFullscreen}
-              setStartInFullscreen={setStartInFullscreen}
-              showPresetsButton={showPresetsButton}
-              setShowPresetsButton={val => handleSettingsChange({ showPresetsButton: val })}
-              channelAnimation={window.settings?.channelAnimation}
-              adaptiveEmptyChannels={window.settings?.adaptiveEmptyChannels}
-              idleAnimationEnabled={window.settings?.idleAnimationEnabled}
-              idleAnimationTypes={window.settings?.idleAnimationTypes}
-              idleAnimationInterval={window.settings?.idleAnimationInterval}
-              kenBurnsEnabled={window.settings?.kenBurnsEnabled}
-              kenBurnsMode={window.settings?.kenBurnsMode}
-              kenBurnsHoverScale={window.settings?.kenBurnsHoverScale}
-              kenBurnsAutoplayScale={window.settings?.kenBurnsAutoplayScale}
-              kenBurnsSlideshowScale={window.settings?.kenBurnsSlideshowScale}
-              kenBurnsHoverDuration={window.settings?.kenBurnsHoverDuration}
-              kenBurnsAutoplayDuration={window.settings?.kenBurnsAutoplayDuration}
-              kenBurnsSlideshowDuration={window.settings?.kenBurnsSlideshowDuration}
-              kenBurnsCrossfadeDuration={window.settings?.kenBurnsCrossfadeDuration}
-              kenBurnsForGifs={window.settings?.kenBurnsForGifs}
-              kenBurnsForVideos={window.settings?.kenBurnsForVideos}
-              kenBurnsEasing={window.settings?.kenBurnsEasing}
-              kenBurnsAnimationType={window.settings?.kenBurnsAnimationType}
-              kenBurnsCrossfadeReturn={window.settings?.kenBurnsCrossfadeReturn}
-              kenBurnsTransitionType={window.settings?.kenBurnsTransitionType}
-              onSettingsChange={handleSettingsChange}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading time settings...</div>}>
-          {showTimeSettingsModal && (
-            <LazyTimeSettingsModal
-              isOpen={showTimeSettingsModal}
-              onClose={closeTimeSettingsModal}
-              onSettingsChange={handleSettingsChange}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading ribbon settings...</div>}>
-          {showRibbonSettingsModal && (
-            <LazyRibbonSettingsModal
-              isOpen={showRibbonSettingsModal}
-              onClose={closeRibbonSettingsModal}
-              onSettingsChange={handleSettingsChange}
-              glassWiiRibbon={glassWiiRibbon}
-              setGlassWiiRibbon={setGlassWiiRibbon}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading classic dock settings...</div>}>
-          {showClassicDockSettingsModal && (
-            <LazyClassicDockSettingsModal
-              isOpen={showClassicDockSettingsModal}
-              onClose={() => setShowClassicDockSettingsModal(false)}
-              onSettingsChange={handleDockSettingsChange}
-              dockSettings={dockSettings}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading navigation customization...</div>}>
-          {showNavigationCustomizationModal && (
-            <LazyNavigationCustomizationModal />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading monitor selection...</div>}>
-          {showMonitorSelectionModal && (
-            <LazyMonitorSelectionModal />
-          )}
-        </Suspense>
-        <Suspense fallback={<LoadingSpinner message="Loading image search..." />}>
-          {showImageSearchModal && imageSearchModalData && (
-            <LazyImageSearchModal 
-              isOpen={showImageSearchModal}
-              onClose={closeImageSearchModal}
-              onSelect={imageSearchModalData.onSelect}
-              onUploadClick={imageSearchModalData.onUploadClick}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={<div>Loading admin panel...</div>}>
-          <LazyAdminPanel />
-        </Suspense>
-
-        <Suspense fallback={<div>Loading confirmation modal...</div>}>
-          <ConfirmationModal />
-        </Suspense>
-        
-        {/* Countdown Overlay for Screenshots */}
-        <CountdownOverlay 
-          isVisible={showCountdown}
-          onComplete={() => {
-            setShowCountdown(false);
-            setIsScreenshotInProgress(false);
-            handleTakeScreenshot();
-          }}
-        />
-        
-        {/* Floating Widgets */}
-        {floatingWidgets?.spotify?.visible && (
-          <FloatingSpotifyWidget
-            isVisible={floatingWidgets.spotify.visible}
-            onClose={hideSpotifyWidget}
-            position={floatingWidgets.spotify.position}
-            onPositionChange={(position) => {
-              const { setSpotifyWidgetPosition } = useSettingsStore.getState();
-              setSpotifyWidgetPosition(position);
-            }}
-          />
+            {/* Wallpaper Quick Access */}
+            <div
+              className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
+              onClick={() => setUIState({ 
+                showSettingsModal: true,
+                settingsActiveTab: 'wallpaper'
+              })}
+              title="Wallpaper Settings"
+            >
+              🖼️
+            </div>
+            {/* Settings Quick Access */}
+            <div
+              className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
+              onClick={openSettingsModal}
+              title="Settings"
+            >
+              🔧
+            </div>
+            
+            {/* Cycling Status Indicator */}
+            {isCycling && (
+              <div
+                className="cursor-pointer p-3 bg-green-500/20 backdrop-blur-md rounded-full border border-green-400/30 hover:bg-green-500/30 transition-all duration-200 shadow-lg"
+                onClick={cycleToNextWallpaper}
+                title={`Cycling active (${cycleInterval}s interval) - Click to cycle manually`}
+              >
+                🔄
+                </div>
+            )}
+            
+            {/* Debug Button - Only in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div
+                className="cursor-pointer p-3 bg-red-500/20 backdrop-blur-md rounded-full border border-red-400/30 hover:bg-red-500/30 transition-all duration-200 shadow-lg"
+                onClick={openDevTools}
+                title="Open Developer Tools (Debug)"
+              >
+                🐛
+              </div>
+            )}
+                </div>
         )}
 
-        {floatingWidgets?.systemInfo?.visible && (
-          <SystemInfoWidget
-            isVisible={floatingWidgets.systemInfo.visible}
-            onClose={hideSystemInfoWidget}
-          />
-        )}
+        {/* Modals */}
+        <Suspense fallback={<div>Loading settings...</div>}>
+          {showSettingsModal && (
+          <LazySettingsModal
+              isOpen={showSettingsModal}
+            onClose={closeSettingsModal}
+              onSettingsChange={() => {}}
+              initialActiveTab={settingsActiveTab}
+            />
+          )}
+        </Suspense>
 
-        {floatingWidgets?.adminPanel?.visible && (
-          <AdminPanelWidget
-            isVisible={floatingWidgets.adminPanel.visible}
-            onClose={hideAdminPanelWidget}
-          />
-        )}
+        {/* Settings Action Menu - Independent of dock visibility */}
+        <Suspense fallback={<div>Loading settings menu...</div>}>
+          {showSettingsActionMenu && (
+            <LazySettingsActionMenu
+              ref={settingsActionMenuRef}
+              isOpen={showSettingsActionMenu}
+              onClose={closeSettingsActionMenu}
+              position={settingsMenuPosition}
+            />
+          )}
+        </Suspense>
+
+
+
+
       </div>
-    </>
+    </ErrorBoundary>
   );
 }
 

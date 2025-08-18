@@ -1,0 +1,48 @@
+/* ===== SLIDE NAVIGATION STYLING ===== */
+
+.slide-navigation-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+}
+
+.slide-navigation-pages {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.slide-navigation-pages > * {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+}
+
+/* Smooth transitions */
+.slide-navigation-pages {
+  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Performance optimizations */
+.slide-navigation-pages {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Accessibility */
+.slide-navigation-container:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .slide-navigation-pages {
+    transition: none;
+  }
+}

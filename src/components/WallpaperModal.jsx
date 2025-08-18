@@ -4,10 +4,12 @@ import WBaseModal from './WBaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Text from '../ui/Text';
 import Button from '../ui/WButton';
-import './BaseModal.css';
+
 import Card from '../ui/Card';
 import WToggle from '../ui/WToggle';
 import WSelect from '../ui/WSelect';
+// New unified data layer imports
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 
 const WALLPAPER_ANIMATIONS = [
   { value: 'fade', label: 'Fade - Smooth crossfade between wallpapers' },
@@ -50,6 +52,13 @@ const api = window.api?.wallpapers || {};
 const selectFile = window.api?.selectWallpaperFile;
 
 function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
+  // New unified data layer hooks
+  const { wallpaper, overlay } = useConsolidatedAppStore();
+  const { setWallpaperState, setOverlayState } = useConsolidatedAppStore(state => state.actions);
+  
+  const wallpaperSettings = wallpaper;
+  const updateWallpaperSetting = (key, value) => setWallpaperState({ [key]: value });
+  
   const [wallpapers, setWallpapers] = useState([]);
   const [activeWallpaper, setActiveWallpaper] = useState(null);
   const [likedWallpapers, setLikedWallpapers] = useState([]);
@@ -107,6 +116,33 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       setOverlaySpeed(data.overlaySpeed ?? 1);
       setOverlayWind(data.overlayWind ?? 0.02);
       setOverlayGravity(data.overlayGravity ?? 0.1);
+
+      // Update consolidated store with loaded data
+      setWallpaperState({
+        current: data.wallpaper || null, // This is the key - update the current wallpaper
+        savedWallpapers: data.savedWallpapers || [],
+        likedWallpapers: data.likedWallpapers || [],
+        opacity: data.wallpaperOpacity ?? 1,
+        blur: data.wallpaperBlur ?? 0,
+        cycleWallpapers: data.cyclingSettings?.enabled ?? false,
+        cycleInterval: data.cyclingSettings?.interval ?? 30,
+        cycleAnimation: data.cyclingSettings?.animation ?? 'fade',
+        slideDirection: data.cyclingSettings?.slideDirection ?? 'right',
+        crossfadeDuration: data.cyclingSettings?.crossfadeDuration ?? 1.2,
+        crossfadeEasing: data.cyclingSettings?.crossfadeEasing ?? 'ease-out',
+        slideRandomDirection: data.cyclingSettings?.slideRandomDirection ?? false,
+        slideDuration: data.cyclingSettings?.slideDuration ?? 1.5,
+        slideEasing: data.cyclingSettings?.slideEasing ?? 'ease-out',
+      });
+
+      setOverlayState({
+        enabled: data.overlayEnabled ?? false,
+        effect: data.overlayEffect ?? 'snow',
+        intensity: data.overlayIntensity ?? 50,
+        speed: data.overlaySpeed ?? 1,
+        wind: data.overlayWind ?? 0.02,
+        gravity: data.overlayGravity ?? 0.1,
+      });
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load wallpapers: ' + err.message });
     } finally {
@@ -198,6 +234,13 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         setMessage({ type: 'error', text: result.error || 'Failed to set wallpaper.' });
       } else {
         setActiveWallpaper(w);
+        setSelectedWallpaper(w);
+        
+        // Immediately update the consolidated store with the new current wallpaper
+        setWallpaperState({
+          current: w,
+        });
+        
         setMessage({ type: 'success', text: 'Wallpaper set as current.' });
         await loadWallpapers();
       }
@@ -215,6 +258,12 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       } else {
         setActiveWallpaper(null);
         setSelectedWallpaper(null);
+        
+        // Immediately update the consolidated store to clear the current wallpaper
+        setWallpaperState({
+          current: null,
+        });
+        
         setMessage({ type: 'success', text: 'Wallpaper removed. Back to default background.' });
         await loadWallpapers();
       }
@@ -252,9 +301,9 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   useEffect(() => {
     if (isOpen) {
       setSelectedWallpaper(activeWallpaper);
-      setWallpaperBlur(window.settings.wallpaperBlur ?? 0);
+      setWallpaperBlur(wallpaperSettings?.wallpaperBlur ?? 0);
     }
-  }, [isOpen, activeWallpaper]);
+  }, [isOpen, activeWallpaper, wallpaperSettings]);
 
   // Save both selected wallpaper and cycling settings
   const handleSaveAll = async (handleClose) => {
@@ -288,6 +337,31 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       });
 
       setMessage({ type: 'success', text: 'Wallpaper and settings saved.' });
+
+      // Update consolidated store with new settings
+      setWallpaperState({
+        current: selectedWallpaper || null, // Update current wallpaper to the selected one
+        opacity: wallpaperOpacity,
+        blur: wallpaperBlur,
+        cycleWallpapers: cycling,
+        cycleInterval: cycleInterval,
+        cycleAnimation: cycleAnimation,
+        slideDirection: slideDirection,
+        crossfadeDuration: crossfadeDuration,
+        crossfadeEasing: crossfadeEasing,
+        slideRandomDirection: slideRandomDirection,
+        slideDuration: slideDuration,
+        slideEasing: slideEasing,
+      });
+
+      setOverlayState({
+        enabled: overlayEnabled,
+        effect: overlayEffect,
+        intensity: overlayIntensity,
+        speed: overlaySpeed,
+        wind: overlayWind,
+        gravity: overlayGravity,
+      });
 
       // Call onSettingsChange to notify parent component of the new settings
       if (onSettingsChange) {

@@ -1,0 +1,10 @@
+[33m9e37e55[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;33mtag: [m[1;33mv2.9.4[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m 2.9.4
+[33m0ef1f99[m Fix app search in channel modal
+[33mda34c6e[m Glass mode for classic dock
+[33m9cc0c51[m fix shortcut bindings
+[33m4639993[m[33m ([m[1;33mtag: [m[1;33mv2.9.3[m[33m)[m 2.9.3
+[33m4096504[m Fix primary buttons functionality and path parse
+[33m8a2693d[m[33m ([m[1;33mtag: [m[1;33mv2.9.2[m[33m)[m 2.9.2
+[33m0cbb121[m tweak widget uis
+[33m854f9c9[m Refine code for less rerenders and better performance, fix broken steam ids, fix channel modal configs
+[33m8e5347a[m Vavigation fix

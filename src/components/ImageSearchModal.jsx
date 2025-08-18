@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
@@ -46,7 +46,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
   const [hasMore, setHasMore] = useState(true);
 
   // Fetch media from Supabase
-  const fetchMedia = async (page = 1, forceRefresh = false) => {
+  const fetchMedia = useCallback(async (page = 1, forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
@@ -76,39 +76,39 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, search, sortBy, itemsPerPage]);
 
   // Load more media (infinite scroll)
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (!loading && hasMore) {
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
       fetchMedia(nextPage);
     }
-  };
+  }, [loading, hasMore, currentPage, fetchMedia]);
 
   // Handle search, filter, and sort changes
   useEffect(() => {
     setCurrentPage(1);
     setMedia([]); // Clear existing media when filters change
     fetchMedia(1, true);
-  }, [search, filter, sortBy]);
+  }, [fetchMedia]);
 
   // Initial load
   useEffect(() => {
     fetchMedia(1);
-  }, []);
+  }, [fetchMedia]);
 
   // Handle media selection
-  const handleMediaSelect = (mediaItem) => {
+  const handleMediaSelect = useCallback((mediaItem) => {
     console.log('ImageSearchModal: handleMediaSelect called with:', mediaItem);
     console.log('ImageSearchModal: Calling onSelect with mediaItem');
     onSelect(mediaItem);
     onClose();
-  };
+  }, [onSelect, onClose]);
 
   // Handle download
-  const handleDownload = async (mediaItem) => {
+  const handleDownload = useCallback(async (mediaItem) => {
     try {
       setItemLoading(prev => ({ ...prev, [mediaItem.id]: true }));
       setDownloadSuccess(prev => ({ ...prev, [mediaItem.id]: false }));
@@ -139,7 +139,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
     } finally {
       setItemLoading(prev => ({ ...prev, [mediaItem.id]: false }));
     }
-  };
+  }, []);
 
   // Performance optimization: Memoize media items to prevent unnecessary re-renders
   const memoizedMediaItems = useMemo(() => {
@@ -157,7 +157,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
   }, [media, itemLoading, downloadSuccess, viewMode, handleMediaSelect, handleDownload]);
 
   // Handle upload
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async () => {
     if (!uploadForm.file || !uploadForm.title.trim()) {
       setError('Please select a file and enter a title');
       return;
@@ -191,10 +191,10 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
     } finally {
       setUploading(false);
     }
-  };
+  }, [uploadForm, fetchMedia]);
 
   // Handle file selection
-  const handleFileSelect = (e) => {
+  const handleFileSelect = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
       // Determine file type
@@ -208,7 +208,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
         fileType
       }));
     }
-  };
+  }, []);
 
   return (
     <WBaseModal
@@ -217,6 +217,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
       onClose={onClose}
       maxWidth="1400px"
       maxHeight="80vh"
+      footerContent={null}
     >
       {error && (
         <div style={{ 

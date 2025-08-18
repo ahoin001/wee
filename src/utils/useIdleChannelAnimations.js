@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 
 const useIdleChannelAnimations = (
   enabled,
@@ -12,47 +12,30 @@ const useIdleChannelAnimations = (
   const channelsRef = useRef(channels);
   const prevChannelsLengthRef = useRef(channels.length);
 
+  // Memoize channels to prevent unnecessary re-renders
+  const memoizedChannels = useMemo(() => channels, [channels.length]);
+
   // Update channels ref only when the length or content actually changes
   useEffect(() => {
-    const currentLength = channels.length;
+    const currentLength = memoizedChannels.length;
     const prevLength = prevChannelsLengthRef.current;
     
     // Only update if the number of channels changed
     if (currentLength !== prevLength) {
-      channelsRef.current = channels;
+      channelsRef.current = memoizedChannels;
       prevChannelsLengthRef.current = currentLength;
     }
-  }, [channels.length]); // Only depend on channels.length, not the entire channels array
+  }, [memoizedChannels]);
 
-  // Get channels that have content (not empty)
-  const getChannelsWithContent = () => {
+  // Get channels that have content (not empty) - memoized
+  const getChannelsWithContent = useCallback(() => {
     return channelsRef.current.filter(channel => 
       channel && (channel.media || channel.path)
     );
-  };
+  }, []);
 
-  // Start animation for a specific channel
-  const startAnimation = (channelId, animationType) => {
-    setActiveAnimations(prev => new Set([...prev, `${channelId}-${animationType}`]));
-    
-    // Animation duration (most CSS animations are 1-3 seconds)
-    const duration = getAnimationDuration(animationType);
-    
-    // Clear animation after duration
-    const timeoutId = setTimeout(() => {
-      setActiveAnimations(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(`${channelId}-${animationType}`);
-        return newSet;
-      });
-    }, duration);
-    
-    // Store timeout reference for cleanup
-    timeoutRefs.current.add(timeoutId);
-  };
-
-  // Get animation duration based on type
-  const getAnimationDuration = (animationType) => {
+  // Get animation duration based on type - memoized
+  const getAnimationDuration = useCallback((animationType) => {
     const durations = {
       pulse: 2000,
       bounce: 1500,
@@ -75,18 +58,35 @@ const useIdleChannelAnimations = (
       glowtrail: 3500
     };
     return durations[animationType] || 2000;
-  };
+  }, []);
 
-  // Trigger random animation
-  const triggerRandomAnimation = () => {
+  // Start animation for a specific channel - memoized
+  const startAnimation = useCallback((channelId, animationType) => {
+    setActiveAnimations(prev => new Set([...prev, `${channelId}-${animationType}`]));
+    
+    // Animation duration (most CSS animations are 1-3 seconds)
+    const duration = getAnimationDuration(animationType);
+    
+    // Clear animation after duration
+    const timeoutId = setTimeout(() => {
+      setActiveAnimations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(`${channelId}-${animationType}`);
+        return newSet;
+      });
+    }, duration);
+    
+    // Store timeout reference for cleanup
+    timeoutRefs.current.add(timeoutId);
+  }, [getAnimationDuration]);
+
+  // Trigger random animation - memoized
+  const triggerRandomAnimation = useCallback(() => {
     const channelsWithContent = getChannelsWithContent();
     
     if (channelsWithContent.length === 0) {
       return;
     }
-
-    // console.log(`[IdleAnimation] Found ${channelsWithContent.length} channels with content out of ${channelsRef.current.length} total`);
-    // console.log(`[IdleAnimation] Channels with content:`, channelsWithContent.map(c => ({id: c.id, title: c.title, media: !!c.media, path: !!c.path})));
 
     // Pick a random channel with content
     const randomChannel = channelsWithContent[Math.floor(Math.random() * channelsWithContent.length)];
@@ -98,15 +98,13 @@ const useIdleChannelAnimations = (
     // Don't start if this channel is already animating
     const animationKey = `${channelId}-${randomAnimationType}`;
     if (activeAnimations.has(animationKey)) {
-      console.log(`[IdleAnimation] Channel ${channelId} already animating with ${randomAnimationType}`);
       return;
     }
 
-    // console.log(`[IdleAnimation] Starting ${randomAnimationType} animation for channel:`, channelId, randomChannel);
     startAnimation(channelId, randomAnimationType);
-  };
+  }, []); // Empty dependency array to prevent infinite loops
 
-  // Set up interval for random animations
+  // Set up interval for random animations - with proper dependencies
   useEffect(() => {
     if (!enabled || animationTypes.length === 0) {
       // Clear existing interval and animations
@@ -134,7 +132,7 @@ const useIdleChannelAnimations = (
         intervalRef.current = null;
       }
     };
-  }, [enabled, animationTypes, interval]); // Removed 'channels' from dependencies
+  }, [enabled, interval]); // Simplified dependencies to prevent loops
 
   // Cleanup on unmount
   useEffect(() => {
@@ -147,8 +145,8 @@ const useIdleChannelAnimations = (
     };
   }, []);
 
-  // Helper function to check if a channel should be animating
-  const getChannelAnimationClass = (channelId) => {
+  // Helper function to check if a channel should be animating - memoized
+  const getChannelAnimationClass = useCallback((channelId) => {
     const animations = [];
     
     for (const animationKey of activeAnimations) {
@@ -158,23 +156,18 @@ const useIdleChannelAnimations = (
       }
     }
     
-    const result = animations.join(' ');
-    // if (result) {
-    //   console.log(`[IdleAnimation] Channel ${channelId} applying classes: ${result}`);
-    // }
-    
-    return result;
-  };
+    return animations.join(' ');
+  }, [activeAnimations]);
 
-  // Check if a specific channel is currently animating
-  const isChannelAnimating = (channelId) => {
+  // Check if a specific channel is currently animating - memoized
+  const isChannelAnimating = useCallback((channelId) => {
     for (const animationKey of activeAnimations) {
       if (animationKey.startsWith(`${channelId}-`)) {
         return true;
       }
     }
     return false;
-  };
+  }, [activeAnimations]);
 
   return {
     getChannelAnimationClass,

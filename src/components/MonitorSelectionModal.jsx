@@ -3,7 +3,7 @@ import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
-import useMonitorStore from '../utils/useMonitorStore';
+import { useMonitorState } from '../utils/useConsolidatedAppHooks';
 import MonitorWallpaperCard from './MonitorWallpaperCard';
 
 const MonitorSelectionModal = ({ isOpen, onClose }) => {
@@ -22,7 +22,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
     moveToDisplay,
     fetchDisplays,
     fetchCurrentDisplay
-  } = useMonitorStore();
+  } = useMonitorState();
 
   const [selectedDisplayId, setSelectedDisplayId] = useState(null);
 

@@ -138,7 +138,7 @@ const PresetListItem = ({
             <Button 
               variant="danger-primary"
               size="sm"
-              onClick={e => { e.stopPropagation(); onDelete(preset); }}
+              onClick={e => { e.stopPropagation(); onDelete(preset.name); }}
               title="Delete this preset (requires confirmation)"
             >
               Delete

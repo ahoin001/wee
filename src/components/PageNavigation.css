@@ -1,268 +1,127 @@
-/* Page Navigation Component Styles */
+/* ===== PAGE NAVIGATION STYLING ===== */
 
 .page-navigation {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
-  padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  position: relative;
-  z-index: 50;
-  user-select: none;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
 }
 
-.page-navigation-bottom {
-  margin: 2rem auto 1rem;
-  max-width: fit-content;
+.page-navigation:hover {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.page-navigation-top {
-  margin: 1rem auto 2rem;
-  max-width: fit-content;
-}
 
-/* Navigation Arrows */
-.nav-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(5px);
-}
-
-.nav-arrow:hover:not(.disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.nav-arrow:active:not(.disabled) {
-  transform: scale(0.95);
-}
-
-.nav-arrow.disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.nav-arrow svg {
-  transition: transform 0.2s ease;
-}
-
-.nav-arrow:hover:not(.disabled) svg {
-  transform: translateX(2px);
-}
-
-.nav-arrow-left:hover:not(.disabled) svg {
-  transform: translateX(-2px);
-}
 
 /* Page Indicators */
 .page-indicators {
   display: flex;
+  gap: 6px;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0 1rem;
 }
 
 .page-indicator {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 20px;
+  height: 20px;
   border: none;
   background: transparent;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  transition: all 0.15s ease;
+  padding: 0;
 }
 
-.page-indicator:hover .page-dot {
-  transform: scale(1.3);
-  background: rgba(255, 255, 255, 0.8);
-}
-
-.page-indicator.active .page-dot {
-  transform: scale(1.5);
-  background: white;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-}
-
-.page-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
-}
-
-/* Page Info Text */
-.page-info {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-  font-weight: 500;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  white-space: nowrap;
-  margin-left: 0.5rem;
-}
-
-/* Add Page Button */
-.add-page-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+.page-indicator:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(5px);
-  margin-left: 0.5rem;
+  transform: scale(1.1);
 }
 
-.add-page-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.6);
-  color: white;
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+.page-indicator.active {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.1);
 }
 
-.add-page-btn:active:not(:disabled) {
+.page-indicator:active {
   transform: scale(0.95);
 }
 
-.add-page-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+.indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.15s ease;
 }
 
-.add-page-btn svg {
-  transition: transform 0.2s ease;
+.page-indicator.active .indicator-dot {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
 }
 
-.add-page-btn:hover:not(:disabled) svg {
-  transform: rotate(90deg);
-}
-
-/* Animation States */
-.page-navigation.animating .nav-arrow,
-.page-navigation.animating .page-indicator {
-  pointer-events: none;
-}
-
-/* Responsive Design */
+/* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
   .page-navigation {
-    gap: 1rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 16px;
-  }
-  
-  .nav-arrow {
-    width: 40px;
-    height: 40px;
-  }
-  
-  .nav-arrow svg {
-    width: 20px;
-    height: 20px;
+    bottom: 120px;
+    padding: 4px 8px;
   }
   
   .page-indicators {
-    gap: 0.5rem;
-    padding: 0 0.5rem;
-  }
-  
-  .page-indicator {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .page-dot {
-    width: 10px;
-    height: 10px;
-  }
-  
-  .page-info {
-    font-size: 0.8rem;
-  }
-  
-  .add-page-btn {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .add-page-btn svg {
-    width: 16px;
-    height: 16px;
+    gap: 4px;
   }
 }
 
 @media (max-width: 480px) {
   .page-navigation {
-    gap: 0.75rem;
-    padding: 0.5rem 1rem;
+    bottom: 100px;
+    padding: 3px 6px;
   }
-  
-  .page-info {
-    display: none; /* Hide page info on very small screens */
+
+  .page-indicator {
+    width: 16px;
+    height: 16px;
   }
-  
-  .add-page-btn {
-    width: 32px;
-    height: 32px;
-    margin-left: 0.25rem;
+
+  .indicator-dot {
+    width: 5px;
+    height: 5px;
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .page-navigation {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .nav-arrow {
-    background: rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-  
-  .nav-arrow:hover:not(.disabled) {
-    background: rgba(0, 0, 0, 0.4);
-    border-color: rgba(255, 255, 255, 0.4);
-  }
-}
-
-/* Accessibility */
-.nav-arrow:focus-visible,
-.page-indicator:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.8);
+/* ===== ACCESSIBILITY ===== */
+.page-indicator:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
   outline-offset: 2px;
 }
 
-/* Smooth transitions for better UX */
-* {
-  transition-property: transform, background, border-color, opacity, box-shadow;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+/* ===== REDUCED MOTION SUPPORT ===== */
+@media (prefers-reduced-motion: reduce) {
+  .page-navigation,
+  .page-indicator {
+    transition: none;
+  }
+
+  .page-indicator:hover,
+  .page-indicator.active {
+    transform: none;
+  }
+}
+
+/* ===== PERFORMANCE OPTIMIZATIONS ===== */
+.page-indicator {
+  will-change: transform, background, color;
+  backface-visibility: hidden;
 } 

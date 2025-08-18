@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import usePageNavigationStore from '../utils/usePageNavigationStore';
-import useNavigationModalStore from '../utils/useNavigationModalStore';
+import useChannelOperations from '../utils/useChannelOperations';
 import './WiiSideNavigation.css';
 
 const WiiSideNavigation = () => {
   const {
-    currentPage,
-    totalPages,
-    isAnimating,
-    goToNextPage,
-    goToPreviousPage,
+    navigation,
+    nextPage,
+    prevPage,
     finishAnimation
-  } = usePageNavigationStore();
+  } = useChannelOperations();
+  
+  const { currentPage, totalPages, isAnimating, mode } = navigation;
 
   // Icon state management
   const [leftIcon, setLeftIcon] = useState(null);
@@ -33,9 +32,6 @@ const WiiSideNavigation = () => {
     borderOpacity: 0.5,
     shineOpacity: 0.7
   });
-  
-  // Modal state from Zustand
-  const { openModal } = useNavigationModalStore();
 
   // Load saved icons and glass settings on component mount
   useEffect(() => {
@@ -106,11 +102,11 @@ const WiiSideNavigation = () => {
 
 
 
-  // Handle right-click to open modal
+  // Handle right-click to open modal (disabled for now)
   const handleContextMenu = (event, side) => {
     event.preventDefault();
-    const currentIcon = side === 'left' ? leftIcon : rightIcon;
-    openModal(side, currentIcon);
+    // TODO: Re-implement navigation modal functionality
+    console.log('Navigation customization not yet implemented');
   };
 
   // Generate glass effect styles
@@ -183,7 +179,7 @@ const WiiSideNavigation = () => {
     return <DefaultIcon />;
   };
 
-  // Keyboard navigation
+  // Keyboard and mouse navigation
   useEffect(() => {
     const handleKeyDown = (event) => {
       // Don't interfere with important system shortcuts like Ctrl+Shift+I
@@ -200,13 +196,13 @@ const WiiSideNavigation = () => {
         case 'ArrowLeft':
           event.preventDefault();
           if (currentPage > 0) {
-            goToPreviousPage();
+            prevPage();
           }
           break;
         case 'ArrowRight':
           event.preventDefault();
           if (currentPage < totalPages - 1) {
-            goToNextPage();
+            nextPage();
           }
           break;
         default:
@@ -214,9 +210,29 @@ const WiiSideNavigation = () => {
       }
     };
 
+    const handleMouseDown = (event) => {
+      // Handle mouse side buttons (browser back/forward)
+      if (event.button === 3) { // Browser back button
+        event.preventDefault();
+        if (currentPage > 0) {
+          prevPage();
+        }
+      } else if (event.button === 4) { // Browser forward button
+        event.preventDefault();
+        if (currentPage < totalPages - 1) {
+          nextPage();
+        }
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToNextPage, goToPreviousPage, currentPage, totalPages]);
+    window.addEventListener('mousedown', handleMouseDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [nextPage, prevPage, currentPage, totalPages]);
 
   // Auto-finish animation after transition duration
   useEffect(() => {
@@ -242,7 +258,7 @@ const WiiSideNavigation = () => {
       {canGoLeft && (
         <button
           className="wii-peek-button wii-peek-button-left"
-          onClick={goToPreviousPage}
+          onClick={prevPage}
           onContextMenu={(e) => handleContextMenu(e, 'left')}
           disabled={isAnimating}
           title="Previous page (Right-click to customize)"
@@ -262,7 +278,7 @@ const WiiSideNavigation = () => {
       {canGoRight && (
         <button
           className="wii-peek-button wii-peek-button-right"
-          onClick={goToNextPage}
+          onClick={nextPage}
           onContextMenu={(e) => handleContextMenu(e, 'right')}
           disabled={isAnimating}
           title="Next page (Right-click to customize)"

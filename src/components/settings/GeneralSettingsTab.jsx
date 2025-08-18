@@ -3,40 +3,94 @@ import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
-const GeneralSettingsTab = React.memo(({ 
-  localSettings, 
-  updateLocalSetting,
-  isAnonymous,
-  currentUser,
-  handleSignUp,
-  handleSignIn,
-  handleSignOut
-}) => {
+const GeneralSettingsTab = React.memo(() => {
+  // Use consolidated store
+  const { ui } = useConsolidatedAppStore();
+  const { setUIState } = useConsolidatedAppStore(state => state.actions);
+
+  console.log('[GeneralSettingsTab] UI state:', ui);
+
+  // Save UI settings to backend
+  const saveUISettings = useCallback(async (newSettings) => {
+    try {
+      if (window.api?.settings?.set) {
+        const currentSettings = await window.api.settings.get();
+        const updatedSettings = {
+          ...currentSettings,
+          ui: {
+            ...currentSettings.ui,
+            ...newSettings
+          }
+        };
+        await window.api.settings.set(updatedSettings);
+        console.log('[GeneralSettingsTab] UI settings saved to backend:', newSettings);
+      }
+    } catch (error) {
+      console.error('[GeneralSettingsTab] Failed to save UI settings:', error);
+    }
+  }, []);
+
   // Memoize callback functions to prevent unnecessary re-renders
   const handleImmersivePipChange = useCallback((checked) => {
-    updateLocalSetting('general', 'immersivePip', checked);
-  }, [updateLocalSetting]);
+    console.log('[GeneralSettingsTab] Immersive PiP changed:', checked);
+    setUIState({ immersivePip: checked });
+    saveUISettings({ immersivePip: checked });
+  }, [setUIState, saveUISettings]);
 
   const handleStartInFullscreenChange = useCallback((checked) => {
-    updateLocalSetting('general', 'startInFullscreen', checked);
-  }, [updateLocalSetting]);
+    console.log('[GeneralSettingsTab] Start in Fullscreen changed:', checked);
+    setUIState({ startInFullscreen: checked });
+    saveUISettings({ startInFullscreen: checked });
+    
+    // Apply the fullscreen setting immediately if the app is running
+    if (window.api?.setFullscreen) {
+      window.api.setFullscreen(checked);
+    }
+  }, [setUIState, saveUISettings]);
 
   const handleShowPresetsButtonChange = useCallback((checked) => {
-    updateLocalSetting('general', 'showPresetsButton', checked);
-  }, [updateLocalSetting]);
+    console.log('[GeneralSettingsTab] Show Presets Button changed:', checked);
+    setUIState({ showPresetsButton: checked });
+    saveUISettings({ showPresetsButton: checked });
+  }, [setUIState, saveUISettings]);
+
+  const handleClassicModeChange = useCallback((checked) => {
+    console.log('[GeneralSettingsTab] Classic Mode changed:', checked);
+    setUIState({ classicMode: checked });
+    saveUISettings({ classicMode: checked });
+  }, [setUIState, saveUISettings]);
 
   const handleStartOnBootChange = useCallback((checked) => {
-    updateLocalSetting('general', 'startOnBoot', checked);
-  }, [updateLocalSetting]);
+    console.log('[GeneralSettingsTab] Start on Boot changed:', checked);
+    setUIState({ startOnBoot: checked });
+    saveUISettings({ startOnBoot: checked });
+  }, [setUIState, saveUISettings]);
 
   const handleSettingsShortcutChange = useCallback((shortcut) => {
-    updateLocalSetting('general', 'settingsShortcut', shortcut);
-  }, [updateLocalSetting]);
+    console.log('[GeneralSettingsTab] Settings Shortcut changed:', shortcut);
+    setUIState({ settingsShortcut: shortcut });
+    saveUISettings({ settingsShortcut: shortcut });
+  }, [setUIState, saveUISettings]);
 
   const handleClearShortcut = useCallback(() => {
-    updateLocalSetting('general', 'settingsShortcut', '');
-  }, [updateLocalSetting]);
+    console.log('[GeneralSettingsTab] Clearing settings shortcut');
+    setUIState({ settingsShortcut: '' });
+    saveUISettings({ settingsShortcut: '' });
+  }, [setUIState, saveUISettings]);
+
+  const handleCustomCursorChange = useCallback((checked) => {
+    console.log('[GeneralSettingsTab] Custom Cursor changed:', checked);
+    setUIState({ useCustomCursor: checked });
+    saveUISettings({ useCustomCursor: checked });
+  }, [setUIState, saveUISettings]);
+
+  const handleCursorStyleChange = useCallback((style) => {
+    console.log('[GeneralSettingsTab] Cursor Style changed:', style);
+    setUIState({ cursorStyle: style });
+    saveUISettings({ cursorStyle: style });
+  }, [setUIState, saveUISettings]);
 
   const handleFreshInstall = useCallback(async () => {
     if (window.confirm('Are you sure you want to restore to a fresh install? This will backup your current data and give you a clean start. Your old data will be preserved in a backup folder.')) {
@@ -82,11 +136,11 @@ const GeneralSettingsTab = React.memo(({
         desc="When enabled, video overlays will use immersive PiP mode for a more cinematic experience."
         headerActions={
           <WToggle
-            checked={localSettings.general?.immersivePip ?? false}
+            checked={ui.immersivePip ?? false}
             onChange={handleImmersivePipChange}
           />
         }
-        style={{ marginBottom: '20px' }}
+        className="mb-5"
       />
 
       {/* Start in Fullscreen */}
@@ -96,11 +150,11 @@ const GeneralSettingsTab = React.memo(({
         desc="When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode."
         headerActions={
           <WToggle
-            checked={localSettings.general?.startInFullscreen ?? false}
+            checked={ui.startInFullscreen ?? false}
             onChange={handleStartInFullscreenChange}
           />
         }
-        style={{ marginBottom: '20px' }}
+        className="mb-5"
       />
 
       {/* Show Presets Button */}
@@ -110,11 +164,75 @@ const GeneralSettingsTab = React.memo(({
         desc="When enabled, shows a presets button near the time display that allows quick access to saved appearance presets. Right-click the button to customize its icon."
         headerActions={
           <WToggle
-            checked={localSettings.general?.showPresetsButton ?? true}
+            checked={ui.showPresetsButton ?? true}
             onChange={handleShowPresetsButtonChange}
           />
         }
-        style={{ marginBottom: '20px' }}
+        className="mb-5"
+      />
+
+      {/* Classic Mode */}
+      <Card
+        title="Classic Wii Dock Mode"
+        separator
+        desc="When enabled, shows the classic Wii dock design. When disabled, shows the modern ribbon design."
+        headerActions={
+          <WToggle
+            checked={ui.classicMode ?? false}
+            onChange={handleClassicModeChange}
+          />
+        }
+        className="mb-5"
+      />
+
+      {/* Custom Cursor Settings */}
+      <Card
+        title="Custom Wii Cursor"
+        separator
+        desc="Enable a custom Wii-inspired cursor and choose from different styles."
+        headerActions={
+          <WToggle
+            checked={ui.useCustomCursor ?? true}
+            onChange={handleCustomCursorChange}
+          />
+        }
+        actions={
+          ui.useCustomCursor && (
+            <div className="mt-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Text variant="body" className="font-medium min-w-20">Style</Text>
+                <div className="flex items-center gap-2">
+                  {[
+                    { value: 'classic', label: 'Classic', desc: 'Authentic Wii style with pulsing glow' },
+                    { value: 'minimal', label: 'Minimal', desc: 'Simple and clean design' },
+                    { value: 'glowing', label: 'Glowing', desc: 'Bright glowing effect' },
+                    { value: 'retro', label: 'Retro', desc: 'Vintage gaming aesthetic' }
+                  ].map((style) => (
+                    <button
+                      key={style.value}
+                      onClick={() => handleCursorStyleChange(style.value)}
+                      className={`
+                        px-3 py-2 rounded-md border transition-all duration-200 text-sm font-medium
+                        ${ui.cursorStyle === style.value
+                          ? 'bg-[hsl(var(--wii-blue))] text-white border-[hsl(var(--wii-blue))] shadow-[0_0_8px_rgba(0,153,255,0.3)]'
+                          : 'bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))] border-[hsl(var(--border-primary))] hover:bg-[hsl(var(--surface-secondary))] hover:border-[hsl(var(--wii-blue))]'
+                        }
+                      `}
+                      title={style.desc}
+                    >
+                      {style.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Text variant="caption" className="p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
+                <strong>🎯 Cursor Styles:</strong> Choose from different Wii-inspired cursor designs. 
+                The cursor will automatically adapt to light and dark modes.
+              </Text>
+            </div>
+          )
+        }
+        className="mb-5"
       />
 
       {/* Launch on Startup */}
@@ -124,11 +242,11 @@ const GeneralSettingsTab = React.memo(({
         desc="When enabled, the app will launch automatically when your computer starts."
         headerActions={
           <WToggle
-            checked={localSettings.general?.startOnBoot ?? false}
+            checked={ui.startOnBoot ?? false}
             onChange={handleStartOnBootChange}
           />
         }
-        style={{ marginBottom: '20px' }}
+        className="mb-5"
       />
 
       {/* Keyboard Shortcut */}
@@ -137,21 +255,10 @@ const GeneralSettingsTab = React.memo(({
         separator
         desc="Set a keyboard shortcut to quickly open the settings modal. Press the keys you want to use for the shortcut."
         actions={
-          <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <label style={{ fontWeight: 500, minWidth: 120 }}>Shortcut</label>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 8,
-                padding: '8px 12px',
-                border: '1px solid hsl(var(--border-primary))',
-                borderRadius: '6px',
-                background: 'hsl(var(--surface-primary))',
-                minWidth: '200px',
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}
+          <div className="mt-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Text variant="body" className="font-medium min-w-30">Shortcut</Text>
+              <div className="flex items-center gap-2 p-2 px-3 border border-[hsl(var(--border-primary))] rounded-md bg-[hsl(var(--surface-primary))] min-w-50 cursor-pointer select-none"
               onClick={() => {
                 // Start listening for key combination
                 const handleKeyDown = (e) => {
@@ -194,74 +301,39 @@ const GeneralSettingsTab = React.memo(({
               }}
               data-shortcut-input
               >
-                {localSettings.general?.settingsShortcut || 'Click to set shortcut'}
+                {ui.settingsShortcut || 'Click to set shortcut'}
               </div>
               <Button 
                 variant="secondary" 
                 onClick={handleClearShortcut}
-                disabled={!localSettings.general?.settingsShortcut}
+                disabled={!ui.settingsShortcut}
               >
                 Clear
               </Button>
             </div>
             
-            <div style={{ 
-              fontSize: '13px', 
-              color: 'hsl(var(--text-secondary))', 
-              padding: '12px',
-              background: 'hsl(var(--surface-secondary))',
-              borderRadius: '6px',
-              border: '1px solid hsl(var(--border-primary))'
-            }}>
+            <Text variant="caption" className="p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
               <strong>💡 Tip:</strong> Common shortcuts include Ctrl+Shift+S, Ctrl+, (comma), or F12. 
               The shortcut will work globally when the app is focused.
-            </div>
+            </Text>
           </div>
         }
-        style={{ marginBottom: '20px' }}
+        className="mb-5"
       />
 
-      {/* Account Management */}
+      {/* Account Management - Placeholder for now */}
       <Card
         title="Account Management"
         separator
-        desc={isAnonymous 
-          ? "You can use all community features without an account! Browse, download, and upload presets anonymously. Create an account to manage your uploads, track favorites, and get a personalized experience."
-          : `Signed in as ${currentUser?.email || 'Unknown'}. You can manage your uploads and get a personalized experience.`
-        }
+        desc="Account management features will be available in a future update."
         actions={
-          <div style={{ marginTop: 16 }}>
-            {isAnonymous ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button 
-                  variant="primary" 
-                  onClick={handleSignUp}
-                >
-                  Create Account (Optional)
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  onClick={handleSignIn}
-                >
-                  Sign In (Optional)
-                </Button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Text size="sm" color="hsl(var(--text-secondary))">
-                  {currentUser?.email}
-                </Text>
-                <Button 
-                  variant="tertiary" 
-                  onClick={handleSignOut}
-                >
-                  Sign Out
-                </Button>
-              </div>
-            )}
+          <div className="mt-4">
+            <Text variant="caption" className="p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
+              <strong>🔧 Coming Soon:</strong> Account management features are being developed and will be available in a future update.
+            </Text>
           </div>
         }
-        style={{ marginBottom: '20px' }}
+        className="mb-5"
       />
 
       {/* Fresh Install Restore */}
@@ -270,34 +342,22 @@ const GeneralSettingsTab = React.memo(({
         separator
         desc="If you're experiencing issues with the app, you can restore it to a fresh state. This will backup your current data and give you a clean start. Your old data will be preserved in a backup folder."
         actions={
-          <div style={{ marginTop: 16 }}>
+          <div className="mt-4">
             <Button 
               variant="primary" 
               onClick={handleFreshInstall}
-              style={{
-                background: '#dc3545',
-                borderColor: '#dc3545',
-                color: 'white'
-              }}
+              className="bg-red-600 border-red-600 text-white hover:bg-red-700 hover:border-red-700"
             >
               🔄 Restore Fresh Install
             </Button>
-            <div style={{ 
-              fontSize: '13px', 
-              color: 'hsl(var(--text-secondary))', 
-              marginTop: '8px',
-              padding: '12px',
-              background: 'hsl(var(--surface-secondary))',
-              borderRadius: '6px',
-              border: '1px solid hsl(var(--border-primary))'
-            }}>
+            <Text variant="caption" className="mt-2 p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
               <strong>⚠️ Warning:</strong> This will backup your current data and give you a completely fresh start. 
               All your current settings, wallpapers, sounds, and channel configurations will be reset to defaults. 
               Your old data will be preserved in a backup folder that you can access later if needed.
-            </div>
+            </Text>
           </div>
         }
-        style={{ marginBottom: '20px' }}
+        className="mb-5"
       />
     </div>
   );

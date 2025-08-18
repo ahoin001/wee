@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import UnifiedAppPathSearch from './UnifiedAppPathSearch';
-import useUnifiedAppStore from '../utils/useUnifiedAppStore';
+import { useUnifiedAppsState } from '../utils/useConsolidatedAppHooks';
 import Button from '../ui/WButton';
 
 const UnifiedAppPathCard = React.memo(({
@@ -8,11 +8,24 @@ const UnifiedAppPathCard = React.memo(({
   onChange,
   disabled = false
 }) => {
-  const {
-    selectedApp,
-    clearSelection,
-    getConfiguration
-  } = useUnifiedAppStore();
+  // Use unified apps state from consolidated store
+  const { unifiedApps, setUnifiedAppsState } = useUnifiedAppsState();
+  const { selectedApp } = unifiedApps;
+  
+  // Memoize manager functions to prevent infinite loops
+  const clearSelection = useCallback(() => {
+    setUnifiedAppsState({ selectedApp: null });
+  }, [setUnifiedAppsState]);
+  
+  const getConfiguration = useCallback(() => {
+    // Return empty configuration for now
+    return {};
+  }, []);
+  
+  // Use ref to track if we're updating from store to prevent infinite loops
+  const isUpdatingFromStore = useRef(false);
+  const isInitialized = useRef(false);
+  const prevConfigRef = useRef(null);
 
   // Local state for the form
   const [launchType, setLaunchType] = useState(value.launchType || 'application');
@@ -22,18 +35,25 @@ const UnifiedAppPathCard = React.memo(({
 
   // Memoize the configuration to prevent unnecessary recalculations
   const configuration = useMemo(() => {
-    return getConfiguration();
-  }, [getConfiguration, selectedApp]);
+    // ✅ DATA LAYER: Add safety check for getConfiguration function
+    if (typeof getConfiguration === 'function') {
+      return getConfiguration();
+    }
+    return {}; // Return empty object as fallback
+  }, [selectedApp]);
 
   // Initial setup from value prop
   useEffect(() => {
-    setLaunchType(value.launchType || 'application');
-    setAppName(value.appName || '');
-    setPath(value.path || '');
-    setPathError('');
+    if (!isInitialized.current) {
+      setLaunchType(value.launchType || 'application');
+      setAppName(value.appName || '');
+      setPath(value.path || '');
+      setPathError('');
+      isInitialized.current = true;
+    }
   }, []);
 
-  // Sync with selected app from value prop or store
+  // Sync with selected app from value prop or store - only when selectedApp changes
   useEffect(() => {
     const currentSelectedApp = value.selectedApp || selectedApp;
     console.log('[UnifiedAppPathCard] Selected app changed:', {
@@ -43,25 +63,48 @@ const UnifiedAppPathCard = React.memo(({
     });
     
     if (currentSelectedApp) {
-      setAppName(currentSelectedApp.name);
-      const generatedPath = useUnifiedAppStore.getState().generatePathFromApp(currentSelectedApp);
-      console.log('[UnifiedAppPathCard] Generated path:', generatedPath);
-      setPath(generatedPath);
+      try {
+        setAppName(currentSelectedApp.name);
+        // Generate the full path including arguments
+        let generatedPath = currentSelectedApp?.path || '';
+        if (currentSelectedApp?.args && currentSelectedApp.args.trim()) {
+          generatedPath += ' ' + currentSelectedApp.args.trim();
+        }
+        console.log('[UnifiedAppPathCard] Generated path:', generatedPath);
+        setPath(generatedPath);
+      } catch (error) {
+        console.error('[UnifiedAppPathCard] Error generating path for app:', currentSelectedApp, error);
+        setPath('');
+      }
+    } else {
+      // Clear the path if no app is selected
+      setPath('');
     }
-  }, [value.selectedApp, selectedApp]);
+  }, [selectedApp, value.selectedApp]);
 
-  // Update parent when form changes - memoize config to prevent unnecessary onChange calls
-  const memoizedConfig = useMemo(() => ({
-    launchType,
-    appName,
-    path,
-    selectedApp,
-    ...configuration
-  }), [launchType, appName, path, selectedApp, configuration]);
-
+  // Update parent when form changes - only call onChange when values actually change
   useEffect(() => {
-    onChange?.(memoizedConfig);
-  }, [onChange, memoizedConfig]);
+    const config = {
+      launchType,
+      appName,
+      path,
+      selectedApp,
+      ...configuration
+    };
+    
+    // Only call onChange if the config has actually changed
+    const prevConfig = prevConfigRef.current;
+    const hasChanged = !prevConfig || 
+      config.launchType !== prevConfig.launchType ||
+      config.appName !== prevConfig.appName ||
+      config.path !== prevConfig.path ||
+      config.selectedApp?.id !== prevConfig.selectedApp?.id;
+    
+    if (hasChanged) {
+      prevConfigRef.current = config;
+      onChange?.(config);
+    }
+  }, [launchType, appName, path, selectedApp, configuration, onChange]);
 
   // Memoize event handlers
   const handleLaunchTypeChange = useCallback((type) => {
@@ -80,8 +123,11 @@ const UnifiedAppPathCard = React.memo(({
     setAppName(name);
     setPathError('');
     
-    // Don't update path here - let the useEffect handle it when selectedApp changes
-  }, []);
+    // Clear selection if user is typing manually
+    if (name !== selectedApp?.name) {
+      clearSelection();
+    }
+  }, [selectedApp, clearSelection]);
 
   const handlePathChange = useCallback((newPath) => {
     setPath(newPath);

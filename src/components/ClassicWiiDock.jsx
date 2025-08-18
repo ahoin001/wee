@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ClassicWiiDock.css';
 import DockParticleSystem from './DockParticleSystem';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 
 const WiiDock = ({ 
   dockSettings = {}, 
@@ -519,17 +520,46 @@ const ClassicWiiDock = ({
   showPresetsButton,
   presetsButtonConfig,
   openPresetsModal,
-  dockSettings,
   onDockContextMenu,
-  accessoryButtonConfig,
-  particleSettings = {}
+  accessoryButtonConfig
 }) => {
+  // Get dock settings and actions from consolidated store
+  const { dock, actions } = useConsolidatedAppStore();
+  const { floatingWidgets } = useConsolidatedAppStore();
+  
+  // Use dock settings from store instead of props
+  const dockSettings = dock;
+  const particleSettings = floatingWidgets?.systemInfo || {};
+  
   // Debug logging for button configs
   useEffect(() => {
     console.log('[ClassicWiiDock] Button configs received:', buttonConfigs);
   }, [buttonConfigs]);
+
+  // Handle right-click on dock to open settings
+  const handleDockContextMenu = (e) => {
+    console.log('[ClassicWiiDock] Right-click detected!');
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('[ClassicWiiDock] About to call actions.setUIState with:', {
+      showSettingsModal: true,
+      settingsActiveTab: 'dock',
+      dockSubTab: 'classic-dock'
+    });
+    
+    // Open settings modal with dock tab active and classic-dock sub-tab
+    actions.setUIState({ 
+      showSettingsModal: true, 
+      settingsActiveTab: 'dock',
+      dockSubTab: 'classic-dock' // Specify which sub-tab to open
+    });
+    
+    console.log('[ClassicWiiDock] actions.setUIState called successfully');
+  };
+
   return (
-    <div className="wii-dock-wrapper">
+    <div className="wii-dock-wrapper" onContextMenu={handleDockContextMenu}>
       <WiiDock 
         dockSettings={dockSettings} 
         onContextMenu={onDockContextMenu}

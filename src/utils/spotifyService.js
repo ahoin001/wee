@@ -74,10 +74,15 @@ class SpotifyService {
       this.isAuthenticated = false;
       this.currentUser = null;
       
-      // Update the Zustand store
-      if (window.spotifyStore) {
-        window.spotifyStore.setAuthenticated(false);
-        window.spotifyStore.setCurrentUser(null);
+      // Update the consolidated store
+      if (window.useConsolidatedAppStore) {
+        const store = window.useConsolidatedAppStore.getState();
+        store.actions.setSpotifyState({
+          isConnected: false,
+          currentUser: null,
+          accessToken: null,
+          refreshToken: null
+        });
       }
       
       return false;
@@ -140,10 +145,16 @@ class SpotifyService {
         this.currentUser = result.user;
         console.log('[SPOTIFY] Successfully authenticated as:', result.user.display_name);
         
-        // Update the Zustand store
-        const { useSpotifyStore } = await import('./useSpotifyStore');
-        useSpotifyStore.getState().setAuthenticated(true);
-        useSpotifyStore.getState().setCurrentUser(result.user);
+        // Update the consolidated store instead of the old spotify store
+        if (window.useConsolidatedAppStore) {
+          const store = window.useConsolidatedAppStore.getState();
+          store.actions.setSpotifyState({
+            isConnected: true,
+            currentUser: result.user,
+            accessToken: result.access_token,
+            refreshToken: result.refresh_token
+          });
+        }
         
         return true;
       } else {
@@ -301,10 +312,15 @@ class SpotifyService {
         console.log('[SPOTIFY] Auth failed, clearing tokens...');
         this.logout();
         
-        // Update the Zustand store
-        if (window.spotifyStore) {
-          window.spotifyStore.setAuthenticated(false);
-          window.spotifyStore.setCurrentUser(null);
+        // Update the consolidated store
+        if (window.useConsolidatedAppStore) {
+          const store = window.useConsolidatedAppStore.getState();
+          store.actions.setSpotifyState({
+            isConnected: false,
+            currentUser: null,
+            accessToken: null,
+            refreshToken: null
+          });
         }
       }
       

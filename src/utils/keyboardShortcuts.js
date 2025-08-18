@@ -30,16 +30,7 @@ export const DEFAULT_SHORTCUTS = [
     category: 'Modals',
     icon: '⚙️'
   },
-  {
-    id: 'open-general-settings-modal',
-    name: 'Open General Settings Modal',
-    description: 'Open the general settings modal',
-    defaultKey: '',
-    defaultModifier: 'none',
-    action: 'openGeneralSettingsModal',
-    category: 'Modals',
-    icon: '⚙️'
-  },
+
   {
     id: 'open-presets-modal',
     name: 'Open Presets Modal',
@@ -232,6 +223,12 @@ export const getShortcutCategories = () => {
 
 // Helper function to get shortcuts by category
 export const getShortcutsByCategory = (shortcuts) => {
+  // ✅ DATA LAYER: Add proper null/undefined checks
+  if (!shortcuts || !Array.isArray(shortcuts)) {
+    console.warn('getShortcutsByCategory: shortcuts is not a valid array:', shortcuts);
+    return {};
+  }
+  
   const categories = getShortcutCategories();
   const grouped = {};
   

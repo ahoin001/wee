@@ -2,25 +2,37 @@ import React, { useState, useEffect } from 'react';
 import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import WToggle from '../ui/WToggle';
-import useNavigationModalStore from '../utils/useNavigationModalStore';
-import useIconsStore from '../utils/useIconsStore';
+import { useNavigationState, useIconState } from '../utils/useConsolidatedAppHooks';
 
 function NavigationCustomizationModal() {
-  const { isOpen, selectedSide: side, currentIcon, closeModal } = useNavigationModalStore();
-  const [selectedIcon, setSelectedIcon] = useState(currentIcon);
+  const { navigation, navigationManager } = useNavigationState();
+  const { icons, iconManager } = useIconState();
   
-  // Icons store
+  const {
+    showNavigationModal: isOpen,
+    customButtons,
+    buttonOrder,
+    defaultButtons,
+    buttonConfigs
+  } = navigation;
+  
   const {
     savedIcons,
     loading: iconsLoading,
     error: iconsError,
     uploading: iconsUploading,
-    uploadError: iconsUploadError,
-    fetchIcons,
-    uploadIcon,
-    deleteIcon,
-    clearError: clearIconsError
-  } = useIconsStore();
+    uploadError: iconsUploadError
+  } = icons;
+  
+  const { fetchIcons, uploadIcon, deleteIcon, clearIconError } = iconManager;
+  
+  // ✅ DATA LAYER: Get current icon from navigation state with proper fallbacks
+  const currentIcon = navigation?.currentIcon || null;
+  
+  // Mock state for compatibility
+  const [selectedIcon, setSelectedIcon] = useState(currentIcon);
+  const [side, setSide] = useState('left');
+  const closeModal = () => navigationManager.closeNavigationModal();
   
   // Glass effect settings
   const [useGlassEffect, setUseGlassEffect] = useState(false);
@@ -49,7 +61,9 @@ function NavigationCustomizationModal() {
 
   // Update selected icon when currentIcon changes
   useEffect(() => {
-    setSelectedIcon(currentIcon);
+    if (currentIcon !== undefined) {
+      setSelectedIcon(currentIcon);
+    }
   }, [currentIcon]);
 
   // Fetch saved icons and glass settings on open

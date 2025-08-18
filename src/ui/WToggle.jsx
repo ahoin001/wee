@@ -2,7 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Switch } from '@headlessui/react';
 
-const WToggle = React.memo(({ checked, onChange, label, disabled = false, style, ...props }) => {
+const WToggle = React.memo(({ checked, onChange, label, disabled = false, disableLabelClick = false, style, ...props }) => {
+  const handleLabelClick = () => {
+    if (!disabled && !disableLabelClick && onChange) {
+      onChange(!checked);
+    }
+  };
+
   return (
     <div className="flex items-center gap-2.5" style={style}>
       <Switch
@@ -31,13 +37,18 @@ const WToggle = React.memo(({ checked, onChange, label, disabled = false, style,
         />
       </Switch>
       {label && (
-        <label className={`
-          text-[15px] font-medium cursor-pointer
-          ${disabled 
-            ? 'text-[hsl(var(--text-tertiary))] cursor-not-allowed' 
-            : 'text-[hsl(var(--text-primary))]'
-          }
-        `}>
+        <label 
+          onClick={handleLabelClick}
+          className={`
+            text-[15px] font-medium
+            ${disabled 
+              ? 'text-[hsl(var(--text-tertiary))] cursor-not-allowed' 
+              : disableLabelClick
+                ? 'text-[hsl(var(--text-primary))] cursor-default'
+                : 'text-[hsl(var(--text-primary))] cursor-pointer hover:text-[hsl(var(--text-accent))] transition-colors duration-200'
+            }
+          `}
+        >
           {label}
         </label>
       )}
@@ -52,6 +63,7 @@ WToggle.propTypes = {
   onChange: PropTypes.func.isRequired,
   label: PropTypes.string,
   disabled: PropTypes.bool,
+  disableLabelClick: PropTypes.bool,
   style: PropTypes.object,
 };
 

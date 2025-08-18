@@ -1,35 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../ui/Card';
 import Button from '../ui/WButton';
-import useMonitorStore from '../utils/useMonitorStore';
+import { useMonitorState } from '../utils/useConsolidatedAppHooks';
 
 const MonitorWallpaperCard = ({ monitorId, monitorName }) => {
   const [wallpaper, setWallpaper] = useState(null);
   const [settings, setSettings] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { saveMonitorWallpaper, saveMonitorSettings } = useMonitorStore();
+  const { saveMonitorWallpaper, saveMonitorSettings } = useMonitorState();
 
-  // Load monitor-specific data
-  useEffect(() => {
-    const loadMonitorData = async () => {
-      if (!monitorId || !window.api?.wallpapers) return;
-      
-      setIsLoading(true);
-      try {
-        const wallpaperData = await window.api.wallpapers.getMonitorWallpaper(monitorId);
-        const settingsData = await window.api.wallpapers.getMonitorSettings(monitorId);
-        
-        setWallpaper(wallpaperData);
-        setSettings(settingsData);
-      } catch (error) {
-        console.error('[MonitorWallpaperCard] Error loading monitor data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Load monitor-specific data - DISABLED to prevent infinite loop
+  // useEffect(() => {
+  //   const loadMonitorData = async () => {
+  //     if (!monitorId || !window.api?.wallpapers) return;
+  //     
+  //     setIsLoading(true);
+  //     try {
+  //       const wallpaperData = await window.api.wallpapers.getMonitorWallpaper(monitorId);
+  //       const settingsData = await window.api.wallpapers.getMonitorSettings(monitorId);
+  //       
+  //       setWallpaper(wallpaperData);
+  //       setSettings(settingsData);
+  //     } catch (error) {
+  //       console.error('[MonitorWallpaperCard] Error loading monitor data:', error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
 
-    loadMonitorData();
-  }, [monitorId]);
+  //   loadMonitorData();
+  // }, [monitorId]);
 
   const handleSetWallpaper = async () => {
     try {

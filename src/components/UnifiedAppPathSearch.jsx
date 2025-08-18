@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import useUnifiedAppStore from '../utils/useUnifiedAppStore';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useUnifiedAppsState } from '../utils/useConsolidatedAppHooks';
 import Button from '../ui/WButton';
-import { useAppSearchPerformance } from '../utils/performanceHooks';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+// import { useAppSearchPerformance } from '../utils/performanceHooks';
 
 const UnifiedAppPathSearch = ({ 
   value, 
@@ -11,25 +12,63 @@ const UnifiedAppPathSearch = ({
   disabled = false,
   placeholder = 'Search all apps...'
 }) => {
+  // Use unified apps state from consolidated store
+  const { unifiedApps, setUnifiedAppsState } = useUnifiedAppsState();
   const {
-    setSearchQuery,
-    setSelectedAppType,
-    unifiedApps,
-    unifiedAppsLoading,
-    unifiedAppsError,
-    getFilteredApps,
-    setSelectedApp,
-    fetchUnifiedApps,
-    rescanUnifiedApps
-  } = useUnifiedAppStore();
-
-  // Subscribe to the specific values that affect filtering
-  const searchQuery = useUnifiedAppStore(state => state.searchQuery);
-  const selectedAppType = useUnifiedAppStore(state => state.selectedAppType);
+    apps, loading: unifiedAppsLoading, error: unifiedAppsError,
+    searchQuery, selectedAppType, selectedApp
+  } = unifiedApps;
+  
+  // Memoize manager functions to prevent infinite loops
+  const setSearchQuery = useCallback((query) => {
+    setUnifiedAppsState({ searchQuery: query });
+  }, [setUnifiedAppsState]);
+  
+  const setSelectedAppType = useCallback((type) => {
+    setUnifiedAppsState({ selectedAppType: type });
+  }, [setUnifiedAppsState]);
+  
+  const setSelectedApp = useCallback((app) => {
+    setUnifiedAppsState({ selectedApp: app });
+  }, [setUnifiedAppsState]);
+  
+  const fetchUnifiedApps = useCallback(async () => {
+    console.log('[UnifiedAppPathSearch] Fetching unified apps...');
+    try {
+      // Use the unified app manager from the consolidated store
+      const store = useConsolidatedAppStore.getState();
+      console.log('[UnifiedAppPathSearch] Store state before fetch:', {
+        hasUnifiedAppManager: !!store.unifiedAppManager,
+        currentAppsCount: store.unifiedApps?.apps?.length || 0
+      });
+      
+      const result = await store.unifiedAppManager.fetchUnifiedApps();
+      console.log('[UnifiedAppPathSearch] Fetch result:', {
+        success: result.success,
+        appsCount: result.apps?.length || 0,
+        error: result.error
+      });
+      
+      if (result.success) {
+        console.log('[UnifiedAppPathSearch] Unified apps fetched successfully:', result.apps.length);
+      } else {
+        console.error('[UnifiedAppPathSearch] Failed to fetch unified apps:', result.error);
+      }
+    } catch (error) {
+      console.error('[UnifiedAppPathSearch] Error fetching unified apps:', error);
+    }
+  }, []);
+  
+  const rescanUnifiedApps = useCallback(async () => {
+    return fetchUnifiedApps();
+  }, [fetchUnifiedApps]);
+  
+  // Use ref to track if apps have been fetched
+  const hasFetchedApps = useRef(false);
+  const isUpdatingFromStore = useRef(false);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState(value || '');
-  const [forceUpdate, setForceUpdate] = useState(0); // Force re-renders
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(localSearchQuery);
 
   // Debounce search query updates
@@ -43,52 +82,89 @@ const UnifiedAppPathSearch = ({
 
   // Fetch apps on mount
   useEffect(() => {
-    if (unifiedApps.length === 0) {
-      useUnifiedAppStore.getState().fetchUnifiedApps();
+    console.log('[UnifiedAppPathSearch] useEffect triggered:', {
+      appsLength: apps.length,
+      hasFetchedApps: hasFetchedApps.current,
+      shouldFetch: apps.length === 0 && !hasFetchedApps.current
+    });
+    
+    if (apps.length === 0 && !hasFetchedApps.current) {
+      hasFetchedApps.current = true;
+      console.log('[UnifiedAppPathSearch] Triggering fetch...');
+      fetchUnifiedApps();
     }
-  }, [unifiedApps.length]);
+  }, [apps.length]); // Remove fetchUnifiedApps from dependencies to prevent infinite loops
 
-  // Sync local search with store
+  // Sync local search with store - only on mount
   useEffect(() => {
     setLocalSearchQuery(value || '');
-  }, [value]);
+  }, []);
 
   // Update store when debounced search changes
   useEffect(() => {
-    useUnifiedAppStore.getState().setSearchQuery(debouncedSearchQuery);
-    setForceUpdate(prev => prev + 1); // Force re-render
-  }, [debouncedSearchQuery]);
+    setSearchQuery(debouncedSearchQuery);
+  }, [debouncedSearchQuery, setSearchQuery]);
 
   // Memoize filtered apps to prevent unnecessary recalculations
   const filteredApps = useMemo(() => {
-    return getFilteredApps();
-  }, [getFilteredApps, searchQuery, selectedAppType, unifiedApps.length]);
+    console.log('[UnifiedAppPathSearch] Filtering apps:', {
+      totalApps: apps.length,
+      searchQuery,
+      selectedAppType,
+      appsByType: {
+        exe: apps.filter(app => app.type === 'exe').length,
+        steam: apps.filter(app => app.type === 'steam').length,
+        epic: apps.filter(app => app.type === 'epic').length,
+        microsoft: apps.filter(app => app.type === 'microsoft').length,
+        other: apps.filter(app => !['exe', 'steam', 'epic', 'microsoft'].includes(app.type)).length
+      }
+    });
+    
+    const filtered = apps.filter(app => 
+      app.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (selectedAppType === 'all' || app.type === selectedAppType)
+    );
+    
+    console.log('[UnifiedAppPathSearch] Filtered results:', {
+      filteredCount: filtered.length,
+      searchQuery,
+      selectedAppType
+    });
+    
+    return filtered;
+  }, [apps, searchQuery, selectedAppType]);
 
   // Performance monitoring
-  useAppSearchPerformance(searchQuery, filteredApps, selectedAppType);
+  // useAppSearchPerformance(searchQuery, filteredApps, selectedAppType);
 
   // Memoize event handlers
   const handleAppSelect = useCallback((app) => {
     console.log('[UnifiedAppPathSearch] App selected:', app);
-    useUnifiedAppStore.getState().setSelectedApp(app);
+    
+    // Always update the selected app to ensure path parsing works
+    setSelectedApp(app);
     
     // Generate the proper path for the selected app
-    const generatedPath = useUnifiedAppStore.getState().generatePathFromApp(app);
+    const generatedPath = app?.path || '';
     console.log('[UnifiedAppPathSearch] Generated path:', generatedPath);
     
     // Don't call onChange here - let the parent component handle the configuration
     // The UnifiedAppPathCard will handle the path updates based on the store's selectedApp
     
     setDropdownOpen(false);
-    setLocalSearchQuery(app.name);
-  }, []);
+    if (app.name !== localSearchQuery) {
+      setLocalSearchQuery(app.name);
+    }
+  }, [setSelectedApp, localSearchQuery]);
 
   const handleInputChange = useCallback((e) => {
     const newValue = e.target.value;
-    setLocalSearchQuery(newValue);
-    onChange?.(newValue);
-    setDropdownOpen(true);
-  }, [onChange]);
+    if (newValue !== localSearchQuery) {
+      setLocalSearchQuery(newValue);
+      onChange?.(newValue);
+      setDropdownOpen(true);
+    }
+  }, [onChange, localSearchQuery]);
 
   const handleInputFocus = useCallback(() => {
     setDropdownOpen(true);
@@ -101,12 +177,17 @@ const UnifiedAppPathSearch = ({
   }, [onBlur]);
 
   const handleRescan = useCallback(() => {
-    useUnifiedAppStore.getState().rescanUnifiedApps();
-  }, []);
+    console.log('[UnifiedAppPathSearch] Manual rescan triggered');
+    // Reset the fetch flag to force a fresh scan
+    hasFetchedApps.current = false;
+    rescanUnifiedApps();
+  }, [rescanUnifiedApps]);
 
   const handleTypeFilterChange = useCallback((type) => {
-    useUnifiedAppStore.getState().setSelectedAppType(type);
-  }, []);
+    setSelectedAppType(type);
+  }, [setSelectedAppType]);
+
+
 
   const getAppTypeIcon = (type) => {
     switch (type) {
@@ -204,6 +285,8 @@ const UnifiedAppPathSearch = ({
         >
           {unifiedAppsLoading ? 'Scanning...' : 'Rescan'}
         </Button>
+        
+
       </div>
 
       {/* Loading State */}

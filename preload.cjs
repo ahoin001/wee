@@ -1,9 +1,23 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  // Unified data API - single source of truth
+  data: {
+    get: () => ipcRenderer.invoke('data:get'),
+    set: (data) => ipcRenderer.invoke('data:set', data),
+  },
+  // Legacy APIs (for migration)
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (data) => ipcRenderer.invoke('settings:set', data),
+  },
+  channels: {
+    get: () => ipcRenderer.invoke('channels:get'),
+    set: (data) => ipcRenderer.invoke('channels:set', data),
+  },
+  wallpapers: {
+    get: () => ipcRenderer.invoke('wallpapers:get'),
+    set: (data) => ipcRenderer.invoke('wallpapers:set', data),
   },
   supabaseUpload: (data) => ipcRenderer.invoke('supabase:upload', data),
   supabaseDelete: (data) => ipcRenderer.invoke('supabase:delete', data),
@@ -58,17 +72,12 @@ contextBridge.exposeInMainWorld('api', {
   selectExeOrShortcutFile: () => ipcRenderer.invoke('select-exe-or-shortcut-file'),
   onWallpapersUpdated: (cb) => ipcRenderer.on('wallpapers:updated', cb),
   offWallpapersUpdated: (cb) => ipcRenderer.removeListener('wallpapers:updated', cb),
-  channels: {
-    get: () => ipcRenderer.invoke('channels:get'),
-    set: (data) => ipcRenderer.invoke('channels:set', data),
-    reset: () => ipcRenderer.invoke('channels:reset'),
-    copyHoverSound: ({ filePath, filename }) => ipcRenderer.invoke('channels:copyHoverSound', { filePath, filename }),
-  },
   resetAll: () => ipcRenderer.invoke('settings:resetAll'),
   resolveUserdataUrl: (url) => ipcRenderer.invoke('resolve-userdata-url', url),
   // Window management APIs
   close: () => ipcRenderer.send('close-window'),
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
+  setFullscreen: (shouldBeFullscreen) => ipcRenderer.send('set-fullscreen', shouldBeFullscreen),
   toggleFrame: () => ipcRenderer.send('toggle-frame'),
   minimize: () => ipcRenderer.send('minimize-window'),
   onFullscreenState: (cb) => ipcRenderer.on('fullscreen-state', (e, val) => cb(val)),
@@ -132,4 +141,7 @@ contextBridge.exposeInMainWorld('api', {
   openAdminPanel: () => ipcRenderer.invoke('open-admin-panel'),
   onShowAdminPanel: (cb) => ipcRenderer.on('show-admin-panel', cb),
   offShowAdminPanel: (cb) => ipcRenderer.removeListener('show-admin-panel', cb),
+  // Developer tools
+  openDevTools: () => ipcRenderer.invoke('open-dev-tools'),
+  forceDevTools: () => ipcRenderer.invoke('force-dev-tools'),
 });

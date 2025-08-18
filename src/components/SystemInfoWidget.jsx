@@ -3,7 +3,7 @@ import Card from '../ui/Card';
 import Text from '../ui/Text';
 import WButton from '../ui/WButton';
 import Slider from '../ui/Slider';
-import useSettingsStore from '../utils/settingsManager';
+// import useSettingsStore from '../utils/settingsManager';
 import './SystemInfoWidget.css';
 
 const SystemInfoWidget = ({ isVisible, onClose }) => {

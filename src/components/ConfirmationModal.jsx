@@ -2,7 +2,7 @@ import React from 'react';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import Text from '../ui/Text';
-import useUIStore from '../utils/useUIStore';
+import { useUIState } from '../utils/useConsolidatedAppHooks';
 
 /**
  * Global Confirmation Modal Component
@@ -13,11 +13,11 @@ import useUIStore from '../utils/useUIStore';
  * Usage Examples:
  * 
  * // Simple delete confirmation
- * const { confirmDelete } = useUIStore();
+ * const { confirmDelete } = useUIState();
  * confirmDelete('My Item', () => deleteItem());
  * 
  * // Custom confirmation
- * const { confirmAction } = useUIStore();
+ * const { confirmAction } = useUIState();
  * confirmAction(
  *   'Save Changes', 
  *   'Do you want to save your changes?', 
@@ -28,7 +28,7 @@ import useUIStore from '../utils/useUIStore';
  * );
  * 
  * // Full custom modal
- * const { openConfirmationModal } = useUIStore();
+ * const { openConfirmationModal } = useUIState();
  * openConfirmationModal({
  *   title: 'Custom Title',
  *   message: 'Custom message with <strong>HTML</strong>',
@@ -44,7 +44,7 @@ const ConfirmationModal = () => {
     showConfirmationModal, 
     confirmationModalData, 
     closeConfirmationModal 
-  } = useUIStore();
+  } = useUIState();
 
   const handleConfirm = () => {
     if (confirmationModalData.onConfirm) {

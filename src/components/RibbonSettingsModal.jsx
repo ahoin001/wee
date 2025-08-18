@@ -6,10 +6,17 @@ import Slider from '../ui/Slider';
 import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
 import { spacing } from '../ui/tokens';
-import './BaseModal.css';
+// New unified data layer imports
+import { useRibbonState } from '../utils/useConsolidatedAppHooks';
+
 import './SoundModal.css';
 
 function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon, setGlassWiiRibbon }) {
+  // New unified data layer hooks
+  const { ribbon, setRibbonState } = useRibbonState();
+const ribbonSettings = ribbon;
+const updateRibbonSetting = (key, value) => setRibbonState({ [key]: value });
+  
   const [glassEnabled, setGlassEnabled] = useState(glassWiiRibbon);
   const [glassOpacity, setGlassOpacity] = useState(0.18);
   const [glassBlur, setGlassBlur] = useState(2.5);
@@ -24,23 +31,21 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
   const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && ribbonSettings) {
       setGlassEnabled(glassWiiRibbon);
-      if (window.settings) {
-        setGlassOpacity(window.settings.glassOpacity ?? 0.18);
-        setGlassBlur(window.settings.glassBlur ?? 2.5);
-        setGlassBorderOpacity(window.settings.glassBorderOpacity ?? 0.5);
-        setGlassShineOpacity(window.settings.glassShineOpacity ?? 0.7);
-        setRibbonColor(window.settings.ribbonColor ?? '#e0e6ef');
-        setRecentRibbonColors(window.settings.recentRibbonColors ?? []);
-        setRibbonGlowColor(window.settings.ribbonGlowColor ?? '#0099ff');
-        setRecentRibbonGlowColors(window.settings.recentRibbonGlowColors ?? []);
-        setRibbonGlowStrength(window.settings.ribbonGlowStrength ?? 20);
-        setRibbonGlowStrengthHover(window.settings.ribbonGlowStrengthHover ?? 28);
-        setRibbonDockOpacity(window.settings.ribbonDockOpacity ?? 1);
-      }
+      setGlassOpacity(ribbonSettings.glassOpacity ?? 0.18);
+      setGlassBlur(ribbonSettings.glassBlur ?? 2.5);
+      setGlassBorderOpacity(ribbonSettings.glassBorderOpacity ?? 0.5);
+      setGlassShineOpacity(ribbonSettings.glassShineOpacity ?? 0.7);
+      setRibbonColor(ribbonSettings.ribbonColor ?? '#e0e6ef');
+      setRecentRibbonColors(ribbonSettings.recentRibbonColors ?? []);
+      setRibbonGlowColor(ribbonSettings.ribbonGlowColor ?? '#0099ff');
+      setRecentRibbonGlowColors(ribbonSettings.recentRibbonGlowColors ?? []);
+      setRibbonGlowStrength(ribbonSettings.ribbonGlowStrength ?? 20);
+      setRibbonGlowStrengthHover(ribbonSettings.ribbonGlowStrengthHover ?? 28);
+      setRibbonDockOpacity(ribbonSettings.ribbonDockOpacity ?? 1);
     }
-  }, [isOpen, glassWiiRibbon]);
+  }, [isOpen, glassWiiRibbon, ribbonSettings]);
 
   // Reset to default values
   const resetToDefault = () => {
@@ -65,6 +70,21 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
       setRecentRibbonColors(newRecent);
       let newRecentGlow = [ribbonGlowColor, ...recentRibbonGlowColors.filter(c => c !== ribbonGlowColor)].slice(0, 3);
       setRecentRibbonGlowColors(newRecentGlow);
+      
+      // Update using unified data layer
+      updateRibbonSetting('glassWiiRibbon', glassEnabled);
+      updateRibbonSetting('glassOpacity', glassOpacity);
+      updateRibbonSetting('glassBlur', glassBlur);
+      updateRibbonSetting('glassBorderOpacity', glassBorderOpacity);
+      updateRibbonSetting('glassShineOpacity', glassShineOpacity);
+      updateRibbonSetting('ribbonColor', ribbonColor);
+      updateRibbonSetting('recentRibbonColors', newRecent);
+      updateRibbonSetting('ribbonGlowColor', ribbonGlowColor);
+      updateRibbonSetting('recentRibbonGlowColors', newRecentGlow);
+      updateRibbonSetting('ribbonGlowStrength', ribbonGlowStrength);
+      updateRibbonSetting('ribbonGlowStrengthHover', ribbonGlowStrengthHover);
+      updateRibbonSetting('ribbonDockOpacity', ribbonDockOpacity);
+      
       if (onSettingsChange) {
         onSettingsChange({
           glassWiiRibbon: glassEnabled,

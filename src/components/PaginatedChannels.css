@@ -1,19 +1,38 @@
-/* ===== PAGINATED CHANNELS - SIMPLE MODE ONLY ===== */
+/* ===== PAGINATED CHANNELS - RESPONSIVE DESIGN ===== */
 
 /* Base container - take full available space */
-.paginated-channels {
+.paginated-channels-container {
   position: relative;
-  width: 100vw !important; /* Full viewport width - override any parent constraints */
-  height: calc(100vh - 240px) !important; /* Account for WiiRibbon dock height */
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  margin: 0 !important;
-  padding: 0 !important;
+  overflow: hidden;
   box-sizing: border-box;
-  /* Override any parent flex constraints */
-  flex: none !important;
-  align-self: stretch !important;
+  /* Ensure it takes full available space */
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Channels content area */
+.channels-content {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 2vw, 20px);
+  box-sizing: border-box;
+  /* Ensure it takes full available space */
+  flex-grow: 1;
+  flex-shrink: 0;
+  /* Enable slide animation */
+  overflow: hidden;
+  position: relative;
 }
 
 /* Pages container - simple mode only */
@@ -43,19 +62,63 @@
 }
 
 /* ===== CHANNEL GRID ===== */
-.channels-grid {
+.channel-grid {
   display: grid;
-  gap: 20px;
   width: 100%;
   height: 100%;
-  padding: 20px;
+  min-height: 0;
+  min-width: 0;
   box-sizing: border-box;
+  /* Grid template is set dynamically via inline styles */
+  /* Ensure content fits properly */
+  align-content: center;
+  justify-content: center;
+  /* Enable slide animation */
+  transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: transform;
 }
 
-/* Grid template is set dynamically via inline styles */
-.channels-grid {
-  grid-template-columns: repeat(4, 1fr); /* Default 4 columns */
-  grid-template-rows: repeat(3, 1fr);    /* Default 3 rows */
+/* ===== WII MODE CONTAINER ===== */
+.wii-mode-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== WII MODE GRID ===== */
+.wii-mode-grid {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  /* Grid template is set dynamically via inline styles */
+  /* Ensure content fits properly */
+  align-content: center;
+  justify-content: center;
+  /* Enable slide animation */
+  transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: transform;
+  /* Wii Mode specific: continuous grid */
+  overflow: hidden;
+  position: relative;
+  /* Ensure proper grid layout */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+
+/* Ensure channels maintain rectangular aspect ratio */
+.channel-grid > * {
+  aspect-ratio: 2 / 1;
+  min-height: 110px;
+  min-width: 180px;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* ===== ANIMATION STATES ===== */
@@ -76,18 +139,54 @@
   transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
+/* ===== NAVIGATION CONTROLS ===== */
+.channel-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: hsl(var(--surface-primary));
+  border-top: 1px solid hsl(var(--border-primary));
+}
+
+.nav-button:hover:not(:disabled) {
+  background: hsl(var(--surface-secondary)) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1200px) {
-  .channels-grid {
-    gap: 15px;
-    padding: 15px;
+  .channels-content {
+    padding: clamp(8px, 1.5vw, 15px);
+  }
+  
+  .channel-navigation {
+    padding: 12px;
+    gap: 8px;
   }
 }
 
 @media (max-width: 768px) {
-  .channels-grid {
-    gap: 10px;
-    padding: 10px;
+  .channels-content {
+    padding: clamp(5px, 1vw, 10px);
+  }
+  
+  .channel-navigation {
+    padding: 8px;
+    gap: 6px;
+  }
+  
+  .nav-button {
+    padding: 6px 12px !important;
+    font-size: 14px !important;
+  }
+  
+  .page-indicator {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    min-width: 60px !important;
   }
 }
 

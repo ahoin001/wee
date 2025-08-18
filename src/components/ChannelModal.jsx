@@ -10,8 +10,8 @@ import WRadioGroup from '../ui/WRadioGroup';
 // Remove unused imports related to old fetching/caching logic
 // import { loadGames, clearGamesCache, searchGames, getLastUpdated, getLastError } from '../utils/steamGames';
 import UnifiedAppPathCard from './UnifiedAppPathCard';
-import useAppLibraryStore from '../utils/useAppLibraryStore';
-import useUnifiedAppStore from '../utils/useUnifiedAppStore';
+import { useAppLibraryState } from '../utils/useConsolidatedAppHooks';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { preloadMediaLibrary, findGameMedia, getCacheStatus, getCachedMediaLibrary, getAllMatchingMedia } from '../utils/mediaLibraryCache';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
@@ -55,14 +55,25 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     currentKenBurnsMode === 'slideshow' ? 'hover' : currentKenBurnsMode
   );
   
-  // Zustand store selectors (still needed for unified app system)
+  // Use app library state from consolidated store
+  const { appLibrary, appLibraryManager } = useAppLibraryState();
   const {
-    installedApps, appsLoading, appsError, fetchInstalledApps, rescanInstalledApps,
-    steamGames, steamLoading, steamError, fetchSteamGames, rescanSteamGames,
-    epicGames, epicLoading, epicError, fetchEpicGames, rescanEpicGames,
-    uwpApps, uwpLoading, uwpError, fetchUwpApps, rescanUwpApps,
-    customSteamPath, setCustomSteamPath
-  } = useAppLibraryStore();
+    installedApps, appsLoading, appsError,
+    steamGames, steamLoading, steamError,
+    epicGames, epicLoading, epicError,
+    uwpApps, uwpLoading, uwpError,
+    customSteamPath
+  } = appLibrary;
+  
+  const {
+    fetchInstalledApps, fetchSteamGames, fetchEpicGames, fetchUwpApps, setCustomSteamPath
+  } = appLibraryManager;
+  
+  // Alias functions for compatibility
+  const rescanInstalledApps = fetchInstalledApps;
+  const rescanSteamGames = fetchSteamGames;
+  const rescanEpicGames = fetchEpicGames;
+  const rescanUwpApps = fetchUwpApps;
 
   // Clear feedback when modal closes
   useEffect(() => {
@@ -116,53 +127,56 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       setSelectedGameFeedback(null);
       
       // Clear unified app store selection and reset search
-      const unifiedStore = useUnifiedAppStore.getState();
-      unifiedStore.clearSelection();
-      unifiedStore.setSearchQuery('');
-      unifiedStore.setSelectedAppType('all');
+      // const unifiedStore = useUnifiedAppStore.getState();
+      // unifiedStore.clearSelection();
+      // unifiedStore.setSearchQuery('');
+      // unifiedStore.setSelectedAppType('all');
     }
   }, [isOpen, channelId, currentMedia, currentPath, currentType, currentAsAdmin, currentHoverSound, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode]);
 
   // Fetch app library data when modal opens (for unified system)
   useEffect(() => {
-    // console.log('[ChannelModal] useEffect triggered - checking data:', {
-    //   steamGames: steamGames.length,
-    //   steamLoading,
-    //   installedApps: installedApps.length,
-    //   appsLoading
-    // });
+    console.log('[ChannelModal] useEffect triggered - checking data:', {
+      steamGames: steamGames.length,
+      steamLoading,
+      installedApps: installedApps.length,
+      appsLoading
+    });
     
-    // Fetch installed apps if not already loaded
+    // Only fetch if modal is open and data is not already loading
+    if (!isOpen) return;
+    
+    // Fetch installed apps if not already loaded and not loading
     if (installedApps.length === 0 && !appsLoading) {
-      // console.log('[ChannelModal] Fetching installed apps...');
+      console.log('[ChannelModal] Fetching installed apps...');
       fetchInstalledApps();
     }
-    // Fetch UWP apps if not already loaded
+    // Fetch UWP apps if not already loaded and not loading
     if (uwpApps.length === 0 && !uwpLoading) {
-      // console.log('[ChannelModal] Fetching UWP apps...');
+      console.log('[ChannelModal] Fetching UWP apps...');
       fetchUwpApps();
     }
-    // Fetch Steam games if not already loaded
+    // Fetch Steam games if not already loaded and not loading
     if (steamGames.length === 0 && !steamLoading) {
-      // console.log('[ChannelModal] Fetching Steam games...');
+      console.log('[ChannelModal] Fetching Steam games...');
       fetchSteamGames(customSteamPath);
     } else {
-      // console.log('[ChannelModal] Steam games already loaded or loading:', steamGames.length);
+      console.log('[ChannelModal] Steam games already loaded or loading:', steamGames.length);
     }
-    // Fetch Epic games if not already loaded
+    // Fetch Epic games if not already loaded and not loading
     if (epicGames.length === 0 && !epicLoading) {
-      // console.log('[ChannelModal] Fetching Epic games...');
+      console.log('[ChannelModal] Fetching Epic games...');
       fetchEpicGames();
     } else {
-      // console.log('[ChannelModal] Epic games already loaded or loading:', epicGames.length);
+      console.log('[ChannelModal] Epic games already loaded or loading:', epicGames.length);
     }
     
     // Preload media library cache for Epic game thumbnails
     preloadMediaLibrary().then(() => {
       const status = getCacheStatus();
-      // console.log('[ChannelModal] Media library cache status after preload:', status);
+      console.log('[ChannelModal] Media library cache status after preload:', status);
     });
-  }, [installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, fetchInstalledApps, fetchUwpApps, fetchSteamGames, fetchEpicGames, customSteamPath]);
+  }, [isOpen, installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, customSteamPath]);
 
   // Handle hover sound file select
   const handleHoverSoundFile = async (file) => {
@@ -515,11 +529,13 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       } else if (trimmedPath.startsWith('\\')) {
         setPathError('');
         return true;
-      } else {
-        setPathError('Please enter a valid file path or use "Browse Files" to select an executable');
-        return false;
-      }
-    }
+                 } else {
+             setPathError('Please enter a valid file path or use "Browse Files" to select an executable');
+             return false;
+           }
+         }
+         
+         return true;
   };
 
   // Unified app path change handler
@@ -552,9 +568,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
 
-  // On save, use channelsApi.set and reload state
+  // On save, use consolidated store and channels API
   const handleSave = async (handleClose) => {
-    if (!validatePath() || !media || !path.trim()) {
+    const pathValid = validatePath();
+    
+    if (!pathValid || !media || !path.trim()) {
       setShowError(true);
       return;
     }
@@ -570,11 +588,20 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       kenBurnsMode: kenBurnsMode !== 'global' ? kenBurnsMode : undefined
     };
     
-    // Save to channels API
-    const allChannels = await window.api?.channels?.get();
-    const updatedChannels = { ...allChannels, [channelId]: newChannel };
-    await window.api?.channels?.set(updatedChannels);
-    if (onSave) onSave(channelId, newChannel);
+    // Save to consolidated store first
+    if (onSave) {
+      onSave(channelId, newChannel);
+    }
+    
+    // Also save to channels API for persistence
+    try {
+      const allChannels = await window.api?.channels?.get();
+      const updatedChannels = { ...allChannels, [channelId]: newChannel };
+      await window.api?.channels?.set(updatedChannels);
+    } catch (error) {
+      console.error('[ChannelModal] Failed to save to channels API:', error);
+    }
+    
     handleClose();
   };
 
@@ -600,16 +627,20 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setImageGallery([]);
     setGalleryMode(false);
     
-    // Save the cleared channel state (passing null to indicate complete reset)
+    // Save the cleared channel state to consolidated store (passing null to indicate complete reset)
     if (onSave) {
       onSave(channelId, null);
     }
     
-    // Also clear from channels API
-    const allChannels = await channelsApi?.get();
-    const updatedChannels = { ...allChannels };
-    delete updatedChannels[channelId];
-    await channelsApi?.set(updatedChannels);
+    // Also clear from channels API for persistence
+    try {
+      const allChannels = await channelsApi?.get();
+      const updatedChannels = { ...allChannels };
+      delete updatedChannels[channelId];
+      await channelsApi?.set(updatedChannels);
+    } catch (error) {
+      console.error('[ChannelModal] Failed to clear from channels API:', error);
+    }
     
     handleClose();
   };
@@ -841,12 +872,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const findMatchingAppForPath = useCallback((path, type) => {
     if (!path || !type) return null;
     
-    const unifiedApps = useUnifiedAppStore.getState().unifiedApps;
-    
-    // If unified apps haven't loaded yet, return null
-    if (unifiedApps.length === 0) {
-      return null;
-    }
+    try {
+      const unifiedAppsState = useConsolidatedAppStore.getState().unifiedApps;
+      const unifiedApps = Array.isArray(unifiedAppsState?.apps) ? unifiedAppsState.apps : [];
+      
+      // If unified apps haven't loaded yet, return null
+      if (unifiedApps.length === 0) {
+        return null;
+      }
     
     // For Steam games, extract app ID from path
     if (type === 'steam' && path.startsWith('steam://rungameid/')) {
@@ -874,6 +907,10 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
     
     return null;
+    } catch (error) {
+      console.error('[ChannelModal] Error in findMatchingAppForPath:', error);
+      return null;
+    }
   }, []);
 
   // Memoize the matching app to prevent recalculation
@@ -1262,7 +1299,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                             // console.log('[ChannelModal] Created steamApp:', steamApp);
                             
                             // Set the selected app in the unified store
-                            useUnifiedAppStore.getState().setSelectedApp(steamApp);
+                            useConsolidatedAppStore.getState().unifiedAppManager.setSelectedApp(steamApp);
                             
                             // Set the game's cover art as the channel image
                             const coverUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${gameId}/header.jpg`;
@@ -1326,7 +1363,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                             // console.log('[ChannelModal] Created epicApp:', epicApp);
                             
                             // Set the selected app in the unified store
-                            useUnifiedAppStore.getState().setSelectedApp(epicApp);
+                            useConsolidatedAppStore.getState().unifiedAppManager.setSelectedApp(epicApp);
                             
                             // Set the game's cover art as the channel image
                             // Use the currently selected media from carousel, or fallback to first match

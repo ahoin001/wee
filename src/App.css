@@ -1,8 +1,42 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
   text-align: center;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main content area for channels */
+.main-content {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  /* Ensure it takes full available space */
+  flex-grow: 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* Dock container */
+.dock-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: auto;
+  z-index: 1000;
+  background: transparent;
+  pointer-events: auto;
 }
 
 .logo {
@@ -118,19 +152,26 @@ body, #root {
 
 .app-container {
   min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  /* Ensure proper spacing for dock */
+  padding-bottom: 0;
+  box-sizing: border-box;
 }
 
+/* Legacy channels-grid - keeping for backward compatibility but not used by PaginatedChannels */
 .channels-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(180px, 1fr));
   grid-template-rows: repeat(3, 1fr);
   gap: 2rem;
   padding: 2rem 2vw;
-  width: 100vw;
-  max-width: 100vw;
+  width: 100%;
+  max-width: 100%;
   margin: 0;
   box-sizing: border-box;
 }

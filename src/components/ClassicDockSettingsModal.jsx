@@ -8,7 +8,7 @@ import WToggle from '../ui/WToggle';
 import SDCardiconModal from './SDCardiconModal';
 import WSelect from '../ui/WSelect';
 import { spacing } from '../ui/tokens';
-import './BaseModal.css';
+
 import './SoundModal.css';
 
 // Theme groups for collapsible organization

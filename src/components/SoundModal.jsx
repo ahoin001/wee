@@ -77,7 +77,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
       const timer = setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       return () => clearTimeout(timer);
     }
-  }, [message]);
+  }, [message.text]);
 
   const loadData = async () => {
     try {

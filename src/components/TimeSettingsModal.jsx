@@ -3,9 +3,17 @@ import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
-import './BaseModal.css';
+import Card from '../ui/Card';
+// New unified data layer imports
+import { useTimeState } from '../utils/useConsolidatedAppHooks';
+
 
 function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
+  // New unified data layer hooks
+  const { time, setTimeState } = useTimeState();
+const timeSettings = time;
+const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
+  
   const [timeColor, setTimeColor] = useState('#ffffff'); // Default white
   const [recentTimeColors, setRecentTimeColors] = useState([]); // Color history
   const [timeFormat24hr, setTimeFormat24hr] = useState(true); // Default 24hr format
@@ -16,19 +24,17 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
 
   // Load current time settings on mount
   useEffect(() => {
-    if (isOpen) {
-      // Load current settings from window.settings (set by App.jsx)
-      if (window.settings) {
-        setTimeColor(window.settings.timeColor || '#ffffff');
-        setRecentTimeColors(window.settings.recentTimeColors || []);
-        setTimeFormat24hr(window.settings.timeFormat24hr ?? true);
-        setEnableTimePill(window.settings.enableTimePill ?? true);
-        setTimePillBlur(window.settings.timePillBlur ?? 8);
-        setTimePillOpacity(window.settings.timePillOpacity ?? 0.05);
-        setTimeFont(window.settings.timeFont || 'default');
-      }
+    if (isOpen && timeSettings) {
+      // Load current settings from unified data layer
+      setTimeColor(timeSettings.timeColor || '#ffffff');
+      setRecentTimeColors(timeSettings.recentTimeColors || []);
+      setTimeFormat24hr(timeSettings.timeFormat24hr ?? true);
+      setEnableTimePill(timeSettings.enableTimePill ?? true);
+      setTimePillBlur(timeSettings.timePillBlur ?? 8);
+      setTimePillOpacity(timeSettings.timePillOpacity ?? 0.05);
+      setTimeFont(timeSettings.timeFont || 'default');
     }
-  }, [isOpen]);
+  }, [isOpen, timeSettings]);
 
   // Update color history when timeColor changes
   const updateTimeColor = (newColor) => {
@@ -53,6 +59,15 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
 
   const handleSave = async (handleClose) => {
     try {
+      // Update using unified data layer
+      updateTimeSetting('timeColor', timeColor);
+      updateTimeSetting('recentTimeColors', recentTimeColors);
+      updateTimeSetting('timeFormat24hr', timeFormat24hr);
+      updateTimeSetting('enableTimePill', enableTimePill);
+      updateTimeSetting('timePillBlur', timePillBlur);
+      updateTimeSetting('timePillOpacity', timePillOpacity);
+      updateTimeSetting('timeFont', timeFont);
+      
       // Call onSettingsChange to notify parent component of the new settings
       if (onSettingsChange) {
         onSettingsChange({

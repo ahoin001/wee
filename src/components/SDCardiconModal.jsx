@@ -1,28 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import Card from '../ui/Card';
-import useIconsStore from '../utils/useIconsStore';
-import './BaseModal.css';
+import { useDockState, useIconState } from '../utils/useConsolidatedAppHooks';
+
 import './SoundModal.css';
 
-function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
+const SdCardIconModal = React.memo(({ isOpen, onClose, onSettingsChange, sdCardIcon }) => {
   const [selectedIcon, setSelectedIcon] = useState(sdCardIcon || 'default');
   const [message, setMessage] = useState({ type: '', text: '' });
   
-  // Icons store
-  const {
-    savedIcons,
-    loading: iconsLoading,
-    error: iconsError,
-    uploading: iconsUploading,
-    uploadError: iconsUploadError,
-    fetchIcons,
-    uploadIcon,
-    deleteIcon,
-    clearError: clearIconsError
-  } = useIconsStore();
+  // Use dock state for SD card icon
+  const { dock } = useDockState();
+  
+  // Use icon state from consolidated store
+  const { icons, iconManager } = useIconState();
+  const { savedIcons, loading: iconsLoading, error: iconsError, uploading: iconsUploading, uploadError: iconsUploadError } = icons;
+  const { fetchIcons, uploadIcon, deleteIcon, clearIconError } = iconManager;
 
   // Fetch saved icons on open
   useEffect(() => {
@@ -39,7 +34,7 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
   }, [isOpen, sdCardIcon]);
 
   // Upload and save icon immediately
-  const handleUploadIcon = async () => {
+  const handleUploadIcon = useCallback(async () => {
     const result = await uploadIcon();
     if (result.success) {
       setSelectedIcon(result.icon.url);
@@ -49,9 +44,9 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
       setMessage({ type: 'error', text: result.error || 'Failed to upload icon' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     }
-  };
+  }, [uploadIcon]);
 
-  const handleDeleteSavedIcon = async (iconUrl) => {
+  const handleDeleteSavedIcon = useCallback(async (iconUrl) => {
     const result = await deleteIcon(iconUrl);
     if (result.success && selectedIcon === iconUrl) {
       setSelectedIcon('default');
@@ -64,20 +59,20 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
       setMessage({ type: 'error', text: result.error || 'Failed to delete icon' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     }
-  };
+  }, [deleteIcon, selectedIcon]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (onSettingsChange) {
       // Ensure we save 'default' for the default icon, not a URL
       const iconToSave = selectedIcon === 'default' ? 'default' : selectedIcon;
       onSettingsChange({ sdCardIcon: iconToSave });
     }
     onClose();
-  };
+  }, [onSettingsChange, selectedIcon, onClose]);
 
-  const handleResetToDefault = () => {
+  const handleResetToDefault = useCallback(() => {
     setSelectedIcon('default');
-  };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -87,33 +82,14 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
       onClose={onClose}
       maxWidth="800px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="flex justify-between items-center">
           <button 
-            className="reset-button" 
+            className="px-4 py-2 rounded-md border-2 border-blue-500 bg-transparent text-blue-500 cursor-pointer text-sm font-medium transition-all duration-200 hover:bg-blue-500 hover:text-white" 
             onClick={handleResetToDefault}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: '2px solid #0099ff',
-              background: 'transparent',
-              color: '#0099ff',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = '#0099ff';
-              e.target.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent';
-              e.target.style.color = '#0099ff';
-            }}
           >
             Reset to Default
           </button>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="flex gap-2.5">
             <Button variant="secondary" onClick={handleClose}>Cancel</Button>
             <Button variant="primary" onClick={handleSave}>Save</Button>
           </div>
@@ -123,16 +99,11 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
       {/* Message Display */}
       {message.text && (
         <div 
-          style={{
-            padding: '12px 16px',
-            borderRadius: '6px',
-            marginBottom: '16px',
-            fontSize: '14px',
-            fontWeight: '500',
-            background: message.type === 'success' ? '#d4edda' : '#f8d7da',
-            color: message.type === 'success' ? '#155724' : '#721c24',
-            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`
-          }}
+          className={`p-3 rounded-md mb-4 text-sm font-medium ${
+            message.type === 'success' 
+              ? 'bg-green-100 text-green-800 border border-green-200' 
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}
         >
           {message.text}
         </div>
@@ -143,24 +114,16 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
         title="Default SD Card Icon"
         separator
         desc="The classic Wii SD card icon that appears by default."
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="mt-4.5 mb-0"
       >
-        <div style={{ marginTop: 14 }}>
+        <div className="mt-3.5">
           <button
             type="button"
-            style={{
-              border: selectedIcon === 'default' ? '2.5px solid #0099ff' : '1.5px solid #ccc',
-              borderRadius: 8,
-              padding: 12,
-              background: selectedIcon === 'default' ? '#e6f7ff' : '#fff',
-              boxShadow: selectedIcon === 'default' ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
-              outline: 'none',
-              cursor: 'pointer',
-              transition: 'border 0.18s, box-shadow 0.18s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}
+            className={`border rounded-lg p-3 outline-none cursor-pointer transition-all duration-200 flex items-center gap-2 ${
+              selectedIcon === 'default' 
+                ? 'border-2.5 border-blue-500 bg-blue-50 shadow-[0_0_0_2px_#b0e0ff]' 
+                : 'border-[1.5px] border-gray-300 bg-white shadow-sm'
+            }`}
             onClick={() => setSelectedIcon('default')}
           >
             <svg width="32" height="32" viewBox="0 0 147 198" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -174,7 +137,7 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
               <path d="M110.5 80C105.781 81.5909 99.7536 84.0159 95 85.5C94.8651 85.1501 93.6349 84.3499 93.5 84C97.6595 82.0753 101.341 79.9226 105.5 78L110.5 80Z" fill="#33BEED"/>
               <path d="M98 77L89.5 83.5L78 82.5L82 77H98Z" fill="#33BEED"/>
             </svg>
-            <span style={{ fontWeight: '500' }}>Default SD Card</span>
+            <span className="font-medium">Default SD Card</span>
           </button>
         </div>
       </Card>
@@ -184,40 +147,22 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
         title="Upload Custom Icon"
         separator
         desc="Upload your own custom icon to replace the default SD card icon."
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="mt-4.5 mb-0"
       >
-        <div style={{ marginTop: 14 }}>
+        <div className="mt-3.5">
           <button
-            className="file-button"
-            style={{ 
-              marginBottom: 18, 
-              fontWeight: 500, 
-              padding: '8px 18px', 
-              fontSize: 15, 
-              background: iconsUploading ? '#bbb' : '#0099ff', 
-              color: '#fff', 
-              cursor: iconsUploading ? 'not-allowed' : 'pointer',
-              border: 'none',
-              borderRadius: '6px',
-              transition: 'background 0.2s ease'
-            }}
+            className={`mb-4.5 font-medium py-2 px-4.5 text-sm border-none rounded-md transition-colors duration-200 ${
+              iconsUploading 
+                ? 'bg-gray-400 text-white cursor-not-allowed' 
+                : 'bg-blue-500 text-white cursor-pointer hover:bg-blue-600'
+            }`}
             onClick={handleUploadIcon}
             disabled={iconsUploading}
-            onMouseEnter={(e) => {
-              if (!iconsUploading) {
-                e.target.style.background = '#007acc';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!iconsUploading) {
-                e.target.style.background = '#0099ff';
-              }
-            }}
           >
             {iconsUploading ? 'Uploading...' : 'Upload New Icon'}
           </button>
           {iconsUploadError && (
-            <div style={{ color: '#dc3545', fontSize: 13, marginBottom: 6 }}>{iconsUploadError}</div>
+            <div className="text-red-600 text-xs mb-1.5">{iconsUploadError}</div>
           )}
         </div>
       </Card>
@@ -227,93 +172,40 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
         title="Your Saved Icons"
         separator
         desc="Choose from your previously uploaded icons."
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="mt-4.5 mb-0"
       >
         {iconsLoading ? (
-          <div style={{ color: '#888', marginTop: 14 }}>Loading saved icons...</div>
+          <div className="text-gray-500 mt-3.5">Loading saved icons...</div>
         ) : savedIcons.length > 0 ? (
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '12px' }}>
+          <div className="mt-3.5">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-3">
               {savedIcons.map((icon, idx) => (
-                <div key={icon.url} style={{ position: 'relative', display: 'inline-block' }}>
+                <div key={icon.url} className="relative inline-block">
                   <button
                     type="button"
-                    style={{
-                      border: selectedIcon === icon.url ? '2.5px solid #0099ff' : '1.5px solid #ccc',
-                      borderRadius: 8,
-                      padding: 8,
-                      background: selectedIcon === icon.url ? '#e6f7ff' : '#fff',
-                      boxShadow: selectedIcon === icon.url ? '0 0 0 2px #b0e0ff' : '0 1px 4px #0001',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      width: '100%',
-                      height: '80px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'border 0.18s, box-shadow 0.18s',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}
+                    className={`border rounded-lg p-2 outline-none cursor-pointer w-full h-20 flex items-center justify-center transition-all duration-200 flex-col gap-1 ${
+                      selectedIcon === icon.url 
+                        ? 'border-2.5 border-blue-500 bg-blue-50 shadow-[0_0_0_2px_#b0e0ff]' 
+                        : 'border-[1.5px] border-gray-300 bg-white shadow-sm'
+                    }`}
                     aria-label={`Select saved icon ${idx + 1}`}
                     onClick={() => setSelectedIcon(icon.url)}
                   >
                     <img 
                       src={icon.url} 
                       alt={icon.name} 
-                      style={{ 
-                        maxHeight: 48, 
-                        maxWidth: 48, 
-                        borderRadius: 4,
-                        objectFit: 'contain'
-                      }} 
+                      className="max-h-12 max-w-12 rounded object-contain" 
                     />
-                    <div style={{ 
-                      fontSize: '10px', 
-                      color: '#666', 
-                      textAlign: 'center',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '100%'
-                    }}>
+                    <div className="text-xs text-gray-500 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
                       {icon.name}
                     </div>
                   </button>
                   <button
                     type="button"
                     title="Delete icon"
-                    className="icon-delete-btn"
-                    style={{
-                      position: 'absolute',
-                      top: -6,
-                      right: -6,
-                      background: '#fff',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: 20,
-                      height: 20,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      zIndex: 2,
-                      boxShadow: '0 1px 4px #0002',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#dc3545',
-                      transition: 'background 0.18s, color 0.18s',
-                    }}
+                    className="absolute -top-1.5 -right-1.5 bg-white border-none rounded-full w-5 h-5 text-xs font-bold cursor-pointer z-10 shadow-sm flex items-center justify-center text-red-600 transition-colors duration-200 hover:bg-red-50"
                     onClick={() => handleDeleteSavedIcon(icon.url)}
                     aria-label="Delete icon"
-                    onMouseEnter={(e) => { 
-                      e.currentTarget.style.background = 'rgba(255,76,76,0.13)'; 
-                      e.currentTarget.style.color = '#dc3545'; 
-                    }}
-                    onMouseLeave={(e) => { 
-                      e.currentTarget.style.background = '#fff'; 
-                      e.currentTarget.style.color = '#dc3545'; 
-                    }}
                   >
                     ×
                   </button>
@@ -322,12 +214,12 @@ function SdCardIconModal({ isOpen, onClose, onSettingsChange, sdCardIcon }) {
             </div>
           </div>
         ) : (
-          <div style={{ color: '#888', marginTop: 14 }}>No saved icons yet. Upload an icon to get started!</div>
+          <div className="text-gray-500 mt-3.5">No saved icons yet. Upload an icon to get started!</div>
         )}
       </Card>
     </WBaseModal>
   );
-}
+});
 
 SdCardIconModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,

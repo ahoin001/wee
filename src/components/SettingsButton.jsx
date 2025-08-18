@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import useUIStore from '../utils/useUIStore';
+import { useUIState } from '../utils/useConsolidatedAppHooks';
 import './SettingsButton.css';
 
 function SettingsButton({ icon: CustomIcon, onClick, isActive, onToggleDarkMode, onToggleCursor, useCustomCursor, onSettingsChange, barType = 'default', onBarTypeChange = () => {}, defaultBarType = 'default', onDefaultBarTypeChange = () => {}, glassWiiRibbon = false, onGlassWiiRibbonChange = () => {} }) {
-  // Use UI store for menu state
-  const { openSettingsMenu } = useUIStore();
+  // Use consolidated store for menu state
+  const { openSettingsMenu } = useUIState();
   
   const [isHovered, setIsHovered] = useState(false);
   

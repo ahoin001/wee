@@ -4,12 +4,12 @@ import Card from '../ui/Card';
 import Button from '../ui/WButton';
 import Text from '../ui/Text';
 import { authService } from '../utils/authService';
-import useAuthModalStore from '../utils/useAuthModalStore';
+import { useUIState } from '../utils/useConsolidatedAppHooks';
 
 const AuthModal = () => {
-  const { isOpen, mode, closeModal, toggleMode } = useAuthModalStore();
+  const { isAuthModalOpen, authModalMode, closeAuthModal, toggleAuthModalMode } = useUIState();
   
-  // console.log('[AUTH MODAL] Component rendered with isOpen:', isOpen, 'mode:', mode);
+  // console.log('[AUTH MODAL] Component rendered with isOpen:', isAuthModalOpen, 'mode:', authModalMode);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +19,7 @@ const AuthModal = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // console.log('[AUTH MODAL] Form submitted');
-    // console.log('[AUTH MODAL] Mode:', mode);
+    // console.log('[AUTH MODAL] Mode:', authModalMode);
     // console.log('[AUTH MODAL] Email:', email);
     // console.log('[AUTH MODAL] Password length:', password.length);
     
@@ -28,7 +28,7 @@ const AuthModal = () => {
 
     try {
       let result;
-      if (mode === 'signup') {
+      if (authModalMode === 'signup') {
     
         result = await authService.signUp(email, password);
       } else {
@@ -43,7 +43,7 @@ const AuthModal = () => {
         setError(result.error);
       } else if (result.data?.user) {
 
-        closeModal();
+        closeAuthModal();
       } else {
         console.error('[AUTH MODAL] Auth failed - no user data');
         setError('Authentication failed. Please try again.');
@@ -60,16 +60,16 @@ const AuthModal = () => {
     setEmail('');
     setPassword('');
     setError('');
-    toggleMode();
+    toggleAuthModalMode();
   };
 
-  if (!isOpen) return null;
+  if (!isAuthModalOpen) return null;
 
   return (
-    <WBaseModal onClose={closeModal} title={mode === 'signup' ? 'Create Account' : 'Sign In'}>
+    <WBaseModal onClose={closeAuthModal} title={authModalMode === 'signup' ? 'Create Account' : 'Sign In'}>
       <Card>
         <Text style={{ marginBottom: '16px' }}>
-          {mode === 'signup' 
+          {authModalMode === 'signup' 
             ? 'Create an account to upload presets to the community and manage your uploads!'
             : 'Sign in to access your account and manage your uploaded presets.'
           }

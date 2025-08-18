@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
-import './BaseModal.css';
+
 import JSZip from 'jszip';
 import Button from '../ui/WButton';
 import '../styles/design-system.css';
@@ -10,7 +10,7 @@ import Card from '../ui/Card';
 import PresetListItem from './PresetListItem';
 import WToggle from '../ui/WToggle';
 import CommunityPresets from './CommunityPresets';
-import useUIStore from '../utils/useUIStore';
+
 import { uploadPreset } from '../utils/supabase';
 
 function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset, onImportPresets, onReorderPresets }) {
@@ -29,16 +29,16 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
   const [overwriteMap, setOverwriteMap] = useState({});
   const [selectedPresets, setSelectedPresets] = useState([]);
   const [selectMode, setSelectMode] = useState(false);
-  const handleCloseRef = useRef(null); // ref to store WBaseModal's handleClose function
   const [draggingPreset, setDraggingPreset] = useState(null); // name of preset being dragged
   const [dropTarget, setDropTarget] = useState(null); // name of preset being hovered over for drop
   
-  // Get Zustand store state and actions
-  const { 
-    showCommunitySection, 
-    toggleCommunitySection,
-    confirmDelete
-  } = useUIStore();
+  // ✅ DATA LAYER: Use local state for modal-specific UI state to prevent infinite loops
+  const [showCommunitySection, setShowCommunitySection] = useState(false);
+  const [confirmDeleteState, setConfirmDeleteState] = useState(false);
+  
+  const toggleCommunitySection = () => {
+    setShowCommunitySection(prev => !prev);
+  };
   
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -358,21 +358,15 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
 
   // Handle delete confirmation
   const handleDeleteClick = (preset) => {
-    confirmDelete(
-      preset.name,
-      () => onDeletePreset(preset.name)
-    );
+    // For now, directly delete the preset
+    // TODO: Implement proper confirmation dialog
+    onDeletePreset(preset.name);
   };
 
   // Wrapper function to handle apply preset with proper modal closing
   const handleApplyPreset = (preset) => {
     // Call onApplyPreset (which will set showPresetsModal to false)
     onApplyPreset(preset);
-    
-            // Use WBaseModal's handleClose for proper fade-out
-    if (handleCloseRef.current) {
-      handleCloseRef.current();
-    }
   };
 
   // Checkbox toggle for export selection
@@ -394,8 +388,6 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       creator_name: '',
       selectedPreset: preset
     });
-    setIncludeChannelsUpload(false);
-    setIncludeSoundsUpload(false);
     setShowUploadForm(true);
     setUploadMessage({ type: '', text: '' });
   };
@@ -667,6 +659,13 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
     if (uploadMessage.text) setUploadMessage({ type: '', text: '' });
   };
 
+  // ✅ DATA LAYER: Memoize footerContent to prevent infinite loops
+  const footerContent = useCallback(({ handleClose }) => (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <Button variant="secondary" onClick={handleClose}>Close</Button>
+    </div>
+  ), []);
+
   if (!isOpen) return null;
 
   return (
@@ -676,14 +675,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       title="Save Presets"
       onClose={onClose}
         maxWidth="1400px"
-      footerContent={({ handleClose }) => {
-        handleCloseRef.current = handleClose;
-        return (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <Button variant="secondary" onClick={handleClose}>Close</Button>
-          </div>
-        );
-      }}
+      footerContent={footerContent}
     >
       {importError && <div style={{ color: 'red', marginBottom: 12 }}>{importError}</div>}
      
@@ -725,6 +717,18 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
               />
               <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 8 }}>
                 Save channels, their media, and app paths for workspace switching
+            </Text>
+              </div>
+            
+            {/* Include Sound Settings Toggle */}
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <WToggle
+                  checked={includeSounds}
+                onChange={setIncludeSounds}
+                label="Include Sound Settings"
+              />
+              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 8 }}>
+                Save sound library and audio preferences
             </Text>
               </div>
             

@@ -4,21 +4,20 @@ import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
 import Button from '../ui/WButton';
-import useUIStore from '../utils/useUIStore';
+import { useUIState } from '../utils/useConsolidatedAppHooks';
 import { formatShortcut, validateShortcut, checkShortcutConflict, getShortcutsByCategory } from '../utils/keyboardShortcuts';
-import './BaseModal.css';
+
 
 function AppShortcutsModal({ isOpen, onClose }) {
   // Keyboard shortcuts state
   const [editingShortcut, setEditingShortcut] = useState(null);
   const [shortcutError, setShortcutError] = useState('');
   
-  // Get keyboard shortcuts from store
-  const { 
-    keyboardShortcuts, 
-    updateKeyboardShortcut, 
-    resetKeyboardShortcuts 
-  } = useUIStore();
+  // ✅ DATA LAYER: Get keyboard shortcuts from consolidated store with proper fallbacks
+  const { ui } = useUIState();
+  const keyboardShortcuts = ui?.keyboardShortcuts || [];
+  const updateKeyboardShortcut = ui?.updateKeyboardShortcut || (() => {});
+  const resetKeyboardShortcuts = ui?.resetKeyboardShortcuts || (() => {});
 
 
 
@@ -164,6 +163,15 @@ function AppShortcutsModal({ isOpen, onClose }) {
           overflowY: 'auto'
         }}>
           {(() => {
+            // ✅ DATA LAYER: Add safety check for keyboard shortcuts
+            if (!keyboardShortcuts || keyboardShortcuts.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  No keyboard shortcuts available
+                </div>
+              );
+            }
+            
             // Group shortcuts by category and sort alphabetically
             const groupedShortcuts = getShortcutsByCategory(keyboardShortcuts);
             const sortedCategories = Object.keys(groupedShortcuts).sort();

@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Channel from './Channel';
-import useChannelStore from '../utils/useChannelStore';
+import PageNavigation from './PageNavigation';
+import SlideNavigation from './SlideNavigation';
+import useChannelOperations from '../utils/useChannelOperations';
 import useIdleChannelAnimations from '../utils/useIdleChannelAnimations';
-import usePageNavigationStore from '../utils/usePageNavigationStore';
 import './PaginatedChannels.css';
 
 const PaginatedChannels = React.memo(({
+  // Legacy props for backward compatibility
   allChannels,
   channelConfigs,
   mediaMap,
@@ -23,203 +25,322 @@ const PaginatedChannels = React.memo(({
   onChannelSave,
   onChannelHover
 }) => {
-  // Use the navigation store
+  // ✅ DATA LAYER: Use the new channel operations hook
   const {
-    currentPage,
-    totalPages,
-    isAnimating,
-    animationDirection,
-    getChannelIndexRange,
-    getTotalChannelsCount,
-    finishAnimation
-  } = usePageNavigationStore();
+    gridConfig,
+    navigation,
+    channelSettings,
+    getCurrentPageChannels,
+    getChannelConfig,
+    isChannelEmpty,
+    nextPage,
+    prevPage,
+    finishAnimation,
+    updateChannelConfig,
+    updateChannelMedia,
+    updateChannelPath
+  } = useChannelOperations();
 
-  // Default grid settings (4 columns, 3 rows = 12 channels per page)
-  const gridColumns = 4;
-  const gridRows = 3;
-  
-  // Get channel data from Zustand store
-  const { getChannelDataForComponents } = useChannelStore();
-  const { mediaMap: storeMediaMap, appPathMap: storeAppPathMap, channelConfigs: storeChannelConfigs } = getChannelDataForComponents();
-  
-  // Use store data if available, fallback to props for backward compatibility
-  const effectiveMediaMap = useMemo(() => 
-    storeMediaMap && Object.keys(storeMediaMap).length > 0 ? storeMediaMap : mediaMap,
-    [storeMediaMap, mediaMap]
-  );
-  const effectiveAppPathMap = useMemo(() => 
-    storeAppPathMap && Object.keys(storeAppPathMap).length > 0 ? storeAppPathMap : appPathMap,
-    [storeAppPathMap, appPathMap]
-  );
-  const effectiveChannelConfigs = useMemo(() => 
-    storeChannelConfigs && Object.keys(storeChannelConfigs).length > 0 ? storeChannelConfigs : channelConfigs,
-    [storeChannelConfigs, channelConfigs]
-  );
+  // Get current page channels
+  const currentPageChannels = useMemo(() => {
+    return getCurrentPageChannels();
+  }, [getCurrentPageChannels]);
 
-  // Calculate total channels needed
-  const totalChannelsCount = useMemo(() => getTotalChannelsCount(), [getTotalChannelsCount]);
-
-  // Generate all channels for all pages
-  const allPagesChannels = useMemo(() => {
-    const totalChannels = totalChannelsCount;
-    const channels = [];
-    
-    for (let i = 0; i < totalChannels; i++) {
-      const channelId = `channel-${i}`;
-      const config = effectiveChannelConfigs ? effectiveChannelConfigs[channelId] : null;
-      const isConfigured = config && (config.media || config.path);
-      
-      channels.push({
-        id: channelId,
-        index: i,
-        empty: !isConfigured,
-        media: effectiveMediaMap ? effectiveMediaMap[channelId] : null,
-        path: effectiveAppPathMap ? effectiveAppPathMap[channelId] : null,
-        type: config?.type,
-        title: config?.title,
-        hoverSound: config?.hoverSound,
-        asAdmin: config?.asAdmin,
-        ...(config || {})
-      });
-    }
-    
-    return channels;
-  }, [totalChannelsCount, effectiveChannelConfigs, effectiveMediaMap, effectiveAppPathMap]);
-
-  // Idle animation system
-  const idleAnimationParams = useMemo(() => ({
-    enabled: idleAnimationEnabled,
-    types: idleAnimationTypes,
-    interval: idleAnimationInterval,
-    channels: allPagesChannels
-  }), [idleAnimationEnabled, idleAnimationTypes, idleAnimationInterval, allPagesChannels]);
-
-  const { getChannelAnimationClass, isChannelAnimating } = useIdleChannelAnimations(
-    idleAnimationParams.enabled,
-    idleAnimationParams.types,
-    idleAnimationParams.interval,
-    idleAnimationParams.channels
-  );
-
-  // Load settings when component mounts
-  useEffect(() => {
-    if (window.settings?.homescreen) {
-      // The loadSettings function was removed from the navigation store,
-      // so this part of the logic needs to be re-evaluated or removed
-      // if loadSettings is no longer available.
-      // For now, keeping it as is, but it might cause an error.
-      // loadSettings(window.settings);
-    }
-  }, []); // Removed loadSettings from dependency array
-
-  // Handle animation completion
-  useEffect(() => {
-    if (isAnimating) {
-      const timer = setTimeout(() => {
-        finishAnimation();
-      }, 500); // Match CSS transition duration
-      return () => clearTimeout(timer);
-    }
-  }, [isAnimating, finishAnimation]);
-
-  // Calculate the transform offset for simple mode
-  const getTransformOffset = useCallback(() => {
-    return -currentPage * 33.333; // Each page is 33.333% wide
-  }, [currentPage]);
-
-  // Create pages based on current mode
-  const pages = useMemo(() => {
-    const pages = [];
-    const channelsPerPage = gridColumns * gridRows;
-
-    // Simple mode: Create separate pages
-    for (let i = 0; i < totalPages; i++) {
-      const pageIndex = i;
-      const { startIndex, endIndex } = getChannelIndexRange(pageIndex);
-      const pageChannels = allPagesChannels.slice(startIndex, endIndex + 1);
-
-      pages.push({
-        key: `page-${pageIndex}`,
-        pageIndex,
-        channels: pageChannels,
-        transform: 'translateX(0%)',
-        isVisible: true
-      });
-    }
-
-    return pages;
-  }, [totalPages, gridColumns, gridRows, allPagesChannels, getChannelIndexRange]);
-
-  // CSS Grid styles
-  const gridStyles = useMemo(() => ({
-    display: 'grid',
-    gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
-    gridTemplateRows: `repeat(${gridRows}, 1fr)`,
-    gap: '20px',
-    width: '100%',
-    height: '100%',
-    padding: '20px'
-  }), [gridColumns, gridRows]);
-
-  // Memoize Channel component props to prevent unnecessary re-renders
-  const channelProps = useMemo(() => ({
-    onMediaChange,
-    onAppPathChange,
-    onChannelSave,
+  // ✅ DATA LAYER: Use settings from consolidated store with fallbacks
+  const effectiveSettings = useMemo(() => ({
+    animatedOnHover: channelSettings.animatedOnHover || animatedOnHover || false,
+    adaptiveEmptyChannels: channelSettings.adaptiveEmptyChannels || adaptiveEmptyChannels || true,
+    kenBurnsEnabled: channelSettings.kenBurnsEnabled || kenBurnsEnabled || false,
+    kenBurnsMode: channelSettings.kenBurnsMode || kenBurnsMode || 'hover',
+    idleAnimationEnabled: channelSettings.idleAnimationEnabled || idleAnimationEnabled || false,
+    idleAnimationTypes: channelSettings.idleAnimationTypes || idleAnimationTypes || ['pulse', 'bounce', 'glow'],
+    idleAnimationInterval: channelSettings.idleAnimationInterval || idleAnimationInterval || 8
+  }), [
+    channelSettings,
     animatedOnHover,
     adaptiveEmptyChannels,
     kenBurnsEnabled,
     kenBurnsMode,
-    onHover: onChannelHover
-  }), [onMediaChange, onAppPathChange, onChannelSave, animatedOnHover, adaptiveEmptyChannels, kenBurnsEnabled, kenBurnsMode, onChannelHover]);
+    idleAnimationEnabled,
+    idleAnimationTypes,
+    idleAnimationInterval
+  ]);
 
-  // Memoize the transform style to prevent unnecessary recalculations
-  const containerTransform = useMemo(() => ({
-    transform: `translateX(${getTransformOffset()}%)`,
-    transition: isAnimating ? 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none'
-  }), [getTransformOffset, isAnimating]);
+  // Channel event handlers
+  const handleChannelMediaChange = useCallback((channelId, media) => {
+    console.log('[DEBUG] 📺 [PaginatedChannels] Media change for channel:', channelId, media);
+    updateChannelMedia(channelId, media);
+    
+    // Call legacy callback if provided
+    if (onMediaChange) {
+      onMediaChange(channelId, media);
+    }
+  }, [updateChannelMedia, onMediaChange]);
+
+  const handleChannelAppPathChange = useCallback((channelId, path) => {
+    console.log('[DEBUG] 📺 [PaginatedChannels] App path change for channel:', channelId, path);
+    updateChannelPath(channelId, path);
+    
+    // Call legacy callback if provided
+    if (onAppPathChange) {
+      onAppPathChange(channelId, path);
+    }
+  }, [updateChannelPath, onAppPathChange]);
+
+  const handleChannelSave = useCallback((channelId, config) => {
+    console.log('[DEBUG] 📺 [PaginatedChannels] Save channel:', channelId, config);
+    updateChannelConfig(channelId, config);
+    
+    // Call legacy callback if provided
+    if (onChannelSave) {
+      onChannelSave(channelId, config);
+    }
+  }, [updateChannelConfig, onChannelSave]);
+
+  const handleChannelHover = useCallback((channelId, isHovered) => {
+    console.log('[DEBUG] 📺 [PaginatedChannels] Channel hover:', channelId, isHovered);
+    
+    // Call legacy callback if provided
+    if (onChannelHover) {
+      onChannelHover(channelId, isHovered);
+    }
+  }, [onChannelHover]);
+
+  // Navigation handlers
+  const handleNextPage = useCallback(() => {
+    console.log('[DEBUG] 📺 [PaginatedChannels] Next page');
+    nextPage();
+  }, [nextPage]);
+
+  const handlePrevPage = useCallback(() => {
+    console.log('[DEBUG] �� [PaginatedChannels] Previous page');
+    prevPage();
+  }, [prevPage]);
+
+  // Animation completion handler
+  const handleAnimationComplete = useCallback(() => {
+    console.log('[DEBUG] 📺 [PaginatedChannels] Animation complete');
+    finishAnimation();
+  }, [finishAnimation]);
+
+  // ✅ DATA LAYER: Use idle animations from consolidated store
+  const idleAnimationProps = useMemo(() => ({
+    enabled: effectiveSettings.idleAnimationEnabled,
+    types: effectiveSettings.idleAnimationTypes,
+    interval: effectiveSettings.idleAnimationInterval
+  }), [effectiveSettings]);
+
+  // Render individual page for Simple Mode
+  const renderPage = useCallback((pageIndex) => {
+    const { columns, rows, channelsPerPage } = gridConfig;
+    const startIndex = pageIndex * channelsPerPage;
+    const endIndex = Math.min(startIndex + channelsPerPage - 1, gridConfig.totalChannels - 1);
+
+    return (
+      <div
+        key={`page-${pageIndex}`}
+        className="channel-page"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${columns}, minmax(180px, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(110px, 1fr))`,
+          gap: 'clamp(10px, 2vw, 20px)',
+          padding: 'clamp(10px, 2vw, 20px)',
+          height: '100%',
+          width: '100%',
+          minHeight: '0',
+          minWidth: '0',
+          boxSizing: 'border-box',
+          alignContent: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        {Array.from({ length: channelsPerPage }, (_, index) => {
+          const channelIndex = startIndex + index;
+          if (channelIndex > endIndex) return null;
+          
+          const channelId = `channel-${channelIndex}`;
+          const channelConfig = getChannelConfig(channelId);
+          const isEmpty = isChannelEmpty(channelId);
+
+          return (
+            <Channel
+              key={channelId}
+              id={channelId}
+              type={channelConfig?.type || 'empty'}
+              path={channelConfig?.path || null}
+              icon={channelConfig?.icon || null}
+              empty={isEmpty}
+              media={channelConfig?.media || null}
+              onMediaChange={handleChannelMediaChange}
+              onAppPathChange={handleChannelAppPathChange}
+              onChannelSave={handleChannelSave}
+              onHover={handleChannelHover}
+              animatedOnHover={effectiveSettings.animatedOnHover}
+              channelConfig={channelConfig || { empty: true }}
+              adaptiveEmptyChannels={effectiveSettings.adaptiveEmptyChannels}
+              kenBurnsEnabled={effectiveSettings.kenBurnsEnabled}
+              kenBurnsMode={effectiveSettings.kenBurnsMode}
+              idleAnimationClass={idleAnimationProps.enabled ? 'idle-animation' : ''}
+              isIdleAnimating={idleAnimationProps.enabled}
+            />
+          );
+        })}
+      </div>
+    );
+  }, [
+    gridConfig,
+    effectiveSettings,
+    idleAnimationProps,
+    handleChannelMediaChange,
+    handleChannelAppPathChange,
+    handleChannelSave,
+    handleChannelHover,
+    getChannelConfig,
+    isChannelEmpty
+  ]);
+
+  // Render Wii Mode continuous grid
+  const renderWiiModeGrid = useCallback(() => {
+    const { columns, rows } = gridConfig;
+    const { currentPage, isAnimating } = navigation;
+    
+    // Calculate the slide transform for Wii Mode
+    // Each page should show a different section of the grid
+    // Since the grid is 300% wide, we need to move by 100% for each page
+    const slideTransform = `translateX(-${currentPage * 100}%)`;
+
+    return (
+      <div 
+        className="wii-mode-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${columns * 3}, minmax(180px, 1fr))`, // 3 pages wide
+          gridTemplateRows: `repeat(${rows}, minmax(110px, 1fr))`,
+          gap: 'clamp(10px, 2vw, 20px)',
+          padding: 'clamp(10px, 2vw, 20px)',
+          height: '100%',
+          width: '300%', // 3x width to accommodate all pages
+          minHeight: '0',
+          minWidth: '0',
+          boxSizing: 'border-box',
+          alignContent: 'center',
+          justifyContent: 'center',
+          transform: slideTransform,
+          transition: isAnimating ? 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none',
+          willChange: 'transform'
+        }}
+      >
+        {Array.from({ length: gridConfig.totalChannels }, (_, index) => {
+          const channelId = `channel-${index}`;
+          const channelConfig = getChannelConfig(channelId);
+          const isEmpty = isChannelEmpty(channelId);
+          
+          return (
+            <Channel
+              key={channelId}
+              id={channelId}
+              type={channelConfig?.type || 'empty'}
+              path={channelConfig?.path || null}
+              icon={channelConfig?.icon || null}
+              empty={isEmpty}
+              media={channelConfig?.media || null}
+              onMediaChange={handleChannelMediaChange}
+              onAppPathChange={handleChannelAppPathChange}
+              onChannelSave={handleChannelSave}
+              onHover={handleChannelHover}
+              animatedOnHover={effectiveSettings.animatedOnHover}
+              channelConfig={channelConfig || { empty: true }}
+              adaptiveEmptyChannels={effectiveSettings.adaptiveEmptyChannels}
+              kenBurnsEnabled={effectiveSettings.kenBurnsEnabled}
+              kenBurnsMode={effectiveSettings.kenBurnsMode}
+              idleAnimationClass={idleAnimationProps.enabled ? 'idle-animation' : ''}
+              isIdleAnimating={idleAnimationProps.enabled}
+            />
+          );
+        })}
+      </div>
+    );
+  }, [
+    gridConfig,
+    navigation,
+    effectiveSettings,
+    idleAnimationProps,
+    handleChannelMediaChange,
+    handleChannelAppPathChange,
+    handleChannelSave,
+    handleChannelHover,
+    getChannelConfig,
+    isChannelEmpty
+  ]);
+
+  // Render content based on mode
+  const renderContent = useMemo(() => {
+    const { mode } = navigation;
+    
+    if (mode === 'simple') {
+      // Simple Mode: Use SlideNavigation with separate pages
+      return (
+        <SlideNavigation>
+          {Array.from({ length: navigation.totalPages }, (_, pageIndex) => 
+            renderPage(pageIndex)
+          )}
+        </SlideNavigation>
+      );
+    } else {
+      // Wii Mode: Use continuous grid with horizontal sliding
+      return (
+        <div className="wii-mode-container">
+          {renderWiiModeGrid()}
+        </div>
+      );
+    }
+  }, [navigation.mode, navigation.totalPages, renderPage, renderWiiModeGrid]);
+
+    // Render navigation
+  const renderNavigation = useMemo(() => {
+    return (
+      <PageNavigation
+        position="bottom"
+        showPageIndicator={true}
+      />
+    );
+  }, []);
+
+  // Log component state for debugging
+  useEffect(() => {
+    console.log('[DEBUG] 📺 [PaginatedChannels] Component state:', {
+      gridConfig,
+      navigation,
+      currentPageChannels: currentPageChannels.length,
+      effectiveSettings
+    });
+  }, [gridConfig, navigation, currentPageChannels.length, effectiveSettings]);
 
   return (
-    <div className="paginated-channels">
-      <div
-        className={`pages-container ${isAnimating ? 'animating' : ''} ${animationDirection !== 'none' ? `slide-${animationDirection}` : ''} simple`}
-        style={containerTransform}
-      >
-        {/* Render pages */}
-        {pages.map(({ key, pageIndex, channels, transform, isVisible }) => (
-          <div
-            key={key}
-            className="channels-page"
-            style={{
-              transform: transform,
-              display: isVisible ? 'block' : 'none'
-            }}
-          >
-            <div className="channels-grid" style={gridStyles}>
-              {channels.map((channel) => (
-                <Channel
-                  key={channel.id}
-                  {...channel}
-                  {...channelProps}
-                  channelConfig={effectiveChannelConfigs ? effectiveChannelConfigs[channel.id] : null}
-                  animationStyle={channel.animationStyle}
-                  idleAnimationClass={getChannelAnimationClass(channel.id)}
-                  isIdleAnimating={isChannelAnimating(channel.id)}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+    <div className="paginated-channels-container">
+      <div className="channels-content">
+        {renderContent}
       </div>
+      
+      {/* Animation completion listener */}
+      {navigation.isAnimating && (
+        <div 
+          className="animation-listener"
+          onAnimationEnd={handleAnimationComplete}
+          onTransitionEnd={handleAnimationComplete}
+        />
+      )}
     </div>
   );
 });
 
 PaginatedChannels.propTypes = {
+  // Legacy props for backward compatibility
   allChannels: PropTypes.array,
-  channelConfigs: PropTypes.object.isRequired,
-  mediaMap: PropTypes.object.isRequired,
-  appPathMap: PropTypes.object.isRequired,
+  channelConfigs: PropTypes.object,
+  mediaMap: PropTypes.object,
+  appPathMap: PropTypes.object,
   animatedOnHover: PropTypes.bool,
   adaptiveEmptyChannels: PropTypes.bool,
   kenBurnsEnabled: PropTypes.bool,
@@ -227,10 +348,10 @@ PaginatedChannels.propTypes = {
   idleAnimationEnabled: PropTypes.bool,
   idleAnimationTypes: PropTypes.array,
   idleAnimationInterval: PropTypes.number,
-  onMediaChange: PropTypes.func.isRequired,
-  onAppPathChange: PropTypes.func.isRequired,
-  onChannelSave: PropTypes.func.isRequired,
-  onChannelHover: PropTypes.func,
+  onMediaChange: PropTypes.func,
+  onAppPathChange: PropTypes.func,
+  onChannelSave: PropTypes.func,
+  onChannelHover: PropTypes.func
 };
 
 export default PaginatedChannels;

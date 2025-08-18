@@ -7,9 +7,10 @@ import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
 import WInput from '../ui/WInput';
 import WSelect from '../ui/WSelect';
-import useAppLibraryStore from '../utils/useAppLibraryStore';
-import useIconsStore from '../utils/useIconsStore';
-import useUnifiedAppStore from '../utils/useUnifiedAppStore';
+import Text from '../ui/Text';
+import Slider from '../ui/Slider';
+import WRadioGroup from '../ui/WRadioGroup';
+import { useAppLibraryState, useIconState, useUnifiedAppsState } from '../utils/useConsolidatedAppHooks';
 
 function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [], ribbonGlowColor = '#0099ff' }) {
   const [type, setType] = useState(config?.type || 'text');
@@ -41,27 +42,43 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
   const exeFileInputRef = useRef(null);
 
-  // Zustand store selectors
+  // ✅ DATA LAYER: Get app library state from consolidated store
   const {
-    installedApps, appsLoading, appsError, fetchInstalledApps, rescanInstalledApps,
-    steamGames, steamLoading, steamError, fetchSteamGames, rescanSteamGames,
-    epicGames, epicLoading, epicError, fetchEpicGames, rescanEpicGames,
-    uwpApps, uwpLoading, uwpError, fetchUwpApps, rescanUwpApps,
-    customSteamPath, setCustomSteamPath
-  } = useAppLibraryStore();
+    appLibrary: {
+      installedApps, appsLoading, appsError,
+      steamGames, steamLoading, steamError,
+      epicGames, epicLoading, epicError,
+      uwpApps, uwpLoading, uwpError,
+      customSteamPath
+    },
+    appLibraryManager: {
+      fetchInstalledApps, rescanInstalledApps,
+      fetchSteamGames, rescanSteamGames,
+      fetchEpicGames, rescanEpicGames,
+      fetchUwpApps, rescanUwpApps,
+      setCustomSteamPath
+    }
+  } = useAppLibraryState();
 
-  // Icons store
+  // ✅ DATA LAYER: Get icons state from consolidated store
   const {
-    savedIcons,
-    loading: iconsLoading,
-    error: iconsError,
-    uploading: iconsUploading,
-    uploadError: iconsUploadError,
-    fetchIcons,
-    uploadIcon,
-    deleteIcon,
-    clearError: clearIconsError
-  } = useIconsStore();
+    icons: {
+      savedIcons,
+      loading: iconsLoading,
+      error: iconsError,
+      uploading: iconsUploading,
+      uploadError: iconsUploadError
+    },
+    iconManager: {
+      fetchIcons,
+      uploadIcon,
+      deleteIcon,
+      clearError: clearIconsError
+    }
+  } = useIconState();
+
+  // ✅ DATA LAYER: Get unified apps state from consolidated store
+  const { unifiedApps } = useUnifiedAppsState();
 
   // Fuzzy search for apps
   const appResults = (gameType === 'exe' && appQuery && installedApps.length > 0)
@@ -394,46 +411,44 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   function renderIconSection() {
     return (
       <>
-        <div style={{ display: 'flex', gap: 18, marginBottom: 16 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input type="radio" name="type" value="text" checked={type === 'text'} onChange={() => setType('text')} />
-            Text
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input type="radio" name="type" value="icon" checked={type === 'icon'} onChange={() => setType('icon')} />
-            Icon (PNG)
-          </label>
-        </div>
+        <WRadioGroup
+          options={[
+            { value: 'text', label: 'Text' },
+            { value: 'icon', label: 'Icon (PNG)' }
+          ]}
+          value={type}
+          onChange={setType}
+          className="mb-4"
+        />
         {type === 'text' ? (
           <>
-            <input
+            <WInput
               type="text"
-              className="text-input"
               placeholder="Button text"
               value={text}
               onChange={e => setText(e.target.value)}
               maxLength={16}
-              style={{ width: '100%', marginBottom: 12 }}
+              className="mb-3"
             />
             {/* Font Selection for Text */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontWeight: 500, marginRight: 10 }}>Text Font</label>
-              <select
+            <div className="mb-3">
+              <Text variant="body" className="font-medium mb-2">Text Font</Text>
+              <WSelect
+                options={[
+                  { value: 'default', label: 'Default' },
+                  { value: 'digital', label: 'DigitalDisplayRegular-ODEO' }
+                ]}
                 value={textFont}
-                onChange={e => setTextFont(e.target.value)}
-                style={{ padding: 4, borderRadius: 6 }}
-              >
-                <option value="default">Default</option>
-                <option value="digital">DigitalDisplayRegular-ODEO</option>
-              </select>
+                onChange={setTextFont}
+              />
             </div>
           </>
         ) : (
           <>
             {/* Built-in Icons Section */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Built-in Icons:</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="mb-4">
+              <Text variant="body" className="font-medium mb-2">Built-in Icons:</Text>
+              <div className="flex gap-2 flex-wrap">
                 {/* Palette Icon */}
                 <button
                   type="button"
@@ -531,32 +546,24 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             </div>
             
             {/* Upload New Icon Button */}
-            <button
-              className="file-button"
-              style={{ 
-                marginBottom: 18, 
-                fontWeight: 500, 
-                padding: '8px 18px', 
-                fontSize: 15, 
-                background: iconsUploading ? '#bbb' : getIconColor(), 
-                color: '#fff', 
-                cursor: iconsUploading ? 'not-allowed' : 'pointer' 
-              }}
+            <Button
+              variant="primary"
               onClick={handleUploadIcon}
               disabled={iconsUploading}
+              className="mb-4"
             >
               {iconsUploading ? 'Uploading...' : 'Upload New Icon'}
-            </button>
+            </Button>
             {iconsUploadError && (
-              <div style={{ color: '#dc3545', fontSize: 13, marginBottom: 6 }}>{iconsUploadError}</div>
+              <Text variant="caption" className="text-red-500 mb-2">{iconsUploadError}</Text>
             )}
             {/* Saved Icons Section */}
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontWeight: 500, marginBottom: 6 }}>Your saved icons:</div>
+            <div className="mb-3">
+              <Text variant="body" className="font-medium mb-2">Your saved icons:</Text>
               {iconsLoading ? (
-                <div style={{ color: '#888', marginBottom: 10 }}>Loading saved icons...</div>
+                <Text variant="caption" className="text-gray-500 mb-3">Loading saved icons...</Text>
               ) : savedIcons.length > 0 ? (
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div className="flex gap-3 flex-wrap">
                   {savedIcons.map((i, idx) => (
                     <div key={i.url} style={{ position: 'relative', display: 'inline-block' }}>
                       <button
@@ -629,7 +636,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                   ))}
                 </div>
               ) : (
-                <div style={{ color: '#888', marginBottom: 10 }}>No saved icons yet.</div>
+                <Text variant="caption" className="text-gray-500 mb-3">No saved icons yet.</Text>
               )}
             </div>
           </>
@@ -648,14 +655,14 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
       onClose={onClose}
       maxWidth="700px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
           <Button variant="primary" onClick={() => { 
             if (isPresetsButton || isAccessoryButton || validatePath()) { 
               handleSave();
               handleClose(); 
             } 
-          }} style={{ minWidth: 90 }}>Save</Button>
+          }}>Save</Button>
         </div>
       )}
     >
@@ -669,9 +676,9 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           ? "Choose or upload a custom icon for the accessory button. This button can be configured to launch apps or URLs."
           : "Choose or upload a custom icon for this channel. PNG recommended for best results."
         }
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="mb-5"
       >
-        <div style={{ marginTop: 14 }}>
+        <div className="mt-3">
           {/* Icon selection/upload UI here */}
           {renderIconSection && renderIconSection()}
         </div>
@@ -681,29 +688,33 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
         <Card
           title="Icon Color Settings"
           separator
-          style={{ marginTop: 18, marginBottom: 0 }}
+          className="mb-5"
         >
-          <div style={{ marginBottom: 16 }}>
-            <WToggle
-              checked={useWiiGrayFilter}
-              onChange={handleWiiGrayFilterToggle}
-              label="Use Wii Button Color Filter"
-            />
-            <div style={{ marginLeft: 54, marginTop: 4, fontSize: 14, color: '#666' }}>
+                  <div className="mb-4">
+          <WToggle
+            checked={useWiiGrayFilter}
+            onChange={handleWiiGrayFilterToggle}
+            label="Use Wii Button Color Filter"
+          />
+          <div className="ml-14 mt-1">
+            <Text variant="caption" className="text-gray-600">
               Make the icon Wii gray to match the classic Wii button style.
-            </div>
+            </Text>
           </div>
-          
-          <div>
-            <WToggle
-              checked={useAdaptiveColor}
-              onChange={handleAdaptiveColorToggle}
-              label="Use Adaptive Color"
-            />
-            <div style={{ marginLeft: 54, marginTop: 4, fontSize: 14, color: '#666' }}>
+        </div>
+        
+        <div>
+          <WToggle
+            checked={useAdaptiveColor}
+            onChange={handleAdaptiveColorToggle}
+            label="Use Adaptive Color"
+          />
+          <div className="ml-14 mt-1">
+            <Text variant="caption" className="text-gray-600">
               Make the icon color match the ribbon glow color ({ribbonGlowColor}).
-            </div>
+            </Text>
           </div>
+        </div>
         </Card>
       )}
 
@@ -713,16 +724,16 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           title="Unified App Path (NEW)"
           separator
           desc="NEW: Unified app search that consolidates all app types (EXE, Steam, Epic, Microsoft Store) into a single interface."
-          style={{ marginTop: 18, marginBottom: 0 }}
+          className="mb-5"
         >
-          <div style={{ marginTop: 14 }}>
-            <UnifiedAppPathCard
+                  <div className="mt-3">
+          <UnifiedAppPathCard
               key={`unified-app-path-${buttonIndex}-${isOpen}`} // Force remount when button or modal changes
               value={{
                 launchType: actionType === 'url' ? 'url' : 'application',
                 appName: appName,
                 path: action,
-                selectedApp: useUnifiedAppStore.getState().selectedApp // Pass the selected app directly
+                selectedApp: unifiedApps?.selectedApp || null // Pass the selected app from consolidated store
               }}
               onChange={(config) => {
                 if (config.launchType === 'url') {
@@ -766,63 +777,46 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
         title="Hover Effect"
         separator
         desc="Choose how the button looks when you hover over it."
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="mb-5"
       >
-        <div style={{ marginTop: 14 }}>
+        <div className="mt-3">
           {/* Border Effect Option */}
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="hover-effect"
-                checked={!useGlowEffect}
-                onChange={() => setUseGlowEffect(false)}
-              />
-              <span style={{ fontWeight: 500 }}>Border Effect</span>
-            </label>
-            <div style={{ marginLeft: 24, marginTop: 4 }}>
+          <div className="mb-3">
+            <WRadioGroup
+              options={[
+                { value: 'border', label: 'Border Effect' },
+                { value: 'glow', label: 'Glow Effect' }
+              ]}
+              value={useGlowEffect ? 'glow' : 'border'}
+              onChange={(value) => setUseGlowEffect(value === 'glow')}
+              className="mb-3"
+            />
+            
+            <div className="ml-6">
               <WToggle
-                checked={useAdaptiveColor && !useGlowEffect}
+                checked={useAdaptiveColor}
                 onChange={(checked) => setUseAdaptiveColor(checked)}
-                disabled={useGlowEffect}
                 label="Use adaptive color (matches ribbon glow)"
               />
             </div>
           </div>
           
-          {/* Glow Effect Option */}
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="hover-effect"
-                checked={useGlowEffect}
-                onChange={() => setUseGlowEffect(true)}
-              />
-              <span style={{ fontWeight: 500 }}>Glow Effect</span>
-            </label>
-            {useGlowEffect && (
-              <div style={{ marginLeft: 24, marginTop: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <span style={{ fontSize: 14, color: '#666', minWidth: 60 }}>Strength:</span>
-                  <input
-                    type="range"
-                    min="5"
-                    max="50"
-                    value={glowStrength}
-                    onChange={(e) => setGlowStrength(Number(e.target.value))}
-                    style={{ flex: 1 }}
-                  />
-                  <span style={{ fontSize: 14, color: '#666', minWidth: 30 }}>{glowStrength}px</span>
-                </div>
-                <WToggle
-                  checked={useAdaptiveColor && useGlowEffect}
-                  onChange={(checked) => setUseAdaptiveColor(checked)}
-                  label="Use adaptive color (matches ribbon glow)"
+          {/* Glow Effect Settings */}
+          {useGlowEffect && (
+            <div className="ml-6 mt-2">
+              <div className="flex items-center gap-3 mb-2">
+                <Text variant="small" className="text-gray-600 min-w-[60px]">Strength:</Text>
+                <Slider
+                  min={5}
+                  max={50}
+                  value={glowStrength}
+                  onChange={setGlowStrength}
+                  className="flex-1"
                 />
+                <Text variant="small" className="text-gray-600 min-w-[30px]">{glowStrength}px</Text>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </Card>
       {/* Glass Effect Card - Show for all buttons */}
@@ -836,79 +830,71 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             onChange={(checked) => setUseGlassEffect(checked)}
           />
         }
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="mb-5"
       >
         {useGlassEffect && (
-          <div style={{ marginTop: 14 }}>
+          <div className="mt-3">
             {/* Glass Opacity */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 14, color: '#666' }}>Glass Opacity</span>
-                <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassOpacity * 100)}%</span>
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-2">
+                <Text variant="small" className="text-gray-600">Glass Opacity</Text>
+                <Text variant="small" className="text-gray-600">{Math.round(glassOpacity * 100)}%</Text>
               </div>
-              <input
-                type="range"
-                min="0.05"
-                max="0.5"
-                step="0.01"
+              <Slider
+                min={0.05}
+                max={0.5}
+                step={0.01}
                 value={glassOpacity}
-                onChange={(e) => setGlassOpacity(Number(e.target.value))}
-                style={{ width: '100%' }}
+                onChange={setGlassOpacity}
               />
             </div>
             
             {/* Glass Blur */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 14, color: '#666' }}>Glass Blur</span>
-                <span style={{ fontSize: 14, color: '#666' }}>{glassBlur}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="8"
-                  step="0.1"
-                  value={glassBlur}
-                  onChange={(e) => setGlassBlur(Number(e.target.value))}
-                  style={{ width: '100%' }}
-                />
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-2">
+                <Text variant="small" className="text-gray-600">Glass Blur</Text>
+                <Text variant="small" className="text-gray-600">{glassBlur}px</Text>
               </div>
-              
-              {/* Glass Border Opacity */}
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, color: '#666' }}>Border Opacity</span>
-                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassBorderOpacity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="1"
-                  step="0.05"
-                  value={glassBorderOpacity}
-                  onChange={(e) => setGlassBorderOpacity(Number(e.target.value))}
-                  style={{ width: '100%' }}
-                />
-              </div>
-              
-              {/* Glass Shine Opacity */}
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, color: '#666' }}>Shine Opacity</span>
-                  <span style={{ fontSize: 14, color: '#666' }}>{Math.round(glassShineOpacity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="1"
-                  step="0.05"
-                  value={glassShineOpacity}
-                  onChange={(e) => setGlassShineOpacity(Number(e.target.value))}
-                  style={{ width: '100%' }}
-                />
-              </div>
+              <Slider
+                min={0.5}
+                max={8}
+                step={0.1}
+                value={glassBlur}
+                onChange={setGlassBlur}
+              />
             </div>
-          )}
+            
+            {/* Glass Border Opacity */}
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-2">
+                <Text variant="small" className="text-gray-600">Border Opacity</Text>
+                <Text variant="small" className="text-gray-600">{Math.round(glassBorderOpacity * 100)}%</Text>
+              </div>
+              <Slider
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={glassBorderOpacity}
+                onChange={setGlassBorderOpacity}
+              />
+            </div>
+            
+            {/* Glass Shine Opacity */}
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-2">
+                <Text variant="small" className="text-gray-600">Shine Opacity</Text>
+                <Text variant="small" className="text-gray-600">{Math.round(glassShineOpacity * 100)}%</Text>
+              </div>
+              <Slider
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={glassShineOpacity}
+                onChange={setGlassShineOpacity}
+              />
+            </div>
+          </div>
+        )}
         </Card>
     </WBaseModal>
   );
