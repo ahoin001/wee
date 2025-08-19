@@ -9,19 +9,20 @@ import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 const WALLPAPER_ANIMATIONS = [
-  { value: 'fade', label: 'Fade - Smooth crossfade between wallpapers' },
-  { value: 'slide', label: 'Slide - Slide one wallpaper out while sliding the next in' },
-  { value: 'zoom', label: 'Zoom - Zoom out current wallpaper while zooming in the next' },
-  { value: 'ken-burns', label: 'Ken Burns - Classic documentary-style pan and zoom effect' },
-  { value: 'dissolve', label: 'Dissolve - Pixel-based dissolve transition' },
-  { value: 'wipe', label: 'Wipe - Clean wipe transition in the selected direction' },
+  { value: 'fade', label: 'Crossfade - Smooth, elegant transition (Recommended)' },
+  { value: 'slide', label: 'Slide - Directional slide transition' },
+  { value: 'zoom', label: 'Zoom - Gentle scale transition' },
+  { value: 'ken-burns', label: 'Ken Burns - Cinematic pan and zoom effect' },
+  { value: 'morph', label: 'Morph - Smooth shape-based transition' },
+  { value: 'blur', label: 'Blur - Blur-based crossfade transition' },
 ];
 
 const EASING_OPTIONS = [
-  { value: 'ease-out', label: 'Ease Out (Smooth)' },
-  { value: 'ease-in', label: 'Ease In (Accelerate)' },
-  { value: 'ease-in-out', label: 'Ease In-Out (Smooth)' },
-  { value: 'linear', label: 'Linear (Constant)' },
+  { value: 'ease-out', label: 'Ease Out - Smooth deceleration (Recommended)' },
+  { value: 'ease-in-out', label: 'Ease In-Out - Smooth acceleration and deceleration' },
+  { value: 'ease-in', label: 'Ease In - Gradual acceleration' },
+  { value: 'linear', label: 'Linear - Constant speed' },
+  { value: 'cubic-bezier', label: 'Cubic Bezier - Custom curve' },
 ];
 
 const SLIDE_DIRECTION_OPTIONS = [
@@ -74,17 +75,88 @@ const WallpaperSettingsTab = React.memo(() => {
   const [slideDuration, setSlideDuration] = useState(1.5);
   const [slideEasing, setSlideEasing] = useState('ease-out');
 
-  // Wallpaper effects state
-  const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
-  const [wallpaperBlur, setWallpaperBlur] = useState(0);
+  // Use consolidated store values for wallpaper effects
+  const wallpaperOpacity = wallpaper.opacity;
+  const wallpaperBlur = wallpaper.blur;
 
-  // Overlay effect settings
-  const [overlayEnabled, setOverlayEnabled] = useState(false);
-  const [overlayEffect, setOverlayEffect] = useState('snow');
-  const [overlayIntensity, setOverlayIntensity] = useState(50);
-  const [overlaySpeed, setOverlaySpeed] = useState(1);
-  const [overlayWind, setOverlayWind] = useState(0.02);
-  const [overlayGravity, setOverlayGravity] = useState(0.1);
+  // Use consolidated store values for overlay effects
+  const overlayEnabled = overlay.enabled;
+  const overlayEffect = overlay.effect;
+  const overlayIntensity = overlay.intensity;
+  const overlaySpeed = overlay.speed;
+  const overlayWind = overlay.wind;
+  const overlayGravity = overlay.gravity;
+
+  // Handlers for wallpaper effects that update consolidated store
+  const handleWallpaperOpacityChange = useCallback((value) => {
+    setWallpaperState({ opacity: value });
+  }, [setWallpaperState]);
+
+  const handleWallpaperBlurChange = useCallback((value) => {
+    setWallpaperState({ blur: value });
+  }, [setWallpaperState]);
+
+  // Handlers for overlay effects that update consolidated store
+  const handleOverlayEnabledChange = useCallback((value) => {
+    setOverlayState({ enabled: value });
+  }, [setOverlayState]);
+
+  const handleOverlayEffectChange = useCallback((value) => {
+    setOverlayState({ effect: value });
+  }, [setOverlayState]);
+
+  const handleOverlayIntensityChange = useCallback((value) => {
+    setOverlayState({ intensity: value });
+  }, [setOverlayState]);
+
+  const handleOverlaySpeedChange = useCallback((value) => {
+    setOverlayState({ speed: value });
+  }, [setOverlayState]);
+
+  const handleOverlayWindChange = useCallback((value) => {
+    setOverlayState({ wind: value });
+  }, [setOverlayState]);
+
+  const handleOverlayGravityChange = useCallback((value) => {
+    setOverlayState({ gravity: value });
+  }, [setOverlayState]);
+
+  // Handlers for cycling settings that update consolidated store
+  const handleCyclingChange = useCallback((value) => {
+    setWallpaperState({ cycleWallpapers: value });
+  }, [setWallpaperState]);
+
+  const handleCycleIntervalChange = useCallback((value) => {
+    setWallpaperState({ cycleInterval: value });
+  }, [setWallpaperState]);
+
+  const handleCycleAnimationChange = useCallback((value) => {
+    setWallpaperState({ cycleAnimation: value });
+  }, [setWallpaperState]);
+
+  const handleSlideDirectionChange = useCallback((value) => {
+    setWallpaperState({ slideDirection: value });
+  }, [setWallpaperState]);
+
+  const handleCrossfadeDurationChange = useCallback((value) => {
+    setWallpaperState({ crossfadeDuration: value });
+  }, [setWallpaperState]);
+
+  const handleCrossfadeEasingChange = useCallback((value) => {
+    setWallpaperState({ crossfadeEasing: value });
+  }, [setWallpaperState]);
+
+  const handleSlideRandomDirectionChange = useCallback((value) => {
+    setWallpaperState({ slideRandomDirection: value });
+  }, [setWallpaperState]);
+
+  const handleSlideDurationChange = useCallback((value) => {
+    setWallpaperState({ slideDuration: value });
+  }, [setWallpaperState]);
+
+  const handleSlideEasingChange = useCallback((value) => {
+    setWallpaperState({ slideEasing: value });
+  }, [setWallpaperState]);
 
   // Load wallpapers from backend
   const loadWallpapers = useCallback(async () => {
@@ -104,16 +176,16 @@ const WallpaperSettingsTab = React.memo(() => {
       setSlideRandomDirection(data.cyclingSettings?.slideRandomDirection ?? false);
       setSlideDuration(data.cyclingSettings?.slideDuration ?? 1.5);
       setSlideEasing(data.cyclingSettings?.slideEasing ?? 'ease-out');
-      setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1);
-      setWallpaperBlur(data.wallpaperBlur ?? 0);
+      // setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1); // This line is now redundant
+      // setWallpaperBlur(data.wallpaperBlur ?? 0); // This line is now redundant
 
       // Load overlay settings
-      setOverlayEnabled(data.overlayEnabled ?? false);
-      setOverlayEffect(data.overlayEffect ?? 'snow');
-      setOverlayIntensity(data.overlayIntensity ?? 50);
-      setOverlaySpeed(data.overlaySpeed ?? 1);
-      setOverlayWind(data.overlayWind ?? 0.02);
-      setOverlayGravity(data.overlayGravity ?? 0.1);
+      // setOverlayEnabled(data.overlayEnabled ?? false); // This line is now redundant
+      // setOverlayEffect(data.overlayEffect ?? 'snow'); // This line is now redundant
+      // setOverlayIntensity(data.overlayIntensity ?? 50); // This line is now redundant
+      // setOverlaySpeed(data.overlaySpeed ?? 1); // This line is now redundant
+      // setOverlayWind(data.overlayWind ?? 0.02); // This line is now redundant
+      // setOverlayGravity(data.overlayGravity ?? 0.1); // This line is now redundant
 
       // Update consolidated store with loaded data
       setWallpaperState({
@@ -152,6 +224,23 @@ const WallpaperSettingsTab = React.memo(() => {
   useEffect(() => {
     loadWallpapers();
   }, [loadWallpapers]);
+
+  // Sync local cycling state with consolidated store
+  useEffect(() => {
+    setCycling(wallpaper.cycleWallpapers);
+    setCycleInterval(wallpaper.cycleInterval);
+    setCycleAnimation(wallpaper.cycleAnimation);
+    setSlideDirection(wallpaper.slideDirection);
+    setCrossfadeDuration(wallpaper.crossfadeDuration);
+    setCrossfadeEasing(wallpaper.crossfadeEasing);
+    setSlideRandomDirection(wallpaper.slideRandomDirection);
+    setSlideDuration(wallpaper.slideDuration);
+    setSlideEasing(wallpaper.slideEasing);
+  }, [
+    wallpaper.cycleWallpapers, wallpaper.cycleInterval, wallpaper.cycleAnimation,
+    wallpaper.slideDirection, wallpaper.crossfadeDuration, wallpaper.crossfadeEasing,
+    wallpaper.slideRandomDirection, wallpaper.slideDuration, wallpaper.slideEasing
+  ]);
 
   // Upload a new wallpaper
   const handleUpload = useCallback(async () => {
@@ -272,14 +361,14 @@ const WallpaperSettingsTab = React.memo(() => {
     try {
       // Save wallpaper-specific settings only
       let wallpaperData = await api.get();
-      wallpaperData.wallpaperOpacity = wallpaperOpacity;
-      wallpaperData.wallpaperBlur = wallpaperBlur;
-      wallpaperData.overlayEnabled = overlayEnabled;
-      wallpaperData.overlayEffect = overlayEffect;
-      wallpaperData.overlayIntensity = overlayIntensity;
-      wallpaperData.overlaySpeed = overlaySpeed;
-      wallpaperData.overlayWind = overlayWind;
-      wallpaperData.overlayGravity = overlayGravity;
+      wallpaperData.wallpaperOpacity = wallpaper.opacity; // Use consolidated store value
+      wallpaperData.wallpaperBlur = wallpaper.blur; // Use consolidated store value
+      wallpaperData.overlayEnabled = overlay.enabled; // Use consolidated store value
+      wallpaperData.overlayEffect = overlay.effect; // Use consolidated store value
+      wallpaperData.overlayIntensity = overlay.intensity; // Use consolidated store value
+      wallpaperData.overlaySpeed = overlay.speed; // Use consolidated store value
+      wallpaperData.overlayWind = overlay.wind; // Use consolidated store value
+      wallpaperData.overlayGravity = overlay.gravity; // Use consolidated store value
       await api.set(wallpaperData);
 
       // Handle wallpaper and cycling settings
@@ -300,13 +389,11 @@ const WallpaperSettingsTab = React.memo(() => {
 
       setMessage({ type: 'success', text: 'Wallpaper and settings saved.' });
 
-      // Update consolidated store with new settings
+      // Update consolidated store with new settings (cycling settings only, effects are already updated)
       setWallpaperState({
         current: selectedWallpaper || null,
         savedWallpapers: wallpapers,
         likedWallpapers: likedWallpapers,
-        opacity: wallpaperOpacity,
-        blur: wallpaperBlur,
         cycleWallpapers: cycling,
         cycleInterval: cycleInterval,
         cycleAnimation: cycleAnimation,
@@ -318,24 +405,15 @@ const WallpaperSettingsTab = React.memo(() => {
         slideEasing: slideEasing,
       });
 
-      setOverlayState({
-        enabled: overlayEnabled,
-        effect: overlayEffect,
-        intensity: overlayIntensity,
-        speed: overlaySpeed,
-        wind: overlayWind,
-        gravity: overlayGravity,
-      });
-
       await loadWallpapers();
     } catch (err) {
       setMessage({ type: 'error', text: 'Save failed: ' + err.message });
     }
   }, [
-    wallpaperOpacity, wallpaperBlur, overlayEnabled, overlayEffect, overlayIntensity, 
-    overlaySpeed, overlayWind, overlayGravity, selectedWallpaper, cycling, cycleInterval, 
+    wallpaper.opacity, wallpaper.blur, overlay.enabled, overlay.effect, overlay.intensity, 
+    overlay.speed, overlay.wind, overlay.gravity, selectedWallpaper, cycling, cycleInterval, 
     cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, 
-    slideDuration, slideEasing, setWallpaperState, setOverlayState, loadWallpapers
+    slideDuration, slideEasing, setWallpaperState, loadWallpapers, wallpapers, likedWallpapers
   ]);
 
   // Set selected wallpaper when wallpapers change
@@ -530,7 +608,7 @@ const WallpaperSettingsTab = React.memo(() => {
                   max={1}
                   step={0.01}
                   value={wallpaperOpacity}
-                  onChange={setWallpaperOpacity}
+                  onChange={handleWallpaperOpacityChange}
                 />
               </div>
               <span className="min-w-[38px] font-semibold text-gray-500">{Math.round(wallpaperOpacity * 100)}%</span>
@@ -544,7 +622,7 @@ const WallpaperSettingsTab = React.memo(() => {
                   max={24}
                   step={0.5}
                   value={wallpaperBlur}
-                  onChange={setWallpaperBlur}
+                  onChange={handleWallpaperBlurChange}
                 />
               </div>
               <span className="min-w-[38px] font-semibold text-gray-500">{wallpaperBlur}px</span>
@@ -562,12 +640,36 @@ const WallpaperSettingsTab = React.memo(() => {
         headerActions={
           <WToggle
             checked={cycling}
-            onChange={setCycling}
+            onChange={handleCyclingChange}
           />
         }
         actions={
           cycling && (
             <>
+              {/* Manual Cycle Button for Testing */}
+              <div className="flex items-center gap-4 mb-4">
+                <span className="font-medium text-gray-700">Test Cycling</span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    // Trigger manual cycle
+                    if (window.api?.wallpapers?.cycle) {
+                      window.api.wallpapers.cycle();
+                    }
+                    // Also trigger through the cycling hook if available
+                    if (window.cycleToNextWallpaper) {
+                      window.cycleToNextWallpaper();
+                    }
+                  }}
+                >
+                  Manual Cycle
+                </Button>
+                <Text variant="small" className="text-gray-500">
+                  Test the cycling animation manually
+                </Text>
+              </div>
+              
               <div className="flex items-center gap-4 mt-3.5">
                 <span className="font-medium min-w-[120px] text-gray-700">Time per wallpaper</span>
                 <div className="w-[70px] mr-2">
@@ -576,7 +678,7 @@ const WallpaperSettingsTab = React.memo(() => {
                 min={2}
                 max={600}
                     value={cycleInterval}
-                    onChange={e => setCycleInterval(Number(e.target.value))}
+                    onChange={e => handleCycleIntervalChange(Number(e.target.value))}
                     className="text-[15px]"
                   />
                 </div>
@@ -589,10 +691,31 @@ const WallpaperSettingsTab = React.memo(() => {
                   <WSelect
                     options={WALLPAPER_ANIMATIONS}
                     value={cycleAnimation}
-                    onChange={setCycleAnimation}
+                    onChange={handleCycleAnimationChange}
                     className="w-full"
                   />
+                  <Text variant="small" className="text-gray-500 mt-1">
+                    {cycleAnimation === 'fade' && 'Smooth crossfade - best for most wallpapers'}
+                    {cycleAnimation === 'slide' && 'Directional slide - good for panoramic images'}
+                    {cycleAnimation === 'zoom' && 'Gentle zoom - subtle and elegant'}
+                    {cycleAnimation === 'ken-burns' && 'Cinematic effect - dramatic and engaging'}
+                    {cycleAnimation === 'morph' && 'Smooth morphing - unique and creative'}
+                    {cycleAnimation === 'blur' && 'Blur transition - soft and dreamy'}
+                  </Text>
                 </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    // Trigger a test cycle to preview the animation
+                    if (window.cycleToNextWallpaper) {
+                      window.cycleToNextWallpaper();
+                    }
+                  }}
+                  title="Preview animation with current settings"
+                >
+                  Preview
+                </Button>
               </div>
               
               {cycleAnimation === 'slide' && (
@@ -603,7 +726,7 @@ const WallpaperSettingsTab = React.memo(() => {
                       <WSelect
                         options={SLIDE_DIRECTION_MODE_OPTIONS}
                         value={slideRandomDirection ? 'random' : 'fixed'}
-                        onChange={(value) => setSlideRandomDirection(value === 'random')}
+                        onChange={(value) => handleSlideRandomDirectionChange(value === 'random')}
                         className="w-full"
                       />
                     </div>
@@ -616,7 +739,7 @@ const WallpaperSettingsTab = React.memo(() => {
                         <WSelect
                           options={SLIDE_DIRECTION_OPTIONS}
                           value={slideDirection}
-                          onChange={setSlideDirection}
+                          onChange={handleSlideDirectionChange}
                           className="w-full"
                         />
                       </div>
@@ -627,11 +750,11 @@ const WallpaperSettingsTab = React.memo(() => {
                     <span className="font-medium min-w-[120px] text-gray-700">Slide Duration</span>
                     <div className="flex-1">
                       <Slider
-                        min={0.5}
-                        max={3}
+                        min={0.3}
+                        max={2}
                         step={0.1}
                         value={slideDuration}
-                        onChange={setSlideDuration}
+                        onChange={handleSlideDurationChange}
                       />
                     </div>
                     <span className="min-w-[40px] font-semibold text-gray-500">{slideDuration}s</span>
@@ -643,7 +766,7 @@ const WallpaperSettingsTab = React.memo(() => {
                       <WSelect
                         options={EASING_OPTIONS}
                         value={slideEasing}
-                        onChange={setSlideEasing}
+                        onChange={handleSlideEasingChange}
                         className="w-full"
                       />
                     </div>
@@ -657,11 +780,11 @@ const WallpaperSettingsTab = React.memo(() => {
                     <span className="font-medium min-w-[120px] text-gray-700">Crossfade Duration</span>
                     <div className="flex-1">
                       <Slider
-                        min={0.5}
-                        max={3}
+                        min={0.3}
+                        max={2}
                         step={0.1}
                         value={crossfadeDuration}
-                        onChange={setCrossfadeDuration}
+                        onChange={handleCrossfadeDurationChange}
                       />
                     </div>
                     <span className="min-w-[40px] font-semibold text-gray-500">{crossfadeDuration}s</span>
@@ -673,7 +796,7 @@ const WallpaperSettingsTab = React.memo(() => {
                       <WSelect
                         options={EASING_OPTIONS}
                         value={crossfadeEasing}
-                        onChange={setCrossfadeEasing}
+                        onChange={handleCrossfadeEasingChange}
                         className="w-full"
                       />
                     </div>
@@ -698,7 +821,7 @@ const WallpaperSettingsTab = React.memo(() => {
         headerActions={
           <WToggle
             checked={overlayEnabled}
-            onChange={setOverlayEnabled}
+            onChange={handleOverlayEnabledChange}
           />
         }
         actions={
@@ -710,7 +833,7 @@ const WallpaperSettingsTab = React.memo(() => {
                   <WSelect
                     options={OVERLAY_EFFECT_OPTIONS}
                     value={overlayEffect}
-                    onChange={setOverlayEffect}
+                    onChange={handleOverlayEffectChange}
                     className="w-full"
                   />
                 </div>
@@ -723,7 +846,7 @@ const WallpaperSettingsTab = React.memo(() => {
                   max={100}
                   step={5}
                     value={overlayIntensity}
-                    onChange={setOverlayIntensity}
+                    onChange={handleOverlayIntensityChange}
                 />
                 </div>
                 <span className="min-w-[40px] font-semibold text-gray-500">{overlayIntensity}%</span>
@@ -736,7 +859,7 @@ const WallpaperSettingsTab = React.memo(() => {
                   max={3}
                   step={0.05}
                     value={overlaySpeed}
-                    onChange={setOverlaySpeed}
+                    onChange={handleOverlaySpeedChange}
                   />
                 </div>
                 <span className="min-w-[40px] font-semibold text-gray-500">{overlaySpeed}x</span>
@@ -749,7 +872,7 @@ const WallpaperSettingsTab = React.memo(() => {
                     max={0.1}
                     step={0.005}
                     value={overlayWind}
-                    onChange={setOverlayWind}
+                    onChange={handleOverlayWindChange}
                   />
                 </div>
                 <span className="min-w-[40px] font-semibold text-gray-500">{overlayWind.toFixed(3)}</span>
@@ -762,7 +885,7 @@ const WallpaperSettingsTab = React.memo(() => {
                     max={0.5}
                     step={0.01}
                     value={overlayGravity}
-                    onChange={setOverlayGravity}
+                    onChange={handleOverlayGravityChange}
                   />
                 </div>
                 <span className="min-w-[40px] font-semibold text-gray-500">{overlayGravity.toFixed(2)}</span>

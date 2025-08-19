@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 
 const useWallpaperCycling = () => {
@@ -6,6 +6,26 @@ const useWallpaperCycling = () => {
   const { setWallpaperState } = useConsolidatedAppStore(state => state.actions);
   const intervalRef = useRef(null);
   const isTransitioningRef = useRef(false);
+  
+  // Use refs to avoid triggering re-renders during transitions
+  const currentWallpaperRef = useRef(wallpaper.current);
+  const nextWallpaperRef = useRef(null);
+  
+  // Local state for transitions to avoid triggering store re-renders
+  const [localTransitionState, setLocalTransitionState] = useState({
+    isTransitioning: false,
+    progress: 0, // Unified progress for all animations
+    slideDirection: 'right',
+    nextWallpaper: null
+  });
+
+  // Force update counter to ensure isolated component re-renders
+  const [forceUpdate, setForceUpdate] = useState(0);
+
+  // Update refs when store changes (but don't trigger re-renders)
+  useEffect(() => {
+    currentWallpaperRef.current = wallpaper.current;
+  }, [wallpaper.current]);
 
   const {
     cycleWallpapers,
@@ -18,6 +38,7 @@ const useWallpaperCycling = () => {
     slideEasing,
     slideDirection,
     likedWallpapers,
+    savedWallpapers,
     current
   } = wallpaper;
 
@@ -34,6 +55,7 @@ const useWallpaperCycling = () => {
   const getNextWallpaper = useCallback(() => {
     console.log('[WallpaperCycling] getNextWallpaper called');
     console.log('[WallpaperCycling] likedWallpapers:', likedWallpapers);
+    console.log('[WallpaperCycling] savedWallpapers:', savedWallpapers);
     console.log('[WallpaperCycling] current wallpaper:', current);
     
     if (!likedWallpapers || likedWallpapers.length === 0) {
@@ -41,105 +63,185 @@ const useWallpaperCycling = () => {
       return null;
     }
 
-    // If no current wallpaper, start with first
+    // Helper function to find wallpaper object by URL
+    const findWallpaperByUrl = (url) => {
+      return savedWallpapers?.find(w => w.url === url) || { url, name: 'Liked Wallpaper' };
+    };
+
+    // If no current wallpaper, start with first liked wallpaper
     if (!current) {
-      console.log('[WallpaperCycling] No current wallpaper, starting with first:', likedWallpapers[0]);
-      return likedWallpapers[0];
+      console.log('[WallpaperCycling] No current wallpaper, starting with first liked wallpaper');
+      const firstLikedUrl = likedWallpapers[0];
+      const firstWallpaper = findWallpaperByUrl(firstLikedUrl);
+      console.log('[WallpaperCycling] First wallpaper object:', firstWallpaper);
+      return firstWallpaper;
     }
 
-    // Check if likedWallpapers contains objects or strings
-    const isObjectArray = likedWallpapers.length > 0 && typeof likedWallpapers[0] === 'object';
-    console.log('[WallpaperCycling] likedWallpapers is object array:', isObjectArray);
-
-    // Find current index based on data structure
-    let currentIndex;
-    if (isObjectArray) {
-      // likedWallpapers contains objects with url property
-      currentIndex = likedWallpapers.findIndex(w => w.url === current.url);
-    } else {
-      // likedWallpapers contains URL strings
-      currentIndex = likedWallpapers.indexOf(current.url);
-    }
+    // likedWallpapers contains URL strings, current is an object with url property
+    const currentUrl = current.url;
+    const currentIndex = likedWallpapers.indexOf(currentUrl);
     
-    console.log('[WallpaperCycling] Current wallpaper index:', currentIndex);
+    console.log('[WallpaperCycling] Current wallpaper URL:', currentUrl);
+    console.log('[WallpaperCycling] Current wallpaper index in liked list:', currentIndex);
     
-    // If not found, start with first
+    // If current wallpaper is not in liked list, start with first
     if (currentIndex === -1) {
       console.log('[WallpaperCycling] Current wallpaper not in liked list, starting with first:', likedWallpapers[0]);
-      return likedWallpapers[0];
+      const firstWallpaper = findWallpaperByUrl(likedWallpapers[0]);
+      return firstWallpaper;
     }
 
     // Get next (cycle back to first)
     const nextIndex = (currentIndex + 1) % likedWallpapers.length;
-    const nextWallpaper = likedWallpapers[nextIndex];
-    console.log('[WallpaperCycling] Next wallpaper index:', nextIndex, 'Next wallpaper:', nextWallpaper);
+    const nextUrl = likedWallpapers[nextIndex];
+    console.log('[WallpaperCycling] Next wallpaper index:', nextIndex, 'Next URL:', nextUrl);
+    
+    const nextWallpaper = findWallpaperByUrl(nextUrl);
+    console.log('[WallpaperCycling] Next wallpaper object:', nextWallpaper);
     return nextWallpaper;
-  }, [likedWallpapers, current]);
+  }, [likedWallpapers, savedWallpapers, current]);
 
-  // Simple transition function
+  // Enhanced transition function with animation-specific behavior
   const transitionToWallpaper = useCallback(async (nextWallpaper) => {
     if (!nextWallpaper || isTransitioningRef.current) {
+      console.log('[WallpaperCycling] Transition blocked:', { 
+        hasNextWallpaper: !!nextWallpaper, 
+        isTransitioning: isTransitioningRef.current 
+      });
       return;
     }
 
-    isTransitioningRef.current = true;
-
-    // Set next wallpaper and start transition
-    setWallpaperState({
-      next: nextWallpaper,
-      isTransitioning: true,
-      crossfadeProgress: 0,
-      slideProgress: 0
+    console.log('[WallpaperCycling] Starting transition:', {
+      animation: cycleAnimation,
+      duration: cycleAnimation === 'slide' ? slideDuration : crossfadeDuration,
+      easing: cycleAnimation === 'slide' ? slideEasing : crossfadeEasing,
+      nextWallpaper: nextWallpaper.url
     });
 
-    // Set slide direction if needed
-    if (cycleAnimation === 'slide') {
-      const direction = slideRandomDirection 
+    isTransitioningRef.current = true;
+    nextWallpaperRef.current = nextWallpaper;
+
+    // Use local state for transition properties to avoid triggering other components
+    setLocalTransitionState({
+      isTransitioning: true,
+      progress: 0, // Reset progress for new transition
+      slideDirection: slideRandomDirection 
         ? ['left', 'right', 'up', 'down'][Math.floor(Math.random() * 4)]
-        : slideDirection;
-      setWallpaperState({ slideDirection: direction });
+        : slideDirection,
+      nextWallpaper: nextWallpaper
+    });
+
+    console.log('[WallpaperCycling] Set transition state to true:', {
+      isTransitioning: true,
+      progress: 0,
+      nextWallpaper: nextWallpaper.url
+    });
+
+    // Animation-specific duration and easing
+    let duration;
+    let easing;
+    
+    switch (cycleAnimation) {
+      case 'slide':
+        duration = slideDuration;
+        easing = slideEasing;
+        break;
+      case 'zoom':
+        duration = crossfadeDuration * 0.8; // Faster for zoom effect
+        easing = crossfadeEasing;
+        break;
+      case 'ken-burns':
+        duration = crossfadeDuration * 1.4; // Slower for cinematic effect
+        easing = crossfadeEasing;
+        break;
+      case 'morph':
+        duration = crossfadeDuration * 1.2; // Medium for morphing
+        easing = crossfadeEasing;
+        break;
+      case 'blur':
+        duration = crossfadeDuration * 0.7; // Quick blur transition
+        easing = crossfadeEasing;
+        break;
+      case 'fade':
+      default:
+        duration = crossfadeDuration;
+        easing = crossfadeEasing;
+        break;
     }
 
-    // Calculate duration
-    const duration = cycleAnimation === 'slide' ? slideDuration : crossfadeDuration;
     const startTime = Date.now();
 
-    // Animate
+    // Enhanced animation with improved easing functions
     const animate = () => {
       const elapsed = (Date.now() - startTime) / 1000;
       const progress = Math.min(elapsed / duration, 1);
 
-      // Apply easing
+      // Apply enhanced easing functions
       let easedProgress = progress;
-      const easing = cycleAnimation === 'slide' ? slideEasing : crossfadeEasing;
       
-      if (easing === 'ease-out') {
-        easedProgress = 1 - Math.pow(1 - progress, 3);
-      } else if (easing === 'ease-in') {
-        easedProgress = Math.pow(progress, 3);
-      } else if (easing === 'ease-in-out') {
-        easedProgress = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      switch (easing) {
+        case 'ease-out':
+          // Smooth deceleration - most natural for wallpaper transitions
+          easedProgress = 1 - Math.pow(1 - progress, 3);
+          break;
+        case 'ease-in':
+          // Gradual acceleration
+          easedProgress = Math.pow(progress, 3);
+          break;
+        case 'ease-in-out':
+          // Smooth acceleration and deceleration
+          easedProgress = progress < 0.5 
+            ? 4 * progress * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+          break;
+        case 'cubic-bezier':
+          // Custom cubic-bezier curve for professional feel
+          easedProgress = progress * progress * (3 - 2 * progress);
+          break;
+        case 'linear':
+        default:
+          easedProgress = progress;
+          break;
       }
 
-      // Update progress
-      if (cycleAnimation === 'slide') {
-        setWallpaperState({ slideProgress: easedProgress });
-      } else {
-        setWallpaperState({ crossfadeProgress: easedProgress });
+      // Update progress with local state only
+      setLocalTransitionState(prev => ({ ...prev, progress: easedProgress }));
+      setForceUpdate(prev => prev + 1); // Force isolated component to re-render
+
+      // Debug progress updates
+      if (process.env.NODE_ENV === 'development' && (progress % 0.1 < 0.01 || progress > 0.99)) {
+        console.log('[WallpaperCycling] Animation progress:', {
+          animation: cycleAnimation,
+          progress: progress.toFixed(3),
+          easedProgress: easedProgress.toFixed(3),
+          elapsed: elapsed.toFixed(3),
+          duration: duration.toFixed(3)
+        });
       }
 
       // Continue or complete
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Complete transition
+        // Complete transition - update refs and store
+        currentWallpaperRef.current = nextWallpaper;
+        nextWallpaperRef.current = null;
+        
+        // Only update the store ONCE at the very end
         setWallpaperState({
           current: nextWallpaper,
-          next: null,
-          isTransitioning: false,
-          crossfadeProgress: 0,
-          slideProgress: 0
         });
+        
+        // Reset local transition state
+        setLocalTransitionState({
+          isTransitioning: false,
+          progress: 0,
+          slideDirection: 'right',
+          nextWallpaper: null
+        });
+        
+        console.log('[WallpaperCycling] Set transition state to false');
+        
         isTransitioningRef.current = false;
       }
     };
@@ -160,6 +262,12 @@ const useWallpaperCycling = () => {
   const cycleToNext = useCallback(() => {
     console.log('[WallpaperCycling] cycleToNext called');
     console.log('[WallpaperCycling] isTransitioningRef.current:', isTransitioningRef.current);
+    console.log('[WallpaperCycling] Cycling conditions:', {
+      cycleWallpapers,
+      likedWallpapersCount: likedWallpapers?.length,
+      hasMultipleLiked: likedWallpapers && likedWallpapers.length > 1,
+      currentWallpaper: current?.url
+    });
     
     if (isTransitioningRef.current) {
       console.log('[WallpaperCycling] Skipping cycle - already transitioning');
@@ -175,43 +283,40 @@ const useWallpaperCycling = () => {
     } else {
       console.log('[WallpaperCycling] No next wallpaper available');
     }
-  }, [getNextWallpaper, transitionToWallpaper]);
+  }, [getNextWallpaper, transitionToWallpaper, cycleWallpapers, likedWallpapers, current]);
 
-  // Start/stop cycling
-  const startCycling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+  // Manage cycling lifecycle - simplified to prevent infinite loops
+  useEffect(() => {
+    console.log('[WallpaperCycling] Cycling lifecycle effect:', {
+      cycleWallpapers,
+      likedWallpapersCount: likedWallpapers?.length,
+      hasMultipleLiked: likedWallpapers && likedWallpapers.length > 1
+    });
 
-    if (cycleWallpapers && likedWallpapers && likedWallpapers.length > 1) {
-      intervalRef.current = setInterval(cycleToNext, cycleInterval * 1000);
-    }
-  }, [cycleWallpapers, likedWallpapers, cycleInterval, cycleToNext]);
-
-  const stopCycling = useCallback(() => {
+    // Clear any existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  }, []);
 
-  // Manage cycling lifecycle
-  useEffect(() => {
+    // Start cycling if conditions are met
     if (cycleWallpapers && likedWallpapers && likedWallpapers.length > 1) {
-      startCycling();
-    } else {
-      stopCycling();
+      console.log('[WallpaperCycling] Starting cycling with interval:', cycleInterval, 'seconds');
+      intervalRef.current = setInterval(() => {
+        if (!isTransitioningRef.current) {
+          cycleToNext();
+        }
+      }, cycleInterval * 1000);
     }
 
-    return stopCycling;
-  }, [cycleWallpapers, likedWallpapers?.length, startCycling, stopCycling]);
-
-  // Restart when interval changes
-  useEffect(() => {
-    if (cycleWallpapers && intervalRef.current) {
-      startCycling();
-    }
-  }, [cycleInterval, cycleWallpapers, startCycling]);
+    // Cleanup function
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [cycleWallpapers, likedWallpapers?.length, cycleInterval]); // Only depend on these stable values
 
   // Manual cycle function
   const manualCycle = useCallback(() => {
@@ -222,15 +327,21 @@ const useWallpaperCycling = () => {
 
   return {
     isCycling: cycleWallpapers && likedWallpapers && likedWallpapers.length > 1,
-    isTransitioning: wallpaper.isTransitioning,
-    currentWallpaper: current,
-    nextWallpaper: wallpaper.next,
-    crossfadeProgress: wallpaper.crossfadeProgress,
-    slideProgress: wallpaper.slideProgress,
-    slideDirection: wallpaper.slideDirection,
+    isTransitioning: localTransitionState.isTransitioning,
+    currentWallpaper: currentWallpaperRef.current,
+    nextWallpaper: localTransitionState.nextWallpaper,
+    crossfadeProgress: localTransitionState.progress, // Changed from crossfadeProgress to progress
+    slideProgress: localTransitionState.progress, // Changed from slideProgress to progress
+    slideDirection: localTransitionState.slideDirection,
     cycleToNextWallpaper: manualCycle,
-    startCycling,
-    stopCycling
+    forceUpdate, // Add force update counter
+    // Debug info
+    debug: {
+      cycleWallpapers,
+      likedWallpapersCount: likedWallpapers?.length,
+      savedWallpapersCount: savedWallpapers?.length,
+      hasMultipleLiked: likedWallpapers && likedWallpapers.length > 1
+    }
   };
 };
 

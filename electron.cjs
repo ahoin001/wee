@@ -2284,8 +2284,12 @@ async function createWindow(opts = {}) {
               }
               
               // Method 1: Try standard openDevTools
-              mainWindow.webContents.openDevTools();
-              console.log('[DEBUG] 🔧 F12: openDevTools() called');
+              try {
+                mainWindow.webContents.openDevTools();
+                console.log('[DEBUG] 🔧 F12: Standard DevTools opened');
+              } catch (standardError) {
+                console.error('[DEBUG] 🔧 F12: Standard DevTools failed:', standardError);
+              }
               
               // Method 2: Try with specific mode (especially for windowed mode)
               setTimeout(() => {
@@ -2293,16 +2297,35 @@ async function createWindow(opts = {}) {
                   if (!isFullscreen) {
                     // In windowed mode, try detach mode to ensure visibility
                     mainWindow.webContents.openDevTools({ mode: 'detach' });
-                    console.log('[DEBUG] 🔧 F12: openDevTools(detach) called for windowed mode');
+                    console.log('[DEBUG] 🔧 F12: Detached DevTools opened for windowed mode');
+                    
+                    // Also try to bring the DevTools window to front
+                    setTimeout(() => {
+                      try {
+                        const allWindows = BrowserWindow.getAllWindows();
+                        const devToolsWindow = allWindows.find(w => 
+                          w.getTitle().includes('Developer Tools') || 
+                          w.getTitle().includes('DevTools')
+                        );
+                        if (devToolsWindow) {
+                          devToolsWindow.focus();
+                          devToolsWindow.moveTop();
+                          devToolsWindow.show();
+                          console.log('[DEBUG] 🔧 F12: DevTools window brought to front');
+                        }
+                      } catch (frontError) {
+                        console.error('[DEBUG] 🔧 F12: Error bringing DevTools to front:', frontError);
+                      }
+                    }, 100);
                   } else {
                     // In fullscreen mode, try standard mode
                     mainWindow.webContents.openDevTools();
-                    console.log('[DEBUG] 🔧 F12: openDevTools() called for fullscreen mode');
+                    console.log('[DEBUG] 🔧 F12: Standard DevTools opened for fullscreen mode');
                   }
                 } catch (modeError) {
                   console.error('[DEBUG] 🔧 F12: Error with mode-specific DevTools:', modeError);
                 }
-              }, 500);
+              }, 200);
               
             } catch (error) {
               console.error('[DEBUG] 🔧 F12: Error opening DevTools:', error);
@@ -2359,6 +2382,68 @@ async function createWindow(opts = {}) {
               
             } catch (error) {
               console.error('[DEBUG] 🔧 F11: Error opening DevTools:', error);
+            }
+          }
+        });
+        
+        // New shortcut specifically for windowed mode DevTools
+        globalShortcut.register('CommandOrControl+Shift+D', () => {
+          console.log('[DEBUG] 🔧 Ctrl+Shift+D pressed - Windowed DevTools');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+              const isFullscreen = mainWindow.isFullScreen();
+              console.log('[DEBUG] 🔧 Ctrl+Shift+D: Window fullscreen state:', isFullscreen);
+              
+              if (!isFullscreen) {
+                // Force windowed mode DevTools with multiple fallbacks
+                mainWindow.focus();
+                
+                // Try detach mode first for windowed mode
+                try {
+                  mainWindow.webContents.openDevTools({ mode: 'detach' });
+                  console.log('[DEBUG] 🔧 Ctrl+Shift+D: Detached DevTools opened');
+                  
+                  // Bring DevTools window to front
+                  setTimeout(() => {
+                    try {
+                      const allWindows = BrowserWindow.getAllWindows();
+                      const devToolsWindow = allWindows.find(w => 
+                        w.getTitle().includes('Developer Tools') || 
+                        w.getTitle().includes('DevTools')
+                      );
+                      if (devToolsWindow) {
+                        devToolsWindow.focus();
+                        devToolsWindow.moveTop();
+                        devToolsWindow.show();
+                        console.log('[DEBUG] 🔧 Ctrl+Shift+D: DevTools window brought to front');
+                      }
+                    } catch (frontError) {
+                      console.error('[DEBUG] 🔧 Ctrl+Shift+D: Error bringing to front:', frontError);
+                    }
+                  }, 100);
+                } catch (detachError) {
+                  console.error('[DEBUG] 🔧 Ctrl+Shift+D: Detached mode failed, trying right mode');
+                  
+                  // Fallback to right mode
+                  try {
+                    mainWindow.webContents.openDevTools({ mode: 'right' });
+                    console.log('[DEBUG] 🔧 Ctrl+Shift+D: Right mode DevTools opened');
+                  } catch (rightError) {
+                    console.error('[DEBUG] 🔧 Ctrl+Shift+D: Right mode failed, trying standard');
+                    
+                    // Final fallback to standard mode
+                    mainWindow.webContents.openDevTools();
+                    console.log('[DEBUG] 🔧 Ctrl+Shift+D: Standard DevTools opened as fallback');
+                  }
+                }
+              } else {
+                // In fullscreen mode, use standard method
+                mainWindow.webContents.openDevTools();
+                console.log('[DEBUG] 🔧 Ctrl+Shift+D: Standard DevTools for fullscreen mode');
+              }
+              
+            } catch (error) {
+              console.error('[DEBUG] 🔧 Ctrl+Shift+D: Error opening DevTools:', error);
             }
           }
         });
@@ -4765,23 +4850,55 @@ ipcMain.handle('open-dev-tools', async () => {
         console.log('[DEBUG] 🔧 IPC: Window focused for DevTools');
       }
       
-      // Try to open DevTools
-      mainWindow.webContents.openDevTools();
-      console.log('[DEBUG] 🔧 IPC: Developer tools opened successfully');
+      // Method 1: Try standard DevTools
+      try {
+        mainWindow.webContents.openDevTools();
+        console.log('[DEBUG] 🔧 IPC: Standard DevTools opened');
+      } catch (standardError) {
+        console.error('[DEBUG] 🔧 IPC: Standard DevTools failed:', standardError);
+      }
       
-      // If in windowed mode, try to ensure DevTools are visible
+      // Method 2: If in windowed mode, try detach mode for better visibility
       if (!isFullscreen) {
         setTimeout(() => {
           if (mainWindow && !mainWindow.isDestroyed()) {
             try {
-              // Try to focus the DevTools window
-              mainWindow.webContents.focus();
-              console.log('[DEBUG] 🔧 IPC: DevTools focused in windowed mode');
-            } catch (focusError) {
-              console.error('[DEBUG] 🔧 IPC: Error focusing DevTools:', focusError);
+              // Try detach mode to ensure DevTools are visible
+              mainWindow.webContents.openDevTools({ mode: 'detach' });
+              console.log('[DEBUG] 🔧 IPC: Detached DevTools opened for windowed mode');
+              
+              // Also try to bring the DevTools window to front
+              setTimeout(() => {
+                try {
+                  // Get all browser windows and bring DevTools to front
+                  const allWindows = BrowserWindow.getAllWindows();
+                  const devToolsWindow = allWindows.find(w => 
+                    w.getTitle().includes('Developer Tools') || 
+                    w.getTitle().includes('DevTools')
+                  );
+                  if (devToolsWindow) {
+                    devToolsWindow.focus();
+                    devToolsWindow.moveTop();
+                    console.log('[DEBUG] 🔧 IPC: DevTools window brought to front');
+                  }
+                } catch (frontError) {
+                  console.error('[DEBUG] 🔧 IPC: Error bringing DevTools to front:', frontError);
+                }
+              }, 100);
+              
+            } catch (detachError) {
+              console.error('[DEBUG] 🔧 IPC: Detached DevTools failed:', detachError);
+              
+              // Method 3: Try right mode as fallback
+              try {
+                mainWindow.webContents.openDevTools({ mode: 'right' });
+                console.log('[DEBUG] 🔧 IPC: Right mode DevTools opened as fallback');
+              } catch (rightError) {
+                console.error('[DEBUG] 🔧 IPC: Right mode DevTools failed:', rightError);
+              }
             }
           }
-        }, 100);
+        }, 200);
       }
       
       return { success: true, message: 'Developer tools opened' };
@@ -4810,47 +4927,107 @@ ipcMain.handle('force-dev-tools', async () => {
         console.log('[DEBUG] 🔧 IPC: Force DevTools - Window focused');
       }
       
-      // Try multiple methods
-      mainWindow.webContents.openDevTools();
+      // Method 1: Try standard DevTools
+      try {
+        mainWindow.webContents.openDevTools();
+        console.log('[DEBUG] 🔧 IPC: Force DevTools - Standard method');
+      } catch (standardError) {
+        console.error('[DEBUG] 🔧 IPC: Force DevTools - Standard method failed:', standardError);
+      }
       
-      // If in windowed mode, try additional methods
+      // Method 2: If in windowed mode, try detach mode for better visibility
       if (!isFullscreen) {
-        // Try with detach mode
         setTimeout(() => {
           if (mainWindow && !mainWindow.isDestroyed()) {
             try {
+              // Try detach mode to ensure DevTools are visible
               mainWindow.webContents.openDevTools({ mode: 'detach' });
-              console.log('[DEBUG] 🔧 IPC: Force DevTools - Detached mode attempted');
+              console.log('[DEBUG] 🔧 IPC: Force DevTools - Detached mode opened');
+              
+              // Also try to bring the DevTools window to front
+              setTimeout(() => {
+                try {
+                  // Get all browser windows and bring DevTools to front
+                  const allWindows = BrowserWindow.getAllWindows();
+                  const devToolsWindow = allWindows.find(w => 
+                    w.getTitle().includes('Developer Tools') || 
+                    w.getTitle().includes('DevTools')
+                  );
+                  if (devToolsWindow) {
+                    devToolsWindow.focus();
+                    devToolsWindow.moveTop();
+                    devToolsWindow.show();
+                    console.log('[DEBUG] 🔧 IPC: Force DevTools - DevTools window brought to front');
+                  }
+                } catch (frontError) {
+                  console.error('[DEBUG] 🔧 IPC: Force DevTools - Error bringing to front:', frontError);
+                }
+              }, 100);
+              
             } catch (detachError) {
-              console.error('[DEBUG] 🔧 IPC: Force DevTools - Detach mode error:', detachError);
+              console.error('[DEBUG] 🔧 IPC: Force DevTools - Detached mode failed:', detachError);
+              
+              // Method 3: Try right mode as fallback
+              try {
+                mainWindow.webContents.openDevTools({ mode: 'right' });
+                console.log('[DEBUG] 🔧 IPC: Force DevTools - Right mode fallback');
+              } catch (rightError) {
+                console.error('[DEBUG] 🔧 IPC: Force DevTools - Right mode failed:', rightError);
+              }
             }
           }
         }, 200);
       }
       
-      // Also try to focus the DevTools window
+      // Method 4: Try to focus the main window and DevTools
       setTimeout(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           try {
+            mainWindow.focus();
             mainWindow.webContents.focus();
-            console.log('[DEBUG] 🔧 IPC: Force DevTools - WebContents focused');
+            console.log('[DEBUG] 🔧 IPC: Force DevTools - Window and WebContents focused');
           } catch (focusError) {
             console.error('[DEBUG] 🔧 IPC: Force DevTools - Focus error:', focusError);
           }
         }
-      }, 100);
+      }, 300);
       
-      console.log('[DEBUG] 🔧 IPC: Force DevTools completed');
-      return { success: true, message: 'Developer tools forced open' };
-    } else {
-      console.log('[DEBUG] 🔧 IPC: Window not available for force');
-      return { success: false, message: 'Window not available' };
+              console.log('[DEBUG] 🔧 IPC: Force DevTools completed');
+        return { success: true, message: 'Developer tools forced open' };
+      } else {
+        console.log('[DEBUG] 🔧 IPC: Window not available for force');
+        return { success: false, message: 'Window not available' };
+      }
+    } catch (error) {
+      console.error('[DEBUG] 🔧 IPC: Error forcing DevTools:', error);
+      
+      // Final fallback: Try to create a separate DevTools window
+      try {
+        console.log('[DEBUG] 🔧 IPC: Attempting fallback DevTools window...');
+        const { BrowserWindow } = require('electron');
+        const devToolsWindow = new BrowserWindow({
+          width: 1200,
+          height: 800,
+          title: 'Developer Tools - Fallback',
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            enableRemoteModule: false
+          }
+        });
+        
+        // Open DevTools in the fallback window
+        devToolsWindow.webContents.openDevTools();
+        devToolsWindow.focus();
+        
+        console.log('[DEBUG] 🔧 IPC: Fallback DevTools window created');
+        return { success: true, message: 'Developer tools opened in fallback window' };
+      } catch (fallbackError) {
+        console.error('[DEBUG] 🔧 IPC: Fallback DevTools failed:', fallbackError);
+        return { success: false, message: error.message };
+      }
     }
-  } catch (error) {
-    console.error('[DEBUG] 🔧 IPC: Error forcing DevTools:', error);
-    return { success: false, message: error.message };
-  }
-});
+  });
 
 // IPC: Close app completely
 ipcMain.handle('closeApp', async () => {

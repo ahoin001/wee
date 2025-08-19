@@ -1,105 +1,91 @@
 // Default keyboard shortcuts configuration
 export const DEFAULT_SHORTCUTS = [
   {
-    id: 'open-admin-panel',
-    name: 'Open Admin Panel',
-    description: 'Open the admin panel with Windows system actions',
-    defaultKey: 'a',
-    defaultModifier: 'ctrl',
-    action: 'openAdminPanel',
-    category: 'Admin',
-    icon: '⚙️'
-  },
-  {
-    id: 'open-app-shortcuts-modal',
-    name: 'Open App Shortcuts Modal',
-    description: 'Open the app shortcuts management modal',
+    id: 'open-settings-modal',
+    name: 'Open Settings',
+    description: 'Open the main settings modal',
     defaultKey: 's',
     defaultModifier: 'ctrl',
-    action: 'openAppShortcutsModal',
-    category: 'Modals',
-    icon: '📱'
-  },
-  {
-    id: 'open-channel-settings-modal',
-    name: 'Open Channel Settings Modal',
-    description: 'Open the channel settings modal',
-    defaultKey: 'h',
-    defaultModifier: 'ctrl',
-    action: 'openChannelSettingsModal',
-    category: 'Modals',
-    icon: '⚙️'
-  },
-
-  {
-    id: 'open-presets-modal',
-    name: 'Open Presets Modal',
-    description: 'Open the presets management modal',
-    defaultKey: 'p',
-    defaultModifier: 'ctrl',
-    action: 'openPresetsModal',
-    category: 'Modals',
-    icon: '🎨'
-  },
-  {
-    id: 'open-primary-actions-modal',
-    name: 'Open Primary Actions Modal',
-    description: 'Open the primary actions configuration modal',
-    defaultKey: '',
-    defaultModifier: 'none',
-    action: 'openPrimaryActionsModal',
-    category: 'Modals',
+    action: 'openSettingsModal',
+    category: 'Navigation',
     icon: '⚙️'
   },
   {
-    id: 'open-ribbon-settings-modal',
-    name: 'Open Ribbon Settings Modal',
-    description: 'Open the ribbon customization settings modal',
-    defaultKey: '',
-    defaultModifier: 'none',
-    action: 'openRibbonSettingsModal',
-    category: 'Modals',
-    icon: '🎨'
+    id: 'open-settings-channels-tab',
+    name: 'Open Channels Settings',
+    description: 'Open settings modal to channels tab',
+    defaultKey: 'c',
+    defaultModifier: 'ctrl',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'channels' },
+    category: 'Settings',
+    icon: '📺'
   },
   {
-    id: 'open-sound-modal',
-    name: 'Open Sound Modal',
-    description: 'Open the sound settings modal',
+    id: 'open-settings-wallpaper-tab',
+    name: 'Open Wallpaper Settings',
+    description: 'Open settings modal to wallpaper tab',
+    defaultKey: 'w',
+    defaultModifier: 'ctrl',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'wallpaper' },
+    category: 'Settings',
+    icon: '🖼️'
+  },
+  {
+    id: 'open-settings-sounds-tab',
+    name: 'Open Sound Settings',
+    description: 'Open settings modal to sounds tab',
     defaultKey: 'o',
     defaultModifier: 'ctrl',
-    action: 'openSoundModal',
-    category: 'Modals',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'sounds' },
+    category: 'Settings',
     icon: '🔊'
   },
   {
-    id: 'open-time-settings-modal',
-    name: 'Open Time Settings Modal',
-    description: 'Open the time and date settings modal',
-    defaultKey: '',
-    defaultModifier: 'none',
-    action: 'openTimeSettingsModal',
-    category: 'Modals',
+    id: 'open-settings-dock-tab',
+    name: 'Open Dock Settings',
+    description: 'Open settings modal to dock tab',
+    defaultKey: 'd',
+    defaultModifier: 'ctrl',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'dock' },
+    category: 'Settings',
+    icon: '⚓'
+  },
+  {
+    id: 'open-settings-time-tab',
+    name: 'Open Time Settings',
+    description: 'Open settings modal to time tab',
+    defaultKey: 't',
+    defaultModifier: 'ctrl',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'time' },
+    category: 'Settings',
     icon: '🕐'
   },
   {
-    id: 'open-update-modal',
-    name: 'Open Update Modal',
-    description: 'Open the app update modal',
-    defaultKey: '',
-    defaultModifier: 'none',
-    action: 'openUpdateModal',
-    category: 'Modals',
-    icon: '🔄'
+    id: 'open-settings-themes-tab',
+    name: 'Open Themes Settings',
+    description: 'Open settings modal to themes tab',
+    defaultKey: 'p',
+    defaultModifier: 'ctrl',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'themes' },
+    category: 'Settings',
+    icon: '🎨'
   },
   {
-    id: 'open-wallpaper-modal',
-    name: 'Open Wallpaper Modal',
-    description: 'Open the wallpaper settings modal',
-    defaultKey: 'w',
+    id: 'open-settings-shortcuts-tab',
+    name: 'Open Shortcuts Settings',
+    description: 'Open settings modal to shortcuts tab',
+    defaultKey: 'k',
     defaultModifier: 'ctrl',
-    action: 'openWallpaperModal',
-    category: 'Modals',
-    icon: '🖼️'
+    action: 'openSettingsModal',
+    actionParams: { tab: 'shortcuts' },
+    category: 'Settings',
+    icon: '⌨️'
   },
   {
     id: 'toggle-spotify-widget',
@@ -122,9 +108,79 @@ export const DEFAULT_SHORTCUTS = [
     icon: '📊'
   },
   {
+    id: 'toggle-admin-panel-widget',
+    name: 'Toggle Admin Panel Widget',
+    description: 'Show or hide the admin panel floating widget',
+    defaultKey: 'a',
+    defaultModifier: 'ctrl',
+    action: 'toggleAdminPanelWidget',
+    category: 'Widgets',
+    icon: '🔧'
+  },
+  {
+    id: 'toggle-performance-monitor',
+    name: 'Toggle Performance Monitor',
+    description: 'Show or hide the performance monitoring widget',
+    defaultKey: 'm',
+    defaultModifier: 'ctrl',
+    action: 'togglePerformanceMonitor',
+    category: 'Widgets',
+    icon: '📈'
+  },
+  {
+    id: 'next-page',
+    name: 'Next Page',
+    description: 'Navigate to next page of channels',
+    defaultKey: 'arrowright',
+    defaultModifier: 'none',
+    action: 'nextPage',
+    category: 'Navigation',
+    icon: '➡️'
+  },
+  {
+    id: 'prev-page',
+    name: 'Previous Page',
+    description: 'Navigate to previous page of channels',
+    defaultKey: 'arrowleft',
+    defaultModifier: 'none',
+    action: 'prevPage',
+    category: 'Navigation',
+    icon: '⬅️'
+  },
+  {
+    id: 'toggle-dock',
+    name: 'Toggle Dock',
+    description: 'Show or hide the dock/ribbon',
+    defaultKey: 'b',
+    defaultModifier: 'ctrl',
+    action: 'toggleDock',
+    category: 'Interface',
+    icon: '📱'
+  },
+  {
+    id: 'toggle-dark-mode',
+    name: 'Toggle Dark Mode',
+    description: 'Switch between light and dark themes',
+    defaultKey: 'n',
+    defaultModifier: 'ctrl',
+    action: 'toggleDarkMode',
+    category: 'Interface',
+    icon: '🌙'
+  },
+  {
+    id: 'toggle-custom-cursor',
+    name: 'Toggle Custom Cursor',
+    description: 'Enable/disable Wii-style custom cursor',
+    defaultKey: 'u',
+    defaultModifier: 'ctrl',
+    action: 'toggleCustomCursor',
+    category: 'Interface',
+    icon: '👆'
+  },
+  {
     id: 'toggle-settings-menu',
     name: 'Toggle Settings Menu',
-    description: 'Open or close the settings menu',
+    description: 'Open or close the settings action menu',
     defaultKey: 'Escape',
     defaultModifier: 'none',
     action: 'toggleSettingsMenu',
@@ -237,4 +293,139 @@ export const getShortcutsByCategory = (shortcuts) => {
   });
   
   return grouped;
+};
+
+// Shortcut action handler
+export const executeShortcutAction = (action, actionParams = {}) => {
+  console.log('[ShortcutHandler] Executing action:', action, actionParams);
+  
+  switch (action) {
+    case 'openSettingsModal':
+      // Open settings modal with optional tab parameter
+      if (window.openSettingsModal) {
+        window.openSettingsModal(actionParams.tab);
+      } else {
+        console.warn('[ShortcutHandler] openSettingsModal function not available');
+      }
+      break;
+      
+    case 'toggleSpotifyWidget':
+      // Toggle Spotify widget
+      if (window.toggleSpotifyWidget) {
+        window.toggleSpotifyWidget();
+      } else {
+        console.warn('[ShortcutHandler] toggleSpotifyWidget function not available');
+      }
+      break;
+      
+    case 'toggleSystemInfoWidget':
+      // Toggle System Info widget
+      if (window.toggleSystemInfoWidget) {
+        window.toggleSystemInfoWidget();
+      } else {
+        console.warn('[ShortcutHandler] toggleSystemInfoWidget function not available');
+      }
+      break;
+      
+    case 'toggleAdminPanelWidget':
+      // Toggle Admin Panel widget
+      if (window.toggleAdminPanelWidget) {
+        window.toggleAdminPanelWidget();
+      } else {
+        console.warn('[ShortcutHandler] toggleAdminPanelWidget function not available');
+      }
+      break;
+      
+    case 'togglePerformanceMonitor':
+      // Toggle Performance Monitor widget
+      if (window.togglePerformanceMonitor) {
+        window.togglePerformanceMonitor();
+      } else {
+        console.warn('[ShortcutHandler] togglePerformanceMonitor function not available');
+      }
+      break;
+      
+    case 'nextPage':
+      // Navigate to next page
+      if (window.nextPage) {
+        window.nextPage();
+      } else {
+        console.warn('[ShortcutHandler] nextPage function not available');
+      }
+      break;
+      
+    case 'prevPage':
+      // Navigate to previous page
+      if (window.prevPage) {
+        window.prevPage();
+      } else {
+        console.warn('[ShortcutHandler] prevPage function not available');
+      }
+      break;
+      
+    case 'toggleDock':
+      // Toggle dock visibility
+      if (window.toggleDock) {
+        window.toggleDock();
+      } else {
+        console.warn('[ShortcutHandler] toggleDock function not available');
+      }
+      break;
+      
+    case 'toggleDarkMode':
+      // Toggle dark mode
+      if (window.toggleDarkMode) {
+        window.toggleDarkMode();
+      } else {
+        console.warn('[ShortcutHandler] toggleDarkMode function not available');
+      }
+      break;
+      
+    case 'toggleCustomCursor':
+      // Toggle custom cursor
+      if (window.toggleCustomCursor) {
+        window.toggleCustomCursor();
+      } else {
+        console.warn('[ShortcutHandler] toggleCustomCursor function not available');
+      }
+      break;
+      
+    case 'toggleSettingsMenu':
+      // Toggle settings action menu
+      if (window.toggleSettingsMenu) {
+        window.toggleSettingsMenu();
+      } else {
+        console.warn('[ShortcutHandler] toggleSettingsMenu function not available');
+      }
+      break;
+      
+    default:
+      console.warn('[ShortcutHandler] Unknown action:', action);
+  }
+};
+
+// Global shortcut handler that can be called from anywhere
+export const handleGlobalShortcut = (key, modifier, shortcuts) => {
+  if (!shortcuts || !Array.isArray(shortcuts)) {
+    console.log('[ShortcutHandler] No shortcuts available');
+    return false;
+  }
+  
+  console.log('[ShortcutHandler] Looking for shortcut:', { key, modifier, totalShortcuts: shortcuts.length });
+  
+  // Find the shortcut that matches the key combination
+  const shortcut = shortcuts.find(s => 
+    s.enabled && 
+    s.key === key && 
+    s.modifier === modifier
+  );
+  
+  if (shortcut) {
+    console.log('[ShortcutHandler] Triggered shortcut:', shortcut.name);
+    executeShortcutAction(shortcut.action, shortcut.actionParams);
+    return true;
+  }
+  
+  console.log('[ShortcutHandler] No matching shortcut found');
+  return false;
 };

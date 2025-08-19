@@ -15,6 +15,8 @@ import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { preloadMediaLibrary, findGameMedia, getCacheStatus, getCachedMediaLibrary, getAllMatchingMedia } from '../utils/mediaLibraryCache';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
+import useSoundLibrary from '../utils/useSoundLibrary';
+import Slider from '../ui/Slider';
 
 const channelsApi = window.api?.channels;
 
@@ -69,11 +71,28 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     fetchInstalledApps, fetchSteamGames, fetchEpicGames, fetchUwpApps, setCustomSteamPath
   } = appLibraryManager;
   
+  // Use sound library for hover sound selection
+  const {
+    soundLibrary,
+    loading: soundLibraryLoading,
+    error: soundLibraryError,
+    addSound,
+    selectSoundFile,
+    getSoundsByCategory,
+    getEnabledSoundsByCategory,
+    loadSoundLibrary
+  } = useSoundLibrary();
+  
   // Alias functions for compatibility
   const rescanInstalledApps = fetchInstalledApps;
   const rescanSteamGames = fetchSteamGames;
   const rescanEpicGames = fetchEpicGames;
   const rescanUwpApps = fetchUwpApps;
+
+  // Hover sound selection state
+  const [selectedHoverSoundId, setSelectedHoverSoundId] = useState(null);
+  const [showHoverSoundSelector, setShowHoverSoundSelector] = useState(false);
+  const [uploadingHoverSound, setUploadingHoverSound] = useState(false);
 
   // Clear feedback when modal closes
   useEffect(() => {
@@ -117,6 +136,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       setShowError(false);
       setAnimatedOnHover(currentAnimatedOnHover);
       
+      // Reset hover sound selection state
+      setSelectedHoverSoundId(null);
+      setShowHoverSoundSelector(false);
+      setUploadingHoverSound(false);
+      
       // Reset Ken Burns settings
       setKenBurnsEnabled(currentKenBurnsEnabled);
       setKenBurnsMode(
@@ -145,6 +169,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     
     // Only fetch if modal is open and data is not already loading
     if (!isOpen) return;
+    
+    // Load sound library for hover sound selection
+    loadSoundLibrary();
     
     // Fetch installed apps if not already loaded and not loading
     if (installedApps.length === 0 && !appsLoading) {
@@ -176,7 +203,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       const status = getCacheStatus();
       console.log('[ChannelModal] Media library cache status after preload:', status);
     });
-  }, [isOpen, installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, customSteamPath]);
+  }, [isOpen, installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, customSteamPath, loadSoundLibrary]);
 
   // Handle hover sound file select
   const handleHoverSoundFile = async (file) => {
@@ -202,6 +229,66 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       }
     }
   };
+
+  // Handle hover sound selection from sound library
+  const handleHoverSoundSelect = useCallback(async (soundId) => {
+    try {
+      const channelHoverSounds = getSoundsByCategory('channelHover');
+      const selectedSound = channelHoverSounds.find(s => s.id === soundId);
+      
+      if (selectedSound) {
+        setHoverSound({
+          url: selectedSound.url,
+          name: selectedSound.name,
+          volume: selectedSound.volume ?? 0.7
+        });
+        setHoverSoundName(selectedSound.name);
+        setHoverSoundUrl(selectedSound.url);
+        setHoverSoundVolume(selectedSound.volume ?? 0.7);
+        setSelectedHoverSoundId(soundId);
+        setHoverSoundEnabled(true);
+        setShowHoverSoundSelector(false);
+      }
+    } catch (error) {
+      console.error('[ChannelModal] Error selecting hover sound:', error);
+    }
+  }, [getSoundsByCategory]);
+
+  // Handle hover sound upload
+  const handleHoverSoundUpload = useCallback(async () => {
+    try {
+      setUploadingHoverSound(true);
+      
+      const fileResult = await selectSoundFile();
+      if (!fileResult.success) {
+        throw new Error(fileResult.error || 'File selection failed');
+      }
+      
+      const { file } = fileResult;
+      const name = file.name.replace(/\.[^/.]+$/, '');
+      
+      const addResult = await addSound('channelHover', file, name);
+      if (!addResult.success) {
+        throw new Error(addResult.error || 'Failed to add sound');
+      }
+      
+      // Reload the sound library
+      await loadSoundLibrary();
+      
+      // Select the newly added sound
+      const channelHoverSounds = getSoundsByCategory('channelHover');
+      const newSound = channelHoverSounds.find(s => s.name === name);
+      if (newSound) {
+        await handleHoverSoundSelect(newSound.id);
+      }
+      
+    } catch (error) {
+      console.error('[ChannelModal] Error uploading hover sound:', error);
+      alert('Failed to upload hover sound: ' + error.message);
+    } finally {
+      setUploadingHoverSound(false);
+    }
+  }, [selectSoundFile, addSound, loadSoundLibrary, getSoundsByCategory, handleHoverSoundSelect]);
 
   // Cleanup audio on unmount
   useEffect(() => {
@@ -1714,58 +1801,218 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </div>
   );
 
-  const renderHoverSoundSection = () => (
-    <>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <button
-          className="file-button"
-          style={{ minWidth: 120 }}
-          onClick={async () => {
-            if (window.api && window.api.sounds && window.api.sounds.selectFile) {
-              const result = await window.api.sounds.selectFile();
-              if (result && result.success && result.file) {
-                await handleHoverSoundFile(result.file);
-              } else if (result && result.error) {
-                alert('Failed to select sound file: ' + result.error);
-              }
-            } else {
-              hoverSoundInputRef.current?.click();
-            }
-          }}
-        >
-          {hoverSoundName || 'Select Audio File'}
-        </button>
-        <input
-          type="file"
-          accept="audio/*"
-          ref={hoverSoundInputRef}
-          onChange={e => handleHoverSoundFile(e.target.files[0])}
-          style={{ display: 'none' }}
-        />
-<button
-  className="test-button"
-  style={{ minWidth: 60 }}
-  onClick={handleTestHoverSound}
-  disabled={!hoverSoundUrl}
->
-  {hoverSoundAudio ? 'Stop' : 'Test'}
-</button>
-        <div className="volume-control" style={{ marginLeft: 10 }}>
-          <span style={{ fontWeight: 500, fontSize: '14px' }}>Volume:</span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={hoverSoundVolume}
-            onChange={e => handleHoverSoundVolumeChange(parseFloat(e.target.value))}
-          />
-          <span className="volume-value">{Math.round(hoverSoundVolume * 100)}%</span>
+  const renderHoverSoundSection = () => {
+    const channelHoverSounds = getSoundsByCategory('channelHover') || [];
+    
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Current Selection */}
+        {hoverSoundEnabled && hoverSoundUrl && (
+          <div style={{ 
+            padding: '12px', 
+            background: 'hsl(var(--surface-secondary))', 
+            border: '1px solid hsl(var(--border-primary))', 
+            borderRadius: '8px' 
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
+                Selected Sound: {hoverSoundName}
+              </Text>
+              <WButton
+                variant="tertiary"
+                size="sm"
+                onClick={() => {
+                  setHoverSound(null);
+                  setHoverSoundName('');
+                  setHoverSoundUrl('');
+                  setSelectedHoverSoundId(null);
+                  setHoverSoundEnabled(false);
+                }}
+              >
+                Clear
+              </WButton>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <WButton
+                variant="secondary"
+                size="sm"
+                onClick={handleTestHoverSound}
+                disabled={!hoverSoundUrl}
+              >
+                {hoverSoundAudio ? 'Stop' : 'Test'}
+              </WButton>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                <span style={{ fontSize: '12px', minWidth: '40px' }}>Volume:</span>
+                <Slider
+                  value={hoverSoundVolume}
+                  onChange={(value) => handleHoverSoundVolumeChange(value)}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: '12px', minWidth: '30px' }}>
+                  {Math.round(hoverSoundVolume * 100)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sound Library Selection */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
+              Choose from Sound Library
+            </Text>
+            <WButton
+              variant="primary"
+              size="sm"
+              onClick={handleHoverSoundUpload}
+              disabled={uploadingHoverSound}
+            >
+              {uploadingHoverSound ? 'Uploading...' : 'Upload New Sound'}
+            </WButton>
+          </div>
+          
+          {soundLibraryLoading ? (
+            <div style={{ 
+              padding: '20px', 
+              textAlign: 'center', 
+              color: 'hsl(var(--text-tertiary))',
+              background: 'hsl(var(--surface-secondary))',
+              borderRadius: '8px'
+            }}>
+              Loading sound library...
+            </div>
+          ) : channelHoverSounds.length === 0 ? (
+            <div style={{ 
+              padding: '20px', 
+              textAlign: 'center', 
+              color: 'hsl(var(--text-tertiary))',
+              background: 'hsl(var(--surface-secondary))',
+              borderRadius: '8px'
+            }}>
+              No hover sounds available. Upload your first sound above.
+            </div>
+          ) : (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+              gap: '12px',
+              maxHeight: '200px',
+              overflowY: 'auto'
+            }}>
+              {channelHoverSounds.map(sound => (
+                <div
+                  key={sound.id}
+                  onClick={() => handleHoverSoundSelect(sound.id)}
+                  style={{
+                    padding: '12px',
+                    background: selectedHoverSoundId === sound.id 
+                      ? 'hsl(var(--wii-blue) / 0.1)' 
+                      : 'hsl(var(--surface-secondary))',
+                    border: selectedHoverSoundId === sound.id 
+                      ? '2px solid hsl(var(--wii-blue))' 
+                      : '1px solid hsl(var(--border-primary))',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <Text variant="p" style={{ fontWeight: 500, margin: 0, fontSize: '14px' }}>
+                      {sound.name}
+                    </Text>
+                    {selectedHoverSoundId === sound.id && (
+                      <span style={{ color: 'hsl(var(--wii-blue))', fontSize: '16px' }}>✓</span>
+                    )}
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <WButton
+                      variant="tertiary"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Test this specific sound
+                        const testAudio = new Audio(sound.url);
+                        testAudio.volume = sound.volume ?? 0.5;
+                        testAudio.play();
+                        testAudio.onended = () => {
+                          testAudio.src = '';
+                          testAudio.load();
+                        };
+                      }}
+                      style={{ minWidth: '60px' }}
+                    >
+                      Test
+                    </WButton>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                      <span style={{ fontSize: '10px' }}>Vol:</span>
+                      <span style={{ fontSize: '10px' }}>
+                        {Math.round((sound.volume ?? 0.5) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Legacy File Upload (Fallback) */}
+        <div style={{ 
+          padding: '12px', 
+          background: 'hsl(var(--surface-tertiary))', 
+          border: '1px solid hsl(var(--border-primary))', 
+          borderRadius: '8px' 
+        }}>
+          <Text variant="p" style={{ fontWeight: 600, margin: '0 0 8px 0', fontSize: '14px' }}>
+            Legacy File Upload
+          </Text>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button
+              className="file-button"
+              style={{ minWidth: 120 }}
+              onClick={async () => {
+                if (window.api && window.api.sounds && window.api.sounds.selectFile) {
+                  const result = await window.api.sounds.selectFile();
+                  if (result && result.success && result.file) {
+                    await handleHoverSoundFile(result.file);
+                  } else if (result && result.error) {
+                    alert('Failed to select sound file: ' + result.error);
+                  }
+                } else {
+                  hoverSoundInputRef.current?.click();
+                }
+              }}
+            >
+              {hoverSoundName || 'Select Audio File'}
+            </button>
+            <input
+              type="file"
+              accept="audio/*"
+              ref={hoverSoundInputRef}
+              onChange={e => handleHoverSoundFile(e.target.files[0])}
+              style={{ display: 'none' }}
+            />
+            <span style={{ color: 'hsl(var(--text-tertiary))', fontSize: '12px' }}>
+              Direct file upload (not saved to library)
+            </span>
+          </div>
+        </div>
+
+        <Text variant="help" style={{ fontSize: '13px' }}>
+          Sound will fade in on hover, and fade out on leave or click. 
+          Sounds uploaded to the library are saved permanently and can be reused across channels.
+        </Text>
       </div>
-      <span style={{ color: '#888', fontSize: 13 }}>Sound will fade in on hover, and fade out on leave or click.</span>
-    </>
-  );
+    );
+  };
 
   const renderAnimationToggleSection = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1908,7 +2155,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   // Tab navigation component
   const renderTabNavigation = () => (
-    <div className="flex border-b border-[hsl(var(--border-primary))] mb-6">
+    <div className="flex">
       <div
         onClick={() => setActiveTab('setup')}
         className={`px-4 py-2 font-medium text-sm transition-colors cursor-pointer ${
@@ -1932,6 +2179,17 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </div>
   );
 
+  // Initialize selected hover sound ID when sound library loads
+  useEffect(() => {
+    if (isOpen && soundLibrary && hoverSoundUrl) {
+      const channelHoverSounds = getSoundsByCategory('channelHover') || [];
+      const matchingSound = channelHoverSounds.find(s => s.url === hoverSoundUrl);
+      if (matchingSound) {
+        setSelectedHoverSoundId(matchingSound.id);
+      }
+    }
+  }, [isOpen, soundLibrary, hoverSoundUrl, getSoundsByCategory]);
+
   return (
     <>
       <WBaseModal
@@ -1942,27 +2200,40 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         footerContent={footerContent}
         isOpen={isOpen}
       >
-        {renderTabNavigation()}
+        {/* Sticky Tab Navigation */}
+        <div style={{ 
+          position: 'sticky', 
+          top: 0, 
+          background: 'hsl(var(--surface-primary))', 
+          zIndex: 10,
+          borderBottom: '1px solid hsl(var(--border-primary))',
+          marginBottom: '20px'
+        }}>
+          {renderTabNavigation()}
+        </div>
         
-        {/* Tab Content */}
-        {activeTab === 'setup' && (
-          <div className="space-y-6">
-            {/* Channel Image Selection/Upload Card */}
-            <Card title="Channel Image" separator desc="Choose or upload an image, GIF, or MP4 for this channel.">
-              {renderImageSection()}
-            </Card>
-            
-            {/* App Path/URL Card */}
-            <Card title="Unified App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
-              {renderUnifiedAppPathSection()}
-            </Card>
-            
-            {/* Suggested Games Card */}
-            {renderSuggestedGames()}
-          </div>
-        )}
-        
-        {activeTab === 'behavior' && renderChannelBehaviorTab()}
+        {/* Scrollable Content */}
+        <div style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+          {/* Tab Content */}
+          {activeTab === 'setup' && (
+            <div className="space-y-6">
+              {/* Channel Image Selection/Upload Card */}
+              <Card title="Channel Image" separator desc="Choose or upload an image, GIF, or MP4 for this channel.">
+                {renderImageSection()}
+              </Card>
+              
+              {/* App Path/URL Card */}
+              <Card title="Unified App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
+                {renderUnifiedAppPathSection()}
+              </Card>
+              
+              {/* Suggested Games Card */}
+              {renderSuggestedGames()}
+            </div>
+          )}
+          
+          {activeTab === 'behavior' && renderChannelBehaviorTab()}
+        </div>
       </WBaseModal>
       {showImageSearch && (
         <ImageSearchModal

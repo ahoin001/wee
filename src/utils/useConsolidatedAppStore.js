@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { DEFAULT_SHORTCUTS } from './keyboardShortcuts';
 
 // App library management functions - moved outside store to prevent recreation
 const appLibraryManager = {
@@ -698,6 +699,13 @@ const useConsolidatedAppStore = create(
           showNavigationCustomizationModal: false,
           showMonitorSelectionModal: false,
           settingsActiveTab: 'channels', // Default active tab for settings modal
+          // Keyboard shortcuts
+          keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
+            ...shortcut,
+            key: shortcut.defaultKey,
+            modifier: shortcut.defaultModifier,
+            enabled: true
+          })),
         },
 
         // Ribbon state
@@ -1215,6 +1223,19 @@ const useConsolidatedAppStore = create(
           // Floating widgets actions
           setFloatingWidgetsState: (updates) => set((state) => ({
             floatingWidgets: { ...state.floatingWidgets, ...updates }
+          })),
+
+          // Keyboard shortcuts actions
+          resetKeyboardShortcuts: () => set((state) => ({
+            ui: {
+              ...state.ui,
+              keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
+                ...shortcut,
+                key: shortcut.defaultKey,
+                modifier: shortcut.defaultModifier,
+                enabled: true
+              }))
+            }
           })),
 
           // Preset actions

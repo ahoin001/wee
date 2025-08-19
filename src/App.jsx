@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 import useWallpaperCycling from './utils/useWallpaperCycling';
 import useSoundManager from './utils/useSoundManager';
+import useKeyboardShortcuts from './utils/useKeyboardShortcuts';
 import { 
   useTimeColor, 
   useEnableTimePill, 
@@ -53,18 +54,7 @@ function App() {
         ribbonButtonConfigs,
       presetsButtonConfig
     },
-    wallpaper: {
-      current,
-      next,
-      opacity,
-      blur,
-        isTransitioning,
-        crossfadeProgress,
-        slideProgress,
-      slideDirection,
-        cycleAnimation,
-      cycleInterval
-    },
+    wallpaper,
     overlay: {
       enabled,
       effect,
@@ -83,14 +73,8 @@ function App() {
   const timePillOpacity = useTimePillOpacity();
   const timeFont = useTimeFont();
 
-  // Initialize wallpaper cycling
-  const {
-    isCycling,
-    isTransitioning: cyclingTransitioning,
-    currentWallpaper,
-    nextWallpaper,
-    cycleToNextWallpaper
-  } = useWallpaperCycling();
+  // Initialize wallpaper cycling (only for cycling status indicator)
+  const { isCycling, cycleToNextWallpaper } = useWallpaperCycling();
 
   // Initialize sound manager for background music
   const {
@@ -99,6 +83,9 @@ function App() {
     stopBackgroundMusic,
     updateBackgroundMusic
   } = useSoundManager();
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts();
 
   // Initialize background music when app is ready
   useEffect(() => {
@@ -116,6 +103,19 @@ function App() {
     }
   }, [appReady, soundSettings, updateBackgroundMusic]);
 
+  // Watch for background music enable/disable changes and respond immediately
+  useEffect(() => {
+    if (appReady) {
+      if (soundSettings?.backgroundMusicEnabled) {
+        console.log('[App] Background music enabled - starting immediately...');
+        startBackgroundMusic();
+      } else {
+        console.log('[App] Background music disabled - stopping immediately...');
+        stopBackgroundMusic();
+      }
+    }
+  }, [appReady, soundSettings?.backgroundMusicEnabled, startBackgroundMusic, stopBackgroundMusic]);
+
   // Cleanup background music on unmount
   useEffect(() => {
     return () => {
@@ -123,6 +123,20 @@ function App() {
       stopBackgroundMusic();
     };
   }, [stopBackgroundMusic]);
+
+  // Handle settings changes from SettingsModal
+  const handleSettingsChange = useCallback((settings) => {
+    console.log('[App] Settings changed:', settings);
+    
+    // Update sound settings if they changed
+    if (settings.sounds) {
+      console.log('[App] Sound settings updated - triggering background music update...');
+      updateBackgroundMusic();
+    }
+    
+    // Update other settings as needed
+    // (The consolidated store will handle most updates automatically)
+  }, [updateBackgroundMusic]);
 
   // Actions from consolidated store
   const {
@@ -327,6 +341,20 @@ function App() {
   useEffect(() => {
     // Expose openDevTools globally for console access
     window.openDevTools = openDevTools;
+    
+    // Expose shortcut testing functions
+    window.testShortcut = (key, modifier) => {
+      console.log(`[Debug] Testing shortcut: ${modifier}+${key}`);
+      if (window.handleGlobalShortcut) {
+        return window.handleGlobalShortcut(key, modifier);
+      }
+      return false;
+    };
+    
+    window.listShortcuts = () => {
+      const { ui } = useConsolidatedAppStore.getState();
+      console.log('[Debug] Current shortcuts:', ui?.keyboardShortcuts || []);
+    };
     window.forceDevTools = () => {
       if (window.api?.forceDevTools) {
         window.api.forceDevTools().then(result => {
@@ -537,6 +565,85 @@ function App() {
     };
   }, [openDevTools]);
 
+    // Debug wallpaper cycling functionality
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      window.debugWallpaperCycling = () => {
+        console.log('[DEBUG] 🖼️ === WALLPAPER CYCLING DEBUG ===');
+        console.log('[DEBUG] 🖼️ Current wallpaper state:', wallpaper);
+        console.log('[DEBUG] 🖼️ Cycling settings:', {
+          cycleWallpapers: wallpaper.cycleWallpapers,
+          cycleInterval: wallpaper.cycleInterval,
+          cycleAnimation: wallpaper.cycleAnimation,
+          likedWallpapersCount: wallpaper.likedWallpapers?.length
+        });
+        console.log('[DEBUG] 🖼️ Cycling hook state:', {
+          isCycling,
+          currentWallpaper: 'Isolated Component',
+          nextWallpaper: 'Isolated Component'
+        });
+      };
+      
+      window.cycleToNextWallpaper = () => {
+        console.log('[DEBUG] 🖼️ Manually triggering wallpaper cycle');
+        cycleToNextWallpaper();
+      };
+      
+      console.log('[DEBUG] 🖼️ - window.debugWallpaperCycling()');
+      console.log('[DEBUG] 🖼️ - window.cycleToNextWallpaper()');
+      
+      return () => {
+        delete window.debugWallpaperCycling;
+        delete window.cycleToNextWallpaper;
+      };
+    }
+  }, [isCycling, cycleToNextWallpaper, wallpaper]);
+
+  // Debug DevTools functionality
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      window.debugDevTools = async () => {
+        console.log('[DEBUG] 🔧 === DEVTOOLS DEBUG ===');
+        console.log('[DEBUG] 🔧 Testing DevTools methods...');
+        
+        try {
+          // Test 1: Standard openDevTools
+          if (window.api?.openDevTools) {
+            console.log('[DEBUG] 🔧 Testing openDevTools...');
+            const result1 = await window.api.openDevTools();
+            console.log('[DEBUG] 🔧 openDevTools result:', result1);
+          }
+          
+          // Test 2: Force DevTools
+          if (window.api?.forceDevTools) {
+            console.log('[DEBUG] 🔧 Testing forceDevTools...');
+            const result2 = await window.api.forceDevTools();
+            console.log('[DEBUG] 🔧 forceDevTools result:', result2);
+          }
+          
+          // Test 3: Check available methods
+          console.log('[DEBUG] 🔧 Available DevTools methods:');
+          console.log('[DEBUG] 🔧 - openDevTools available:', !!window.api?.openDevTools);
+          console.log('[DEBUG] 🔧 - forceDevTools available:', !!window.api?.forceDevTools);
+          
+        } catch (error) {
+          console.error('[DEBUG] 🔧 Error testing DevTools:', error);
+        }
+      };
+      
+      // Expose DevTools functions globally for testing
+      window.testDevTools = window.debugDevTools;
+      
+      console.log('[DEBUG] 🔧 - window.debugDevTools()');
+      console.log('[DEBUG] 🔧 - window.testDevTools()');
+      
+      return () => {
+        delete window.debugDevTools;
+        delete window.testDevTools;
+      };
+    }
+  }, []);
+
   // Comprehensive logging system
   useEffect(() => {
     console.log('[DEBUG] 📊 === APP STATE LOGGING ===');
@@ -547,13 +654,13 @@ function App() {
     console.log('[DEBUG] 📊 Settings Active Tab:', settingsActiveTab);
     console.log('[DEBUG] 📊 Classic Mode:', classicMode);
     console.log('[DEBUG] 📊 Start In Fullscreen:', startInFullscreen);
-    console.log('[DEBUG] 📊 Current Wallpaper:', current?.url ? 'Set' : 'Not Set');
-    console.log('[DEBUG] 📊 Next Wallpaper:', next?.url ? 'Set' : 'Not Set');
-    console.log('[DEBUG] 📊 Is Transitioning:', isTransitioning);
+    console.log('[DEBUG] 📊 Current Wallpaper: Isolated Component');
+    console.log('[DEBUG] 📊 Next Wallpaper: Isolated Component');
+    console.log('[DEBUG] 📊 Is Transitioning: Isolated Component');
     console.log('[DEBUG] 📊 Overlay Enabled:', enabled);
     console.log('[DEBUG] 📊 Cycling Active:', isCycling);
     console.log('[DEBUG] 📊 === END APP STATE ===');
-  }, [appReady, isLoading, splashFading, showSettingsModal, settingsActiveTab, classicMode, startInFullscreen, current, next, isTransitioning, enabled, isCycling]);
+  }, [appReady, isLoading, splashFading, showSettingsModal, settingsActiveTab, classicMode, startInFullscreen, enabled, isCycling]);
 
   // Initialize app with data loading
   useEffect(() => {
@@ -708,6 +815,288 @@ function App() {
   const toggleDarkMode = useCallback(() => setUIState(prev => ({ isDarkMode: !prev.isDarkMode })), [setUIState]);
   const toggleCustomCursor = useCallback(() => setUIState(prev => ({ useCustomCursor: !prev.useCustomCursor })), [setUIState]);
 
+  // Debug wallpaper cycling isolation
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DEBUG] 🖼️ === WALLPAPER CYCLING ISOLATION CHECK ===');
+      console.log('[DEBUG] 🖼️ Wallpaper cycling is now completely isolated');
+      console.log('[DEBUG] 🖼️ Channels should NOT be affected by cycling transitions');
+    }
+  }, []);
+
+  // Create isolated wallpaper component to prevent re-renders
+  const IsolatedWallpaperBackground = React.memo(() => {
+    const { wallpaper } = useConsolidatedAppStore();
+    const {
+      isCycling,
+      isTransitioning: cyclingTransitioning,
+      currentWallpaper,
+      nextWallpaper,
+      crossfadeProgress: cyclingProgress,
+      slideProgress: cyclingSlideProgress,
+      slideDirection: cyclingSlideDirection,
+      forceUpdate,
+    } = useWallpaperCycling();
+
+    const { opacity, blur, cycleAnimation } = wallpaper;
+
+    // Animation-specific style calculations
+    const getCurrentWallpaperStyle = useCallback(() => {
+      if (!cyclingTransitioning || !currentWallpaper?.url) {
+        return {
+          opacity: opacity,
+          transform: 'none',
+          filter: `blur(${blur}px)`,
+        };
+      }
+
+      const progress = cyclingProgress;
+      
+      switch (cycleAnimation) {
+        case 'fade':
+          return {
+            opacity: opacity * (1 - progress),
+            transform: 'none',
+            filter: `blur(${blur}px)`,
+          };
+          
+        case 'slide':
+          const slideOffset = progress * 100;
+          let slideTransform = 'none';
+          
+          switch (cyclingSlideDirection) {
+            case 'left':
+              slideTransform = `translateX(-${slideOffset}%)`;
+              break;
+            case 'right':
+              slideTransform = `translateX(${slideOffset}%)`;
+              break;
+            case 'up':
+              slideTransform = `translateY(-${slideOffset}%)`;
+              break;
+            case 'down':
+              slideTransform = `translateY(${slideOffset}%)`;
+              break;
+          }
+          
+          return {
+            opacity: opacity,
+            transform: slideTransform,
+            filter: `blur(${blur}px)`,
+          };
+          
+        case 'zoom':
+          const zoomScale = 1 + (progress * 0.1); // Scale from 1.0 to 1.1
+          return {
+            opacity: opacity * (1 - progress * 0.5), // Fade out slightly during zoom
+            transform: `scale(${zoomScale})`,
+            filter: `blur(${blur + (progress * 2)}px)`, // Increase blur during zoom
+          };
+          
+        case 'ken-burns':
+          const kenBurnsScale = 1 + (progress * 0.15); // More dramatic scale
+          const kenBurnsX = progress * 3; // Pan horizontally
+          const kenBurnsY = progress * 1.5; // Pan vertically
+          return {
+            opacity: opacity * (1 - progress * 0.3),
+            transform: `scale(${kenBurnsScale}) translateX(${kenBurnsX}%) translateY(${kenBurnsY}%)`,
+            filter: `blur(${blur}px)`,
+          };
+          
+        case 'morph':
+          const morphScale = 1 + (progress * 0.05);
+          const morphRotate = progress * 2; // Subtle rotation
+          const morphSkew = progress * 1; // Subtle skew
+          return {
+            opacity: opacity * (1 - progress * 0.7),
+            transform: `scale(${morphScale}) rotate(${morphRotate}deg) skew(${morphSkew}deg)`,
+            filter: `blur(${blur + (progress * 1)}px)`,
+          };
+          
+        case 'blur':
+          const blurIntensity = blur + (progress * 10); // Dramatic blur increase
+          return {
+            opacity: opacity * (1 - progress * 0.8),
+            transform: 'none',
+            filter: `blur(${blurIntensity}px)`,
+          };
+          
+        default:
+          return {
+            opacity: opacity,
+            transform: 'none',
+            filter: `blur(${blur}px)`,
+          };
+      }
+    }, [cyclingTransitioning, currentWallpaper?.url, opacity, blur, cycleAnimation, cyclingProgress, cyclingSlideDirection]);
+
+    const getNextWallpaperStyle = useCallback(() => {
+      if (!cyclingTransitioning || !nextWallpaper?.url) {
+        return {
+          opacity: 0,
+          transform: 'none',
+          filter: `blur(${blur}px)`,
+        };
+      }
+
+      const progress = cyclingProgress;
+      
+      switch (cycleAnimation) {
+        case 'fade':
+          return {
+            opacity: opacity * progress,
+            transform: 'none',
+            filter: `blur(${blur}px)`,
+          };
+          
+        case 'slide':
+          const slideOffset = (1 - progress) * 100;
+          let slideTransform = 'none';
+          
+          switch (cyclingSlideDirection) {
+            case 'left':
+              slideTransform = `translateX(${slideOffset}%)`;
+              break;
+            case 'right':
+              slideTransform = `translateX(-${slideOffset}%)`;
+              break;
+            case 'up':
+              slideTransform = `translateY(${slideOffset}%)`;
+              break;
+            case 'down':
+              slideTransform = `translateY(-${slideOffset}%)`;
+              break;
+          }
+          
+          return {
+            opacity: opacity,
+            transform: slideTransform,
+            filter: `blur(${blur}px)`,
+          };
+          
+        case 'zoom':
+          const zoomScale = 1.1 - (progress * 0.1); // Scale from 1.1 to 1.0
+          return {
+            opacity: opacity * progress,
+            transform: `scale(${zoomScale})`,
+            filter: `blur(${blur + ((1 - progress) * 2)}px)`, // Decrease blur as it comes in
+          };
+          
+        case 'ken-burns':
+          const kenBurnsScale = 1.15 - (progress * 0.15); // More dramatic scale
+          const kenBurnsX = (1 - progress) * 3; // Pan horizontally
+          const kenBurnsY = (1 - progress) * 1.5; // Pan vertically
+          return {
+            opacity: opacity * progress,
+            transform: `scale(${kenBurnsScale}) translateX(-${kenBurnsX}%) translateY(-${kenBurnsY}%)`,
+            filter: `blur(${blur}px)`,
+          };
+          
+        case 'morph':
+          const morphScale = 1.05 - (progress * 0.05);
+          const morphRotate = (1 - progress) * 2; // Subtle rotation
+          const morphSkew = (1 - progress) * 1; // Subtle skew
+          return {
+            opacity: opacity * progress,
+            transform: `scale(${morphScale}) rotate(-${morphRotate}deg) skew(-${morphSkew}deg)`,
+            filter: `blur(${blur + ((1 - progress) * 1)}px)`,
+          };
+          
+        case 'blur':
+          const blurIntensity = blur + ((1 - progress) * 10); // Dramatic blur decrease
+          return {
+            opacity: opacity * progress,
+            transform: 'none',
+            filter: `blur(${blurIntensity}px)`,
+          };
+          
+        default:
+          return {
+            opacity: opacity * progress,
+            transform: 'none',
+            filter: `blur(${blur}px)`,
+          };
+      }
+    }, [cyclingTransitioning, nextWallpaper?.url, opacity, blur, cycleAnimation, cyclingProgress, cyclingSlideDirection]);
+
+    // Debug animation values
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DEBUG] 🎬 Animation State:', {
+        cycleAnimation,
+        cyclingTransitioning,
+        cyclingProgress,
+        cyclingSlideProgress,
+        cyclingSlideDirection,
+        forceUpdate,
+        currentWallpaper: currentWallpaper?.url ? 'Set' : 'Not Set',
+        nextWallpaper: nextWallpaper?.url ? 'Set' : 'Not Set',
+        wallpaperState: {
+          cycleAnimation: wallpaper.cycleAnimation,
+          cycleWallpapers: wallpaper.cycleWallpapers,
+          cycleInterval: wallpaper.cycleInterval
+        }
+      });
+      
+      if (cyclingTransitioning) {
+        const currentStyle = getCurrentWallpaperStyle();
+        const nextStyle = getNextWallpaperStyle();
+        
+        console.log('[DEBUG] 🎬 Style Values:', {
+          currentStyle,
+          nextStyle,
+          progress: cyclingProgress
+        });
+      }
+    }
+
+    // Force re-render when transition state changes
+    const transitionKey = `${cyclingTransitioning}-${cyclingProgress}-${cyclingSlideProgress}-${cyclingSlideDirection}-${forceUpdate}`;
+
+    return (
+      <div key={transitionKey}>
+        {/* Current Wallpaper Background */}
+        {currentWallpaper && currentWallpaper.url && (
+          <div
+            className="wallpaper-bg"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 0,
+              pointerEvents: 'none',
+              background: `url('${currentWallpaper.url}') center center / cover no-repeat`,
+              ...getCurrentWallpaperStyle(),
+              transition: cyclingTransitioning ? 'none' : 'opacity 0.3s ease-out, transform 0.3s ease-out, filter 0.3s ease-out',
+            }}
+            data-debug={`current-${cycleAnimation}-${cyclingTransitioning}-${cyclingProgress.toFixed(3)}`}
+          />
+        )}
+        
+        {/* Next Wallpaper Background for Transitions */}
+        {cyclingTransitioning && nextWallpaper && nextWallpaper.url && (
+          <div
+            className="wallpaper-bg-next"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 1,
+              pointerEvents: 'none',
+              background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
+              ...getNextWallpaperStyle(),
+              transition: 'none',
+            }}
+            data-debug={`next-${cycleAnimation}-${cyclingTransitioning}-${cyclingProgress.toFixed(3)}`}
+          />
+        )}
+      </div>
+    );
+  });
+
   // Render splash screen only if not ready
   if (!appReady || isLoading) {
     return <SplashScreen fadingOut={splashFading} />;
@@ -724,61 +1113,8 @@ function App() {
         className={`app-container ${useCustomCursor ? 'custom-cursor' : ''} ${isDarkMode ? 'dark-mode' : ''}`}
         onContextMenu={handleGlobalRightClick}
       >
-                    {/* Wallpaper Background with Transitions */}
-            {current && current.url && (
-          <div
-            className="wallpaper-bg"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              zIndex: 0,
-              pointerEvents: 'none',
-                  background: `url('${current.url}') center center / cover no-repeat`,
-                  opacity: isTransitioning && cycleAnimation === 'fade' 
-                    ? opacity * (1 - crossfadeProgress)
-                    : opacity,
-                  filter: `blur(${blur}px)`,
-                  transform: isTransitioning && cycleAnimation === 'slide'
-                    ? `translateX(${slideDirection === 'left' ? slideProgress * 100 : slideDirection === 'right' ? -slideProgress * 100 : 0}%) translateY(${slideDirection === 'up' ? slideProgress * 100 : slideDirection === 'down' ? -slideProgress * 100 : 0}%)`
-                    : isTransitioning && cycleAnimation === 'zoom'
-                    ? `scale(${1 + crossfadeProgress * 0.1})`
-                    : 'none',
-                  transition: isTransitioning ? 'none' : 'opacity 0.3s ease-out, transform 0.3s ease-out',
-            }}
-          />
-        )}
-            
-            {/* Next Wallpaper Background for Transitions */}
-            {isTransitioning && next && next.url && (
-          <div
-            className="wallpaper-bg-next"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              zIndex: 1,
-              pointerEvents: 'none',
-                  background: `url('${next.url}') center center / cover no-repeat`,
-                  opacity: cycleAnimation === 'fade' 
-                    ? opacity * crossfadeProgress
-                    : cycleAnimation === 'slide'
-                    ? opacity
-                    : 0,
-                  filter: `blur(${blur}px)`,
-                  transform: cycleAnimation === 'slide'
-                    ? `translateX(${slideDirection === 'left' ? -(1 - slideProgress) * 100 : slideDirection === 'right' ? (1 - slideProgress) * 100 : 0}%) translateY(${slideDirection === 'up' ? -(1 - slideProgress) * 100 : slideDirection === 'down' ? (1 - slideProgress) * 100 : 0}%)`
-                    : cycleAnimation === 'zoom'
-                    ? `scale(${1.1 - crossfadeProgress * 0.1})`
-                    : 'none',
-                  transition: 'none',
-            }}
-          />
-        )}
+        {/* Isolated Wallpaper Background - Completely separate from main app */}
+        <IsolatedWallpaperBackground />
 
         {/* Wallpaper Overlay Effects */}
         <WallpaperOverlay
@@ -917,7 +1253,7 @@ function App() {
           <LazySettingsModal
               isOpen={showSettingsModal}
             onClose={closeSettingsModal}
-              onSettingsChange={() => {}}
+              onSettingsChange={handleSettingsChange}
               initialActiveTab={settingsActiveTab}
             />
           )}

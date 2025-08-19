@@ -472,6 +472,28 @@ const SoundsSettingsTab = React.memo(() => {
                         Test Sound URLs
                       </Button>
                       
+                      {/* Debug button to test immediate background music start */}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          console.log('[SoundsSettingsTab] Testing immediate background music start...');
+                          console.log('[SoundsSettingsTab] Current sound settings:', soundSettings);
+                          console.log('[SoundsSettingsTab] Background music enabled:', soundSettings?.backgroundMusicEnabled);
+                          console.log('[SoundsSettingsTab] Enabled background music sounds:', getEnabledSoundsByCategory('backgroundMusic'));
+                          
+                          if (soundSettings?.backgroundMusicEnabled) {
+                            console.log('[SoundsSettingsTab] ✅ Background music should be playing now');
+                            updateBackgroundMusic();
+                          } else {
+                            console.log('[SoundsSettingsTab] ❌ Background music is disabled');
+                          }
+                        }}
+                        style={{ marginTop: '8px' }}
+                      >
+                        Test Immediate Start
+                      </Button>
+                      
                       {/* Debug button to test AudioManager readiness */}
                       <Button
                         variant="secondary"

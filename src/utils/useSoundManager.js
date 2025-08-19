@@ -342,15 +342,17 @@ export const useSoundManager = () => {
   useEffect(() => {
     const handleWindowFocus = () => {
       if (sounds.backgroundMusicEnabled && audioManagerRef.current) {
-        console.log('[useSoundManager] Window focused, starting background music...');
+        console.log('[useSoundManager] Window focused, resuming background music...');
         startBackgroundMusic();
       }
     };
 
     const handleWindowBlur = () => {
-      // Optionally stop background music when window loses focus
-      // Uncomment the next line if you want this behavior
-      // stopBackgroundMusic();
+      // Pause background music when window loses focus
+      if (audioManagerRef.current) {
+        console.log('[useSoundManager] Window lost focus, pausing background music...');
+        stopBackgroundMusic();
+      }
     };
 
     // Add event listeners
