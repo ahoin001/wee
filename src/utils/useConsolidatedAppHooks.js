@@ -92,16 +92,7 @@ export const useDockState = () => {
   };
 };
 
-export const useParticleState = () => {
-  // ✅ DATA LAYER: Use separate selectors to prevent infinite loops
-  const particles = useConsolidatedAppStore((state) => state.particles);
-  const setParticleState = useConsolidatedAppStore((state) => state.actions.setParticleState);
-  
-  return {
-    particles,
-    setParticleState,
-  };
-};
+
 
 export const useAudioState = () => {
   // ✅ DATA LAYER: Use separate selectors to prevent infinite loops

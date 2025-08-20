@@ -317,7 +317,7 @@ class Particle {
   }
 }
 
-const DockParticleSystem = ({ 
+const DockParticleSystem = React.memo(({ 
   enabled = false,
   effectType = 'normal',
   direction = 'upward',
@@ -327,37 +327,49 @@ const DockParticleSystem = ({
   settings = {},
   ribbonGlowColor = '#0099ff'
 }) => {
+  // Performance optimization: Memoize settings to prevent unnecessary re-renders
+  const memoizedSettings = useMemo(() => ({
+    size: settings.size || 3,
+    gravity: settings.gravity || 0.02,
+    fadeSpeed: settings.fadeSpeed || 0.008,
+    sizeDecay: settings.sizeDecay || 0.02,
+    useAdaptiveColor: settings.useAdaptiveColor || false,
+    customColors: settings.customColors || [],
+    colorIntensity: settings.colorIntensity || 1.0,
+    colorVariation: settings.colorVariation || 0.3,
+    rotationSpeed: settings.rotationSpeed || 0.05,
+    particleLifetime: settings.particleLifetime || 3.0,
+    ribbonGlowColor
+  }), [settings, ribbonGlowColor]);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
   const lastSpawnTimeRef = useRef(0);
   const particlePoolRef = useRef([]);
 
-  // Memoized settings
-  const particleSettings = useMemo(() => ({
-    size: settings.size || (Math.random() * 3 + 2),
-    gravity: settings.gravity || 0.02,
-    fadeSpeed: settings.fadeSpeed || 0.008,
-    sizeDecay: settings.sizeDecay || 0.02,
-    ...settings
-  }), [settings]);
 
-  // Get dock position and dimensions
+
+  // Get dock position and dimensions with error handling
   const getDockPosition = useCallback(() => {
-    const dockElement = document.querySelector('.wii-dock-container, .interactive-footer');
-    if (!dockElement) return null;
-    
-    const rect = dockElement.getBoundingClientRect();
-    const canvasRect = canvasRef.current?.getBoundingClientRect();
-    
-    if (!canvasRect) return null;
-    
-    return {
-      x: rect.left - canvasRect.left + rect.width / 2,
-      y: rect.top - canvasRect.top + rect.height,
-      width: rect.width,
-      height: rect.height
-    };
+    try {
+      const dockElement = document.querySelector('.wii-dock-container, .interactive-footer');
+      if (!dockElement) return null;
+      
+      const rect = dockElement.getBoundingClientRect();
+      const canvasRect = canvasRef.current?.getBoundingClientRect();
+      
+      if (!canvasRect) return null;
+      
+      return {
+        x: rect.left - canvasRect.left + rect.width / 2,
+        y: rect.top - canvasRect.top + rect.height,
+        width: rect.width,
+        height: rect.height
+      };
+    } catch (error) {
+      console.warn('[DockParticleSystem] Error getting dock position:', error);
+      return null;
+    }
   }, []);
 
   // Particle pool management for better performance
@@ -425,22 +437,22 @@ const DockParticleSystem = ({
         particle.speedX = speedX;
         particle.speedY = speedY;
         particle.type = effectType;
-        particle.size = particleSettings.size || (Math.random() * 3 + 2);
+        particle.size = memoizedSettings.size || (Math.random() * 3 + 2);
         particle.opacity = 1;
-        particle.settings = { ...particleSettings, ribbonGlowColor };
+        particle.settings = memoizedSettings;
         particle.baseColor = particle.getRandomColor(particle.settings);
         particle.rotation = Math.random() * Math.PI * 2;
-        particle.rotationSpeed = (Math.random() - 0.5) * (particleSettings.rotationSpeed || 0.05);
-        particle.gravity = particleSettings.gravity || 0.02;
-        particle.fadeSpeed = particleSettings.fadeSpeed || 0.008;
-        particle.sizeDecay = particleSettings.sizeDecay || 0.02;
+        particle.rotationSpeed = (Math.random() - 0.5) * (memoizedSettings.rotationSpeed || 0.05);
+        particle.gravity = memoizedSettings.gravity || 0.02;
+        particle.fadeSpeed = memoizedSettings.fadeSpeed || 0.008;
+        particle.sizeDecay = memoizedSettings.sizeDecay || 0.02;
       } else {
         // Create new particle
-        particle = new Particle(x, y, speedX, speedY, effectType, { ...particleSettings, ribbonGlowColor });
+        particle = new Particle(x, y, speedX, speedY, effectType, memoizedSettings);
       }
       particlesRef.current.push(particle);
     }
-      }, [enabled, direction, speed, particleCount, spawnRate, effectType, particleSettings, getDockPosition, getParticleFromPool]);
+      }, [enabled, direction, speed, particleCount, spawnRate, effectType, memoizedSettings, getDockPosition, getParticleFromPool]);
 
   // Animation loop
   const animate = useCallback(() => {
@@ -469,9 +481,10 @@ const DockParticleSystem = ({
       }
     }
 
-    // Limit particle count for performance
-    if (particles.length > 200) {
-      particles.splice(0, particles.length - 200);
+    // Limit particle count for performance based on device capabilities
+    const maxParticles = navigator.hardwareConcurrency ? Math.min(200, navigator.hardwareConcurrency * 10) : 150;
+    if (particles.length > maxParticles) {
+      particles.splice(0, particles.length - maxParticles);
     }
 
     animationRef.current = requestAnimationFrame(animate);
@@ -544,7 +557,9 @@ const DockParticleSystem = ({
       }}
     />
   );
-};
+});
+
+DockParticleSystem.displayName = 'DockParticleSystem';
 
 export default DockParticleSystem;
 export { PARTICLE_TYPES }; 

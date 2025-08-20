@@ -4,11 +4,12 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
 import ImageSearchModal from './ImageSearchModal';
 import ChannelModal from './ChannelModal';
-import audioManager from '../utils/AudioManager';
+// import audioManager from '../utils/AudioManager'; // Now using useSoundManager instead
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import KenBurnsImage from './KenBurnsImage';
-import { useUIState, useRibbonState } from '../utils/useConsolidatedAppHooks';
+import { useChannelState, useRibbonState } from '../utils/useConsolidatedAppHooks';
 import useChannelOperations from '../utils/useChannelOperations';
+import useSoundManager from '../utils/useSoundManager';
 import './Channel.css';
 
 // Guard for window.api to prevent errors in browser
@@ -35,13 +36,9 @@ const Channel = React.memo(({
   onChannelSave, 
   asAdmin, 
   hoverSound, 
-  animatedOnHover: globalAnimatedOnHover, 
   channelConfig, 
   onHover, 
   animationStyle, 
-  adaptiveEmptyChannels, 
-  kenBurnsEnabled: globalKenBurnsEnabled, 
-  kenBurnsMode: globalKenBurnsMode, 
   idleAnimationClass, 
   isIdleAnimating 
 }) => {
@@ -76,11 +73,17 @@ const Channel = React.memo(({
   const ribbonSettings = ribbon || {};
   
   // ✅ DATA LAYER: Get channel settings from consolidated store
-  const { channels } = useUIState();
+  const { channels } = useChannelState();
   const channelSettings = channels?.settings || {};
   
   // Floating widget store
-  const { showWidget } = useUIState();
+  const { ui } = useConsolidatedAppStore();
+  const showWidget = ui?.showWidget;
+  
+  // Auto-fade is now handled at grid level in PaginatedChannels
+  
+  // Use sound manager for centralized sound handling
+  const { playChannelHoverSound, stopAllSounds } = useSoundManager();
   
   // Memoize effective values to prevent unnecessary recalculations
   const effectiveConfig = useMemo(() => storeChannelConfig || channelConfig, [storeChannelConfig, channelConfig]);
@@ -91,33 +94,37 @@ const Channel = React.memo(({
   const effectiveAsAdmin = useMemo(() => storeChannelConfig?.asAdmin || asAdmin, [storeChannelConfig?.asAdmin, asAdmin]);
   const effectiveHoverSound = useMemo(() => storeChannelConfig?.hoverSound || hoverSound, [storeChannelConfig?.hoverSound, hoverSound]);
   
-  // Memoize animation settings
+  // Memoize animation settings from consolidated store
   const effectiveAnimatedOnHover = useMemo(() => 
     (effectiveConfig && effectiveConfig.animatedOnHover !== undefined)
       ? effectiveConfig.animatedOnHover
-      : globalAnimatedOnHover, 
-    [effectiveConfig?.animatedOnHover, globalAnimatedOnHover]
+      : channelSettings.animatedOnHover ?? false, 
+    [effectiveConfig?.animatedOnHover, channelSettings.animatedOnHover]
   );
   
   const effectiveKenBurnsEnabled = useMemo(() => 
     (effectiveConfig && effectiveConfig.kenBurnsEnabled !== undefined)
       ? effectiveConfig.kenBurnsEnabled
-      : globalKenBurnsEnabled,
-    [effectiveConfig?.kenBurnsEnabled, globalKenBurnsEnabled]
+      : channelSettings.kenBurnsEnabled ?? false, 
+    [effectiveConfig?.kenBurnsEnabled, channelSettings.kenBurnsEnabled]
   );
     
   const effectiveKenBurnsMode = useMemo(() => 
     (effectiveConfig && effectiveConfig.kenBurnsMode !== undefined)
       ? effectiveConfig.kenBurnsMode
-      : globalKenBurnsMode,
-    [effectiveConfig?.kenBurnsMode, globalKenBurnsMode]
+      : channelSettings.kenBurnsMode ?? 'hover', 
+    [effectiveConfig?.kenBurnsMode, channelSettings.kenBurnsMode]
   );
-  
-  // console.log('Channel', id, 'effectiveAnimatedOnHover:', effectiveAnimatedOnHover, 'globalAnimatedOnHover:', globalAnimatedOnHover, 'channelConfig:', channelConfig);
+
+  const effectiveAdaptiveEmptyChannels = useMemo(() => 
+    (effectiveConfig && effectiveConfig.adaptiveEmptyChannels !== undefined)
+      ? effectiveConfig.adaptiveEmptyChannels
+      : channelSettings.adaptiveEmptyChannels ?? true, 
+    [effectiveConfig?.adaptiveEmptyChannels, channelSettings.adaptiveEmptyChannels]
+  );
 
   // Handle image loading errors
   const handleImageError = useCallback((e) => {
-    console.warn('Channel image failed to load:', effectiveMedia?.url, 'for channel:', id);
     setImageError(true);
     
     // Try to use fallback icon if available
@@ -195,9 +202,9 @@ const Channel = React.memo(({
   // Cleanup audio when component unmounts
   useEffect(() => {
     return () => {
-      audioManager.stopAllSounds();
+      stopAllSounds();
     };
-  }, []);
+  }, [stopAllSounds]);
 
   // Animation logic
   const [randomAnim, setRandomAnim] = useState(null);
@@ -220,21 +227,11 @@ const Channel = React.memo(({
 
   const handleClick = async () => {
     // Stop hover sound immediately
-    audioManager.stopAllSounds();
+    stopAllSounds();
     
     // Determine if channel is empty based on channelConfig, not the empty prop
     // A channel is considered empty if it has no path (regardless of media)
     const isChannelEmpty = !effectiveConfig || !effectiveConfig.path;
-    
-    console.log('[Channel] Clicked channel:', id, {
-      empty,
-      isChannelEmpty,
-      effectivePath,
-      effectiveType,
-      effectiveConfig,
-      storeChannelConfig,
-      channelConfig
-    });
     
     // Handle API channels (Spotify, etc.)
     if (effectiveConfig?.isApiChannel && effectiveConfig?.apiConfig?.selectedApi) {
@@ -259,7 +256,6 @@ const Channel = React.memo(({
         showWidget();
       } else {
         // Future API integrations can be added here
-        console.log(`[Channel] API channel clicked: ${apiType}`);
       }
       
       return;
@@ -298,46 +294,27 @@ const Channel = React.memo(({
   };
 
   const handleMouseEnter = async () => {
-    // Call the parent hover handler for auto-fade
+    // Call the parent hover handler
     if (onHover) {
       onHover();
     }
     
-    // Determine if channel is empty based on channelConfig
-    // A channel is considered empty if it has no path (regardless of media)
-    const isChannelEmpty = !effectiveConfig || !effectiveConfig.path;
+    // Always try to play hover sounds if the channel has any content
+    // This includes channels with paths, API channels, or channels with media
+    const hasContent = effectivePath || effectiveConfig?.isApiChannel || effectiveMedia;
     
-    // Play per-channel hover sound if set, else global
-    // For API channels, we don't need a path to play hover sounds
-    if (!isChannelEmpty && (effectivePath || effectiveConfig?.isApiChannel)) {
-      // console.log('Channel: Hover sound data:', hoverSound);
-      if (effectiveHoverSound && effectiveHoverSound.url) {
-        // Play custom hover sound once
-        await audioManager.playSound(effectiveHoverSound.url, effectiveHoverSound.volume || 0.7);
-      } else {
-        // Play global hover sound if enabled
-        try {
-          if (window.api?.sounds?.getLibrary) {
-            const library = await window.api.sounds.getLibrary();
-            const enabledHoverSound = library?.channelHover?.find(s => s.enabled);
-            if (enabledHoverSound) {
-              await audioManager.playSound(enabledHoverSound.url, enabledHoverSound.volume ?? 0.3);
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to load sound library:', error);
-        }
-      }
+    if (hasContent) {
+      // Use centralized sound manager for hover sounds
+      await playChannelHoverSound(effectiveHoverSound);
     }
   };
 
   const handleMouseLeave = () => {
     // Stop all sounds (including hover sounds)
-    audioManager.stopAllSounds();
+    stopAllSounds();
   };
 
   const handleChannelSave = (channelId, channelData) => {
-    console.log('[DEBUG] 📺 [Channel] Save channel:', channelId, channelData);
     updateChannelConfig(channelId, channelData);
     if (onChannelSave) {
       onChannelSave(channelId, channelData);
@@ -345,12 +322,10 @@ const Channel = React.memo(({
   };
 
   const handleConfigure = () => {
-    console.log('[DEBUG] 📺 [Channel] Configure channel:', id);
     setShowChannelModal(true);
   };
 
   const handleChannelModalSave = (channelId, channelData) => {
-    console.log('[DEBUG] 📺 [Channel] Channel modal save:', channelId, channelData);
     updateChannelConfig(channelId, channelData);
     if (onChannelSave) {
       onChannelSave(channelId, channelData);
@@ -358,7 +333,6 @@ const Channel = React.memo(({
   };
 
   const handleClearChannel = () => {
-    console.log('[DEBUG] 📺 [Channel] Clear channel:', id);
     // Clear the channel configuration completely
     updateChannelConfig(id, {
       media: null,
@@ -381,7 +355,6 @@ const Channel = React.memo(({
   };
 
   const handleImageSelect = (mediaItem) => {
-    console.log('[DEBUG] 📺 [Channel] Image selected:', mediaItem);
     
     // Convert Supabase media item to the format expected by Channel component
     const mediaUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${mediaItem.file_url}`;
@@ -421,7 +394,6 @@ const Channel = React.memo(({
   const handleRightClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[DEBUG] 📺 [Channel] Right-click on channel:', id);
     setShowChannelModal(true);
   };
 
@@ -650,7 +622,7 @@ const Channel = React.memo(({
     <div
       className={
         effectiveIsEmpty && !effectiveMedia 
-          ? `channel empty${adaptiveEmptyChannels && ribbonSettings?.ribbonColor ? ' adaptive' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
+          ? `channel empty${effectiveAdaptiveEmptyChannels && ribbonSettings?.ribbonColor ? ' adaptive' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
           : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}`
       }
       data-channel-id={id}
@@ -661,7 +633,7 @@ const Channel = React.memo(({
       role="button"
       onContextMenu={handleRightClick}
       style={{
-        ...(effectiveIsEmpty && !effectiveMedia && adaptiveEmptyChannels && ribbonSettings?.ribbonColor && {
+        ...(effectiveIsEmpty && !effectiveMedia && effectiveAdaptiveEmptyChannels && ribbonSettings?.ribbonColor && {
           '--adaptive-bg-color': ribbonSettings.ribbonColor,
         })
       }}
@@ -777,12 +749,8 @@ Channel.propTypes = {
     url: PropTypes.string,
     volume: PropTypes.number,
   }),
-  animatedOnHover: PropTypes.bool,
   onHover: PropTypes.func,
   animationStyle: PropTypes.oneOf(['none', 'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'random']),
-  adaptiveEmptyChannels: PropTypes.bool,
-  kenBurnsEnabled: PropTypes.bool,
-  kenBurnsMode: PropTypes.oneOf(['hover', 'autoplay']),
   idleAnimationClass: PropTypes.string,
   isIdleAnimating: PropTypes.bool,
 };

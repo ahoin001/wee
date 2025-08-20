@@ -445,7 +445,6 @@ export const syncManager = {
 
     // Here you would implement actual sync logic
     // For now, we'll just log the operation
-    console.log('[SyncManager] Syncing:', item);
   },
 
   /**

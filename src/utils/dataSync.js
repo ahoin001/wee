@@ -29,7 +29,6 @@ export class DataSyncManager {
     // Start periodic sync
     this.startPeriodicSync(syncInterval);
 
-    console.log('[DataSync] Initialized with interval:', syncInterval, 'ms');
   }
 
   // Start periodic synchronization
@@ -85,9 +84,6 @@ export class DataSyncManager {
     const startTime = Date.now();
 
     try {
-      console.log('[DataSync] Starting sync with', this.syncQueue.length, 'operations');
-
-      // Process sync queue
       const operations = [...this.syncQueue];
       this.syncQueue = [];
 
@@ -96,7 +92,6 @@ export class DataSyncManager {
       }
 
       this.lastSyncTime = Date.now();
-      console.log('[DataSync] Sync completed in', Date.now() - startTime, 'ms');
 
     } catch (error) {
       console.error('[DataSync] Sync error:', error);

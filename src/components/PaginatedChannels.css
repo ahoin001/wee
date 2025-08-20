@@ -78,6 +78,21 @@
   will-change: transform;
 }
 
+/* ===== CHANNEL PAGE AUTO-FADE ===== */
+.channel-page {
+  /* Auto-fade effect */
+  transition: opacity 0.5s ease-out;
+}
+
+.channel-page.auto-fade {
+  opacity: 0.3;
+}
+
+.channel-page.auto-fade:hover {
+  opacity: 1;
+  transition: opacity 0.2s ease-in;
+}
+
 /* ===== WII MODE CONTAINER ===== */
 .wii-mode-container {
   position: relative;
@@ -110,6 +125,18 @@
   /* Ensure proper grid layout */
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  
+  /* Auto-fade effect */
+  transition: opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.wii-mode-grid.auto-fade {
+  opacity: 0.3;
+}
+
+.wii-mode-grid.auto-fade:hover {
+  opacity: 1;
+  transition: opacity 0.2s ease-in, transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 /* Ensure channels maintain rectangular aspect ratio */

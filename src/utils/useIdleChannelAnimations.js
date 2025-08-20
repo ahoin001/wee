@@ -30,7 +30,7 @@ const useIdleChannelAnimations = (
   // Get channels that have content (not empty) - memoized
   const getChannelsWithContent = useCallback(() => {
     return channelsRef.current.filter(channel => 
-      channel && (channel.media || channel.path)
+      channel && !channel.isEmpty && (channel.config?.media || channel.config?.path)
     );
   }, []);
 
@@ -90,7 +90,7 @@ const useIdleChannelAnimations = (
 
     // Pick a random channel with content
     const randomChannel = channelsWithContent[Math.floor(Math.random() * channelsWithContent.length)];
-    const channelId = randomChannel.id || `channel-${channelsRef.current.indexOf(randomChannel)}`;
+    const channelId = randomChannel.id;
     
     // Pick a random animation type
     const randomAnimationType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
@@ -102,7 +102,7 @@ const useIdleChannelAnimations = (
     }
 
     startAnimation(channelId, randomAnimationType);
-  }, []); // Empty dependency array to prevent infinite loops
+  }, [getChannelsWithContent, animationTypes, activeAnimations, startAnimation]);
 
   // Set up interval for random animations - with proper dependencies
   useEffect(() => {
@@ -132,7 +132,7 @@ const useIdleChannelAnimations = (
         intervalRef.current = null;
       }
     };
-  }, [enabled, interval]); // Simplified dependencies to prevent loops
+  }, [enabled, interval, animationTypes.length, triggerRandomAnimation]);
 
   // Cleanup on unmount
   useEffect(() => {

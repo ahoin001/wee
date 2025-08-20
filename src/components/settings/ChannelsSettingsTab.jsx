@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
@@ -6,126 +6,75 @@ import Text from '../../ui/Text';
 import WSelect from '../../ui/WSelect';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
-const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
+const ChannelsSettingsTab = React.memo(() => {
   // Get channel settings from consolidated store
-  const { channels } = useConsolidatedAppStore();
+  const { channels, actions } = useConsolidatedAppStore();
+  const settings = channels?.settings || {};
   
-  // Local state for settings that aren't in the consolidated store yet
-  const [localSettings, setLocalSettings] = useState({
-    adaptiveEmptyChannels: true,
-    channelAnimation: 'none',
-    animatedOnHover: false,
-    idleAnimationEnabled: false,
-    idleAnimationTypes: ['pulse', 'bounce', 'glow'],
-    idleAnimationInterval: 8,
-    kenBurnsEnabled: false,
-    kenBurnsMode: 'hover',
-    kenBurnsHoverScale: 1.1,
-    kenBurnsAutoplayScale: 1.15,
-    kenBurnsSlideshowScale: 1.08,
-    kenBurnsHoverDuration: 8000,
-    kenBurnsAutoplayDuration: 12000,
-    kenBurnsSlideshowDuration: 10000,
-    kenBurnsCrossfadeDuration: 1000,
-    kenBurnsForGifs: false,
-    kenBurnsForVideos: false,
-    kenBurnsEasing: 'ease-out',
-    kenBurnsAnimationType: 'both',
-    kenBurnsCrossfadeReturn: true,
-    kenBurnsTransitionType: 'cross-dissolve',
-    channelAutoFadeTimeout: 5
-  });
-
-  // Update local settings when props change
-  useEffect(() => {
-    if (settings) {
-      setLocalSettings(prev => ({
-        ...prev,
-        ...settings
-      }));
-    }
-  }, [settings]);
-
   // Memoize callback functions to prevent unnecessary re-renders
   const handleAnimatedOnHoverChange = useCallback((checked) => {
-    setLocalSettings(prev => ({ ...prev, animatedOnHover: checked }));
-    onSettingChange('animatedOnHover', checked);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ animatedOnHover: checked });
+  }, [actions]);
 
   const handleIdleAnimationEnabledChange = useCallback((checked) => {
-    setLocalSettings(prev => ({ ...prev, idleAnimationEnabled: checked }));
-    onSettingChange('idleAnimationEnabled', checked);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ idleAnimationEnabled: checked });
+  }, [actions]);
 
   const handleKenBurnsEnabledChange = useCallback((checked) => {
-    setLocalSettings(prev => ({ ...prev, kenBurnsEnabled: checked }));
-    onSettingChange('kenBurnsEnabled', checked);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ kenBurnsEnabled: checked });
+  }, [actions]);
 
   const handleChannelAutoFadeTimeoutChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, channelAutoFadeTimeout: value }));
-    onSettingChange('channelAutoFadeTimeout', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ channelAutoFadeTimeout: value });
+  }, [actions]);
 
   const handleAdaptiveEmptyChannelsChange = useCallback((checked) => {
-    setLocalSettings(prev => ({ ...prev, adaptiveEmptyChannels: checked }));
-    onSettingChange('adaptiveEmptyChannels', checked);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ adaptiveEmptyChannels: checked });
+  }, [actions]);
 
   const handleChannelAnimationChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, channelAnimation: value }));
-    onSettingChange('channelAnimation', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ animation: value });
+  }, [actions]);
 
   const handleIdleAnimationIntervalChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, idleAnimationInterval: value }));
-    onSettingChange('idleAnimationInterval', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ idleAnimationInterval: value });
+  }, [actions]);
 
   const handleKenBurnsModeChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, kenBurnsMode: value }));
-    onSettingChange('kenBurnsMode', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ kenBurnsMode: value });
+  }, [actions]);
 
   const handleKenBurnsHoverScaleChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, kenBurnsHoverScale: value }));
-    onSettingChange('kenBurnsHoverScale', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ kenBurnsHoverScale: value });
+  }, [actions]);
 
   const handleKenBurnsAutoplayScaleChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, kenBurnsAutoplayScale: value }));
-    onSettingChange('kenBurnsAutoplayScale', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ kenBurnsAutoplayScale: value });
+  }, [actions]);
 
   const handleKenBurnsHoverDurationChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, kenBurnsHoverDuration: value }));
-    onSettingChange('kenBurnsHoverDuration', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ kenBurnsHoverDuration: value });
+  }, [actions]);
 
   const handleKenBurnsAutoplayDurationChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, kenBurnsAutoplayDuration: value }));
-    onSettingChange('kenBurnsAutoplayDuration', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ kenBurnsAutoplayDuration: value });
+  }, [actions]);
 
   const handleKenBurnsCrossfadeDurationChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, kenBurnsCrossfadeDuration: value }));
-    onSettingChange('kenBurnsCrossfadeDuration', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ kenBurnsCrossfadeDuration: value });
+  }, [actions]);
 
   const handleKenBurnsEasingChange = useCallback((value) => {
-    setLocalSettings(prev => ({ ...prev, kenBurnsEasing: value }));
-    onSettingChange('kenBurnsEasing', value);
-  }, [onSettingChange]);
+    actions.setChannelSettings({ kenBurnsEasing: value });
+  }, [actions]);
 
   const handleIdleAnimationTypeToggle = useCallback((type) => {
-    setLocalSettings(prev => {
-      const newTypes = prev.idleAnimationTypes.includes(type) 
-        ? prev.idleAnimationTypes.filter(t => t !== type)
-        : [...prev.idleAnimationTypes, type];
-      return { ...prev, idleAnimationTypes: newTypes };
-    });
-    onSettingChange('idleAnimationTypes', localSettings.idleAnimationTypes);
-  }, [onSettingChange, localSettings.idleAnimationTypes]);
+    const currentTypes = settings.idleAnimationTypes || ['pulse', 'bounce', 'glow'];
+    const newTypes = currentTypes.includes(type) 
+      ? currentTypes.filter(t => t !== type)
+      : [...currentTypes, type];
+    actions.setChannelSettings({ idleAnimationTypes: newTypes });
+  }, [actions, settings.idleAnimationTypes]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -144,7 +93,7 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
         desc="When enabled, empty channel slots will automatically adapt their background to match the current wallpaper, creating a more cohesive visual experience."
         headerActions={
           <WToggle
-            checked={localSettings.adaptiveEmptyChannels}
+            checked={settings.adaptiveEmptyChannels ?? true}
             onChange={handleAdaptiveEmptyChannelsChange}
           />
         }
@@ -157,7 +106,7 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
         desc="When enabled, animated channel art (GIFs/MP4s) will only play when you hover over a channel. When disabled, animations will play automatically."
         headerActions={
           <WToggle
-            checked={localSettings.animatedOnHover}
+            checked={settings.animatedOnHover ?? false}
             onChange={handleAnimatedOnHoverChange}
           />
         }
@@ -170,12 +119,12 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
         desc="When enabled, channels will play subtle animations when not being interacted with, adding life to the interface."
         headerActions={
           <WToggle
-            checked={localSettings.idleAnimationEnabled}
+            checked={settings.idleAnimationEnabled ?? false}
             onChange={handleIdleAnimationEnabledChange}
           />
         }
       >
-        {localSettings.idleAnimationEnabled && (
+        {settings.idleAnimationEnabled && (
           <>
             <div style={{ marginTop: 16 }}>
               <div style={{ fontWeight: 500, marginBottom: 8 }}>Animation Types:</div>
@@ -183,7 +132,7 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
                 {['pulse', 'bounce', 'glow', 'heartbeat', 'shake', 'wiggle'].map(type => (
                   <WToggle
                     key={type}
-                    checked={localSettings.idleAnimationTypes.includes(type)}
+                    checked={(settings.idleAnimationTypes || ['pulse', 'bounce', 'glow']).includes(type)}
                     onChange={() => handleIdleAnimationTypeToggle(type)}
                     label={type.charAt(0).toUpperCase() + type.slice(1)}
                     style={{ fontSize: 14 }}
@@ -193,9 +142,9 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
             </div>
             
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Animation Interval: {localSettings.idleAnimationInterval} seconds</div>
+              <div style={{ fontWeight: 500, marginBottom: 8 }}>Animation Interval: {settings.idleAnimationInterval ?? 8} seconds</div>
               <Slider
-                value={localSettings.idleAnimationInterval}
+                value={settings.idleAnimationInterval ?? 8}
                 min={2}
                 max={20}
                 step={1}
@@ -213,17 +162,17 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
         desc="Add cinematic zoom and pan effects to channel images, creating dynamic visual interest."
         headerActions={
           <WToggle
-            checked={localSettings.kenBurnsEnabled}
+            checked={settings.kenBurnsEnabled ?? false}
             onChange={handleKenBurnsEnabledChange}
           />
         }
       >
-        {localSettings.kenBurnsEnabled && (
+        {settings.kenBurnsEnabled && (
           <>
             <div style={{ marginTop: 16 }}>
               <div style={{ fontWeight: 500, marginBottom: 8 }}>Trigger Mode:</div>
               <WSelect
-                value={localSettings.kenBurnsMode}
+                value={settings.kenBurnsMode ?? 'hover'}
                 onChange={handleKenBurnsModeChange}
                 options={[
                   { value: 'hover', label: 'On Hover' },
@@ -237,9 +186,9 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
               <div style={{ fontWeight: 500, marginBottom: 8 }}>Scale Settings:</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Hover Scale: {localSettings.kenBurnsHoverScale}</label>
+                  <label style={{ fontSize: 12, color: '#666' }}>Hover Scale: {settings.kenBurnsHoverScale ?? 1.1}</label>
                   <Slider
-                    value={localSettings.kenBurnsHoverScale}
+                    value={settings.kenBurnsHoverScale ?? 1.1}
                     min={1.0}
                     max={1.5}
                     step={0.05}
@@ -247,9 +196,9 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Autoplay Scale: {localSettings.kenBurnsAutoplayScale}</label>
+                  <label style={{ fontSize: 12, color: '#666' }}>Autoplay Scale: {settings.kenBurnsAutoplayScale ?? 1.15}</label>
                   <Slider
-                    value={localSettings.kenBurnsAutoplayScale}
+                    value={settings.kenBurnsAutoplayScale ?? 1.15}
                     min={1.0}
                     max={1.5}
                     step={0.05}
@@ -263,9 +212,9 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
               <div style={{ fontWeight: 500, marginBottom: 8 }}>Duration Settings:</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Hover Duration: {localSettings.kenBurnsHoverDuration}ms</label>
+                  <label style={{ fontSize: 12, color: '#666' }}>Hover Duration: {settings.kenBurnsHoverDuration ?? 8000}ms</label>
                   <Slider
-                    value={localSettings.kenBurnsHoverDuration}
+                    value={settings.kenBurnsHoverDuration ?? 8000}
                     min={2000}
                     max={15000}
                     step={500}
@@ -273,9 +222,9 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Autoplay Duration: {localSettings.kenBurnsAutoplayDuration}ms</label>
+                  <label style={{ fontSize: 12, color: '#666' }}>Autoplay Duration: {settings.kenBurnsAutoplayDuration ?? 12000}ms</label>
                   <Slider
-                    value={localSettings.kenBurnsAutoplayDuration}
+                    value={settings.kenBurnsAutoplayDuration ?? 12000}
                     min={5000}
                     max={20000}
                     step={500}
@@ -289,9 +238,9 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
               <div style={{ fontWeight: 500, marginBottom: 8 }}>Advanced Settings:</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Crossfade Duration: {localSettings.kenBurnsCrossfadeDuration}ms</label>
+                  <label style={{ fontSize: 12, color: '#666' }}>Crossfade Duration: {settings.kenBurnsCrossfadeDuration ?? 1000}ms</label>
                   <Slider
-                    value={localSettings.kenBurnsCrossfadeDuration}
+                    value={settings.kenBurnsCrossfadeDuration ?? 1000}
                     min={500}
                     max={3000}
                     step={100}
@@ -301,7 +250,7 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
                 <div>
                   <label style={{ fontSize: 12, color: '#666' }}>Easing:</label>
                   <WSelect
-                    value={localSettings.kenBurnsEasing}
+                    value={settings.kenBurnsEasing ?? 'ease-out'}
                     onChange={handleKenBurnsEasingChange}
                     options={[
                       { value: 'ease-out', label: 'Ease Out' },
@@ -324,20 +273,19 @@ const ChannelsSettingsTab = React.memo(({ settings, onSettingChange }) => {
         desc="Automatically lower the opacity of channel items when they haven't been hovered over for a while, allowing the wallpaper to shine through. Hovering over any channel will restore full opacity."
         headerActions={
           <WToggle
-            checked={localSettings.channelAutoFadeTimeout > 0}
+            checked={(settings.channelAutoFadeTimeout ?? 5) > 0}
             onChange={(checked) => {
               const value = checked ? 5 : 0;
-              setLocalSettings(prev => ({ ...prev, channelAutoFadeTimeout: value }));
-              onSettingChange('channelAutoFadeTimeout', value);
+              actions.setChannelSettings({ channelAutoFadeTimeout: value });
             }}
           />
         }
       >
-        {localSettings.channelAutoFadeTimeout > 0 && (
+        {(settings.channelAutoFadeTimeout ?? 5) > 0 && (
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontWeight: 500, marginBottom: 8 }}>Fade Timeout: {localSettings.channelAutoFadeTimeout}s</div>
+            <div style={{ fontWeight: 500, marginBottom: 8 }}>Fade Timeout: {settings.channelAutoFadeTimeout ?? 5}s</div>
             <Slider
-              value={localSettings.channelAutoFadeTimeout}
+              value={settings.channelAutoFadeTimeout ?? 5}
               min={1}
               max={30}
               step={1}

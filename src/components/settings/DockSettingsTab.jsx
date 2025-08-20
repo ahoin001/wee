@@ -275,6 +275,67 @@ const ClassicDockSettingsTab = React.memo(() => {
     setDockState({ sdCardSize: value });
   }, [setDockState]);
 
+  // Particle system handlers
+  const handleParticleEnabledChange = useCallback((checked) => {
+    setDockState({ particleSystemEnabled: checked });
+  }, [setDockState]);
+
+  const handleParticleEffectTypeChange = useCallback((value) => {
+    setDockState({ particleEffectType: value });
+  }, [setDockState]);
+
+  const handleParticleDirectionChange = useCallback((value) => {
+    setDockState({ particleDirection: value });
+  }, [setDockState]);
+
+  const handleParticleSpeedChange = useCallback((value) => {
+    setDockState({ particleSpeed: value });
+  }, [setDockState]);
+
+  const handleParticleCountChange = useCallback((value) => {
+    setDockState({ particleCount: value });
+  }, [setDockState]);
+
+  const handleParticleSpawnRateChange = useCallback((value) => {
+    setDockState({ particleSpawnRate: value });
+  }, [setDockState]);
+
+  const handleParticleSizeChange = useCallback((value) => {
+    setDockState({ particleSize: value });
+  }, [setDockState]);
+
+  const handleParticleGravityChange = useCallback((value) => {
+    setDockState({ particleGravity: value });
+  }, [setDockState]);
+
+  const handleParticleFadeSpeedChange = useCallback((value) => {
+    setDockState({ particleFadeSpeed: value });
+  }, [setDockState]);
+
+  const handleParticleSizeDecayChange = useCallback((value) => {
+    setDockState({ particleSizeDecay: value });
+  }, [setDockState]);
+
+  const handleParticleUseAdaptiveColorChange = useCallback((checked) => {
+    setDockState({ particleUseAdaptiveColor: checked });
+  }, [setDockState]);
+
+  const handleParticleColorIntensityChange = useCallback((value) => {
+    setDockState({ particleColorIntensity: value });
+  }, [setDockState]);
+
+  const handleParticleColorVariationChange = useCallback((value) => {
+    setDockState({ particleColorVariation: value });
+  }, [setDockState]);
+
+  const handleParticleRotationSpeedChange = useCallback((value) => {
+    setDockState({ particleRotationSpeed: value });
+  }, [setDockState]);
+
+  const handleParticleLifetimeChange = useCallback((value) => {
+    setDockState({ particleLifetime: value });
+  }, [setDockState]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
@@ -839,6 +900,252 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
             </div>
           </div>
+        </div>
+      </Card>
+
+      {/* Particle System */}
+      <Card>
+        <div style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div>
+              <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+                Particle System
+              </Text>
+              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+                Add magical particle effects around the dock for visual enhancement.
+              </Text>
+            </div>
+            <WToggle
+              checked={dock?.particleSystemEnabled ?? false}
+              onChange={handleParticleEnabledChange}
+            />
+          </div>
+          
+          {dock?.particleSystemEnabled && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Effect Type */}
+              <div>
+                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  Effect Type
+                </Text>
+                <WSelect
+                  value={dock?.particleEffectType ?? 'normal'}
+                  onChange={handleParticleEffectTypeChange}
+                  options={[
+                    { value: 'normal', label: '✨ Normal Particles' },
+                    { value: 'stars', label: '⭐ Stars' },
+                    { value: 'paws', label: '🐾 Paws' },
+                    { value: 'waterDrops', label: '💧 Water Drops' },
+                    { value: 'sparkles', label: '✨ Sparkles' },
+                    { value: 'magic', label: '🔮 Magic' },
+                    { value: 'fireflies', label: '🦟 Fireflies' },
+                    { value: 'dust', label: '💨 Dust' }
+                  ]}
+                />
+              </div>
+
+              {/* Direction */}
+              <div>
+                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  Direction
+                </Text>
+                <WSelect
+                  value={dock?.particleDirection ?? 'upward'}
+                  onChange={handleParticleDirectionChange}
+                  options={[
+                    { value: 'upward', label: '⬆️ Upward' },
+                    { value: 'all', label: '🌐 All Directions' }
+                  ]}
+                />
+              </div>
+
+              {/* Basic Settings */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Particle Speed
+                  </Text>
+                  <Slider
+                    value={dock?.particleSpeed ?? 2}
+                    min={0.5}
+                    max={5}
+                    step={0.1}
+                    onChange={handleParticleSpeedChange}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {dock?.particleSpeed ?? 2}x speed
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Particle Count
+                  </Text>
+                  <Slider
+                    value={dock?.particleCount ?? 3}
+                    min={1}
+                    max={10}
+                    step={1}
+                    onChange={handleParticleCountChange}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {dock?.particleCount ?? 3} particles
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Spawn Rate
+                  </Text>
+                  <Slider
+                    value={dock?.particleSpawnRate ?? 60}
+                    min={10}
+                    max={120}
+                    step={5}
+                    onChange={handleParticleSpawnRateChange}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {dock?.particleSpawnRate ?? 60} per second
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Particle Size
+                  </Text>
+                  <Slider
+                    value={dock?.particleSize ?? 3}
+                    min={1}
+                    max={8}
+                    step={0.5}
+                    onChange={handleParticleSizeChange}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {dock?.particleSize ?? 3}px
+                  </Text>
+                </div>
+              </div>
+
+              {/* Physics Settings */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Gravity
+                  </Text>
+                  <Slider
+                    value={dock?.particleGravity ?? 0.02}
+                    min={0}
+                    max={0.1}
+                    step={0.005}
+                    onChange={handleParticleGravityChange}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {dock?.particleGravity ?? 0.02}
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Fade Speed
+                  </Text>
+                  <Slider
+                    value={dock?.particleFadeSpeed ?? 0.008}
+                    min={0.001}
+                    max={0.02}
+                    step={0.001}
+                    onChange={handleParticleFadeSpeedChange}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {dock?.particleFadeSpeed ?? 0.008}
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Size Decay
+                  </Text>
+                  <Slider
+                    value={dock?.particleSizeDecay ?? 0.02}
+                    min={0}
+                    max={0.05}
+                    step={0.005}
+                    onChange={handleParticleSizeDecayChange}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {dock?.particleSizeDecay ?? 0.02}
+                  </Text>
+                </div>
+                
+                <div>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    Rotation Speed
+                  </Text>
+                  <Slider
+                    value={dock?.particleRotationSpeed ?? 0.05}
+                    min={0}
+                    max={0.2}
+                    step={0.01}
+                    onChange={handleParticleRotationSpeedChange}
+                  />
+                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    {dock?.particleRotationSpeed ?? 0.05}
+                  </Text>
+                </div>
+              </div>
+
+              {/* Color Settings */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+                    Use Adaptive Colors
+                  </Text>
+                  <WToggle
+                    checked={dock?.particleUseAdaptiveColor ?? false}
+                    onChange={handleParticleUseAdaptiveColorChange}
+                  />
+                </div>
+                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+                  Use dock accent color for particles
+                </Text>
+              </div>
+
+              {dock?.particleUseAdaptiveColor && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      Color Intensity
+                    </Text>
+                    <Slider
+                      value={dock?.particleColorIntensity ?? 1.0}
+                      min={0.5}
+                      max={2.0}
+                      step={0.1}
+                      onChange={handleParticleColorIntensityChange}
+                    />
+                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      {dock?.particleColorIntensity ?? 1.0}x
+                    </Text>
+                  </div>
+                  
+                  <div>
+                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      Color Variation
+                    </Text>
+                    <Slider
+                      value={dock?.particleColorVariation ?? 0.3}
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      onChange={handleParticleColorVariationChange}
+                    />
+                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      {dock?.particleColorVariation ?? 0.3}
+                    </Text>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Card>
     </div>

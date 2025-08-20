@@ -122,13 +122,9 @@ const WiiDock = ({
     return 'none';
   };
 
-  // Debug logging for button rendering
+  // Button rendering effect
   useEffect(() => {
-    console.log('[WiiDock] Rendering buttons with configs:', {
-      buttonConfigs,
-      leftButton: buttonConfigs?.[0],
-      rightButton: buttonConfigs?.[1]
-    });
+    // Button rendering logic here
   }, [buttonConfigs]);
 
   // Icon normalization and validation
@@ -188,22 +184,22 @@ const WiiDock = ({
     <div className="wii-dock-container" onContextMenu={handleContextMenu}>
       {/* Particle System */}
       <DockParticleSystem
-        enabled={particleSettings.enabled || false}
-        effectType={particleSettings.effectType || 'normal'}
-        direction={particleSettings.direction || 'upward'}
-        speed={particleSettings.speed || 2}
+        enabled={particleSettings.particleSystemEnabled || false}
+        effectType={particleSettings.particleEffectType || 'normal'}
+        direction={particleSettings.particleDirection || 'upward'}
+        speed={particleSettings.particleSpeed || 2}
         particleCount={particleSettings.particleCount || 3}
-        spawnRate={particleSettings.spawnRate || 60}
+        spawnRate={particleSettings.particleSpawnRate || 60}
         settings={{
-          size: particleSettings.size || 3,
-          gravity: particleSettings.gravity || 0.02,
-          fadeSpeed: particleSettings.fadeSpeed || 0.008,
-          sizeDecay: particleSettings.sizeDecay || 0.02,
-          useAdaptiveColor: particleSettings.useAdaptiveColor || false,
-          customColors: particleSettings.customColors || [],
-          colorIntensity: particleSettings.colorIntensity || 1.0,
-          colorVariation: particleSettings.colorVariation || 0.3,
-          rotationSpeed: particleSettings.rotationSpeed || 0.05,
+          size: particleSettings.particleSize || 3,
+          gravity: particleSettings.particleGravity || 0.02,
+          fadeSpeed: particleSettings.particleFadeSpeed || 0.008,
+          sizeDecay: particleSettings.particleSizeDecay || 0.02,
+          useAdaptiveColor: particleSettings.particleUseAdaptiveColor || false,
+          customColors: particleSettings.particleCustomColors || [],
+          colorIntensity: particleSettings.particleColorIntensity || 1.0,
+          colorVariation: particleSettings.particleColorVariation || 0.3,
+          rotationSpeed: particleSettings.particleRotationSpeed || 0.05,
           particleLifetime: particleSettings.particleLifetime || 3.0
         }}
         ribbonGlowColor={colors.dockAccentColor}
@@ -525,28 +521,15 @@ const ClassicWiiDock = ({
 }) => {
   // Get dock settings and actions from consolidated store
   const { dock, actions } = useConsolidatedAppStore();
-  const { floatingWidgets } = useConsolidatedAppStore();
   
   // Use dock settings from store instead of props
   const dockSettings = dock;
-  const particleSettings = floatingWidgets?.systemInfo || {};
+  const particleSettings = dock;
   
-  // Debug logging for button configs
-  useEffect(() => {
-    console.log('[ClassicWiiDock] Button configs received:', buttonConfigs);
-  }, [buttonConfigs]);
-
   // Handle right-click on dock to open settings
   const handleDockContextMenu = (e) => {
-    console.log('[ClassicWiiDock] Right-click detected!');
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('[ClassicWiiDock] About to call actions.setUIState with:', {
-      showSettingsModal: true,
-      settingsActiveTab: 'dock',
-      dockSubTab: 'classic-dock'
-    });
     
     // Open settings modal with dock tab active and classic-dock sub-tab
     actions.setUIState({ 
@@ -554,8 +537,6 @@ const ClassicWiiDock = ({
       settingsActiveTab: 'dock',
       dockSubTab: 'classic-dock' // Specify which sub-tab to open
     });
-    
-    console.log('[ClassicWiiDock] actions.setUIState called successfully');
   };
 
   return (

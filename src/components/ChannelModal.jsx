@@ -56,6 +56,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [kenBurnsMode, setKenBurnsMode] = useState(
     currentKenBurnsMode === 'slideshow' ? 'hover' : currentKenBurnsMode
   );
+  const [kenBurnsHoverScale, setKenBurnsHoverScale] = useState(1.1);
+  const [kenBurnsAutoplayScale, setKenBurnsAutoplayScale] = useState(1.15);
+  const [kenBurnsHoverDuration, setKenBurnsHoverDuration] = useState(8000);
+  const [kenBurnsAutoplayDuration, setKenBurnsAutoplayDuration] = useState(12000);
+  const [kenBurnsCrossfadeDuration, setKenBurnsCrossfadeDuration] = useState(1000);
+  const [kenBurnsEasing, setKenBurnsEasing] = useState('ease-out');
   
   // Use app library state from consolidated store
   const { appLibrary, appLibraryManager } = useAppLibraryState();
@@ -66,6 +72,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     uwpApps, uwpLoading, uwpError,
     customSteamPath
   } = appLibrary;
+  
+  // Get channels data from consolidated store
+  const { channels, actions } = useConsolidatedAppStore();
+  const channelConfigs = channels?.data?.channelConfigs || {};
+  const configuredChannels = channels?.data?.configuredChannels || {};
   
   const {
     fetchInstalledApps, fetchSteamGames, fetchEpicGames, fetchUwpApps, setCustomSteamPath
@@ -101,72 +112,81 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   }, [isOpen]);
 
-  // Reset state when channel data changes (when opening modal for different channel)
+  // Reset state when channelId changes
+  useEffect(() => {
+    if (channelId) {
+      // Reset form state
+      setPath('');
+      setPathError('');
+      setShowError(false);
+      setMedia(null);
+      setHoverSound(null);
+      setAnimatedOnHover('none');
+      setKenBurnsEnabled(false);
+      setKenBurnsMode('hover');
+      setKenBurnsHoverScale(1.1);
+      setKenBurnsAutoplayScale(1.15);
+      setKenBurnsHoverDuration(8000);
+      setKenBurnsAutoplayDuration(12000);
+      setKenBurnsCrossfadeDuration(1000);
+      setKenBurnsEasing('ease-out');
+      setAsAdmin(false);
+      
+      // Load existing channel data
+      const existingChannel = configuredChannels[channelId];
+      if (existingChannel) {
+        setPath(existingChannel.path || '');
+        setMedia(existingChannel.media || null);
+        setHoverSound(existingChannel.hoverSound || null);
+        setAnimatedOnHover(existingChannel.animation || 'none');
+        setAsAdmin(existingChannel.asAdmin || false);
+        
+        // Load Ken Burns settings from channel config
+        const channelConfig = channelConfigs[channelId];
+        if (channelConfig) {
+          setKenBurnsEnabled(channelConfig.kenBurnsEnabled ?? false);
+          setKenBurnsMode(channelConfig.kenBurnsMode ?? 'hover');
+          setKenBurnsHoverScale(channelConfig.kenBurnsHoverScale ?? 1.1);
+          setKenBurnsAutoplayScale(channelConfig.kenBurnsAutoplayScale ?? 1.15);
+          setKenBurnsHoverDuration(channelConfig.kenBurnsHoverDuration ?? 8000);
+          setKenBurnsAutoplayDuration(channelConfig.kenBurnsAutoplayDuration ?? 12000);
+          setKenBurnsCrossfadeDuration(channelConfig.kenBurnsCrossfadeDuration ?? 1000);
+          setKenBurnsEasing(channelConfig.kenBurnsEasing ?? 'ease-out');
+        }
+      }
+    }
+  }, [channelId, configuredChannels, channelConfigs]);
+
+  // Preload data when modal opens
   useEffect(() => {
     if (isOpen) {
-      console.log('[ChannelModal] Resetting state for channel:', channelId, {
-        currentMedia: currentMedia ? 'has media' : 'no media',
-        currentPath: currentPath || 'no path',
-        currentType: currentType || 'exe',
-        currentAsAdmin,
-        currentHoverSound: currentHoverSound ? 'has sound' : 'no sound',
-        currentAnimatedOnHover,
-        currentKenBurnsEnabled,
-        currentKenBurnsMode
-      });
+      // Preload installed apps
+      if (installedApps.length === 0) {
+        window.electronAPI.getInstalledApps();
+      }
       
-      // Reset all state to match the current channel's data
-      setMedia(currentMedia);
-      setPath(currentPath || '');
-      setType(currentType || 'exe');
-      setPathError('');
-      setActiveTab('setup');
-      setImageGallery(currentMedia?.gallery || []);
-      setGalleryMode(false);
-      setAsAdmin(currentAsAdmin);
-      setShowImageSearch(false);
+      // Preload UWP apps
+      if (uwpApps.length === 0) {
+        window.electronAPI.getUwpApps();
+      }
       
-      // Reset hover sound state
-      setHoverSound(currentHoverSound || null);
-      setHoverSoundName(currentHoverSound ? currentHoverSound.name : '');
-      setHoverSoundUrl(currentHoverSound ? currentHoverSound.url : '');
-      setHoverSoundVolume(currentHoverSound ? currentHoverSound.volume : 0.7);
-      setHoverSoundEnabled(!!currentHoverSound);
-      setHoverSoundAudio(null);
-      setShowError(false);
-      setAnimatedOnHover(currentAnimatedOnHover);
+      // Preload Steam games
+      if (steamGames.length === 0) {
+        window.electronAPI.getSteamGames();
+      }
       
-      // Reset hover sound selection state
-      setSelectedHoverSoundId(null);
-      setShowHoverSoundSelector(false);
-      setUploadingHoverSound(false);
+      // Preload Epic games
+      if (epicGames.length === 0) {
+        window.electronAPI.getEpicGames();
+      }
       
-      // Reset Ken Burns settings
-      setKenBurnsEnabled(currentKenBurnsEnabled);
-      setKenBurnsMode(
-        currentKenBurnsMode === 'slideshow' ? 'hover' : currentKenBurnsMode
-      );
-      
-      // Clear selection feedback
-      setSelectedGameFeedback(null);
-      
-      // Clear unified app store selection and reset search
-      // const unifiedStore = useUnifiedAppStore.getState();
-      // unifiedStore.clearSelection();
-      // unifiedStore.setSearchQuery('');
-      // unifiedStore.setSelectedAppType('all');
+      // Preload media library cache for Epic game thumbnails
+      preloadMediaLibrary();
     }
-  }, [isOpen, channelId, currentMedia, currentPath, currentType, currentAsAdmin, currentHoverSound, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode]);
+  }, [isOpen, installedApps.length, uwpApps.length, steamGames.length, epicGames.length, preloadMediaLibrary]);
 
   // Fetch app library data when modal opens (for unified system)
   useEffect(() => {
-    console.log('[ChannelModal] useEffect triggered - checking data:', {
-      steamGames: steamGames.length,
-      steamLoading,
-      installedApps: installedApps.length,
-      appsLoading
-    });
-    
     // Only fetch if modal is open and data is not already loading
     if (!isOpen) return;
     
@@ -175,34 +195,23 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     
     // Fetch installed apps if not already loaded and not loading
     if (installedApps.length === 0 && !appsLoading) {
-      console.log('[ChannelModal] Fetching installed apps...');
       fetchInstalledApps();
     }
     // Fetch UWP apps if not already loaded and not loading
     if (uwpApps.length === 0 && !uwpLoading) {
-      console.log('[ChannelModal] Fetching UWP apps...');
       fetchUwpApps();
     }
     // Fetch Steam games if not already loaded and not loading
     if (steamGames.length === 0 && !steamLoading) {
-      console.log('[ChannelModal] Fetching Steam games...');
       fetchSteamGames(customSteamPath);
-    } else {
-      console.log('[ChannelModal] Steam games already loaded or loading:', steamGames.length);
     }
     // Fetch Epic games if not already loaded and not loading
     if (epicGames.length === 0 && !epicLoading) {
-      console.log('[ChannelModal] Fetching Epic games...');
       fetchEpicGames();
-    } else {
-      console.log('[ChannelModal] Epic games already loaded or loading:', epicGames.length);
     }
     
     // Preload media library cache for Epic game thumbnails
-    preloadMediaLibrary().then(() => {
-      const status = getCacheStatus();
-      console.log('[ChannelModal] Media library cache status after preload:', status);
-    });
+    preloadMediaLibrary();
   }, [isOpen, installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, customSteamPath, loadSoundLibrary]);
 
   // Handle hover sound file select
@@ -657,27 +666,44 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   // On save, use consolidated store and channels API
   const handleSave = async (handleClose) => {
-    const pathValid = validatePath();
+    // Only validate path if one is provided
+    const pathValid = path.trim() ? validatePath() : true;
     
-    if (!pathValid || !media || !path.trim()) {
+    if (!pathValid || !media) {
       setShowError(true);
       return;
     }
 
     const newChannel = {
       media,
-      path: path.trim(),
-      type,
+      path: path.trim() || null, // Use null for empty paths
+      type: path.trim() ? type : null, // Only set type if there's a path
       asAdmin,
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
-      animatedOnHover: animatedOnHover !== 'global' ? animatedOnHover : undefined,
-      kenBurnsEnabled: kenBurnsEnabled !== 'global' ? kenBurnsEnabled : undefined,
-      kenBurnsMode: kenBurnsMode !== 'global' ? kenBurnsMode : undefined
+      animatedOnHover: animatedOnHover !== 'global' ? animatedOnHover : undefined
     };
     
-    // Save to consolidated store first
+    // Save channel data to consolidated store
     if (onSave) {
       onSave(channelId, newChannel);
+    }
+    
+    // Save Ken Burns settings to channel configs
+    const kenBurnsConfig = {
+      kenBurnsEnabled: kenBurnsEnabled !== 'global' ? kenBurnsEnabled : undefined,
+      kenBurnsMode: kenBurnsMode !== 'global' ? kenBurnsMode : undefined,
+      kenBurnsHoverScale,
+      kenBurnsAutoplayScale,
+      kenBurnsHoverDuration,
+      kenBurnsAutoplayDuration,
+      kenBurnsCrossfadeDuration,
+      kenBurnsEasing
+    };
+    
+    // Only save config if there are actual settings (not all undefined)
+    const hasKenBurnsSettings = Object.values(kenBurnsConfig).some(value => value !== undefined);
+    if (hasKenBurnsSettings) {
+      actions.updateChannelConfig(channelId, kenBurnsConfig);
     }
     
     // Also save to channels API for persistence
@@ -711,6 +737,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setAnimatedOnHover(undefined);
     setKenBurnsEnabled(undefined);
     setKenBurnsMode(undefined);
+    setKenBurnsHoverScale(1.1);
+    setKenBurnsAutoplayScale(1.15);
+    setKenBurnsHoverDuration(8000);
+    setKenBurnsAutoplayDuration(12000);
+    setKenBurnsCrossfadeDuration(1000);
+    setKenBurnsEasing('ease-out');
     setImageGallery([]);
     setGalleryMode(false);
     
@@ -718,6 +750,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     if (onSave) {
       onSave(channelId, null);
     }
+    
+    // Clear channel configs
+    actions.updateChannelConfig(channelId, null);
     
     // Also clear from channels API for persistence
     try {
@@ -732,25 +767,89 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     handleClose();
   };
 
+  // Check if any changes have been made compared to original values
+  const hasChanges = useMemo(() => {
+    // Check if basic setup has changed
+    const mediaChanged = JSON.stringify(media) !== JSON.stringify(currentMedia);
+    const pathChanged = path !== (currentPath || '');
+    const typeChanged = type !== (currentType || 'exe');
+    const asAdminChanged = asAdmin !== currentAsAdmin;
+    
+    // Check if hover sound has changed
+    const currentHoverSoundData = currentHoverSound ? {
+      url: currentHoverSound.url,
+      name: currentHoverSound.name,
+      volume: currentHoverSound.volume
+    } : null;
+    const newHoverSoundData = hoverSoundEnabled && hoverSoundUrl ? {
+      url: hoverSoundUrl,
+      name: hoverSoundName,
+      volume: hoverSoundVolume
+    } : null;
+    const hoverSoundChanged = JSON.stringify(currentHoverSoundData) !== JSON.stringify(newHoverSoundData);
+    
+    // Check if animation settings have changed
+    const animatedOnHoverChanged = animatedOnHover !== currentAnimatedOnHover;
+    const kenBurnsEnabledChanged = kenBurnsEnabled !== currentKenBurnsEnabled;
+    const kenBurnsModeChanged = kenBurnsMode !== currentKenBurnsMode;
+    
+    // Check if other Ken Burns settings have changed
+    const existingConfig = channelConfigs[channelId] || {};
+    const kenBurnsHoverScaleChanged = kenBurnsHoverScale !== (existingConfig.kenBurnsHoverScale ?? 1.1);
+    const kenBurnsAutoplayScaleChanged = kenBurnsAutoplayScale !== (existingConfig.kenBurnsAutoplayScale ?? 1.15);
+    const kenBurnsHoverDurationChanged = kenBurnsHoverDuration !== (existingConfig.kenBurnsHoverDuration ?? 8000);
+    const kenBurnsAutoplayDurationChanged = kenBurnsAutoplayDuration !== (existingConfig.kenBurnsAutoplayDuration ?? 12000);
+    const kenBurnsCrossfadeDurationChanged = kenBurnsCrossfadeDuration !== (existingConfig.kenBurnsCrossfadeDuration ?? 1000);
+    const kenBurnsEasingChanged = kenBurnsEasing !== (existingConfig.kenBurnsEasing ?? 'ease-out');
+    
+    return mediaChanged || pathChanged || typeChanged || asAdminChanged || 
+           hoverSoundChanged || animatedOnHoverChanged || kenBurnsEnabledChanged || kenBurnsModeChanged ||
+           kenBurnsHoverScaleChanged || kenBurnsAutoplayScaleChanged || kenBurnsHoverDurationChanged ||
+           kenBurnsAutoplayDurationChanged || kenBurnsCrossfadeDurationChanged || kenBurnsEasingChanged;
+  }, [
+    media, currentMedia,
+    path, currentPath,
+    type, currentType,
+    asAdmin, currentAsAdmin,
+    hoverSoundEnabled, hoverSoundUrl, hoverSoundName, hoverSoundVolume, currentHoverSound,
+    animatedOnHover, currentAnimatedOnHover,
+    kenBurnsEnabled, currentKenBurnsEnabled,
+    kenBurnsMode, currentKenBurnsMode,
+    kenBurnsHoverScale, kenBurnsAutoplayScale, kenBurnsHoverDuration, kenBurnsAutoplayDuration,
+    kenBurnsCrossfadeDuration, kenBurnsEasing, channelConfigs, channelId
+  ]);
+  
+  // Enable save button if there are changes and at least some media is present
+  // This allows saving behavior changes even if path requirements aren't fully met
+  const canSave = hasChanges && media && !pathError;
+  
   // Debug logging for save button state
   // console.log('[ChannelModal] Save button debug:', {
   //   hasMedia: !!media,
   //   hasPath: !!path,
   //   pathError,
-  //   canSave: canSave
+  //   hasChanges,
+  //   canSave,
+  //   changes: {
+  //     mediaChanged: JSON.stringify(media) !== JSON.stringify(currentMedia),
+  //     pathChanged: path !== (currentPath || ''),
+  //     typeChanged: type !== (currentType || 'exe'),
+  //     asAdminChanged: asAdmin !== currentAsAdmin,
+  //     animatedOnHoverChanged: animatedOnHover !== currentAnimatedOnHover,
+  //     kenBurnsEnabledChanged: kenBurnsEnabled !== currentKenBurnsEnabled,
+  //     kenBurnsModeChanged: kenBurnsMode !== currentKenBurnsMode
+  //   }
   // });
-  
-  const canSave = media && path.trim() && !pathError;
   let saveTooltip = '';
   
-  if (!media && !path.trim()) {
-    saveTooltip = 'Please select a channel image and provide a launch path or URL.';
+  if (!hasChanges) {
+    saveTooltip = 'No changes to save.';
   } else if (!media) {
     saveTooltip = 'Please select a channel image.';
-  } else if (!path.trim()) {
-    saveTooltip = 'Please provide a launch path or URL.';
   } else if (pathError) {
     saveTooltip = pathError;
+  } else if (!path.trim()) {
+    saveTooltip = 'Warning: No launch path set. Channel will not launch anything when clicked.';
   }
 
   const footerContent = ({ handleClose }) => (
@@ -1355,14 +1454,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                       key={game.appId || game.id || game.appName}
                       onClick={() => {
                         try {
-                          // console.log('[ChannelModal] Game clicked!');
-                          // console.log('[ChannelModal] Game object:', game);
-                          // console.log('[ChannelModal] Game source:', game.source);
-                          
                           if (game.source === 'steam') {
                             // Handle Steam game
                             const gameId = game.appId; // Steam games use appId (capital I)
-                            console.log('[ChannelModal] Steam game ID:', gameId);
                             
                             if (!gameId) {
                               console.error('[ChannelModal] No valid Steam app ID found for game:', game.name);
@@ -1408,8 +1502,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                             
                           } else if (game.source === 'epic') {
                             // Handle Epic game
-                            // console.log('[ChannelModal] Epic game clicked!');
-                            // console.log('[ChannelModal] Epic game object:', game);
                             
                             // Auto-fill the channel with Epic game data
                             setType('epic');

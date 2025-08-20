@@ -137,13 +137,9 @@ const VirtualizedChannelList = React.memo(({
           onChannelSave={onChannelSave}
           asAdmin={channel.asAdmin}
           hoverSound={channel.hoverSound}
-          animatedOnHover={animatedOnHover}
           channelConfig={channelConfigs?.[channel.id]}
           onHover={onChannelHover}
           animationStyle={channel.animationStyle}
-          adaptiveEmptyChannels={adaptiveEmptyChannels}
-          kenBurnsEnabled={kenBurnsEnabled}
-          kenBurnsMode={kenBurnsMode}
           idleAnimationClass={channel.idleAnimationClass}
           isIdleAnimating={channel.isIdleAnimating}
         />
@@ -153,12 +149,8 @@ const VirtualizedChannelList = React.memo(({
     onMediaChange,
     onAppPathChange,
     onChannelSave,
-    animatedOnHover,
     channelConfigs,
-    onChannelHover,
-    adaptiveEmptyChannels,
-    kenBurnsEnabled,
-    kenBurnsMode
+    onChannelHover
   ]);
 
   // Performance optimization: Only render visible items
@@ -185,10 +177,6 @@ VirtualizedChannelList.propTypes = {
   channelConfigs: PropTypes.object,
   mediaMap: PropTypes.object,
   appPathMap: PropTypes.object,
-  animatedOnHover: PropTypes.bool,
-  adaptiveEmptyChannels: PropTypes.bool,
-  kenBurnsEnabled: PropTypes.bool,
-  kenBurnsMode: PropTypes.string,
   idleAnimationEnabled: PropTypes.bool,
   idleAnimationTypes: PropTypes.array,
   idleAnimationInterval: PropTypes.number,

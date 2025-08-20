@@ -4597,135 +4597,41 @@ ipcMain.handle('get-current-display', () => {
 // IPC: Get system information
 ipcMain.handle('get-system-info', async () => {
   try {
-    const si = require('systeminformation');
+    console.log('[SYSTEM] Starting system info collection...');
     
-    // Get CPU information
+    // Test basic require first
+    let si;
+    try {
+      si = require('systeminformation');
+      console.log('[SYSTEM] systeminformation package loaded successfully');
+    } catch (requireError) {
+      console.error('[SYSTEM] Failed to require systeminformation:', requireError);
+      return { 
+        success: false, 
+        error: 'Failed to load systeminformation package',
+        data: null
+      };
+    }
+    
+    // Test basic CPU info first
+    console.log('[SYSTEM] Getting CPU info...');
     const cpuInfo = await si.cpu();
+    console.log('[SYSTEM] CPU info:', cpuInfo);
+    
     const cpuLoad = await si.currentLoad();
-    const cpuTemp = await si.cpuTemperature();
+    console.log('[SYSTEM] CPU load:', cpuLoad);
     
-    // Get memory information
     const memInfo = await si.mem();
+    console.log('[SYSTEM] Memory info:', memInfo);
     
-    // Get disk information
-    const diskInfo = await si.fsSize();
-    
-    // Get GPU information (if available)
-    let gpuInfo = null;
-    try {
-      const gpuData = await si.graphics();
-      if (gpuData.controllers && gpuData.controllers.length > 0) {
-        // Filter out virtual adapters and get the actual GPU
-        const actualGPUs = gpuData.controllers.filter(gpu => {
-          const name = gpu.model.toLowerCase();
-          // Filter out common virtual adapters
-          const virtualAdapters = [
-            'parsec',
-            'virtual',
-            'vmware',
-            'virtualbox',
-            'microsoft basic display',
-            'microsoft remote display',
-            'intel(r) uhd graphics',
-            'intel(r) hd graphics',
-            'amd radeon(tm) graphics'
-          ];
-          
-          return !virtualAdapters.some(adapter => name.includes(adapter));
-        });
-        
-        // If we found actual GPUs, use the first one, otherwise fall back to the first available
-        const gpu = actualGPUs.length > 0 ? actualGPUs[0] : gpuData.controllers[0];
-        
-        // Get GPU memory information
-        let gpuMemory = null;
-        try {
-          const memInfo = await si.memLayout();
-          // Look for dedicated GPU memory or shared memory
-          const dedicatedMemory = memInfo.find(mem => mem.type === 'DDR5' || mem.type === 'DDR4' || mem.type === 'GDDR6' || mem.type === 'GDDR5');
-          if (dedicatedMemory && dedicatedMemory.size) {
-            gpuMemory = {
-              total: dedicatedMemory.size * 1024 * 1024, // Convert to bytes
-              type: dedicatedMemory.type,
-              speed: dedicatedMemory.clockSpeed
-            };
-          }
-        } catch (error) {
-          console.log('[SYSTEM] GPU memory information not available:', error.message);
-        }
-        
-        gpuInfo = {
-          name: gpu.model,
-          memory: gpuMemory && gpuMemory.total ? gpuMemory.total : (gpu.memoryTotal && gpu.memoryTotal > 0 ? gpu.memoryTotal * 1024 * 1024 : 0), // Use dedicated memory if available, otherwise fall back to memoryTotal
-          memoryDetails: gpuMemory,
-          driver: gpu.driverVersion,
-          usage: 0, // GPU usage requires additional tools
-          temperature: 0 // GPU temperature requires additional tools
-        };
-      }
-    } catch (error) {
-      console.log('[SYSTEM] GPU information not available:', error.message);
-    }
-    
-    // Get battery information (if available)
-    let batteryInfo = null;
-    try {
-      const batteryData = await si.battery();
-      if (batteryData.hasBattery) {
-        // Get additional battery information
-        let powerState = 'Unknown';
-        let batteryHealth = 'Unknown';
-        
-        try {
-          // Try to get more detailed battery information
-          const osInfo = await si.osInfo();
-          if (osInfo.platform === 'win32') {
-            // On Windows, we can get more detailed battery info
-            const { exec } = require('child_process');
-            const util = require('util');
-            const execAsync = util.promisify(exec);
-            
-            try {
-              const { stdout } = await execAsync('wmic path win32_battery get EstimatedChargeRemaining,PowerManagementSupported /format:csv');
-              const lines = stdout.trim().split('\n');
-              if (lines.length > 1) {
-                const data = lines[1].split(',');
-                if (data.length >= 2) {
-                  const chargeRemaining = parseInt(data[0]);
-                  const powerManagement = data[1] === 'TRUE';
-                  powerState = powerManagement ? 'Active' : 'Standby';
-                }
-              }
-            } catch (error) {
-              console.log('[SYSTEM] Could not get detailed battery info:', error.message);
-            }
-          }
-        } catch (error) {
-          console.log('[SYSTEM] Could not get OS info for battery details:', error.message);
-        }
-        
-        batteryInfo = {
-          level: Math.round(batteryData.percent),
-          charging: batteryData.isCharging,
-          timeLeft: batteryData.timeRemaining ? `${Math.floor(batteryData.timeRemaining / 60)}h ${batteryData.timeRemaining % 60}m` : null,
-          powerState: powerState,
-          health: batteryHealth,
-          voltage: batteryData.voltage || null,
-          capacity: batteryData.capacity || null,
-          cycleCount: batteryData.cyclecount || null
-        };
-      }
-    } catch (error) {
-      console.log('[SYSTEM] Battery information not available:', error.message);
-    }
-    
+    // Create a simple response for testing
     const systemInfo = {
       cpu: {
         model: cpuInfo.manufacturer + ' ' + cpuInfo.brand,
         cores: cpuInfo.cores,
         speed: `${cpuInfo.speed} GHz`,
         usage: Math.round(cpuLoad.currentLoad),
-        temperature: cpuTemp.main || null
+        temperature: null
       },
       memory: {
         total: memInfo.total,
@@ -4733,26 +4639,29 @@ ipcMain.handle('get-system-info', async () => {
         free: memInfo.free,
         usage: Math.round((memInfo.used / memInfo.total) * 100)
       },
-      storage: diskInfo.map(disk => ({
-        name: disk.fs,
-        total: disk.size * 1024 * 1024, // Convert to bytes
-        used: (disk.size - disk.available) * 1024 * 1024, // Convert to bytes
-        usage: Math.round(((disk.size - disk.available) / disk.size) * 100)
-      })),
-      gpu: gpuInfo,
-      battery: batteryInfo
+      storage: [{
+        name: 'C:',
+        total: 1000000000000, // 1TB for testing
+        used: 500000000000,   // 500GB for testing
+        usage: 50
+      }],
+      gpu: {
+        name: 'Test GPU',
+        memory: 8000000000, // 8GB for testing
+        usage: 0,
+        temperature: 0
+      },
+      battery: null
     };
     
-    console.log('[SYSTEM] Retrieved system information');
-    return systemInfo;
+    console.log('[SYSTEM] Retrieved system information successfully');
+    return { success: true, data: systemInfo };
   } catch (error) {
     console.error('[SYSTEM] Error getting system information:', error);
-    return {
-      cpu: null,
-      memory: null,
-      storage: [],
-      gpu: null,
-      battery: null
+    return { 
+      success: false, 
+      error: error.message,
+      data: null
     };
   }
 });

@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Channel from './Channel';
 import PageNavigation from './PageNavigation';
@@ -54,7 +54,8 @@ const PaginatedChannels = React.memo(({
     kenBurnsMode: channelSettings.kenBurnsMode || kenBurnsMode || 'hover',
     idleAnimationEnabled: channelSettings.idleAnimationEnabled || idleAnimationEnabled || false,
     idleAnimationTypes: channelSettings.idleAnimationTypes || idleAnimationTypes || ['pulse', 'bounce', 'glow'],
-    idleAnimationInterval: channelSettings.idleAnimationInterval || idleAnimationInterval || 8
+    idleAnimationInterval: channelSettings.idleAnimationInterval || idleAnimationInterval || 8,
+    autoFadeTimeout: channelSettings.channelAutoFadeTimeout ?? 5
   }), [
     channelSettings,
     animatedOnHover,
@@ -66,41 +67,74 @@ const PaginatedChannels = React.memo(({
     idleAnimationInterval
   ]);
 
+  // Grid-level auto-fade functionality
+  const [isGridFaded, setIsGridFaded] = useState(false);
+  const gridFadeTimeoutRef = useRef(null);
+  const autoFadeTimeout = effectiveSettings.autoFadeTimeout;
+
+  // Handle grid hover events
+  const handleGridMouseEnter = useCallback(() => {
+    // Clear auto-fade timeout and restore opacity
+    if (gridFadeTimeoutRef.current) {
+      clearTimeout(gridFadeTimeoutRef.current);
+      gridFadeTimeoutRef.current = null;
+    }
+    setIsGridFaded(false);
+  }, []);
+
+  const handleGridMouseLeave = useCallback(() => {
+    // Start auto-fade timeout if enabled
+    if (autoFadeTimeout > 0) {
+      gridFadeTimeoutRef.current = setTimeout(() => {
+        setIsGridFaded(true);
+      }, autoFadeTimeout * 1000);
+    }
+  }, [autoFadeTimeout]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (gridFadeTimeoutRef.current) {
+        clearTimeout(gridFadeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+
+
   // Channel event handlers
   const handleChannelMediaChange = useCallback((channelId, media) => {
-    console.log('[DEBUG] 📺 [PaginatedChannels] Media change for channel:', channelId, media);
+    // Update media in the store
     updateChannelMedia(channelId, media);
     
-    // Call legacy callback if provided
+    // Call the parent handler if provided
     if (onMediaChange) {
       onMediaChange(channelId, media);
     }
   }, [updateChannelMedia, onMediaChange]);
 
   const handleChannelAppPathChange = useCallback((channelId, path) => {
-    console.log('[DEBUG] 📺 [PaginatedChannels] App path change for channel:', channelId, path);
+    // Update path in the store
     updateChannelPath(channelId, path);
     
-    // Call legacy callback if provided
+    // Call the parent handler if provided
     if (onAppPathChange) {
       onAppPathChange(channelId, path);
     }
   }, [updateChannelPath, onAppPathChange]);
 
   const handleChannelSave = useCallback((channelId, config) => {
-    console.log('[DEBUG] 📺 [PaginatedChannels] Save channel:', channelId, config);
+    // Update channel config in the store
     updateChannelConfig(channelId, config);
     
-    // Call legacy callback if provided
+    // Call the parent handler if provided
     if (onChannelSave) {
       onChannelSave(channelId, config);
     }
   }, [updateChannelConfig, onChannelSave]);
 
   const handleChannelHover = useCallback((channelId, isHovered) => {
-    console.log('[DEBUG] 📺 [PaginatedChannels] Channel hover:', channelId, isHovered);
-    
-    // Call legacy callback if provided
+    // Call the parent handler if provided
     if (onChannelHover) {
       onChannelHover(channelId, isHovered);
     }
@@ -108,18 +142,15 @@ const PaginatedChannels = React.memo(({
 
   // Navigation handlers
   const handleNextPage = useCallback(() => {
-    console.log('[DEBUG] 📺 [PaginatedChannels] Next page');
     nextPage();
   }, [nextPage]);
 
   const handlePrevPage = useCallback(() => {
-    console.log('[DEBUG] �� [PaginatedChannels] Previous page');
     prevPage();
   }, [prevPage]);
 
   // Animation completion handler
   const handleAnimationComplete = useCallback(() => {
-    console.log('[DEBUG] 📺 [PaginatedChannels] Animation complete');
     finishAnimation();
   }, [finishAnimation]);
 
@@ -130,6 +161,14 @@ const PaginatedChannels = React.memo(({
     interval: effectiveSettings.idleAnimationInterval
   }), [effectiveSettings]);
 
+  // Use idle channel animations hook
+  const { getChannelAnimationClass, isChannelAnimating } = useIdleChannelAnimations(
+    idleAnimationProps.enabled,
+    idleAnimationProps.types,
+    idleAnimationProps.interval,
+    currentPageChannels
+  );
+
   // Render individual page for Simple Mode
   const renderPage = useCallback((pageIndex) => {
     const { columns, rows, channelsPerPage } = gridConfig;
@@ -139,7 +178,7 @@ const PaginatedChannels = React.memo(({
     return (
       <div
         key={`page-${pageIndex}`}
-        className="channel-page"
+        className={`channel-page${isGridFaded ? ' auto-fade' : ''}`}
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${columns}, minmax(180px, 1fr))`,
@@ -154,6 +193,8 @@ const PaginatedChannels = React.memo(({
           alignContent: 'center',
           justifyContent: 'center'
         }}
+        onMouseEnter={handleGridMouseEnter}
+        onMouseLeave={handleGridMouseLeave}
       >
         {Array.from({ length: channelsPerPage }, (_, index) => {
           const channelIndex = startIndex + index;
@@ -176,12 +217,12 @@ const PaginatedChannels = React.memo(({
               onAppPathChange={handleChannelAppPathChange}
               onChannelSave={handleChannelSave}
               onHover={handleChannelHover}
-              animatedOnHover={effectiveSettings.animatedOnHover}
               channelConfig={channelConfig || { empty: true }}
-              adaptiveEmptyChannels={effectiveSettings.adaptiveEmptyChannels}
-              kenBurnsEnabled={effectiveSettings.kenBurnsEnabled}
-              kenBurnsMode={effectiveSettings.kenBurnsMode}
-              idleAnimationClass={idleAnimationProps.enabled ? 'idle-animation' : ''}
+              idleAnimationClass={
+                idleAnimationProps.enabled 
+                  ? getChannelAnimationClass(channelId)
+                  : ''
+              }
               isIdleAnimating={idleAnimationProps.enabled}
             />
           );
@@ -192,12 +233,16 @@ const PaginatedChannels = React.memo(({
     gridConfig,
     effectiveSettings,
     idleAnimationProps,
+    getChannelAnimationClass,
     handleChannelMediaChange,
     handleChannelAppPathChange,
     handleChannelSave,
     handleChannelHover,
     getChannelConfig,
-    isChannelEmpty
+    isChannelEmpty,
+    isGridFaded,
+    handleGridMouseEnter,
+    handleGridMouseLeave
   ]);
 
   // Render Wii Mode continuous grid
@@ -212,7 +257,7 @@ const PaginatedChannels = React.memo(({
 
     return (
       <div 
-        className="wii-mode-grid"
+        className={`wii-mode-grid${isGridFaded ? ' auto-fade' : ''}`}
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${columns * 3}, minmax(180px, 1fr))`, // 3 pages wide
@@ -230,6 +275,8 @@ const PaginatedChannels = React.memo(({
           transition: isAnimating ? 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none',
           willChange: 'transform'
         }}
+        onMouseEnter={handleGridMouseEnter}
+        onMouseLeave={handleGridMouseLeave}
       >
         {Array.from({ length: gridConfig.totalChannels }, (_, index) => {
           const channelId = `channel-${index}`;
@@ -249,12 +296,12 @@ const PaginatedChannels = React.memo(({
               onAppPathChange={handleChannelAppPathChange}
               onChannelSave={handleChannelSave}
               onHover={handleChannelHover}
-              animatedOnHover={effectiveSettings.animatedOnHover}
               channelConfig={channelConfig || { empty: true }}
-              adaptiveEmptyChannels={effectiveSettings.adaptiveEmptyChannels}
-              kenBurnsEnabled={effectiveSettings.kenBurnsEnabled}
-              kenBurnsMode={effectiveSettings.kenBurnsMode}
-              idleAnimationClass={idleAnimationProps.enabled ? 'idle-animation' : ''}
+              idleAnimationClass={
+                idleAnimationProps.enabled 
+                  ? getChannelAnimationClass(channelId)
+                  : ''
+              }
               isIdleAnimating={idleAnimationProps.enabled}
             />
           );
@@ -266,12 +313,16 @@ const PaginatedChannels = React.memo(({
     navigation,
     effectiveSettings,
     idleAnimationProps,
+    getChannelAnimationClass,
     handleChannelMediaChange,
     handleChannelAppPathChange,
     handleChannelSave,
     handleChannelHover,
     getChannelConfig,
-    isChannelEmpty
+    isChannelEmpty,
+    isGridFaded,
+    handleGridMouseEnter,
+    handleGridMouseLeave
   ]);
 
   // Render content based on mode
@@ -309,12 +360,12 @@ const PaginatedChannels = React.memo(({
 
   // Log component state for debugging
   useEffect(() => {
-    console.log('[DEBUG] 📺 [PaginatedChannels] Component state:', {
-      gridConfig,
-      navigation,
-      currentPageChannels: currentPageChannels.length,
-      effectiveSettings
-    });
+    // console.log('[DEBUG] 📺 [PaginatedChannels] Component state:', {
+    //   gridConfig,
+    //   navigation,
+    //   currentPageChannels: currentPageChannels.length,
+    //   effectiveSettings
+    // });
   }, [gridConfig, navigation, currentPageChannels.length, effectiveSettings]);
 
   return (

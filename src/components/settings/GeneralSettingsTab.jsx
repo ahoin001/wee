@@ -171,20 +171,6 @@ const GeneralSettingsTab = React.memo(() => {
         className="mb-5"
       />
 
-      {/* Classic Mode */}
-      <Card
-        title="Classic Wii Dock Mode"
-        separator
-        desc="When enabled, shows the classic Wii dock design. When disabled, shows the modern ribbon design."
-        headerActions={
-          <WToggle
-            checked={ui.classicMode ?? false}
-            onChange={handleClassicModeChange}
-          />
-        }
-        className="mb-5"
-      />
-
       {/* Custom Cursor Settings */}
       <Card
         title="Custom Wii Cursor"
@@ -245,93 +231,6 @@ const GeneralSettingsTab = React.memo(() => {
             checked={ui.startOnBoot ?? false}
             onChange={handleStartOnBootChange}
           />
-        }
-        className="mb-5"
-      />
-
-      {/* Keyboard Shortcut */}
-      <Card
-        title="Keyboard Shortcut"
-        separator
-        desc="Set a keyboard shortcut to quickly open the settings modal. Press the keys you want to use for the shortcut."
-        actions={
-          <div className="mt-4">
-            <div className="flex items-center gap-3 mb-4">
-              <Text variant="body" className="font-medium min-w-30">Shortcut</Text>
-              <div className="flex items-center gap-2 p-2 px-3 border border-[hsl(var(--border-primary))] rounded-md bg-[hsl(var(--surface-primary))] min-w-50 cursor-pointer select-none"
-              onClick={() => {
-                // Start listening for key combination
-                const handleKeyDown = (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  const keys = [];
-                  if (e.ctrlKey) keys.push('Ctrl');
-                  if (e.shiftKey) keys.push('Shift');
-                  if (e.altKey) keys.push('Alt');
-                  if (e.metaKey) keys.push('Cmd');
-                  
-                  // Add the main key (avoid modifier keys)
-                  if (e.key && e.key !== 'Control' && e.key !== 'Shift' && e.key !== 'Alt' && e.key !== 'Meta') {
-                    keys.push(e.key.toUpperCase());
-                  }
-                  
-                  if (keys.length > 0) {
-                    const shortcut = keys.join(' + ');
-                    handleSettingsShortcutChange(shortcut);
-                    document.removeEventListener('keydown', handleKeyDown);
-                    document.removeEventListener('click', handleClickOutside);
-                  }
-                };
-                
-                const handleClickOutside = () => {
-                  document.removeEventListener('keydown', handleKeyDown);
-                  document.removeEventListener('click', handleClickOutside);
-                };
-                
-                document.addEventListener('keydown', handleKeyDown);
-                document.addEventListener('click', handleClickOutside);
-                
-                // Show visual feedback
-                const shortcutElement = document.querySelector('[data-shortcut-input]');
-                if (shortcutElement) {
-                  shortcutElement.style.background = 'hsl(var(--surface-tertiary))';
-                  shortcutElement.textContent = 'Press keys...';
-                }
-              }}
-              data-shortcut-input
-              >
-                {ui.settingsShortcut || 'Click to set shortcut'}
-              </div>
-              <Button 
-                variant="secondary" 
-                onClick={handleClearShortcut}
-                disabled={!ui.settingsShortcut}
-              >
-                Clear
-              </Button>
-            </div>
-            
-            <Text variant="caption" className="p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
-              <strong>💡 Tip:</strong> Common shortcuts include Ctrl+Shift+S, Ctrl+, (comma), or F12. 
-              The shortcut will work globally when the app is focused.
-            </Text>
-          </div>
-        }
-        className="mb-5"
-      />
-
-      {/* Account Management - Placeholder for now */}
-      <Card
-        title="Account Management"
-        separator
-        desc="Account management features will be available in a future update."
-        actions={
-          <div className="mt-4">
-            <Text variant="caption" className="p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
-              <strong>🔧 Coming Soon:</strong> Account management features are being developed and will be available in a future update.
-            </Text>
-          </div>
         }
         className="mb-5"
       />

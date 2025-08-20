@@ -8,7 +8,6 @@ export const performanceMonitor = {
   start: (name) => {
     const startTime = performance.now();
     performanceMonitor.marks.set(name, startTime);
-    console.log(`[PERF] Started: ${name}`);
   },
 
   end: (name) => {
@@ -17,7 +16,6 @@ export const performanceMonitor = {
       const endTime = performance.now();
       const duration = endTime - startTime;
       performanceMonitor.measures.set(name, duration);
-      console.log(`[PERF] ${name}: ${duration.toFixed(2)}ms`);
       performanceMonitor.marks.delete(name);
     }
   },
@@ -76,10 +74,6 @@ export const renderTracker = {
     }
     
     renderTracker.lastRender.set(componentName, now);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[RENDER] ${componentName} (${timeSinceLastRender}ms since last render)`);
-    }
   },
 
   getStats: (componentName) => {
@@ -123,10 +117,6 @@ export const stateTracker = {
     if (changes.length > stateTracker.maxChanges) {
       changes.shift();
     }
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[STATE] ${storeName}.${action}:`, payload);
-    }
   },
 
   getChanges: (storeName) => {
@@ -156,12 +146,6 @@ export const memoryMonitor = {
       // Keep only last 100 snapshots
       if (memoryMonitor.snapshots.length > 100) {
         memoryMonitor.snapshots.shift();
-      }
-      
-      if (process.env.NODE_ENV === 'development') {
-        const usedMB = (snapshot.usedJSHeapSize / 1024 / 1024).toFixed(2);
-        const totalMB = (snapshot.totalJSHeapSize / 1024 / 1024).toFixed(2);
-        console.log(`[MEMORY] Used: ${usedMB}MB, Total: ${totalMB}MB`);
       }
       
       return snapshot;
@@ -206,8 +190,6 @@ export const errorBoundary = {
     if (errorBoundary.errors.length > 50) {
       errorBoundary.errors.shift();
     }
-    
-    console.error('[ERROR]', errorData);
   },
 
   getErrors: () => {

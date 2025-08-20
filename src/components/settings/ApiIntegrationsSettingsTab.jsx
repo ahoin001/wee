@@ -12,9 +12,11 @@ const ApiIntegrationsSettingsTab = () => {
   // Use consolidated store
   const { spotify, floatingWidgets, actions } = useConsolidatedAppStore();
   
-  // Local state for admin panel
+  // Local state for admin panel modal
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [adminPanelConfig, setAdminPanelConfig] = useState({ powerActions: [] });
+
+  // Get admin panel config from store
+  const adminPanelConfig = floatingWidgets.adminPanel.config || { powerActions: [] };
 
   // Spotify connection handlers
   const handleSpotifyConnect = useCallback(async () => {
@@ -74,17 +76,18 @@ const ApiIntegrationsSettingsTab = () => {
     });
   }, [actions, floatingWidgets.spotify]);
 
-  // Load settings from the unified store
-  useEffect(() => {
-    // Load admin panel config if needed
-    console.log('[ApiIntegrationsSettingsTab] Loading admin panel config...');
-  }, []);
-
   // Handle admin panel save
   const handleAdminPanelSave = useCallback((config) => {
-    setAdminPanelConfig(config);
     console.log('[ApiIntegrationsSettingsTab] Admin panel config saved:', config);
-  }, []);
+    
+    // Use the direct setFloatingWidgetsState action instead of floatingWidgetManager
+    actions.setFloatingWidgetsState({
+      adminPanel: { 
+        ...floatingWidgets.adminPanel, 
+        config
+      }
+    });
+  }, [actions, floatingWidgets.adminPanel]);
 
   // Save API & Widgets settings
   const handleSaveSettings = useCallback(async () => {
@@ -574,7 +577,7 @@ const ApiIntegrationsSettingsTab = () => {
         isOpen={showAdminPanel}
         onClose={() => setShowAdminPanel(false)}
         onSave={handleAdminPanelSave}
-        initialConfig={adminPanelConfig}
+        config={adminPanelConfig}
       />
     </div>
   );

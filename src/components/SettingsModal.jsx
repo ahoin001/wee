@@ -9,13 +9,14 @@ import SoundModal from './SoundModal';
 
 // Legacy settings system imports
 
-// Lazy load settings tabs
-const LazyChannelsSettingsTab = React.lazy(() => import('./settings/ChannelsSettingsTab'));
-const LazyUnifiedDockSettingsTab = React.lazy(() => import('./settings/UnifiedDockSettingsTab'));
-const LazyWallpaperSettingsTab = React.lazy(() => import('./settings/WallpaperSettingsTab'));
-const LazyTimeSettingsTab = React.lazy(() => import('./settings/TimeSettingsTab'));
-const LazySoundsSettingsTab = React.lazy(() => import('./settings/SoundsSettingsTab'));
-const LazyGeneralSettingsTab = React.lazy(() => import('./settings/GeneralSettingsTab'));
+// Direct import for debugging
+import ChannelsSettingsTab from './settings/ChannelsSettingsTab';
+// Direct imports for debugging
+import UnifiedDockSettingsTab from './settings/UnifiedDockSettingsTab';
+import WallpaperSettingsTab from './settings/WallpaperSettingsTab';
+import TimeSettingsTab from './settings/TimeSettingsTab';
+import SoundsSettingsTab from './settings/SoundsSettingsTab';
+import GeneralSettingsTab from './settings/GeneralSettingsTab';
 const LazyPresetsSettingsTab = React.lazy(() => import('./settings/PresetsSettingsTab'));
 const LazyMonitorSettingsTab = React.lazy(() => import('./settings/MonitorSettingsTab'));
 const LazyApiIntegrationsSettingsTab = React.lazy(() => import('./settings/ApiIntegrationsSettingsTab'));
@@ -81,14 +82,6 @@ SettingsTabButton.propTypes = {
 // Tab configuration - Alphabetically ordered
 const SETTINGS_TABS = [
   { 
-    id: 'advanced', 
-    label: 'Advanced', 
-    icon: '🔧', 
-    color: '#fd79a8', 
-    description: 'Developer & performance settings',
-    component: LazyAdvancedSettingsTab
-  },
-  { 
     id: 'api-integrations', 
     label: 'API & Widgets', 
     icon: '🔌', 
@@ -102,7 +95,7 @@ const SETTINGS_TABS = [
     icon: '📺', 
     color: '#0099ff', 
     description: 'Animation & display settings',
-    component: LazyChannelsSettingsTab
+    component: ChannelsSettingsTab
   },
   { 
     id: 'dock', 
@@ -110,7 +103,7 @@ const SETTINGS_TABS = [
     icon: '⚓', 
     color: '#feca57', 
     description: 'Classic & Ribbon dock settings',
-    component: LazyUnifiedDockSettingsTab
+    component: UnifiedDockSettingsTab
   },
   { 
     id: 'general', 
@@ -118,7 +111,7 @@ const SETTINGS_TABS = [
     icon: '⚙️', 
     color: '#6c5ce7', 
     description: 'App behavior & startup',
-    component: LazyGeneralSettingsTab
+    component: GeneralSettingsTab
   },
   { 
     id: 'layout', 
@@ -150,7 +143,7 @@ const SETTINGS_TABS = [
     icon: '🔊', 
     color: '#a55eea', 
     description: 'Audio feedback & music',
-    component: LazySoundsSettingsTab
+    component: SoundsSettingsTab
   },
   { 
     id: 'themes', 
@@ -166,7 +159,7 @@ const SETTINGS_TABS = [
     icon: '🕐', 
     color: '#45b7d1', 
     description: 'Clock & pill display',
-    component: LazyTimeSettingsTab
+    component: TimeSettingsTab
   },
   { 
     id: 'updates', 
@@ -182,7 +175,7 @@ const SETTINGS_TABS = [
     icon: '🖼️', 
     color: '#4ecdc4', 
     description: 'Background & cycling',
-    component: LazyWallpaperSettingsTab
+    component: WallpaperSettingsTab
   }
 ];
 
@@ -201,6 +194,9 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showMonitorModal, setShowMonitorModal] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
+  
+  // Store initial state for consolidated store tabs to track changes
+  const [initialStoreState, setInitialStoreState] = useState({});
 
   // Load settings when modal opens
   useEffect(() => {
@@ -219,6 +215,22 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
       if (window.settings?.presets) {
         setPresets(window.settings.presets);
       }
+      
+      // Capture initial state for consolidated store tabs
+      try {
+        const currentStoreState = useConsolidatedAppStore.getState();
+        setInitialStoreState({
+          dock: JSON.parse(JSON.stringify(currentStoreState.dock)),
+          time: JSON.parse(JSON.stringify(currentStoreState.time)),
+          wallpaper: JSON.parse(JSON.stringify(currentStoreState.wallpaper)),
+          overlay: JSON.parse(JSON.stringify(currentStoreState.overlay)),
+          ribbon: JSON.parse(JSON.stringify(currentStoreState.ribbon)),
+          channels: JSON.parse(JSON.stringify(currentStoreState.channels)),
+          ui: JSON.parse(JSON.stringify(currentStoreState.ui)),
+        });
+      } catch (error) {
+        console.warn('Failed to capture initial store state:', error);
+      }
     }
   }, [isOpen]);
 
@@ -231,8 +243,6 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
 
   // Settings update handler for general tab and other categorized tabs
   const handleGeneralSettingUpdate = useCallback((category, key, value) => {
-    console.log('[SettingsModal] Setting update:', { category, key, value });
-    
     setLocalSettings(prev => {
       const newSettings = { ...prev };
       
@@ -295,8 +305,6 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
 
   // Settings update handler for ribbon/channels tabs
   const handleDirectSettingUpdate = useCallback((key, value) => {
-    console.log('[SettingsModal] Direct setting update:', { key, value, activeTab });
-    
     setLocalSettings(prev => ({
       ...prev,
       [key]: value
@@ -404,7 +412,6 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
           floatingWidgetSettings: localSettings.floatingWidgetSettings,
         };
         
-        console.log('[SettingsModal] Saving settings:', flattenedSettings);
         onSettingsChange(flattenedSettings);
       }
       
@@ -480,7 +487,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
                   };
                   return window.api.settings.set(updatedSettings);
                 }).then(() => {
-                  console.log('[SettingsModal] Time settings saved to backend');
+                  // Time settings saved successfully
                 }).catch(error => {
                   console.error('[SettingsModal] Failed to save time settings:', error);
                 });
@@ -514,7 +521,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
                   };
                   return window.api.wallpapers.set(updatedData);
                 }).then(() => {
-                  console.log('[SettingsModal] Wallpaper settings saved to backend');
+                  // Wallpaper settings saved successfully
                 }).catch(error => {
                   console.error('[SettingsModal] Failed to save wallpaper settings:', error);
                 });
@@ -573,7 +580,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
                   };
                   return window.api.settings.set(updatedSettings);
                 }).then(() => {
-                  console.log('[SettingsModal] Unified dock settings saved to backend');
+                  // Unified dock settings saved successfully
                 }).catch(error => {
                   console.error('[SettingsModal] Failed to save unified dock settings:', error);
                 });
@@ -623,7 +630,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
                   };
                   return window.api.settings.set(updatedSettings);
                 }).then(() => {
-                  console.log('[SettingsModal] Themes settings saved to backend');
+                  // Themes settings saved successfully
                 }).catch(error => {
                   console.error('[SettingsModal] Failed to save themes settings:', error);
                 });
@@ -678,7 +685,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
                   };
                   return window.api.settings.set(updatedSettings);
                 }).then(() => {
-                  console.log('[SettingsModal] Shortcuts settings saved to backend');
+                  // Shortcuts settings saved successfully
                 }).catch(error => {
                   console.error('[SettingsModal] Failed to save shortcuts settings:', error);
                 });
@@ -715,7 +722,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
                   };
                   return window.api.settings.set(updatedSettings);
                 }).then(() => {
-                  console.log('[SettingsModal] Layout settings saved to backend');
+                  // Layout settings saved successfully
                 }).catch(error => {
                   console.error('[SettingsModal] Failed to save layout settings:', error);
                 });
@@ -731,13 +738,30 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
             tabSettings = localSettings;
         }
         
-        console.log(`[SettingsModal] Saving ${tabId} settings:`, tabSettings);
         onSettingsChange(tabSettings);
       }
       
       // Clear tab changes
       setTabChanges(prev => ({ ...prev, [tabId]: false }));
       setHasUnsavedChanges(false);
+      
+      // Update initial state for consolidated store tabs after saving
+      const consolidatedStoreTabs = ['dock', 'time', 'wallpaper', 'channels', 'sounds', 'themes', 'shortcuts', 'layout'];
+      if (consolidatedStoreTabs.includes(tabId)) {
+        try {
+          const currentStoreState = useConsolidatedAppStore.getState();
+          setInitialStoreState(prev => ({
+            ...prev,
+            [tabId]: JSON.parse(JSON.stringify(currentStoreState[tabId])),
+            ...(tabId === 'wallpaper' && {
+              overlay: JSON.parse(JSON.stringify(currentStoreState.overlay))
+            })
+          }));
+        } catch (error) {
+          console.warn('Error updating initial store state:', error);
+        }
+      }
+      
       setMessage({ type: 'success', text: `${SETTINGS_TABS.find(s => s.id === tabId)?.label || tabId} settings saved!` });
       setTimeout(() => setMessage({ type: '', text: '' }), 2000);
     } catch (error) {
@@ -770,8 +794,8 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
         tabSettings = localSettings;
         break;
       case 'channels':
-        // ChannelsSettingsTab expects direct access
-        tabSettings = localSettings;
+        // ChannelsSettingsTab uses consolidated store directly - no props needed
+        tabSettings = {};
         break;
 
       case 'time':
@@ -849,27 +873,103 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
         tabSettings = localSettings;
     }
     
-    console.log(`[SettingsModal] Tab settings for ${tabId}:`, tabSettings);
     return tabSettings;
   };
+
+  // Check if consolidated store tab has changes
+  const hasConsolidatedStoreChanges = useCallback((tabId) => {
+    if (!initialStoreState || Object.keys(initialStoreState).length === 0) return false;
+    
+    try {
+      const currentStoreState = useConsolidatedAppStore.getState();
+      
+      switch (tabId) {
+        case 'dock':
+          return JSON.stringify(currentStoreState.dock) !== JSON.stringify(initialStoreState.dock);
+        case 'time':
+          return JSON.stringify(currentStoreState.time) !== JSON.stringify(initialStoreState.time);
+        case 'wallpaper':
+          return JSON.stringify(currentStoreState.wallpaper) !== JSON.stringify(initialStoreState.wallpaper) ||
+                 JSON.stringify(currentStoreState.overlay) !== JSON.stringify(initialStoreState.overlay);
+        case 'channels':
+          return JSON.stringify(currentStoreState.channels) !== JSON.stringify(initialStoreState.channels);
+        case 'sounds':
+          return JSON.stringify(currentStoreState.sounds) !== JSON.stringify(initialStoreState.sounds || {});
+        case 'themes':
+          return JSON.stringify(currentStoreState.presets) !== JSON.stringify(initialStoreState.presets || {});
+        case 'shortcuts':
+          return JSON.stringify(currentStoreState.ui?.keyboardShortcuts) !== JSON.stringify(initialStoreState.ui?.keyboardShortcuts || []);
+        case 'layout':
+          return JSON.stringify(currentStoreState.channels?.data?.navigation) !== JSON.stringify(initialStoreState.channels?.data?.navigation || {});
+        default:
+          return false;
+      }
+    } catch (error) {
+      console.warn('Error checking consolidated store changes:', error);
+      return false;
+    }
+  }, [initialStoreState]);
 
   // Handle cancel changes for current tab
   const handleCancelChanges = useCallback(() => {
     // Reset the current tab's changes by reloading settings
     if (isOpen) {
-      const currentSettings = window.settings || {};
-      setLocalSettings(currentSettings);
+      const consolidatedStoreTabs = ['dock', 'time', 'wallpaper', 'channels', 'sounds', 'themes', 'shortcuts', 'layout'];
+      
+      if (consolidatedStoreTabs.includes(activeTab)) {
+        // For consolidated store tabs, reset the store state
+        try {
+          const { actions } = useConsolidatedAppStore.getState();
+          
+          switch (activeTab) {
+            case 'dock':
+              if (initialStoreState.dock) {
+                actions.setDockState(initialStoreState.dock);
+              }
+              break;
+            case 'time':
+              if (initialStoreState.time) {
+                actions.setTimeState(initialStoreState.time);
+              }
+              break;
+            case 'wallpaper':
+              if (initialStoreState.wallpaper) {
+                actions.setWallpaperState(initialStoreState.wallpaper);
+              }
+              if (initialStoreState.overlay) {
+                actions.setOverlayState(initialStoreState.overlay);
+              }
+              break;
+            case 'channels':
+              if (initialStoreState.channels) {
+                actions.setChannelState(initialStoreState.channels);
+              }
+              break;
+            // Add other cases as needed
+          }
+        } catch (error) {
+          console.warn('Error resetting consolidated store state:', error);
+        }
+      } else {
+        // For legacy tabs, reset local settings
+        const currentSettings = window.settings || {};
+        setLocalSettings(currentSettings);
+      }
+      
       setTabChanges(prev => ({ ...prev, [activeTab]: false }));
       setHasUnsavedChanges(false);
-      setMessage({ type: 'info', text: 'Changes cancelled' });
+      setMessage({ type: 'info', text: `${SETTINGS_TABS.find(s => s.id === activeTab)?.label || activeTab} changes cancelled` });
       setTimeout(() => setMessage({ type: '', text: '' }), 2000);
     }
-  }, [activeTab, isOpen]);
+  }, [activeTab, isOpen, initialStoreState]);
 
   // Render tab content
   const renderTabContent = () => {
     const currentTab = SETTINGS_TABS.find(tab => tab.id === activeTab);
-    const hasChanges = tabChanges[activeTab] || false;
+    const consolidatedStoreTabs = ['dock', 'time', 'wallpaper', 'channels', 'sounds', 'themes', 'shortcuts', 'layout'];
+    const hasChanges = consolidatedStoreTabs.includes(activeTab) 
+      ? hasConsolidatedStoreChanges(activeTab)
+      : (tabChanges[activeTab] || false);
     
     if (!currentTab) {
       return <div>Tab not found</div>;
@@ -879,9 +979,9 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
     const tabSettings = getTabSettings(activeTab);
 
     return (
-      <div className="relative h-full">
-        {/* Tab Content */}
-        <div className="pb-24"> {/* Add bottom padding for absolute footer */}
+      <div className="relative h-full flex flex-col">
+        {/* Tab Content with Scrollable Area */}
+        <div className="flex-1 overflow-y-auto pb-20"> {/* Add bottom padding for fixed footer */}
           <Suspense fallback={<div>Loading {currentTab.label} Settings...</div>}>
             <TabComponent 
               // Pass props based on the tab's expected interface
@@ -913,34 +1013,34 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
           </Suspense>
         </div>
 
-        {/* Persistent Footer - Only show when there are changes */}
-        {hasChanges && (
-          <div className="absolute bottom-0 left-0 right-0 bg-[hsl(var(--surface-primary))] border-t border-[hsl(var(--border-primary))] shadow-lg z-10 p-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-[hsl(var(--text-secondary))]">
-                  Unsaved changes in {currentTab.label}
-                </span>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={handleCancelChanges}
-                  className="px-4 py-2"
-                >
-                  Cancel Changes
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={() => handleTabSave(activeTab)}
-                  className="px-4 py-2"
-                >
-                  Save Changes
-                </Button>
-              </div>
+        {/* Fixed Footer - Always visible */}
+        <div className="absolute bottom-0 left-0 right-0 bg-[hsl(var(--surface-primary))] border-t border-[hsl(var(--border-primary))] shadow-lg z-10 p-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[hsl(var(--text-secondary))]">
+                {hasChanges ? `Unsaved changes in ${currentTab.label}` : `${currentTab.label} settings`}
+              </span>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                onClick={handleCancelChanges}
+                className="px-4 py-2"
+                disabled={!hasChanges}
+              >
+                Undo Changes
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => handleTabSave(activeTab)}
+                className="px-4 py-2"
+                disabled={!hasChanges}
+              >
+                Save Changes
+              </Button>
             </div>
           </div>
-        )}
+        </div>
       </div>
     );
   };
@@ -964,19 +1064,23 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
             </Button>
           </div>
           <div className="flex gap-2.5">
-            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-            <Button variant="primary" onClick={() => handleSave(handleClose)}>Save All</Button>
+            <Button variant="secondary" onClick={handleClose}>Close</Button>
           </div>
         </div>
       )}
     >
       {message.text && (
-        <Text 
-          variant="body" 
-          className={`message ${message.type} mb-2.5 font-medium`}
-        >
-          {message.text}
-        </Text>
+        <div className={`mb-4 p-3 rounded-lg border ${
+          message.type === 'success' 
+            ? 'bg-green-50 border-green-200 text-green-800' 
+            : message.type === 'error' 
+            ? 'bg-red-50 border-red-200 text-red-800' 
+            : 'bg-blue-50 border-blue-200 text-blue-800'
+        }`}>
+          <Text variant="body" className="font-medium">
+            {message.text}
+          </Text>
+        </div>
       )}
 
       {/* Sidebar Navigation */}
@@ -994,7 +1098,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-5 overflow-y-auto bg-[hsl(var(--surface-primary))] min-h-0 relative">
+        <div className="flex-1 p-5 bg-[hsl(var(--surface-primary))] min-h-0 relative">
           {renderTabContent()}
         </div>
       </div>

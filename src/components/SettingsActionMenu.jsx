@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, Fragment } from 'react';
 import PropTypes from 'prop-types';
+import { Dialog, Transition } from '@headlessui/react';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import WToggle from '../ui/WToggle';
 import Button from '../ui/WButton';
@@ -93,23 +94,6 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
     }, 300);
   }, [onClose]);
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (event) => {
-      if (!event.target.closest('.settings-action-menu')) {
-        handleClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, handleClose]);
-
   // Toggle functions
   const toggleDarkMode = useCallback(() => {
     console.log('[SettingsActionMenu] Toggling dark mode from:', isDarkMode, 'to:', !isDarkMode);
@@ -183,143 +167,159 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
   if (!isVisible) return null;
 
   return (
-    <div 
-      className={`settings-action-menu ${isOpen ? 'open' : ''}`}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        animation: isAnimating 
-          ? 'settingsMenuSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-          : 'settingsMenuSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-      }}
-    >
-      <div className="menu-content">
-        <div className="menu-header">
-          <h3>Quick Settings</h3>
-          <button 
-            className="close-button"
-            onClick={handleClose}
-            title="Close menu"
-          >
-            ✕
-          </button>
-        </div>
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-[10000]" onClose={handleClose}>
+        {/* Backdrop - synchronized with modal animation */}
+        <div 
+          className={`fixed inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 z-[9999] ${
+            isAnimating ? 'opacity-100' : 'opacity-0'
+          }`}
+          aria-hidden="true"
+        />
 
-        <div className="menu-section">
-          <h4>Quick Actions</h4>
-          <div className="toggle-item">
-            <WToggle
-              checked={classicMode}
-              onChange={toggleDockMode}
-              label="Classic Dock Mode"
-            />
-          </div>
-          <div className="toggle-item">
-            <WToggle
-              checked={isDarkMode}
-              onChange={toggleDarkMode}
-              label="Dark Mode"
-            />
-          </div>
-          <div className="toggle-item">
-            <WToggle
-              checked={useCustomCursor}
-              onChange={toggleCustomCursor}
-              label="Custom Cursor"
-            />
-          </div>
-          <div className="toggle-item">
-            <WToggle
-              checked={showDock}
-              onChange={toggleDock}
-              label="Show Dock"
-            />
-          </div>
-        </div>
+        {/* Menu Container */}
+        <div className="fixed inset-0 overflow-y-auto z-[10000]">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Dialog.Panel 
+              className={`settings-action-menu w-[95%] max-h-[85vh] min-w-[400px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[350px] md:w-[95%] md:min-w-[300px] sm:w-[98%] sm:min-w-[280px] relative z-[10000]`}
+              style={{
+                maxHeight: '70vh',
+                animation: isAnimating 
+                  ? 'settingsMenuSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                  : 'settingsMenuSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="menu-content">
+                <div className="menu-header">
+                  <Dialog.Title as="h3" className="m-0 text-xl font-semibold text-[hsl(var(--text-primary))]">
+                    Quick Settings
+                  </Dialog.Title>
+                  <button 
+                    className="close-button"
+                    onClick={handleClose}
+                    title="Close menu"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-        <div className="menu-section">
-          <h4>Window Controls</h4>
-          <div className="toggle-item">
-            <Button
-              variant="secondary"
-              onClick={toggleFrame}
-              className="action-button"
-            >
-              Toggle Frame
-            </Button>
-          </div>
-          <div className="toggle-item">
-            <Button
-              variant="secondary"
-              onClick={toggleFullscreen}
-              className="action-button"
-            >
-              Toggle Fullscreen
-            </Button>
-          </div>
-        </div>
+                <div className="menu-sections-container">
+                  <div className="menu-section">
+                    <h4>Quick Actions</h4>
+                    <div className="toggle-item">
+                      <WToggle
+                        checked={classicMode}
+                        onChange={toggleDockMode}
+                        label="Classic Dock Mode"
+                      />
+                    </div>
+                    <div className="toggle-item">
+                      <WToggle
+                        checked={isDarkMode}
+                        onChange={toggleDarkMode}
+                        label="Dark Mode"
+                      />
+                    </div>
+                    <div className="toggle-item">
+                      <WToggle
+                        checked={useCustomCursor}
+                        onChange={toggleCustomCursor}
+                        label="Custom Cursor"
+                      />
+                    </div>
+                    <div className="toggle-item">
+                      <WToggle
+                        checked={showDock}
+                        onChange={toggleDock}
+                        label="Show Dock"
+                      />
+                    </div>
+                  </div>
 
-        <div className="menu-section">
-          <h4>Advanced</h4>
-          <div className="toggle-item">
-            <Button
-              variant="secondary"
-              onClick={openSettingsModal}
-              className="action-button"
-            >
-              Open Settings
-            </Button>
-          </div>
-          <div className="toggle-item">
-            <Button
-              variant="secondary"
-              onClick={openSoundModal}
-              className="action-button"
-            >
-              Manage Sounds
-            </Button>
-          </div>
-          <div className="toggle-item">
-            <Button
-              variant="secondary"
-              onClick={openUpdatesTab}
-              className="action-button"
-            >
-              Check for Updates
-            </Button>
-          </div>
-          {process.env.NODE_ENV === 'development' && (
-            <div className="toggle-item">
-              <Button
-                variant="secondary"
-                onClick={openDevTools}
-                className="action-button"
-              >
-                Developer Tools
-              </Button>
-            </div>
-          )}
-        </div>
+                  <div className="menu-section">
+                    <h4>Window Controls</h4>
+                    <div className="toggle-item">
+                      <Button
+                        variant="secondary"
+                        onClick={toggleFrame}
+                        className="action-button"
+                      >
+                        Toggle Frame
+                      </Button>
+                    </div>
+                    <div className="toggle-item">
+                      <Button
+                        variant="secondary"
+                        onClick={toggleFullscreen}
+                        className="action-button"
+                      >
+                        Toggle Fullscreen
+                      </Button>
+                    </div>
+                  </div>
 
-        <div className="menu-section">
-          <h4>App</h4>
-          <div className="toggle-item">
-            <Button
-              variant="danger-primary"
-              onClick={closeApp}
-              className="action-button"
-            >
-              Close App
-            </Button>
+                  <div className="menu-section">
+                    <h4>Advanced</h4>
+                    <div className="toggle-item">
+                      <Button
+                        variant="secondary"
+                        onClick={openSettingsModal}
+                        className="action-button"
+                      >
+                        Open Settings
+                      </Button>
+                    </div>
+                    <div className="toggle-item">
+                      <Button
+                        variant="secondary"
+                        onClick={openSoundModal}
+                        className="action-button"
+                      >
+                        Manage Sounds
+                      </Button>
+                    </div>
+                    <div className="toggle-item">
+                      <Button
+                        variant="secondary"
+                        onClick={openUpdatesTab}
+                        className="action-button"
+                      >
+                        Check for Updates
+                      </Button>
+                    </div>
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="toggle-item">
+                        <Button
+                          variant="secondary"
+                          onClick={openDevTools}
+                          className="action-button"
+                        >
+                          Developer Tools
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="menu-section">
+                    <h4>App</h4>
+                    <div className="toggle-item">
+                      <Button
+                        variant="danger-primary"
+                        onClick={closeApp}
+                        className="action-button"
+                      >
+                        Close App
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Dialog.Panel>
           </div>
         </div>
-      </div>
-    </div>
+      </Dialog>
+    </Transition>
   );
 });
 

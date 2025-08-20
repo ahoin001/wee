@@ -52,6 +52,23 @@ const SoundsSettingsTab = React.memo(() => {
   const [audioRefs, setAudioRefs] = useState({});
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
+  
+  // Pending changes state - for settings that haven't been saved yet
+  const [pendingChanges, setPendingChanges] = useState({
+    backgroundMusicEnabled: soundSettings?.backgroundMusicEnabled ?? true,
+    backgroundMusicLooping: soundSettings?.backgroundMusicLooping ?? true,
+    backgroundMusicPlaylistMode: soundSettings?.backgroundMusicPlaylistMode ?? false,
+    channelClickEnabled: soundSettings?.channelClickEnabled ?? true,
+    channelHoverEnabled: soundSettings?.channelHoverEnabled ?? true
+  });
+  
+  // Track if there are unsaved changes
+  const hasUnsavedChanges = 
+    pendingChanges.backgroundMusicEnabled !== (soundSettings?.backgroundMusicEnabled ?? true) ||
+    pendingChanges.backgroundMusicLooping !== (soundSettings?.backgroundMusicLooping ?? true) ||
+    pendingChanges.backgroundMusicPlaylistMode !== (soundSettings?.backgroundMusicPlaylistMode ?? false) ||
+    pendingChanges.channelClickEnabled !== (soundSettings?.channelClickEnabled ?? true) ||
+    pendingChanges.channelHoverEnabled !== (soundSettings?.channelHoverEnabled ?? true);
 
   // Clear message after 3 seconds
   React.useEffect(() => {
@@ -252,6 +269,55 @@ const SoundsSettingsTab = React.memo(() => {
     }
   }, [toggleLike, showMessage]);
 
+  // Save all pending changes
+  const handleSaveSettings = useCallback(async () => {
+    try {
+      console.log('[SoundsSettingsTab] Saving pending changes:', pendingChanges);
+      
+      // Apply all pending changes
+      if (pendingChanges.backgroundMusicEnabled !== (soundSettings?.backgroundMusicEnabled ?? true)) {
+        await toggleBackgroundMusic(pendingChanges.backgroundMusicEnabled);
+      }
+      
+      if (pendingChanges.backgroundMusicLooping !== (soundSettings?.backgroundMusicLooping ?? true)) {
+        await toggleBackgroundMusicLooping(pendingChanges.backgroundMusicLooping);
+      }
+      
+      if (pendingChanges.backgroundMusicPlaylistMode !== (soundSettings?.backgroundMusicPlaylistMode ?? false)) {
+        await togglePlaylistMode(pendingChanges.backgroundMusicPlaylistMode);
+      }
+      
+      if (pendingChanges.channelClickEnabled !== (soundSettings?.channelClickEnabled ?? true)) {
+        // Update channel click settings using the sound manager
+        const enabledSounds = getEnabledSoundsByCategory('channelClick');
+        const enabledSound = enabledSounds[0];
+        updateChannelClickSound(pendingChanges.channelClickEnabled, enabledSound?.volume ?? 0.5);
+      }
+      
+      if (pendingChanges.channelHoverEnabled !== (soundSettings?.channelHoverEnabled ?? true)) {
+        // Update channel hover settings using the sound manager
+        const enabledSounds = getEnabledSoundsByCategory('channelHover');
+        const enabledSound = enabledSounds[0];
+        updateChannelHoverSound(pendingChanges.channelHoverEnabled, enabledSound?.volume ?? 0.5);
+      }
+      
+      showMessage('success', 'Sound settings saved successfully!');
+      console.log('[SoundsSettingsTab] All pending changes saved');
+      
+    } catch (err) {
+      console.error('[SoundsSettingsTab] Failed to save settings:', err);
+      showMessage('error', err.message || 'Failed to save sound settings');
+    }
+  }, [pendingChanges, soundSettings, toggleBackgroundMusic, toggleBackgroundMusicLooping, togglePlaylistMode, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, showMessage]);
+
+  // Handle pending changes updates
+  const handlePendingChange = useCallback((key, value) => {
+    setPendingChanges(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  }, []);
+
   // Drag and drop handlers for playlist reordering
   const handleDragStart = useCallback((e, soundId) => {
     if (!soundSettings.backgroundMusicPlaylistMode) return;
@@ -378,153 +444,32 @@ const SoundsSettingsTab = React.memo(() => {
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <WToggle
-                    checked={soundSettings?.backgroundMusicEnabled ?? true}
-                    onChange={(checked) => toggleBackgroundMusic(checked)}
+                    checked={pendingChanges.backgroundMusicEnabled}
+                    onChange={(checked) => handlePendingChange('backgroundMusicEnabled', checked)}
                     label="Enable Background Music"
                   />
                   
-                  {soundSettings?.backgroundMusicEnabled && (
+                  {pendingChanges.backgroundMusicEnabled && (
                     <>
                       <WToggle
-                        checked={soundSettings?.backgroundMusicLooping ?? true}
-                        onChange={(checked) => toggleBackgroundMusicLooping(checked)}
+                        checked={pendingChanges.backgroundMusicLooping}
+                        onChange={(checked) => handlePendingChange('backgroundMusicLooping', checked)}
                         label="Loop Music"
                       />
                       
                       <WToggle
-                        checked={soundSettings?.backgroundMusicPlaylistMode ?? false}
-                        onChange={(checked) => togglePlaylistMode(checked)}
+                        checked={pendingChanges.backgroundMusicPlaylistMode}
+                        onChange={(checked) => handlePendingChange('backgroundMusicPlaylistMode', checked)}
                         label="Playlist Mode (Play liked sounds in order)"
                       />
                       
-                      {/* Debug button for background music */}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          console.log('[SoundsSettingsTab] Manual background music update triggered');
-                          updateBackgroundMusic();
-                        }}
-                        style={{ marginTop: '8px' }}
-                      >
-                        Test Background Music
-                      </Button>
-                      
-                      {/* Debug button to check AudioManager state */}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          console.log('[SoundsSettingsTab] Checking AudioManager state...');
-                          if (audioManager) {
-                            console.log('[SoundsSettingsTab] AudioManager:', audioManager);
-                            console.log('[SoundsSettingsTab] Background audio:', audioManager.backgroundAudio);
-                            console.log('[SoundsSettingsTab] Background audio paused:', audioManager.backgroundAudio?.paused);
-                            console.log('[SoundsSettingsTab] Background audio src:', audioManager.backgroundAudio?.src);
-                            console.log('[SoundsSettingsTab] Background audio volume:', audioManager.backgroundAudio?.volume);
-                          } else {
-                            console.log('[SoundsSettingsTab] AudioManager not available');
-                          }
-                        }}
-                        style={{ marginTop: '8px' }}
-                      >
-                        Debug AudioManager
-                      </Button>
-                      
-                      {/* Debug button to test sound URLs */}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          console.log('[SoundsSettingsTab] Testing sound URLs...');
-                          const backgroundMusic = soundLibrary.backgroundMusic || [];
-                          console.log('[SoundsSettingsTab] All background music:', backgroundMusic);
-                          
-                          backgroundMusic.forEach((sound, index) => {
-                            console.log(`[SoundsSettingsTab] Sound ${index}:`, {
-                              name: sound.name,
-                              url: sound.url,
-                              enabled: sound.enabled,
-                              volume: sound.volume,
-                              filename: sound.filename
-                            });
-                            
-                            // Test if the URL is accessible
-                            if (sound.url) {
-                              const testAudio = new Audio(sound.url);
-                              testAudio.addEventListener('canplaythrough', () => {
-                                console.log(`[SoundsSettingsTab] ✅ Sound ${sound.name} URL is accessible`);
-                              });
-                              testAudio.addEventListener('error', (e) => {
-                                console.error(`[SoundsSettingsTab] ❌ Sound ${sound.name} URL failed:`, e);
-                                console.error(`[SoundsSettingsTab] Error details:`, {
-                                  error: testAudio.error,
-                                  readyState: testAudio.readyState,
-                                  networkState: testAudio.networkState
-                                });
-                              });
-                              testAudio.load();
-                            }
-                          });
-                        }}
-                        style={{ marginTop: '8px' }}
-                      >
-                        Test Sound URLs
-                      </Button>
-                      
-                      {/* Debug button to test immediate background music start */}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          console.log('[SoundsSettingsTab] Testing immediate background music start...');
-                          console.log('[SoundsSettingsTab] Current sound settings:', soundSettings);
-                          console.log('[SoundsSettingsTab] Background music enabled:', soundSettings?.backgroundMusicEnabled);
-                          console.log('[SoundsSettingsTab] Enabled background music sounds:', getEnabledSoundsByCategory('backgroundMusic'));
-                          
-                          if (soundSettings?.backgroundMusicEnabled) {
-                            console.log('[SoundsSettingsTab] ✅ Background music should be playing now');
-                            updateBackgroundMusic();
-                          } else {
-                            console.log('[SoundsSettingsTab] ❌ Background music is disabled');
-                          }
-                        }}
-                        style={{ marginTop: '8px' }}
-                      >
-                        Test Immediate Start
-                      </Button>
-                      
-                      {/* Debug button to test AudioManager readiness */}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          console.log('[SoundsSettingsTab] Testing AudioManager readiness...');
-                          console.log('[SoundsSettingsTab] AudioManager:', audioManager);
-                          console.log('[SoundsSettingsTab] AudioManager ready:', audioManager ? 'Yes' : 'No');
-                          console.log('[SoundsSettingsTab] Background music enabled:', soundSettings?.backgroundMusicEnabled);
-                          console.log('[SoundsSettingsTab] Enabled background music sounds:', getEnabledSoundsByCategory('backgroundMusic'));
-                          
-                          if (audioManager && soundSettings?.backgroundMusicEnabled) {
-                            console.log('[SoundsSettingsTab] ✅ Conditions met for background music');
-                            updateBackgroundMusic();
-                          } else {
-                            console.log('[SoundsSettingsTab] ❌ Conditions not met for background music');
-                            if (!audioManager) console.log('[SoundsSettingsTab]   - AudioManager not available');
-                            if (!soundSettings?.backgroundMusicEnabled) console.log('[SoundsSettingsTab]   - Background music not enabled');
-                          }
-                        }}
-                        style={{ marginTop: '8px' }}
-                      >
-                        Test AudioManager Readiness
-                      </Button>
               </>
             )}
           </div>
               </div>
 
               {/* Playlist Mode Info */}
-              {soundSettings?.backgroundMusicEnabled && soundSettings?.backgroundMusicPlaylistMode && (
+              {pendingChanges.backgroundMusicEnabled && pendingChanges.backgroundMusicPlaylistMode && (
                 <div style={{ 
                   padding: '15px', 
                   background: '#d1ecf1', 
@@ -543,7 +488,7 @@ const SoundsSettingsTab = React.memo(() => {
               )}
 
           {/* Background Music Disabled Warning */}
-              {!soundSettings?.backgroundMusicEnabled && (
+              {!pendingChanges.backgroundMusicEnabled && (
             <div style={{ 
               padding: '15px', 
               background: '#fff3cd', 
@@ -560,6 +505,74 @@ const SoundsSettingsTab = React.memo(() => {
               </div>
           )}
 
+          {/* Channel Click Settings */}
+          {category.key === 'channelClick' && (
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '12px',
+                padding: '16px',
+                background: 'hsl(var(--surface-secondary))',
+                borderRadius: '8px',
+                border: '1px solid hsl(var(--border-primary))',
+                marginBottom: '16px'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid hsl(var(--border-primary))'
+                }}>
+                  <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
+                    Channel Click Settings
+                  </Text>
+                </div>
+                
+                <WToggle
+                  checked={pendingChanges.channelClickEnabled}
+                  onChange={(checked) => handlePendingChange('channelClickEnabled', checked)}
+                  label="Enable Channel Click Sounds"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Channel Hover Settings */}
+          {category.key === 'channelHover' && (
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '12px',
+                padding: '16px',
+                background: 'hsl(var(--surface-secondary))',
+                borderRadius: '8px',
+                border: '1px solid hsl(var(--border-primary))',
+                marginBottom: '16px'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid hsl(var(--border-primary))'
+                }}>
+                  <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
+                    Channel Hover Settings
+                  </Text>
+                </div>
+                
+                <WToggle
+                  checked={pendingChanges.channelHoverEnabled}
+                  onChange={(checked) => handlePendingChange('channelHoverEnabled', checked)}
+                  label="Enable Channel Hover Sounds"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Other category test buttons */}
           {category.key === 'channelClick' && (
             <div style={{ marginBottom: '16px' }}>
@@ -567,7 +580,7 @@ const SoundsSettingsTab = React.memo(() => {
                 variant="secondary"
                 size="sm"
                 onClick={handleTestChannelClick}
-                disabled={!soundSettings?.channelClickEnabled || enabledSounds.length === 0}
+                disabled={!pendingChanges.channelClickEnabled || enabledSounds.length === 0}
               >
                 Test Channel Click Sound
               </Button>
@@ -580,7 +593,7 @@ const SoundsSettingsTab = React.memo(() => {
                 variant="secondary"
                 size="sm"
                 onClick={handleTestChannelHover}
-                disabled={!soundSettings?.channelHoverEnabled || enabledSounds.length === 0}
+                disabled={!pendingChanges.channelHoverEnabled || enabledSounds.length === 0}
               >
                 Test Channel Hover Sound
               </Button>
@@ -605,19 +618,19 @@ const SoundsSettingsTab = React.memo(() => {
                   background: sound.enabled ? 'hsl(var(--surface-secondary))' : 'hsl(var(--surface-tertiary))',
                   border: '1px solid hsl(var(--border-primary))',
                   borderRadius: '8px',
-                  opacity: category.key === 'backgroundMusic' && !soundSettings?.backgroundMusicEnabled ? 0.6 : 1,
-                  cursor: category.key === 'backgroundMusic' && soundSettings?.backgroundMusicPlaylistMode ? 'grab' : 'default',
+                  opacity: category.key === 'backgroundMusic' && !pendingChanges.backgroundMusicEnabled ? 0.6 : 1,
+                  cursor: category.key === 'backgroundMusic' && pendingChanges.backgroundMusicPlaylistMode ? 'grab' : 'default',
                   transform: draggedItem === sound.id ? 'scale(0.98)' : 'none',
                   transition: 'all 0.2s ease'
                 }}
-                draggable={category.key === 'backgroundMusic' && soundSettings?.backgroundMusicPlaylistMode}
+                draggable={category.key === 'backgroundMusic' && pendingChanges.backgroundMusicPlaylistMode}
                 onDragStart={(e) => handleDragStart(e, sound.id)}
                 onDragOver={(e) => handleDragOver(e, sound.id)}
                 onDrop={(e) => handleDrop(e, sound.id)}
                 onDragEnd={handleDragEnd}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                  {category.key === 'backgroundMusic' && soundSettings?.backgroundMusicPlaylistMode && (
+                  {category.key === 'backgroundMusic' && pendingChanges.backgroundMusicPlaylistMode && (
                     <span style={{ cursor: 'grab', fontSize: '16px' }} title="Drag to reorder">⋮⋮</span>
                   )}
                   
@@ -647,7 +660,7 @@ const SoundsSettingsTab = React.memo(() => {
                     min={0}
                     max={1}
                     step={0.01}
-                          disabled={category.key === 'backgroundMusic' && !soundSettings?.backgroundMusicEnabled}
+                          disabled={category.key === 'backgroundMusic' && !pendingChanges.backgroundMusicEnabled}
                           style={{ flex: 1 }}
                   />
                         <span style={{ fontSize: '12px', minWidth: '30px' }}>
@@ -674,7 +687,7 @@ const SoundsSettingsTab = React.memo(() => {
                       size="sm" 
                       onClick={() => handleTestSound(category.key, sound)} 
                       style={{ minWidth: 60 }}
-                      disabled={category.key === 'backgroundMusic' && !soundSettings?.backgroundMusicEnabled}
+                      disabled={category.key === 'backgroundMusic' && !pendingChanges.backgroundMusicEnabled}
                     >
                       Test
                     </Button>
@@ -686,7 +699,7 @@ const SoundsSettingsTab = React.memo(() => {
                       size="sm" 
                       onClick={() => handleToggleLike(sound.id)}
                       title={sound.liked ? 'Unlike' : 'Like'}
-                      disabled={!soundSettings?.backgroundMusicEnabled}
+                      disabled={!pendingChanges.backgroundMusicEnabled}
                       style={{ 
                         minWidth: 40, 
                         padding: '4px 8px',
@@ -712,7 +725,7 @@ const SoundsSettingsTab = React.memo(() => {
             <WToggle
                     checked={!!sound.enabled}
                     onChange={() => handleToggleSound(category.key, sound.id)}
-                    disabled={category.key === 'backgroundMusic' && !soundSettings?.backgroundMusicEnabled}
+                    disabled={category.key === 'backgroundMusic' && !pendingChanges.backgroundMusicEnabled}
                   />
                 </div>
               </div>
@@ -755,6 +768,14 @@ const SoundsSettingsTab = React.memo(() => {
             Manage background music, channel click sounds, and hover effects
           </p>
         </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleSaveSettings}
+          disabled={!hasUnsavedChanges}
+        >
+          {hasUnsavedChanges ? 'Save Changes' : 'No Changes to Save'}
+        </Button>
       </div>
 
       {/* Error/Message Display */}

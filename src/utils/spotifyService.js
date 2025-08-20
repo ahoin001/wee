@@ -270,24 +270,49 @@ class SpotifyService {
       const playback = await this.spotifyApi.getMyCurrentPlaybackState();
       
       if (playback && playback.item) {
-        this.currentTrack = {
+        // Return the full Spotify API response structure
+        // This matches the official Spotify Web API documentation
+        const currentTrack = {
           id: playback.item.id,
           name: playback.item.name,
-          artist: playback.item.artists[0].name,
-          album: playback.item.album.name,
-          albumArt: playback.item.album.images[0]?.url,
-          duration: playback.item.duration_ms,
-          progress: playback.progress_ms,
-          isPlaying: playback.is_playing
+          artists: playback.item.artists, // Array of artist objects
+          album: {
+            name: playback.item.album.name,
+            images: playback.item.album.images, // Array of image objects
+            id: playback.item.album.id
+          },
+          duration_ms: playback.item.duration_ms,
+          uri: playback.item.uri,
+          type: playback.item.type,
+          popularity: playback.item.popularity,
+          explicit: playback.item.explicit,
+          external_urls: playback.item.external_urls,
+          href: playback.item.href
         };
+
+        // Update internal state
+        this.currentTrack = currentTrack;
         this.isPlaying = playback.is_playing;
         this.deviceId = playback.device?.id;
+        
+        // Return the full playback object with current track
+        return {
+          item: currentTrack,
+          is_playing: playback.is_playing,
+          progress_ms: playback.progress_ms,
+          duration_ms: playback.item.duration_ms,
+          device: playback.device,
+          shuffle_state: playback.shuffle_state,
+          repeat_state: playback.repeat_state,
+          context: playback.context,
+          timestamp: playback.timestamp
+        };
       } else {
+        // No active playback
         this.currentTrack = null;
         this.isPlaying = false;
+        return null;
       }
-      
-      return this.currentTrack;
     } catch (error) {
       console.error('[SPOTIFY] Get current playback error:', error);
       

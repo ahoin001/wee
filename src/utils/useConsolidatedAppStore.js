@@ -634,6 +634,118 @@ const spotifyManager = {
       console.error('[SpotifyManager] Skip to previous error:', error);
       throw error;
     }
+  },
+
+  // Additional functions needed by FloatingSpotifyWidget
+  refreshPlaybackState: async () => {
+    try {
+      const spotifyService = (await import('./spotifyService')).default;
+      const playback = await spotifyService.getCurrentPlayback();
+      
+      if (playback && playback.item) {
+        const store = useConsolidatedAppStore.getState();
+        store.actions.setSpotifyState({
+          currentTrack: playback.item,
+          isPlaying: playback.is_playing,
+          progress: playback.progress_ms,
+          duration: playback.duration_ms,
+          deviceId: playback.device?.id,
+          shuffleState: playback.shuffle_state,
+          repeatState: playback.repeat_state
+        });
+        return playback;
+      } else {
+        // No active playback
+        const store = useConsolidatedAppStore.getState();
+        store.actions.setSpotifyState({
+          currentTrack: null,
+          isPlaying: false,
+          progress: 0,
+          duration: 0
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error('[SpotifyManager] Refresh playback state error:', error);
+      return null;
+    }
+  },
+
+  loadPlaylists: async () => {
+    try {
+      const spotifyService = (await import('./spotifyService')).default;
+      return await spotifyService.getUserPlaylists();
+    } catch (error) {
+      console.error('[SpotifyManager] Load playlists error:', error);
+      return [];
+    }
+  },
+
+  loadSavedTracks: async () => {
+    try {
+      const spotifyService = (await import('./spotifyService')).default;
+      return await spotifyService.getSavedTracks();
+    } catch (error) {
+      console.error('[SpotifyManager] Load saved tracks error:', error);
+      return [];
+    }
+  },
+
+  getUserProfile: async () => {
+    try {
+      const spotifyService = (await import('./spotifyService')).default;
+      return await spotifyService.getUserProfile();
+    } catch (error) {
+      console.error('[SpotifyManager] Get user profile error:', error);
+      return null;
+    }
+  },
+
+  searchTracks: async (query, limit = 20) => {
+    try {
+      const spotifyService = (await import('./spotifyService')).default;
+      return await spotifyService.searchTracks(query, limit);
+    } catch (error) {
+      console.error('[SpotifyManager] Search tracks error:', error);
+      return [];
+    }
+  },
+
+  playTrack: async (trackId) => {
+    try {
+      const spotifyService = (await import('./spotifyService')).default;
+      return await spotifyService.playTrack(trackId);
+    } catch (error) {
+      console.error('[SpotifyManager] Play track error:', error);
+      throw error;
+    }
+  },
+
+  playPlaylist: async (playlistId) => {
+    try {
+      const spotifyService = (await import('./spotifyService')).default;
+      return await spotifyService.playPlaylist(playlistId);
+    } catch (error) {
+      console.error('[SpotifyManager] Play playlist error:', error);
+      throw error;
+    }
+  },
+
+  seekToPosition: async (positionMs) => {
+    try {
+      const spotifyService = (await import('./spotifyService')).default;
+      return await spotifyService.seekToPosition(positionMs);
+    } catch (error) {
+      console.error('[SpotifyManager] Seek to position error:', error);
+      throw error;
+    }
+  },
+
+  updateSpotifySettings: (settings) => {
+    const store = useConsolidatedAppStore.getState();
+    store.actions.setSpotifyState({
+      settings: { ...store.spotify.settings, ...settings }
+    });
   }
 };
 
@@ -899,26 +1011,27 @@ const useConsolidatedAppStore = create(
           
           // Custom themes
           customThemes: {},
+          
+          // Particle system settings
+          particleSystemEnabled: false,
+          particleEffectType: 'normal',
+          particleDirection: 'upward',
+          particleSpeed: 2,
+          particleCount: 3,
+          particleSpawnRate: 60,
+          particleSize: 3,
+          particleGravity: 0.02,
+          particleFadeSpeed: 0.008,
+          particleSizeDecay: 0.02,
+          particleUseAdaptiveColor: false,
+          particleColorIntensity: 1.0,
+          particleColorVariation: 0.3,
+          particleRotationSpeed: 0.05,
+          particleLifetime: 3.0,
+          particleCustomColors: [],
         },
 
-        // Particle effects
-        particles: {
-          enabled: false,
-          effectType: 'normal',
-          direction: 'upward',
-          speed: 2,
-          particleCount: 3,
-          spawnRate: 60,
-          size: 3,
-          gravity: 0.02,
-          fadeSpeed: 0.008,
-          sizeDecay: 0.02,
-          useAdaptiveColor: false,
-          colorIntensity: 1.0,
-          colorVariation: 0.3,
-          rotationSpeed: 0.05,
-          particleLifetime: 3.0
-        },
+
 
         // Audio state
         audio: {
@@ -981,14 +1094,26 @@ const useConsolidatedAppStore = create(
         // Spotify state
         spotify: {
           isConnected: false,
+          currentUser: null,
           accessToken: null,
           refreshToken: null,
           currentTrack: null,
           isPlaying: false,
+          progress: 0,
+          duration: 0,
           volume: 50,
           deviceId: null,
           error: null,
           loading: false,
+          settings: {
+            dynamicColors: true,
+            useBlurredBackground: true, // Enabled by default
+            blurAmount: 2, // 2px blur by default
+            autoShowWidget: false,
+            visualizerType: 'bars',
+            trackInfoPanelOpacity: 0.8,
+            trackInfoPanelBlur: 10
+          }
         },
 
         // Navigation state
@@ -1042,6 +1167,11 @@ const useConsolidatedAppStore = create(
             visible: false,
             position: { x: 20, y: 100 },
             updateInterval: 5, // Default 5 seconds
+            // System info data
+            data: null,
+            isLoading: false,
+            error: null,
+            lastUpdated: null,
             // Particle system settings
             particleEnabled: false,
             particleEffectType: 'normal',
@@ -1051,6 +1181,10 @@ const useConsolidatedAppStore = create(
           adminPanel: {
             visible: false,
             position: { x: 20, y: 180 },
+            // Admin panel configuration
+            config: {
+              powerActions: []
+            }
           },
           performanceMonitor: {
             visible: false,
@@ -1147,6 +1281,31 @@ const useConsolidatedAppStore = create(
             };
           }),
           
+          // Channel config actions
+          updateChannelConfig: (channelId, configData) => set((state) => {
+            // Ensure the channels data structure exists
+            const channelsData = state.channels?.data || {};
+            const channelConfigs = channelsData.channelConfigs || {};
+            
+            return {
+              channels: {
+                ...state.channels,
+                data: {
+                  ...channelsData,
+                  channelConfigs: {
+                    ...channelConfigs,
+                    [channelId]: configData === null 
+                      ? undefined // Remove config if null is passed
+                      : {
+                          ...channelConfigs[channelId],
+                          ...configData
+                        }
+                  }
+                }
+              }
+            };
+          }),
+          
           // Navigation actions
           setChannelNavigation: (updates) => set((state) => ({
             channels: {
@@ -1163,10 +1322,7 @@ const useConsolidatedAppStore = create(
             dock: { ...state.dock, ...updates }
           })),
 
-          // Particle actions
-          setParticleState: (updates) => set((state) => ({
-            particles: { ...state.particles, ...updates }
-          })),
+
 
           // Audio actions
           setAudioState: (updates) => set((state) => ({
@@ -1207,6 +1363,30 @@ const useConsolidatedAppStore = create(
             const isVisible = store.floatingWidgets.spotify.visible;
             store.actions.setFloatingWidgetsState({
               spotify: { ...store.floatingWidgets.spotify, visible: !isVisible }
+            });
+          },
+
+          toggleSystemInfoWidget: () => {
+            const store = useConsolidatedAppStore.getState();
+            const isVisible = store.floatingWidgets.systemInfo.visible;
+            store.actions.setFloatingWidgetsState({
+              systemInfo: { ...store.floatingWidgets.systemInfo, visible: !isVisible }
+            });
+          },
+
+          toggleAdminPanelWidget: () => {
+            const store = useConsolidatedAppStore.getState();
+            const isVisible = store.floatingWidgets.adminPanel.visible;
+            store.actions.setFloatingWidgetsState({
+              adminPanel: { ...store.floatingWidgets.adminPanel, visible: !isVisible }
+            });
+          },
+
+          togglePerformanceMonitorWidget: () => {
+            const store = useConsolidatedAppStore.getState();
+            const isVisible = store.floatingWidgets.performanceMonitor.visible;
+            store.actions.setFloatingWidgetsState({
+              performanceMonitor: { ...store.floatingWidgets.performanceMonitor, visible: !isVisible }
             });
           },
 
@@ -1436,7 +1616,7 @@ const useConsolidatedAppStore = create(
           time: state.time,
           channels: state.channels,
           dock: state.dock,
-          particles: state.particles,
+
           presets: state.presets,
         }),
       }
@@ -1910,6 +2090,137 @@ const floatingWidgetManager = {
     store.actions.setFloatingWidgetsState({
       performanceMonitor: { ...store.floatingWidgets.performanceMonitor, visible: !isVisible }
     });
+  },
+
+  // System info manager functions
+  updateSystemInfoData: (data) => {
+    const store = useConsolidatedAppStore.getState();
+    console.log('[Store] Updating system info data:', data);
+    store.actions.setFloatingWidgetsState({
+      systemInfo: { 
+        ...store.floatingWidgets.systemInfo, 
+        data,
+        isLoading: false,
+        error: null,
+        lastUpdated: Date.now()
+      }
+    });
+    console.log('[Store] System info data updated successfully');
+  },
+
+  setSystemInfoLoading: (isLoading) => {
+    const store = useConsolidatedAppStore.getState();
+    console.log('[Store] Setting system info loading:', isLoading);
+    store.actions.setFloatingWidgetsState({
+      systemInfo: { 
+        ...store.floatingWidgets.systemInfo, 
+        isLoading,
+        error: isLoading ? null : store.floatingWidgets.systemInfo.error
+      }
+    });
+  },
+
+  setSystemInfoError: (error) => {
+    const store = useConsolidatedAppStore.getState();
+    console.log('[Store] Setting system info error:', error);
+    store.actions.setFloatingWidgetsState({
+      systemInfo: { 
+        ...store.floatingWidgets.systemInfo, 
+        error,
+        isLoading: false
+      }
+    });
+  },
+
+  updateSystemInfoInterval: (interval) => {
+    const store = useConsolidatedAppStore.getState();
+    store.actions.setFloatingWidgetsState({
+      systemInfo: { 
+        ...store.floatingWidgets.systemInfo, 
+        updateInterval: interval
+      }
+    });
+  },
+
+  fetchSystemInfo: async () => {
+    const store = useConsolidatedAppStore.getState();
+    const systemInfoWidget = store.floatingWidgets.systemInfo;
+    
+    console.log('[Store] fetchSystemInfo called, widget visible:', systemInfoWidget.visible);
+    
+    if (!systemInfoWidget.visible) return;
+    
+    store.actions.floatingWidgetManager.setSystemInfoLoading(true);
+    
+    try {
+      console.log('[Store] Making API call to getSystemInfo...');
+      const response = await window.api.getSystemInfo();
+      console.log('[Store] API response:', response);
+      
+      if (response && response.success && response.data) {
+        console.log('[Store] API call successful, updating data...');
+        store.actions.floatingWidgetManager.updateSystemInfoData(response.data);
+      } else {
+        console.error('[Store] API call failed:', response);
+        const errorMessage = response?.error || 'Failed to fetch system info';
+        store.actions.floatingWidgetManager.setSystemInfoError(errorMessage);
+      }
+    } catch (error) {
+      console.error('[Store] Failed to fetch system info:', error);
+      store.actions.floatingWidgetManager.setSystemInfoError(`Failed to fetch: ${error.message}`);
+    }
+  },
+
+  // Admin panel manager functions
+  updateAdminPanelConfig: (config) => {
+    const store = useConsolidatedAppStore.getState();
+    store.actions.setFloatingWidgetsState({
+      adminPanel: { 
+        ...store.floatingWidgets.adminPanel, 
+        config
+      }
+    });
+  },
+
+  addPowerAction: (action) => {
+    const store = useConsolidatedAppStore.getState();
+    const currentConfig = store.floatingWidgets.adminPanel.config;
+    const newPowerActions = [...currentConfig.powerActions, action];
+    
+    store.actions.floatingWidgetManager.updateAdminPanelConfig({
+      ...currentConfig,
+      powerActions: newPowerActions
+    });
+  },
+
+  removePowerAction: (actionId) => {
+    const store = useConsolidatedAppStore.getState();
+    const currentConfig = store.floatingWidgets.adminPanel.config;
+    const newPowerActions = currentConfig.powerActions.filter(pa => pa.id !== actionId);
+    
+    store.actions.floatingWidgetManager.updateAdminPanelConfig({
+      ...currentConfig,
+      powerActions: newPowerActions
+    });
+  },
+
+  updatePowerAction: (actionId, updatedAction) => {
+    const store = useConsolidatedAppStore.getState();
+    const currentConfig = store.floatingWidgets.adminPanel.config;
+    const newPowerActions = currentConfig.powerActions.map(pa => 
+      pa.id === actionId ? updatedAction : pa
+    );
+    
+    store.actions.floatingWidgetManager.updateAdminPanelConfig({
+      ...currentConfig,
+      powerActions: newPowerActions
+    });
+  },
+
+  executePowerAction: (action) => {
+    if (window.api && window.api.executeCommand) {
+      window.api.executeCommand(action.command);
+    }
   }
 };
 

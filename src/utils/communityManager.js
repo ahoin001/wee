@@ -4,41 +4,34 @@ import { communityService } from './communityService';
 class CommunityManager {
   constructor() {
     this.useBuiltInSupabase = !!supabase;
-    console.log('[COMMUNITY] Using built-in Supabase:', this.useBuiltInSupabase);
   }
 
-  // Browse presets - tries built-in first, falls back to backend
-  async browsePresets(searchTerm = '', sortBy = 'created_at') {
+  // Browse presets using the appropriate method
+  async browsePresets() {
     if (this.useBuiltInSupabase) {
-      console.log('[COMMUNITY] Using built-in Supabase for browsing');
-      return await getSharedPresets(searchTerm, sortBy);
+      return await this.browsePresetsWithSupabase();
     } else {
-      console.log('[COMMUNITY] Using backend proxy for browsing');
-      return await communityService.browsePresets(searchTerm, sortBy);
+      return await this.browsePresetsWithBackend();
     }
   }
 
-  // Download preset - tries built-in first, falls back to backend
-  async downloadPreset(preset) {
+  // Download preset using the appropriate method
+  async downloadPreset(presetId) {
     if (this.useBuiltInSupabase) {
-      console.log('[COMMUNITY] Using built-in Supabase for download');
-      return await downloadPresetFromSupabase(preset.id);
+      return await this.downloadPresetWithSupabase(presetId);
     } else {
-      console.log('[COMMUNITY] Using backend proxy for download');
-      return await communityService.downloadPreset(preset.id);
+      return await this.downloadPresetWithBackend(presetId);
     }
   }
 
-  // Upload preset - always uses backend proxy for security
-  async uploadPreset(presetData, formData) {
-    console.log('[COMMUNITY] Using backend proxy for upload (secure)');
-    return await uploadPreset(presetData, formData);
+  // Upload preset using backend proxy (secure)
+  async uploadPreset(presetData) {
+    return await this.uploadPresetWithBackend(presetData);
   }
 
-  // Delete preset - always uses backend proxy for security
+  // Delete preset using backend proxy (secure)
   async deletePreset(presetId) {
-    console.log('[COMMUNITY] Using backend proxy for delete (secure)');
-    return await communityService.deletePreset(presetId);
+    return await this.deletePresetWithBackend(presetId);
   }
 
   // Check if community features are available

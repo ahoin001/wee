@@ -367,7 +367,6 @@ export const memoryManager = {
         window.gc();
       }
 
-      console.log('[MemoryManager] Cleanup completed');
     } catch (error) {
       console.error('[MemoryManager] Cleanup failed:', error);
     }
@@ -388,7 +387,6 @@ export const memoryManager = {
   cleanupEventListeners: () => {
     // This would require tracking event listeners
     // For now, we'll just log the cleanup
-    console.log('[MemoryManager] Event listener cleanup completed');
   },
 
   /**
@@ -397,7 +395,6 @@ export const memoryManager = {
   cleanupTimers: () => {
     // This would require tracking timers
     // For now, we'll just log the cleanup
-    console.log('[MemoryManager] Timer cleanup completed');
   },
 
   /**

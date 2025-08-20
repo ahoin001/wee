@@ -13,13 +13,21 @@ const useKeyboardShortcuts = () => {
     console.log('[KeyboardShortcuts] Shortcuts loaded:', {
       shortcutsCount: keyboardShortcuts.length,
       shortcuts: keyboardShortcuts,
-      ui: ui
+      ui: ui,
+      hasUI: !!ui,
+      hasActions: !!actions,
+      hasResetFunction: !!actions?.resetKeyboardShortcuts
     });
     
     // Initialize shortcuts if they're empty
     if (keyboardShortcuts.length === 0) {
       console.log('[KeyboardShortcuts] No shortcuts found, initializing...');
-      actions.resetKeyboardShortcuts();
+      if (actions?.resetKeyboardShortcuts) {
+        actions.resetKeyboardShortcuts();
+        console.log('[KeyboardShortcuts] Reset function called');
+      } else {
+        console.error('[KeyboardShortcuts] Reset function not available!');
+      }
     }
   }, [keyboardShortcuts, ui, actions]);
 
@@ -77,10 +85,133 @@ const useKeyboardShortcuts = () => {
     // Debug: Initialize shortcuts if they're empty
     window.initializeShortcuts = () => {
       const store = useConsolidatedAppStore.getState();
+      console.log('[KeyboardShortcuts] Manual initialization called');
+      console.log('[KeyboardShortcuts] Store state:', {
+        hasUI: !!store.ui,
+        hasKeyboardShortcuts: !!store.ui?.keyboardShortcuts,
+        shortcutsLength: store.ui?.keyboardShortcuts?.length || 0,
+        hasActions: !!store.actions,
+        hasResetFunction: !!store.actions?.resetKeyboardShortcuts
+      });
+      
       if (!store.ui.keyboardShortcuts || store.ui.keyboardShortcuts.length === 0) {
         console.log('[KeyboardShortcuts] Initializing shortcuts...');
-        store.actions.resetKeyboardShortcuts();
-        console.log('[KeyboardShortcuts] Shortcuts initialized:', store.ui.keyboardShortcuts);
+        if (store.actions?.resetKeyboardShortcuts) {
+          store.actions.resetKeyboardShortcuts();
+          console.log('[KeyboardShortcuts] Shortcuts initialized:', store.ui.keyboardShortcuts);
+        } else {
+          console.error('[KeyboardShortcuts] Reset function not available in store!');
+        }
+      } else {
+        console.log('[KeyboardShortcuts] Shortcuts already exist:', store.ui.keyboardShortcuts.length);
+      }
+    };
+    
+    // Debug: Check shortcuts state
+    window.checkShortcuts = () => {
+      const store = useConsolidatedAppStore.getState();
+      console.log('[KeyboardShortcuts] Current shortcuts state:', {
+        ui: store.ui,
+        keyboardShortcuts: store.ui?.keyboardShortcuts,
+        shortcutsCount: store.ui?.keyboardShortcuts?.length || 0,
+        actions: Object.keys(store.actions || {}),
+        hasResetFunction: !!store.actions?.resetKeyboardShortcuts
+      });
+    };
+    
+    // Debug: Comprehensive shortcuts test
+    window.debugShortcuts = () => {
+      console.log('[KeyboardShortcuts] === COMPREHENSIVE SHORTCUTS DEBUG ===');
+      
+      // Check store state
+      const store = useConsolidatedAppStore.getState();
+      console.log('[KeyboardShortcuts] Store state:', {
+        hasUI: !!store.ui,
+        hasKeyboardShortcuts: !!store.ui?.keyboardShortcuts,
+        shortcutsLength: store.ui?.keyboardShortcuts?.length || 0,
+        hasActions: !!store.actions,
+        hasResetFunction: !!store.actions?.resetKeyboardShortcuts,
+        actionsKeys: Object.keys(store.actions || {})
+      });
+      
+      // Check if DEFAULT_SHORTCUTS is available
+      import('./keyboardShortcuts').then(({ DEFAULT_SHORTCUTS }) => {
+        console.log('[KeyboardShortcuts] DEFAULT_SHORTCUTS imported:', {
+          length: DEFAULT_SHORTCUTS?.length || 0,
+          firstShortcut: DEFAULT_SHORTCUTS?.[0],
+          isArray: Array.isArray(DEFAULT_SHORTCUTS)
+        });
+        
+        // Try to manually set shortcuts
+        if (DEFAULT_SHORTCUTS && DEFAULT_SHORTCUTS.length > 0) {
+          const shortcuts = DEFAULT_SHORTCUTS.map(shortcut => ({
+            ...shortcut,
+            key: shortcut.defaultKey,
+            modifier: shortcut.defaultModifier,
+            enabled: true
+          }));
+          
+          store.actions.setUIState({ keyboardShortcuts: shortcuts });
+          console.log('[KeyboardShortcuts] Shortcuts manually set:', shortcuts.length);
+          
+          // Verify they were set
+          setTimeout(() => {
+            const newStore = useConsolidatedAppStore.getState();
+            console.log('[KeyboardShortcuts] After manual set:', {
+              shortcutsCount: newStore.ui?.keyboardShortcuts?.length || 0,
+              shortcuts: newStore.ui?.keyboardShortcuts
+            });
+          }, 100);
+        }
+      }).catch(error => {
+        console.error('[KeyboardShortcuts] Failed to import DEFAULT_SHORTCUTS:', error);
+      });
+      
+      console.log('[KeyboardShortcuts] === END DEBUG ===');
+    };
+    
+    // Debug: Manually set shortcuts if reset isn't working
+    window.forceSetShortcuts = () => {
+      const store = useConsolidatedAppStore.getState();
+      console.log('[KeyboardShortcuts] Force setting shortcuts...');
+      
+      // Import DEFAULT_SHORTCUTS dynamically
+      import('./keyboardShortcuts').then(({ DEFAULT_SHORTCUTS }) => {
+        const shortcuts = DEFAULT_SHORTCUTS.map(shortcut => ({
+          ...shortcut,
+          key: shortcut.defaultKey,
+          modifier: shortcut.defaultModifier,
+          enabled: true
+        }));
+        
+        store.actions.setUIState({ keyboardShortcuts: shortcuts });
+        console.log('[KeyboardShortcuts] Shortcuts force set:', shortcuts.length);
+      }).catch(error => {
+        console.error('[KeyboardShortcuts] Failed to import DEFAULT_SHORTCUTS:', error);
+      });
+    };
+
+    // Test shortcuts after they are loaded
+    window.testShortcutsAfterLoad = () => {
+      console.log('[KeyboardShortcuts] Testing shortcuts after load...');
+      // Test a few common shortcuts to ensure they are registered
+      const testKey = 'ctrl';
+      const testModifier = 'alt';
+      const testKey2 = 'shift';
+      const testModifier2 = 'none';
+
+      const handled1 = handleGlobalShortcut(testKey, testModifier, keyboardShortcuts);
+      const handled2 = handleGlobalShortcut(testKey2, testModifier2, keyboardShortcuts);
+
+      if (handled1) {
+        console.log('[KeyboardShortcuts] Test shortcut 1 handled successfully');
+      } else {
+        console.warn('[KeyboardShortcuts] Test shortcut 1 not handled as expected.');
+      }
+      if (handled2) {
+        console.log('[KeyboardShortcuts] Test shortcut 2 handled successfully');
+      } else {
+        console.warn('[KeyboardShortcuts] Test shortcut 2 not handled as expected.');
       }
     };
     
@@ -201,6 +332,10 @@ const useKeyboardShortcuts = () => {
     return () => {
       delete window.handleGlobalShortcut;
       delete window.initializeShortcuts;
+      delete window.checkShortcuts;
+      delete window.debugShortcuts;
+      delete window.forceSetShortcuts;
+      delete window.testShortcutsAfterLoad;
       delete window.openSettingsModal;
       delete window.toggleSpotifyWidget;
       delete window.toggleSystemInfoWidget;

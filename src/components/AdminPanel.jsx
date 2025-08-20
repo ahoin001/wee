@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
@@ -167,11 +167,15 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
     setPowerActions(newActions);
   };
 
-  const handleSave = () => {
-    const currentActions = powerActionsRef.current;
-    onSave({ powerActions: currentActions });
+  const handleSave = useCallback(() => {
+    const currentActions = powerActionsRef.current.map(action => ({
+      ...action,
+      enabled: action.enabled || false
+    }));
+
+    onSave(currentActions);
     onClose();
-  };
+  }, [powerActionsRef.current, onSave, onClose]);
 
   const handleQuickExecute = (action) => {
     if (window.api && window.api.executeCommand) {

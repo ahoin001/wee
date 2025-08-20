@@ -2,8 +2,13 @@ import { performanceUtils } from './usePerformanceMonitor.jsx';
 
 // Data analytics system
 export class DataAnalytics {
-  constructor() {
+  constructor(options = {}) {
+    this.enabled = options.enabled !== false;
+    this.endpoint = options.endpoint || '/api/analytics';
+    this.batchSize = options.batchSize || 10;
+    this.flushInterval = options.flushInterval || 30000;
     this.events = [];
+    this.flushTimer = null;
     this.metrics = new Map();
     this.performanceData = [];
     this.userActions = [];
@@ -37,21 +42,19 @@ export class DataAnalytics {
   }
 
   // Track an event
-  trackEvent(eventName, data = {}) {
-    if (!this.analyticsEnabled) return;
+  trackEvent(eventName, properties = {}) {
+    if (!this.enabled) return;
 
     const event = {
       name: eventName,
-      data,
-      timestamp: Date.now(),
-      sessionId: this.getSessionId()
+      properties,
+      timestamp: Date.now()
     };
 
     this.events.push(event);
-    this.trimEvents();
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Analytics] Event tracked:', event);
+    if (this.events.length >= this.batchSize) {
+      this.flush();
     }
   }
 

@@ -9,7 +9,6 @@ class AuthService {
     // Listen for auth state changes
     if (supabase) {
       supabase.auth.onAuthStateChange((event, session) => {
-        // console.log('[AUTH SERVICE] Auth state changed:', event, session?.user?.email);
         this.user = session?.user || null;
         this.isAnonymous = !this.user;
         this.notifyListeners();
@@ -44,13 +43,10 @@ class AuthService {
     }
 
     try {
-      console.log('[AUTH] Calling supabase.auth.signUp...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
-      
-      console.log('[AUTH] Sign up result:', { data: data ? 'Success' : 'No data', error });
       
       if (error) {
         console.error('[AUTH] Sign up error:', error);
@@ -76,13 +72,10 @@ class AuthService {
     }
 
     try {
-      console.log('[AUTH] Calling supabase.auth.signInWithPassword...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
-      console.log('[AUTH] Sign in result:', { data: data ? 'Success' : 'No data', error });
       
       if (error) {
         console.error('[AUTH] Sign in error:', error);

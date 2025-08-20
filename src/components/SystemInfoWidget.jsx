@@ -3,28 +3,39 @@ import Card from '../ui/Card';
 import Text from '../ui/Text';
 import WButton from '../ui/WButton';
 import Slider from '../ui/Slider';
-// import useSettingsStore from '../utils/settingsManager';
+import { useFloatingWidgetsState } from '../utils/useConsolidatedAppHooks';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import './SystemInfoWidget.css';
 
 const SystemInfoWidget = ({ isVisible, onClose }) => {
-  const { 
-    floatingWidgets, 
-    updateSystemInfo, 
-    setSystemInfoLoading, 
-    updateSystemInfoInterval,
-    setSystemInfoWidgetPosition 
-  } = useSettingsStore();
-
+  const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
+  
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const widgetRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Get system info data from settings manager
-  const systemInfo = floatingWidgets?.systemInfo?.systemInfo;
-  const isLoading = floatingWidgets?.systemInfo?.isLoading;
-  const updateInterval = floatingWidgets?.systemInfo?.updateInterval || 0;
-  const systemInfoPosition = floatingWidgets?.systemInfo?.position || { x: 400, y: 100 };
+  // Get system info widget state from floating widgets
+  const systemInfoWidget = floatingWidgets.systemInfo;
+  const systemInfoPosition = systemInfoWidget.position;
+  const updateInterval = systemInfoWidget.updateInterval || 5;
+  const systemInfoData = systemInfoWidget.data;
+  const isLoading = systemInfoWidget.isLoading;
+  const error = systemInfoWidget.error;
+
+  // Update system info widget position
+  const setSystemInfoWidgetPosition = (position) => {
+    setFloatingWidgetsState({
+      systemInfo: { ...systemInfoWidget, position }
+    });
+  };
+
+  // Update system info interval
+  const updateSystemInfoInterval = (interval) => {
+    setFloatingWidgetsState({
+      systemInfo: { ...systemInfoWidget, updateInterval: interval }
+    });
+  };
 
   // Dragging logic
   const handleMouseDown = useCallback((e) => {
@@ -64,22 +75,34 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Fetch system info
+  // Fetch system info using store manager
   const fetchSystemInfo = useCallback(async () => {
     if (!isVisible) return;
     
-    setSystemInfoLoading(true);
+    console.log('[SystemInfoWidget] Fetching system info...');
+    const { actions } = useConsolidatedAppStore.getState();
+    
     try {
+      // Set loading state first
+      actions.floatingWidgetManager.setSystemInfoLoading(true);
+      
+      console.log('[SystemInfoWidget] Making direct API call...');
       const response = await window.api.getSystemInfo();
-      if (response.success) {
-        updateSystemInfo(response.data);
+      console.log('[SystemInfoWidget] Direct API response:', response);
+      
+      if (response && response.success && response.data) {
+        console.log('[SystemInfoWidget] API call successful, updating store...');
+        actions.floatingWidgetManager.updateSystemInfoData(response.data);
+      } else {
+        console.error('[SystemInfoWidget] API call failed:', response);
+        const errorMessage = response?.error || 'API call failed';
+        actions.floatingWidgetManager.setSystemInfoError(errorMessage);
       }
     } catch (error) {
-      console.error('Failed to fetch system info:', error);
-    } finally {
-      setSystemInfoLoading(false);
+      console.error('[SystemInfoWidget] Failed to fetch system info:', error);
+      actions.floatingWidgetManager.setSystemInfoError(`Failed to fetch: ${error.message}`);
     }
-  }, [isVisible, setSystemInfoLoading, updateSystemInfo]);
+  }, [isVisible]);
 
   // Set up interval for automatic updates
   useEffect(() => {
@@ -100,9 +123,30 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
   // Initial fetch when widget becomes visible
   useEffect(() => {
     if (isVisible) {
+      console.log('[SystemInfoWidget] Widget became visible, fetching system info...');
       fetchSystemInfo();
     }
   }, [isVisible, fetchSystemInfo]);
+
+  // Test API on mount
+  useEffect(() => {
+    console.log('[SystemInfoWidget] Testing API availability...');
+    if (window.api && window.api.getSystemInfo) {
+      console.log('[SystemInfoWidget] API is available');
+      
+      // Test the API call
+      window.api.getSystemInfo().then(response => {
+        console.log('[SystemInfoWidget] Test API response:', response);
+        if (response && response.success) {
+          console.log('[SystemInfoWidget] Test API data:', response.data);
+        }
+      }).catch(error => {
+        console.error('[SystemInfoWidget] Test API error:', error);
+      });
+    } else {
+      console.error('[SystemInfoWidget] API is not available');
+    }
+  }, []);
 
   // Handle item click to open relevant applications
   const handleItemClick = useCallback((itemType) => {
@@ -126,43 +170,80 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
 
   // Format system info for display
   const formattedSystemInfo = useMemo(() => {
-    if (!systemInfo) return null;
+    if (!systemInfoData) return null;
+
+    // Handle both old and new data structures
+    const cpu = systemInfoData.cpu || {};
+    const memory = systemInfoData.memory || {};
+    const gpu = systemInfoData.gpu || {};
+    const storage = systemInfoData.storage || {};
+    const battery = systemInfoData.battery || {};
+
+    // Handle storage array vs single object
+    const storageData = Array.isArray(storage) ? storage[0] || {} : storage;
 
     return {
       cpu: {
-        model: systemInfo.cpu?.model || 'Unknown',
-        usage: systemInfo.cpu?.usage || 0,
-        cores: systemInfo.cpu?.cores || 0,
-        temperature: systemInfo.cpu?.temperature || 0
+        model: cpu.model || 'Unknown',
+        usage: cpu.usage || 0,
+        cores: cpu.cores || 0,
+        temperature: cpu.temperature || 0
       },
       memory: {
-        total: systemInfo.memory?.total || 0,
-        used: systemInfo.memory?.used || 0,
-        free: systemInfo.memory?.free || 0,
-        usage: systemInfo.memory?.usage || 0
+        total: memory.total || 0,
+        used: memory.used || 0,
+        free: memory.free || 0,
+        usage: memory.usage || 0
       },
       gpu: {
-        model: systemInfo.gpu?.model || 'Unknown',
-        usage: systemInfo.gpu?.usage || 0,
-        memory: systemInfo.gpu?.memory || 0,
-        temperature: systemInfo.gpu?.temperature || 0
+        model: gpu.name || gpu.model || 'Unknown',
+        usage: gpu.usage || 0,
+        memory: gpu.memory || 0,
+        temperature: gpu.temperature || 0
       },
       storage: {
-        total: systemInfo.storage?.total || 0,
-        used: systemInfo.storage?.used || 0,
-        free: systemInfo.storage?.free || 0,
-        usage: systemInfo.storage?.usage || 0
+        total: storageData.total || 0,
+        used: storageData.used || 0,
+        free: storageData.free || 0,
+        usage: storageData.usage || 0
       },
       battery: {
-        level: systemInfo.battery?.level || 0,
-        charging: systemInfo.battery?.charging || false,
-        timeRemaining: systemInfo.battery?.timeRemaining || 0
+        level: battery.level || 0,
+        charging: battery.charging || battery.isCharging || false,
+        timeRemaining: battery.timeRemaining || battery.timeLeft || 0
       }
     };
-  }, [systemInfo]);
+  }, [systemInfoData]);
+
+  // Debug: Log system info data (moved after formattedSystemInfo definition)
+  useEffect(() => {
+    console.log('[SystemInfoWidget] System info data updated:', {
+      hasData: !!systemInfoData,
+      dataKeys: systemInfoData ? Object.keys(systemInfoData) : [],
+      isLoading,
+      error,
+      formattedInfo: formattedSystemInfo
+    });
+  }, [systemInfoData, isLoading, error, formattedSystemInfo]);
+
+  // Format bytes to human readable
+  const formatBytes = useCallback((bytes) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }, []);
+
+  // Get usage color based on percentage
+  const getUsageColor = useCallback((percentage) => {
+    if (percentage >= 80) return 'text-red-400';
+    if (percentage >= 60) return 'text-yellow-400';
+    return 'text-green-400';
+  }, []);
 
   // Render metric card
-  const renderMetricCard = useCallback((title, value, unit, percentage, icon, onClick, className = '') => {
+  const renderMetricCard = useCallback((title, value, unit, percentage, icon, onClick, className = '', subtitle = '') => {
     return (
       <div 
         className={`metric-card ${onClick ? 'clickable-item' : ''} ${className}`}
@@ -176,6 +257,11 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
           <Text variant="h3" className="metric-number">{value}</Text>
           {unit && <Text variant="caption" className="metric-unit">{unit}</Text>}
         </div>
+        {subtitle && (
+          <Text variant="caption" className="metric-subtitle" style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '10px', marginBottom: '8px' }}>
+            {subtitle}
+          </Text>
+        )}
         {percentage !== undefined && (
           <div className="metric-progress">
             <div className="progress-bar">
@@ -250,7 +336,8 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
               formattedSystemInfo.cpu.usage,
               '🖥️',
               () => handleItemClick('taskManager'),
-              'cpu-card'
+              'cpu-card',
+              `${formattedSystemInfo.cpu.cores} cores`
             )}
 
             {/* Memory */}
@@ -261,7 +348,8 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
               formattedSystemInfo.memory.usage,
               '💾',
               () => handleItemClick('taskManager'),
-              'memory-card'
+              'memory-card',
+              `${formatBytes(formattedSystemInfo.memory.used)} / ${formatBytes(formattedSystemInfo.memory.total)}`
             )}
 
             {/* GPU */}
@@ -272,7 +360,8 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
               formattedSystemInfo.gpu.usage,
               '🎮',
               () => handleItemClick('taskManager'),
-              'gpu-card'
+              'gpu-card',
+              formattedSystemInfo.gpu.memory > 0 ? formatBytes(formattedSystemInfo.gpu.memory) : 'Unknown'
             )}
 
             {/* Storage */}
@@ -283,7 +372,8 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
               formattedSystemInfo.storage.usage,
               '💿',
               () => handleItemClick('fileExplorer'),
-              'storage-card'
+              'storage-card',
+              `${formatBytes(formattedSystemInfo.storage.used)} / ${formatBytes(formattedSystemInfo.storage.total)}`
             )}
 
             {/* Battery */}
@@ -316,14 +406,90 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
         ) : (
           <div className="error-state">
             <div className="error-icon">⚠️</div>
-            <Text variant="body" className="error-text">Failed to load system info</Text>
-            <WButton
-              variant="secondary"
-              onClick={fetchSystemInfo}
-              className="retry-btn"
-            >
-              Retry
-            </WButton>
+            <Text variant="body" className="error-text">
+              {error || 'Failed to load system info'}
+            </Text>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <WButton
+                variant="secondary"
+                onClick={fetchSystemInfo}
+                className="retry-btn"
+              >
+                Retry
+              </WButton>
+              <WButton
+                variant="secondary"
+                onClick={() => {
+                  console.log('[SystemInfoWidget] Testing API call...');
+                  window.api.getSystemInfo().then(response => {
+                    console.log('[SystemInfoWidget] Test API response:', response);
+                  }).catch(error => {
+                    console.error('[SystemInfoWidget] Test API error:', error);
+                  });
+                }}
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                Test API
+              </WButton>
+              <WButton
+                variant="secondary"
+                onClick={() => {
+                  console.log('[SystemInfoWidget] Testing store update with mock data...');
+                  const { actions } = useConsolidatedAppStore.getState();
+                  const mockData = {
+                    cpu: {
+                      model: 'Intel Core i5-12400F',
+                      usage: 25.5,
+                      cores: 12,
+                      temperature: 45
+                    },
+                    memory: {
+                      total: 17032929280,
+                      used: 8000000000,
+                      free: 9032929280,
+                      usage: 47.0
+                    },
+                    storage: [{
+                      name: 'C:',
+                      total: 1000000000000,
+                      used: 500000000000,
+                      usage: 50.0
+                    }],
+                    gpu: {
+                      name: 'NVIDIA GeForce RTX 3060',
+                      memory: 12000000000,
+                      usage: 15.0,
+                      temperature: 55
+                    },
+                    battery: null
+                  };
+                  actions.floatingWidgetManager.updateSystemInfoData(mockData);
+                }}
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                Test Store
+              </WButton>
+            </div>
           </div>
         )}
       </div>

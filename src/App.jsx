@@ -22,6 +22,10 @@ const LazyClassicWiiDock = React.lazy(() => import('./components/ClassicWiiDock'
 const LazyWiiSideNavigation = React.lazy(() => import('./components/WiiSideNavigation'));
 const LazySettingsModal = React.lazy(() => import('./components/SettingsModal'));
 const LazySettingsActionMenu = React.lazy(() => import('./components/SettingsActionMenu'));
+const LazyFloatingSpotifyWidget = React.lazy(() => import('./components/FloatingSpotifyWidget'));
+const LazySystemInfoWidget = React.lazy(() => import('./components/SystemInfoWidget'));
+const LazyAdminPanelWidget = React.lazy(() => import('./components/AdminPanelWidget'));
+const LazyPerformanceMonitor = React.lazy(() => import('./components/PerformanceMonitor'));
 
 
 
@@ -63,6 +67,7 @@ function App() {
       wind,
       gravity
     },
+    floatingWidgets,
     // Time settings using individual hooks for proper property mapping
   } = useConsolidatedAppStore();
 
@@ -86,6 +91,41 @@ function App() {
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
+
+  // Debug: Log floating widgets state
+  useEffect(() => {
+    console.log('[App] Floating widgets state:', {
+      spotify: floatingWidgets.spotify.visible,
+      systemInfo: floatingWidgets.systemInfo.visible,
+      adminPanel: floatingWidgets.adminPanel.visible,
+      performanceMonitor: floatingWidgets.performanceMonitor.visible
+    });
+  }, [floatingWidgets]);
+
+  // Debug: Add global function to enable Spotify widget for testing
+  useEffect(() => {
+    window.enableSpotifyWidget = () => {
+      const { actions } = useConsolidatedAppStore.getState();
+      actions.toggleSpotifyWidget();
+      console.log('[App] Spotify widget toggled via debug function');
+    };
+    
+    window.showAllWidgets = () => {
+      const { actions } = useConsolidatedAppStore.getState();
+      actions.setFloatingWidgetsState({
+        spotify: { ...floatingWidgets.spotify, visible: true },
+        systemInfo: { ...floatingWidgets.systemInfo, visible: true },
+        adminPanel: { ...floatingWidgets.adminPanel, visible: true },
+        performanceMonitor: { ...floatingWidgets.performanceMonitor, visible: true }
+      });
+      console.log('[App] All widgets enabled via debug function');
+    };
+    
+    return () => {
+      delete window.enableSpotifyWidget;
+      delete window.showAllWidgets;
+    };
+  }, [floatingWidgets]);
 
   // Initialize background music when app is ready
   useEffect(() => {
@@ -1052,7 +1092,7 @@ function App() {
     // Force re-render when transition state changes
     const transitionKey = `${cyclingTransitioning}-${cyclingProgress}-${cyclingSlideProgress}-${cyclingSlideDirection}-${forceUpdate}`;
 
-    return (
+  return (
       <div key={transitionKey}>
         {/* Current Wallpaper Background */}
         {currentWallpaper && currentWallpaper.url && (
@@ -1073,8 +1113,8 @@ function App() {
             data-debug={`current-${cycleAnimation}-${cyclingTransitioning}-${cyclingProgress.toFixed(3)}`}
           />
         )}
-        
-        {/* Next Wallpaper Background for Transitions */}
+            
+            {/* Next Wallpaper Background for Transitions */}
         {cyclingTransitioning && nextWallpaper && nextWallpaper.url && (
           <div
             className="wallpaper-bg-next"
@@ -1088,7 +1128,7 @@ function App() {
               pointerEvents: 'none',
               background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
               ...getNextWallpaperStyle(),
-              transition: 'none',
+                  transition: 'none',
             }}
             data-debug={`next-${cycleAnimation}-${cyclingTransitioning}-${cyclingProgress.toFixed(3)}`}
           />
@@ -1271,7 +1311,52 @@ function App() {
           )}
         </Suspense>
 
-
+        {/* Floating Widgets */}
+        <Suspense fallback={<div>Loading widgets...</div>}>
+          {/* Spotify Widget */}
+          {floatingWidgets.spotify.visible && (
+            <LazyFloatingSpotifyWidget 
+              isVisible={floatingWidgets.spotify.visible}
+              onClose={() => {
+                const { actions } = useConsolidatedAppStore.getState();
+                actions.toggleSpotifyWidget();
+              }}
+            />
+          )}
+          
+          {/* System Info Widget */}
+          {floatingWidgets.systemInfo.visible && (
+            <LazySystemInfoWidget 
+              isVisible={floatingWidgets.systemInfo.visible}
+              onClose={() => {
+                const { actions } = useConsolidatedAppStore.getState();
+                actions.toggleSystemInfoWidget();
+              }}
+            />
+          )}
+          
+          {/* Admin Panel Widget */}
+          {floatingWidgets.adminPanel.visible && (
+            <LazyAdminPanelWidget 
+              isVisible={floatingWidgets.adminPanel.visible}
+              onClose={() => {
+                const { actions } = useConsolidatedAppStore.getState();
+                actions.toggleAdminPanelWidget();
+              }}
+            />
+          )}
+          
+          {/* Performance Monitor Widget */}
+          {floatingWidgets.performanceMonitor.visible && (
+            <LazyPerformanceMonitor 
+              isVisible={floatingWidgets.performanceMonitor.visible}
+              onClose={() => {
+                const { actions } = useConsolidatedAppStore.getState();
+                actions.togglePerformanceMonitorWidget();
+              }}
+            />
+          )}
+        </Suspense>
 
 
       </div>

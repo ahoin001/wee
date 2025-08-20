@@ -8,79 +8,63 @@ class AudioManager {
 
   // Get or create an audio instance for a URL
   getAudioInstance(url) {
-    console.log('[AudioManager] getAudioInstance called for URL:', url);
-    
-    if (!this.audioInstances.has(url)) {
-      console.log('[AudioManager] Creating new audio instance for:', url);
-      const audio = new Audio(url);
-      audio.preload = 'none'; // Don't preload to save memory
-      
-      // Add error handling to prevent memory leaks from failed loads
-      audio.addEventListener('error', (e) => {
-        console.error('[AudioManager] Audio failed to load:', url, e);
-        console.error('[AudioManager] Audio error details:', {
-          error: audio.error,
-          readyState: audio.readyState,
-          networkState: audio.networkState
-        });
-        this.audioInstances.delete(url);
-      }, { once: true });
-      
-      // Add load event to confirm successful loading
-      audio.addEventListener('canplaythrough', () => {
-        console.log('[AudioManager] Audio loaded successfully:', url);
-      }, { once: true });
-      
-      this.audioInstances.set(url, audio);
-    } else {
-      console.log('[AudioManager] Reusing existing audio instance for:', url);
+    // Check if we already have an instance for this URL
+    if (this.audioInstances.has(url)) {
+      const instance = this.audioInstances.get(url);
+      if (instance.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+        return instance;
+      }
     }
-    return this.audioInstances.get(url);
+
+    // Create new audio instance
+    const audio = new Audio();
+    audio.preload = 'auto';
+    
+    // Store the instance
+    this.audioInstances.set(url, audio);
+    
+    // Load the audio
+    audio.src = url;
+    audio.load();
+    
+    return audio;
   }
 
   // Play a sound with proper cleanup and concurrency limits
-  async playSound(url, volume = 0.6, options = {}) {
-    // Check concurrent sound limit
-    if (this.activeSounds.size >= this.maxConcurrentSounds && !options.background) {
-      console.log('Too many concurrent sounds, skipping:', url);
+  async playSound(url, volume = 0.7, loop = false) {
+    // Limit concurrent sounds
+    if (this.activeSounds.size >= this.maxConcurrentSounds) {
       return;
     }
 
     try {
       const audio = this.getAudioInstance(url);
       
-      // Always ensure volume is set correctly (this fixes the volume change bug)
-      audio.volume = volume;
-      
-      // Reset audio state
-      audio.currentTime = 0;
-      audio.loop = options.loop || false;
-      
-      // Add to active sounds if not background
-      if (!options.background) {
-        this.activeSounds.add(audio);
-        
-        // Remove from active sounds when finished
-        const onEnded = () => {
-          this.activeSounds.delete(audio);
-          audio.removeEventListener('ended', onEnded);
-        };
-        audio.addEventListener('ended', onEnded);
+      // Wait for audio to be ready
+      if (audio.readyState < 2) {
+        await new Promise((resolve, reject) => {
+          audio.addEventListener('canplaythrough', resolve, { once: true });
+          audio.addEventListener('error', reject, { once: true });
+        });
       }
 
+      // Set properties
+      audio.volume = volume;
+      audio.loop = loop;
+      
+      // Play the sound
       await audio.play();
       
-      // For non-looping sounds, ensure cleanup
-      if (!options.loop && !options.background) {
-        setTimeout(() => {
-          if (this.activeSounds.has(audio)) {
-            this.activeSounds.delete(audio);
-          }
-        }, 10000); // Fallback cleanup after 10 seconds
-      }
+      // Track active sound
+      this.activeSounds.add(audio);
+      
+      // Remove from active sounds when ended
+      audio.addEventListener('ended', () => {
+        this.activeSounds.delete(audio);
+      }, { once: true });
       
     } catch (error) {
-      console.error('Failed to play audio:', url, error);
+      console.error('Error playing sound:', error);
     }
   }
 

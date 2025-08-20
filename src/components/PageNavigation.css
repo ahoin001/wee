@@ -2,7 +2,7 @@
 
 .page-navigation {
   position: fixed;
-  bottom: 140px;
+  bottom: 200px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
