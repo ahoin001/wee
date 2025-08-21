@@ -4,7 +4,7 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
 import ImageSearchModal from './ImageSearchModal';
 import ChannelModal from './ChannelModal';
-// import audioManager from '../utils/AudioManager'; // Now using useSoundManager instead
+
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import KenBurnsImage from './KenBurnsImage';
 import { useChannelState, useRibbonState } from '../utils/useConsolidatedAppHooks';
@@ -78,12 +78,11 @@ const Channel = React.memo(({
   
   // Floating widget store
   const { ui } = useConsolidatedAppStore();
-  const showWidget = ui?.showWidget;
   
   // Auto-fade is now handled at grid level in PaginatedChannels
   
   // Use sound manager for centralized sound handling
-  const { playChannelHoverSound, stopAllSounds } = useSoundManager();
+  const { playChannelHoverSound, playChannelClickSound, stopAllSounds } = useSoundManager();
   
   // Memoize effective values to prevent unnecessary recalculations
   const effectiveConfig = useMemo(() => storeChannelConfig || channelConfig, [storeChannelConfig, channelConfig]);
@@ -236,24 +235,22 @@ const Channel = React.memo(({
     // Handle API channels (Spotify, etc.)
     if (effectiveConfig?.isApiChannel && effectiveConfig?.apiConfig?.selectedApi) {
       // Play channel click sound if enabled
-      try {
-        if (window.api?.sounds?.getLibrary) {
-          const library = await window.api.sounds.getLibrary();
-          const enabledClickSound = library?.channelClick?.find(s => s.enabled);
-          if (enabledClickSound) {
-            await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to load sound library:', error);
-      }
+      await playChannelClickSound();
       
       // Handle different API types
       const apiType = effectiveConfig.apiConfig.selectedApi;
       
       if (apiType === 'spotify') {
         // Show floating widget for Spotify integration
-        showWidget();
+        if (window.api?.ui?.showSpotifyWidget) {
+          window.api.ui.showSpotifyWidget();
+        } else {
+          // Fallback: use consolidated store directly
+          const { actions } = useConsolidatedAppStore.getState();
+          actions.setFloatingWidgetsState({
+            spotify: { visible: true }
+          });
+        }
       } else {
         // Future API integrations can be added here
       }
@@ -265,17 +262,7 @@ const Channel = React.memo(({
       handleConfigure();
     } else if (effectivePath) {
       // Play channel click sound if enabled
-      try {
-        if (window.api?.sounds?.getLibrary) {
-          const library = await window.api.sounds.getLibrary();
-          const enabledClickSound = library?.channelClick?.find(s => s.enabled);
-          if (enabledClickSound) {
-            await audioManager.playSound(enabledClickSound.url, enabledClickSound.volume ?? 0.5);
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to load sound library:', error);
-      }
+      await playChannelClickSound();
       
       // Launch app or URL
       if (effectiveType === 'url' && effectivePath.startsWith('http')) {

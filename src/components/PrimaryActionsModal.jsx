@@ -127,7 +127,9 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
 
   useEffect(() => {
     if (useAdaptiveColor && savedIcons.length > 0) {
-      const rgbColor = hexToRgb(ribbonGlowColor);
+      // Use the same color logic as WiiRibbon for consistency
+      const colorToUse = ribbonGlowColor;
+      const rgbColor = hexToRgb(colorToUse);
       const newTintedImages = {};
 
       savedIcons.forEach(icon => {
@@ -138,9 +140,9 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             const tintedUrl = await tintImage(img, rgbColor);
             newTintedImages[icon.url] = tintedUrl;
             setTintedImages(prev => ({ ...prev, ...newTintedImages }));
-          } catch (error) {
-            console.error('Error tinting image:', error);
-          }
+                  } catch (error) {
+          console.error('[PrimaryActionsModal] Error tinting image:', error);
+        }
         };
         img.src = icon.url;
       });
@@ -206,10 +208,27 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     return originalUrl;
   };
 
-  // Helper function to convert hex color to RGB array
-  const hexToRgb = (hexColor) => {
-    // Remove # if present
-    const hex = hexColor.replace('#', '');
+  // Helper function to convert hex or RGB color to RGB array
+  const hexToRgb = (color) => {
+    // Handle undefined or null values
+    if (!color || typeof color !== 'string') {
+      return [0, 153, 255]; // Default blue color
+    }
+    
+    // Handle RGB format (e.g., "rgb(255, 0, 0)")
+    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+      const [, r, g, b] = rgbMatch;
+      return [parseInt(r, 10), parseInt(g, 10), parseInt(b, 10)];
+    }
+    
+    // Handle hex format
+    const hex = color.replace('#', '');
+    
+    // Validate hex format
+    if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
+      return [0, 153, 255]; // Default blue color
+    }
     
     // Convert hex to RGB
     const r = parseInt(hex.substr(0, 2), 16);
@@ -272,7 +291,8 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     
     // Generate tinted images for all saved icons when adaptive color is enabled
     if (checked && savedIcons.length > 0) {
-      const rgbColor = hexToRgb(ribbonGlowColor);
+      const colorToUse = ribbonGlowColor;
+      const rgbColor = hexToRgb(colorToUse);
       const newTintedImages = {};
       
       for (const icon of savedIcons) {
@@ -286,7 +306,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
           };
           img.src = icon.url;
         } catch (error) {
-          console.error('Error tinting image:', error);
+          console.error('[PrimaryActionsModal] Error tinting image:', error);
         }
       }
     } else if (!checked) {

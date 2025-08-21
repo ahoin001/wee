@@ -1071,20 +1071,7 @@ const PresetsSettingsTab = React.memo(() => {
     });
   };
 
-  // Handle Wallpaper Overlay toggle
-  const handleWallpaperOverlayToggle = (enabled) => {
-    console.log('[DEBUG] 📋 [PresetsSettingsTab] Toggling Wallpaper Overlay:', enabled);
-    
-    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-    
-    setSpotifyState({
-      immersiveMode: {
-        ...currentImmersiveMode,
-        wallpaperOverlay: enabled
-      }
-    });
-  };
+
 
   // Handle Ambient Lighting toggle
   const handleAmbientLightingToggle = (enabled) => {
@@ -1116,35 +1103,7 @@ const PresetsSettingsTab = React.memo(() => {
     });
   };
 
-  // Handle Overlay Intensity change
-  const handleOverlayIntensityChange = (value) => {
-    console.log('[DEBUG] 📋 [PresetsSettingsTab] Changing Overlay Intensity:', value);
-    
-    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-    
-    setSpotifyState({
-      immersiveMode: {
-        ...currentImmersiveMode,
-        overlayIntensity: value
-      }
-    });
-  };
 
-  // Handle Ambient Intensity change
-  const handleAmbientIntensityChange = (value) => {
-    console.log('[DEBUG] 📋 [PresetsSettingsTab] Changing Ambient Intensity:', value);
-    
-    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-    
-    setSpotifyState({
-      immersiveMode: {
-        ...currentImmersiveMode,
-        ambientIntensity: value
-      }
-    });
-  };
 
   // Handle Live Gradient Wallpaper toggle
   const handleLiveGradientWallpaperToggle = (enabled) => {
@@ -1285,63 +1244,93 @@ const PresetsSettingsTab = React.memo(() => {
       {/* Spotify Match Preset - Special Toggle */}
       {presets.some(p => p.name === 'Spotify Match') && (
         <Card 
-          style={{ marginBottom: 18 }} 
-          title="🎵 Spotify Match" 
-          separator
-          desc="Automatically match your WiiRibbon colors to the currently playing Spotify track's album art."
+          variant="wii-emphasis"
+          color="green"
+          icon="🎵"
+          title="Spotify Match"
+          subtitle="Dynamic Color Matching"
+          style={{ marginBottom: 18 }}
+          noHover={true}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
-            <div style={{ flex: 1 }}>
-              <Text size="lg" style={{ fontWeight: 600, marginBottom: 4 }}>
-                Dynamic Color Matching
-              </Text>
-              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginBottom: 8 }}>
+          {/* Main Toggle Section */}
+          <div style={{ 
+            background: 'rgba(255, 255, 255, 0.7)', 
+            borderRadius: '12px', 
+            padding: '16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ marginBottom: 12 }}>
+              <Text size="sm" color="#2C3E50" style={{ marginBottom: 8, lineHeight: '1.4' }}>
                 When enabled, your ribbon colors, glow effects, and time display will automatically adapt to match the colors from your currently playing Spotify track's album art.
               </Text>
-              <Text size="sm" color="hsl(var(--primary))" style={{ fontStyle: 'italic' }}>
+              <Text size="sm" color="#4CAF50" style={{ fontStyle: 'italic', fontWeight: '500', marginBottom: 12 }}>
                 💡 Perfect for creating a cohesive visual experience that responds to your music!
               </Text>
+              <WToggle
+                checked={presets.find(p => p.name === 'Spotify Match')?.data?.ui?.spotifyMatchEnabled || false}
+                onChange={handleSpotifyMatchToggle}
+                label="Enable Spotify Match"
+              />
             </div>
-            <WToggle
-              checked={presets.find(p => p.name === 'Spotify Match')?.data?.ui?.spotifyMatchEnabled || false}
-              onChange={handleSpotifyMatchToggle}
-              style={{ marginLeft: 16 }}
-            />
           </div>
           
           {/* Immersive Mode Section */}
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid hsl(var(--border-primary))' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ flex: 1 }}>
-                <Text size="lg" style={{ fontWeight: 600, marginBottom: 4 }}>
-                  🌟 Immersive Experience
-                </Text>
-                <Text size="sm" color="hsl(var(--text-secondary))">
-                  Transform your entire desktop with dynamic colors from the current track
+          <div style={{ 
+            background: 'rgba(255, 255, 255, 0.6)', 
+            borderRadius: '12px', 
+            padding: '16px',
+            border: '2px solid rgba(76, 175, 80, 0.2)' 
+          }}>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 4 }}>
+                <span style={{ fontSize: '18px' }}>🌟</span>
+                <Text size="lg" color="#2C3E50" style={{ fontWeight: 600 }}>
+                  Immersive Experience
                 </Text>
               </div>
+              <Text size="sm" color="#5D6D7E" style={{ lineHeight: '1.4', marginBottom: 12 }}>
+                Transform your entire desktop with dynamic colors from the current track
+              </Text>
               <WToggle
                 checked={immersiveModeState.enabled || false}
                 onChange={handleImmersiveModeToggle}
-                style={{ marginLeft: 16 }}
+                label="Enable Immersive Experience"
               />
             </div>
             
             {immersiveModeState.enabled && (
-              <div style={{ marginTop: 12, padding: 12, background: 'hsl(var(--surface-secondary))', borderRadius: 8 }}>
-                <div style={{ marginBottom: 12 }}>
+              <div style={{ 
+                marginTop: 16, 
+                padding: 16, 
+                background: 'rgba(255, 255, 255, 0.8)', 
+                borderRadius: 8,
+                border: '1px solid rgba(76, 175, 80, 0.3)'
+              }}>
+                <div style={{ marginBottom: 16 }}>
                   <WToggle
                     checked={immersiveModeState.liveGradientWallpaper || false}
                     onChange={handleLiveGradientWallpaperToggle}
                     label="Live Gradient Wallpaper"
                   />
-                  <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
+                  <Text size="sm" color="#5D6D7E" style={{ marginLeft: 28, marginTop: 4, lineHeight: '1.4' }}>
                     Replace your wallpaper with a live gradient that matches the current track's colors
                   </Text>
                 </div>
 
                 {/* Save This Look Button */}
-                <div style={{ marginBottom: 12 }}>
+                <div style={{ 
+                  marginBottom: 16, 
+                  padding: 12, 
+                  background: 'rgba(76, 175, 80, 0.1)', 
+                  borderRadius: 8,
+                  border: '1px solid rgba(76, 175, 80, 0.2)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 8 }}>
+                    <span style={{ fontSize: '16px' }}>💾</span>
+                    <Text size="sm" color="#2C3E50" style={{ fontWeight: '600' }}>
+                      Save Current Look
+                    </Text>
+                  </div>
                   <Button
                     variant="primary"
                     size="sm"
@@ -1352,21 +1341,30 @@ const PresetsSettingsTab = React.memo(() => {
                         alert('Save function not available. Make sure Spotify is playing with dynamic colors enabled.');
                       }
                     }}
-                    style={{ marginBottom: 4 }}
+                    style={{ marginBottom: 6 }}
                   >
-                    💾 Save This Look
+                    Save This Look
                   </Button>
-                  <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginLeft: 0, marginTop: 4 }}>
+                  <Text size="xs" color="#5D6D7E" style={{ lineHeight: '1.3' }}>
                     Save the current gradient and colors to your wallpaper collection
                   </Text>
                 </div>
 
                 {/* Live Gradient Wallpaper Settings */}
                 {immersiveModeState.liveGradientWallpaper && (
-                  <div style={{ marginLeft: 24, marginBottom: 16, padding: 16, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 8 }}>
-                    <Text size="sm" weight="medium" color="hsl(var(--text-primary))" style={{ marginBottom: 12 }}>
-                      🎨 Gradient Settings
-                    </Text>
+                  <div style={{ 
+                    marginBottom: 16, 
+                    padding: 16, 
+                    background: 'rgba(76, 175, 80, 0.05)', 
+                    borderRadius: 8,
+                    border: '1px solid rgba(76, 175, 80, 0.15)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 12 }}>
+                      <span style={{ fontSize: '16px' }}>🎨</span>
+                      <Text size="sm" color="#2C3E50" style={{ fontWeight: '600' }}>
+                        Gradient Settings
+                      </Text>
+                    </div>
                     
                                         {/* Overlay Mode Toggle */}
                     <div style={{ marginBottom: 12 }}>
@@ -1375,14 +1373,14 @@ const PresetsSettingsTab = React.memo(() => {
                         onChange={(value) => handleImmersiveModeSettingChange('overlayMode', value)}
                         label="Overlay on Existing Wallpaper"
                       />
-                      <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
+                      <Text size="xs" color="#5D6D7E" style={{ marginLeft: 28, marginTop: 4, lineHeight: '1.3' }}>
                         When enabled, gradient overlays your current wallpaper instead of replacing it
                       </Text>
                     </div>
 
                     {/* Intensity Slider */}
                     <div style={{ marginBottom: 12 }}>
-                      <Text size="sm" color="hsl(var(--text-primary))" style={{ marginBottom: 6 }}>
+                      <Text size="sm" color="#2C3E50" style={{ marginBottom: 6, fontWeight: '500' }}>
                         Intensity: {Math.round((immersiveModeState.intensity || 0.7) * 100)}%
                       </Text>
                       <Slider
@@ -1392,14 +1390,14 @@ const PresetsSettingsTab = React.memo(() => {
                         step={0.1}
                         onChange={(value) => handleImmersiveModeSettingChange('intensity', value)}
                       />
-                      <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginTop: 4 }}>
+                      <Text size="xs" color="#5D6D7E" style={{ marginTop: 4, lineHeight: '1.3' }}>
                         Controls overall effect strength
                       </Text>
                     </div>
 
                     {/* Style Selection */}
                     <div style={{ marginBottom: 12 }}>
-                      <Text size="sm" color="hsl(var(--text-primary))" style={{ marginBottom: 6 }}>
+                      <Text size="sm" color="#2C3E50" style={{ marginBottom: 6, fontWeight: '500' }}>
                         Gradient Style
                       </Text>
                       <WSelect
@@ -1411,14 +1409,14 @@ const PresetsSettingsTab = React.memo(() => {
                           { value: 'waves', label: '🌊 Waves (Flowing)' }
                         ]}
                       />
-                      <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginTop: 4 }}>
+                      <Text size="xs" color="#5D6D7E" style={{ marginTop: 4, lineHeight: '1.3' }}>
                         Choose the gradient pattern style
                       </Text>
                     </div>
 
                     {/* Animation Level */}
                     <div style={{ marginBottom: 12 }}>
-                      <Text size="sm" color="hsl(var(--text-primary))" style={{ marginBottom: 6 }}>
+                      <Text size="sm" color="#2C3E50" style={{ marginBottom: 6, fontWeight: '500' }}>
                         Animation Level: {['Static', 'Subtle', 'Dynamic', 'Intense'][immersiveModeState.animationLevel || 2]}
                       </Text>
                       <Slider
@@ -1428,7 +1426,7 @@ const PresetsSettingsTab = React.memo(() => {
                         step={1}
                         onChange={(value) => handleImmersiveModeSettingChange('animationLevel', value)}
                       />
-                      <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginTop: 4 }}>
+                      <Text size="xs" color="#5D6D7E" style={{ marginTop: 4, lineHeight: '1.3' }}>
                         0: Static • 1: Subtle • 2: Dynamic • 3: Intense with particles
                       </Text>
                     </div>
@@ -1439,72 +1437,46 @@ const PresetsSettingsTab = React.memo(() => {
                   </div>
                 )}
                 
-                <div style={{ marginBottom: 12 }}>
-                  <WToggle
-                    checked={immersiveModeState.wallpaperOverlay || false}
-                    onChange={handleWallpaperOverlayToggle}
-                    label="Wallpaper Color Overlay"
-                  />
-                  <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
-                    Apply track colors as a gradient overlay on your wallpaper
-                  </Text>
-                </div>
+
                 
-                <div style={{ marginBottom: 12 }}>
-                  <WToggle
-                    checked={immersiveModeState.ambientLighting || false}
-                    onChange={handleAmbientLightingToggle}
-                    label="Ambient Lighting"
-                  />
-                  <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
-                    Add subtle color tinting and floating particles throughout the interface
-                  </Text>
-                </div>
-                
-                <div style={{ marginBottom: 12 }}>
-                  <WToggle
-                    checked={immersiveModeState.pulseEffects || false}
-                    onChange={handlePulseEffectsToggle}
-                    label="Pulse Effects"
-                  />
-                  <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
-                    Add subtle pulsing effects synchronized with the music
-                  </Text>
-                </div>
-                
-                <div style={{ marginBottom: 12 }}>
-                  <Text size="sm" style={{ fontWeight: 500, marginBottom: 8 }}>Overlay Intensity</Text>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Slider
-                      value={immersiveModeState.overlayIntensity || 0.3}
-                      min={0.1}
-                      max={0.8}
-                      step={0.05}
-                      onChange={handleOverlayIntensityChange}
-                      style={{ flex: 1 }}
+                {/* Additional Effects Section */}
+                <div style={{ 
+                  padding: 12, 
+                  background: 'rgba(76, 175, 80, 0.08)', 
+                  borderRadius: 8,
+                  border: '1px solid rgba(76, 175, 80, 0.2)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 12 }}>
+                    <span style={{ fontSize: '14px' }}>✨</span>
+                    <Text size="sm" color="#2C3E50" style={{ fontWeight: '600' }}>
+                      Additional Effects
+                    </Text>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <WToggle
+                      checked={immersiveModeState.ambientLighting || false}
+                      onChange={handleAmbientLightingToggle}
+                      label="Ambient Lighting"
                     />
-                    <Text size="sm" style={{ fontWeight: 600, minWidth: 40 }}>
-                      {Math.round((immersiveModeState.overlayIntensity || 0.3) * 100)}%
+                    <Text size="xs" color="#5D6D7E" style={{ marginLeft: 28, marginTop: 4, lineHeight: '1.3' }}>
+                      Add subtle color tinting and floating particles throughout the interface
+                    </Text>
+                  </div>
+                  
+                  <div style={{ marginBottom: 12 }}>
+                    <WToggle
+                      checked={immersiveModeState.pulseEffects || false}
+                      onChange={handlePulseEffectsToggle}
+                      label="Pulse Effects"
+                    />
+                    <Text size="xs" color="#5D6D7E" style={{ marginLeft: 28, marginTop: 4, lineHeight: '1.3' }}>
+                      Add subtle pulsing effects synchronized with the music
                     </Text>
                   </div>
                 </div>
                 
-                <div style={{ marginBottom: 12 }}>
-                  <Text size="sm" style={{ fontWeight: 500, marginBottom: 8 }}>Ambient Intensity</Text>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Slider
-                      value={immersiveModeState.ambientIntensity || 0.15}
-                      min={0.05}
-                      max={0.4}
-                      step={0.05}
-                      onChange={handleAmbientIntensityChange}
-                      style={{ flex: 1 }}
-                    />
-                    <Text size="sm" style={{ fontWeight: 600, minWidth: 40 }}>
-                      {Math.round((immersiveModeState.ambientIntensity || 0.15) * 100)}%
-                    </Text>
-                  </div>
-                </div>
+
               </div>
             )}
           </div>

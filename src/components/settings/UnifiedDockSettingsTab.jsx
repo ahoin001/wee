@@ -461,6 +461,11 @@ const UnifiedDockSettingsTab = React.memo(() => {
     saveSetting('dock', 'particleLifetime', value);
   }, [saveSetting, setDockState]);
 
+  const handleParticleClipPathFollowChange = useCallback((checked) => {
+    setDockState({ particleClipPathFollow: checked });
+    saveSetting('dock', 'particleClipPathFollow', checked);
+  }, [saveSetting, setDockState]);
+
   // Render sub-tab content
   const renderSubTabContent = () => {
     switch (activeSubTab) {
@@ -1031,7 +1036,6 @@ const UnifiedDockSettingsTab = React.memo(() => {
                           { value: 'sparkles', label: 'Sparkles' },
                           { value: 'fireflies', label: 'Fireflies' },
                           { value: 'dust', label: 'Dust' },
-                          { value: 'clip-path', label: 'Clip Path Followers' },
                           { value: 'energy', label: 'Energy Orbs' },
                           { value: 'magic', label: 'Magic Sparkles' }
                         ]}
@@ -1055,6 +1059,21 @@ const UnifiedDockSettingsTab = React.memo(() => {
                           { value: 'inward', label: 'Inward to Center' }
                         ]}
                       />
+                    </div>
+                    
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+                          Follow Border Path
+                        </Text>
+                        <WToggle
+                          checked={dock?.particleClipPathFollow ?? false}
+                          onChange={(checked) => handleParticleClipPathFollowChange(checked)}
+                        />
+                      </div>
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+                        Particles emit from dock/ribbon borders instead of base
+                      </Text>
                     </div>
                     
                     <div>

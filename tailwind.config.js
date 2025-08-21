@@ -87,6 +87,10 @@ module.exports = {
       backdropBlur: {
         'xs': '2px',
       },
+      rotate: {
+        '15': '15deg',
+        '25': '25deg',
+      },
     },
   },
   plugins: [],

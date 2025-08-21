@@ -20,6 +20,8 @@ const AdminPanelWidget = ({ isVisible, onClose }) => {
   const adminPanelPosition = adminPanelWidget.position;
   const adminPanelConfig = adminPanelWidget.config || { powerActions: [] };
 
+
+
   // Update admin panel widget position
   const setAdminPanelWidgetPosition = (position) => {
     setFloatingWidgetsState({
@@ -72,19 +74,22 @@ const AdminPanelWidget = ({ isVisible, onClose }) => {
     onClose();
   };
 
-  const handleAdminPanelSave = useCallback((config) => {
-    const { actions } = useConsolidatedAppStore.getState();
+  const handleAdminPanelSave = useCallback((powerActions) => {
+    const store = useConsolidatedAppStore.getState();
+    
+    // Get current admin panel state from store to avoid stale closure
+    const currentAdminPanel = store.floatingWidgets.adminPanel;
     
     // Use the direct setFloatingWidgetsState action instead of floatingWidgetManager
-    actions.setFloatingWidgetsState({
+    store.actions.setFloatingWidgetsState({
       adminPanel: { 
-        ...floatingWidgets.adminPanel, 
-        config
+        ...currentAdminPanel, 
+        config: { powerActions }
       }
     });
     
     setShowAdminPanel(false);
-  }, [floatingWidgets.adminPanel]);
+  }, []);
 
   if (!isVisible) return null;
 

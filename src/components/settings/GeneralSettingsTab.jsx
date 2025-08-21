@@ -256,7 +256,7 @@ const GeneralSettingsTab = React.memo(() => {
       />
 
       {/* Custom Cursor Settings */}
-      <Card
+      {/* <Card
         title="Custom Wii Cursor"
         separator
         desc="Enable a custom Wii-inspired cursor and choose from different styles."
@@ -303,7 +303,7 @@ const GeneralSettingsTab = React.memo(() => {
           )
         }
         className="mb-5"
-      />
+      /> */}
 
       {/* Launch on Startup */}
       <Card
@@ -320,7 +320,7 @@ const GeneralSettingsTab = React.memo(() => {
       />
 
       {/* Settings Shortcut */}
-      <Card
+      {/* <Card
         title="Settings Keyboard Shortcut"
         separator
         desc="Set a custom keyboard shortcut to quickly open the settings menu. Leave empty to disable."
@@ -351,7 +351,7 @@ const GeneralSettingsTab = React.memo(() => {
           </div>
         }
         className="mb-5"
-      />
+      /> */}
 
       {/* Fresh Install Restore */}
       <Card

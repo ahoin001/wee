@@ -24,7 +24,8 @@ const EFFECT_TYPES = [
   { value: 'sparkles', label: 'Sparkles', emoji: '✨' },
   { value: 'magic', label: 'Magic', emoji: '🔮' },
   { value: 'fireflies', label: 'Fireflies', emoji: '🦟' },
-  { value: 'dust', label: 'Dust', emoji: '💨' }
+  { value: 'dust', label: 'Dust', emoji: '💨' },
+  { value: 'energy', label: 'Energy', emoji: '⚡' }
 ];
 
 const DIRECTION_OPTIONS = [
@@ -50,6 +51,7 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
     colorVariation: 0.3,
     rotationSpeed: 0.05,
     particleLifetime: 3.0,
+    clipPathFollow: false,
     ...settings
   });
 
@@ -86,6 +88,7 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
       colorVariation: 0.3,
       rotationSpeed: 0.05,
       particleLifetime: 3.0,
+      clipPathFollow: false,
       ...settings
     });
     onClose();
@@ -188,6 +191,33 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                     </button>
                   ))}
                 </div>
+              </div>
+            </Card>
+
+            {/* Clip Path Follow Toggle */}
+            <Card>
+              <div className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))]">
+                      Follow Border Path
+                    </Text>
+                    <Text size="sm" className="text-[hsl(var(--text-secondary))] mt-1">
+                      Particles emit from the dock/ribbon borders instead of the base
+                    </Text>
+                  </div>
+                  <WToggle
+                    checked={localSettings.clipPathFollow}
+                    onChange={(checked) => updateSetting('clipPathFollow', checked)}
+                  />
+                </div>
+                {localSettings.clipPathFollow && (
+                  <div className="mt-3 p-2 bg-[hsl(var(--wii-blue))] bg-opacity-10 rounded-lg">
+                    <Text size="sm" className="text-[hsl(var(--wii-blue))]">
+                      🌟 Particles will now follow the curved borders of your dock or ribbon!
+                    </Text>
+                  </div>
+                )}
               </div>
             </Card>
 

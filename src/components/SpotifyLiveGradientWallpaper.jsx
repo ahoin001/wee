@@ -173,7 +173,7 @@ const SpotifyLiveGradientWallpaper = () => {
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.font = '20px Arial';
-    ctx.fillText(`Live Gradient - ${style} | Level: ${animationLevel} | Intensity: ${Math.round(intensity * 100)}%`, 50, 100);
+    // ctx.fillText(`Live Gradient - ${style} | Level: ${animationLevel} | Intensity: ${Math.round(intensity * 100)}%`, 50, 100);
     
     // Convert to data URL
     const dataUrl = canvas.toDataURL('image/png');

@@ -73,7 +73,6 @@ const appLibraryManager = {
     
     // Check cache first (unless force refresh)
     if (!forceRefresh && appLibraryManager._isCacheValid('installedApps')) {
-      console.log('[AppLibrary] Using cached installed apps');
       const cachedData = appLibraryManager._cache.installedApps.data;
       store.actions.setAppLibraryState({ 
         installedApps: cachedData, 
@@ -84,7 +83,6 @@ const appLibraryManager = {
 
     // Don't start loading if already loading
     if (store.appLibrary.appsLoading) {
-      console.log('[AppLibrary] Installed apps already loading, skipping...');
       return { success: false, error: 'Already loading' };
     }
 
@@ -126,7 +124,6 @@ const appLibraryManager = {
     
     // Check cache first (unless force refresh)
     if (!forceRefresh && appLibraryManager._isCacheValid('steamGames')) {
-      console.log('[AppLibrary] Using cached Steam games');
       const cachedData = appLibraryManager._cache.steamGames.data;
       store.actions.setAppLibraryState({ 
         steamGames: cachedData, 
@@ -137,7 +134,6 @@ const appLibraryManager = {
 
     // Don't start loading if already loading
     if (store.appLibrary.steamLoading) {
-      console.log('[AppLibrary] Steam games already loading, skipping...');
       return { success: false, error: 'Already loading' };
     }
 
@@ -211,7 +207,6 @@ const appLibraryManager = {
     
     // Check cache first (unless force refresh)
     if (!forceRefresh && appLibraryManager._isCacheValid('epicGames')) {
-      console.log('[AppLibrary] Using cached Epic games');
       const cachedData = appLibraryManager._cache.epicGames.data;
       store.actions.setAppLibraryState({ 
         epicGames: cachedData, 
@@ -222,7 +217,6 @@ const appLibraryManager = {
 
     // Don't start loading if already loading
     if (store.appLibrary.epicLoading) {
-      console.log('[AppLibrary] Epic games already loading, skipping...');
       return { success: false, error: 'Already loading' };
     }
 
@@ -264,7 +258,6 @@ const appLibraryManager = {
     
     // Check cache first (unless force refresh)
     if (!forceRefresh && appLibraryManager._isCacheValid('uwpApps')) {
-      console.log('[AppLibrary] Using cached UWP apps');
       const cachedData = appLibraryManager._cache.uwpApps.data;
       store.actions.setAppLibraryState({ 
         uwpApps: cachedData, 
@@ -275,7 +268,6 @@ const appLibraryManager = {
 
     // Don't start loading if already loading
     if (store.appLibrary.uwpLoading) {
-      console.log('[AppLibrary] UWP apps already loading, skipping...');
       return { success: false, error: 'Already loading' };
     }
 
@@ -321,7 +313,6 @@ const appLibraryManager = {
 
   // Force refresh all app data
   refreshAllApps: async () => {
-    console.log('[AppLibrary] Force refreshing all app data...');
     appLibraryManager._clearCache();
     
     const results = await Promise.allSettled([
@@ -358,16 +349,8 @@ const unifiedAppManager = {
       ]);
       
       // Combine results with proper data mapping and error handling
-      console.log('[UnifiedAppManager] Processing fetch results:', {
-        installed: { status: installedResult.status, success: installedResult.value?.success, count: installedResult.value?.apps?.length },
-        steam: { status: steamResult.status, success: steamResult.value?.success, count: steamResult.value?.games?.length },
-        epic: { status: epicResult.status, success: epicResult.value?.success, count: epicResult.value?.games?.length },
-        uwp: { status: uwpResult.status, success: uwpResult.value?.success, count: uwpResult.value?.apps?.length }
-      });
-      
       if (installedResult.status === 'fulfilled' && installedResult.value?.success) {
         const installedApps = installedResult.value.apps || [];
-        console.log('[UnifiedAppManager] Adding installed apps:', installedApps.length);
         allApps.push(...installedApps.map(app => ({ 
           ...app, 
           type: 'exe', // Map to 'exe' type for consistency
@@ -380,7 +363,6 @@ const unifiedAppManager = {
       
       if (steamResult.status === 'fulfilled' && steamResult.value?.success) {
         const steamGames = steamResult.value.games || [];
-        console.log('[UnifiedAppManager] Adding Steam games:', steamGames.length);
         allApps.push(...steamGames.map(game => ({ 
           ...game, 
           type: 'steam',
@@ -394,7 +376,6 @@ const unifiedAppManager = {
       
       if (epicResult.status === 'fulfilled' && epicResult.value?.success) {
         const epicGames = epicResult.value.games || [];
-        console.log('[UnifiedAppManager] Adding Epic games:', epicGames.length);
         allApps.push(...epicGames.map(game => ({ 
           ...game, 
           type: 'epic',
@@ -408,7 +389,6 @@ const unifiedAppManager = {
       
       if (uwpResult.status === 'fulfilled' && uwpResult.value?.success) {
         const uwpApps = uwpResult.value.apps || [];
-        console.log('[UnifiedAppManager] Adding UWP apps:', uwpApps.length);
         allApps.push(...uwpApps.map(app => ({ 
           ...app, 
           type: 'microsoft',
@@ -419,14 +399,6 @@ const unifiedAppManager = {
       } else if (uwpResult.status === 'rejected') {
         console.error('[UnifiedAppManager] UWP apps fetch failed:', uwpResult.reason);
       }
-      
-      console.log('[UnifiedAppManager] Total combined apps:', allApps.length);
-      console.log('[UnifiedAppManager] Apps by type:', {
-        exe: allApps.filter(app => app.type === 'exe').length,
-        steam: allApps.filter(app => app.type === 'steam').length,
-        epic: allApps.filter(app => app.type === 'epic').length,
-        microsoft: allApps.filter(app => app.type === 'microsoft').length
-      });
       
       store.actions.setUnifiedAppsState({ apps: allApps, loading: false });
       return { success: true, apps: allApps };
@@ -749,7 +721,7 @@ const spotifyManager = {
   }
 };
 
-console.log('[DEBUG] 🏪 Creating consolidated app store...');
+
 // Consolidated app store - single source of truth for all app state
 const useConsolidatedAppStore = create(
   subscribeWithSelector(
@@ -1148,6 +1120,28 @@ const useConsolidatedAppStore = create(
           buttonConfigs: {},
           loading: false,
           error: null,
+          // Side navigation button settings
+          icons: {
+            left: null,
+            right: null
+          },
+          glassEffect: {
+            left: {
+              enabled: false,
+              opacity: 0.18,
+              blur: 2.5,
+              borderOpacity: 0.5,
+              shineOpacity: 0.7
+            },
+            right: {
+              enabled: false,
+              opacity: 0.18,
+              blur: 2.5,
+              borderOpacity: 0.5,
+              shineOpacity: 0.7
+            }
+          },
+          spotifyIntegration: false
         },
 
         // Performance monitoring state
@@ -1185,7 +1179,8 @@ const useConsolidatedAppStore = create(
           systemInfo: {
             visible: false,
             position: { x: 20, y: 100 },
-            updateInterval: 5, // Default 5 seconds
+            size: { width: 320, height: 400 }, // Default size
+            updateInterval: 30, // Default 30 seconds
             // System info data
             data: null,
             isLoading: false,
@@ -1424,6 +1419,8 @@ const useConsolidatedAppStore = create(
             floatingWidgets: { ...state.floatingWidgets, ...updates }
           })),
 
+          // Floating widget manager - will be attached after store creation
+
           // Keyboard shortcuts actions
           resetKeyboardShortcuts: () => set((state) => ({
             ui: {
@@ -1637,6 +1634,7 @@ const useConsolidatedAppStore = create(
           dock: state.dock,
           spotify: state.spotify, // Add spotify state to persistence
           presets: state.presets,
+          floatingWidgets: state.floatingWidgets, // Add floating widgets state to persistence
         }),
       }
     )
@@ -2114,7 +2112,6 @@ const floatingWidgetManager = {
   // System info manager functions
   updateSystemInfoData: (data) => {
     const store = useConsolidatedAppStore.getState();
-    console.log('[Store] Updating system info data:', data);
     store.actions.setFloatingWidgetsState({
       systemInfo: { 
         ...store.floatingWidgets.systemInfo, 
@@ -2124,12 +2121,10 @@ const floatingWidgetManager = {
         lastUpdated: Date.now()
       }
     });
-    console.log('[Store] System info data updated successfully');
   },
 
   setSystemInfoLoading: (isLoading) => {
     const store = useConsolidatedAppStore.getState();
-    console.log('[Store] Setting system info loading:', isLoading);
     store.actions.setFloatingWidgetsState({
       systemInfo: { 
         ...store.floatingWidgets.systemInfo, 
@@ -2141,7 +2136,6 @@ const floatingWidgetManager = {
 
   setSystemInfoError: (error) => {
     const store = useConsolidatedAppStore.getState();
-    console.log('[Store] Setting system info error:', error);
     store.actions.setFloatingWidgetsState({
       systemInfo: { 
         ...store.floatingWidgets.systemInfo, 
@@ -2165,19 +2159,14 @@ const floatingWidgetManager = {
     const store = useConsolidatedAppStore.getState();
     const systemInfoWidget = store.floatingWidgets.systemInfo;
     
-    console.log('[Store] fetchSystemInfo called, widget visible:', systemInfoWidget.visible);
-    
     if (!systemInfoWidget.visible) return;
     
     store.actions.floatingWidgetManager.setSystemInfoLoading(true);
     
     try {
-      console.log('[Store] Making API call to getSystemInfo...');
       const response = await window.api.getSystemInfo();
-      console.log('[Store] API response:', response);
       
       if (response && response.success && response.data) {
-        console.log('[Store] API call successful, updating data...');
         store.actions.floatingWidgetManager.updateSystemInfoData(response.data);
       } else {
         console.error('[Store] API call failed:', response);
@@ -2251,7 +2240,11 @@ useConsolidatedAppStore.setState((state) => ({
   spotifyManager,
   navigationManager,
   performanceManager,
-  floatingWidgetManager
+  floatingWidgetManager,
+  actions: {
+    ...state.actions,
+    floatingWidgetManager
+  }
 }));
 
 // Make store available globally for services that need it

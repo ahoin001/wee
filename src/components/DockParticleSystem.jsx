@@ -10,7 +10,6 @@ const PARTICLE_TYPES = {
   MAGIC: 'magic',
   FIREFLIES: 'fireflies',
   DUST: 'dust',
-  CLIP_PATH: 'clip-path',
   ENERGY: 'energy',
   MAGIC_SPARKLES: 'magic'
 };
@@ -25,7 +24,6 @@ const COLOR_PALETTES = {
   magic: ['#ff0081', '#00ffff', '#ff69b4', '#ffff00', '#00ff00'],
   fireflies: ['#ffff00', '#ffd700', '#ffed4e', '#fffacd'],
   dust: ['#f5f5dc', '#d2b48c', '#deb887', '#f4a460'],
-  'clip-path': ['#00ffff', '#ff0081', '#ffff00', '#00ff00'],
   energy: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'],
   'magic-sparkles': ['#ff0081', '#00ffff', '#ffff00', '#ff69b4']
 };
@@ -183,9 +181,6 @@ class Particle {
         break;
       case 'dust':
         this.drawDust(ctx);
-        break;
-      case 'clip-path':
-        this.drawClipPath(ctx);
         break;
       case 'energy':
         this.drawEnergy(ctx);
@@ -346,42 +341,7 @@ class Particle {
     }
   }
 
-  drawClipPath(ctx) {
-    // Draw particles that follow the dock's clip path shape
-    const time = Date.now() * 0.001;
-    const waveIntensity = Math.sin(time + this.rotation) * 0.3;
-    
-    // Create a wave-like effect that follows the dock's curved shape
-    const segments = 8;
-    const amplitude = this.size * (1 + waveIntensity);
-    
-    ctx.beginPath();
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const angle = t * Math.PI * 2 + this.rotation;
-      const radius = this.size + Math.sin(angle * 3 + time) * amplitude * 0.5;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    }
-    ctx.closePath();
-    ctx.fill();
-    
-    // Add inner glow
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size);
-    gradient.addColorStop(0, `rgba(${this.hexToRgbString(this.baseColor)}, ${this.opacity * 0.8})`);
-    gradient.addColorStop(1, `rgba(${this.hexToRgbString(this.baseColor)}, 0)`);
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
+
 
   drawEnergy(ctx) {
     // Draw energy orbs with pulsing effect
@@ -440,7 +400,8 @@ const DockParticleSystem = React.memo(({
   particleCount = 3,
   spawnRate = 60, // particles per second
   settings = {},
-  ribbonGlowColor = '#0099ff'
+  ribbonGlowColor = '#0099ff',
+  clipPathFollow = false // New prop for clip path following
 }) => {
   // Performance optimization: Memoize settings to prevent unnecessary re-renders
   const memoizedSettings = useMemo(() => ({
@@ -485,6 +446,131 @@ const DockParticleSystem = React.memo(({
     }
   }, []);
 
+  // Get border points for clip path following
+  const getBorderPoints = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return [];
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Check if we're in a dock or ribbon context
+    const isDock = canvas.closest('.wii-dock-container') !== null;
+    const isRibbon = canvas.closest('.interactive-footer') !== null;
+    
+    const points = [];
+    
+    if (isDock) {
+      // Classic Dock curved shape - follow the actual SVG path from ClassicWiiDock.jsx
+      // The dock has a curved top edge with a dip in the center
+      for (let i = 0; i <= 100; i++) {
+        const t = i / 100;
+        const x = t * width;
+        
+        // Approximate the dock's curved top border
+        let y;
+        if (x < width * 0.2) {
+          // Left side - gradually curve down
+          const progress = x / (width * 0.2);
+          y = height * (0.2 + progress * 0.1);
+        } else if (x > width * 0.8) {
+          // Right side - gradually curve down
+          const progress = (x - width * 0.8) / (width * 0.2);
+          y = height * (0.3 + progress * 0.1);
+        } else {
+          // Center section - curved dip
+          const centerProgress = (x - width * 0.2) / (width * 0.6);
+          // Create a smooth curve that dips in the center
+          const curve = Math.sin(centerProgress * Math.PI) * 0.15;
+          y = height * (0.25 + curve);
+        }
+        
+        points.push({ x, y });
+      }
+    } else if (isRibbon) {
+      // Ribbon curved shape - based on WiiRibbon.jsx SVG path
+      // "M 0 40 L 250 40 C 450 40, 500 140, 670 140 L 770 140 C 940 140, 990 40, 1190 40 L 1440 40"
+      const scaleFactor = width / 1440; // Scale to canvas width
+      
+      for (let i = 0; i <= 100; i++) {
+        const t = i / 100;
+        const x = t * width;
+        
+        // Approximate the ribbon's curved path more accurately
+        let y;
+        const normalizedX = x / scaleFactor;
+        
+        if (normalizedX <= 250) {
+          // Flat top section
+          y = 40 * (height / 240);
+        } else if (normalizedX <= 450) {
+          // First curve control point - gradual transition
+          const progress = (normalizedX - 250) / (450 - 250);
+          y = 40 * (height / 240);
+        } else if (normalizedX <= 500) {
+          // Sharp curve down
+          const progress = (normalizedX - 450) / (500 - 450);
+          const curveY = 40 + (140 - 40) * progress;
+          y = curveY * (height / 240);
+        } else if (normalizedX <= 670) {
+          // Continue down to bottom
+          const progress = (normalizedX - 500) / (670 - 500);
+          const curveY = 140 - (140 - 100) * progress;
+          y = curveY * (height / 240);
+        } else if (normalizedX <= 770) {
+          // Flat bottom section
+          y = 100 * (height / 240);
+        } else if (normalizedX <= 940) {
+          // Second curve control point
+          const progress = (normalizedX - 770) / (940 - 770);
+          y = 100 * (height / 240);
+        } else if (normalizedX <= 990) {
+          // Sharp curve up
+          const progress = (normalizedX - 940) / (990 - 940);
+          const curveY = 100 - (100 - 40) * progress;
+          y = curveY * (height / 240);
+        } else if (normalizedX <= 1190) {
+          // Continue up to top
+          const progress = (normalizedX - 990) / (1190 - 990);
+          const curveY = 40 + (80 - 40) * progress;
+          y = curveY * (height / 240);
+        } else {
+          // Flat top section
+          y = 80 * (height / 240);
+        }
+        
+        points.push({ x, y });
+      }
+    } else {
+      // Fallback: simple rectangular border
+      const steps = 50;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        points.push({
+          x: t * width,
+          y: height * 0.4
+        });
+      }
+    }
+    
+    return points;
+  }, []);
+
+  // Get random point along the border path
+  const getRandomBorderPoint = useCallback(() => {
+    const borderPoints = getBorderPoints();
+    if (borderPoints.length === 0) return null;
+    
+    const randomIndex = Math.floor(Math.random() * borderPoints.length);
+    const point = borderPoints[randomIndex];
+    
+    // Add slight variation to the point
+    return {
+      x: point.x + (Math.random() - 0.5) * 20,
+      y: point.y + (Math.random() - 0.5) * 10
+    };
+  }, [getBorderPoints]);
+
   // Particle pool management for better performance
   const getParticleFromPool = useCallback(() => {
     if (particlePoolRef.current.length > 0) {
@@ -517,7 +603,28 @@ const DockParticleSystem = React.memo(({
     for (let i = 0; i < particleCount; i++) {
       let x, y, speedX, speedY;
 
-      if (direction === 'upward') {
+      if (clipPathFollow) {
+        // Spawn from border points when clip path follow is enabled
+        const borderPoint = getRandomBorderPoint();
+        if (borderPoint) {
+          x = borderPoint.x;
+          y = borderPoint.y;
+          
+          // Direction away from the border (outward)
+          const angle = Math.random() * Math.PI * 2;
+          const particleSpeed = Math.random() * speed + 0.5;
+          speedX = Math.cos(angle) * particleSpeed;
+          speedY = Math.sin(angle) * particleSpeed - 0.5; // Slight upward bias
+        } else {
+          // Fallback to center if no border point available
+          x = dockPos.x;
+          y = dockPos.y * 0.5;
+          const angle = Math.random() * Math.PI * 2;
+          const particleSpeed = Math.random() * speed + 0.5;
+          speedX = Math.cos(angle) * particleSpeed;
+          speedY = Math.sin(angle) * particleSpeed;
+        }
+      } else if (direction === 'upward') {
         // Spawn from bottom of dock, move upward
         x = dockPos.x + (Math.random() - 0.5) * dockPos.width * 0.6;
         y = dockPos.y - 10; // Slightly above bottom edge
@@ -571,7 +678,7 @@ const DockParticleSystem = React.memo(({
     }
     
 
-      }, [enabled, direction, speed, particleCount, spawnRate, effectType, memoizedSettings, getDockPosition, getParticleFromPool]);
+      }, [enabled, direction, speed, particleCount, spawnRate, effectType, memoizedSettings, getDockPosition, getParticleFromPool, clipPathFollow, getRandomBorderPoint]);
 
   // Animation loop
   const animate = useCallback(() => {

@@ -182,7 +182,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
         <div className="fixed inset-0 overflow-y-auto z-[10000]">
           <div className="flex min-h-full items-center justify-center p-4">
             <Dialog.Panel 
-              className={`settings-action-menu w-[95%] max-h-[85vh] min-w-[400px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[350px] md:w-[95%] md:min-w-[300px] sm:w-[98%] sm:min-w-[280px] relative z-[10000]`}
+              className={`settings-action-menu w-[95%] max-h-[95vh] min-w-[400px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[350px] md:w-[95%] md:min-w-[300px] sm:w-[98%] sm:min-w-[280px] relative z-[10000]`}
               style={{
                 maxHeight: '70vh',
                 animation: isAnimating 

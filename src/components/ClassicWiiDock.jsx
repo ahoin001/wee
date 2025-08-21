@@ -207,6 +207,7 @@ const WiiDock = ({
         speed={particleSettings.particleSpeed || 2}
         particleCount={particleSettings.particleCount || 3}
         spawnRate={particleSettings.particleSpawnRate || 60}
+        clipPathFollow={particleSettings.clipPathFollow || false}
         settings={{
           size: particleSettings.particleSize || 3,
           gravity: particleSettings.particleGravity || 0.02,

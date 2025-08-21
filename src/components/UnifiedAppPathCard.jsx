@@ -44,7 +44,7 @@ const UnifiedAppPathCard = React.memo(({
 
   // Initial setup from value prop - update when value changes
   useEffect(() => {
-    console.log('[UnifiedAppPathCard] Value prop changed:', value);
+    // console.log('[UnifiedAppPathCard] Value prop changed:', value);
     
     // Always update from value prop when it changes
     setLaunchType(value.launchType || 'application');
@@ -54,7 +54,7 @@ const UnifiedAppPathCard = React.memo(({
     
     // If we have a path but no selectedApp, try to find a matching app
     if (value.path && !value.selectedApp && !selectedApp) {
-      console.log('[UnifiedAppPathCard] Path provided but no selectedApp, will try to match later');
+      // console.log('[UnifiedAppPathCard] Path provided but no selectedApp, will try to match later');
     }
   }, [value]);
 

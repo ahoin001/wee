@@ -11,14 +11,18 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
   
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [resizeOffset, setResizeOffset] = useState({ x: 0, y: 0 });
   const widgetRef = useRef(null);
   const intervalRef = useRef(null);
 
   // Get system info widget state from floating widgets
   const systemInfoWidget = floatingWidgets.systemInfo;
   const systemInfoPosition = systemInfoWidget.position;
-  const updateInterval = systemInfoWidget.updateInterval || 5;
+  const systemInfoSize = systemInfoWidget.size || { width: 320, height: 400 };
+  const updateInterval = systemInfoWidget.updateInterval || 30; // Default to 30 seconds
   const systemInfoData = systemInfoWidget.data;
   const isLoading = systemInfoWidget.isLoading;
   const error = systemInfoWidget.error;
@@ -30,6 +34,13 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
     });
   };
 
+  // Update system info widget size
+  const setSystemInfoWidgetSize = (size) => {
+    setFloatingWidgetsState({
+      systemInfo: { ...systemInfoWidget, size }
+    });
+  };
+
   // Update system info interval
   const updateSystemInfoInterval = (interval) => {
     setFloatingWidgetsState({
@@ -37,9 +48,21 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
     });
   };
 
+  // Handle resize start
+  const handleResizeStart = useCallback((e, handle) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeHandle(handle);
+    const rect = widgetRef.current.getBoundingClientRect();
+    setResizeOffset({
+      x: e.clientX - rect.right,
+      y: e.clientY - rect.bottom
+    });
+  }, []);
+
   // Dragging logic
   const handleMouseDown = useCallback((e) => {
-    if (e.target.closest('.metric-card') || e.target.closest('.close-btn') || e.target.closest('.refresh-btn')) return;
+    if (e.target.closest('.metric-card') || e.target.closest('.close-btn') || e.target.closest('.refresh-btn') || e.target.closest('.resize-handle')) return;
     
     setIsDragging(true);
     const rect = widgetRef.current.getBoundingClientRect();
@@ -50,21 +73,39 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
   }, []);
 
   const handleMouseMove = useCallback((e) => {
-    if (!isDragging) return;
-    
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
-    
-    setSystemInfoWidgetPosition({ x: newX, y: newY });
-  }, [isDragging, dragOffset, setSystemInfoWidgetPosition]);
+    if (isDragging && !isResizing) {
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+      setSystemInfoWidgetPosition({ x: newX, y: newY });
+    } else if (isResizing) {
+      const currentWidth = systemInfoSize.width;
+      const currentHeight = systemInfoSize.height;
+      
+      let newWidth = currentWidth;
+      let newHeight = currentHeight;
+      
+      if (resizeHandle === 'bottom-right') {
+        newWidth = Math.max(280, e.clientX - systemInfoPosition.x - resizeOffset.x);
+        newHeight = Math.max(300, e.clientY - systemInfoPosition.y - resizeOffset.y);
+      } else if (resizeHandle === 'bottom') {
+        newHeight = Math.max(300, e.clientY - systemInfoPosition.y - resizeOffset.y);
+      } else if (resizeHandle === 'right') {
+        newWidth = Math.max(280, e.clientX - systemInfoPosition.x - resizeOffset.x);
+      }
+      
+      setSystemInfoWidgetSize({ width: newWidth, height: newHeight });
+    }
+  }, [isDragging, isResizing, dragOffset, resizeOffset, resizeHandle, systemInfoPosition, systemInfoSize, setSystemInfoWidgetPosition, setSystemInfoWidgetSize]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    setIsResizing(false);
+    setResizeHandle(null);
   }, []);
 
-  // Global mouse event listeners for dragging
+  // Global mouse event listeners for dragging and resizing
   useEffect(() => {
-    if (isDragging) {
+    if (isDragging || isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       
@@ -73,18 +114,18 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   // Fetch system info using store manager
   const fetchSystemInfo = useCallback(async () => {
     if (!isVisible) return;
     
     console.log('[SystemInfoWidget] Fetching system info...');
-    const { actions } = useConsolidatedAppStore.getState();
+    const store = useConsolidatedAppStore.getState();
     
     try {
       // Set loading state first
-      actions.floatingWidgetManager.setSystemInfoLoading(true);
+      store.actions.floatingWidgetManager.setSystemInfoLoading(true);
       
       console.log('[SystemInfoWidget] Making direct API call...');
       const response = await window.api.getSystemInfo();
@@ -92,15 +133,15 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       
       if (response && response.success && response.data) {
         console.log('[SystemInfoWidget] API call successful, updating store...');
-        actions.floatingWidgetManager.updateSystemInfoData(response.data);
+        store.actions.floatingWidgetManager.updateSystemInfoData(response.data);
       } else {
         console.error('[SystemInfoWidget] API call failed:', response);
         const errorMessage = response?.error || 'API call failed';
-        actions.floatingWidgetManager.setSystemInfoError(errorMessage);
+        store.actions.floatingWidgetManager.setSystemInfoError(errorMessage);
       }
     } catch (error) {
       console.error('[SystemInfoWidget] Failed to fetch system info:', error);
-      actions.floatingWidgetManager.setSystemInfoError(`Failed to fetch: ${error.message}`);
+      store.actions.floatingWidgetManager.setSystemInfoError(`Failed to fetch: ${error.message}`);
     }
   }, [isVisible]);
 
@@ -287,8 +328,11 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
         position: 'fixed',
         left: `${systemInfoPosition.x}px`,
         top: `${systemInfoPosition.y}px`,
+        width: `${systemInfoSize.width}px`,
+        height: `${systemInfoSize.height}px`,
         zIndex: 10000,
-        cursor: isDragging ? 'grabbing' : 'grab'
+        cursor: isDragging ? 'grabbing' : isResizing ? 'nw-resize' : 'grab',
+        resize: 'none'
       }}
       onMouseDown={handleMouseDown}
     >
@@ -320,14 +364,23 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       </div>
 
       {/* Widget Content */}
-      <div className="widget-content">
+      <div className="widget-content" style={{ 
+        height: 'calc(100% - 120px)', // Account for header and footer
+        overflow: 'auto',
+        padding: '16px'
+      }}>
         {isLoading ? (
           <div className="loading-state">
             <div className="loading-spinner">⟳</div>
             <Text variant="body" className="loading-text">Loading system info...</Text>
           </div>
         ) : formattedSystemInfo ? (
-          <div className="metrics-grid">
+          <div className="metrics-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: systemInfoSize.width < 400 ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '12px',
+            height: '100%'
+          }}>
             {/* CPU */}
             {renderMetricCard(
               'CPU',
@@ -445,7 +498,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
                 variant="secondary"
                 onClick={() => {
                   console.log('[SystemInfoWidget] Testing store update with mock data...');
-                  const { actions } = useConsolidatedAppStore.getState();
+                  const store = useConsolidatedAppStore.getState();
                   const mockData = {
                     cpu: {
                       model: 'Intel Core i5-12400F',
@@ -473,7 +526,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
                     },
                     battery: null
                   };
-                  actions.floatingWidgetManager.updateSystemInfoData(mockData);
+                  store.actions.floatingWidgetManager.updateSystemInfoData(mockData);
                 }}
                 style={{ 
                   background: 'rgba(255, 255, 255, 0.2)',
@@ -511,6 +564,67 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
           </Text>
         </div>
       </div>
+
+      {/* Resize Handles */}
+      <div 
+        className="resize-handle resize-handle-bottom-right"
+        onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          right: 0,
+          width: '12px',
+          height: '12px',
+          cursor: 'nw-resize',
+          background: 'rgba(255, 255, 255, 0.2)',
+          borderLeft: '2px solid rgba(255, 255, 255, 0.5)',
+          borderTop: '2px solid rgba(255, 255, 255, 0.5)',
+          opacity: 0.7,
+          transition: 'opacity 0.2s ease'
+        }}
+        onMouseEnter={(e) => e.target.style.opacity = '1'}
+        onMouseLeave={(e) => e.target.style.opacity = '0.7'}
+      />
+      <div 
+        className="resize-handle resize-handle-bottom"
+        onMouseDown={(e) => handleResizeStart(e, 'bottom')}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '20px',
+          height: '6px',
+          cursor: 'ns-resize',
+          background: 'rgba(255, 255, 255, 0.2)',
+          borderTop: '2px solid rgba(255, 255, 255, 0.5)',
+          borderRadius: '3px 3px 0 0',
+          opacity: 0.7,
+          transition: 'opacity 0.2s ease'
+        }}
+        onMouseEnter={(e) => e.target.style.opacity = '1'}
+        onMouseLeave={(e) => e.target.style.opacity = '0.7'}
+      />
+      <div 
+        className="resize-handle resize-handle-right"
+        onMouseDown={(e) => handleResizeStart(e, 'right')}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          right: 0,
+          transform: 'translateY(-50%)',
+          width: '6px',
+          height: '20px',
+          cursor: 'ew-resize',
+          background: 'rgba(255, 255, 255, 0.2)',
+          borderLeft: '2px solid rgba(255, 255, 255, 0.5)',
+          borderRadius: '0 3px 3px 0',
+          opacity: 0.7,
+          transition: 'opacity 0.2s ease'
+        }}
+        onMouseEnter={(e) => e.target.style.opacity = '1'}
+        onMouseLeave={(e) => e.target.style.opacity = '0.7'}
+      />
     </div>
   );
 };

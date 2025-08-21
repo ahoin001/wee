@@ -21,6 +21,7 @@ import AdvancedSettingsTab from './settings/AdvancedSettingsTab';
 import LayoutSettingsTab from './settings/LayoutSettingsTab';
 import ShortcutsSettingsTab from './settings/ShortcutsSettingsTab';
 import UpdatesSettingsTab from './settings/UpdatesSettingsTab';
+import NavigationSettingsTab from './settings/NavigationSettingsTab';
 
 
 
@@ -128,6 +129,14 @@ const SETTINGS_TABS = [
     color: '#00b894', 
     description: 'Grid & navigation modes',
     component: LayoutSettingsTab
+  },
+  { 
+    id: 'navigation', 
+    label: 'Navigation', 
+    icon: '🧭', 
+    color: '#fd79a8', 
+    description: 'Side navigation buttons',
+    component: NavigationSettingsTab
   },
   { 
     id: 'monitor', 
@@ -552,6 +561,10 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
         // ShortcutsSettingsTab uses consolidated store directly - no props needed
         tabSettings = {};
         break;
+      case 'navigation':
+        // NavigationSettingsTab uses consolidated store directly - no props needed
+        tabSettings = {};
+        break;
       default:
         tabSettings = localSettings;
     }
@@ -593,8 +606,8 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
               } : activeTab === 'channels' ? {
                 settings: tabSettings,
                 onSettingChange: handleDirectSettingUpdate
-            } : activeTab === 'general' || activeTab === 'ribbon' || activeTab === 'wallpaper' || activeTab === 'time' || activeTab === 'layout' || activeTab === 'updates' || activeTab === 'dock' ? {
-              // GeneralSettingsTab, RibbonSettingsTab, WallpaperSettingsTab, TimeSettingsTab, LayoutSettingsTab, UpdatesSettingsTab, and UnifiedDockSettingsTab use consolidated store directly - no props needed
+            } : activeTab === 'general' || activeTab === 'ribbon' || activeTab === 'wallpaper' || activeTab === 'time' || activeTab === 'layout' || activeTab === 'updates' || activeTab === 'dock' || activeTab === 'navigation' ? {
+              // GeneralSettingsTab, RibbonSettingsTab, WallpaperSettingsTab, TimeSettingsTab, LayoutSettingsTab, UpdatesSettingsTab, UnifiedDockSettingsTab, and NavigationSettingsTab use consolidated store directly - no props needed
               } : {
                 localSettings: tabSettings,
                 updateLocalSetting: handleGeneralSettingUpdate

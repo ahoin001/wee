@@ -33,25 +33,13 @@ const UnifiedAppPathSearch = ({
   }, [setUnifiedAppsState]);
   
   const fetchUnifiedApps = useCallback(async () => {
-    console.log('[UnifiedAppPathSearch] Fetching unified apps...');
     try {
       // Use the unified app manager from the consolidated store
       const store = useConsolidatedAppStore.getState();
-      console.log('[UnifiedAppPathSearch] Store state before fetch:', {
-        hasUnifiedAppManager: !!store.unifiedAppManager,
-        currentAppsCount: store.unifiedApps?.apps?.length || 0
-      });
       
       const result = await store.unifiedAppManager.fetchUnifiedApps();
-      console.log('[UnifiedAppPathSearch] Fetch result:', {
-        success: result.success,
-        appsCount: result.apps?.length || 0,
-        error: result.error
-      });
       
-      if (result.success) {
-        console.log('[UnifiedAppPathSearch] Unified apps fetched successfully:', result.apps.length);
-      } else {
+      if (!result.success) {
         console.error('[UnifiedAppPathSearch] Failed to fetch unified apps:', result.error);
       }
     } catch (error) {
@@ -82,15 +70,8 @@ const UnifiedAppPathSearch = ({
 
   // Fetch apps on mount
   useEffect(() => {
-    console.log('[UnifiedAppPathSearch] useEffect triggered:', {
-      appsLength: apps.length,
-      hasFetchedApps: hasFetchedApps.current,
-      shouldFetch: apps.length === 0 && !hasFetchedApps.current
-    });
-    
     if (apps.length === 0 && !hasFetchedApps.current) {
       hasFetchedApps.current = true;
-      console.log('[UnifiedAppPathSearch] Triggering fetch...');
       fetchUnifiedApps();
     }
   }, [apps.length]); // Remove fetchUnifiedApps from dependencies to prevent infinite loops
@@ -107,29 +88,10 @@ const UnifiedAppPathSearch = ({
 
   // Memoize filtered apps to prevent unnecessary recalculations
   const filteredApps = useMemo(() => {
-    console.log('[UnifiedAppPathSearch] Filtering apps:', {
-      totalApps: apps.length,
-      searchQuery,
-      selectedAppType,
-      appsByType: {
-        exe: apps.filter(app => app.type === 'exe').length,
-        steam: apps.filter(app => app.type === 'steam').length,
-        epic: apps.filter(app => app.type === 'epic').length,
-        microsoft: apps.filter(app => app.type === 'microsoft').length,
-        other: apps.filter(app => !['exe', 'steam', 'epic', 'microsoft'].includes(app.type)).length
-      }
-    });
-    
     const filtered = apps.filter(app => 
       app.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
       (selectedAppType === 'all' || app.type === selectedAppType)
     );
-    
-    console.log('[UnifiedAppPathSearch] Filtered results:', {
-      filteredCount: filtered.length,
-      searchQuery,
-      selectedAppType
-    });
     
     return filtered;
   }, [apps, searchQuery, selectedAppType]);
@@ -139,14 +101,8 @@ const UnifiedAppPathSearch = ({
 
   // Memoize event handlers
   const handleAppSelect = useCallback((app) => {
-    console.log('[UnifiedAppPathSearch] App selected:', app);
-    
     // Always update the selected app to ensure path parsing works
     setSelectedApp(app);
-    
-    // Generate the proper path for the selected app
-    const generatedPath = app?.path || '';
-    console.log('[UnifiedAppPathSearch] Generated path:', generatedPath);
     
     // Don't call onChange here - let the parent component handle the configuration
     // The UnifiedAppPathCard will handle the path updates based on the store's selectedApp
@@ -177,7 +133,6 @@ const UnifiedAppPathSearch = ({
   }, [onBlur]);
 
   const handleRescan = useCallback(() => {
-    console.log('[UnifiedAppPathSearch] Manual rescan triggered');
     // Reset the fetch flag to force a fresh scan
     hasFetchedApps.current = false;
     rescanUnifiedApps();

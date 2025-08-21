@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import useChannelOperations from '../utils/useChannelOperations';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import useSoundManager from '../utils/useSoundManager';
 import './WiiSideNavigation.css';
 
 const WiiSideNavigation = () => {
@@ -13,114 +15,125 @@ const WiiSideNavigation = () => {
   
   const { currentPage, totalPages, isAnimating, mode } = navigation;
 
-  // Icon state management
-  const [leftIcon, setLeftIcon] = useState(null);
-  const [rightIcon, setRightIcon] = useState(null);
+  // Get Spotify colors from store
+  const spotifyColors = useConsolidatedAppStore(state => state.spotify.extractedColors);
+  const spotifyEnabled = useConsolidatedAppStore(state => state.spotify.dynamicColorMatching);
+
+  // Get sound manager for click sounds
+  const { playChannelClickSound } = useSoundManager();
   
-  // Glass effect state management
-  const [leftGlassSettings, setLeftGlassSettings] = useState({
+  // Get navigation settings from store
+  const navigationSettings = useConsolidatedAppStore(state => state.navigation);
+  const leftIcon = navigationSettings.icons?.left || null;
+  const rightIcon = navigationSettings.icons?.right || null;
+  const leftGlassSettings = navigationSettings.glassEffect?.left || {
     enabled: false,
     opacity: 0.18,
     blur: 2.5,
     borderOpacity: 0.5,
     shineOpacity: 0.7
-  });
-  const [rightGlassSettings, setRightGlassSettings] = useState({
+  };
+  const rightGlassSettings = navigationSettings.glassEffect?.right || {
     enabled: false,
     opacity: 0.18,
     blur: 2.5,
     borderOpacity: 0.5,
     shineOpacity: 0.7
-  });
+  };
+  const navigationSpotifyIntegration = navigationSettings.spotifyIntegration || false;
 
-  // Load saved icons and glass settings on component mount
-  useEffect(() => {
-    const loadSavedSettings = async () => {
-      if (window.api?.settings?.get) {
-        try {
-          const settings = await window.api.settings.get();
-          
-          // Load icons
-          if (settings.navigationIcons) {
-            setLeftIcon(settings.navigationIcons.left || null);
-            setRightIcon(settings.navigationIcons.right || null);
-          }
-          
-          // Load glass settings
-          if (settings.navigationGlassEffect) {
-            const leftGlass = settings.navigationGlassEffect.left;
-            const rightGlass = settings.navigationGlassEffect.right;
-            
-            if (leftGlass) {
-              setLeftGlassSettings(leftGlass);
-            }
-            if (rightGlass) {
-              setRightGlassSettings(rightGlass);
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to load navigation settings:', error);
+  // Note: Settings are now managed through the consolidated store
+  // No need for local state management or event listeners
+
+
+
+  // Save icon settings
+  const saveIconSettings = async (side, iconUrl) => {
+    if (window.api?.settings?.set) {
+      try {
+        const currentSettings = await window.api.settings.get();
+        const navigationIcons = currentSettings.navigationIcons || {};
+        
+        if (side === 'left') {
+          navigationIcons.left = iconUrl;
+        } else if (side === 'right') {
+          navigationIcons.right = iconUrl;
         }
+        
+        await window.api.settings.set({
+          ...currentSettings,
+          navigationIcons
+        });
+      } catch (error) {
+        console.warn('Failed to save navigation icon settings:', error);
       }
-    };
-    loadSavedSettings();
-
-    // Listen for settings changes from the modal
-    const handleSettingsChange = (event) => {
-      const { side, iconUrl, glassSettings } = event.detail;
-      if (side === 'left') {
-        setLeftIcon(iconUrl);
-        if (glassSettings) {
-          setLeftGlassSettings(glassSettings);
-        }
-      } else if (side === 'right') {
-        setRightIcon(iconUrl);
-        if (glassSettings) {
-          setRightGlassSettings(glassSettings);
-        }
-      }
-    };
-
-    // Listen for glass effect preview changes
-    const handleGlassPreview = (event) => {
-      const { side, glassSettings } = event.detail;
-      if (side === 'left') {
-        setLeftGlassSettings(glassSettings);
-      } else if (side === 'right') {
-        setRightGlassSettings(glassSettings);
-      }
-    };
-
-    window.addEventListener('navigationSettingsChanged', handleSettingsChange);
-    window.addEventListener('navigationGlassPreview', handleGlassPreview);
-    
-    return () => {
-      window.removeEventListener('navigationSettingsChanged', handleSettingsChange);
-      window.removeEventListener('navigationGlassPreview', handleGlassPreview);
-    };
-  }, []);
-
-
-
-  // Handle right-click to open modal (disabled for now)
-  const handleContextMenu = (event, side) => {
-    event.preventDefault();
-    // TODO: Re-implement navigation modal functionality
-    console.log('Navigation customization not yet implemented');
+    }
   };
 
-  // Generate glass effect styles
-  const getGlassStyles = (glassSettings) => {
+  // Handle right-click to open modal
+  const handleContextMenu = (event, side) => {
+    event.preventDefault();
+    // Open the navigation settings tab in the main settings modal
+    if (window.api?.settings?.openSettingsModal) {
+      window.api.settings.openSettingsModal('navigation');
+    } else {
+      // Fallback: dispatch a custom event that the main app can listen to
+      window.dispatchEvent(new CustomEvent('openNavigationSettings', {
+        detail: { side }
+      }));
+    }
+  };
+
+  // Helper function to convert RGB to RGBA
+  const rgbToRgba = (rgbString, alpha = 1) => {
+    if (!rgbString || !rgbString.startsWith('rgb(')) return rgbString;
+    return rgbString.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+  };
+
+  // Generate glass effect styles with enhanced Spotify color strategy
+  const getGlassStyles = (glassSettings, side = 'left') => {
     if (!glassSettings.enabled) return {};
     
-    return {
-      background: `rgba(255, 255, 255, ${glassSettings.opacity})`,
-      backdropFilter: `blur(${glassSettings.blur}px)`,
-      border: `1px solid rgba(255, 255, 255, ${glassSettings.borderOpacity})`,
-      boxShadow: `
+    // Use enhanced Spotify color strategy if enabled and available
+    let background, border, boxShadow;
+    
+    if (spotifyEnabled && navigationSpotifyIntegration && spotifyColors) {
+      // Enhanced color strategy: Primary for backgrounds, Secondary for borders, Accent for highlights
+      const primaryColor = spotifyColors.primary;
+      const secondaryColor = spotifyColors.secondary;
+      const accentColor = spotifyColors.accent;
+      
+      if (primaryColor && secondaryColor && accentColor) {
+        background = rgbToRgba(primaryColor, glassSettings.opacity);
+        border = `1px solid ${rgbToRgba(secondaryColor, glassSettings.borderOpacity)}`;
+        boxShadow = `
+          0 8px 32px ${rgbToRgba(accentColor, 0.37)},
+          inset 0 1px 0 ${rgbToRgba(accentColor, glassSettings.shineOpacity)}
+        `;
+      } else {
+        // Fallback to white if Spotify colors not available
+        background = `rgba(255, 255, 255, ${glassSettings.opacity})`;
+        border = `1px solid rgba(255, 255, 255, ${glassSettings.borderOpacity})`;
+        boxShadow = `
+          0 8px 32px rgba(31, 38, 135, 0.37),
+          inset 0 1px 0 rgba(255, 255, 255, ${glassSettings.shineOpacity})
+        `;
+      }
+    } else {
+      // Default white glass effect
+      background = `rgba(255, 255, 255, ${glassSettings.opacity})`;
+      border = `1px solid rgba(255, 255, 255, ${glassSettings.borderOpacity})`;
+      boxShadow = `
         0 8px 32px rgba(31, 38, 135, 0.37),
         inset 0 1px 0 rgba(255, 255, 255, ${glassSettings.shineOpacity})
-      `,
+      `;
+    }
+    
+    return {
+      background,
+      backdropFilter: `blur(${glassSettings.blur}px)`,
+      border,
+      boxShadow,
     };
   };
 
@@ -150,7 +163,10 @@ const WiiSideNavigation = () => {
   );
 
   // Icon renderer with fallback
-  const renderIcon = (customIcon, DefaultIcon) => {
+  const renderIcon = (customIcon, DefaultIcon, side = 'left') => {
+    // Apply Spotify text color if enabled
+    const textColor = spotifyEnabled && navigationSpotifyIntegration && spotifyColors?.text ? spotifyColors.text : 'currentColor';
+    
     if (customIcon) {
       return (
         <img 
@@ -159,7 +175,8 @@ const WiiSideNavigation = () => {
           style={{ 
             width: 20, 
             height: 20,
-            objectFit: 'contain'
+            objectFit: 'contain',
+            filter: spotifyEnabled && navigationSpotifyIntegration && spotifyColors?.text ? 'brightness(0) saturate(100%) invert(1)' : 'none'
           }}
           onError={(e) => {
             console.warn('Navigation icon failed to load, falling back to default:', customIcon);
@@ -176,7 +193,7 @@ const WiiSideNavigation = () => {
         />
       );
     }
-    return <DefaultIcon />;
+    return <DefaultIcon style={{ color: textColor }} />;
   };
 
   // Keyboard and mouse navigation
@@ -258,17 +275,20 @@ const WiiSideNavigation = () => {
       {canGoLeft && (
         <button
           className="wii-peek-button wii-peek-button-left"
-          onClick={prevPage}
+          onClick={async () => {
+            await playChannelClickSound();
+            prevPage();
+          }}
           onContextMenu={(e) => handleContextMenu(e, 'left')}
           disabled={isAnimating}
           title="Previous page (Right-click to customize)"
         >
           <div 
             className="wii-button-surface"
-            style={getGlassStyles(leftGlassSettings)}
+            style={getGlassStyles(leftGlassSettings, 'left')}
           >
             <div className="wii-button-content">
-              {renderIcon(leftIcon, DefaultLeftIcon)}
+              {renderIcon(leftIcon, DefaultLeftIcon, 'left')}
             </div>
           </div>
         </button>
@@ -278,17 +298,20 @@ const WiiSideNavigation = () => {
       {canGoRight && (
         <button
           className="wii-peek-button wii-peek-button-right"
-          onClick={nextPage}
+          onClick={async () => {
+            await playChannelClickSound();
+            nextPage();
+          }}
           onContextMenu={(e) => handleContextMenu(e, 'right')}
           disabled={isAnimating}
           title="Next page (Right-click to customize)"
         >
           <div 
             className="wii-button-surface"
-            style={getGlassStyles(rightGlassSettings)}
+            style={getGlassStyles(rightGlassSettings, 'right')}
           >
             <div className="wii-button-content">
-              {renderIcon(rightIcon, DefaultRightIcon)}
+              {renderIcon(rightIcon, DefaultRightIcon, 'right')}
             </div>
           </div>
         </button>

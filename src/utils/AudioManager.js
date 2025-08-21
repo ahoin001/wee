@@ -92,7 +92,6 @@ class AudioManager {
       // If not looping, add ended listener
       if (!loop) {
         const onEnded = () => {
-          console.log('Background music ended (looping disabled)');
           this.backgroundAudio = null;
           this.backgroundAudio.removeEventListener('ended', onEnded);
         };
@@ -217,17 +216,13 @@ class AudioManager {
 
   // Set background music (single track)
   async setBackgroundMusic(url, volume = 0.4, loop = true) {
-    console.log('[AudioManager] setBackgroundMusic called with:', { url, volume, loop });
-    
     // Stop previous background music
     if (this.backgroundAudio) {
-      console.log('[AudioManager] Stopping previous background music');
       this.backgroundAudio.pause();
       this.backgroundAudio.currentTime = 0;
     }
 
     if (url) {
-      console.log('[AudioManager] Creating new background audio instance for:', url);
       this.backgroundAudio = this.getAudioInstance(url);
       
       // Get the current volume from sound library if available
@@ -239,7 +234,6 @@ class AudioManager {
             const enabledMusic = library.backgroundMusic.find(s => s.enabled);
             if (enabledMusic && enabledMusic.volume !== undefined) {
               volume = enabledMusic.volume;
-              console.log('[AudioManager] Using volume from library:', volume);
             }
           }
         }
@@ -247,36 +241,22 @@ class AudioManager {
         console.warn('Failed to get current background music volume:', error);
       }
       
-      console.log('[AudioManager] Setting background audio properties:', { volume, loop });
       this.backgroundAudio.volume = volume;
       this.backgroundAudio.loop = loop;
       
       // If not looping, stop background music when it ends
       if (!loop) {
         const onEnded = () => {
-          console.log('Background music ended (looping disabled)');
           this.backgroundAudio = null;
           this.backgroundAudio.removeEventListener('ended', onEnded);
         };
         this.backgroundAudio.addEventListener('ended', onEnded);
       }
       
-      console.log('[AudioManager] Attempting to play background music...');
-      this.backgroundAudio.play().then(() => {
-        console.log('[AudioManager] Background music started successfully');
-      }).catch(error => {
+      this.backgroundAudio.play().catch(error => {
         console.error('[AudioManager] Failed to play background music:', error);
-        console.error('[AudioManager] Error details:', {
-          url,
-          volume,
-          loop,
-          audioReadyState: this.backgroundAudio.readyState,
-          audioNetworkState: this.backgroundAudio.networkState,
-          audioError: this.backgroundAudio.error
-        });
       });
     } else {
-      console.log('[AudioManager] No URL provided, clearing background audio');
       this.backgroundAudio = null;
     }
   }

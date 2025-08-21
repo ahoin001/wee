@@ -129,6 +129,33 @@
   position: relative; /* Ensure proper stacking context */
 }
 
+/* Visualizer Header - New draggable header */
+.visualizer-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 20px;
+  pointer-events: auto;
+  z-index: 3;
+  cursor: grab;
+  background: linear-gradient(180deg, 
+    rgba(0, 0, 0, 0.4) 0%, 
+    rgba(0, 0, 0, 0.2) 50%, 
+    rgba(0, 0, 0, 0.4) 100%);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 20px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.visualizer-header:active {
+  cursor: grabbing;
+}
+
 /* Enhanced visualizer container with better effects */
 .visualizer {
   position: absolute;
@@ -1126,58 +1153,106 @@
   background: rgba(255, 255, 255, 0.5);
 } 
 
-/* Floating Page Navigation - Top Right */
-.floating-page-navigation-top {
+
+
+/* Ensure navigation stays within widget bounds */
+.floating-spotify-widget {
+  overflow: hidden;
+} 
+
+/* Right Sidebar Navigation - Peek button style */
+.sidebar-navigation-right {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-  max-width: calc(100% - 16px);
-  pointer-events: auto;
-  overflow: hidden;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1000;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.floating-page-navigation-top > div {
-  display: flex;
-  gap: 5px;
+.sidebar-peek-button {
+  position: fixed;
+  right: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
   background: rgba(0, 0, 0, 0.7);
-  border-radius: 20px;
-  padding: 3px;
   backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  max-width: 100%;
-  overflow: hidden;
-  width: fit-content;
-  min-width: 0;
-}
-
-.floating-page-navigation-top .page-btn {
-  background: transparent;
-  border: none;
-  border-radius: 16px;
-  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 25;
+}
+
+.sidebar-peek-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  right: -12px;
+}
+
+.peek-icon {
+  font-size: 14px;
   color: white;
-  font-size: 10px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.sidebar-menu {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 8px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(25px);
+  border-radius: 12px 0 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: none;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+  min-width: 140px;
+  z-index: 24;
+}
+
+.sidebar-navigation-right:hover .sidebar-menu {
+  transform: translateX(0);
+}
+
+.sidebar-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 12px;
   font-weight: 500;
-  cursor: pointer !important;
+  cursor: pointer;
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
-  min-width: 0;
-  flex-shrink: 0;
   position: relative;
   overflow: hidden;
   white-space: nowrap;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  margin: 0;
+  min-width: 120px;
 }
 
-.floating-page-navigation-top .page-btn::before {
+.sidebar-btn::before {
   content: '';
   position: absolute;
   top: 0;
@@ -1187,103 +1262,82 @@
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   opacity: 0;
   transition: opacity 0.2s ease;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
-.floating-page-navigation-top .page-btn:hover::before {
+.sidebar-btn:hover::before {
   opacity: 1;
 }
 
-.floating-page-navigation-top .page-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+.sidebar-btn:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.floating-page-navigation-top .page-btn.active {
+.sidebar-btn.active {
   background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px);
+  transform: translateX(-4px);
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   border-color: rgba(255, 255, 255, 0.4);
 }
 
-.floating-page-navigation-top .page-btn.active::before {
+.sidebar-btn.active::before {
   opacity: 1;
 }
 
-.floating-page-navigation-top .page-icon {
-  font-size: 11px;
+.sidebar-icon {
+  font-size: 14px;
   flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  width: 16px;
+  text-align: center;
 }
 
-.floating-page-navigation-top .page-label {
+.sidebar-label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-  max-width: 60px;
+  flex: 1;
 }
 
-/* Page-specific navigation positioning */
-.player-page .floating-page-navigation-top {
-  top: 8px;
-  right: 8px;
-}
-
-.browse-page .floating-page-navigation-top {
-  top: 8px;
-  right: 8px;
-}
-
-.settings-page .floating-page-navigation-top {
-  top: 8px;
-  right: 8px;
-}
-
-/* Responsive adjustments */
+/* Responsive sidebar adjustments */
 @media (max-width: 400px) {
-  .floating-page-navigation-top > div {
-    gap: 3px;
-    padding: 2px;
+  .sidebar-menu {
+    min-width: 120px;
+    padding: 8px 6px;
   }
   
-  .floating-page-navigation-top .page-label {
-    display: none; /* Hide labels on very small screens */
+  .sidebar-btn {
+    padding: 8px 10px;
+    font-size: 11px;
+    min-width: 100px;
   }
   
-  .floating-page-navigation-top .page-btn {
-    padding: 6px 8px;
-    min-width: 32px;
-  }
-  
-  .floating-page-navigation-top .page-icon {
+  .sidebar-icon {
     font-size: 12px;
+    width: 14px;
   }
 }
 
 @media (max-width: 300px) {
-  .floating-page-navigation-top {
-    top: 4px;
-    right: 4px;
-    max-width: calc(100% - 8px);
+  .sidebar-menu {
+    min-width: 100px;
+    padding: 6px 4px;
   }
   
-  .floating-page-navigation-top > div {
-    gap: 2px;
-    padding: 2px;
+  .sidebar-btn {
+    padding: 6px 8px;
+    font-size: 10px;
+    min-width: 80px;
   }
   
-  .floating-page-navigation-top .page-btn {
-    padding: 4px 6px;
-    min-width: 28px;
+  .sidebar-icon {
+    font-size: 11px;
+    width: 12px;
   }
 }
-
-/* Ensure navigation stays within widget bounds */
-.floating-spotify-widget {
-  overflow: hidden;
-} 
 
 /* Main Widget Container */
 .floating-spotify-widget {
@@ -1323,7 +1377,6 @@
   overflow-y: auto;
   padding-top: 20px; /* Space from visualizer */
   min-height: 0; /* Allow flex shrinking */
-  margin-top: 20px; /* Additional margin from visualizer for breathing room */
 }
 
 /* Track Info Card - add margin from visualizer */
@@ -1336,7 +1389,7 @@
   align-items: center;
   gap: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 10px; /* Additional margin from visualizer */
+  /* margin-top: 10px; */
 }
 
 /* Modern Playback Controls with proper padding and circular containers */
@@ -1436,7 +1489,6 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
-  margin-top: 30px; /* Remove margin since we have padding-top on player-page */
 }
 
 .track-artwork-large {
@@ -1508,7 +1560,6 @@
   padding: 40px 20px;
   text-align: center;
   min-height: 200px; /* Ensure minimum height for empty state */
-  margin-top: 20px; /* Additional margin from visualizer */
 }
 
 .no-track-icon-large {

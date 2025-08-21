@@ -96,7 +96,11 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
   
   // Use ref to track powerActions to prevent stale closures
   const powerActionsRef = useRef(powerActions);
-  powerActionsRef.current = powerActions;
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    powerActionsRef.current = powerActions;
+  }, [powerActions]);
   
   // Use ref to track if we've initialized from config
   const hasInitializedRef = useRef(false);
@@ -175,7 +179,7 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
 
     onSave(currentActions);
     onClose();
-  }, [powerActionsRef.current, onSave, onClose]);
+  }, [onSave, onClose]);
 
   const handleQuickExecute = (action) => {
     if (window.api && window.api.executeCommand) {

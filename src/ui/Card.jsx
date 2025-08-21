@@ -60,7 +60,8 @@ const Card = React.memo(({
   subtitle,
   features = [],
   stats = [],
-  decorative = true
+  decorative = true,
+  noHover = true
 }) => {
   
   // Wii-style color schemes
@@ -146,19 +147,11 @@ const Card = React.memo(({
   if (variant === 'wii-emphasis') {
     return (
       <div 
-        className={`wii-hover ${className}`}
+        className={`${noHover ? '' : 'wii-hover'} relative overflow-hidden p-5 mb-6 rounded-2xl ${className}`}
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px',
-          padding: '20px',
           background: colorScheme.bg,
-          borderRadius: '16px',
           border: `3px solid ${colorScheme.border}`,
           boxShadow: `0 8px 24px ${colorScheme.shadow}, inset 0 1px 0 rgba(255, 255, 255, 0.3)`,
-          position: 'relative',
-          overflow: 'hidden',
           ...style
         }}
         onClick={onClick}
@@ -166,74 +159,58 @@ const Card = React.memo(({
         {/* Decorative elements */}
         {decorative && (
           <>
-            <div style={{
-              position: 'absolute',
-              top: '-10px',
-              right: '-10px',
-              width: '40px',
-              height: '40px',
-              background: `radial-gradient(circle, ${colorScheme.border} 0%, ${colorScheme.accent} 100%)`,
-              borderRadius: '50%',
-              opacity: 0.3,
-              transform: 'rotate(15deg)'
-            }} />
-            <div style={{
-              position: 'absolute',
-              bottom: '-5px',
-              left: '20px',
-              width: '20px',
-              height: '20px',
-              background: `radial-gradient(circle, ${colorScheme.accent} 0%, ${colorScheme.border} 100%)`,
-              borderRadius: '50%',
-              opacity: 0.4
-            }} />
+            <div 
+              className="absolute -top-2.5 -right-2.5 w-10 h-10 rounded-full opacity-30 rotate-15"
+              style={{
+                background: `radial-gradient(circle, ${colorScheme.border} 0%, ${colorScheme.accent} 100%)`
+              }} 
+            />
+            <div 
+              className="absolute -bottom-1.5 left-5 w-5 h-5 rounded-full opacity-40"
+              style={{
+                background: `radial-gradient(circle, ${colorScheme.accent} 0%, ${colorScheme.border} 100%)`
+              }} 
+            />
           </>
         )}
         
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+        <div className="w-full">
+          <div className="flex items-center gap-3 mb-2">
             {icon && (
-              <div style={{
-                width: '32px',
-                height: '32px',
-                background: colorScheme.iconBg,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-                color: 'white',
-                boxShadow: `0 4px 12px ${colorScheme.shadow}`,
-                animation: 'pulse 2s infinite'
-              }}>
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-lg text-white animate-pulse"
+                style={{
+                  background: colorScheme.iconBg,
+                  boxShadow: `0 4px 12px ${colorScheme.shadow}`
+                }}
+              >
                 {icon}
               </div>
             )}
-            <h3 style={{ 
-              margin: 0, 
-              fontSize: '20px', 
-              fontWeight: '700',
-              color: '#2C3E50',
-              textShadow: '0 1px 2px rgba(0,0,0,0.1)',
-              letterSpacing: '0.5px'
-            }}>
+            <h3 
+              className="m-0 text-xl font-bold tracking-wide"
+              style={{ 
+                color: '#2C3E50',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+              }}
+            >
               {title}
             </h3>
           </div>
           {subtitle && (
-            <p style={{ 
-              margin: 0, 
-              fontSize: '15px', 
-              color: '#5D6D7E',
-              fontStyle: 'italic',
-              textShadow: '0 1px 1px rgba(255,255,255,0.5)'
-            }}>
+            <p 
+              className="m-0 text-base italic"
+              style={{ 
+                color: '#5D6D7E',
+                textShadow: '0 1px 1px rgba(255,255,255,0.5)'
+              }}
+            >
               {subtitle}
             </p>
           )}
         </div>
         
-        {actions}
+        {actions && <div className="mt-4">{actions}</div>}
         {children}
       </div>
     );
@@ -243,70 +220,50 @@ const Card = React.memo(({
   if (variant === 'wii-feature') {
     return (
       <div 
-        className="wii-hover"
+        className={`${noHover ? '' : 'wii-hover'} relative overflow-hidden p-5 rounded-2xl transition-all duration-300 ease-in-out`}
         style={{
           background: colorScheme.bg,
-          borderRadius: '16px',
-          padding: '20px',
           border: `3px solid ${colorScheme.border}`,
           boxShadow: `0 8px 24px ${colorScheme.shadow}, inset 0 1px 0 rgba(255, 255, 255, 0.3)`,
-          position: 'relative',
-          overflow: 'hidden',
-          transition: 'all 0.3s ease',
           ...style
         }}
         onClick={onClick}
       >
         {/* Decorative element */}
         {decorative && (
-          <div style={{
-            position: 'absolute',
-            top: '-15px',
-            right: '-15px',
-            width: '50px',
-            height: '50px',
-            background: `radial-gradient(circle, ${colorScheme.border} 0%, ${colorScheme.accent} 100%)`,
-            borderRadius: '50%',
-            opacity: 0.2,
-            transform: 'rotate(25deg)'
-          }} />
+          <div 
+            className="absolute -top-4 -right-4 w-12 h-12 rounded-full opacity-20 rotate-25"
+            style={{
+              background: `radial-gradient(circle, ${colorScheme.border} 0%, ${colorScheme.accent} 100%)`
+            }} 
+          />
         )}
         
         {/* Header with icon and title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+        <div className="flex items-center gap-3 mb-4">
           {icon && (
-            <div style={{
-              width: '40px',
-              height: '40px',
-              background: colorScheme.iconBg,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              color: 'white',
-              boxShadow: `0 4px 12px ${colorScheme.shadow}`
-            }}>
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center text-xl text-white"
+              style={{
+                background: colorScheme.iconBg,
+                boxShadow: `0 4px 12px ${colorScheme.shadow}`
+              }}
+            >
               {icon}
             </div>
           )}
           <div>
-            <h4 style={{ 
-              margin: 0, 
-              fontSize: '18px', 
-              fontWeight: '700',
-              color: '#2C3E50',
-              textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-            }}>
+            <h4 
+              className="m-0 text-lg font-bold"
+              style={{ 
+                color: '#2C3E50',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+              }}
+            >
               {title}
             </h4>
             {subtitle && (
-              <p style={{ 
-                margin: '4px 0 0 0', 
-                fontSize: '13px', 
-                color: '#7F8C8D',
-                fontStyle: 'italic'
-              }}>
+              <p className="mt-1 mb-0 text-xs italic" style={{ color: '#7F8C8D' }}>
                 {subtitle}
               </p>
             )}
@@ -314,39 +271,30 @@ const Card = React.memo(({
         </div>
         
         {/* Content area */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.6)',
-          borderRadius: '12px',
-          padding: '16px',
-          border: `2px solid ${colorScheme.shadow.replace('0.15', '0.2')}`
-        }}>
+        <div 
+          className="rounded-xl p-4"
+          style={{
+            background: 'rgba(255, 255, 255, 0.6)',
+            border: `2px solid ${colorScheme.shadow.replace('0.15', '0.2')}`
+          }}
+        >
           {desc && (
-            <p style={{ 
-              margin: '0 0 12px 0', 
-              fontSize: '14px', 
-              color: '#5D6D7E',
-              lineHeight: '1.4'
-            }}>
+            <p className="mb-3 text-sm leading-relaxed" style={{ color: '#5D6D7E' }}>
               {desc}
             </p>
           )}
           
           {/* Feature badges */}
           {features.length > 0 && (
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap'
-            }}>
+            <div className="flex gap-2 flex-wrap">
               {features.map((feature, index) => (
-                <span key={index} style={{
-                  background: colorScheme.iconBg,
-                  color: 'white',
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  fontSize: '12px',
-                  fontWeight: '600'
-                }}>
+                <span 
+                  key={index} 
+                  className="text-white px-3 py-1 rounded-full text-xs font-semibold"
+                  style={{
+                    background: colorScheme.iconBg
+                  }}
+                >
                   {feature}
                 </span>
               ))}
@@ -363,80 +311,60 @@ const Card = React.memo(({
   if (variant === 'wii-stats') {
     return (
       <div 
+        className="p-5 rounded-2xl mb-6"
         style={{
           background: colorScheme.bg,
-          borderRadius: '16px',
-          padding: '20px',
           border: `3px solid ${colorScheme.border}`,
           boxShadow: `0 8px 24px ${colorScheme.shadow}, inset 0 1px 0 rgba(255, 255, 255, 0.3)`,
-          marginBottom: '24px',
           ...style
         }}
         onClick={onClick}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+        <div className="flex items-center gap-3 mb-4">
           {icon && (
-            <div style={{
-              width: '36px',
-              height: '36px',
-              background: colorScheme.iconBg,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              color: 'white',
-              boxShadow: `0 4px 12px ${colorScheme.shadow}`
-            }}>
+            <div 
+              className="w-9 h-9 rounded-full flex items-center justify-center text-lg text-white"
+              style={{
+                background: colorScheme.iconBg,
+                boxShadow: `0 4px 12px ${colorScheme.shadow}`
+              }}
+            >
               {icon}
             </div>
           )}
-          <h4 style={{ 
-            margin: 0, 
-            fontSize: '18px', 
-            fontWeight: '700',
-            color: '#2C3E50',
-            textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-          }}>
+          <h4 
+            className="m-0 text-lg font-bold"
+            style={{ 
+              color: '#2C3E50',
+              textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+            }}
+          >
             {title}
           </h4>
         </div>
         
         {/* Stats grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '16px'
-        }}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
           {stats.map((stat, index) => (
-            <div key={index} style={{
-              background: 'rgba(255, 255, 255, 0.7)',
-              borderRadius: '12px',
-              padding: '16px',
-              textAlign: 'center',
-              border: `2px solid ${colorScheme.shadow.replace('0.15', '0.1')}`
-            }}>
-              <div style={{
-                fontSize: '24px',
-                fontWeight: '700',
-                color: colorScheme.accent,
-                marginBottom: '4px'
-              }}>
+            <div 
+              key={index} 
+              className="p-4 text-center rounded-xl"
+              style={{
+                background: 'rgba(255, 255, 255, 0.7)',
+                border: `2px solid ${colorScheme.shadow.replace('0.15', '0.1')}`
+              }}
+            >
+              <div 
+                className="text-2xl font-bold mb-1"
+                style={{ color: colorScheme.accent }}
+              >
                 {stat.icon}
               </div>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#2C3E50'
-              }}>
+              <div className="text-sm font-semibold" style={{ color: '#2C3E50' }}>
                 {stat.title}
               </div>
-              <div style={{
-                fontSize: '12px',
-                color: '#7F8C8D',
-                fontStyle: 'italic'
-              }}>
+              <div className="text-xs italic" style={{ color: '#7F8C8D' }}>
                 {stat.subtitle}
               </div>
             </div>

@@ -815,8 +815,21 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
 
   if (!isVisible) return null;
 
-  // Determine background based on current page
+  // Determine background based on current page with enhanced Spotify color strategy
   const getBackground = () => {
+    // Apply Spotify colors consistently across all pages when available
+    if (spotifySettings.dynamicColors && dynamicColors && Object.keys(dynamicColors).length > 0) {
+      if (currentPage === 'player' && dynamicBackground) {
+        return dynamicBackground;
+      } else if (currentPage === 'player' && spotifySettings.useBlurredBackground && currentTrack?.album?.images?.[0]?.url) {
+        return `url(${currentTrack.album.images[0].url}) center/cover`;
+      } else {
+        // Use Spotify colors for gradient on all pages
+        return `linear-gradient(135deg, ${dynamicColors.primary} 0%, ${dynamicColors.secondary} 100%)`;
+      }
+    }
+    
+    // Fallback to default colors
     if (currentPage === 'browse' || currentPage === 'settings') {
       return 'linear-gradient(135deg, #1db954 0%, #1ed760 100%)';
     }
@@ -881,9 +894,12 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
         />
       )}
 
-      {/* Enhanced Visualizer - only show on player page */}
+      {/* Enhanced Visualizer Header - draggable area */}
       {currentPage === 'player' && (
-        <div className={`visualizer visualizer-${spotifySettings.visualizerType || 'bars'}`}>
+        <div 
+          className={`visualizer-header visualizer-${spotifySettings.visualizerType || 'bars'}`}
+          onMouseDown={handleHeaderMouseDown}
+        >
           {audioData.map((height, index) => {
             // Calculate responsive dimensions based on widget size
             const isSmallWidget = size.width < 300;
@@ -899,7 +915,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
             const glowIntensity = Math.pow(intensity, 1.5); // Enhanced glow for higher amplitudes
             const pulseIntensity = Math.sin(Date.now() * 0.01 + index * 0.5) * 0.1 + 0.9;
             
-            // Enhanced visualizer styles based on type
+            // Enhanced visualizer styles based on type with Spotify color strategy
             let visualizerStyle = {};
             
             switch (spotifySettings.visualizerType) {
@@ -979,54 +995,53 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
         </div>
       )}
 
-      {/* Widget Content */}
-      <div className="widget-content">
-        {/* Header - draggable area */}
-        <div className="widget-header" onMouseDown={handleHeaderMouseDown}>
-          {/* Header is now just a draggable area */}
-        </div>
+              {/* Widget Content */}
+        <div className="widget-content">
 
-        {/* Floating Page Navigation - Top Right */}
-        <div className="floating-page-navigation-top">
-          <div className="">
+        {/* Right Sidebar Navigation - Peek button style */}
+        <div className="sidebar-navigation-right">
+          <div className="sidebar-peek-button">
+            <span className="peek-icon">☰</span>
+          </div>
+          <div className="sidebar-menu">
             <button 
-              className={`page-btn ${currentPage === 'player' ? 'active' : ''} ${size.width < 300 ? 'text-xs px-2 py-1.5' : 'text-sm px-3 py-2'}`}
+              className={`sidebar-btn ${currentPage === 'player' ? 'active' : ''}`}
               onClick={() => setCurrentPage('player')}
               title="Now Playing"
               style={{
                 color: currentPage === 'player' ? dynamicColors.text : dynamicColors.textSecondary,
-                backgroundColor: currentPage === 'player' ? dynamicColors.primary : 'transparent',
+                                  backgroundColor: spotifySettings.dynamicColors && dynamicColors ? dynamicColors.primary : 'rgba(255, 255, 255, 0.1)',
                 borderColor: dynamicColors.accent
               }}
             >
-              <span className="page-icon">▶</span>
-              <span className={`page-label ${size.width < 250 ? 'hidden' : 'inline'}`}>Now Playing</span>
+              <span className="sidebar-icon">▶</span>
+              <span className="sidebar-label">Now Playing</span>
             </button>
             <button 
-              className={`page-btn ${currentPage === 'browse' ? 'active' : ''} ${size.width < 300 ? 'text-xs px-2 py-1.5' : 'text-sm px-3 py-2'}`}
+              className={`sidebar-btn ${currentPage === 'browse' ? 'active' : ''}`}
               onClick={() => setCurrentPage('browse')}
               title="Browse Music"
               style={{
                 color: currentPage === 'browse' ? '#000000' : '#ffffff',
-                backgroundColor: currentPage === 'browse' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: currentPage === 'browse' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.1)',
                 borderColor: '#1db954'
               }}
             >
-              <span className="page-icon">📚</span>
-              <span className={`page-label ${size.width < 250 ? 'hidden' : 'inline'}`}>Browse</span>
+              <span className="sidebar-icon">📚</span>
+              <span className="sidebar-label">Browse</span>
             </button>
             <button 
-              className={`page-btn ${currentPage === 'settings' ? 'active' : ''} ${size.width < 300 ? 'text-xs px-2 py-1.5' : 'text-sm px-3 py-2'}`}
+              className={`sidebar-btn ${currentPage === 'settings' ? 'active' : ''}`}
               onClick={() => setCurrentPage('settings')}
               title="Widget Settings"
               style={{
                 color: currentPage === 'settings' ? '#000000' : '#ffffff',
-                backgroundColor: currentPage === 'settings' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: currentPage === 'settings' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.1)',
                 borderColor: '#1db954'
               }}
             >
-              <span className="page-icon">⚙️</span>
-              <span className={`page-label ${size.width < 250 ? 'hidden' : 'inline'}`}>Settings</span>
+              <span className="sidebar-icon">⚙️</span>
+              <span className="sidebar-label">Settings</span>
             </button>
           </div>
         </div>
