@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
@@ -7,62 +7,70 @@ import Text from '../ui/Text';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import SoundModal from './SoundModal';
 
-// Legacy settings system imports
-
-// Direct import for debugging
+// Direct imports for all tabs - no lazy loading needed
 import ChannelsSettingsTab from './settings/ChannelsSettingsTab';
-// Direct imports for debugging
 import UnifiedDockSettingsTab from './settings/UnifiedDockSettingsTab';
 import WallpaperSettingsTab from './settings/WallpaperSettingsTab';
 import TimeSettingsTab from './settings/TimeSettingsTab';
 import SoundsSettingsTab from './settings/SoundsSettingsTab';
 import GeneralSettingsTab from './settings/GeneralSettingsTab';
-const LazyPresetsSettingsTab = React.lazy(() => import('./settings/PresetsSettingsTab'));
-const LazyMonitorSettingsTab = React.lazy(() => import('./settings/MonitorSettingsTab'));
-const LazyApiIntegrationsSettingsTab = React.lazy(() => import('./settings/ApiIntegrationsSettingsTab'));
-const LazyAdvancedSettingsTab = React.lazy(() => import('./settings/AdvancedSettingsTab'));
-const LazyLayoutSettingsTab = React.lazy(() => import('./settings/LayoutSettingsTab'));
-const LazyShortcutsSettingsTab = React.lazy(() => import('./settings/ShortcutsSettingsTab'));
-const LazyUpdatesSettingsTab = React.lazy(() => import('./settings/UpdatesSettingsTab'));
+import PresetsSettingsTab from './settings/PresetsSettingsTab';
+import MonitorSettingsTab from './settings/MonitorSettingsTab';
+import ApiIntegrationsSettingsTab from './settings/ApiIntegrationsSettingsTab';
+import AdvancedSettingsTab from './settings/AdvancedSettingsTab';
+import LayoutSettingsTab from './settings/LayoutSettingsTab';
+import ShortcutsSettingsTab from './settings/ShortcutsSettingsTab';
+import UpdatesSettingsTab from './settings/UpdatesSettingsTab';
 
-// Settings Tab Button Component
+
+
+// Settings Tab Button Component - Optimized
 const SettingsTabButton = React.memo(({ tab, isActive, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
   
-  const handleMouseEnter = () => setIsHovered(true);
-  const handleMouseLeave = () => setIsHovered(false);
+  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovered(false), []);
+  const handleClick = useCallback(() => onClick(tab.id), [onClick, tab.id]);
   
-  const getBackgroundColor = () => {
+  const backgroundColor = useMemo(() => {
     if (isActive) return tab.color;
     if (isHovered) return 'hsl(var(--surface-tertiary))';
     return 'transparent';
-  };
+  }, [isActive, isHovered, tab.color]);
   
-  const getTextColor = () => {
+  const textColor = useMemo(() => {
     if (isActive) return 'white';
     if (isHovered) return tab.color;
     return 'hsl(var(--text-secondary))';
-  };
+  }, [isActive, isHovered, tab.color]);
   
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="w-full p-4 border-none cursor-pointer text-sm font-medium transition-all duration-200 ease-in-out flex items-center gap-3 text-left border-b border-[hsl(var(--border-primary))]"
+      className="w-full p-4 border-none cursor-pointer text-sm font-medium transition-all duration-200 ease-in-out flex items-center gap-3 text-left border-b border-[hsl(var(--border-primary))] relative group"
       style={{
-        background: getBackgroundColor(),
-        color: getTextColor(),
+        background: backgroundColor,
+        color: textColor,
         fontWeight: isActive ? '600' : '500'
       }}
     >
       <span className="text-lg">{tab.icon}</span>
-      <div className="flex flex-col items-start">
+      <div className="flex flex-col items-start flex-1">
+        <div className="flex items-center gap-2">
         <span className="font-semibold">{tab.label}</span>
+        </div>
         <span className="text-xs opacity-70 mt-0.5">
           {tab.description}
         </span>
       </div>
+      {/* Hover indicator */}
+      <div 
+        className={`absolute right-2 top-1/2 transform -translate-y-1/2 w-1 h-8 rounded-full transition-all duration-200 ${
+          isHovered ? 'bg-current opacity-60' : 'opacity-0'
+        }`}
+      />
     </button>
   );
 });
@@ -87,7 +95,7 @@ const SETTINGS_TABS = [
     icon: '🔌', 
     color: '#1db954', 
     description: 'External services & floating widgets',
-    component: LazyApiIntegrationsSettingsTab
+    component: ApiIntegrationsSettingsTab
   },
   { 
     id: 'channels', 
@@ -119,7 +127,7 @@ const SETTINGS_TABS = [
     icon: '📐', 
     color: '#00b894', 
     description: 'Grid & navigation modes',
-    component: LazyLayoutSettingsTab
+    component: LayoutSettingsTab
   },
   { 
     id: 'monitor', 
@@ -127,7 +135,7 @@ const SETTINGS_TABS = [
     icon: '🖥️', 
     color: '#ff6b9d', 
     description: 'Multi-monitor settings',
-    component: LazyMonitorSettingsTab
+    component: MonitorSettingsTab
   },
   { 
     id: 'shortcuts', 
@@ -135,7 +143,7 @@ const SETTINGS_TABS = [
     icon: '⌨️', 
     color: '#ff9f43', 
     description: 'Keyboard shortcuts & hotkeys',
-    component: LazyShortcutsSettingsTab
+    component: ShortcutsSettingsTab
   },
   { 
     id: 'sounds', 
@@ -151,7 +159,7 @@ const SETTINGS_TABS = [
     icon: '🎨', 
     color: '#ff9ff3', 
     description: 'Preset themes & customization',
-    component: LazyPresetsSettingsTab
+    component: PresetsSettingsTab
   },
   { 
     id: 'time', 
@@ -167,7 +175,7 @@ const SETTINGS_TABS = [
     icon: '🔄', 
     color: '#00cec9', 
     description: 'Check for updates & version info',
-    component: LazyUpdatesSettingsTab
+    component: UpdatesSettingsTab
   },
   { 
     id: 'wallpaper', 
@@ -180,23 +188,27 @@ const SETTINGS_TABS = [
 ];
 
 function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = 'channels' }) {
+  // Performance optimizations
+  const modalRef = useRef(null);
+  const tabContentRef = useRef(null);
+  
   // Get initial tab from UI state if available
   const { ui } = useConsolidatedAppStore();
   const effectiveInitialTab = ui.settingsActiveTab || initialActiveTab;
+  
   // Use legacy settings system for now since unified data layer isn't fully implemented
   const [localSettings, setLocalSettings] = useState({});
   const [presets, setPresets] = useState([]);
 
   // Local state
   const [activeTab, setActiveTab] = useState(initialActiveTab);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [tabChanges, setTabChanges] = useState({});
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showMonitorModal, setShowMonitorModal] = useState(false);
   const [showSoundModal, setShowSoundModal] = useState(false);
   
-  // Store initial state for consolidated store tabs to track changes
-  const [initialStoreState, setInitialStoreState] = useState({});
+  // Search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredTabs, setFilteredTabs] = useState(SETTINGS_TABS);
 
   // Load settings when modal opens
   useEffect(() => {
@@ -216,21 +228,15 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
         setPresets(window.settings.presets);
       }
       
-      // Capture initial state for consolidated store tabs
-      try {
-        const currentStoreState = useConsolidatedAppStore.getState();
-        setInitialStoreState({
-          dock: JSON.parse(JSON.stringify(currentStoreState.dock)),
-          time: JSON.parse(JSON.stringify(currentStoreState.time)),
-          wallpaper: JSON.parse(JSON.stringify(currentStoreState.wallpaper)),
-          overlay: JSON.parse(JSON.stringify(currentStoreState.overlay)),
-          ribbon: JSON.parse(JSON.stringify(currentStoreState.ribbon)),
-          channels: JSON.parse(JSON.stringify(currentStoreState.channels)),
-          ui: JSON.parse(JSON.stringify(currentStoreState.ui)),
-        });
-      } catch (error) {
-        console.warn('Failed to capture initial store state:', error);
+      // Ensure dockSettings exist in localSettings
+      if (window.settings?.dockSettings) {
+        setLocalSettings(prev => ({
+          ...prev,
+          dockSettings: window.settings.dockSettings
+        }));
       }
+      
+
     }
   }, [isOpen]);
 
@@ -332,7 +338,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
           ...(localSettings.general || {}),
           // Keep other settings as they are
           presets: localSettings.presets,
-          dockSettings: localSettings.dockSettings,
+          dockSettings: localSettings.dockSettings || {},
           classicDockButtonConfigs: localSettings.classicDockButtonConfigs,
           accessoryButtonConfig: localSettings.accessoryButtonConfig,
           animatedOnHover: localSettings.animatedOnHover,
@@ -445,335 +451,12 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
     }
   };
 
-  // Save individual tab
-  const handleTabSave = useCallback((tabId) => {
-    try {
-      // Call parent callback with updated settings for this tab
-      if (onSettingsChange) {
-        let tabSettings = {};
-        
-        switch (tabId) {
-          case 'general':
-            // For general tab, extract general settings to top level
-            tabSettings = {
-              ...(localSettings.general || {})
-            };
-            break;
 
-          case 'time':
-            // For time tab, save directly to backend since it uses consolidated store
-            try {
-              const { time } = useConsolidatedAppStore.getState();
-              if (window.api?.settings?.get && window.api?.settings?.set) {
-                window.api.settings.get().then(currentSettings => {
-                  const updatedSettings = {
-                    ...currentSettings,
-                    // Use new property names for consistency with consolidated store
-                    time: {
-                      color: time.color,
-                      recentColors: time.recentColors,
-                      enablePill: time.enablePill,
-                      pillBlur: time.pillBlur,
-                      pillOpacity: time.pillOpacity,
-                      font: time.font,
-                    },
-                    // Keep old property names for backward compatibility
-                    timeColor: time.color,
-                    recentTimeColors: time.recentColors,
-                    enableTimePill: time.enablePill,
-                    timePillBlur: time.pillBlur,
-                    timePillOpacity: time.pillOpacity,
-                    timeFont: time.font,
-                  };
-                  return window.api.settings.set(updatedSettings);
-                }).then(() => {
-                  // Time settings saved successfully
-                }).catch(error => {
-                  console.error('[SettingsModal] Failed to save time settings:', error);
-                });
-              }
-            } catch (error) {
-              console.error('[SettingsModal] Error saving time settings:', error);
-            }
-            // Return empty object since we're saving directly
-            tabSettings = {};
-            break;
-          case 'wallpaper':
-            // For wallpaper tab, save directly to backend since it uses consolidated store
-            try {
-              const { wallpaper, overlay } = useConsolidatedAppStore.getState();
-              if (window.api?.wallpapers?.get && window.api?.wallpapers?.set) {
-                window.api.wallpapers.get().then(currentData => {
-                  const updatedData = {
-                    ...currentData,
-                    wallpaperOpacity: wallpaper.opacity,
-                    wallpaperBlur: wallpaper.blur,
-                    overlayEnabled: overlay.enabled,
-                    overlayEffect: overlay.effect,
-                    overlayIntensity: overlay.intensity,
-                    overlaySpeed: overlay.speed,
-                    cyclingSettings: {
-                      ...currentData.cyclingSettings,
-                      enabled: wallpaper.cycleWallpapers,
-                      interval: wallpaper.cycleInterval,
-                      animation: wallpaper.cycleAnimation,
-                    }
-                  };
-                  return window.api.wallpapers.set(updatedData);
-                }).then(() => {
-                  // Wallpaper settings saved successfully
-                }).catch(error => {
-                  console.error('[SettingsModal] Failed to save wallpaper settings:', error);
-                });
-              }
-            } catch (error) {
-              console.error('[SettingsModal] Error saving wallpaper settings:', error);
-            }
-            // Return empty object since we're saving directly
-            tabSettings = {};
-            break;
-          case 'sounds':
-            // For sounds tab, extract sound-specific settings
-            tabSettings = {
-              backgroundMusicEnabled: localSettings.backgroundMusicEnabled,
-              backgroundMusicLooping: localSettings.backgroundMusicLooping,
-              backgroundMusicPlaylistMode: localSettings.backgroundMusicPlaylistMode,
-              channelClickEnabled: localSettings.channelClickEnabled,
-              channelClickVolume: localSettings.channelClickVolume,
-              channelHoverEnabled: localSettings.channelHoverEnabled,
-              channelHoverVolume: localSettings.channelHoverVolume,
-              startupEnabled: localSettings.startupEnabled,
-              startupVolume: localSettings.startupVolume,
-            };
-            break;
-          case 'dock':
-            // For unified dock tab, save directly to backend since it uses consolidated store
-            try {
-              const { dock, ribbon, ui, floatingWidgets } = useConsolidatedAppStore.getState();
-              if (window.api?.settings?.get && window.api?.settings?.set) {
-                window.api.settings.get().then(currentSettings => {
-                  const updatedSettings = {
-                    ...currentSettings,
-                    // Classic dock settings
-                    dockSettings: dock,
-                    // Ribbon settings
-                    ribbonColor: ribbon.ribbonColor,
-                    ribbonGlowColor: ribbon.ribbonGlowColor,
-                    ribbonGlowStrength: ribbon.ribbonGlowStrength,
-                    ribbonGlowStrengthHover: ribbon.ribbonGlowStrengthHover,
-                    ribbonDockOpacity: ribbon.ribbonDockOpacity,
-                    glassWiiRibbon: ribbon.glassWiiRibbon,
-                    glassOpacity: ribbon.glassOpacity,
-                    glassBlur: ribbon.glassBlur,
-                    glassBorderOpacity: ribbon.glassBorderOpacity,
-                    glassShineOpacity: ribbon.glassShineOpacity,
-                    recentRibbonColors: ribbon.recentRibbonColors,
-                    recentRibbonGlowColors: ribbon.recentRibbonGlowColors,
-                    // UI settings
-                    classicMode: ui.classicMode,
-                    showDock: ui.showDock,
-                    // Particle settings
-                    particleEnabled: floatingWidgets?.systemInfo?.particleEnabled,
-                    particleEffectType: floatingWidgets?.systemInfo?.particleEffectType,
-                    particleCount: floatingWidgets?.systemInfo?.particleCount,
-                    particleSpeed: floatingWidgets?.systemInfo?.particleSpeed,
-                  };
-                  return window.api.settings.set(updatedSettings);
-                }).then(() => {
-                  // Unified dock settings saved successfully
-                }).catch(error => {
-                  console.error('[SettingsModal] Failed to save unified dock settings:', error);
-                });
-              }
-            } catch (error) {
-              console.error('[SettingsModal] Error saving unified dock settings:', error);
-            }
-            // Return empty object since we're saving directly
-            tabSettings = {};
-            break;
-          case 'channels':
-            // For channels tab, extract channel-specific settings
-            tabSettings = {
-              channelAutoFadeTimeout: localSettings.channelAutoFadeTimeout,
-              channelAnimation: localSettings.channelAnimation,
-              animatedOnHover: localSettings.animatedOnHover,
-              adaptiveEmptyChannels: localSettings.adaptiveEmptyChannels,
-              idleAnimationEnabled: localSettings.idleAnimationEnabled,
-              idleAnimationTypes: localSettings.idleAnimationTypes,
-              idleAnimationInterval: localSettings.idleAnimationInterval,
-              kenBurnsEnabled: localSettings.kenBurnsEnabled,
-              kenBurnsMode: localSettings.kenBurnsMode,
-              kenBurnsHoverScale: localSettings.kenBurnsHoverScale,
-              kenBurnsAutoplayScale: localSettings.kenBurnsAutoplayScale,
-              kenBurnsSlideshowScale: localSettings.kenBurnsSlideshowScale,
-              kenBurnsHoverDuration: localSettings.kenBurnsHoverDuration,
-              kenBurnsAutoplayDuration: localSettings.kenBurnsAutoplayDuration,
-              kenBurnsSlideshowDuration: localSettings.kenBurnsSlideshowDuration,
-              kenBurnsCrossfadeDuration: localSettings.kenBurnsCrossfadeDuration,
-              kenBurnsForGifs: localSettings.kenBurnsForGifs,
-              kenBurnsForVideos: localSettings.kenBurnsForVideos,
-              kenBurnsEasing: localSettings.kenBurnsEasing,
-              kenBurnsAnimationType: localSettings.kenBurnsAnimationType,
-              kenBurnsCrossfadeReturn: localSettings.kenBurnsCrossfadeReturn,
-              kenBurnsTransitionType: localSettings.kenBurnsTransitionType,
-            };
-            break;
-          case 'themes':
-            // For themes tab, save directly to backend since it uses consolidated store
-            try {
-              const { presets } = useConsolidatedAppStore.getState();
-              if (window.api?.settings?.get && window.api?.settings?.set) {
-                window.api.settings.get().then(currentSettings => {
-                  const updatedSettings = {
-                    ...currentSettings,
-                    presets: presets,
-                  };
-                  return window.api.settings.set(updatedSettings);
-                }).then(() => {
-                  // Themes settings saved successfully
-                }).catch(error => {
-                  console.error('[SettingsModal] Failed to save themes settings:', error);
-                });
-              }
-            } catch (error) {
-              console.error('[SettingsModal] Error saving themes settings:', error);
-            }
-            // Return empty object since we're saving directly
-            tabSettings = {};
-            break;
-          case 'monitor':
-            // For monitor tab, extract monitor-specific settings
-            tabSettings = {
-              monitorSettings: localSettings.monitorSettings,
-              currentMonitor: localSettings.currentMonitor,
-            };
-            break;
-          case 'advanced':
-            // For advanced tab, extract advanced-specific settings
-            tabSettings = {
-              performanceSettings: localSettings.performanceSettings,
-              debugSettings: localSettings.debugSettings,
-            };
-            break;
-          case 'api-integrations':
-            // For api-integrations tab, extract API-specific settings
-            tabSettings = {
-              spotifySettings: localSettings.spotifySettings,
-              steamSettings: localSettings.steamSettings,
-              epicSettings: localSettings.epicSettings,
-              floatingWidgetSettings: localSettings.floatingWidgetSettings,
-            };
-            break;
-          case 'shortcuts':
-            // For shortcuts tab, save directly to backend since it uses consolidated store
-            try {
-              const { ui } = useConsolidatedAppStore.getState();
-              if (window.api?.settings?.get && window.api?.settings?.set) {
-                window.api.settings.get().then(currentSettings => {
-                  const updatedSettings = {
-                    ...currentSettings,
-                    settingsShortcut: ui.settingsShortcut,
-                    spotifyWidgetShortcut: ui.spotifyWidgetShortcut,
-                    systemInfoWidgetShortcut: ui.systemInfoWidgetShortcut,
-                    adminPanelWidgetShortcut: ui.adminPanelWidgetShortcut,
-                    performanceMonitorShortcut: ui.performanceMonitorShortcut,
-                    nextPageShortcut: ui.nextPageShortcut,
-                    prevPageShortcut: ui.prevPageShortcut,
-                    toggleDockShortcut: ui.toggleDockShortcut,
-                    toggleDarkModeShortcut: ui.toggleDarkModeShortcut,
-                    toggleCustomCursorShortcut: ui.toggleCustomCursorShortcut,
-                  };
-                  return window.api.settings.set(updatedSettings);
-                }).then(() => {
-                  // Shortcuts settings saved successfully
-                }).catch(error => {
-                  console.error('[SettingsModal] Failed to save shortcuts settings:', error);
-                });
-              }
-            } catch (error) {
-              console.error('[SettingsModal] Error saving shortcuts settings:', error);
-            }
-            // Return empty object since we're saving directly
-            tabSettings = {};
-            break;
-          case 'updates':
-            // Updates tab doesn't save any settings - it's read-only
-            tabSettings = {};
-            break;
-          case 'layout':
-            // For layout tab, save directly to backend since it uses consolidated store
-            try {
-              const { channels } = useConsolidatedAppStore.getState();
-              if (window.api?.settings?.get && window.api?.settings?.set) {
-                window.api.settings.get().then(currentSettings => {
-                  const updatedSettings = {
-                    ...currentSettings,
-                    layoutSettings: {
-                      navigationMode: channels.data.navigation.mode,
-                      gridColumns: channels.data.gridColumns,
-                      gridRows: channels.data.gridRows,
-                      totalPages: channels.data.navigation.totalPages,
-                      totalChannels: channels.data.totalChannels,
-                      animationType: channels.data.navigation.animationType,
-                      animationDuration: channels.data.navigation.animationDuration,
-                      animationEasing: channels.data.navigation.animationEasing,
-                      enableSlideAnimation: channels.data.navigation.enableSlideAnimation,
-                    }
-                  };
-                  return window.api.settings.set(updatedSettings);
-                }).then(() => {
-                  // Layout settings saved successfully
-                }).catch(error => {
-                  console.error('[SettingsModal] Failed to save layout settings:', error);
-                });
-              }
-            } catch (error) {
-              console.error('[SettingsModal] Error saving layout settings:', error);
-            }
-            // Return empty object since we're saving directly
-            tabSettings = {};
-            break;
-          default:
-            // For other tabs, pass the relevant settings
-            tabSettings = localSettings;
-        }
-        
-        onSettingsChange(tabSettings);
-      }
-      
-      // Clear tab changes
-      setTabChanges(prev => ({ ...prev, [tabId]: false }));
-      setHasUnsavedChanges(false);
-      
-      // Update initial state for consolidated store tabs after saving
-      const consolidatedStoreTabs = ['dock', 'time', 'wallpaper', 'channels', 'sounds', 'themes', 'shortcuts', 'layout'];
-      if (consolidatedStoreTabs.includes(tabId)) {
-        try {
-          const currentStoreState = useConsolidatedAppStore.getState();
-          setInitialStoreState(prev => ({
-            ...prev,
-            [tabId]: JSON.parse(JSON.stringify(currentStoreState[tabId])),
-            ...(tabId === 'wallpaper' && {
-              overlay: JSON.parse(JSON.stringify(currentStoreState.overlay))
-            })
-          }));
-        } catch (error) {
-          console.warn('Error updating initial store state:', error);
-        }
-      }
-      
-      setMessage({ type: 'success', text: `${SETTINGS_TABS.find(s => s.id === tabId)?.label || tabId} settings saved!` });
-      setTimeout(() => setMessage({ type: '', text: '' }), 2000);
-    } catch (error) {
-      console.error(`Failed to save ${tabId} settings:`, error);
-      setMessage({ type: 'error', text: `Failed to save ${tabId} settings. Please try again.` });
-    }
-  }, [localSettings, onSettingsChange]);
 
-  // Tab navigation
-  const handleTabChange = (tabId) => {
+  // Simple tab navigation
+  const handleTabChange = useCallback((tabId) => {
     setActiveTab(tabId);
-  };
+  }, []);
 
   // Open sound modal
   const handleOpenSoundModal = () => {
@@ -790,8 +473,8 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
         tabSettings = {};
         break;
       case 'general':
-        // GeneralSettingsTab expects localSettings.general, so pass the full settings object
-        tabSettings = localSettings;
+        // GeneralSettingsTab uses consolidated store directly - no props needed
+        tabSettings = {};
         break;
       case 'channels':
         // ChannelsSettingsTab uses consolidated store directly - no props needed
@@ -876,103 +559,20 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
     return tabSettings;
   };
 
-  // Check if consolidated store tab has changes
-  const hasConsolidatedStoreChanges = useCallback((tabId) => {
-    if (!initialStoreState || Object.keys(initialStoreState).length === 0) return false;
-    
-    try {
-      const currentStoreState = useConsolidatedAppStore.getState();
-      
-      switch (tabId) {
-        case 'dock':
-          return JSON.stringify(currentStoreState.dock) !== JSON.stringify(initialStoreState.dock);
-        case 'time':
-          return JSON.stringify(currentStoreState.time) !== JSON.stringify(initialStoreState.time);
-        case 'wallpaper':
-          return JSON.stringify(currentStoreState.wallpaper) !== JSON.stringify(initialStoreState.wallpaper) ||
-                 JSON.stringify(currentStoreState.overlay) !== JSON.stringify(initialStoreState.overlay);
-        case 'channels':
-          return JSON.stringify(currentStoreState.channels) !== JSON.stringify(initialStoreState.channels);
-        case 'sounds':
-          return JSON.stringify(currentStoreState.sounds) !== JSON.stringify(initialStoreState.sounds || {});
-        case 'themes':
-          return JSON.stringify(currentStoreState.presets) !== JSON.stringify(initialStoreState.presets || {});
-        case 'shortcuts':
-          return JSON.stringify(currentStoreState.ui?.keyboardShortcuts) !== JSON.stringify(initialStoreState.ui?.keyboardShortcuts || []);
-        case 'layout':
-          return JSON.stringify(currentStoreState.channels?.data?.navigation) !== JSON.stringify(initialStoreState.channels?.data?.navigation || {});
-        default:
-          return false;
-      }
-    } catch (error) {
-      console.warn('Error checking consolidated store changes:', error);
-      return false;
-    }
-  }, [initialStoreState]);
 
-  // Handle cancel changes for current tab
-  const handleCancelChanges = useCallback(() => {
-    // Reset the current tab's changes by reloading settings
-    if (isOpen) {
-      const consolidatedStoreTabs = ['dock', 'time', 'wallpaper', 'channels', 'sounds', 'themes', 'shortcuts', 'layout'];
-      
-      if (consolidatedStoreTabs.includes(activeTab)) {
-        // For consolidated store tabs, reset the store state
-        try {
-          const { actions } = useConsolidatedAppStore.getState();
-          
-          switch (activeTab) {
-            case 'dock':
-              if (initialStoreState.dock) {
-                actions.setDockState(initialStoreState.dock);
-              }
-              break;
-            case 'time':
-              if (initialStoreState.time) {
-                actions.setTimeState(initialStoreState.time);
-              }
-              break;
-            case 'wallpaper':
-              if (initialStoreState.wallpaper) {
-                actions.setWallpaperState(initialStoreState.wallpaper);
-              }
-              if (initialStoreState.overlay) {
-                actions.setOverlayState(initialStoreState.overlay);
-              }
-              break;
-            case 'channels':
-              if (initialStoreState.channels) {
-                actions.setChannelState(initialStoreState.channels);
-              }
-              break;
-            // Add other cases as needed
-          }
-        } catch (error) {
-          console.warn('Error resetting consolidated store state:', error);
-        }
-      } else {
-        // For legacy tabs, reset local settings
-        const currentSettings = window.settings || {};
-        setLocalSettings(currentSettings);
-      }
-      
-      setTabChanges(prev => ({ ...prev, [activeTab]: false }));
-      setHasUnsavedChanges(false);
-      setMessage({ type: 'info', text: `${SETTINGS_TABS.find(s => s.id === activeTab)?.label || activeTab} changes cancelled` });
-      setTimeout(() => setMessage({ type: '', text: '' }), 2000);
-    }
-  }, [activeTab, isOpen, initialStoreState]);
+  
 
-  // Render tab content
-  const renderTabContent = () => {
+
+
+
+
+  
+  // Simple render tab content
+  const renderTabContent = useMemo(() => {
     const currentTab = SETTINGS_TABS.find(tab => tab.id === activeTab);
-    const consolidatedStoreTabs = ['dock', 'time', 'wallpaper', 'channels', 'sounds', 'themes', 'shortcuts', 'layout'];
-    const hasChanges = consolidatedStoreTabs.includes(activeTab) 
-      ? hasConsolidatedStoreChanges(activeTab)
-      : (tabChanges[activeTab] || false);
     
     if (!currentTab) {
-      return <div>Tab not found</div>;
+      return <div className="p-8 text-center text-[hsl(var(--text-secondary))]">Tab not found</div>;
     }
 
     const TabComponent = currentTab.component;
@@ -981,18 +581,20 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
     return (
       <div className="relative h-full flex flex-col">
         {/* Tab Content with Scrollable Area */}
-        <div className="flex-1 overflow-y-auto pb-20"> {/* Add bottom padding for fixed footer */}
-          <Suspense fallback={<div>Loading {currentTab.label} Settings...</div>}>
+        <div 
+          ref={tabContentRef}
+          className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[hsl(var(--border-primary))] scrollbar-track-transparent pb-4"
+        >
             <TabComponent 
               // Pass props based on the tab's expected interface
-              {...(activeTab === 'general' || activeTab === 'monitor' || activeTab === 'advanced' || activeTab === 'api-integrations' ? {
+            {...(activeTab === 'monitor' || activeTab === 'advanced' || activeTab === 'api-integrations' ? {
                 localSettings: tabSettings,
                 updateLocalSetting: handleGeneralSettingUpdate
               } : activeTab === 'channels' ? {
                 settings: tabSettings,
                 onSettingChange: handleDirectSettingUpdate
-              } : activeTab === 'ribbon' || activeTab === 'wallpaper' || activeTab === 'time' || activeTab === 'themes' || activeTab === 'layout' || activeTab === 'updates' || activeTab === 'sounds' || activeTab === 'dock' ? {
-                // RibbonSettingsTab, WallpaperSettingsTab, TimeSettingsTab, ThemesSettingsTab, LayoutSettingsTab, UpdatesSettingsTab, SoundsSettingsTab, and UnifiedDockSettingsTab use consolidated store directly - no props needed
+            } : activeTab === 'general' || activeTab === 'ribbon' || activeTab === 'wallpaper' || activeTab === 'time' || activeTab === 'layout' || activeTab === 'updates' || activeTab === 'dock' ? {
+              // GeneralSettingsTab, RibbonSettingsTab, WallpaperSettingsTab, TimeSettingsTab, LayoutSettingsTab, UpdatesSettingsTab, and UnifiedDockSettingsTab use consolidated store directly - no props needed
               } : {
                 localSettings: tabSettings,
                 updateLocalSetting: handleGeneralSettingUpdate
@@ -1010,40 +612,72 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
               }}
               setShowMonitorModal={setShowMonitorModal}
             />
-          </Suspense>
         </div>
 
-        {/* Fixed Footer - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 bg-[hsl(var(--surface-primary))] border-t border-[hsl(var(--border-primary))] shadow-lg z-10 p-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[hsl(var(--text-secondary))]">
-                {hasChanges ? `Unsaved changes in ${currentTab.label}` : `${currentTab.label} settings`}
-              </span>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                onClick={handleCancelChanges}
-                className="px-4 py-2"
-                disabled={!hasChanges}
-              >
-                Undo Changes
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => handleTabSave(activeTab)}
-                className="px-4 py-2"
-                disabled={!hasChanges}
-              >
-                Save Changes
-              </Button>
-            </div>
-          </div>
-        </div>
+
       </div>
     );
-  };
+  }, [activeTab, presets, handleGeneralSettingUpdate, handleDirectSettingUpdate, handleTabChange]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      const currentIndex = SETTINGS_TABS.findIndex(tab => tab.id === activeTab);
+      
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault();
+          const nextIndex = (currentIndex + 1) % SETTINGS_TABS.length;
+          handleTabChange(SETTINGS_TABS[nextIndex].id);
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          e.preventDefault();
+          const prevIndex = currentIndex === 0 ? SETTINGS_TABS.length - 1 : currentIndex - 1;
+          handleTabChange(SETTINGS_TABS[prevIndex].id);
+          break;
+        case 'Escape':
+          e.preventDefault();
+          onClose();
+          break;
+
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, activeTab, handleTabChange, onClose]);
+
+  // Search filter logic
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredTabs(SETTINGS_TABS);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const filtered = SETTINGS_TABS.filter(tab => 
+      tab.label.toLowerCase().includes(query) ||
+      tab.description.toLowerCase().includes(query) ||
+      tab.id.toLowerCase().includes(query)
+    );
+    setFilteredTabs(filtered);
+  }, [searchQuery]);
+
+  // Auto-focus first tab on open
+  useEffect(() => {
+    if (isOpen && tabContentRef.current) {
+      const firstFocusable = tabContentRef.current.querySelector('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (firstFocusable) {
+        firstFocusable.focus();
+      }
+    }
+  }, [isOpen, activeTab]);
+
+
 
   if (!isOpen) return null;
 
@@ -1053,6 +687,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
       onClose={onClose}
       maxWidth="1400px"
       maxHeight="85vh"
+      ref={modalRef}
       footerContent={({ handleClose }) => (
         <div className="flex gap-2.5 justify-between items-center">
           <div className="flex gap-2.5">
@@ -1069,37 +704,89 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
         </div>
       )}
     >
+      {/* Enhanced Message Display */}
       {message.text && (
-        <div className={`mb-4 p-3 rounded-lg border ${
-          message.type === 'success' 
-            ? 'bg-green-50 border-green-200 text-green-800' 
-            : message.type === 'error' 
-            ? 'bg-red-50 border-red-200 text-red-800' 
-            : 'bg-blue-50 border-blue-200 text-blue-800'
-        }`}>
-          <Text variant="body" className="font-medium">
-            {message.text}
-          </Text>
+        <div 
+          className={`mb-4 p-4 rounded-lg border shadow-lg backdrop-blur-sm transition-all duration-300 ${
+            message.type === 'success' 
+              ? 'bg-green-50/90 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300' 
+              : message.type === 'error' 
+              ? 'bg-red-50/90 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300' 
+              : 'bg-blue-50/90 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`text-xl ${
+              message.type === 'success' ? 'text-green-600' : 
+              message.type === 'error' ? 'text-red-600' : 'text-blue-600'
+            }`}>
+              {message.type === 'success' ? '✅' : message.type === 'error' ? '❌' : 'ℹ️'}
+            </div>
+            <Text variant="body" className="font-medium flex-1">
+          {message.text}
+        </Text>
+            <button 
+              onClick={() => setMessage({ type: '', text: '' })}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 
       {/* Sidebar Navigation */}
       <div className="flex h-[calc(85vh-200px)] border border-[hsl(var(--border-primary))] rounded-lg overflow-hidden">
         {/* Sidebar */}
-        <div className="w-55 bg-[hsl(var(--surface-secondary))] border-r border-[hsl(var(--border-primary))] overflow-y-auto flex-shrink-0">
-          {SETTINGS_TABS.map((tab) => (
+        <div className="w-55 bg-[hsl(var(--surface-secondary))] border-r border-[hsl(var(--border-primary))] flex flex-col flex-shrink-0">
+          {/* Search Bar */}
+          <div className="p-4 border-b border-[hsl(var(--border-primary))]">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search settings..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 pl-10 text-sm bg-[hsl(var(--surface-primary))] border border-[hsl(var(--border-primary))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--primary))] focus:border-transparent transition-all duration-200"
+              />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--text-secondary))]">
+                🔍
+              </div>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Tab List */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredTabs.length > 0 ? (
+              filteredTabs.map((tab) => (
             <SettingsTabButton
               key={tab.id}
               tab={tab}
               isActive={activeTab === tab.id}
-              onClick={() => handleTabChange(tab.id)}
-            />
-          ))}
+                  onClick={handleTabChange}
+                />
+              ))
+            ) : (
+              <div className="p-4 text-center text-[hsl(var(--text-secondary))]">
+                <div className="text-2xl mb-2">🔍</div>
+                <div className="text-sm">No settings found</div>
+                <div className="text-xs mt-1">Try a different search term</div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Content Area */}
         <div className="flex-1 p-5 bg-[hsl(var(--surface-primary))] min-h-0 relative">
-          {renderTabContent()}
+          {renderTabContent}
         </div>
       </div>
 

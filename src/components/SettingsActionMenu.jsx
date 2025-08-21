@@ -31,6 +31,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
       }
       
       // Set cursor style
+      console.log('[SettingsActionMenu] Setting cursor style to:', cursorStyle);
       customCursor.setAttribute('data-style', cursorStyle);
       
       // Show custom cursor
@@ -73,7 +74,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
         customCursor.classList.remove('clicking');
       }
     }
-  }, [useCustomCursor]);
+  }, [useCustomCursor, cursorStyle]);
 
   // Handle visibility with animation (same as WBaseModal)
   useEffect(() => {
@@ -220,6 +221,11 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
                         onChange={toggleDarkMode}
                         label="Dark Mode"
                       />
+                      {isDarkMode && (
+                        <div className="ml-2 text-xs text-[hsl(var(--text-secondary))]">
+                          🌙 Active
+                        </div>
+                      )}
                     </div>
                     <div className="toggle-item">
                       <WToggle

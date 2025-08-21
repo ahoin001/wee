@@ -13,6 +13,9 @@ import {
 import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen from './components/SplashScreen';
 import WallpaperOverlay from './components/WallpaperOverlay';
+import SpotifyImmersiveOverlay from './components/SpotifyImmersiveOverlay';
+import SpotifyGradientOverlay from './components/SpotifyGradientOverlay';
+import SpotifyLiveGradientWallpaper from './components/SpotifyLiveGradientWallpaper';
 
 // Lazy load components to reduce initial bundle size
 const LazyPaginatedChannels = React.lazy(() => import('./components/PaginatedChannels'));
@@ -68,6 +71,7 @@ function App() {
       gravity
     },
     floatingWidgets,
+    dock,
     // Time settings using individual hooks for proper property mapping
   } = useConsolidatedAppStore();
 
@@ -77,6 +81,57 @@ function App() {
   const timePillBlur = useTimePillBlur();
   const timePillOpacity = useTimePillOpacity();
   const timeFont = useTimeFont();
+  
+
+
+  // Initialize store with backend data on app startup
+  useEffect(() => {
+    const initializeStoreFromBackend = async () => {
+      try {
+        console.log('[App] Initializing store from backend...');
+        
+        if (window.api?.data?.get) {
+          const data = await window.api.data.get();
+          console.log('[App] Backend data loaded:', data);
+          
+          // Update store with backend settings
+          const { actions } = useConsolidatedAppStore.getState();
+          
+          // Update dock settings
+          if (data?.settings?.dock) {
+            console.log('[App] Updating dock settings from backend:', data.settings.dock);
+            actions.setDockState(data.settings.dock);
+          }
+          
+          // Update other settings as needed
+          if (data?.settings?.sounds) {
+            console.log('[App] Updating sound settings from backend:', data.settings.sounds);
+            actions.setSoundState(data.settings.sounds);
+          }
+          
+          if (data?.settings?.ui) {
+            console.log('[App] Updating UI settings from backend:', data.settings.ui);
+            actions.setUIState(data.settings.ui);
+          }
+          
+          console.log('[App] Store initialization complete');
+          
+          // Debug: Check final dock state after initialization
+          const finalState = useConsolidatedAppStore.getState();
+          console.log('[App] Final dock state after initialization:', finalState.dock);
+        } else {
+          console.error('[App] Backend API not available for store initialization');
+        }
+      } catch (error) {
+        console.error('[App] Failed to initialize store from backend:', error);
+      }
+    };
+    
+    // Only initialize when app is ready
+    if (appReady) {
+      initializeStoreFromBackend();
+    }
+  }, [appReady]);
 
   // Initialize wallpaper cycling (only for cycling status indicator)
   const { isCycling, cycleToNextWallpaper } = useWallpaperCycling();
@@ -101,6 +156,21 @@ function App() {
       performanceMonitor: floatingWidgets.performanceMonitor.visible
     });
   }, [floatingWidgets]);
+
+
+  
+  // Debug: Monitor dock state changes
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[App] Dock state changed:', {
+        particleSystemEnabled: dock?.particleSystemEnabled,
+        particleEffectType: dock?.particleEffectType,
+        particleDirection: dock?.particleDirection,
+        particleSpeed: dock?.particleSpeed,
+        particleCount: dock?.particleCount
+      });
+    }
+  }, [dock?.particleSystemEnabled, dock?.particleEffectType, dock?.particleDirection, dock?.particleSpeed, dock?.particleCount]);
 
   // Debug: Add global function to enable Spotify widget for testing
   useEffect(() => {
@@ -329,11 +399,17 @@ function App() {
         customCursor = document.createElement('div');
         customCursor.id = 'wii-custom-cursor';
         document.body.appendChild(customCursor);
+        console.log('[App] Created new cursor element');
+      } else {
+        console.log('[App] Found existing cursor element, current style:', customCursor.getAttribute('data-style'));
       }
       
-      // Set cursor style (get from store)
-      const storeState = useConsolidatedAppStore.getState();
-      customCursor.setAttribute('data-style', storeState.ui.cursorStyle || 'classic');
+      // Set cursor style using the prop (which is reactive)
+      console.log('[App] Setting cursor style to:', cursorStyle || 'classic');
+      customCursor.setAttribute('data-style', cursorStyle || 'classic');
+      
+      // Debug: Log the actual attribute value
+      console.log('[App] Cursor data-style attribute:', customCursor.getAttribute('data-style'));
       
       // Show custom cursor
       customCursor.style.display = 'block';
@@ -377,6 +453,21 @@ function App() {
     }
   }, [useCustomCursor, cursorStyle]);
 
+  // Apply dark mode to document body for global styling
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark-mode');
+      document.body.classList.add('dark-mode');
+      // Set data attribute for additional styling hooks
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+      document.body.classList.remove('dark-mode');
+      // Set data attribute for additional styling hooks
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, [isDarkMode]);
+
   // Expose DevTools and debug functions globally
   useEffect(() => {
     // Expose openDevTools globally for console access
@@ -404,6 +495,42 @@ function App() {
     };
     
     // Expose test functions for debugging
+    window.testCursorStyles = () => {
+      console.log('[DEBUG] 🎯 === TESTING CURSOR STYLES ===');
+      const { ui } = useConsolidatedAppStore.getState();
+      console.log('[DEBUG] 🎯 Current cursor settings:', {
+        useCustomCursor: ui.useCustomCursor,
+        cursorStyle: ui.cursorStyle
+      });
+      
+      const cursorElement = document.getElementById('wii-custom-cursor');
+      if (cursorElement) {
+        console.log('[DEBUG] 🎯 Cursor element found:', {
+          dataStyle: cursorElement.getAttribute('data-style'),
+          display: cursorElement.style.display,
+          className: cursorElement.className
+        });
+      } else {
+        console.log('[DEBUG] 🎯 No cursor element found');
+      }
+      
+      console.log('[DEBUG] 🎯 Body classes:', document.body.className);
+      console.log('[DEBUG] 🎯 === END CURSOR TEST ===');
+    };
+    
+    window.changeCursorStyle = (style) => {
+      console.log('[DEBUG] 🎯 Manually changing cursor style to:', style);
+      const { actions } = useConsolidatedAppStore.getState();
+      actions.setUIState({ cursorStyle: style });
+      
+      // Also update the cursor element directly
+      const cursorElement = document.getElementById('wii-custom-cursor');
+      if (cursorElement) {
+        cursorElement.setAttribute('data-style', style);
+        console.log('[DEBUG] 🎯 Cursor element updated, new style:', cursorElement.getAttribute('data-style'));
+      }
+    };
+    
     window.testPresetFunctions = () => {
       console.log('[DEBUG] 🧪 === TESTING PRESET FUNCTIONS ===');
       console.log('[DEBUG] 🧪 Current store state:', useConsolidatedAppStore.getState());
@@ -1227,6 +1354,8 @@ function App() {
                 timePillOpacity={timePillOpacity ?? 0.05}
                 timeColor={timeColor ?? '#ffffff'}
                 timeFont={timeFont ?? 'default'}
+                // Particle settings from consolidated store
+                particleSettings={dock}
               />
             )}
           </div>
@@ -1274,6 +1403,17 @@ function App() {
                 </div>
             )}
             
+            {/* Dark Mode Indicator */}
+            {isDarkMode && (
+              <div
+                className="cursor-pointer p-3 bg-blue-500/20 backdrop-blur-md rounded-full border border-blue-400/30 hover:bg-blue-500/30 transition-all duration-200 shadow-lg"
+                onClick={toggleDarkMode}
+                title="Dark Mode Active - Click to toggle"
+              >
+                🌙
+              </div>
+            )}
+            
             {/* Debug Button - Only in development */}
             {process.env.NODE_ENV === 'development' && (
               <div
@@ -1310,6 +1450,15 @@ function App() {
             />
           )}
         </Suspense>
+
+        {/* Spotify Live Gradient Wallpaper */}
+        <SpotifyLiveGradientWallpaper />
+        
+        {/* Spotify Immersive Overlay */}
+        <SpotifyImmersiveOverlay />
+        
+        {/* Spotify Gradient Overlay */}
+        <SpotifyGradientOverlay />
 
         {/* Floating Widgets */}
         <Suspense fallback={<div>Loading widgets...</div>}>

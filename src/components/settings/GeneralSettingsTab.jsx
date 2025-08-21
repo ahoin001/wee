@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Button from '../../ui/WButton';
@@ -12,10 +12,70 @@ const GeneralSettingsTab = React.memo(() => {
 
   console.log('[GeneralSettingsTab] UI state:', ui);
 
-  // Save UI settings to backend
-  const saveUISettings = useCallback(async (newSettings) => {
+  // Load auto-launch state and settings shortcut on component mount
+  useEffect(() => {
+    const loadInitialState = async () => {
+      try {
+        // Load auto-launch state
+        if (window.api?.getAutoLaunch) {
+          const isAutoLaunchEnabled = await window.api.getAutoLaunch();
+          console.log('[GeneralSettingsTab] Current auto-launch state:', isAutoLaunchEnabled);
+          // Update the UI state to reflect the actual system setting
+          setUIState({ startOnBoot: isAutoLaunchEnabled });
+        }
+
+        // Load settings from unified data
+        if (window.api?.data?.get) {
+          const currentData = await window.api.data.get();
+          const appearanceSettings = currentData.settings?.appearance || {};
+          const systemSettings = currentData.settings?.system || {};
+          const dockSettings = currentData.settings?.dock || {};
+          
+          console.log('[GeneralSettingsTab] Loaded settings from unified data:', {
+            appearance: appearanceSettings,
+            system: systemSettings,
+            dock: dockSettings
+          });
+          
+          // Update UI state with all relevant settings
+          setUIState({
+            immersivePip: appearanceSettings.immersivePip ?? false,
+            startInFullscreen: appearanceSettings.startInFullscreen ?? false,
+            showPresetsButton: appearanceSettings.showPresetsButton ?? true,
+            useCustomCursor: appearanceSettings.useCustomCursor ?? true,
+            cursorStyle: appearanceSettings.cursorStyle ?? 'classic',
+            settingsShortcut: systemSettings.settingsShortcut || '',
+            classicMode: dockSettings.classicMode ?? false,
+            showDock: dockSettings.showDock ?? true,
+          });
+        }
+      } catch (error) {
+        console.error('[GeneralSettingsTab] Failed to load initial state:', error);
+      }
+    };
+
+    loadInitialState();
+  }, [setUIState]);
+
+  // Save UI settings to backend using unified data API
+  const saveUISettings = useCallback(async (newSettings, category = 'appearance') => {
     try {
-      if (window.api?.settings?.set) {
+      if (window.api?.data?.get && window.api?.data?.set) {
+        const currentData = await window.api.data.get();
+        const updatedData = {
+          ...currentData,
+          settings: {
+            ...currentData.settings,
+            [category]: {
+              ...currentData.settings?.[category],
+              ...newSettings
+            }
+          }
+        };
+        await window.api.data.set(updatedData);
+        console.log(`[GeneralSettingsTab] ${category} settings saved to unified data:`, newSettings);
+      } else if (window.api?.settings?.set) {
+        // Fallback to legacy API
         const currentSettings = await window.api.settings.get();
         const updatedSettings = {
           ...currentSettings,
@@ -25,7 +85,7 @@ const GeneralSettingsTab = React.memo(() => {
           }
         };
         await window.api.settings.set(updatedSettings);
-        console.log('[GeneralSettingsTab] UI settings saved to backend:', newSettings);
+        console.log('[GeneralSettingsTab] UI settings saved to legacy backend:', newSettings);
       }
     } catch (error) {
       console.error('[GeneralSettingsTab] Failed to save UI settings:', error);
@@ -36,60 +96,70 @@ const GeneralSettingsTab = React.memo(() => {
   const handleImmersivePipChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Immersive PiP changed:', checked);
     setUIState({ immersivePip: checked });
-    saveUISettings({ immersivePip: checked });
+    saveUISettings({ immersivePip: checked }, 'appearance');
   }, [setUIState, saveUISettings]);
 
-  const handleStartInFullscreenChange = useCallback((checked) => {
+  const handleStartInFullscreenChange = useCallback(async (checked) => {
     console.log('[GeneralSettingsTab] Start in Fullscreen changed:', checked);
     setUIState({ startInFullscreen: checked });
-    saveUISettings({ startInFullscreen: checked });
-    
-    // Apply the fullscreen setting immediately if the app is running
-    if (window.api?.setFullscreen) {
-      window.api.setFullscreen(checked);
-    }
+    saveUISettings({ startInFullscreen: checked }, 'appearance');
   }, [setUIState, saveUISettings]);
 
   const handleShowPresetsButtonChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Show Presets Button changed:', checked);
     setUIState({ showPresetsButton: checked });
-    saveUISettings({ showPresetsButton: checked });
+    saveUISettings({ showPresetsButton: checked }, 'appearance');
   }, [setUIState, saveUISettings]);
 
   const handleClassicModeChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Classic Mode changed:', checked);
     setUIState({ classicMode: checked });
-    saveUISettings({ classicMode: checked });
+    saveUISettings({ classicMode: checked }, 'dock');
   }, [setUIState, saveUISettings]);
 
-  const handleStartOnBootChange = useCallback((checked) => {
+  const handleShowDockChange = useCallback((checked) => {
+    console.log('[GeneralSettingsTab] Show Dock changed:', checked);
+    setUIState({ showDock: checked });
+    saveUISettings({ showDock: checked }, 'dock');
+  }, [setUIState, saveUISettings]);
+
+  const handleStartOnBootChange = useCallback(async (checked) => {
     console.log('[GeneralSettingsTab] Start on Boot changed:', checked);
-    setUIState({ startOnBoot: checked });
-    saveUISettings({ startOnBoot: checked });
-  }, [setUIState, saveUISettings]);
+    try {
+      // Use the dedicated auto-launch API
+      if (window.api?.setAutoLaunch) {
+        await window.api.setAutoLaunch(checked);
+        console.log('[GeneralSettingsTab] Auto-launch setting updated:', checked);
+      }
+      // Also update the UI state for consistency
+      setUIState({ startOnBoot: checked });
+    } catch (error) {
+      console.error('[GeneralSettingsTab] Failed to update auto-launch setting:', error);
+    }
+  }, [setUIState]);
 
-  const handleSettingsShortcutChange = useCallback((shortcut) => {
+  const handleSettingsShortcutChange = useCallback(async (shortcut) => {
     console.log('[GeneralSettingsTab] Settings Shortcut changed:', shortcut);
     setUIState({ settingsShortcut: shortcut });
-    saveUISettings({ settingsShortcut: shortcut });
+    saveUISettings({ settingsShortcut: shortcut }, 'system');
   }, [setUIState, saveUISettings]);
 
-  const handleClearShortcut = useCallback(() => {
+  const handleClearShortcut = useCallback(async () => {
     console.log('[GeneralSettingsTab] Clearing settings shortcut');
     setUIState({ settingsShortcut: '' });
-    saveUISettings({ settingsShortcut: '' });
+    saveUISettings({ settingsShortcut: '' }, 'system');
   }, [setUIState, saveUISettings]);
 
   const handleCustomCursorChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Custom Cursor changed:', checked);
     setUIState({ useCustomCursor: checked });
-    saveUISettings({ useCustomCursor: checked });
+    saveUISettings({ useCustomCursor: checked }, 'appearance');
   }, [setUIState, saveUISettings]);
 
   const handleCursorStyleChange = useCallback((style) => {
     console.log('[GeneralSettingsTab] Cursor Style changed:', style);
     setUIState({ cursorStyle: style });
-    saveUISettings({ cursorStyle: style });
+    saveUISettings({ cursorStyle: style }, 'appearance');
   }, [setUIState, saveUISettings]);
 
   const handleFreshInstall = useCallback(async () => {
@@ -171,6 +241,20 @@ const GeneralSettingsTab = React.memo(() => {
         className="mb-5"
       />
 
+      {/* Show Dock */}
+      <Card
+        title="Show Dock"
+        separator
+        desc="When enabled, shows the dock at the bottom of the screen. When disabled, the dock will be hidden."
+        headerActions={
+          <WToggle
+            checked={ui.showDock ?? true}
+            onChange={handleShowDockChange}
+          />
+        }
+        className="mb-5"
+      />
+
       {/* Custom Cursor Settings */}
       <Card
         title="Custom Wii Cursor"
@@ -231,6 +315,40 @@ const GeneralSettingsTab = React.memo(() => {
             checked={ui.startOnBoot ?? false}
             onChange={handleStartOnBootChange}
           />
+        }
+        className="mb-5"
+      />
+
+      {/* Settings Shortcut */}
+      <Card
+        title="Settings Keyboard Shortcut"
+        separator
+        desc="Set a custom keyboard shortcut to quickly open the settings menu. Leave empty to disable."
+        actions={
+          <div className="mt-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Text variant="body" className="font-medium min-w-20">Shortcut</Text>
+              <input
+                type="text"
+                value={ui.settingsShortcut || ''}
+                onChange={(e) => handleSettingsShortcutChange(e.target.value)}
+                placeholder="e.g., Ctrl+Shift+S"
+                className="flex-1 px-3 py-2 bg-[hsl(var(--surface-primary))] border border-[hsl(var(--border-primary))] rounded-md text-[hsl(var(--text-primary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--wii-blue))] focus:border-transparent"
+              />
+              <Button
+                variant="secondary"
+                onClick={handleClearShortcut}
+                className="px-3 py-2"
+              >
+                Clear
+              </Button>
+            </div>
+            <Text variant="caption" className="p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
+              <strong>⌨️ Keyboard Shortcuts:</strong> Set a custom shortcut to quickly access settings. 
+              Use standard key combinations like Ctrl+Shift+S, Alt+S, or F12. 
+              The shortcut will work globally when the app is running.
+            </Text>
+          </div>
         }
         className="mb-5"
       />

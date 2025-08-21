@@ -77,16 +77,10 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   const [deleting, setDeleting] = useState({});
 
   const [selectedWallpaper, setSelectedWallpaper] = useState(null);
-  const [wallpaperOpacity, setWallpaperOpacity] = useState(1);
-  const [wallpaperBlur, setWallpaperBlur] = useState(0);
-
-  // Overlay effect settings
-  const [overlayEnabled, setOverlayEnabled] = useState(false);
-  const [overlayEffect, setOverlayEffect] = useState('snow');
-  const [overlayIntensity, setOverlayIntensity] = useState(50);
-  const [overlaySpeed, setOverlaySpeed] = useState(1);
-  const [overlayWind, setOverlayWind] = useState(0.02);
-  const [overlayGravity, setOverlayGravity] = useState(0.1);
+  
+  // Store initial state for change detection
+  const [initialStoreState, setInitialStoreState] = useState({});
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Load wallpapers from backend
   const loadWallpapers = async () => {
@@ -151,7 +145,15 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   };
 
   useEffect(() => {
-    if (isOpen) loadWallpapers();
+    if (isOpen) {
+      loadWallpapers();
+      // Capture initial state for change detection
+      setInitialStoreState({
+        wallpaper: JSON.parse(JSON.stringify(wallpaper)),
+        overlay: JSON.parse(JSON.stringify(overlay))
+      });
+      setHasChanges(false);
+    }
     // Listen for backend updates
     if (window.api && window.api.onWallpapersUpdated) {
       window.api.onWallpapersUpdated(loadWallpapers);
@@ -162,7 +164,7 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         window.api.offWallpapersUpdated(loadWallpapers);
       }
     };
-  }, [isOpen]);
+  }, [isOpen, wallpaper, overlay]);
 
   // Upload a new wallpaper
   const handleUpload = async () => {
@@ -301,23 +303,42 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   useEffect(() => {
     if (isOpen) {
       setSelectedWallpaper(activeWallpaper);
-      setWallpaperBlur(wallpaperSettings?.wallpaperBlur ?? 0);
     }
-  }, [isOpen, activeWallpaper, wallpaperSettings]);
+  }, [isOpen, activeWallpaper]);
+
+  // Detect changes by comparing current state with initial state
+  useEffect(() => {
+    if (isOpen && initialStoreState.wallpaper && initialStoreState.overlay) {
+      const wallpaperChanged = JSON.stringify(wallpaper) !== JSON.stringify(initialStoreState.wallpaper);
+      const overlayChanged = JSON.stringify(overlay) !== JSON.stringify(initialStoreState.overlay);
+      setHasChanges(wallpaperChanged || overlayChanged);
+    }
+  }, [isOpen, wallpaper, overlay, initialStoreState]);
+
+  // Handle canceling changes
+  const handleCancelChanges = () => {
+    if (initialStoreState.wallpaper) {
+      setWallpaperState(initialStoreState.wallpaper);
+    }
+    if (initialStoreState.overlay) {
+      setOverlayState(initialStoreState.overlay);
+    }
+    setHasChanges(false);
+  };
 
   // Save both selected wallpaper and cycling settings
   const handleSaveAll = async (handleClose) => {
     try {
       // Save wallpaper-specific settings only
       let wallpaperData = await api.get();
-      wallpaperData.wallpaperOpacity = wallpaperOpacity;
-      wallpaperData.wallpaperBlur = wallpaperBlur;
-      wallpaperData.overlayEnabled = overlayEnabled;
-      wallpaperData.overlayEffect = overlayEffect;
-      wallpaperData.overlayIntensity = overlayIntensity;
-      wallpaperData.overlaySpeed = overlaySpeed;
-      wallpaperData.overlayWind = overlayWind;
-      wallpaperData.overlayGravity = overlayGravity;
+      wallpaperData.wallpaperOpacity = wallpaper.opacity; // Use consolidated store value
+      wallpaperData.wallpaperBlur = wallpaper.blur; // Use consolidated store value
+      wallpaperData.overlayEnabled = overlay.enabled; // Use consolidated store value
+      wallpaperData.overlayEffect = overlay.effect; // Use consolidated store value
+      wallpaperData.overlayIntensity = overlay.intensity; // Use consolidated store value
+      wallpaperData.overlaySpeed = overlay.speed; // Use consolidated store value
+      wallpaperData.overlayWind = overlay.wind; // Use consolidated store value
+      wallpaperData.overlayGravity = overlay.gravity; // Use consolidated store value
       await api.set(wallpaperData);
 
       // Handle wallpaper and cycling settings
@@ -325,15 +346,15 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         await api.setActive({ url: selectedWallpaper.url });
       }
       await api.setCyclingSettings({
-        enabled: cycling,
-        interval: cycleInterval,
-        animation: cycleAnimation,
-        slideDirection: slideDirection,
-        crossfadeDuration: crossfadeDuration,
-        crossfadeEasing: crossfadeEasing,
-        slideRandomDirection: slideRandomDirection,
-        slideDuration: slideDuration,
-        slideEasing: slideEasing,
+        enabled: wallpaper.cycleWallpapers,
+        interval: wallpaper.cycleInterval,
+        animation: wallpaper.cycleAnimation,
+        slideDirection: wallpaper.slideDirection,
+        crossfadeDuration: wallpaper.crossfadeDuration,
+        crossfadeEasing: wallpaper.crossfadeEasing,
+        slideRandomDirection: wallpaper.slideRandomDirection,
+        slideDuration: wallpaper.slideDuration,
+        slideEasing: wallpaper.slideEasing,
       });
 
       setMessage({ type: 'success', text: 'Wallpaper and settings saved.' });
@@ -341,39 +362,28 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       // Update consolidated store with new settings
       setWallpaperState({
         current: selectedWallpaper || null, // Update current wallpaper to the selected one
-        opacity: wallpaperOpacity,
-        blur: wallpaperBlur,
-        cycleWallpapers: cycling,
-        cycleInterval: cycleInterval,
-        cycleAnimation: cycleAnimation,
-        slideDirection: slideDirection,
-        crossfadeDuration: crossfadeDuration,
-        crossfadeEasing: crossfadeEasing,
-        slideRandomDirection: slideRandomDirection,
-        slideDuration: slideDuration,
-        slideEasing: slideEasing,
-      });
-
-      setOverlayState({
-        enabled: overlayEnabled,
-        effect: overlayEffect,
-        intensity: overlayIntensity,
-        speed: overlaySpeed,
-        wind: overlayWind,
-        gravity: overlayGravity,
+        cycleWallpapers: wallpaper.cycleWallpapers,
+        cycleInterval: wallpaper.cycleInterval,
+        cycleAnimation: wallpaper.cycleAnimation,
+        slideDirection: wallpaper.slideDirection,
+        crossfadeDuration: wallpaper.crossfadeDuration,
+        crossfadeEasing: wallpaper.crossfadeEasing,
+        slideRandomDirection: wallpaper.slideRandomDirection,
+        slideDuration: wallpaper.slideDuration,
+        slideEasing: wallpaper.slideEasing,
       });
 
       // Call onSettingsChange to notify parent component of the new settings
       if (onSettingsChange) {
         onSettingsChange({
-          wallpaperOpacity: wallpaperOpacity,
-          wallpaperBlur: wallpaperBlur,
-          overlayEnabled: overlayEnabled,
-          overlayEffect: overlayEffect,
-          overlayIntensity: overlayIntensity,
-          overlaySpeed: overlaySpeed,
-          overlayWind: overlayWind,
-          overlayGravity: overlayGravity,
+          wallpaperOpacity: wallpaper.opacity,
+          wallpaperBlur: wallpaper.blur,
+          overlayEnabled: overlay.enabled,
+          overlayEffect: overlay.effect,
+          overlayIntensity: overlay.intensity,
+          overlaySpeed: overlay.speed,
+          overlayWind: overlay.wind,
+          overlayGravity: overlay.gravity,
         });
       }
       handleClose();
@@ -389,9 +399,33 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
       onClose={onClose}
       maxWidth="1200px"
       footerContent={({ handleClose }) => (
-        <div className="text-right flex justify-end gap-2.5">
-          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => handleSaveAll(handleClose)} className="min-w-[90px]">Save</Button>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[hsl(var(--text-secondary))]">
+              {hasChanges ? 'Unsaved changes' : 'No changes'}
+            </span>
+            {hasChanges && (
+              <div className="w-2 h-2 bg-[hsl(var(--primary))] rounded-full animate-pulse"></div>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              onClick={handleCancelChanges}
+              className="px-4 py-2 transition-all duration-200 hover:scale-105"
+              disabled={!hasChanges}
+            >
+              Undo Changes
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => handleSaveAll(handleClose)}
+              className="px-4 py-2 transition-all duration-200 hover:scale-105 min-w-[90px]"
+              disabled={!hasChanges}
+            >
+              Save Changes
+            </Button>
+          </div>
         </div>
       )}
     >
@@ -546,8 +580,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
         desc="When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below."
         headerActions={
           <WToggle
-            checked={cycling}
-            onChange={setCycling}
+            checked={wallpaper.cycleWallpapers}
+            onChange={(value) => setWallpaperState({ cycleWallpapers: value })}
           />
         }
         actions={
@@ -558,8 +592,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 type="number"
                 min={2}
                 max={600}
-                value={cycleInterval}
-                onChange={e => setCycleInterval(Number(e.target.value))}
+                value={wallpaper.cycleInterval}
+                onChange={e => setWallpaperState({ cycleInterval: Number(e.target.value) })}
                 className="w-[70px] text-[15px] px-2 py-1 rounded border border-gray-300 mr-2"
               />
               <Text variant="small" className="text-gray-500">seconds</Text>
@@ -569,8 +603,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
               <div className="flex-1">
                 <WSelect
                   options={WALLPAPER_ANIMATIONS}
-                  value={cycleAnimation}
-                  onChange={setCycleAnimation}
+                  value={wallpaper.cycleAnimation}
+                  onChange={(value) => setWallpaperState({ cycleAnimation: value })}
                   className="w-full"
                 />
               </div>
@@ -769,11 +803,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 min="0"
                 max="1"
                 step="0.01"
-                value={wallpaperOpacity}
-                onChange={e => setWallpaperOpacity(Number(e.target.value))}
+                value={wallpaper.opacity}
+                onChange={e => setWallpaperState({ opacity: Number(e.target.value) })}
                 className="flex-1"
               />
-              <span className="min-w-[38px] font-semibold text-gray-500">{Math.round(wallpaperOpacity * 100)}%</span>
+              <span className="min-w-[38px] font-semibold text-gray-500">{Math.round(wallpaper.opacity * 100)}%</span>
             </div>
             <div className="text-[13px] text-gray-400 mt-0.5">Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
             {/* Wallpaper Blur Slider */}
@@ -783,11 +817,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                 min="0"
                 max="24"
                 step="0.5"
-                value={wallpaperBlur}
-                onChange={e => setWallpaperBlur(Number(e.target.value))}
+                value={wallpaper.blur}
+                onChange={e => setWallpaperState({ blur: Number(e.target.value) })}
                 className="flex-1"
               />
-              <span className="min-w-[38px] font-semibold text-gray-500">{wallpaperBlur}px</span>
+              <span className="min-w-[38px] font-semibold text-gray-500">{wallpaper.blur}px</span>
             </div>
             <div className="text-[13px] text-gray-400 mt-0.5">Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
           </>
@@ -803,8 +837,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
             <div className="flex items-center gap-4 mt-4">
               <span className="font-medium min-w-[120px] text-gray-700">Enable Overlay</span>
               <WToggle
-                checked={overlayEnabled}
-                onChange={setOverlayEnabled}
+                checked={overlay.enabled}
+                onChange={(value) => setOverlayState({ enabled: value })}
                 label="Show overlay effects"
               />
             </div>
@@ -815,8 +849,8 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                   <div className="flex-1">
                     <WSelect
                       options={OVERLAY_EFFECT_OPTIONS}
-                      value={overlayEffect}
-                      onChange={setOverlayEffect}
+                      value={overlay.effect}
+                      onChange={(value) => setOverlayState({ effect: value })}
                       className="w-full"
                     />
                   </div>
@@ -828,11 +862,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     min={10}
                     max={100}
                     step={5}
-                    value={overlayIntensity}
-                    onChange={e => setOverlayIntensity(Number(e.target.value))}
+                    value={overlay.intensity}
+                    onChange={e => setOverlayState({ intensity: Number(e.target.value) })}
                     className="flex-1"
                   />
-                  <span className="min-w-[40px] font-semibold text-gray-500">{overlayIntensity}%</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{overlay.intensity}%</span>
                 </div>
                 <div className="flex items-center gap-4 mt-3.5">
                   <span className="font-medium min-w-[120px] text-gray-700">Speed</span>
@@ -841,11 +875,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     min={0.1}
                     max={3}
                     step={0.05}
-                    value={overlaySpeed}
-                    onChange={e => setOverlaySpeed(Number(e.target.value))}
+                    value={overlay.speed}
+                    onChange={e => setOverlayState({ speed: Number(e.target.value) })}
                     className="flex-1"
                   />
-                  <span className="min-w-[40px] font-semibold text-gray-500">{overlaySpeed}x</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{overlay.speed}x</span>
                 </div>
                 <div className="flex items-center gap-4 mt-3.5">
                   <span className="font-medium min-w-[120px] text-gray-700">Wind</span>
@@ -854,11 +888,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     min={-0.1}
                     max={0.1}
                     step={0.005}
-                    value={overlayWind}
-                    onChange={e => setOverlayWind(Number(e.target.value))}
+                    value={overlay.wind}
+                    onChange={e => setOverlayState({ wind: Number(e.target.value) })}
                     className="flex-1"
                   />
-                  <span className="min-w-[40px] font-semibold text-gray-500">{overlayWind.toFixed(3)}</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{overlay.wind.toFixed(3)}</span>
                 </div>
                 <div className="flex items-center gap-4 mt-3.5">
                   <span className="font-medium min-w-[120px] text-gray-700">Gravity</span>
@@ -867,11 +901,11 @@ function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
                     min={-0.2}
                     max={0.5}
                     step={0.01}
-                    value={overlayGravity}
-                    onChange={e => setOverlayGravity(Number(e.target.value))}
+                    value={overlay.gravity}
+                    onChange={e => setOverlayState({ gravity: Number(e.target.value) })}
                     className="flex-1"
                   />
-                  <span className="min-w-[40px] font-semibold text-gray-500">{overlayGravity.toFixed(2)}</span>
+                  <span className="min-w-[40px] font-semibold text-gray-500">{overlay.gravity.toFixed(2)}</span>
                 </div>
                 <div className="text-[13px] text-gray-400 mt-2">
                   <strong>Effect Types:</strong> Snow (gentle falling snowflakes), Rain (falling raindrops),

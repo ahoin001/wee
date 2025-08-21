@@ -180,9 +180,60 @@ const THEME_GROUPS = {
 };
 
 const ClassicDockSettingsTab = React.memo(() => {
-  // Use consolidated store for dock settings
-  const { dock } = useConsolidatedAppStore();
-  const { setDockState } = useConsolidatedAppStore(state => state.actions);
+  // Use legacy settings system to work with SettingsModal
+  const [localDockSettings, setLocalDockSettings] = useState({});
+  
+  // Load dock settings from legacy system on component mount
+  useEffect(() => {
+    const loadDockSettings = () => {
+      try {
+        // Load from legacy window.settings system
+        const legacySettings = window.settings || {};
+        const dockSettings = legacySettings.dockSettings || {};
+        
+        console.log('[DockSettingsTab] Loading dock settings from legacy system:', dockSettings);
+        setLocalDockSettings(dockSettings);
+      } catch (error) {
+        console.error('[DockSettingsTab] Failed to load dock settings:', error);
+      }
+    };
+    
+    loadDockSettings();
+  }, []);
+  
+  // Utility function to save dock setting to legacy system
+  const saveDockSetting = useCallback((key, value) => {
+    try {
+      console.log(`[DockSettingsTab] saveDockSetting called with: ${key} = ${value}`);
+      
+      // Update local state
+      setLocalDockSettings(prev => ({
+        ...prev,
+        [key]: value
+      }));
+      
+      // Update legacy window.settings system
+      if (!window.settings) {
+        window.settings = {};
+      }
+      if (!window.settings.dockSettings) {
+        window.settings.dockSettings = {};
+      }
+      window.settings.dockSettings[key] = value;
+      
+      // Dispatch custom event to notify components of settings change
+      window.dispatchEvent(new CustomEvent('settingsChanged', {
+        detail: { type: 'dockSettings', key, value }
+      }));
+      
+      console.log(`[DockSettingsTab] ✅ Successfully saved setting: ${key} = ${value}`);
+      console.log('[DockSettingsTab] 📁 Updated window.settings.dockSettings:', window.settings.dockSettings);
+      console.log('[DockSettingsTab] 📡 Custom event dispatched with detail:', { type: 'dockSettings', key, value });
+      
+    } catch (error) {
+      console.error(`[DockSettingsTab] Failed to save ${key} setting:`, error);
+    }
+  }, []);
   
   // Local state for expanded groups
   const [expandedGroups, setExpandedGroups] = useState({
@@ -190,15 +241,59 @@ const ClassicDockSettingsTab = React.memo(() => {
     games: false
   });
 
-  // Apply theme function
+  // Debug: Monitor dock state changes
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DockSettingsTab] Local dock settings changed:', {
+        particleSystemEnabled: localDockSettings?.particleSystemEnabled,
+        particleEffectType: localDockSettings?.particleEffectType,
+        particleDirection: localDockSettings?.particleDirection,
+        particleSpeed: localDockSettings?.particleSpeed,
+        particleCount: localDockSettings?.particleCount
+      });
+      console.log('[DockSettingsTab] Full local dock settings:', localDockSettings);
+    }
+  }, [localDockSettings?.particleSystemEnabled, localDockSettings?.particleEffectType, localDockSettings?.particleDirection, localDockSettings?.particleSpeed, localDockSettings?.particleCount, localDockSettings]);
+
+  // Debug: Log when component mounts
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DockSettingsTab] Component mounted, current local dock settings:', localDockSettings);
+    }
+  }, []);
+
+  // Apply theme function with immediate save
   const applyTheme = useCallback((themePath) => {
     const [groupKey, themeKey] = themePath.split('.');
     const group = THEME_GROUPS[groupKey];
     const theme = group?.themes[themeKey];
     if (theme) {
-      setDockState(theme.colors);
+      // Update local state with theme colors
+      setLocalDockSettings(prev => ({
+        ...prev,
+        ...theme.colors
+      }));
+      
+      // Save all theme colors to legacy system immediately
+      try {
+        if (!window.settings) {
+          window.settings = {};
+        }
+        if (!window.settings.dockSettings) {
+          window.settings.dockSettings = {};
+        }
+        
+        // Update window.settings with theme colors
+        Object.entries(theme.colors).forEach(([key, value]) => {
+          window.settings.dockSettings[key] = value;
+        });
+        
+        console.log('[DockSettingsTab] Theme applied and saved to legacy system:', theme.colors);
+      } catch (error) {
+        console.error('[DockSettingsTab] Failed to save theme:', error);
+      }
     }
-  }, [setDockState]);
+  }, []);
 
   // Check if current colors match a theme
   const getCurrentTheme = useCallback(() => {
@@ -208,133 +303,162 @@ const ClassicDockSettingsTab = React.memo(() => {
         const colors = theme.colors;
         
         if (
-          colors.dockBaseGradientStart === dock?.dockBaseGradientStart &&
-          colors.dockBaseGradientEnd === dock?.dockBaseGradientEnd &&
-          colors.dockAccentColor === dock?.dockAccentColor &&
-          colors.sdCardBodyColor === dock?.sdCardBodyColor &&
-          colors.sdCardBorderColor === dock?.sdCardBorderColor &&
-          colors.sdCardLabelColor === dock?.sdCardLabelColor &&
-          colors.sdCardLabelBorderColor === dock?.sdCardLabelBorderColor &&
-          colors.sdCardBottomColor === dock?.sdCardBottomColor &&
-          colors.leftPodBaseColor === dock?.leftPodBaseColor &&
-          colors.leftPodAccentColor === dock?.leftPodAccentColor &&
-          colors.leftPodDetailColor === dock?.leftPodDetailColor &&
-          colors.rightPodBaseColor === dock?.rightPodBaseColor &&
-          colors.rightPodAccentColor === dock?.rightPodAccentColor &&
-          colors.rightPodDetailColor === dock?.rightPodDetailColor &&
-          colors.buttonBorderColor === dock?.buttonBorderColor &&
-          colors.buttonGradientStart === dock?.buttonGradientStart &&
-          colors.buttonGradientEnd === dock?.buttonGradientEnd &&
-          colors.buttonIconColor === dock?.buttonIconColor &&
-          colors.rightButtonIconColor === dock?.rightButtonIconColor &&
-          colors.buttonHighlightColor === dock?.buttonHighlightColor
+          colors.dockBaseGradientStart === localDockSettings?.dockBaseGradientStart &&
+          colors.dockBaseGradientEnd === localDockSettings?.dockBaseGradientEnd &&
+          colors.dockAccentColor === localDockSettings?.dockAccentColor &&
+          colors.sdCardBodyColor === localDockSettings?.sdCardBodyColor &&
+          colors.sdCardBorderColor === localDockSettings?.sdCardBorderColor &&
+          colors.sdCardLabelColor === localDockSettings?.sdCardLabelColor &&
+          colors.sdCardLabelBorderColor === localDockSettings?.sdCardLabelBorderColor &&
+          colors.sdCardBottomColor === localDockSettings?.sdCardBottomColor &&
+          colors.leftPodBaseColor === localDockSettings?.leftPodBaseColor &&
+          colors.leftPodAccentColor === localDockSettings?.leftPodAccentColor &&
+          colors.leftPodDetailColor === localDockSettings?.leftPodDetailColor &&
+          colors.rightPodBaseColor === localDockSettings?.rightPodBaseColor &&
+          colors.rightPodAccentColor === localDockSettings?.rightPodAccentColor &&
+          colors.rightPodDetailColor === localDockSettings?.rightPodDetailColor &&
+          colors.buttonBorderColor === localDockSettings?.buttonBorderColor &&
+          colors.buttonGradientStart === localDockSettings?.buttonGradientStart &&
+          colors.buttonGradientEnd === localDockSettings?.buttonGradientEnd &&
+          colors.buttonIconColor === localDockSettings?.buttonIconColor &&
+          colors.rightButtonIconColor === localDockSettings?.rightButtonIconColor &&
+          colors.buttonHighlightColor === localDockSettings?.buttonHighlightColor
         ) {
           return themePath;
         }
       }
     }
     return null;
-  }, [dock]);
+  }, [localDockSettings]);
 
-  // Color change handlers
+  // Color change handlers with immediate save
   const handleColorChange = useCallback((key, value) => {
-    setDockState({ [key]: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, [key]: value }));
+    saveDockSetting(key, value);
+  }, [saveDockSetting]);
 
-  // Glass effect handlers
+  // Glass effect handlers with immediate save
   const handleGlassEnabledChange = useCallback((checked) => {
-    setDockState({ glassEnabled: checked });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, glassEnabled: checked }));
+    saveDockSetting('glassEnabled', checked);
+  }, [saveDockSetting]);
 
   const handleGlassOpacityChange = useCallback((value) => {
-    setDockState({ glassOpacity: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, glassOpacity: value }));
+    saveDockSetting('glassOpacity', value);
+  }, [saveDockSetting]);
 
   const handleGlassBlurChange = useCallback((value) => {
-    setDockState({ glassBlur: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, glassBlur: value }));
+    saveDockSetting('glassBlur', value);
+  }, [saveDockSetting]);
 
   const handleGlassBorderOpacityChange = useCallback((value) => {
-    setDockState({ glassBorderOpacity: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, glassBorderOpacity: value }));
+    saveDockSetting('glassBorderOpacity', value);
+  }, [saveDockSetting]);
 
   const handleGlassShineOpacityChange = useCallback((value) => {
-    setDockState({ glassShineOpacity: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, glassShineOpacity: value }));
+    saveDockSetting('glassShineOpacity', value);
+  }, [saveDockSetting]);
 
-  // Size handlers
+  // Size handlers with immediate save
   const handleDockScaleChange = useCallback((value) => {
-    setDockState({ dockScale: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, dockScale: value }));
+    saveDockSetting('dockScale', value);
+  }, [saveDockSetting]);
 
   const handleButtonSizeChange = useCallback((value) => {
-    setDockState({ buttonSize: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, buttonSize: value }));
+    saveDockSetting('buttonSize', value);
+  }, [saveDockSetting]);
 
   const handleSdCardSizeChange = useCallback((value) => {
-    setDockState({ sdCardSize: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, sdCardSize: value }));
+    saveDockSetting('sdCardSize', value);
+  }, [saveDockSetting]);
 
-  // Particle system handlers
+  // Particle system handlers with immediate save
   const handleParticleEnabledChange = useCallback((checked) => {
-    setDockState({ particleSystemEnabled: checked });
-  }, [setDockState]);
+    console.log('[DockSettingsTab] 🎯 Particle system enabled changed to:', checked);
+    console.log('[DockSettingsTab] Current local dock settings before update:', localDockSettings);
+    setLocalDockSettings(prev => ({ ...prev, particleSystemEnabled: checked }));
+    console.log('[DockSettingsTab] Local dock settings updated, new value should be:', checked);
+    saveDockSetting('particleSystemEnabled', checked);
+    console.log('[DockSettingsTab] ✅ Save completed for particleSystemEnabled:', checked);
+    console.log('[DockSettingsTab] 📡 Custom event dispatched to notify components');
+  }, [saveDockSetting, localDockSettings]);
 
   const handleParticleEffectTypeChange = useCallback((value) => {
-    setDockState({ particleEffectType: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleEffectType: value }));
+    saveDockSetting('particleEffectType', value);
+  }, [saveDockSetting]);
 
   const handleParticleDirectionChange = useCallback((value) => {
-    setDockState({ particleDirection: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleDirection: value }));
+    saveDockSetting('particleDirection', value);
+  }, [saveDockSetting]);
 
   const handleParticleSpeedChange = useCallback((value) => {
-    setDockState({ particleSpeed: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleSpeed: value }));
+    saveDockSetting('particleSpeed', value);
+  }, [saveDockSetting]);
 
   const handleParticleCountChange = useCallback((value) => {
-    setDockState({ particleCount: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleCount: value }));
+    saveDockSetting('particleCount', value);
+  }, [saveDockSetting]);
 
   const handleParticleSpawnRateChange = useCallback((value) => {
-    setDockState({ particleSpawnRate: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleSpawnRate: value }));
+    saveDockSetting('particleSpawnRate', value);
+  }, [saveDockSetting]);
 
   const handleParticleSizeChange = useCallback((value) => {
-    setDockState({ particleSize: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleSize: value }));
+    saveDockSetting('particleSize', value);
+  }, [saveDockSetting]);
 
   const handleParticleGravityChange = useCallback((value) => {
-    setDockState({ particleGravity: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleGravity: value }));
+    saveDockSetting('particleGravity', value);
+  }, [saveDockSetting]);
 
   const handleParticleFadeSpeedChange = useCallback((value) => {
-    setDockState({ particleFadeSpeed: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleFadeSpeed: value }));
+    saveDockSetting('particleFadeSpeed', value);
+  }, [saveDockSetting]);
 
   const handleParticleSizeDecayChange = useCallback((value) => {
-    setDockState({ particleSizeDecay: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleSizeDecay: value }));
+    saveDockSetting('particleSizeDecay', value);
+  }, [saveDockSetting]);
 
   const handleParticleUseAdaptiveColorChange = useCallback((checked) => {
-    setDockState({ particleUseAdaptiveColor: checked });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleUseAdaptiveColor: checked }));
+    saveDockSetting('particleUseAdaptiveColor', checked);
+  }, [saveDockSetting]);
 
   const handleParticleColorIntensityChange = useCallback((value) => {
-    setDockState({ particleColorIntensity: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleColorIntensity: value }));
+    saveDockSetting('particleColorIntensity', value);
+  }, [saveDockSetting]);
 
   const handleParticleColorVariationChange = useCallback((value) => {
-    setDockState({ particleColorVariation: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleColorVariation: value }));
+    saveDockSetting('particleColorVariation', value);
+  }, [saveDockSetting]);
 
   const handleParticleRotationSpeedChange = useCallback((value) => {
-    setDockState({ particleRotationSpeed: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleRotationSpeed: value }));
+    saveDockSetting('particleRotationSpeed', value);
+  }, [saveDockSetting]);
 
   const handleParticleLifetimeChange = useCallback((value) => {
-    setDockState({ particleLifetime: value });
-  }, [setDockState]);
+    setLocalDockSettings(prev => ({ ...prev, particleLifetime: value }));
+    saveDockSetting('particleLifetime', value);
+  }, [saveDockSetting]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -345,6 +469,134 @@ const ClassicDockSettingsTab = React.memo(() => {
       <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
         Customize the appearance of the Classic Wii Dock including colors, themes, glass effects, and sizing.
       </Text>
+      
+      {/* Debug Test Button */}
+      {process.env.NODE_ENV === 'development' && (
+        <Card>
+          <div style={{ padding: '20px' }}>
+            <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+              Debug: Particle System Test
+            </Text>
+            <WButton
+              onClick={() => {
+                setLocalDockSettings(prev => ({
+                  ...prev,
+                  particleSystemEnabled: true,
+                  particleEffectType: 'stars',
+                  particleCount: 10,
+                  particleSpeed: 3
+                }));
+                saveDockSetting('particleSystemEnabled', true);
+                saveDockSetting('particleEffectType', 'stars');
+                saveDockSetting('particleCount', 10);
+                saveDockSetting('particleSpeed', 3);
+                console.log('[DockSettingsTab] Debug: Enabled particle system with stars');
+              }}
+              style={{ marginRight: '10px' }}
+            >
+              Enable Stars (Debug)
+            </WButton>
+            <WButton
+              onClick={() => {
+                setLocalDockSettings(prev => ({
+                  ...prev,
+                  particleSystemEnabled: false
+                }));
+                saveDockSetting('particleSystemEnabled', false);
+                console.log('[DockSettingsTab] Debug: Disabled particle system');
+              }}
+            >
+              Disable Particles (Debug)
+            </WButton>
+            <WButton
+              onClick={async () => {
+                console.log('[DockSettingsTab] Debug: Testing API...');
+                try {
+                  if (window.api?.data?.get) {
+                    const data = await window.api.data.get();
+                    console.log('[DockSettingsTab] Debug: API test successful:', data);
+                    console.log('[DockSettingsTab] Debug: Dock settings from API:', data?.settings?.dock);
+                  } else {
+                    console.error('[DockSettingsTab] Debug: API not available');
+                  }
+                } catch (error) {
+                  console.error('[DockSettingsTab] Debug: API test failed:', error);
+                }
+              }}
+              style={{ marginTop: '10px', width: '100%' }}
+            >
+              Test API (Debug)
+            </WButton>
+            <WButton
+              onClick={async () => {
+                console.log('[DockSettingsTab] Debug: Testing save and load...');
+                try {
+                  // First, save a test value
+                  saveDockSetting('particleSystemEnabled', true);
+                  console.log('[DockSettingsTab] Debug: Saved test value');
+                  
+                  // Then, load it back from window.settings
+                  const loadedValue = window.settings?.dockSettings?.particleSystemEnabled;
+                  console.log('[DockSettingsTab] Debug: Loaded value from window.settings:', loadedValue);
+                } catch (error) {
+                  console.error('[DockSettingsTab] Debug: Save/load test failed:', error);
+                }
+              }}
+              style={{ marginTop: '10px', width: '100%' }}
+            >
+              Test Save/Load (Debug)
+            </WButton>
+            <WButton
+              onClick={async () => {
+                console.log('[DockSettingsTab] Debug: Testing current state...');
+                try {
+                  // Check current local state
+                  console.log('[DockSettingsTab] Debug: Current local dock settings:', localDockSettings);
+                  
+                  // Check window.settings state
+                  console.log('[DockSettingsTab] Debug: window.settings:', window.settings);
+                  console.log('[DockSettingsTab] Debug: window.settings.dockSettings:', window.settings?.dockSettings);
+                  
+                  // Check if they match
+                  const windowEnabled = window.settings?.dockSettings?.particleSystemEnabled;
+                  const localEnabled = localDockSettings?.particleSystemEnabled;
+                  console.log('[DockSettingsTab] Debug: window.settings enabled:', windowEnabled, 'Local enabled:', localEnabled);
+                  console.log('[DockSettingsTab] Debug: States match:', windowEnabled === localEnabled);
+                } catch (error) {
+                  console.error('[DockSettingsTab] Debug: State test failed:', error);
+                }
+              }}
+              style={{ marginTop: '10px', width: '100%' }}
+            >
+              Test Current State (Debug)
+            </WButton>
+            <WButton
+              onClick={async () => {
+                console.log('[DockSettingsTab] Debug: Testing setLocalDockSettings action...');
+                try {
+                  // Test the setLocalDockSettings action directly
+                  console.log('[DockSettingsTab] Debug: Before setLocalDockSettings, particleSystemEnabled:', localDockSettings?.particleSystemEnabled);
+                  
+                  setLocalDockSettings(prev => ({ ...prev, particleSystemEnabled: true }));
+                  saveDockSetting('particleSystemEnabled', true);
+                  
+                  // Check if it was updated
+                  setTimeout(() => {
+                    console.log('[DockSettingsTab] Debug: After setLocalDockSettings, particleSystemEnabled:', localDockSettings?.particleSystemEnabled);
+                    console.log('[DockSettingsTab] Debug: window.settings.dockSettings:', window.settings?.dockSettings);
+                  }, 100);
+                  
+                } catch (error) {
+                  console.error('[DockSettingsTab] Debug: setLocalDockSettings test failed:', error);
+                }
+              }}
+              style={{ marginTop: '10px', width: '100%' }}
+            >
+              Test setLocalDockSettings (Debug)
+            </WButton>
+          </div>
+        </Card>
+      )}
 
       {/* Preset Themes */}
       <Card>
@@ -497,7 +749,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.dockBaseGradientStart ?? '#BDBEC2'}
+                value={localDockSettings?.dockBaseGradientStart ?? '#BDBEC2'}
                 onChange={(e) => handleColorChange('dockBaseGradientStart', e.target.value)}
                 style={{
                   width: 50,
@@ -508,7 +760,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.dockBaseGradientStart ?? '#BDBEC2').toUpperCase()}
+                {(localDockSettings?.dockBaseGradientStart ?? '#BDBEC2').toUpperCase()}
               </Text>
             </div>
             
@@ -518,7 +770,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.dockBaseGradientEnd ?? '#DADDE6'}
+                value={localDockSettings?.dockBaseGradientEnd ?? '#DADDE6'}
                 onChange={(e) => handleColorChange('dockBaseGradientEnd', e.target.value)}
                 style={{
                   width: 50,
@@ -529,7 +781,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.dockBaseGradientEnd ?? '#DADDE6').toUpperCase()}
+                {(localDockSettings?.dockBaseGradientEnd ?? '#DADDE6').toUpperCase()}
               </Text>
             </div>
             
@@ -539,7 +791,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.dockAccentColor ?? '#33BEED'}
+                value={localDockSettings?.dockAccentColor ?? '#33BEED'}
                 onChange={(e) => handleColorChange('dockAccentColor', e.target.value)}
                 style={{
                   width: 50,
@@ -550,7 +802,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.dockAccentColor ?? '#33BEED').toUpperCase()}
+                {(localDockSettings?.dockAccentColor ?? '#33BEED').toUpperCase()}
               </Text>
             </div>
           </div>
@@ -574,7 +826,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.sdCardBodyColor ?? '#B9E1F2'}
+                value={localDockSettings?.sdCardBodyColor ?? '#B9E1F2'}
                 onChange={(e) => handleColorChange('sdCardBodyColor', e.target.value)}
                 style={{
                   width: 50,
@@ -585,7 +837,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.sdCardBodyColor ?? '#B9E1F2').toUpperCase()}
+                {(localDockSettings?.sdCardBodyColor ?? '#B9E1F2').toUpperCase()}
               </Text>
             </div>
             
@@ -595,7 +847,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.sdCardBorderColor ?? '#33BEED'}
+                value={localDockSettings?.sdCardBorderColor ?? '#33BEED'}
                 onChange={(e) => handleColorChange('sdCardBorderColor', e.target.value)}
                 style={{
                   width: 50,
@@ -606,7 +858,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.sdCardBorderColor ?? '#33BEED').toUpperCase()}
+                {(localDockSettings?.sdCardBorderColor ?? '#33BEED').toUpperCase()}
               </Text>
             </div>
             
@@ -616,7 +868,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.sdCardLabelColor ?? 'white'}
+                value={localDockSettings?.sdCardLabelColor ?? 'white'}
                 onChange={(e) => handleColorChange('sdCardLabelColor', e.target.value)}
                 style={{
                   width: 50,
@@ -627,7 +879,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.sdCardLabelColor ?? 'white').toUpperCase()}
+                {(localDockSettings?.sdCardLabelColor ?? 'white').toUpperCase()}
               </Text>
             </div>
             
@@ -637,7 +889,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.sdCardBottomColor ?? '#31BEED'}
+                value={localDockSettings?.sdCardBottomColor ?? '#31BEED'}
                 onChange={(e) => handleColorChange('sdCardBottomColor', e.target.value)}
                 style={{
                   width: 50,
@@ -648,7 +900,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.sdCardBottomColor ?? '#31BEED').toUpperCase()}
+                {(localDockSettings?.sdCardBottomColor ?? '#31BEED').toUpperCase()}
               </Text>
             </div>
           </div>
@@ -672,7 +924,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.leftPodBaseColor ?? '#D2D3DA'}
+                value={localDockSettings?.leftPodBaseColor ?? '#D2D3DA'}
                 onChange={(e) => handleColorChange('leftPodBaseColor', e.target.value)}
                 style={{
                   width: 50,
@@ -683,7 +935,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.leftPodBaseColor ?? '#D2D3DA').toUpperCase()}
+                {(localDockSettings?.leftPodBaseColor ?? '#D2D3DA').toUpperCase()}
               </Text>
             </div>
             
@@ -693,7 +945,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.rightPodBaseColor ?? '#DCDCDF'}
+                value={localDockSettings?.rightPodBaseColor ?? '#DCDCDF'}
                 onChange={(e) => handleColorChange('rightPodBaseColor', e.target.value)}
                 style={{
                   width: 50,
@@ -704,7 +956,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.rightPodBaseColor ?? '#DCDCDF').toUpperCase()}
+                {(localDockSettings?.rightPodBaseColor ?? '#DCDCDF').toUpperCase()}
               </Text>
             </div>
             
@@ -714,7 +966,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.buttonBorderColor ?? '#22BEF3'}
+                value={localDockSettings?.buttonBorderColor ?? '#22BEF3'}
                 onChange={(e) => handleColorChange('buttonBorderColor', e.target.value)}
                 style={{
                   width: 50,
@@ -725,7 +977,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.buttonBorderColor ?? '#22BEF3').toUpperCase()}
+                {(localDockSettings?.buttonBorderColor ?? '#22BEF3').toUpperCase()}
               </Text>
             </div>
             
@@ -735,7 +987,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={dock?.buttonIconColor ?? '#979796'}
+                value={localDockSettings?.buttonIconColor ?? '#979796'}
                 onChange={(e) => handleColorChange('buttonIconColor', e.target.value)}
                 style={{
                   width: 50,
@@ -746,7 +998,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 }}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(dock?.buttonIconColor ?? '#979796').toUpperCase()}
+                {(localDockSettings?.buttonIconColor ?? '#979796').toUpperCase()}
               </Text>
             </div>
           </div>
@@ -766,26 +1018,26 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
             </div>
             <WToggle
-              checked={dock?.glassEnabled ?? false}
+              checked={localDockSettings?.glassEnabled ?? false}
               onChange={handleGlassEnabledChange}
             />
           </div>
           
-          {dock?.glassEnabled && (
+          {localDockSettings?.glassEnabled && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
                   Glass Opacity
                 </Text>
                 <Slider
-                  value={dock?.glassOpacity ?? 0.18}
+                  value={localDockSettings?.glassOpacity ?? 0.18}
                   min={0.05}
                   max={0.5}
                   step={0.01}
                   onChange={handleGlassOpacityChange}
                 />
                 <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                  {Math.round((dock?.glassOpacity ?? 0.18) * 100)}%
+                  {Math.round((localDockSettings?.glassOpacity ?? 0.18) * 100)}%
                 </Text>
               </div>
               
@@ -794,14 +1046,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                   Glass Blur
                 </Text>
                 <Slider
-                  value={dock?.glassBlur ?? 2.5}
+                  value={localDockSettings?.glassBlur ?? 2.5}
                   min={0.5}
                   max={8}
                   step={0.1}
                   onChange={handleGlassBlurChange}
                 />
                 <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                  {dock?.glassBlur ?? 2.5}px
+                  {localDockSettings?.glassBlur ?? 2.5}px
                 </Text>
               </div>
               
@@ -810,14 +1062,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                   Border Opacity
                 </Text>
                 <Slider
-                  value={dock?.glassBorderOpacity ?? 0.5}
+                  value={localDockSettings?.glassBorderOpacity ?? 0.5}
                   min={0.1}
                   max={1}
                   step={0.05}
                   onChange={handleGlassBorderOpacityChange}
                 />
                 <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                  {Math.round((dock?.glassBorderOpacity ?? 0.5) * 100)}%
+                  {Math.round((localDockSettings?.glassBorderOpacity ?? 0.5) * 100)}%
                 </Text>
               </div>
               
@@ -826,14 +1078,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                   Shine Opacity
                 </Text>
                 <Slider
-                  value={dock?.glassShineOpacity ?? 0.7}
+                  value={localDockSettings?.glassShineOpacity ?? 0.7}
                   min={0.1}
                   max={1}
                   step={0.05}
                   onChange={handleGlassShineOpacityChange}
                 />
                 <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                  {Math.round((dock?.glassShineOpacity ?? 0.7) * 100)}%
+                  {Math.round((localDockSettings?.glassShineOpacity ?? 0.7) * 100)}%
                 </Text>
               </div>
             </div>
@@ -857,14 +1109,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                 Dock Height
               </Text>
               <Slider
-                value={dock?.dockScale ?? 1.0}
+                value={localDockSettings?.dockScale ?? 1.0}
                 min={0.5}
                 max={2.0}
                 step={0.05}
                 onChange={handleDockScaleChange}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                {Math.round((dock?.dockScale ?? 1.0) * 100)}%
+                {Math.round((localDockSettings?.dockScale ?? 1.0) * 100)}%
               </Text>
             </div>
             
@@ -873,14 +1125,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                 Button Size
               </Text>
               <Slider
-                value={dock?.buttonSize ?? 1.0}
+                value={localDockSettings?.buttonSize ?? 1.0}
                 min={0.5}
                 max={1.5}
                 step={0.05}
                 onChange={handleButtonSizeChange}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                {Math.round((dock?.buttonSize ?? 1.0) * 100)}%
+                {Math.round((localDockSettings?.buttonSize ?? 1.0) * 100)}%
               </Text>
             </div>
             
@@ -889,14 +1141,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                 SD Card Size
               </Text>
               <Slider
-                value={dock?.sdCardSize ?? 1.0}
+                value={localDockSettings?.sdCardSize ?? 1.0}
                 min={0.5}
                 max={2.0}
                 step={0.05}
                 onChange={handleSdCardSizeChange}
               />
               <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                {Math.round((dock?.sdCardSize ?? 1.0) * 100)}%
+                {Math.round((localDockSettings?.sdCardSize ?? 1.0) * 100)}%
               </Text>
             </div>
           </div>
@@ -916,12 +1168,12 @@ const ClassicDockSettingsTab = React.memo(() => {
               </Text>
             </div>
             <WToggle
-              checked={dock?.particleSystemEnabled ?? false}
+              checked={localDockSettings?.particleSystemEnabled ?? false}
               onChange={handleParticleEnabledChange}
             />
           </div>
           
-          {dock?.particleSystemEnabled && (
+          {localDockSettings?.particleSystemEnabled && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Effect Type */}
               <div>
@@ -929,7 +1181,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                   Effect Type
                 </Text>
                 <WSelect
-                  value={dock?.particleEffectType ?? 'normal'}
+                  value={localDockSettings?.particleEffectType ?? 'normal'}
                   onChange={handleParticleEffectTypeChange}
                   options={[
                     { value: 'normal', label: '✨ Normal Particles' },
@@ -950,7 +1202,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                   Direction
                 </Text>
                 <WSelect
-                  value={dock?.particleDirection ?? 'upward'}
+                  value={localDockSettings?.particleDirection ?? 'upward'}
                   onChange={handleParticleDirectionChange}
                   options={[
                     { value: 'upward', label: '⬆️ Upward' },
@@ -966,14 +1218,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Particle Speed
                   </Text>
                   <Slider
-                    value={dock?.particleSpeed ?? 2}
+                    value={localDockSettings?.particleSpeed ?? 2}
                     min={0.5}
                     max={5}
                     step={0.1}
                     onChange={handleParticleSpeedChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {dock?.particleSpeed ?? 2}x speed
+                    {localDockSettings?.particleSpeed ?? 2}x speed
                   </Text>
                 </div>
                 
@@ -982,14 +1234,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Particle Count
                   </Text>
                   <Slider
-                    value={dock?.particleCount ?? 3}
+                    value={localDockSettings?.particleCount ?? 3}
                     min={1}
                     max={10}
                     step={1}
                     onChange={handleParticleCountChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {dock?.particleCount ?? 3} particles
+                    {localDockSettings?.particleCount ?? 3} particles
                   </Text>
                 </div>
                 
@@ -998,14 +1250,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Spawn Rate
                   </Text>
                   <Slider
-                    value={dock?.particleSpawnRate ?? 60}
+                    value={localDockSettings?.particleSpawnRate ?? 60}
                     min={10}
                     max={120}
                     step={5}
                     onChange={handleParticleSpawnRateChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {dock?.particleSpawnRate ?? 60} per second
+                    {localDockSettings?.particleSpawnRate ?? 60} per second
                   </Text>
                 </div>
                 
@@ -1014,14 +1266,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Particle Size
                   </Text>
                   <Slider
-                    value={dock?.particleSize ?? 3}
+                    value={localDockSettings?.particleSize ?? 3}
                     min={1}
                     max={8}
                     step={0.5}
                     onChange={handleParticleSizeChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {dock?.particleSize ?? 3}px
+                    {localDockSettings?.particleSize ?? 3}px
                   </Text>
                 </div>
               </div>
@@ -1033,14 +1285,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Gravity
                   </Text>
                   <Slider
-                    value={dock?.particleGravity ?? 0.02}
+                    value={localDockSettings?.particleGravity ?? 0.02}
                     min={0}
                     max={0.1}
                     step={0.005}
                     onChange={handleParticleGravityChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {dock?.particleGravity ?? 0.02}
+                    {localDockSettings?.particleGravity ?? 0.02}
                   </Text>
                 </div>
                 
@@ -1049,14 +1301,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Fade Speed
                   </Text>
                   <Slider
-                    value={dock?.particleFadeSpeed ?? 0.008}
+                    value={localDockSettings?.particleFadeSpeed ?? 0.008}
                     min={0.001}
                     max={0.02}
                     step={0.001}
                     onChange={handleParticleFadeSpeedChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {dock?.particleFadeSpeed ?? 0.008}
+                    {localDockSettings?.particleFadeSpeed ?? 0.008}
                   </Text>
                 </div>
                 
@@ -1065,14 +1317,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Size Decay
                   </Text>
                   <Slider
-                    value={dock?.particleSizeDecay ?? 0.02}
+                    value={localDockSettings?.particleSizeDecay ?? 0.02}
                     min={0}
                     max={0.05}
                     step={0.005}
                     onChange={handleParticleSizeDecayChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {dock?.particleSizeDecay ?? 0.02}
+                    {localDockSettings?.particleSizeDecay ?? 0.02}
                   </Text>
                 </div>
                 
@@ -1081,14 +1333,14 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Rotation Speed
                   </Text>
                   <Slider
-                    value={dock?.particleRotationSpeed ?? 0.05}
+                    value={localDockSettings?.particleRotationSpeed ?? 0.05}
                     min={0}
                     max={0.2}
                     step={0.01}
                     onChange={handleParticleRotationSpeedChange}
                   />
                   <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                    {dock?.particleRotationSpeed ?? 0.05}
+                    {localDockSettings?.particleRotationSpeed ?? 0.05}
                   </Text>
                 </div>
               </div>
@@ -1100,7 +1352,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                     Use Adaptive Colors
                   </Text>
                   <WToggle
-                    checked={dock?.particleUseAdaptiveColor ?? false}
+                    checked={localDockSettings?.particleUseAdaptiveColor ?? false}
                     onChange={handleParticleUseAdaptiveColorChange}
                   />
                 </div>
@@ -1109,21 +1361,21 @@ const ClassicDockSettingsTab = React.memo(() => {
                 </Text>
               </div>
 
-              {dock?.particleUseAdaptiveColor && (
+              {localDockSettings?.particleUseAdaptiveColor && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
                     <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
                       Color Intensity
                     </Text>
                     <Slider
-                      value={dock?.particleColorIntensity ?? 1.0}
+                      value={localDockSettings?.particleColorIntensity ?? 1.0}
                       min={0.5}
                       max={2.0}
                       step={0.1}
                       onChange={handleParticleColorIntensityChange}
                     />
                     <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                      {dock?.particleColorIntensity ?? 1.0}x
+                      {localDockSettings?.particleColorIntensity ?? 1.0}x
                     </Text>
                   </div>
                   
@@ -1132,18 +1384,62 @@ const ClassicDockSettingsTab = React.memo(() => {
                       Color Variation
                     </Text>
                     <Slider
-                      value={dock?.particleColorVariation ?? 0.3}
+                      value={localDockSettings?.particleColorVariation ?? 0.3}
                       min={0}
                       max={1}
                       step={0.1}
                       onChange={handleParticleColorVariationChange}
                     />
                     <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                      {dock?.particleColorVariation ?? 0.3}
+                      {localDockSettings?.particleColorVariation ?? 0.3}
                     </Text>
                   </div>
                 </div>
               )}
+              
+              {/* Save Button for Particle System */}
+              <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid hsl(var(--border))' }}>
+                <WButton
+                  onClick={async () => {
+                    try {
+                      if (window.api?.data?.get && window.api?.data?.set) {
+                        const currentData = await window.api.data.get();
+                        const updatedData = {
+                          ...currentData,
+                          settings: {
+                            ...currentData.settings,
+                            dock: {
+                              ...currentData.settings?.dock,
+                              particleSystemEnabled: localDockSettings?.particleSystemEnabled ?? false,
+                              particleEffectType: localDockSettings?.particleEffectType ?? 'normal',
+                              particleDirection: localDockSettings?.particleDirection ?? 'upward',
+                              particleSpeed: localDockSettings?.particleSpeed ?? 2,
+                              particleCount: localDockSettings?.particleCount ?? 3,
+                              particleSpawnRate: localDockSettings?.particleSpawnRate ?? 60,
+                              particleSize: localDockSettings?.particleSize ?? 3,
+                              particleGravity: localDockSettings?.particleGravity ?? 0.02,
+                              particleFadeSpeed: localDockSettings?.particleFadeSpeed ?? 0.008,
+                              particleSizeDecay: localDockSettings?.particleSizeDecay ?? 0.02,
+                              particleUseAdaptiveColor: localDockSettings?.particleUseAdaptiveColor ?? false,
+                              particleColorIntensity: localDockSettings?.particleColorIntensity ?? 1.0,
+                              particleColorVariation: localDockSettings?.particleColorVariation ?? 0.3,
+                              particleRotationSpeed: localDockSettings?.particleRotationSpeed ?? 0.05,
+                              particleLifetime: localDockSettings?.particleLifetime ?? 3.0
+                            }
+                          }
+                        };
+                        await window.api.data.set(updatedData);
+                        console.log('[DockSettingsTab] Particle system settings saved to backend');
+                      }
+                    } catch (error) {
+                      console.error('[DockSettingsTab] Failed to save particle system settings:', error);
+                    }
+                  }}
+                  style={{ width: '100%' }}
+                >
+                  Save Particle System Settings
+                </WButton>
+              </div>
             </div>
           )}
         </div>

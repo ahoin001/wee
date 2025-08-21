@@ -9,7 +9,10 @@ const PARTICLE_TYPES = {
   SPARKLES: 'sparkles',
   MAGIC: 'magic',
   FIREFLIES: 'fireflies',
-  DUST: 'dust'
+  DUST: 'dust',
+  CLIP_PATH: 'clip-path',
+  ENERGY: 'energy',
+  MAGIC_SPARKLES: 'magic'
 };
 
 // Color palettes for different effects
@@ -21,7 +24,10 @@ const COLOR_PALETTES = {
   sparkles: ['#ffffff', '#ffd700', '#ff69b4', '#00ff00'],
   magic: ['#ff0081', '#00ffff', '#ff69b4', '#ffff00', '#00ff00'],
   fireflies: ['#ffff00', '#ffd700', '#ffed4e', '#fffacd'],
-  dust: ['#f5f5dc', '#d2b48c', '#deb887', '#f4a460']
+  dust: ['#f5f5dc', '#d2b48c', '#deb887', '#f4a460'],
+  'clip-path': ['#00ffff', '#ff0081', '#ffff00', '#00ff00'],
+  energy: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'],
+  'magic-sparkles': ['#ff0081', '#00ffff', '#ffff00', '#ff69b4']
 };
 
 // Helper function to convert hex color to RGB array
@@ -96,21 +102,43 @@ class Particle {
         const intensity = settings.colorIntensity || 1.0;
         const variation = settings.colorVariation || 0.3;
         
-        const adjustedColor = adjustColorIntensity(baseColor, intensity);
-        palette = createColorVariations(adjustedColor, variation);
+        // Validate baseColor is a valid hex color
+        if (baseColor && typeof baseColor === 'string' && /^#[0-9A-Fa-f]{6}$/.test(baseColor)) {
+          const adjustedColor = adjustColorIntensity(baseColor, intensity);
+          palette = createColorVariations(adjustedColor, variation);
+        } else {
+          // Fallback to default palette if invalid color
+          palette = COLOR_PALETTES[this.type] || COLOR_PALETTES.normal;
+        }
       } else {
         // Use default palette for this effect type
         palette = COLOR_PALETTES[this.type] || COLOR_PALETTES.normal;
       }
     }
     
-    return palette[Math.floor(Math.random() * palette.length)];
+    // Ensure we always return a valid hex color
+    const selectedColor = palette[Math.floor(Math.random() * palette.length)];
+    return selectedColor && typeof selectedColor === 'string' && /^#[0-9A-Fa-f]{6}$/.test(selectedColor) 
+      ? selectedColor 
+      : '#0099ff'; // Default fallback
   }
 
   hexToRgbString(hex) {
+    // Validate hex color format
+    if (!hex || typeof hex !== 'string' || !/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      // Return default blue color if invalid
+      return '0, 153, 255';
+    }
+    
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
+    
+    // Check for NaN values and return default if any
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return '0, 153, 255';
+    }
+    
     return `${r}, ${g}, ${b}`;
   }
 
@@ -155,6 +183,12 @@ class Particle {
         break;
       case 'dust':
         this.drawDust(ctx);
+        break;
+      case 'clip-path':
+        this.drawClipPath(ctx);
+        break;
+      case 'energy':
+        this.drawEnergy(ctx);
         break;
       default:
         this.drawCircle(ctx);
@@ -312,6 +346,87 @@ class Particle {
     }
   }
 
+  drawClipPath(ctx) {
+    // Draw particles that follow the dock's clip path shape
+    const time = Date.now() * 0.001;
+    const waveIntensity = Math.sin(time + this.rotation) * 0.3;
+    
+    // Create a wave-like effect that follows the dock's curved shape
+    const segments = 8;
+    const amplitude = this.size * (1 + waveIntensity);
+    
+    ctx.beginPath();
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const angle = t * Math.PI * 2 + this.rotation;
+      const radius = this.size + Math.sin(angle * 3 + time) * amplitude * 0.5;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.closePath();
+    ctx.fill();
+    
+    // Add inner glow
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size);
+    gradient.addColorStop(0, `rgba(${this.hexToRgbString(this.baseColor)}, ${this.opacity * 0.8})`);
+    gradient.addColorStop(1, `rgba(${this.hexToRgbString(this.baseColor)}, 0)`);
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawEnergy(ctx) {
+    // Draw energy orbs with pulsing effect
+    const time = Date.now() * 0.001;
+    const pulseIntensity = (Math.sin(time * 3 + this.rotation) + 1) / 2;
+    const pulseSize = this.size * (1 + pulseIntensity * 0.5);
+    
+    // Outer energy field
+    const outerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, pulseSize * 2);
+    outerGradient.addColorStop(0, `rgba(${this.hexToRgbString(this.baseColor)}, ${this.opacity * 0.3})`);
+    outerGradient.addColorStop(0.5, `rgba(${this.hexToRgbString(this.baseColor)}, ${this.opacity * 0.1})`);
+    outerGradient.addColorStop(1, `rgba(${this.hexToRgbString(this.baseColor)}, 0)`);
+    
+    ctx.fillStyle = outerGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, pulseSize * 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Inner core
+    const innerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, pulseSize);
+    innerGradient.addColorStop(0, `rgba(${this.hexToRgbString(this.baseColor)}, ${this.opacity})`);
+    innerGradient.addColorStop(0.7, `rgba(${this.hexToRgbString(this.baseColor)}, ${this.opacity * 0.6})`);
+    innerGradient.addColorStop(1, `rgba(${this.hexToRgbString(this.baseColor)}, 0)`);
+    
+    ctx.fillStyle = innerGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, pulseSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Energy particles orbiting around
+    const orbitCount = 4;
+    for (let i = 0; i < orbitCount; i++) {
+      const orbitAngle = (i / orbitCount) * Math.PI * 2 + time * 2;
+      const orbitRadius = pulseSize * 0.8;
+      const orbitX = Math.cos(orbitAngle) * orbitRadius;
+      const orbitY = Math.sin(orbitAngle) * orbitRadius;
+      const orbitSize = this.size * 0.3;
+      
+      ctx.fillStyle = `rgba(${this.hexToRgbString(this.baseColor)}, ${this.opacity * 0.8})`;
+      ctx.beginPath();
+      ctx.arc(orbitX, orbitY, orbitSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   isDead() {
     return this.size <= 0 || this.opacity <= 0;
   }
@@ -352,22 +467,20 @@ const DockParticleSystem = React.memo(({
   // Get dock position and dimensions with error handling
   const getDockPosition = useCallback(() => {
     try {
-      const dockElement = document.querySelector('.wii-dock-container, .interactive-footer');
-      if (!dockElement) return null;
+      // Since the particle system is rendered inside the dock container,
+      // we can use the canvas dimensions directly
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
       
-      const rect = dockElement.getBoundingClientRect();
-      const canvasRect = canvasRef.current?.getBoundingClientRect();
-      
-      if (!canvasRect) return null;
+      const canvasRect = canvas.getBoundingClientRect();
       
       return {
-        x: rect.left - canvasRect.left + rect.width / 2,
-        y: rect.top - canvasRect.top + rect.height,
-        width: rect.width,
-        height: rect.height
+        x: canvasRect.width / 2, // Center of the canvas
+        y: canvasRect.height,    // Bottom of the canvas
+        width: canvasRect.width,
+        height: canvasRect.height
       };
     } catch (error) {
-      console.warn('[DockParticleSystem] Error getting dock position:', error);
       return null;
     }
   }, []);
@@ -391,7 +504,9 @@ const DockParticleSystem = React.memo(({
     if (!enabled) return;
     
     const dockPos = getDockPosition();
-    if (!dockPos) return;
+    if (!dockPos) {
+      return;
+    }
 
     const now = Date.now();
     const spawnInterval = 1000 / spawnRate;
@@ -404,27 +519,27 @@ const DockParticleSystem = React.memo(({
 
       if (direction === 'upward') {
         // Spawn from bottom of dock, move upward
-        x = dockPos.x + (Math.random() - 0.5) * dockPos.width * 0.8;
-        y = dockPos.y;
-        const angle = Math.PI + (Math.random() - 0.5) * Math.PI / 4; // Upward with slight variation
-        const particleSpeed = Math.random() * speed + 1;
-        speedX = Math.cos(angle) * particleSpeed * 0.3; // Less horizontal movement
+        x = dockPos.x + (Math.random() - 0.5) * dockPos.width * 0.6;
+        y = dockPos.y - 10; // Slightly above bottom edge
+        const angle = Math.PI + (Math.random() - 0.5) * Math.PI / 3; // Upward with variation
+        const particleSpeed = Math.random() * speed + 0.5;
+        speedX = Math.cos(angle) * particleSpeed * 0.2; // Less horizontal movement
         speedY = Math.sin(angle) * particleSpeed;
       } else if (direction === 'all') {
         // Spawn from center, move in all directions
-        x = dockPos.x + (Math.random() - 0.5) * dockPos.width * 0.5;
-        y = dockPos.y + (Math.random() - 0.5) * dockPos.height * 0.5;
+        x = dockPos.x + (Math.random() - 0.5) * dockPos.width * 0.4;
+        y = dockPos.y + (Math.random() - 0.5) * dockPos.height * 0.4;
         const angle = Math.random() * Math.PI * 2;
-        const particleSpeed = Math.random() * speed + 1;
+        const particleSpeed = Math.random() * speed + 0.5;
         speedX = Math.cos(angle) * particleSpeed;
         speedY = Math.sin(angle) * particleSpeed;
       } else {
         // Default upward
-        x = dockPos.x + (Math.random() - 0.5) * dockPos.width * 0.8;
-        y = dockPos.y;
-        const angle = Math.PI + (Math.random() - 0.5) * Math.PI / 4;
-        const particleSpeed = Math.random() * speed + 1;
-        speedX = Math.cos(angle) * particleSpeed * 0.3;
+        x = dockPos.x + (Math.random() - 0.5) * dockPos.width * 0.6;
+        y = dockPos.y - 10;
+        const angle = Math.PI + (Math.random() - 0.5) * Math.PI / 3;
+        const particleSpeed = Math.random() * speed + 0.5;
+        speedX = Math.cos(angle) * particleSpeed * 0.2;
         speedY = Math.sin(angle) * particleSpeed;
       }
 
@@ -451,24 +566,38 @@ const DockParticleSystem = React.memo(({
         particle = new Particle(x, y, speedX, speedY, effectType, memoizedSettings);
       }
       particlesRef.current.push(particle);
+      
+
     }
+    
+
       }, [enabled, direction, speed, particleCount, spawnRate, effectType, memoizedSettings, getDockPosition, getParticleFromPool]);
 
   // Animation loop
   const animate = useCallback(() => {
-    if (!enabled || !canvasRef.current) return;
+    if (!enabled || !canvasRef.current) {
+      return;
+    }
 
     const ctx = canvasRef.current.getContext('2d');
     const canvas = canvasRef.current;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Debug: Draw a test rectangle to see if canvas is working
+    if (process.env.NODE_ENV === 'development' && particlesRef.current.length === 0) {
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+      ctx.fillRect(10, 10, 20, 20);
+    }
 
     // Create new particles
     createParticles();
 
     // Update and draw particles with performance optimization
     const particles = particlesRef.current;
+    let drawnParticles = 0;
+    
     for (let i = particles.length - 1; i >= 0; i--) {
       const particle = particles[i];
       particle.update();
@@ -478,8 +607,11 @@ const DockParticleSystem = React.memo(({
         particles.splice(i, 1);
       } else {
         particle.draw(ctx);
+        drawnParticles++;
       }
     }
+    
+
 
     // Limit particle count for performance based on device capabilities
     const maxParticles = navigator.hardwareConcurrency ? Math.min(200, navigator.hardwareConcurrency * 10) : 150;
@@ -498,13 +630,17 @@ const DockParticleSystem = React.memo(({
     const container = canvas.parentElement;
     
     if (container) {
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height || 200; // Fallback height if container has no height
+      
+
     }
   }, []);
 
   // Effect hooks
   useEffect(() => {
+    
     if (!enabled) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -543,19 +679,37 @@ const DockParticleSystem = React.memo(({
   if (!enabled) return null;
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="dock-particle-system"
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 1
-      }}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        className="dock-particle-system"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 5
+        }}
+      />
+      {/* Debug info in development */}
+      {/* {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '5px',
+          fontSize: '12px',
+          zIndex: 10,
+          pointerEvents: 'none'
+        }}>
+          Particles: {particlesRef.current.length}
+        </div>
+      )} */}
+    </>
   );
 });
 

@@ -1105,6 +1105,25 @@ const useConsolidatedAppStore = create(
           deviceId: null,
           error: null,
           loading: false,
+          // Extracted colors from current track's album art
+          extractedColors: null,
+          // Immersive experience settings
+          immersiveMode: {
+            enabled: false,
+            wallpaperOverlay: true,
+            ambientLighting: true,
+            pulseEffects: true,
+            liveGradientWallpaper: false, // New setting for live gradient wallpaper
+            overlayIntensity: 0.3,
+            ambientIntensity: 0.15,
+            pulseIntensity: 0.2,
+            beatSync: true,
+                            // Live gradient wallpaper settings - simplified
+                overlayMode: false, // Whether to overlay on existing wallpaper or replace completely
+                intensity: 0.7, // Overall effect intensity (0-1)
+                animationLevel: 2, // Animation level: 0=static, 1=subtle, 2=dynamic, 3=intense
+                style: 'radial' // Gradient style: 'radial', 'linear', 'waves'
+          },
           settings: {
             dynamicColors: true,
             useBlurredBackground: true, // Enabled by default
@@ -1616,7 +1635,7 @@ const useConsolidatedAppStore = create(
           time: state.time,
           channels: state.channels,
           dock: state.dock,
-
+          spotify: state.spotify, // Add spotify state to persistence
           presets: state.presets,
         }),
       }

@@ -356,65 +356,7 @@ const WallpaperSettingsTab = React.memo(() => {
     }
   }, [setWallpaperState, loadWallpapers]);
 
-  // Save all settings
-  const handleSaveAll = useCallback(async () => {
-    try {
-      // Save wallpaper-specific settings only
-      let wallpaperData = await api.get();
-      wallpaperData.wallpaperOpacity = wallpaper.opacity; // Use consolidated store value
-      wallpaperData.wallpaperBlur = wallpaper.blur; // Use consolidated store value
-      wallpaperData.overlayEnabled = overlay.enabled; // Use consolidated store value
-      wallpaperData.overlayEffect = overlay.effect; // Use consolidated store value
-      wallpaperData.overlayIntensity = overlay.intensity; // Use consolidated store value
-      wallpaperData.overlaySpeed = overlay.speed; // Use consolidated store value
-      wallpaperData.overlayWind = overlay.wind; // Use consolidated store value
-      wallpaperData.overlayGravity = overlay.gravity; // Use consolidated store value
-      await api.set(wallpaperData);
 
-      // Handle wallpaper and cycling settings
-      if (selectedWallpaper) {
-        await api.setActive({ url: selectedWallpaper.url });
-      }
-      await api.setCyclingSettings({
-        enabled: cycling,
-        interval: cycleInterval,
-        animation: cycleAnimation,
-        slideDirection: slideDirection,
-        crossfadeDuration: crossfadeDuration,
-        crossfadeEasing: crossfadeEasing,
-        slideRandomDirection: slideRandomDirection,
-        slideDuration: slideDuration,
-        slideEasing: slideEasing,
-      });
-
-      setMessage({ type: 'success', text: 'Wallpaper and settings saved.' });
-
-      // Update consolidated store with new settings (cycling settings only, effects are already updated)
-      setWallpaperState({
-        current: selectedWallpaper || null,
-        savedWallpapers: wallpapers,
-        likedWallpapers: likedWallpapers,
-        cycleWallpapers: cycling,
-        cycleInterval: cycleInterval,
-        cycleAnimation: cycleAnimation,
-        slideDirection: slideDirection,
-        crossfadeDuration: crossfadeDuration,
-        crossfadeEasing: crossfadeEasing,
-        slideRandomDirection: slideRandomDirection,
-        slideDuration: slideDuration,
-        slideEasing: slideEasing,
-      });
-
-      await loadWallpapers();
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Save failed: ' + err.message });
-    }
-  }, [
-    wallpaper.opacity, wallpaper.blur, overlay.enabled, overlay.effect, overlay.intensity, 
-    overlay.speed, overlay.wind, overlay.gravity, selectedWallpaper, cycling, cycleInterval, 
-    cycleAnimation, slideDirection, crossfadeDuration, crossfadeEasing, slideRandomDirection, 
-    slideDuration, slideEasing, setWallpaperState, loadWallpapers, wallpapers, likedWallpapers
-  ]);
 
   // Set selected wallpaper when wallpapers change
   useEffect(() => {
@@ -900,12 +842,7 @@ const WallpaperSettingsTab = React.memo(() => {
         }
       />
 
-      {/* Save Button */}
-      <div className="flex justify-end pt-4 border-t border-gray-200">
-        <Button variant="primary" onClick={handleSaveAll}>
-          Save All Settings
-        </Button>
-      </div>
+
     </div>
   );
 });

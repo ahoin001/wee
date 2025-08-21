@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import useSoundManager from '../../utils/useSoundManager';
 import useSoundLibrary from '../../utils/useSoundLibrary';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import WToggle from '../../ui/WToggle';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
@@ -52,23 +53,17 @@ const SoundsSettingsTab = React.memo(() => {
   const [audioRefs, setAudioRefs] = useState({});
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
+
   
-  // Pending changes state - for settings that haven't been saved yet
-  const [pendingChanges, setPendingChanges] = useState({
-    backgroundMusicEnabled: soundSettings?.backgroundMusicEnabled ?? true,
-    backgroundMusicLooping: soundSettings?.backgroundMusicLooping ?? true,
-    backgroundMusicPlaylistMode: soundSettings?.backgroundMusicPlaylistMode ?? false,
-    channelClickEnabled: soundSettings?.channelClickEnabled ?? true,
-    channelHoverEnabled: soundSettings?.channelHoverEnabled ?? true
-  });
+  // Get sounds state from consolidated store
+  const { sounds } = useConsolidatedAppStore();
+  const { setSoundState } = useConsolidatedAppStore(state => state.actions);
   
-  // Track if there are unsaved changes
-  const hasUnsavedChanges = 
-    pendingChanges.backgroundMusicEnabled !== (soundSettings?.backgroundMusicEnabled ?? true) ||
-    pendingChanges.backgroundMusicLooping !== (soundSettings?.backgroundMusicLooping ?? true) ||
-    pendingChanges.backgroundMusicPlaylistMode !== (soundSettings?.backgroundMusicPlaylistMode ?? false) ||
-    pendingChanges.channelClickEnabled !== (soundSettings?.channelClickEnabled ?? true) ||
-    pendingChanges.channelHoverEnabled !== (soundSettings?.channelHoverEnabled ?? true);
+
+
+
+
+
 
   // Clear message after 3 seconds
   React.useEffect(() => {
@@ -90,13 +85,18 @@ const SoundsSettingsTab = React.memo(() => {
     };
   }, [audioRefs]);
 
-  // Debug: Log current sound library state
+  // Debug: Log current sound library state (only in development)
   useEffect(() => {
-    console.log('[SoundsSettingsTab] Current sound library:', soundLibrary);
-    console.log('[SoundsSettingsTab] Background music sounds:', soundLibrary.backgroundMusic);
-    console.log('[SoundsSettingsTab] Enabled background music:', getEnabledSoundsByCategory('backgroundMusic'));
-    console.log('[SoundsSettingsTab] Sound settings:', soundSettings);
-  }, [soundLibrary, soundSettings, getEnabledSoundsByCategory]);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SoundsSettingsTab] Current sound library:', soundLibrary);
+      console.log('[SoundsSettingsTab] Background music sounds:', soundLibrary.backgroundMusic);
+      console.log('[SoundsSettingsTab] Sound settings:', soundSettings);
+    }
+  }, [soundLibrary, soundSettings]);
+
+
+
+
 
   // Show message helper
   const showMessage = useCallback((type, text) => {
@@ -269,71 +269,45 @@ const SoundsSettingsTab = React.memo(() => {
     }
   }, [toggleLike, showMessage]);
 
-  // Save all pending changes
-  const handleSaveSettings = useCallback(async () => {
-    try {
-      console.log('[SoundsSettingsTab] Saving pending changes:', pendingChanges);
-      
-      // Apply all pending changes
-      if (pendingChanges.backgroundMusicEnabled !== (soundSettings?.backgroundMusicEnabled ?? true)) {
-        await toggleBackgroundMusic(pendingChanges.backgroundMusicEnabled);
-      }
-      
-      if (pendingChanges.backgroundMusicLooping !== (soundSettings?.backgroundMusicLooping ?? true)) {
-        await toggleBackgroundMusicLooping(pendingChanges.backgroundMusicLooping);
-      }
-      
-      if (pendingChanges.backgroundMusicPlaylistMode !== (soundSettings?.backgroundMusicPlaylistMode ?? false)) {
-        await togglePlaylistMode(pendingChanges.backgroundMusicPlaylistMode);
-      }
-      
-      if (pendingChanges.channelClickEnabled !== (soundSettings?.channelClickEnabled ?? true)) {
-        // Update channel click settings using the sound manager
-        const enabledSounds = getEnabledSoundsByCategory('channelClick');
-        const enabledSound = enabledSounds[0];
-        updateChannelClickSound(pendingChanges.channelClickEnabled, enabledSound?.volume ?? 0.5);
-      }
-      
-      if (pendingChanges.channelHoverEnabled !== (soundSettings?.channelHoverEnabled ?? true)) {
-        // Update channel hover settings using the sound manager
-        const enabledSounds = getEnabledSoundsByCategory('channelHover');
-        const enabledSound = enabledSounds[0];
-        updateChannelHoverSound(pendingChanges.channelHoverEnabled, enabledSound?.volume ?? 0.5);
-      }
-      
-      showMessage('success', 'Sound settings saved successfully!');
-      console.log('[SoundsSettingsTab] All pending changes saved');
-      
-    } catch (err) {
-      console.error('[SoundsSettingsTab] Failed to save settings:', err);
-      showMessage('error', err.message || 'Failed to save sound settings');
-    }
-  }, [pendingChanges, soundSettings, toggleBackgroundMusic, toggleBackgroundMusicLooping, togglePlaylistMode, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, showMessage]);
 
-  // Handle pending changes updates
-  const handlePendingChange = useCallback((key, value) => {
-    setPendingChanges(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  }, []);
+
+  // Handle setting changes - update consolidated store and save immediately
+  const handleSettingChange = useCallback(async (key, value) => {
+    setSoundState({ [key]: value });
+    
+    // Save to backend immediately
+    try {
+      if (window.api?.settings?.get && window.api?.settings?.set) {
+        const currentSettings = await window.api.settings.get();
+        const updatedSettings = {
+          ...currentSettings,
+          [key]: value
+        };
+        await window.api.settings.set(updatedSettings);
+      }
+    } catch (error) {
+      console.error('[SoundsSettingsTab] Failed to save setting:', error);
+    }
+  }, [setSoundState]);
+
+
 
   // Drag and drop handlers for playlist reordering
   const handleDragStart = useCallback((e, soundId) => {
-    if (!soundSettings.backgroundMusicPlaylistMode) return;
+    if (!(sounds?.backgroundMusicPlaylistMode ?? false)) return;
     setDraggedItem(soundId);
     e.dataTransfer.effectAllowed = 'move';
-  }, [soundSettings.backgroundMusicPlaylistMode]);
+  }, [sounds?.backgroundMusicPlaylistMode]);
 
   const handleDragOver = useCallback((e, soundId) => {
-    if (!soundSettings.backgroundMusicPlaylistMode || !draggedItem) return;
+    if (!(sounds?.backgroundMusicPlaylistMode ?? false) || !draggedItem) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverItem(soundId);
-  }, [soundSettings.backgroundMusicPlaylistMode, draggedItem]);
+  }, [sounds?.backgroundMusicPlaylistMode, draggedItem]);
 
   const handleDrop = useCallback((e, targetSoundId) => {
-    if (!soundSettings.backgroundMusicPlaylistMode || !draggedItem || draggedItem === targetSoundId) {
+    if (!(sounds?.backgroundMusicPlaylistMode ?? false) || !draggedItem || draggedItem === targetSoundId) {
       setDraggedItem(null);
       setDragOverItem(null);
       return;
@@ -360,7 +334,7 @@ const SoundsSettingsTab = React.memo(() => {
     
     setDraggedItem(null);
     setDragOverItem(null);
-  }, [soundSettings.backgroundMusicPlaylistMode, draggedItem, getSoundsByCategory, updateSound, showMessage]);
+  }, [sounds?.backgroundMusicPlaylistMode, draggedItem, getSoundsByCategory, updateSound, showMessage]);
 
   const handleDragEnd = useCallback(() => {
     setDraggedItem(null);
@@ -397,24 +371,58 @@ const SoundsSettingsTab = React.memo(() => {
       <Card
         key={category.key}
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {category.key === 'backgroundMusic' && (
-              <ResourceUsageIndicator 
-                level="high" 
-                tooltip="Background music plays continuously and can use significant CPU and memory resources"
-              />
-            )}
-            {category.key === 'channelHover' && (
-              <ResourceUsageIndicator 
-                level="medium" 
-                tooltip="Hover sounds play frequently and can impact performance with many channels"
-              />
-            )}
-            {category.label}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: category.key === 'backgroundMusic' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+                         category.key === 'channelClick' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
+                         'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '16px',
+              color: 'white'
+            }}>
+              {category.key === 'backgroundMusic' ? '🎵' : 
+               category.key === 'channelClick' ? '🖱️' : '🎧'}
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: '700', fontSize: '16px' }}>{category.label}</span>
+                {category.key === 'backgroundMusic' && (
+                  <ResourceUsageIndicator 
+                    level="high" 
+                    tooltip="Background music plays continuously and can use significant CPU and memory resources"
+                  />
+                )}
+                {category.key === 'channelHover' && (
+                  <ResourceUsageIndicator 
+                    level="medium" 
+                    tooltip="Hover sounds play frequently and can impact performance with many channels"
+                  />
+                )}
+              </div>
+              <div style={{ 
+                fontSize: '12px', 
+                color: 'hsl(var(--text-secondary))',
+                fontWeight: '500'
+              }}>
+                {category.key === 'backgroundMusic' ? 'Continuous background audio' :
+                 category.key === 'channelClick' ? 'Sounds when clicking channels' :
+                 'Sounds when hovering over channels'}
+              </div>
+            </div>
           </div>
         }
         separator
-        style={{ marginBottom: '20px' }}
+        style={{ 
+          marginBottom: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          border: '1px solid hsl(var(--border-primary))'
+        }}
       >
         <div style={{ padding: '20px' }}>
           {/* Category-specific settings */}
@@ -423,43 +431,47 @@ const SoundsSettingsTab = React.memo(() => {
               <div style={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                gap: '12px',
-                padding: '16px',
-                background: 'hsl(var(--surface-secondary))',
-                borderRadius: '8px',
+                gap: '16px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)',
+                borderRadius: '12px',
                 border: '1px solid hsl(var(--border-primary))',
-                marginBottom: '16px'
+                marginBottom: '20px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
               }}>
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'space-between',
-                  paddingBottom: '8px',
-                  borderBottom: '1px solid hsl(var(--border-primary))'
+                  paddingBottom: '12px',
+                  borderBottom: '2px solid hsl(var(--border-primary))'
                 }}>
-                  <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
-                    Background Music Settings
-                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>⚙️</span>
+                    <Text variant="p" style={{ fontWeight: 700, margin: 0, fontSize: '16px' }}>
+                      Background Music Settings
+                    </Text>
+                  </div>
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <WToggle
-                    checked={pendingChanges.backgroundMusicEnabled}
-                    onChange={(checked) => handlePendingChange('backgroundMusicEnabled', checked)}
+                    checked={sounds?.backgroundMusicEnabled ?? true}
+                    onChange={(checked) => handleSettingChange('backgroundMusicEnabled', checked)}
                     label="Enable Background Music"
                   />
                   
-                  {pendingChanges.backgroundMusicEnabled && (
+                  {(sounds?.backgroundMusicEnabled ?? true) && (
                     <>
                       <WToggle
-                        checked={pendingChanges.backgroundMusicLooping}
-                        onChange={(checked) => handlePendingChange('backgroundMusicLooping', checked)}
+                        checked={sounds?.backgroundMusicLooping ?? true}
+                        onChange={(checked) => handleSettingChange('backgroundMusicLooping', checked)}
                         label="Loop Music"
                       />
                       
                       <WToggle
-                        checked={pendingChanges.backgroundMusicPlaylistMode}
-                        onChange={(checked) => handlePendingChange('backgroundMusicPlaylistMode', checked)}
+                        checked={sounds?.backgroundMusicPlaylistMode ?? false}
+                        onChange={(checked) => handleSettingChange('backgroundMusicPlaylistMode', checked)}
                         label="Playlist Mode (Play liked sounds in order)"
                       />
                       
@@ -469,18 +481,22 @@ const SoundsSettingsTab = React.memo(() => {
               </div>
 
               {/* Playlist Mode Info */}
-              {pendingChanges.backgroundMusicEnabled && pendingChanges.backgroundMusicPlaylistMode && (
+              {(sounds?.backgroundMusicEnabled ?? true) && (sounds?.backgroundMusicPlaylistMode ?? false) && (
                 <div style={{ 
-                  padding: '15px', 
-                  background: '#d1ecf1', 
+                  padding: '16px', 
+                  background: 'linear-gradient(135deg, #eef 0%, #ccf 100%)', 
                   border: '1px solid #bee5eb', 
-                  borderRadius: '8px',
-                  marginBottom: '20px'
+                  borderRadius: '12px',
+                  marginBottom: '20px',
+                  boxShadow: '0 2px 8px rgba(23, 162, 184, 0.1)'
                 }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-                    🎵 Playlist Mode Active ({likedSounds.length} liked sounds)
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>🎵</span>
+                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#0c5460' }}>
+                      Playlist Mode Active ({likedSounds.length} liked sounds)
+                    </div>
                   </div>
-                  <div style={{ fontSize: '14px', color: '#0c5460' }}>
+                  <div style={{ fontSize: '13px', color: '#0c5460', lineHeight: '1.4' }}>
                     Only liked sounds will play in the order they appear below. 
                     Click the ❤️ to like/unlike sounds and drag items to reorder your playlist.
                   </div>
@@ -488,16 +504,22 @@ const SoundsSettingsTab = React.memo(() => {
               )}
 
           {/* Background Music Disabled Warning */}
-              {!pendingChanges.backgroundMusicEnabled && (
+              {!(sounds?.backgroundMusicEnabled ?? true) && (
             <div style={{ 
-              padding: '15px', 
-              background: '#fff3cd', 
+              padding: '16px', 
+              background: 'linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%)', 
               border: '1px solid #ffeaa7', 
-              borderRadius: '8px',
-              marginBottom: '20px'
+              borderRadius: '12px',
+              marginBottom: '20px',
+              boxShadow: '0 2px 8px rgba(255, 193, 7, 0.1)'
             }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>🔇 Background Music Disabled</div>
-              <div style={{ fontSize: '14px', color: '#856404' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🔇</span>
+                <div style={{ fontWeight: '700', fontSize: '14px', color: '#856404' }}>
+                  Background Music Disabled
+                </div>
+              </div>
+              <div style={{ fontSize: '13px', color: '#856404', lineHeight: '1.4' }}>
                 Background music is currently disabled. Enable it above to hear background music sounds.
               </div>
             </div>
@@ -511,28 +533,32 @@ const SoundsSettingsTab = React.memo(() => {
               <div style={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                gap: '12px',
-                padding: '16px',
-                background: 'hsl(var(--surface-secondary))',
-                borderRadius: '8px',
+                gap: '16px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)',
+                borderRadius: '12px',
                 border: '1px solid hsl(var(--border-primary))',
-                marginBottom: '16px'
+                marginBottom: '20px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
               }}>
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'space-between',
-                  paddingBottom: '8px',
-                  borderBottom: '1px solid hsl(var(--border-primary))'
+                  paddingBottom: '12px',
+                  borderBottom: '2px solid hsl(var(--border-primary))'
                 }}>
-                  <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
-                    Channel Click Settings
-                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>⚙️</span>
+                    <Text variant="p" style={{ fontWeight: 700, margin: 0, fontSize: '16px' }}>
+                      Channel Click Settings
+                    </Text>
+                  </div>
                 </div>
                 
                 <WToggle
-                  checked={pendingChanges.channelClickEnabled}
-                  onChange={(checked) => handlePendingChange('channelClickEnabled', checked)}
+                  checked={sounds?.channelClickEnabled ?? true}
+                  onChange={(checked) => handleSettingChange('channelClickEnabled', checked)}
                   label="Enable Channel Click Sounds"
                 />
               </div>
@@ -545,28 +571,32 @@ const SoundsSettingsTab = React.memo(() => {
               <div style={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                gap: '12px',
-                padding: '16px',
-                background: 'hsl(var(--surface-secondary))',
-                borderRadius: '8px',
+                gap: '16px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)',
+                borderRadius: '12px',
                 border: '1px solid hsl(var(--border-primary))',
-                marginBottom: '16px'
+                marginBottom: '20px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
               }}>
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'space-between',
-                  paddingBottom: '8px',
-                  borderBottom: '1px solid hsl(var(--border-primary))'
+                  paddingBottom: '12px',
+                  borderBottom: '2px solid hsl(var(--border-primary))'
                 }}>
-                  <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
-                    Channel Hover Settings
-                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>⚙️</span>
+                    <Text variant="p" style={{ fontWeight: 700, margin: 0, fontSize: '16px' }}>
+                      Channel Hover Settings
+                    </Text>
+                  </div>
                 </div>
                 
                 <WToggle
-                  checked={pendingChanges.channelHoverEnabled}
-                  onChange={(checked) => handlePendingChange('channelHoverEnabled', checked)}
+                  checked={sounds?.channelHoverEnabled ?? true}
+                  onChange={(checked) => handleSettingChange('channelHoverEnabled', checked)}
                   label="Enable Channel Hover Sounds"
                 />
               </div>
@@ -580,9 +610,18 @@ const SoundsSettingsTab = React.memo(() => {
                 variant="secondary"
                 size="sm"
                 onClick={handleTestChannelClick}
-                disabled={!pendingChanges.channelClickEnabled || enabledSounds.length === 0}
+                disabled={!(sounds?.channelClickEnabled ?? true) || enabledSounds.length === 0}
+                style={{
+                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: '600',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(240, 147, 251, 0.3)'
+                }}
               >
-                Test Channel Click Sound
+                🎵 Test Channel Click Sound
               </Button>
             </div>
           )}
@@ -593,9 +632,18 @@ const SoundsSettingsTab = React.memo(() => {
                 variant="secondary"
                 size="sm"
                 onClick={handleTestChannelHover}
-                disabled={!pendingChanges.channelHoverEnabled || enabledSounds.length === 0}
+                disabled={!(sounds?.channelHoverEnabled ?? true) || enabledSounds.length === 0}
+                style={{
+                  background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: '600',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(79, 172, 254, 0.3)'
+                }}
               >
-                Test Channel Hover Sound
+                🎵 Test Channel Hover Sound
               </Button>
         </div>
           )}
@@ -613,24 +661,27 @@ const SoundsSettingsTab = React.memo(() => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '12px',
-                  marginBottom: '8px',
-                  background: sound.enabled ? 'hsl(var(--surface-secondary))' : 'hsl(var(--surface-tertiary))',
-                  border: '1px solid hsl(var(--border-primary))',
-                  borderRadius: '8px',
-                  opacity: category.key === 'backgroundMusic' && !pendingChanges.backgroundMusicEnabled ? 0.6 : 1,
-                  cursor: category.key === 'backgroundMusic' && pendingChanges.backgroundMusicPlaylistMode ? 'grab' : 'default',
+                  padding: '16px',
+                  marginBottom: '12px',
+                  background: sound.enabled ? 
+                    'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)' : 
+                    'hsl(var(--surface-tertiary))',
+                  border: `2px solid ${sound.enabled ? 'hsl(var(--border-primary))' : 'hsl(var(--border-secondary))'}`,
+                  borderRadius: '12px',
+                  opacity: category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true) ? 0.6 : 1,
+                  cursor: category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false) ? 'grab' : 'default',
                   transform: draggedItem === sound.id ? 'scale(0.98)' : 'none',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.3s ease',
+                  boxShadow: sound.enabled ? '0 2px 8px rgba(0, 0, 0, 0.1)' : 'none'
                 }}
-                draggable={category.key === 'backgroundMusic' && pendingChanges.backgroundMusicPlaylistMode}
+                draggable={category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false)}
                 onDragStart={(e) => handleDragStart(e, sound.id)}
                 onDragOver={(e) => handleDragOver(e, sound.id)}
                 onDrop={(e) => handleDrop(e, sound.id)}
                 onDragEnd={handleDragEnd}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                  {category.key === 'backgroundMusic' && pendingChanges.backgroundMusicPlaylistMode && (
+                  {category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false) && (
                     <span style={{ cursor: 'grab', fontSize: '16px' }} title="Drag to reorder">⋮⋮</span>
                   )}
                   
@@ -660,7 +711,7 @@ const SoundsSettingsTab = React.memo(() => {
                     min={0}
                     max={1}
                     step={0.01}
-                          disabled={category.key === 'backgroundMusic' && !pendingChanges.backgroundMusicEnabled}
+                          disabled={category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true)}
                           style={{ flex: 1 }}
                   />
                         <span style={{ fontSize: '12px', minWidth: '30px' }}>
@@ -687,7 +738,7 @@ const SoundsSettingsTab = React.memo(() => {
                       size="sm" 
                       onClick={() => handleTestSound(category.key, sound)} 
                       style={{ minWidth: 60 }}
-                      disabled={category.key === 'backgroundMusic' && !pendingChanges.backgroundMusicEnabled}
+                      disabled={category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true)}
                     >
                       Test
                     </Button>
@@ -699,7 +750,7 @@ const SoundsSettingsTab = React.memo(() => {
                       size="sm" 
                       onClick={() => handleToggleLike(sound.id)}
                       title={sound.liked ? 'Unlike' : 'Like'}
-                      disabled={!pendingChanges.backgroundMusicEnabled}
+                      disabled={!(sounds?.backgroundMusicEnabled ?? true)}
                       style={{ 
                         minWidth: 40, 
                         padding: '4px 8px',
@@ -725,7 +776,7 @@ const SoundsSettingsTab = React.memo(() => {
             <WToggle
                     checked={!!sound.enabled}
                     onChange={() => handleToggleSound(category.key, sound.id)}
-                    disabled={category.key === 'backgroundMusic' && !pendingChanges.backgroundMusicEnabled}
+                    disabled={category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true)}
                   />
                 </div>
               </div>
@@ -738,8 +789,18 @@ const SoundsSettingsTab = React.memo(() => {
               size="sm"
               onClick={() => handleUploadClick(category.key)}
               disabled={uploading[category.key]}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                color: 'white',
+                fontWeight: '600',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                transition: 'all 0.3s ease'
+              }}
             >
-              {uploading[category.key] ? 'Uploading...' : 'Add Sound'}
+              {uploading[category.key] ? '⏳ Uploading...' : '➕ Add Sound'}
             </Button>
             </div>
         </div>
@@ -749,51 +810,90 @@ const SoundsSettingsTab = React.memo(() => {
 
   return (
     <div>
-      {/* Header */}
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+      {/* Enhanced Header */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: '20px',
-        padding: '16px',
-        background: 'hsl(var(--surface-secondary))',
-        borderRadius: '8px',
-        border: '1px solid hsl(var(--border-primary))'
+        marginBottom: '24px',
+        padding: '20px',
+        background: 'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)',
+        borderRadius: '12px',
+        border: '1px solid hsl(var(--border-primary))',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
       }}>
-        <div>
-          <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600' }}>
-            🔊 Sound Management
-          </h3>
-          <p style={{ margin: 0, fontSize: '14px', color: 'hsl(var(--text-secondary))' }}>
-            Manage background music, channel click sounds, and hover effects
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px'
+          }}>
+            🔊
+          </div>
+          <div>
+            <h3 style={{ 
+              margin: '0 0 4px 0', 
+              fontSize: '18px', 
+              fontWeight: '700',
+              background: 'linear-gradient(135deg, hsl(var(--text-primary)) 0%, hsl(var(--text-secondary)) 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              Sound Management
+            </h3>
+            <p style={{ 
+              margin: 0, 
+              fontSize: '14px', 
+              color: 'hsl(var(--text-secondary))',
+              fontWeight: '500'
+            }}>
+              Manage background music, channel click sounds, and hover effects
+            </p>
+          </div>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleSaveSettings}
-          disabled={!hasUnsavedChanges}
-        >
-          {hasUnsavedChanges ? 'Save Changes' : 'No Changes to Save'}
-        </Button>
+
       </div>
 
-      {/* Error/Message Display */}
+      {/* Enhanced Error/Message Display */}
       {error && (
         <div style={{ 
           marginBottom: '16px', 
-          padding: '12px', 
-          borderRadius: '8px',
-          background: '#f8d7da',
+          padding: '16px', 
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #fee 0%, #fcc 100%)',
           border: '1px solid #f5c6cb',
-          color: '#721c24'
+          color: '#721c24',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 2px 8px rgba(220, 53, 69, 0.1)'
         }}>
-          <strong>Error:</strong> {error}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '16px' }}>⚠️</span>
+            <strong>Error:</strong> {error}
+          </div>
           <Button 
             variant="tertiary" 
             size="sm" 
             onClick={clearError}
-            style={{ marginLeft: '8px' }}
+            style={{ 
+              padding: '4px 12px',
+              borderRadius: '6px',
+              fontSize: '12px'
+            }}
           >
             Dismiss
           </Button>
@@ -803,33 +903,60 @@ const SoundsSettingsTab = React.memo(() => {
       {message.text && (
         <div style={{ 
           marginBottom: '16px', 
-          padding: '12px', 
-          borderRadius: '8px',
-          background: message.type === 'error' ? '#f8d7da' : 
-                     message.type === 'success' ? '#d4edda' : 
-                     message.type === 'info' ? '#d1ecf1' : '#fff3cd',
+          padding: '16px', 
+          borderRadius: '12px',
+          background: message.type === 'error' ? 'linear-gradient(135deg, #fee 0%, #fcc 100%)' : 
+                     message.type === 'success' ? 'linear-gradient(135deg, #efe 0%, #cfc 100%)' : 
+                     message.type === 'info' ? 'linear-gradient(135deg, #eef 0%, #ccf 100%)' : 
+                     'linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%)',
           border: `1px solid ${message.type === 'error' ? '#f5c6cb' : 
                                message.type === 'success' ? '#c3e6cb' : 
                                message.type === 'info' ? '#bee5eb' : '#ffeaa7'}`,
           color: message.type === 'error' ? '#721c24' : 
                  message.type === 'success' ? '#155724' : 
-                 message.type === 'info' ? '#0c5460' : '#856404'
+                 message.type === 'info' ? '#0c5460' : '#856404',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: `0 2px 8px ${message.type === 'error' ? 'rgba(220, 53, 69, 0.1)' : 
+                                    message.type === 'success' ? 'rgba(40, 167, 69, 0.1)' : 
+                                    message.type === 'info' ? 'rgba(23, 162, 184, 0.1)' : 
+                                    'rgba(255, 193, 7, 0.1)'}`
         }}>
-          {message.text}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '16px' }}>
+              {message.type === 'error' ? '⚠️' : 
+               message.type === 'success' ? '✅' : 
+               message.type === 'info' ? 'ℹ️' : '💡'}
+            </span>
+            {message.text}
+          </div>
         </div>
       )}
 
-      {/* Loading State */}
+      {/* Enhanced Loading State */}
       {loading && (
         <div style={{ 
           marginBottom: '16px', 
-          padding: '12px', 
-          borderRadius: '8px',
-          background: '#d1ecf1',
+          padding: '16px', 
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #eef 0%, #ccf 100%)',
           border: '1px solid #bee5eb',
-          color: '#0c5460'
+          color: '#0c5460',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 2px 8px rgba(23, 162, 184, 0.1)'
         }}>
-          Loading sound library...
+          <div style={{
+            width: '20px',
+            height: '20px',
+            border: '2px solid #bee5eb',
+            borderTop: '2px solid #0c5460',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <span style={{ fontWeight: '600' }}>Loading sound library...</span>
         </div>
       )}
 

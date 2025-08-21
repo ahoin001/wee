@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
@@ -6,6 +6,14 @@ import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import WSelect from '../../ui/WSelect';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+
+// Add CSS for pulse animation
+const pulseAnimation = `
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+`;
 
 // Theme groups for Classic Dock
 const THEME_GROUPS = {
@@ -208,9 +216,34 @@ const SUB_TABS = [
 ];
 
 const UnifiedDockSettingsTab = React.memo(() => {
-  // Use consolidated store for all dock-related settings
-  const { dock, ribbon, ui, floatingWidgets } = useConsolidatedAppStore();
-  const { setDockState, setRibbonState, setUIState, setFloatingWidgetsState } = useConsolidatedAppStore(state => state.actions);
+  // Use consolidated store for better performance and consistency
+  const { dock, ribbon, ui } = useConsolidatedAppStore();
+  const { setDockState, setRibbonState, setUIState } = useConsolidatedAppStore(state => state.actions);
+  
+  // Utility function to save settings to new architecture
+  const saveSetting = useCallback(async (category, key, value) => {
+    try {
+      console.log(`[UnifiedDockSettingsTab] saveSetting called with: ${category}.${key} = ${value}`);
+      
+      // Update consolidated store
+      if (category === 'dock') {
+        setDockState({ [key]: value });
+      } else if (category === 'ribbon') {
+        setRibbonState({ [key]: value });
+      } else if (category === 'ui') {
+        setUIState({ [key]: value });
+      }
+      
+      // Save to backend for persistence
+      if (window.api?.data?.set) {
+        await window.api.data.set(`settings.${category}.${key}`, value);
+        console.log(`[UnifiedDockSettingsTab] ✅ Successfully saved setting to backend: ${category}.${key} = ${value}`);
+      }
+      
+    } catch (error) {
+      console.error(`[UnifiedDockSettingsTab] Failed to save ${category}.${key} setting:`, error);
+    }
+  }, [setDockState, setRibbonState, setUIState]);
   
   // Local state for sub-tabs and expanded groups
   const [activeSubTab, setActiveSubTab] = useState(() => {
@@ -242,16 +275,16 @@ const UnifiedDockSettingsTab = React.memo(() => {
       // Clear the dockSubTab after a short delay to allow the initial tab to be set
       const timer = setTimeout(() => {
         console.log('[UnifiedDockSettingsTab] Clearing dockSubTab now');
-        setUIState({ dockSubTab: undefined });
+        saveSetting('ui', 'dockSubTab', undefined);
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [ui?.dockSubTab, setUIState]);
+  }, [ui?.dockSubTab, saveSetting]);
 
   // Dock type selection
   const handleDockTypeChange = useCallback((dockType) => {
-    setUIState({ classicMode: dockType === 'classic' });
-  }, [setUIState]);
+    saveSetting('ui', 'classicMode', dockType === 'classic');
+  }, [saveSetting]);
 
   // Classic Dock handlers
   const applyTheme = useCallback((themePath) => {
@@ -259,9 +292,15 @@ const UnifiedDockSettingsTab = React.memo(() => {
     const group = THEME_GROUPS[groupKey];
     const theme = group?.themes[themeKey];
     if (theme) {
+      // Update consolidated store with theme colors
       setDockState(theme.colors);
+      
+      // Save all theme colors to backend
+      Object.entries(theme.colors).forEach(([key, value]) => {
+        saveSetting('dock', key, value);
+      });
     }
-  }, [setDockState]);
+  }, [saveSetting, setDockState]);
 
   const getCurrentTheme = useCallback(() => {
     for (const [groupKey, group] of Object.entries(THEME_GROUPS)) {
@@ -300,85 +339,127 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
   const handleColorChange = useCallback((key, value) => {
     setDockState({ [key]: value });
-  }, [setDockState]);
+    saveSetting('dock', key, value);
+  }, [saveSetting, setDockState]);
 
   // Ribbon handlers
   const handleRibbonColorChange = useCallback((e) => {
     setRibbonState({ ribbonColor: e.target.value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'ribbonColor', e.target.value);
+  }, [saveSetting, setRibbonState]);
 
   const handleRibbonGlowColorChange = useCallback((e) => {
     setRibbonState({ ribbonGlowColor: e.target.value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'ribbonGlowColor', e.target.value);
+  }, [saveSetting, setRibbonState]);
 
   const handleRibbonGlowStrengthChange = useCallback((value) => {
     setRibbonState({ ribbonGlowStrength: value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'ribbonGlowStrength', value);
+  }, [saveSetting, setRibbonState]);
 
   const handleRibbonGlowStrengthHoverChange = useCallback((value) => {
     setRibbonState({ ribbonGlowStrengthHover: value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'ribbonGlowStrengthHover', value);
+  }, [saveSetting, setRibbonState]);
 
   const handleRibbonDockOpacityChange = useCallback((value) => {
     setRibbonState({ ribbonDockOpacity: value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'ribbonDockOpacity', value);
+  }, [saveSetting, setRibbonState]);
 
   const handleGlassWiiRibbonChange = useCallback((checked) => {
     setRibbonState({ glassWiiRibbon: checked });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'glassWiiRibbon', checked);
+  }, [saveSetting, setRibbonState]);
 
   const handleGlassOpacityChange = useCallback((value) => {
     setRibbonState({ glassOpacity: value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'glassOpacity', value);
+  }, [saveSetting, setRibbonState]);
 
   const handleGlassBlurChange = useCallback((value) => {
     setRibbonState({ glassBlur: value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'glassBlur', value);
+  }, [saveSetting, setRibbonState]);
 
   const handleGlassBorderOpacityChange = useCallback((value) => {
     setRibbonState({ glassBorderOpacity: value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'glassBorderOpacity', value);
+  }, [saveSetting, setRibbonState]);
 
   const handleGlassShineOpacityChange = useCallback((value) => {
     setRibbonState({ glassShineOpacity: value });
-  }, [setRibbonState]);
+    saveSetting('ribbon', 'glassShineOpacity', value);
+  }, [saveSetting, setRibbonState]);
 
   // Animation handlers
   const handleParticleEnabledChange = useCallback((checked) => {
-    setFloatingWidgetsState({
-      systemInfo: {
-        ...floatingWidgets.systemInfo,
-        particleEnabled: checked
-      }
-    });
-  }, [setFloatingWidgetsState, floatingWidgets.systemInfo]);
+    console.log('[UnifiedDockSettingsTab] 🎯 Particle system enabled changed to:', checked);
+    setDockState({ particleSystemEnabled: checked });
+    saveSetting('dock', 'particleSystemEnabled', checked);
+    console.log('[UnifiedDockSettingsTab] ✅ Particle system setting saved');
+  }, [saveSetting, setDockState]);
 
   const handleParticleEffectTypeChange = useCallback((value) => {
-    setFloatingWidgetsState({
-      systemInfo: {
-        ...floatingWidgets.systemInfo,
-        particleEffectType: value
-      }
-    });
-  }, [setFloatingWidgetsState, floatingWidgets.systemInfo]);
+    setDockState({ particleEffectType: value });
+    saveSetting('dock', 'particleEffectType', value);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleDirectionChange = useCallback((value) => {
+    setDockState({ particleDirection: value });
+    saveSetting('dock', 'particleDirection', value);
+  }, [saveSetting, setDockState]);
 
   const handleParticleCountChange = useCallback((value) => {
-    setFloatingWidgetsState({
-      systemInfo: {
-        ...floatingWidgets.systemInfo,
-        particleCount: value
-      }
-    });
-  }, [setFloatingWidgetsState, floatingWidgets.systemInfo]);
+    setDockState({ particleCount: value });
+    saveSetting('dock', 'particleCount', value);
+  }, [saveSetting, setDockState]);
 
   const handleParticleSpeedChange = useCallback((value) => {
-    setFloatingWidgetsState({
-      systemInfo: {
-        ...floatingWidgets.systemInfo,
-        particleSpeed: value
-      }
-    });
-  }, [setFloatingWidgetsState, floatingWidgets.systemInfo]);
+    setDockState({ particleSpeed: value });
+    saveSetting('dock', 'particleSpeed', value);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleSizeChange = useCallback((value) => {
+    setDockState({ particleSize: value });
+    saveSetting('dock', 'particleSize', value);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleGravityChange = useCallback((value) => {
+    setDockState({ particleGravity: value });
+    saveSetting('dock', 'particleGravity', value);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleFadeSpeedChange = useCallback((value) => {
+    setDockState({ particleFadeSpeed: value });
+    saveSetting('dock', 'particleFadeSpeed', value);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleUseAdaptiveColorChange = useCallback((checked) => {
+    setDockState({ particleUseAdaptiveColor: checked });
+    saveSetting('dock', 'particleUseAdaptiveColor', checked);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleColorIntensityChange = useCallback((value) => {
+    setDockState({ particleColorIntensity: value });
+    saveSetting('dock', 'particleColorIntensity', value);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleColorVariationChange = useCallback((value) => {
+    setDockState({ particleColorVariation: value });
+    saveSetting('dock', 'particleColorVariation', value);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleRotationSpeedChange = useCallback((value) => {
+    setDockState({ particleRotationSpeed: value });
+    saveSetting('dock', 'particleRotationSpeed', value);
+  }, [saveSetting, setDockState]);
+
+  const handleParticleLifetimeChange = useCallback((value) => {
+    setDockState({ particleLifetime: value });
+    saveSetting('dock', 'particleLifetime', value);
+  }, [saveSetting, setDockState]);
 
   // Render sub-tab content
   const renderSubTabContent = () => {
@@ -672,7 +753,10 @@ const UnifiedDockSettingsTab = React.memo(() => {
                   </div>
                   <WToggle
                     checked={dock?.glassEnabled ?? false}
-                    onChange={(checked) => setDockState({ glassEnabled: checked })}
+                    onChange={(checked) => {
+                      setDockState({ glassEnabled: checked });
+                      saveSetting('dock', 'glassEnabled', checked);
+                    }}
                   />
                 </div>
                 
@@ -687,7 +771,10 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         min={0.05}
                         max={0.5}
                         step={0.01}
-                        onChange={(value) => setDockState({ glassOpacity: value })}
+                        onChange={(value) => {
+                          setDockState({ glassOpacity: value });
+                          saveSetting('dock', 'glassOpacity', value);
+                        }}
                       />
                       <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
                         {Math.round((dock?.glassOpacity ?? 0.18) * 100)}%
@@ -703,7 +790,10 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         min={0.5}
                         max={8}
                         step={0.1}
-                        onChange={(value) => setDockState({ glassBlur: value })}
+                        onChange={(value) => {
+                          setDockState({ glassBlur: value });
+                          saveSetting('dock', 'glassBlur', value);
+                        }}
                       />
                       <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
                         {dock?.glassBlur ?? 2.5}px
@@ -890,27 +980,79 @@ const UnifiedDockSettingsTab = React.memo(() => {
                       Add floating particles around the dock for visual enhancement.
                     </Text>
                   </div>
-                  <WToggle
-                    checked={floatingWidgets?.systemInfo?.particleEnabled ?? false}
-                    onChange={handleParticleEnabledChange}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: dock?.particleSystemEnabled ? '#10b981' : '#6b7280',
+                      animation: dock?.particleSystemEnabled ? 'pulse 2s infinite' : 'none'
+                    }} />
+                    <WToggle
+                      checked={dock?.particleSystemEnabled ?? false}
+                      onChange={handleParticleEnabledChange}
+                    />
+                  </div>
                 </div>
                 
-                {floatingWidgets?.systemInfo?.particleEnabled && (
+                {dock?.particleSystemEnabled && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Status indicator */}
+                    <div style={{
+                      padding: '12px',
+                      borderRadius: '8px',
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <div style={{ fontSize: '16px' }}>✨</div>
+                      <div>
+                        <Text variant="body" style={{ color: '#10b981', fontWeight: '600' }}>
+                          Particle System Active
+                        </Text>
+                        <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                          {dock?.particleEffectType || 'normal'} effect with {dock?.particleCount || 3} particles
+                        </Text>
+                      </div>
+                    </div>
+                    
                     <div>
                       <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
                         Effect Type
                       </Text>
                       <WSelect
-                        value={floatingWidgets?.systemInfo?.particleEffectType ?? 'normal'}
+                        value={dock?.particleEffectType ?? 'normal'}
                         onChange={(value) => handleParticleEffectTypeChange(value)}
                         options={[
                           { value: 'normal', label: 'Normal Particles' },
                           { value: 'stars', label: 'Stars' },
                           { value: 'sparkles', label: 'Sparkles' },
                           { value: 'fireflies', label: 'Fireflies' },
-                          { value: 'dust', label: 'Dust' }
+                          { value: 'dust', label: 'Dust' },
+                          { value: 'clip-path', label: 'Clip Path Followers' },
+                          { value: 'energy', label: 'Energy Orbs' },
+                          { value: 'magic', label: 'Magic Sparkles' }
+                        ]}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Direction
+                      </Text>
+                      <WSelect
+                        value={dock?.particleDirection ?? 'upward'}
+                        onChange={(value) => handleParticleDirectionChange(value)}
+                        options={[
+                          { value: 'upward', label: 'Upward' },
+                          { value: 'downward', label: 'Downward' },
+                          { value: 'leftward', label: 'Leftward' },
+                          { value: 'rightward', label: 'Rightward' },
+                          { value: 'random', label: 'Random' },
+                          { value: 'outward', label: 'Outward from Center' },
+                          { value: 'inward', label: 'Inward to Center' }
                         ]}
                       />
                     </div>
@@ -920,14 +1062,14 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         Particle Count
                       </Text>
                       <Slider
-                        value={floatingWidgets?.systemInfo?.particleCount ?? 3}
+                        value={dock?.particleCount ?? 3}
                         min={1}
                         max={10}
                         step={1}
                         onChange={handleParticleCountChange}
                       />
                       <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                        {floatingWidgets?.systemInfo?.particleCount ?? 3} particles
+                        {dock?.particleCount ?? 3} particles
                       </Text>
                     </div>
                     
@@ -936,18 +1078,213 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         Animation Speed
                       </Text>
                       <Slider
-                        value={floatingWidgets?.systemInfo?.particleSpeed ?? 2}
+                        value={dock?.particleSpeed ?? 2}
                         min={0.5}
                         max={5}
                         step={0.1}
                         onChange={handleParticleSpeedChange}
                       />
                       <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
-                        {floatingWidgets?.systemInfo?.particleSpeed ?? 2}x speed
+                        {dock?.particleSpeed ?? 2}x speed
+                      </Text>
+                    </div>
+                    
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Particle Size
+                      </Text>
+                      <Slider
+                        value={dock?.particleSize ?? 3}
+                        min={1}
+                        max={10}
+                        step={0.5}
+                        onChange={handleParticleSizeChange}
+                      />
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                        {dock?.particleSize ?? 3}px
+                      </Text>
+                    </div>
+                    
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Gravity
+                      </Text>
+                      <Slider
+                        value={dock?.particleGravity ?? 0.02}
+                        min={0}
+                        max={0.1}
+                        step={0.005}
+                        onChange={handleParticleGravityChange}
+                      />
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                        {dock?.particleGravity ?? 0.02}
+                      </Text>
+                    </div>
+                    
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Fade Speed
+                      </Text>
+                      <Slider
+                        value={dock?.particleFadeSpeed ?? 0.008}
+                        min={0.001}
+                        max={0.02}
+                        step={0.001}
+                        onChange={handleParticleFadeSpeedChange}
+                      />
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                        {dock?.particleFadeSpeed ?? 0.008}
+                      </Text>
+                    </div>
+                    
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Particle Lifetime
+                      </Text>
+                      <Slider
+                        value={dock?.particleLifetime ?? 3.0}
+                        min={1}
+                        max={10}
+                        step={0.5}
+                        onChange={handleParticleLifetimeChange}
+                      />
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                        {dock?.particleLifetime ?? 3.0}s
                       </Text>
                     </div>
                   </div>
                 )}
+              </div>
+            </Card>
+
+            {/* Advanced Particle Settings */}
+            {dock?.particleSystemEnabled && (
+              <Card>
+                <div style={{ padding: '20px' }}>
+                  <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+                    Advanced Particle Settings
+                  </Text>
+                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+                    Fine-tune particle appearance and behavior.
+                  </Text>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '4px' }}>
+                          Adaptive Colors
+                        </Text>
+                        <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+                          Particles adapt to dock colors
+                        </Text>
+                      </div>
+                      <WToggle
+                        checked={dock?.particleUseAdaptiveColor ?? false}
+                        onChange={handleParticleUseAdaptiveColorChange}
+                      />
+                    </div>
+                    
+                    {!dock?.particleUseAdaptiveColor && (
+                      <>
+                        <div>
+                          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                            Color Intensity
+                          </Text>
+                          <Slider
+                            value={dock?.particleColorIntensity ?? 1.0}
+                            min={0.1}
+                            max={2.0}
+                            step={0.1}
+                            onChange={handleParticleColorIntensityChange}
+                          />
+                          <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                            {dock?.particleColorIntensity ?? 1.0}x
+                          </Text>
+                        </div>
+                        
+                        <div>
+                          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                            Color Variation
+                          </Text>
+                          <Slider
+                            value={dock?.particleColorVariation ?? 0.3}
+                            min={0}
+                            max={1}
+                            step={0.1}
+                            onChange={handleParticleColorVariationChange}
+                          />
+                          <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                            {Math.round((dock?.particleColorVariation ?? 0.3) * 100)}%
+                          </Text>
+                        </div>
+                      </>
+                    )}
+                    
+                    <div>
+                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                        Rotation Speed
+                      </Text>
+                      <Slider
+                        value={dock?.particleRotationSpeed ?? 0.05}
+                        min={0}
+                        max={0.2}
+                        step={0.01}
+                        onChange={handleParticleRotationSpeedChange}
+                      />
+                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                        {dock?.particleRotationSpeed ?? 0.05}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Performance & Optimization */}
+            <Card>
+              <div style={{ padding: '20px' }}>
+                <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+                  Performance & Optimization
+                </Text>
+                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+                  Tips for optimal performance with particle effects.
+                </Text>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '6px',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)'
+                  }}>
+                    <Text variant="body" style={{ color: '#3b82f6', fontWeight: '600', marginBottom: '4px' }}>
+                      💡 Performance Tips
+                    </Text>
+                    <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                      • Lower particle count for better performance<br/>
+                      • Use 'normal' or 'dust' effects for minimal impact<br/>
+                      • Disable adaptive colors if not needed<br/>
+                      • Higher-end effects like 'energy' use more resources
+                    </Text>
+                  </div>
+                  
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '6px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.2)'
+                  }}>
+                    <Text variant="body" style={{ color: '#f59e0b', fontWeight: '600', marginBottom: '4px' }}>
+                      ⚡ New Features
+                    </Text>
+                    <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                      • Clip Path Followers: Particles follow dock shape<br/>
+                      • Energy Orbs: Pulsing energy effects<br/>
+                      • Magic Sparkles: Enhanced sparkle effects<br/>
+                      • Multiple direction options for varied movement
+                    </Text>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -959,10 +1296,12 @@ const UnifiedDockSettingsTab = React.memo(() => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
-        Dock Settings
-      </Text>
+    <>
+      <style>{pulseAnimation}</style>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+          Dock Settings
+        </Text>
       
       <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
         Customize your dock appearance, choose between Classic and Ribbon styles, and configure animations.
@@ -1004,6 +1343,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
       {/* Sub-tab Content */}
       {renderSubTabContent()}
     </div>
+    </>
   );
 });
 

@@ -139,12 +139,14 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
   color: hsl(var(--text-primary));
   transition: all 0.2s ease;
+  box-shadow: 0 0 0 rgba(0, 153, 255, 0);
 }
 
 .action-button:hover {
   background: rgba(0, 0, 0, 0.06);
   border-color: rgba(0, 0, 0, 0.12);
   transform: translateY(-1px);
+  box-shadow: 0 0 8px rgba(0, 153, 255, 0.3), 0 0 16px rgba(0, 153, 255, 0.2);
 }
 
 .action-button:active {
@@ -178,6 +180,7 @@
 .dark-mode .action-button:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 8px rgba(0, 153, 255, 0.4), 0 0 16px rgba(0, 153, 255, 0.3);
 }
 
 /* ===== RESPONSIVE DESIGN ===== */

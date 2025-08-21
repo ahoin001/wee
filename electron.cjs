@@ -178,6 +178,7 @@ const unifiedData = {
           appearance: {
             theme: 'light',
             useCustomCursor: false,
+            cursorStyle: 'classic',
             immersivePip: false,
             startInFullscreen: false,
             showPresetsButton: true,
@@ -3185,6 +3186,22 @@ ipcMain.on('set-fullscreen', (event, shouldBeFullscreen) => {
     mainWindow.setFullScreen(shouldBeFullscreen);
     isCurrentlyFullscreen = shouldBeFullscreen;
     sendWindowState();
+  }
+});
+
+// IPC handler for setFullscreen (invoke version for immediate response)
+ipcMain.handle('set-fullscreen', (event, shouldBeFullscreen) => {
+  if (!mainWindow) return { success: false, error: 'Window not available' };
+  try {
+    if (shouldBeFullscreen !== mainWindow.isFullScreen()) {
+      mainWindow.setFullScreen(shouldBeFullscreen);
+      isCurrentlyFullscreen = shouldBeFullscreen;
+      sendWindowState();
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('[SET-FULLSCREEN] Error setting fullscreen:', error);
+    return { success: false, error: error.message };
   }
 });
 ipcMain.on('toggle-frame', () => {

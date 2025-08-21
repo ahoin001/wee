@@ -105,6 +105,70 @@
   --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.4);
 }
 
+/* Global Dark Mode Overrides for Components Not Using Design System */
+.dark-mode {
+  /* Ensure all text elements use proper colors */
+  color: hsl(var(--text-primary));
+}
+
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select {
+  background-color: hsl(var(--surface-primary));
+  border-color: hsl(var(--border-primary));
+  color: hsl(var(--text-primary));
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: hsl(var(--text-tertiary));
+}
+
+.dark-mode input:focus,
+.dark-mode textarea:focus,
+.dark-mode select:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
+
+/* Ensure scrollbars are styled in dark mode */
+.dark-mode ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+  background: hsl(var(--surface-secondary));
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: hsl(var(--border-primary));
+  border-radius: 4px;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border-accent));
+}
+
+/* Ensure modals and overlays work properly in dark mode */
+.dark-mode .modal-backdrop {
+  background-color: hsl(var(--bg-overlay));
+}
+
+.dark-mode .modal-content {
+  background-color: hsl(var(--surface-primary));
+  border-color: hsl(var(--border-primary));
+}
+
+/* Ensure tooltips and popovers work in dark mode */
+.dark-mode .tooltip,
+.dark-mode .popover {
+  background-color: hsl(var(--surface-elevated));
+  border-color: hsl(var(--border-primary));
+  color: hsl(var(--text-primary));
+  box-shadow: var(--shadow-lg);
+}
+
 /* Utility Classes for Design System */
 .bg-primary { background-color: hsl(var(--bg-primary)); }
 .bg-secondary { background-color: hsl(var(--bg-secondary)); }

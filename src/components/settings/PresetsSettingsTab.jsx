@@ -4,6 +4,8 @@ import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WInput from '../../ui/WInput';
+import Slider from '../../ui/Slider';
+import WSelect from '../../ui/WSelect';
 import PresetListItem from '../PresetListItem';
 import CommunityPresets from '../CommunityPresets';
 import AuthModal from '../AuthModal';
@@ -15,6 +17,8 @@ const PresetsSettingsTab = React.memo(() => {
   // Use consolidated store for presets
   const { presets } = useConsolidatedAppStore();
   const { setPresets } = useConsolidatedAppStore(state => state.actions);
+  
+
   
   // Local state for UI
   const [newPresetName, setNewPresetName] = useState('');
@@ -39,6 +43,7 @@ const PresetsSettingsTab = React.memo(() => {
   });
   const [includeChannels, setIncludeChannels] = useState(false);
   const [includeSounds, setIncludeSounds] = useState(false);
+  const [immersiveModeState, setImmersiveModeState] = useState({});
   
   // Load presets from backend on component mount
   useEffect(() => {
@@ -51,12 +56,49 @@ const PresetsSettingsTab = React.memo(() => {
           console.log('[DEBUG] 📋 [PresetsSettingsTab] Settings loaded:', Object.keys(settings));
           console.log('[DEBUG] 📋 [PresetsSettingsTab] Presets in settings:', settings.presets);
           
-          if (settings.presets && Array.isArray(settings.presets)) {
-            console.log('[DEBUG] 📋 [PresetsSettingsTab] Setting presets in store:', settings.presets.length, 'presets');
-            setPresets(settings.presets);
-          } else {
-            console.log('[DEBUG] 📋 [PresetsSettingsTab] No presets found in settings or not an array');
+          let currentPresets = settings.presets && Array.isArray(settings.presets) ? settings.presets : [];
+          
+          // Check if Spotify Match preset exists, if not create it
+          const spotifyMatchExists = currentPresets.some(p => p.name === 'Spotify Match');
+          if (!spotifyMatchExists) {
+            console.log('[DEBUG] 📋 [PresetsSettingsTab] Creating Spotify Match preset');
+            const spotifyMatchPreset = {
+              name: 'Spotify Match',
+              data: {
+                ui: {
+                  spotifyMatchEnabled: false
+                },
+                ribbon: {
+                  ribbonColor: '#0099ff',
+                  ribbonGlowColor: '#0099ff',
+                  ribbonGlowStrength: 20,
+                  ribbonGlowStrengthHover: 28,
+                  ribbonDockOpacity: 1.0,
+                  glassWiiRibbon: false,
+                  glassOpacity: 0.18,
+                  glassBlur: 2.5,
+                  glassBorderOpacity: 0.5,
+                  glassShineOpacity: 0.7
+                },
+                time: {
+                  color: '#ffffff',
+                  enablePill: true,
+                  pillBlur: 15,
+                  pillOpacity: 0.8,
+                  font: 'digital'
+                }
+              },
+              timestamp: new Date().toISOString(),
+              isSpotifyMatch: true // Special flag to identify this preset
+            };
+            currentPresets = [...currentPresets, spotifyMatchPreset];
+            
+            // Save the updated presets to backend
+            await savePresetsToBackend(currentPresets);
           }
+          
+          console.log('[DEBUG] 📋 [PresetsSettingsTab] Setting presets in store:', currentPresets.length, 'presets');
+          setPresets(currentPresets);
         } else {
           console.log('[DEBUG] 📋 [PresetsSettingsTab] window.api.settings.get not available');
         }
@@ -67,6 +109,18 @@ const PresetsSettingsTab = React.memo(() => {
     
     loadPresets();
   }, [setPresets]);
+
+  // Sync immersive mode state for re-renders
+  useEffect(() => {
+    const unsubscribe = useConsolidatedAppStore.subscribe((state) => {
+      setImmersiveModeState(state.spotify.immersiveMode || {});
+    });
+    
+    // Set initial state
+    setImmersiveModeState(useConsolidatedAppStore.getState().spotify.immersiveMode || {});
+    
+    return unsubscribe;
+  }, []);
 
   // Save presets to backend whenever they change
   const savePresetsToBackend = useCallback(async (updatedPresets) => {
@@ -128,7 +182,7 @@ const PresetsSettingsTab = React.memo(() => {
       const [draggedPreset] = currentPresets.splice(draggedIndex, 1);
       currentPresets.splice(targetIndex, 0, draggedPreset);
       
-      // Update the consolidated store and backend
+      // Update the consolidated store and save to backend
       setPresets(currentPresets);
       savePresetsToBackend(currentPresets);
     }
@@ -151,7 +205,7 @@ const PresetsSettingsTab = React.memo(() => {
       setError('A preset with this name already exists.');
       return;
     }
-    console.log('[PresetsSettingsTab] Saving preset with includeChannels:', includeChannels, 'includeSounds:', includeSounds);
+    console.log('[PresetsSettingsTab] Creating preset with includeChannels:', includeChannels, 'includeSounds:', includeSounds);
     
     // Get current settings from consolidated store
     const { wallpaper, ribbon, time, overlay, ui } = useConsolidatedAppStore.getState();
@@ -550,6 +604,11 @@ const PresetsSettingsTab = React.memo(() => {
     if (settingsToApply.ui) {
       console.log('[PresetsSettingsTab] Applying UI settings:', settingsToApply.ui);
       setUIState(settingsToApply.ui);
+      
+      // Special handling for Spotify Match preset
+      if (preset.name === 'Spotify Match' && settingsToApply.ui.spotifyMatchEnabled) {
+        console.log('[PresetsSettingsTab] 🎵 Spotify Match enabled - dynamic colors will be applied');
+      }
     }
     
     // Apply channel settings if present
@@ -837,14 +896,15 @@ const PresetsSettingsTab = React.memo(() => {
       
       console.log('[DEBUG] 📋 [PresetsSettingsTab] Converted community preset structure:', convertedPreset);
       
-      if (presets.length < 6) {
-        console.log('[DEBUG] 📋 [PresetsSettingsTab] Adding preset to store (current count:', presets.length, ')');
+      const customPresetCount = presets.filter(p => p.name !== 'Spotify Match').length;
+      if (customPresetCount < 5) {
+        console.log('[DEBUG] 📋 [PresetsSettingsTab] Adding preset to store (current custom count:', customPresetCount, ')');
         const updatedPresets = [...presets, convertedPreset];
         setPresets(updatedPresets);
         await savePresetsToBackend(updatedPresets);
         console.log('[DEBUG] 📋 [PresetsSettingsTab] ✅ Community preset imported successfully');
       } else {
-        console.log('[DEBUG] 📋 [PresetsSettingsTab] ❌ Cannot import - max presets reached (6)');
+        console.log('[DEBUG] 📋 [PresetsSettingsTab] ❌ Cannot import - max custom presets reached (5)');
       }
     }
   };
@@ -957,23 +1017,220 @@ const PresetsSettingsTab = React.memo(() => {
     if (uploadMessage.text) setUploadMessage({ type: '', text: '' });
   };
 
+  // Handle Spotify Match preset toggle
+  const handleSpotifyMatchToggle = async (enabled) => {
+    console.log('[DEBUG] 📋 [PresetsSettingsTab] Toggling Spotify Match:', enabled);
+    
+    try {
+      const updatedPresets = presets.map(preset => {
+        if (preset.name === 'Spotify Match') {
+          return {
+            ...preset,
+            data: {
+              ...preset.data,
+              ui: {
+                ...preset.data.ui,
+                spotifyMatchEnabled: enabled
+              }
+            },
+            timestamp: new Date().toISOString()
+          };
+        }
+        return preset;
+      });
+      
+      setPresets(updatedPresets);
+      await savePresetsToBackend(updatedPresets);
+      
+      // Apply the preset immediately if enabled
+      if (enabled) {
+        const spotifyMatchPreset = updatedPresets.find(p => p.name === 'Spotify Match');
+        if (spotifyMatchPreset) {
+          await handleApplyPreset(spotifyMatchPreset);
+        }
+      }
+      
+      console.log('[DEBUG] 📋 [PresetsSettingsTab] ✅ Spotify Match toggled successfully');
+    } catch (error) {
+      console.error('[DEBUG] 📋 [PresetsSettingsTab] ❌ Failed to toggle Spotify Match:', error);
+    }
+  };
+
+  // Handle Immersive Mode toggle
+  const handleImmersiveModeToggle = (enabled) => {
+    console.log('[DEBUG] 📋 [PresetsSettingsTab] Toggling Immersive Mode:', enabled);
+    
+    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
+    
+    setSpotifyState({
+      immersiveMode: {
+        ...currentImmersiveMode,
+        enabled: enabled
+      }
+    });
+  };
+
+  // Handle Wallpaper Overlay toggle
+  const handleWallpaperOverlayToggle = (enabled) => {
+    console.log('[DEBUG] 📋 [PresetsSettingsTab] Toggling Wallpaper Overlay:', enabled);
+    
+    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
+    
+    setSpotifyState({
+      immersiveMode: {
+        ...currentImmersiveMode,
+        wallpaperOverlay: enabled
+      }
+    });
+  };
+
+  // Handle Ambient Lighting toggle
+  const handleAmbientLightingToggle = (enabled) => {
+    console.log('[DEBUG] 📋 [PresetsSettingsTab] Toggling Ambient Lighting:', enabled);
+    
+    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
+    
+    setSpotifyState({
+      immersiveMode: {
+        ...currentImmersiveMode,
+        ambientLighting: enabled
+      }
+    });
+  };
+
+  // Handle Pulse Effects toggle
+  const handlePulseEffectsToggle = (enabled) => {
+    console.log('[DEBUG] 📋 [PresetsSettingsTab] Toggling Pulse Effects:', enabled);
+    
+    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
+    
+    setSpotifyState({
+      immersiveMode: {
+        ...currentImmersiveMode,
+        pulseEffects: enabled
+      }
+    });
+  };
+
+  // Handle Overlay Intensity change
+  const handleOverlayIntensityChange = (value) => {
+    console.log('[DEBUG] 📋 [PresetsSettingsTab] Changing Overlay Intensity:', value);
+    
+    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
+    
+    setSpotifyState({
+      immersiveMode: {
+        ...currentImmersiveMode,
+        overlayIntensity: value
+      }
+    });
+  };
+
+  // Handle Ambient Intensity change
+  const handleAmbientIntensityChange = (value) => {
+    console.log('[DEBUG] 📋 [PresetsSettingsTab] Changing Ambient Intensity:', value);
+    
+    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
+    
+    setSpotifyState({
+      immersiveMode: {
+        ...currentImmersiveMode,
+        ambientIntensity: value
+      }
+    });
+  };
+
+  // Handle Live Gradient Wallpaper toggle
+  const handleLiveGradientWallpaperToggle = (enabled) => {
+    console.log('[DEBUG] 📋 [PresetsSettingsTab] Toggling Live Gradient Wallpaper:', enabled);
+    
+    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
+    
+    setSpotifyState({
+      immersiveMode: {
+        ...currentImmersiveMode,
+        liveGradientWallpaper: enabled
+      }
+    });
+  };
+
+  // Handle Immersive Mode setting changes
+  const handleImmersiveModeSettingChange = (setting, value) => {
+    console.log(`[DEBUG] 📋 [PresetsSettingsTab] Changing ${setting}:`, value);
+    
+    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
+    
+    setSpotifyState({
+      immersiveMode: {
+        ...currentImmersiveMode,
+        [setting]: value
+      }
+    });
+  };
+
+  // Debug function to test immersive mode state
+  useEffect(() => {
+    window.testImmersiveModeState = () => {
+      console.log('[PresetsSettingsTab] === TESTING IMMERSIVE MODE STATE ===');
+      const currentState = useConsolidatedAppStore.getState();
+      console.log('[PresetsSettingsTab] Current spotify state:', currentState.spotify);
+      console.log('[PresetsSettingsTab] Immersive mode state:', currentState.spotify.immersiveMode);
+      console.log('[PresetsSettingsTab] Local immersive mode state:', immersiveModeState);
+      console.log('[PresetsSettingsTab] === END IMMERSIVE MODE STATE TEST ===');
+    };
+
+    window.forceEnableImmersiveMode = () => {
+      console.log('[PresetsSettingsTab] Force enabling immersive mode...');
+      const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+      setSpotifyState({
+        immersiveMode: {
+          enabled: true,
+          liveGradientWallpaper: true,
+          wallpaperOverlay: true,
+          ambientLighting: true,
+          pulseEffects: true,
+          overlayIntensity: 0.3,
+          ambientIntensity: 0.15,
+          pulseIntensity: 0.2,
+          beatSync: true
+        }
+      });
+      console.log('[PresetsSettingsTab] ✅ Immersive mode force enabled!');
+    };
+
+    return () => {
+      delete window.testImmersiveModeState;
+      delete window.forceEnableImmersiveMode;
+    };
+  }, [immersiveModeState]);
+
+
+
   return (
     <div>
       <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
         <div className="wee-card-desc">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <WInput
-              type="text"
-              placeholder="Preset name"
-              value={newPresetName}
-              onChange={e => { setNewPresetName(e.target.value); setError(''); }}
-              maxLength={32}
-              disabled={presets.length >= 6}
-              style={{ flex: 1 }}
-            />
-            <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.length >= 6}>
-              Save Preset
-            </Button>
+                          <WInput
+                type="text"
+                placeholder="Preset name"
+                value={newPresetName}
+                onChange={e => { setNewPresetName(e.target.value); setError(''); }}
+                maxLength={32}
+                disabled={presets.filter(p => p.name !== 'Spotify Match').length >= 5}
+                style={{ flex: 1 }}
+              />
+              <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.filter(p => p.name !== 'Spotify Match').length >= 5}>
+                Save Preset
+              </Button>
           </div>
           
           {/* Include Channel Data Toggle */}
@@ -1021,9 +1278,238 @@ const PresetsSettingsTab = React.memo(() => {
           )}
           
           {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
-          {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
+          {presets.filter(p => p.name !== 'Spotify Match').length >= 5 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 5 custom presets (plus Spotify Match).</Text>}
         </div>
       </Card>
+
+      {/* Spotify Match Preset - Special Toggle */}
+      {presets.some(p => p.name === 'Spotify Match') && (
+        <Card 
+          style={{ marginBottom: 18 }} 
+          title="🎵 Spotify Match" 
+          separator
+          desc="Automatically match your WiiRibbon colors to the currently playing Spotify track's album art."
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+            <div style={{ flex: 1 }}>
+              <Text size="lg" style={{ fontWeight: 600, marginBottom: 4 }}>
+                Dynamic Color Matching
+              </Text>
+              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginBottom: 8 }}>
+                When enabled, your ribbon colors, glow effects, and time display will automatically adapt to match the colors from your currently playing Spotify track's album art.
+              </Text>
+              <Text size="sm" color="hsl(var(--primary))" style={{ fontStyle: 'italic' }}>
+                💡 Perfect for creating a cohesive visual experience that responds to your music!
+              </Text>
+            </div>
+            <WToggle
+              checked={presets.find(p => p.name === 'Spotify Match')?.data?.ui?.spotifyMatchEnabled || false}
+              onChange={handleSpotifyMatchToggle}
+              style={{ marginLeft: 16 }}
+            />
+          </div>
+          
+          {/* Immersive Mode Section */}
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid hsl(var(--border-primary))' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <Text size="lg" style={{ fontWeight: 600, marginBottom: 4 }}>
+                  🌟 Immersive Experience
+                </Text>
+                <Text size="sm" color="hsl(var(--text-secondary))">
+                  Transform your entire desktop with dynamic colors from the current track
+                </Text>
+              </div>
+              <WToggle
+                checked={immersiveModeState.enabled || false}
+                onChange={handleImmersiveModeToggle}
+                style={{ marginLeft: 16 }}
+              />
+            </div>
+            
+            {immersiveModeState.enabled && (
+              <div style={{ marginTop: 12, padding: 12, background: 'hsl(var(--surface-secondary))', borderRadius: 8 }}>
+                <div style={{ marginBottom: 12 }}>
+                  <WToggle
+                    checked={immersiveModeState.liveGradientWallpaper || false}
+                    onChange={handleLiveGradientWallpaperToggle}
+                    label="Live Gradient Wallpaper"
+                  />
+                  <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
+                    Replace your wallpaper with a live gradient that matches the current track's colors
+                  </Text>
+                </div>
+
+                {/* Save This Look Button */}
+                <div style={{ marginBottom: 12 }}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      if (window.saveCurrentSpotifyLook) {
+                        window.saveCurrentSpotifyLook();
+                      } else {
+                        alert('Save function not available. Make sure Spotify is playing with dynamic colors enabled.');
+                      }
+                    }}
+                    style={{ marginBottom: 4 }}
+                  >
+                    💾 Save This Look
+                  </Button>
+                  <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginLeft: 0, marginTop: 4 }}>
+                    Save the current gradient and colors to your wallpaper collection
+                  </Text>
+                </div>
+
+                {/* Live Gradient Wallpaper Settings */}
+                {immersiveModeState.liveGradientWallpaper && (
+                  <div style={{ marginLeft: 24, marginBottom: 16, padding: 16, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 8 }}>
+                    <Text size="sm" weight="medium" color="hsl(var(--text-primary))" style={{ marginBottom: 12 }}>
+                      🎨 Gradient Settings
+                    </Text>
+                    
+                                        {/* Overlay Mode Toggle */}
+                    <div style={{ marginBottom: 12 }}>
+                      <WToggle
+                        checked={immersiveModeState.overlayMode || false}
+                        onChange={(value) => handleImmersiveModeSettingChange('overlayMode', value)}
+                        label="Overlay on Existing Wallpaper"
+                      />
+                      <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
+                        When enabled, gradient overlays your current wallpaper instead of replacing it
+                      </Text>
+                    </div>
+
+                    {/* Intensity Slider */}
+                    <div style={{ marginBottom: 12 }}>
+                      <Text size="sm" color="hsl(var(--text-primary))" style={{ marginBottom: 6 }}>
+                        Intensity: {Math.round((immersiveModeState.intensity || 0.7) * 100)}%
+                      </Text>
+                      <Slider
+                        value={immersiveModeState.intensity || 0.7}
+                        min={0.1}
+                        max={1.0}
+                        step={0.1}
+                        onChange={(value) => handleImmersiveModeSettingChange('intensity', value)}
+                      />
+                      <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginTop: 4 }}>
+                        Controls overall effect strength
+                      </Text>
+                    </div>
+
+                    {/* Style Selection */}
+                    <div style={{ marginBottom: 12 }}>
+                      <Text size="sm" color="hsl(var(--text-primary))" style={{ marginBottom: 6 }}>
+                        Gradient Style
+                      </Text>
+                      <WSelect
+                        value={immersiveModeState.style || 'radial'}
+                        onChange={(value) => handleImmersiveModeSettingChange('style', value)}
+                        options={[
+                          { value: 'radial', label: '⭕ Radial (Circular)' },
+                          { value: 'linear', label: '📐 Linear (Diagonal)' },
+                          { value: 'waves', label: '🌊 Waves (Flowing)' }
+                        ]}
+                      />
+                      <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginTop: 4 }}>
+                        Choose the gradient pattern style
+                      </Text>
+                    </div>
+
+                    {/* Animation Level */}
+                    <div style={{ marginBottom: 12 }}>
+                      <Text size="sm" color="hsl(var(--text-primary))" style={{ marginBottom: 6 }}>
+                        Animation Level: {['Static', 'Subtle', 'Dynamic', 'Intense'][immersiveModeState.animationLevel || 2]}
+                      </Text>
+                      <Slider
+                        value={immersiveModeState.animationLevel || 2}
+                        min={0}
+                        max={3}
+                        step={1}
+                        onChange={(value) => handleImmersiveModeSettingChange('animationLevel', value)}
+                      />
+                      <Text size="xs" color="hsl(var(--text-secondary))" style={{ marginTop: 4 }}>
+                        0: Static • 1: Subtle • 2: Dynamic • 3: Intense with particles
+                      </Text>
+                    </div>
+
+
+
+
+                  </div>
+                )}
+                
+                <div style={{ marginBottom: 12 }}>
+                  <WToggle
+                    checked={immersiveModeState.wallpaperOverlay || false}
+                    onChange={handleWallpaperOverlayToggle}
+                    label="Wallpaper Color Overlay"
+                  />
+                  <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
+                    Apply track colors as a gradient overlay on your wallpaper
+                  </Text>
+                </div>
+                
+                <div style={{ marginBottom: 12 }}>
+                  <WToggle
+                    checked={immersiveModeState.ambientLighting || false}
+                    onChange={handleAmbientLightingToggle}
+                    label="Ambient Lighting"
+                  />
+                  <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
+                    Add subtle color tinting and floating particles throughout the interface
+                  </Text>
+                </div>
+                
+                <div style={{ marginBottom: 12 }}>
+                  <WToggle
+                    checked={immersiveModeState.pulseEffects || false}
+                    onChange={handlePulseEffectsToggle}
+                    label="Pulse Effects"
+                  />
+                  <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 28, marginTop: 4 }}>
+                    Add subtle pulsing effects synchronized with the music
+                  </Text>
+                </div>
+                
+                <div style={{ marginBottom: 12 }}>
+                  <Text size="sm" style={{ fontWeight: 500, marginBottom: 8 }}>Overlay Intensity</Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Slider
+                      value={immersiveModeState.overlayIntensity || 0.3}
+                      min={0.1}
+                      max={0.8}
+                      step={0.05}
+                      onChange={handleOverlayIntensityChange}
+                      style={{ flex: 1 }}
+                    />
+                    <Text size="sm" style={{ fontWeight: 600, minWidth: 40 }}>
+                      {Math.round((immersiveModeState.overlayIntensity || 0.3) * 100)}%
+                    </Text>
+                  </div>
+                </div>
+                
+                <div style={{ marginBottom: 12 }}>
+                  <Text size="sm" style={{ fontWeight: 500, marginBottom: 8 }}>Ambient Intensity</Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Slider
+                      value={immersiveModeState.ambientIntensity || 0.15}
+                      min={0.05}
+                      max={0.4}
+                      step={0.05}
+                      onChange={handleAmbientIntensityChange}
+                      style={{ flex: 1 }}
+                    />
+                    <Text size="sm" style={{ fontWeight: 600, minWidth: 40 }}>
+                      {Math.round((immersiveModeState.ambientIntensity || 0.15) * 100)}%
+                    </Text>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       <Card 
         style={{ marginBottom: 18 }} 
@@ -1032,7 +1518,7 @@ const PresetsSettingsTab = React.memo(() => {
         desc="Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings."
       >
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
-          {presets.map((preset, idx) => {
+          {presets.filter(preset => preset.name !== 'Spotify Match').map((preset, idx) => {
             const isDragging = draggingPreset === preset.name;
             const isDropTarget = dropTarget === preset.name;
             

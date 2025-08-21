@@ -11,6 +11,7 @@ const useIdleChannelAnimations = (
   const timeoutRefs = useRef(new Set());
   const channelsRef = useRef(channels);
   const prevChannelsLengthRef = useRef(channels.length);
+  const activeAnimationsRef = useRef(new Set());
 
   // Memoize channels to prevent unnecessary re-renders
   const memoizedChannels = useMemo(() => channels, [channels.length]);
@@ -62,7 +63,9 @@ const useIdleChannelAnimations = (
 
   // Start animation for a specific channel - memoized
   const startAnimation = useCallback((channelId, animationType) => {
-    setActiveAnimations(prev => new Set([...prev, `${channelId}-${animationType}`]));
+    const animationKey = `${channelId}-${animationType}`;
+    setActiveAnimations(prev => new Set([...prev, animationKey]));
+    activeAnimationsRef.current.add(animationKey);
     
     // Animation duration (most CSS animations are 1-3 seconds)
     const duration = getAnimationDuration(animationType);
@@ -71,9 +74,10 @@ const useIdleChannelAnimations = (
     const timeoutId = setTimeout(() => {
       setActiveAnimations(prev => {
         const newSet = new Set(prev);
-        newSet.delete(`${channelId}-${animationType}`);
+        newSet.delete(animationKey);
         return newSet;
       });
+      activeAnimationsRef.current.delete(animationKey);
     }, duration);
     
     // Store timeout reference for cleanup
@@ -123,7 +127,27 @@ const useIdleChannelAnimations = (
 
     // Start interval for triggering animations
     intervalRef.current = setInterval(() => {
-      triggerRandomAnimation();
+      // Call the function directly instead of using the memoized version
+      const channelsWithContent = getChannelsWithContent();
+      
+      if (channelsWithContent.length === 0) {
+        return;
+      }
+
+      // Pick a random channel with content
+      const randomChannel = channelsWithContent[Math.floor(Math.random() * channelsWithContent.length)];
+      const channelId = randomChannel.id;
+      
+      // Pick a random animation type
+      const randomAnimationType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
+      
+      // Don't start if this channel is already animating
+      const animationKey = `${channelId}-${randomAnimationType}`;
+      if (activeAnimationsRef.current.has(animationKey)) {
+        return;
+      }
+
+      startAnimation(channelId, randomAnimationType);
     }, interval * 1000);
 
     return () => {
@@ -132,7 +156,7 @@ const useIdleChannelAnimations = (
         intervalRef.current = null;
       }
     };
-  }, [enabled, interval, animationTypes.length, triggerRandomAnimation]);
+  }, [enabled, interval, animationTypes.length, getChannelsWithContent, animationTypes, startAnimation]);
 
   // Cleanup on unmount
   useEffect(() => {

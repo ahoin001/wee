@@ -10,7 +10,7 @@ import DockParticleSystem from './DockParticleSystem';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 import intervalManager from '../utils/IntervalManager';
-import { useUIState } from '../utils/useConsolidatedAppHooks';
+import { useUIState, useSpotifyState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 // import more icons as needed
 
@@ -23,6 +23,11 @@ function hexAlpha(opacity) {
 
 const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity, particleSettings = {} }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Spotify integration for dynamic colors
+  const { spotify } = useSpotifyState();
+  const [spotifyColors, setSpotifyColors] = useState(null);
+  const [isSpotifyMatchEnabled, setIsSpotifyMatchEnabled] = useState(false);
   
   // Debug logging for ribbon props
   useEffect(() => {
@@ -37,9 +42,23 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       glassBorderOpacity: propGlassBorderOpacity,
       glassShineOpacity: propGlassShineOpacity,
       timeColor,
-      timeFont
+      timeFont,
+      particleSettings,
+      spotifyColors,
+      isSpotifyMatchEnabled,
+      spotifyExtractedColors: spotify.extractedColors
     });
-  }, [propRibbonColor, propRibbonGlowColor, propRibbonGlowStrength, propRibbonGlowStrengthHover, glassWiiRibbon, propGlassOpacity, propGlassBlur, propGlassBorderOpacity, propGlassShineOpacity, timeColor, timeFont]);
+    
+    // Log the actual colors being used
+    console.log('[WiiRibbon] [COLOR APPLICATION] Applied colors:', {
+      ribbonFill: glassWiiRibbon ? `rgba(255,255,255,${propGlassOpacity || 0.18})` : (spotifyColors?.primary || propRibbonColor),
+      glowColor: spotifyColors?.accent || propRibbonGlowColor,
+      timeColor: spotifyColors?.text || timeColor,
+      timeSecondaryColor: spotifyColors?.textSecondary || timeColor,
+      usingSpotifyColors: !!spotifyColors,
+      spotifyColorSource: spotifyColors ? 'extracted' : 'default'
+    });
+  }, [propRibbonColor, propRibbonGlowColor, propRibbonGlowStrength, propRibbonGlowStrengthHover, glassWiiRibbon, propGlassOpacity, propGlassBlur, propGlassBorderOpacity, propGlassShineOpacity, timeColor, timeFont, particleSettings, spotifyColors, isSpotifyMatchEnabled, spotify.extractedColors]);
   
   // Use consolidated store for modal states and UI settings
   const { 
@@ -75,29 +94,215 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   const [tintedImages, setTintedImages] = useState({});
   const [activeButton, setActiveButton] = useState(null);
 
-  // Load configs from settings on mount - TEMPORARILY DISABLED TO PREVENT INFINITE LOOP
+  // Extract colors from album art using Canvas API
+  const extractColorsFromImage = (imageUrl) => {
+    return new Promise((resolve) => {
+      console.log('[WiiRibbon] [COLOR EXTRACTION] Starting extraction for:', imageUrl);
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          console.log('[WiiRibbon] [COLOR EXTRACTION] Image loaded successfully, dimensions:', img.width, 'x', img.height);
+          
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Set canvas size to a reasonable size for processing
+          const maxSize = 100;
+          const scale = Math.min(maxSize / img.width, maxSize / img.height);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          
+          // Draw the image on canvas
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // Get image data
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          
+          // Sample colors from the image with better color detection
+          const colors = [];
+          const step = 5; // Sample more frequently for better color detection
+          
+          for (let i = 0; i < data.length; i += step * 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            
+            // Only consider non-transparent pixels with sufficient opacity
+            // and avoid very dark or very light pixels for better color representation
+            if (a > 128 && (r + g + b) > 100 && (r + g + b) < 700) {
+              colors.push({ r, g, b });
+            }
+          }
+          
+          if (colors.length > 0) {
+            // Calculate average color
+            const avgColor = colors.reduce((acc, color) => {
+              acc.r += color.r;
+              acc.g += color.g;
+              acc.b += color.b;
+              return acc;
+            }, { r: 0, g: 0, b: 0 });
+            
+            avgColor.r = Math.round(avgColor.r / colors.length);
+            avgColor.g = Math.round(avgColor.g / colors.length);
+            avgColor.b = Math.round(avgColor.b / colors.length);
+            
+            // Boost color saturation for more vibrant appearance
+            const boost = 1.3;
+            avgColor.r = Math.min(255, Math.round(avgColor.r * boost));
+            avgColor.g = Math.min(255, Math.round(avgColor.g * boost));
+            avgColor.b = Math.min(255, Math.round(avgColor.b * boost));
+            
+            console.log('[WiiRibbon] [COLOR EXTRACTION] Average color:', avgColor);
+            
+            // Create Wii-style color palette
+            const primaryColor = `rgb(${avgColor.r}, ${avgColor.g}, ${avgColor.b})`;
+            const secondaryColor = `rgb(${Math.max(0, avgColor.r - 40)}, ${Math.max(0, avgColor.g - 40)}, ${Math.max(0, avgColor.b - 40)})`;
+            const accentColor = `rgb(${Math.min(255, avgColor.r + 50)}, ${Math.min(255, avgColor.g + 50)}, ${Math.min(255, avgColor.b + 50)})`;
+            
+            // Improved text color calculation for better contrast
+            const brightness = (avgColor.r * 299 + avgColor.g * 587 + avgColor.b * 114) / 1000;
+            
+            // Use more contrasting colors for text
+            let textColor, textSecondaryColor;
+            if (brightness > 128) {
+              // Light background - use dark text
+              textColor = '#000000';
+              textSecondaryColor = '#333333';
+            } else {
+              // Dark background - use light text
+              textColor = '#ffffff';
+              textSecondaryColor = '#e0e0e0';
+            }
+            
+            console.log('[WiiRibbon] [COLOR EXTRACTION] Created Wii color palette:', {
+              primary: primaryColor,
+              secondary: secondaryColor,
+              accent: accentColor,
+              text: textColor,
+              textSecondary: textSecondaryColor
+            });
+            
+            resolve({
+              primary: primaryColor,
+              secondary: secondaryColor,
+              accent: accentColor,
+              text: textColor,
+              textSecondary: textSecondaryColor
+            });
+          } else {
+            console.log('[WiiRibbon] [COLOR EXTRACTION] No valid colors found');
+            resolve(null);
+          }
+        } catch (error) {
+          console.error('[WiiRibbon] [COLOR EXTRACTION] Failed to extract colors:', error);
+          resolve(null);
+        }
+      };
+      
+      img.onerror = (error) => {
+        console.error('[WiiRibbon] [COLOR EXTRACTION] Failed to load image:', error);
+        resolve(null);
+      };
+      
+      img.src = imageUrl;
+    });
+  };
+
+  // Check if Spotify Match preset is active - run on mount and periodically
+  useEffect(() => {
+    const checkSpotifyMatchPreset = async () => {
+      try {
+        if (window.api?.settings?.get) {
+          const settings = await window.api.settings.get();
+          const presets = settings.presets || [];
+          const spotifyMatchPreset = presets.find(p => p.name === 'Spotify Match');
+          
+          if (spotifyMatchPreset && spotifyMatchPreset.data?.ui?.spotifyMatchEnabled) {
+            console.log('[WiiRibbon] Spotify Match preset is active');
+            setIsSpotifyMatchEnabled(true);
+          } else {
+            console.log('[WiiRibbon] Spotify Match preset is not active');
+            setIsSpotifyMatchEnabled(false);
+            setSpotifyColors(null);
+          }
+        }
+      } catch (error) {
+        console.error('[WiiRibbon] Failed to check Spotify Match preset:', error);
+      }
+    };
+    
+    checkSpotifyMatchPreset();
+    
+    // Check periodically for changes (every 2 seconds)
+    const interval = setInterval(checkSpotifyMatchPreset, 2000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update colors when Spotify track changes and Spotify Match is enabled
+  useEffect(() => {
+    console.log('[WiiRibbon] [SPOTIFY MATCH] State check:', {
+      isSpotifyMatchEnabled,
+      hasCurrentTrack: !!spotify.currentTrack,
+      trackName: spotify.currentTrack?.name,
+      hasAlbumArt: !!spotify.currentTrack?.album?.images?.[0]?.url,
+      albumArtUrl: spotify.currentTrack?.album?.images?.[0]?.url,
+      hasExtractedColors: !!spotify.extractedColors
+    });
+    
+    if (isSpotifyMatchEnabled && spotify.extractedColors) {
+      console.log('[WiiRibbon] [SPOTIFY MATCH] Using shared extracted colors:', spotify.extractedColors);
+      setSpotifyColors(spotify.extractedColors);
+    } else if (!isSpotifyMatchEnabled) {
+      console.log('[WiiRibbon] [SPOTIFY MATCH] Spotify Match disabled, clearing colors');
+      setSpotifyColors(null);
+    } else if (isSpotifyMatchEnabled && !spotify.extractedColors && spotify.currentTrack?.album?.images?.[0]?.url) {
+      console.log('[WiiRibbon] [SPOTIFY MATCH] No shared colors yet, extracting from:', spotify.currentTrack.name);
+      // Fallback: Extract colors if not available yet (shouldn't happen with proper flow)
+      extractColorsFromImage(spotify.currentTrack.album.images[0].url).then(result => {
+        if (result) {
+          console.log('[WiiRibbon] [SPOTIFY MATCH] Setting fallback colors:', result);
+          setSpotifyColors(result);
+        }
+      });
+    } else {
+      console.log('[WiiRibbon] [SPOTIFY MATCH] No conditions met, clearing colors');
+      setSpotifyColors(null);
+    }
+  }, [spotify.currentTrack?.album?.images?.[0]?.url, spotify.extractedColors, isSpotifyMatchEnabled]);
+
+  // Load configs from settings on mount
   useEffect(() => {
     async function loadButtonConfigs() {
-      console.log('[WiiRibbon] Button config loading DISABLED to prevent infinite loop');
-      // if (window.api?.settings?.get) {
-      //   const settings = await window.api.settings.get();
-      //   if (settings && settings.ribbonButtonConfigs) {
-          
-      //     // Ensure each button config has all required properties
-      //     const configsWithAdaptiveColor = settings.ribbonButtonConfigs.map(config => ({
-      //       ...config,
-      //       useAdaptiveColor: config.useAdaptiveColor ?? false,
-      //       useGlowEffect: config.useGlowEffect ?? false,
-      //       glowStrength: config.glowStrength ?? 20,
-      //       useGlassEffect: config.useGlassEffect ?? false,
-      //       glassOpacity: config.glassOpacity ?? 0.18,
-      //       glassBlur: config.glassBlur ?? 2.5,
-      //       glassBorderOpacity: config.glassBorderOpacity ?? 0.5,
-      //       glassShineOpacity: config.glassShineOpacity ?? 0.7
-      //     }));
-      //     setButtonConfigs(configsWithAdaptiveColor);
-      //   }
-      // }
+      try {
+        if (window.api?.settings?.get) {
+          const settings = await window.api.settings.get();
+          if (settings && settings.ribbonButtonConfigs) {
+            
+            // Ensure each button config has all required properties
+            const configsWithAdaptiveColor = settings.ribbonButtonConfigs.map(config => ({
+              ...config,
+              useAdaptiveColor: config.useAdaptiveColor ?? false,
+              useGlowEffect: config.useGlowEffect ?? false,
+              glowStrength: config.glowStrength ?? 20,
+              useGlassEffect: config.useGlassEffect ?? false,
+              glassOpacity: config.glassOpacity ?? 0.18,
+              glassBlur: config.glassBlur ?? 2.5,
+              glassBorderOpacity: config.glassBorderOpacity ?? 0.5,
+              glassShineOpacity: config.glassShineOpacity ?? 0.7
+            }));
+            setButtonConfigs(configsWithAdaptiveColor);
+          }
+        }
+      } catch (error) {
+        console.error('[WiiRibbon] Failed to load button configs:', error);
+      }
     }
     loadButtonConfigs();
   }, []);
@@ -238,20 +443,26 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
         allConfigs.push(presetsButtonConfig);
       }
       
+      // Create a Set of icons that need tinting to avoid duplicates
+      const iconsToTint = new Set();
       for (const config of allConfigs) {
         if (config && config.useAdaptiveColor && config.icon && !config.icon.startsWith('data:') && !['palette', 'star', 'heart'].includes(config.icon)) {
-          try {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = async () => {
-              const tintedUrl = await tintImage(img, rgbColor);
-              newTintedImages[config.icon] = tintedUrl;
-              setTintedImages(prev => ({ ...prev, ...newTintedImages }));
-            };
-            img.src = config.icon;
-          } catch (error) {
-            console.error('Error tinting image:', error);
-          }
+          iconsToTint.add(config.icon);
+        }
+      }
+      
+      // Process each unique icon
+      for (const iconUrl of iconsToTint) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = async () => {
+            const tintedUrl = await tintImage(img, rgbColor);
+            setTintedImages(prev => ({ ...prev, [iconUrl]: tintedUrl }));
+          };
+          img.src = iconUrl;
+        } catch (error) {
+          console.error('Error tinting image:', error);
         }
       }
     };
@@ -410,6 +621,154 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
     onFrameState: () => {},
   };
 
+  // Debug functions for Spotify Match
+  useEffect(() => {
+    window.testSpotifyMatch = () => {
+      console.log('[WiiRibbon] === TESTING SPOTIFY MATCH ===');
+      console.log('[WiiRibbon] Spotify Match enabled:', isSpotifyMatchEnabled);
+      console.log('[WiiRibbon] Current Spotify track:', spotify.currentTrack?.name);
+      console.log('[WiiRibbon] Album art URL:', spotify.currentTrack?.album?.images?.[0]?.url);
+      console.log('[WiiRibbon] Extracted colors:', spotifyColors);
+      console.log('[WiiRibbon] === END SPOTIFY MATCH TEST ===');
+    };
+
+    window.forceSpotifyMatchTest = async () => {
+      console.log('[WiiRibbon] === FORCING SPOTIFY MATCH TEST ===');
+      
+      // Force enable Spotify Match
+      await window.enableSpotifyMatch();
+      
+      // Wait a moment for the state to update
+      setTimeout(() => {
+        console.log('[WiiRibbon] Spotify Match should now be enabled');
+        console.log('[WiiRibbon] Current state:', {
+          isSpotifyMatchEnabled,
+          spotifyState: spotify,
+          spotifyColors
+        });
+      }, 1000);
+    };
+
+    window.testSpotifyConnection = () => {
+      console.log('[WiiRibbon] === TESTING SPOTIFY CONNECTION ===');
+      console.log('[WiiRibbon] Spotify state from hook:', spotify);
+      console.log('[WiiRibbon] Is connected:', spotify.isConnected);
+      console.log('[WiiRibbon] Current track:', spotify.currentTrack);
+      console.log('[WiiRibbon] Is playing:', spotify.isPlaying);
+      console.log('[WiiRibbon] === END SPOTIFY CONNECTION TEST ===');
+    };
+
+    window.enableSpotifyMatch = async () => {
+      console.log('[WiiRibbon] Enabling Spotify Match...');
+      try {
+        if (window.api?.settings?.get && window.api?.settings?.set) {
+          const settings = await window.api.settings.get();
+          const presets = settings.presets || [];
+          const updatedPresets = presets.map(preset => {
+            if (preset.name === 'Spotify Match') {
+              return {
+                ...preset,
+                data: {
+                  ...preset.data,
+                  ui: {
+                    ...preset.data.ui,
+                    spotifyMatchEnabled: true
+                  }
+                }
+              };
+            }
+            return preset;
+          });
+          
+          await window.api.settings.set({ ...settings, presets: updatedPresets });
+          console.log('[WiiRibbon] ✅ Spotify Match enabled!');
+        }
+      } catch (error) {
+        console.error('[WiiRibbon] ❌ Failed to enable Spotify Match:', error);
+      }
+    };
+
+    window.disableSpotifyMatch = async () => {
+      console.log('[WiiRibbon] Disabling Spotify Match...');
+      try {
+        if (window.api?.settings?.get && window.api?.settings?.set) {
+          const settings = await window.api.settings.get();
+          const presets = settings.presets || [];
+          const updatedPresets = presets.map(preset => {
+            if (preset.name === 'Spotify Match') {
+              return {
+                ...preset,
+                data: {
+                  ...preset.data,
+                  ui: {
+                    ...preset.data.ui,
+                    spotifyMatchEnabled: false
+                  }
+                }
+              };
+            }
+            return preset;
+          });
+          
+          await window.api.settings.set({ ...settings, presets: updatedPresets });
+          console.log('[WiiRibbon] ✅ Spotify Match disabled!');
+        }
+      } catch (error) {
+        console.error('[WiiRibbon] ❌ Failed to disable Spotify Match:', error);
+      }
+    };
+
+    window.testSpotifyColorSharing = () => {
+      console.log('[WiiRibbon] === TESTING SPOTIFY COLOR SHARING ===');
+      console.log('[WiiRibbon] Spotify Match enabled:', isSpotifyMatchEnabled);
+      console.log('[WiiRibbon] Current track:', spotify.currentTrack?.name);
+      console.log('[WiiRibbon] Global extracted colors:', spotify.extractedColors);
+      console.log('[WiiRibbon] Local spotify colors:', spotifyColors);
+      
+      // Helper function to convert RGB to RGBA
+      const rgbToRgbaDebug = (rgbColor, opacity) => {
+        if (!rgbColor) return `rgba(255, 255, 255, ${opacity})`;
+        
+        const match = rgbColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (match) {
+          const [, r, g, b] = match;
+          return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        }
+        
+        if (rgbColor.startsWith('#')) {
+          const r = parseInt(rgbColor.slice(1, 3), 16);
+          const g = parseInt(rgbColor.slice(3, 5), 16);
+          const b = parseInt(rgbColor.slice(5, 7), 16);
+          return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        }
+        
+        return `rgba(255, 255, 255, ${opacity})`;
+      };
+      
+      console.log('[WiiRibbon] Colors being applied:', {
+        ribbonFill: glassWiiRibbon ? `rgba(255,255,255,${propGlassOpacity || 0.18})` : (spotifyColors?.primary || propRibbonColor),
+        glowColor: spotifyColors?.accent || propRibbonGlowColor,
+        timeColor: spotifyColors?.text || timeColor,
+        secondaryColor: spotifyColors?.secondary || 'default',
+        timePillBackground: rgbToRgbaDebug(spotifyColors?.secondary, timePillOpacity || 0.8),
+        buttonBackground: rgbToRgbaDebug(spotifyColors?.secondary, 0.18),
+        buttonBorder: rgbToRgbaDebug(spotifyColors?.secondary, 0.5),
+        settingsBackground: rgbToRgbaDebug(spotifyColors?.secondary, 0.45)
+      });
+      console.log('[WiiRibbon] Raw secondary color format:', typeof spotifyColors?.secondary, spotifyColors?.secondary);
+      console.log('[WiiRibbon] === END COLOR SHARING TEST ===');
+    };
+
+    return () => {
+      delete window.testSpotifyMatch;
+      delete window.forceSpotifyMatchTest;
+      delete window.testSpotifyConnection;
+      delete window.enableSpotifyMatch;
+      delete window.disableSpotifyMatch;
+      delete window.testSpotifyColorSharing;
+    };
+  }, [isSpotifyMatchEnabled, spotify.currentTrack, spotifyColors]);
+
   useEffect(() => {
     if (api.onFullscreenState) {
       api.onFullscreenState((val) => setIsFullscreen(val));
@@ -472,23 +831,30 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       <footer className="interactive-footer" onContextMenu={handleRibbonContextMenu}>
         {/* Particle System */}
         <DockParticleSystem
-          enabled={particleSettings.enabled || false}
-          effectType={particleSettings.effectType || 'normal'}
-          direction={particleSettings.direction || 'upward'}
-          speed={particleSettings.speed || 2}
+          enabled={particleSettings.particleSystemEnabled || false}
+          effectType={particleSettings.particleEffectType || 'normal'}
+          direction={particleSettings.particleDirection || 'upward'}
+          speed={particleSettings.particleSpeed || 2}
           particleCount={particleSettings.particleCount || 3}
-          spawnRate={particleSettings.spawnRate || 60}
+          spawnRate={particleSettings.particleSpawnRate || 60}
           settings={{
-            size: particleSettings.size || 3,
-            gravity: particleSettings.gravity || 0.02,
-            fadeSpeed: particleSettings.fadeSpeed || 0.008,
-            sizeDecay: particleSettings.sizeDecay || 0.02
+            size: particleSettings.particleSize || 3,
+            gravity: particleSettings.particleGravity || 0.02,
+            fadeSpeed: particleSettings.particleFadeSpeed || 0.008,
+            sizeDecay: particleSettings.particleSizeDecay || 0.02,
+            useAdaptiveColor: particleSettings.particleUseAdaptiveColor || false,
+            customColors: particleSettings.particleCustomColors || [],
+            colorIntensity: particleSettings.particleColorIntensity || 1.0,
+            colorVariation: particleSettings.particleColorVariation || 0.3,
+            rotationSpeed: particleSettings.particleRotationSpeed || 0.05,
+            particleLifetime: particleSettings.particleLifetime || 3.0
           }}
+          ribbonGlowColor={spotifyColors?.accent || propRibbonGlowColor || '#0099ff'}
         />
           <div
             className="absolute inset-0 z-0 svg-container-glow"
             style={{
-              filter: `drop-shadow(0 0 ${isRibbonHovered ? (propRibbonGlowStrengthHover ?? 28) : (propRibbonGlowStrength ?? 20)}px ${propRibbonGlowColor}) drop-shadow(0 0 12px ${propRibbonGlowColor})`,
+              filter: `drop-shadow(0 0 ${isRibbonHovered ? (propRibbonGlowStrengthHover ?? 28) : (propRibbonGlowStrength ?? 20)}px ${spotifyColors?.accent || propRibbonGlowColor}) drop-shadow(0 0 12px ${spotifyColors?.accent || propRibbonGlowColor})`,
               transition: 'filter 0.3s',
             }}
             onMouseEnter={() => setIsRibbonHovered(true)}
@@ -523,7 +889,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                      L 1440 40 
                      L 1440 240 
                      L 0 240 Z"
-                  fill={glassWiiRibbon ? `rgba(255,255,255,${propGlassOpacity || 0.18})` : propRibbonColor + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
+                  fill={glassWiiRibbon ? `rgba(255,255,255,${propGlassOpacity || 0.18})` : (spotifyColors?.primary || propRibbonColor) + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
                   stroke={`rgba(255,255,255,${propGlassBorderOpacity || 0.5})`}
                   strokeWidth="2"
                   filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
@@ -547,6 +913,34 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
           </div>
 
           <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[300px] z-20 text-center pointer-events-auto">
+              {/* Spotify Match Indicator */}
+              {isSpotifyMatchEnabled && spotify.currentTrack && (
+                <div 
+                  className="spotify-match-indicator"
+                  style={{
+                    position: 'absolute',
+                    top: '-30px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    color: spotifyColors?.text || '#ffffff',
+                    padding: '4px 12px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    backdropFilter: 'blur(8px)',
+                    border: `1px solid ${spotifyColors?.accent || '#0099ff'}`,
+                    zIndex: 25,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span style={{ color: spotifyColors?.accent || '#0099ff' }}>🎵</span>
+                  <span>{spotify.currentTrack.name}</span>
+                </div>
+              )}
+              
               {/* Apple Liquid Glass Pill Container */}
               {enableTimePill ? (
                 <div 
@@ -595,7 +989,24 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                       borderRadius: '56px',
                       backdropFilter: `blur(${timePillBlur}px)`,
                       WebkitBackdropFilter: `blur(${timePillBlur}px)`,
-                      backgroundColor: `rgba(255, 255, 255, ${timePillOpacity})`,
+                      backgroundColor: (() => {
+                        if (spotifyColors?.secondary) {
+                          // Convert RGB to RGBA properly
+                          const match = spotifyColors.secondary.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                          if (match) {
+                            const [, r, g, b] = match;
+                            return `rgba(${r}, ${g}, ${b}, ${timePillOpacity})`;
+                          }
+                          // If it's a hex color
+                          if (spotifyColors.secondary.startsWith('#')) {
+                            const r = parseInt(spotifyColors.secondary.slice(1, 3), 16);
+                            const g = parseInt(spotifyColors.secondary.slice(3, 5), 16);
+                            const b = parseInt(spotifyColors.secondary.slice(5, 7), 16);
+                            return `rgba(${r}, ${g}, ${b}, ${timePillOpacity})`;
+                          }
+                        }
+                        return `rgba(255, 255, 255, ${timePillOpacity})`;
+                      })(),
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       pointerEvents: 'none'
                     }}
@@ -606,7 +1017,13 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                     className="glass-text"
                     style={{
                       position: 'relative',
-                      color: timeColor,
+                      color: (() => {
+                        // Use same logic as Spotify widget playback buttons
+                        if (spotifyColors?.text && isSpotifyMatchEnabled) {
+                          return spotifyColors.text;
+                        }
+                        return timeColor;
+                      })(),
                       fontSize: '32px',
                       fontWeight: 'bold',
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
@@ -624,7 +1041,13 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                     className="glass-text"
                     style={{
                       position: 'relative',
-                      color: timeColor,
+                      color: (() => {
+                        // Use same logic as Spotify widget playback buttons
+                        if (spotifyColors?.textSecondary && isSpotifyMatchEnabled) {
+                          return spotifyColors.textSecondary;
+                        }
+                        return timeColor;
+                      })(),
                       fontSize: '18px',
                       fontWeight: 'bold',
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
@@ -655,7 +1078,13 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                     className="text-4xl font-bold" 
                     style={{ 
                       fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif", 
-                      color: timeColor,
+                      color: (() => {
+                        // Use same logic as Spotify widget playback buttons
+                        if (spotifyColors?.text && isSpotifyMatchEnabled) {
+                          return spotifyColors.text;
+                        }
+                        return timeColor;
+                      })(),
                       textShadow: '0px 2px 4px rgba(0, 0, 0, 0.3)',
                       marginBottom: '12px'
                     }}
@@ -666,7 +1095,13 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                     id="date" 
                     className="text-lg font-bold" 
                     style={{ 
-                      color: timeColor,
+                      color: (() => {
+                        // Use same logic as Spotify widget playback buttons
+                        if (spotifyColors?.textSecondary && isSpotifyMatchEnabled) {
+                          return spotifyColors.textSecondary;
+                        }
+                        return timeColor;
+                      })(),
                       textShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
                       fontFamily: timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
                     }}
@@ -706,6 +1141,9 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                 glassBorderOpacity={buttonConfigs[0]?.glassBorderOpacity}
                 glassShineOpacity={buttonConfigs[0]?.glassShineOpacity}
                 ribbonGlowColor={propRibbonGlowColor}
+                spotifySecondaryColor={spotifyColors?.secondary || null}
+                spotifyTextColor={isSpotifyMatchEnabled && spotifyColors?.text ? spotifyColors.text : null}
+                spotifyAccentColor={isSpotifyMatchEnabled && spotifyColors?.accent ? spotifyColors.accent : null}
                 style={{ 
                   marginLeft: 16,
                   transform: activeButton === 'left' ? 'scale(0.95)' : 'scale(1)',
@@ -717,13 +1155,14 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                   <span 
                     className="text-wii-gray-dark font-bold text-sm"
                     style={{
-                      fontFamily: buttonConfigs[0].textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
+                      fontFamily: buttonConfigs[0].textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
+                      color: (isSpotifyMatchEnabled && spotifyColors?.text) ? spotifyColors.text : undefined
                     }}
                   >
                     {buttonConfigs[0].text || 'Wii'}
                   </span>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'palette' ? (
-                  <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(isSpotifyMatchEnabled && spotifyColors?.text) ? spotifyColors.text : "#0099ff"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="13.5" cy="6.5" r="2.5"/>
                     <circle cx="17.5" cy="10.5" r="2.5"/>
                     <circle cx="8.5" cy="7.5" r="2.5"/>
@@ -731,7 +1170,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                     <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'star' ? (
-                  <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0099ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(isSpotifyMatchEnabled && spotifyColors?.text) ? spotifyColors.text : "#0099ff"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'heart' ? (
@@ -749,7 +1188,14 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                     }} 
                   />
                 ) : (
-                  <span className="text-wii-gray-dark font-bold text-sm">Wii</span>
+                  <span 
+                    className="text-wii-gray-dark font-bold text-sm"
+                    style={{
+                      color: (isSpotifyMatchEnabled && spotifyColors?.text) ? spotifyColors.text : undefined
+                    }}
+                  >
+                    Wii
+                  </span>
                 )}
               </WiiStyleButton>
               </div>
@@ -757,12 +1203,44 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
           {/* Restore settings button to original absolute position with glass effect */}
           <div 
             className={`sd-card-button absolute z-10 settings-cog-button glass-effect`}
-            style={{ left: '220px', top: '158px', backdropFilter: 'blur(12px) saturate(1.5)', background: 'rgba(255,255,255,0.45)', border: '1.5px solid rgba(180,180,200,0.18)', boxShadow: '0 2px 16px 0 rgba(80,80,120,0.07)' }}
+            style={{ 
+              left: '220px', 
+              top: '158px', 
+              backdropFilter: 'blur(12px) saturate(1.5)', 
+              background: (() => {
+                if (spotifyColors?.secondary) {
+                  // Convert RGB to RGBA properly
+                  const match = spotifyColors.secondary.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                  if (match) {
+                    const [, r, g, b] = match;
+                    return `rgba(${r}, ${g}, ${b}, 0.45)`;
+                  }
+                  // If it's a hex color
+                  if (spotifyColors.secondary.startsWith('#')) {
+                    const r = parseInt(spotifyColors.secondary.slice(1, 3), 16);
+                    const g = parseInt(spotifyColors.secondary.slice(3, 5), 16);
+                    const b = parseInt(spotifyColors.secondary.slice(5, 7), 16);
+                    return `rgba(${r}, ${g}, ${b}, 0.45)`;
+                  }
+                }
+                return 'rgba(255,255,255,0.45)';
+              })(),
+              border: '1.5px solid rgba(180,180,200,0.18)', 
+              boxShadow: '0 2px 16px 0 rgba(80,80,120,0.07)' 
+            }}
             onClick={(e) => handleSettingsClick(e)}
             onContextMenu={handleDockEffectsContextMenu}
             title="Settings (Left-click for Quick Settings, Right-click for Dock Effects)"
           >
-              <svg width="28" height="28" viewBox="0 0 24 24" className="text-wii-gray-dark">
+              <svg 
+                width="28" 
+                height="28" 
+                viewBox="0 0 24 24" 
+                className="text-wii-gray-dark"
+                style={{
+                  color: (isSpotifyMatchEnabled && spotifyColors?.text) ? spotifyColors.text : undefined
+                }}
+              >
                 <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
               </svg>
           </div>
@@ -800,13 +1278,16 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
               glassBorderOpacity={presetsButtonConfig?.glassBorderOpacity}
               glassShineOpacity={presetsButtonConfig?.glassShineOpacity}
               ribbonGlowColor={propRibbonGlowColor}
+              spotifySecondaryColor={spotifyColors?.secondary || null}
+              spotifyTextColor={isSpotifyMatchEnabled && spotifyColors?.text ? spotifyColors.text : null}
             >
             {/* Dynamic icon based on configuration */}
             {presetsButtonConfig.type === 'text' ? (
               <span 
                 className="text-wii-gray-dark font-bold text-sm"
                 style={{
-                  fontFamily: presetsButtonConfig.textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
+                  fontFamily: presetsButtonConfig.textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
+                  color: (isSpotifyMatchEnabled && spotifyColors?.text) ? spotifyColors.text : undefined
                 }}
               >
                 {presetsButtonConfig.text || '🎨'}
@@ -839,7 +1320,14 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                 }} 
               />
             ) : (
-              <span style={{ fontSize: 20, color: '#0099ff' }}>🎨</span>
+              <span 
+                style={{ 
+                  fontSize: 20, 
+                  color: (isSpotifyMatchEnabled && spotifyColors?.text) ? spotifyColors.text : '#0099ff'
+                }}
+              >
+                🎨
+              </span>
             )}
             </WiiStyleButton>
           )}
@@ -873,6 +1361,9 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                     glassBorderOpacity={buttonConfigs[1]?.glassBorderOpacity}
                     glassShineOpacity={buttonConfigs[1]?.glassShineOpacity}
                     ribbonGlowColor={propRibbonGlowColor}
+                    spotifySecondaryColor={spotifyColors?.secondary || null}
+                    spotifyTextColor={isSpotifyMatchEnabled && spotifyColors?.text ? spotifyColors.text : null}
+                    spotifyAccentColor={isSpotifyMatchEnabled && spotifyColors?.accent ? spotifyColors.accent : null}
                     style={{
                       transform: activeButton === 'right' ? 'scale(0.95)' : 'scale(1)',
                       filter: activeButton === 'right' ? 'brightness(0.9)' : 'brightness(1)',
@@ -883,7 +1374,8 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                         <span 
                           className="text-wii-gray-dark font-bold text-sm"
                           style={{
-                            fontFamily: buttonConfigs[1].textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif"
+                            fontFamily: buttonConfigs[1].textFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif",
+                            color: (isSpotifyMatchEnabled && spotifyColors?.text) ? spotifyColors.text : undefined
                           }}
                         >
                           {buttonConfigs[1].text || ''}

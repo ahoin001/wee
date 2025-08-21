@@ -19,18 +19,43 @@ const WiiStyleButton = ({
   glassBlur = 2.5,
   glassBorderOpacity = 0.5,
   glassShineOpacity = 0.7,
-  ribbonGlowColor = '#0099ff'
+  ribbonGlowColor = '#0099ff',
+  spotifySecondaryColor = null,
+  spotifyTextColor = null,
+  spotifyAccentColor = null
 }) => {
+  // Helper function to convert RGB color to rgba with opacity
+  const rgbToRgba = (rgbColor, opacity) => {
+    if (!rgbColor) return `rgba(255, 255, 255, ${opacity})`;
+    
+    // Extract RGB values from rgb() or rgba() string
+    const match = rgbColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+      const [, r, g, b] = match;
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    
+    // If it's a hex color, convert it
+    if (rgbColor.startsWith('#')) {
+      const r = parseInt(rgbColor.slice(1, 3), 16);
+      const g = parseInt(rgbColor.slice(3, 5), 16);
+      const b = parseInt(rgbColor.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    
+    return `rgba(255, 255, 255, ${opacity})`;
+  };
+
   const baseStyle = {
     minWidth: '80px',
     height: '70px',
     borderRadius: '50%',
     background: useGlassEffect 
-      ? `rgba(255, 255, 255, ${glassOpacity})`
-      : 'white',
+      ? (spotifySecondaryColor ? rgbToRgba(spotifySecondaryColor, glassOpacity) : `rgba(255, 255, 255, ${glassOpacity})`)
+      : (spotifySecondaryColor ? spotifySecondaryColor : 'white'),
     border: useGlassEffect 
-      ? `4px solid rgba(255, 255, 255, ${glassBorderOpacity})`
-      : '4px solid #b0b0b0',
+      ? (spotifyAccentColor ? `4px solid ${rgbToRgba(spotifyAccentColor, glassBorderOpacity)}` : `4px solid rgba(255, 255, 255, ${glassBorderOpacity})`)
+      : (spotifyAccentColor ? `4px solid ${spotifyAccentColor}` : '4px solid #b0b0b0'),
     boxShadow: useGlassEffect 
       ? '0 4px 8px rgba(0, 0, 0, 0.1)'
       : '0 4px 8px rgba(0, 0, 0, 0.2)',
@@ -60,17 +85,19 @@ const WiiStyleButton = ({
     ...baseStyle,
     transform: 'scale(1.05)',
     boxShadow: useGlowEffect 
-      ? `0 0 ${glowStrength}px ${useAdaptiveColor ? ribbonGlowColor : '#0099ff'}`
+      ? `0 0 ${glowStrength}px ${spotifyAccentColor || (useAdaptiveColor ? ribbonGlowColor : '#0099ff')}`
       : useGlassEffect
         ? '0 6px 12px rgba(0, 0, 0, 0.15)'
         : '0 6px 12px rgba(0, 0, 0, 0.3)',
     border: useGlowEffect 
       ? '4px solid #b0b0b0' // Keep original border when using glow
       : useGlassEffect
-        ? `4px solid rgba(255, 255, 255, ${glassBorderOpacity})` // Keep glass border
-        : (useAdaptiveColor 
-            ? `4px solid ${ribbonGlowColor}` 
-            : '4px solid #0099ff')
+        ? (spotifyAccentColor ? `4px solid ${rgbToRgba(spotifyAccentColor, glassBorderOpacity * 1.2)}` : `4px solid rgba(255, 255, 255, ${glassBorderOpacity})`)
+        : (spotifyAccentColor
+            ? `4px solid ${spotifyAccentColor}` 
+            : (useAdaptiveColor 
+                ? `4px solid ${ribbonGlowColor}` 
+                : '4px solid #0099ff'))
   };
 
   return (
@@ -109,7 +136,11 @@ const WiiStyleButton = ({
         />
       )}
       {/* Content with higher z-index to appear above glass */}
-      <div style={{ position: 'relative', zIndex: 2 }}>
+      <div style={{ 
+        position: 'relative', 
+        zIndex: 2,
+        color: spotifyTextColor || 'inherit'
+      }}>
         {children}
       </div>
     </div>
@@ -131,7 +162,10 @@ WiiStyleButton.propTypes = {
   glassBlur: PropTypes.number,
   glassBorderOpacity: PropTypes.number,
   glassShineOpacity: PropTypes.number,
-  ribbonGlowColor: PropTypes.string
+  ribbonGlowColor: PropTypes.string,
+  spotifySecondaryColor: PropTypes.string,
+  spotifyTextColor: PropTypes.string,
+  spotifyAccentColor: PropTypes.string
 };
 
 export default WiiStyleButton; 

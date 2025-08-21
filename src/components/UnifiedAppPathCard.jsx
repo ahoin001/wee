@@ -42,16 +42,21 @@ const UnifiedAppPathCard = React.memo(({
     return {}; // Return empty object as fallback
   }, [selectedApp]);
 
-  // Initial setup from value prop
+  // Initial setup from value prop - update when value changes
   useEffect(() => {
-    if (!isInitialized.current) {
-      setLaunchType(value.launchType || 'application');
-      setAppName(value.appName || '');
-      setPath(value.path || '');
-      setPathError('');
-      isInitialized.current = true;
+    console.log('[UnifiedAppPathCard] Value prop changed:', value);
+    
+    // Always update from value prop when it changes
+    setLaunchType(value.launchType || 'application');
+    setAppName(value.appName || '');
+    setPath(value.path || '');
+    setPathError('');
+    
+    // If we have a path but no selectedApp, try to find a matching app
+    if (value.path && !value.selectedApp && !selectedApp) {
+      console.log('[UnifiedAppPathCard] Path provided but no selectedApp, will try to match later');
     }
-  }, []);
+  }, [value]);
 
   // Sync with selected app from value prop or store - only when selectedApp changes
   useEffect(() => {
@@ -76,11 +81,11 @@ const UnifiedAppPathCard = React.memo(({
         console.error('[UnifiedAppPathCard] Error generating path for app:', currentSelectedApp, error);
         setPath('');
       }
-    } else {
-      // Clear the path if no app is selected
+    } else if (!value.path) {
+      // Only clear the path if no app is selected AND no path was provided in value
       setPath('');
     }
-  }, [selectedApp, value.selectedApp]);
+  }, [selectedApp, value.selectedApp, value.path]);
 
   // Update parent when form changes - only call onChange when values actually change
   useEffect(() => {

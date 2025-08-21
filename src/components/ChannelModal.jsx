@@ -71,7 +71,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     epicGames, epicLoading, epicError,
     uwpApps, uwpLoading, uwpError,
     customSteamPath
-  } = appLibrary;
+  } = appLibrary || {};
   
   // Get channels data from consolidated store
   const { channels, actions } = useConsolidatedAppStore();
@@ -80,7 +80,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   
   const {
     fetchInstalledApps, fetchSteamGames, fetchEpicGames, fetchUwpApps, setCustomSteamPath
-  } = appLibraryManager;
+  } = appLibraryManager || {};
   
   // Use sound library for hover sound selection
   const {
@@ -159,31 +159,31 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   // Preload data when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && window.api) {
       // Preload installed apps
-      if (installedApps.length === 0) {
-        window.electronAPI.getInstalledApps();
+      if (installedApps?.length === 0 && window.api.apps?.getInstalled) {
+        window.api.apps.getInstalled();
       }
       
       // Preload UWP apps
-      if (uwpApps.length === 0) {
-        window.electronAPI.getUwpApps();
+      if (uwpApps?.length === 0 && window.api.uwp?.listApps) {
+        window.api.uwp.listApps();
       }
       
       // Preload Steam games
-      if (steamGames.length === 0) {
-        window.electronAPI.getSteamGames();
+      if (steamGames?.length === 0 && window.api.steam?.getInstalledGames) {
+        window.api.steam.getInstalledGames();
       }
       
       // Preload Epic games
-      if (epicGames.length === 0) {
-        window.electronAPI.getEpicGames();
+      if (epicGames?.length === 0 && window.api.epic?.getInstalledGames) {
+        window.api.epic.getInstalledGames();
       }
       
       // Preload media library cache for Epic game thumbnails
       preloadMediaLibrary();
     }
-  }, [isOpen, installedApps.length, uwpApps.length, steamGames.length, epicGames.length, preloadMediaLibrary]);
+  }, [isOpen, installedApps?.length, uwpApps?.length, steamGames?.length, epicGames?.length, preloadMediaLibrary]);
 
   // Fetch app library data when modal opens (for unified system)
   useEffect(() => {
@@ -191,28 +191,30 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     if (!isOpen) return;
     
     // Load sound library for hover sound selection
-    loadSoundLibrary();
+    if (loadSoundLibrary) {
+      loadSoundLibrary();
+    }
     
     // Fetch installed apps if not already loaded and not loading
-    if (installedApps.length === 0 && !appsLoading) {
+    if (installedApps?.length === 0 && !appsLoading && fetchInstalledApps) {
       fetchInstalledApps();
     }
     // Fetch UWP apps if not already loaded and not loading
-    if (uwpApps.length === 0 && !uwpLoading) {
+    if (uwpApps?.length === 0 && !uwpLoading && fetchUwpApps) {
       fetchUwpApps();
     }
     // Fetch Steam games if not already loaded and not loading
-    if (steamGames.length === 0 && !steamLoading) {
+    if (steamGames?.length === 0 && !steamLoading && fetchSteamGames) {
       fetchSteamGames(customSteamPath);
     }
     // Fetch Epic games if not already loaded and not loading
-    if (epicGames.length === 0 && !epicLoading) {
+    if (epicGames?.length === 0 && !epicLoading && fetchEpicGames) {
       fetchEpicGames();
     }
     
     // Preload media library cache for Epic game thumbnails
     preloadMediaLibrary();
-  }, [isOpen, installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, customSteamPath, loadSoundLibrary]);
+  }, [isOpen, installedApps?.length, appsLoading, uwpApps?.length, uwpLoading, steamGames?.length, steamLoading, epicGames?.length, epicLoading, customSteamPath, loadSoundLibrary, fetchInstalledApps, fetchUwpApps, fetchSteamGames, fetchEpicGames]);
 
   // Handle hover sound file select
   const handleHoverSoundFile = async (file) => {

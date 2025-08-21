@@ -77,7 +77,7 @@ contextBridge.exposeInMainWorld('api', {
   // Window management APIs
   close: () => ipcRenderer.send('close-window'),
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
-  setFullscreen: (shouldBeFullscreen) => ipcRenderer.send('set-fullscreen', shouldBeFullscreen),
+  setFullscreen: (shouldBeFullscreen) => ipcRenderer.invoke('set-fullscreen', shouldBeFullscreen),
   toggleFrame: () => ipcRenderer.send('toggle-frame'),
   minimize: () => ipcRenderer.send('minimize-window'),
   onFullscreenState: (cb) => ipcRenderer.on('fullscreen-state', (e, val) => cb(val)),

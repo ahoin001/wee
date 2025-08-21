@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './ClassicWiiDock.css';
 import DockParticleSystem from './DockParticleSystem';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
@@ -16,8 +16,8 @@ const WiiDock = ({
 }) => {
   const [activeButton, setActiveButton] = useState(null);
 
-  // Default colors
-  const colors = {
+  // Memoize colors object to prevent unnecessary re-renders
+  const colors = useMemo(() => ({
     dockBaseGradientStart: dockSettings.dockBaseGradientStart || '#BDBEC2',
     dockBaseGradientEnd: dockSettings.dockBaseGradientEnd || '#DADDE6',
     dockAccentColor: dockSettings.dockAccentColor || '#33BEED',
@@ -38,7 +38,9 @@ const WiiDock = ({
     buttonIconColor: dockSettings.buttonIconColor || '#979796',
     rightButtonIconColor: dockSettings.rightButtonIconColor || '#A4A4A4',
     buttonHighlightColor: dockSettings.buttonHighlightColor || '#E4E4E4',
-  };
+  }), [dockSettings]);
+
+
 
   // Glass effect settings
   const glassEnabled = dockSettings.glassEnabled || false;
@@ -182,6 +184,21 @@ const WiiDock = ({
 
   return (
     <div className="wii-dock-container" onContextMenu={handleContextMenu}>
+      {/* Debug logging for particle system props */}
+              {process.env.NODE_ENV === 'development' && (
+          <div style={{ display: 'none' }}>
+            {console.log('[WiiDock] Particle system props:', {
+              enabled: particleSettings.particleSystemEnabled || false,
+              effectType: particleSettings.particleEffectType || 'normal',
+              direction: particleSettings.particleDirection || 'upward',
+              speed: particleSettings.particleSpeed || 2,
+              particleCount: particleSettings.particleCount || 3,
+              spawnRate: particleSettings.particleSpawnRate || 60
+            })}
+            {console.log('[WiiDock] Full particleSettings:', particleSettings)}
+          </div>
+        )}
+      
       {/* Particle System */}
       <DockParticleSystem
         enabled={particleSettings.particleSystemEnabled || false}
@@ -519,24 +536,49 @@ const ClassicWiiDock = ({
   onDockContextMenu,
   accessoryButtonConfig
 }) => {
-  // Get dock settings and actions from consolidated store
-  const { dock, actions } = useConsolidatedAppStore();
+  // Get dock settings from consolidated store
+  const { dock } = useConsolidatedAppStore();
   
-  // Use dock settings from store instead of props
-  const dockSettings = dock;
-  const particleSettings = dock;
+  // Use dock settings from store with fallbacks
+  const dockSettings = dock || {};
+  const particleSettings = dock || {};
+  
+  // Note: Store is now initialized centrally in App.jsx
+  
+  // Debug logging for particle settings
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[ClassicWiiDock] Dock settings from consolidated store:', {
+      particleSystemEnabled: dockSettings?.particleSystemEnabled,
+      particleEffectType: dockSettings?.particleEffectType,
+      particleDirection: dockSettings?.particleDirection,
+      particleSpeed: dockSettings?.particleSpeed,
+      particleCount: dockSettings?.particleCount
+    });
+    console.log('[ClassicWiiDock] Full dock settings:', dockSettings);
+  }
   
   // Handle right-click on dock to open settings
   const handleDockContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Open settings modal with dock tab active and classic-dock sub-tab
-    actions.setUIState({ 
-      showSettingsModal: true, 
-      settingsActiveTab: 'dock',
-      dockSubTab: 'classic-dock' // Specify which sub-tab to open
-    });
+    try {
+      // Open settings modal with dock tab active
+      if (onSettingsClick) {
+        onSettingsClick();
+      } else {
+        // Fallback: try to use consolidated store actions if available
+        const { actions } = useConsolidatedAppStore.getState();
+        if (actions?.setUIState) {
+          actions.setUIState({ 
+            showSettingsModal: true, 
+            settingsActiveTab: 'dock'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[ClassicWiiDock] Failed to open settings modal:', error);
+    }
   };
 
   return (
