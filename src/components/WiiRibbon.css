@@ -1,4 +1,18 @@
 /* Design system variables are now imported from design-system.css */
+.interactive-footer {
+  --ribbon-glow-soft: hsl(var(--wii-blue) / 0.2);
+  --ribbon-glow-faint: hsl(var(--wii-blue) / 0.1);
+  --ribbon-glow-medium: hsl(var(--wii-blue) / 0.4);
+  --ribbon-glow-strong: hsl(var(--wii-blue) / 0.7);
+  --ribbon-button-surface: hsl(var(--surface-primary));
+  --ribbon-button-neutral: hsl(var(--surface-secondary));
+  --ribbon-button-border: hsl(var(--border-primary));
+  --ribbon-white-soft: rgb(255 255 255 / 0.2);
+  --ribbon-white-soft-strong: rgb(255 255 255 / 0.3);
+  --ribbon-shadow-soft: rgb(0 0 0 / 0.1);
+  --ribbon-cog-glass: rgb(232 228 224 / 0.8);
+  --ribbon-inner-highlight: rgb(255 255 255 / 1);
+}
 .border-wii-gray { border-color: hsl(var(--border-primary)); }
 .text-wii-gray-dark { color: hsl(var(--text-secondary)); }
 .text-foreground { color: hsl(var(--text-primary)); }
@@ -36,8 +50,8 @@
 .svg-container-glow {
   transition: filter 0.4s ease-in-out;
   filter:
-    drop-shadow(0 0 4px rgba(0, 191, 255, 0.2))
-    drop-shadow(0 0 8px rgba(0, 191, 255, 0.1));
+    drop-shadow(0 0 4px var(--ribbon-glow-soft))
+    drop-shadow(0 0 8px var(--ribbon-glow-faint));
 }
 
 .svg-container-glow.glass-effect {
@@ -47,14 +61,14 @@
 
 .interactive-footer:hover .svg-container-glow {
   filter:
-    drop-shadow(0 0 8px rgba(0, 191, 255, 0.4))
-    drop-shadow(0 0 16px rgba(0, 191, 255, 0.2));
+    drop-shadow(0 0 8px var(--ribbon-glow-medium))
+    drop-shadow(0 0 16px var(--ribbon-glow-soft));
 }
 
 .button-container {
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: var(--ribbon-white-soft);
+  box-shadow: 0 4px 6px -1px var(--ribbon-shadow-soft);
 }
 
 .button-container.left {
@@ -66,10 +80,10 @@
 }
 
 .glass-effect .button-container {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--ribbon-white-soft-strong);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--ribbon-white-soft);
 }
 
 .button-container.left:hover {
@@ -107,14 +121,14 @@
 .sd-card-button {
   width: 48px;
   height: 48px;
-  background-color: #e0e4e8;
+  background-color: var(--ribbon-button-neutral);
   border-radius: 10px;
-  border: 1px solid #b0b8bf;
+  border: 1px solid var(--ribbon-button-border);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: inset 0 1px 1px #fff, inset 0 -1px 1px #c0c5ca;
+  box-shadow: inset 0 1px 1px hsl(var(--text-inverse)), inset 0 -1px 1px hsl(var(--border-secondary));
   transition: transform 0.2s ease, filter 0.2s ease;
 }
 
@@ -134,7 +148,7 @@
 .settings-cog-button:hover {
   transform: scale(1.15);
   filter: drop-shadow(0px 0px 12px hsla(var(--wii-blue), 0.8));
-  background-color: #f0f4f8;
+  background-color: var(--ribbon-button-surface);
 }
 
 .settings-cog-button:active {
@@ -143,10 +157,10 @@
 }
 
 .glass-effect.settings-cog-button {
-  background-color: rgba(232, 228, 224, 0.8);
+  background-color: var(--ribbon-cog-glass);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--ribbon-white-soft-strong);
 }
 
 .settings-cog-button svg {
@@ -163,17 +177,17 @@
 .presets-cog-button:hover {
   transform: scale(1.15);
   filter: drop-shadow(0px 0px 12px hsla(var(--wii-blue), 0.8));
-  background-color: #f0f4f8;
+  background-color: var(--ribbon-button-surface);
 }
 .presets-cog-button:active {
   transform: scale(1.1);
   transition-duration: 0.1s;
 }
 .glass-effect.presets-cog-button {
-  background-color: rgba(232, 228, 224, 0.8);
+  background-color: var(--ribbon-cog-glass);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--ribbon-white-soft-strong);
 }
 .presets-cog-button svg {
   transition: transform 0.3s ease;
@@ -202,12 +216,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 0.1);
   border-radius: 2rem;
   backdrop-filter: blur(1px);
   -webkit-backdrop-filter: blur(1px);
-  box-shadow: inset -10px -8px 0px -11px rgba(255, 255, 255, 1),
-              inset 0px -9px 0px -8px rgba(255, 255, 255, 1);
+  box-shadow: inset -10px -8px 0px -11px var(--ribbon-inner-highlight),
+              inset 0px -9px 0px -8px var(--ribbon-inner-highlight);
   opacity: 0.6;
   z-index: -1;
   filter: blur(1px) drop-shadow(10px 4px 6px black) brightness(115%);
@@ -220,7 +234,7 @@
 }
 .wii-style-button:hover .palette-icon {
   transform: scale(1.15);
-  filter: drop-shadow(0 0 8px #0099ff88);
+  filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
 }
 
 .star-icon {
@@ -228,7 +242,7 @@
 }
 .wii-style-button:hover .star-icon {
   transform: scale(1.15) rotate(18deg);
-  filter: drop-shadow(0 0 8px #0099ff88);
+  filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
 }
 
 .heart-icon {
@@ -236,7 +250,7 @@
 }
 .wii-style-button:hover .heart-icon {
   transform: scale(1.15);
-  filter: drop-shadow(0 0 8px #0099ff88);
+  filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
 }
 
 /* Presets Button Icon Animations */
@@ -245,7 +259,7 @@
 }
 .presets-cog-button:hover .palette-icon {
   transform: scale(1.15);
-  filter: drop-shadow(0 0 8px #0099ff88);
+  filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
 }
 
 .presets-cog-button .star-icon {
@@ -253,7 +267,7 @@
 }
 .presets-cog-button:hover .star-icon {
   transform: scale(1.15) rotate(18deg);
-  filter: drop-shadow(0 0 8px #0099ff88);
+  filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
 }
 
 .presets-cog-button .heart-icon {
@@ -261,7 +275,7 @@
 }
 .presets-cog-button:hover .heart-icon {
   transform: scale(1.15);
-  filter: drop-shadow(0 0 8px #0099ff88);
+  filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
 }
 
 /* Pulse animation for update notification badge */
@@ -278,4 +292,197 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Layout & admin menu (tokenized; reduces inline style in WiiRibbon.jsx) */
+.ribbon-btn-col-left {
+  position: absolute;
+  left: 10px;
+  top: 82px;
+  width: 200px;
+  z-index: 10;
+  margin-left: -30px;
+  padding-left: 72px;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.ribbon-btn-col-right {
+  position: absolute;
+  right: 0;
+  top: 82px;
+  width: 200px;
+  z-index: 10;
+  margin-right: -30px;
+  padding-right: 120px;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.ribbon-wii-btn-idle {
+  transform: scale(1);
+  filter: brightness(1);
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.ribbon-wii-btn-press {
+  transform: scale(0.95);
+  filter: brightness(0.9);
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.ribbon-icon-img {
+  max-height: 40px;
+  max-width: 40px;
+}
+
+.ribbon-icon-img-sm {
+  max-height: 28px;
+  max-width: 28px;
+}
+
+.spotify-match-indicator {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgb(0 0 0 / 0.7);
+  border: 1px solid transparent;
+}
+
+.liquid-glass-shell {
+  width: 280px;
+  height: 120px;
+  border-radius: 56px;
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.liquid-glass-inner-shadow {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 56px;
+  box-shadow:
+    inset 0 1px 3px rgb(255 255 255 / 0.3),
+    inset 0 -1px 2px rgb(0 0 0 / 0.1);
+  background-color: transparent;
+  pointer-events: none;
+}
+
+.ribbon-time-simple-wrap {
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.ribbon-time-shadow {
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+
+.ribbon-time-shadow-lg {
+  text-shadow: 0 2px 4px rgb(0 0 0 / 0.3);
+}
+
+.presets-cog-button-pos {
+  position: absolute;
+  left: calc(50% + 170px);
+  top: 170px;
+  backdrop-filter: blur(12px) saturate(1.5);
+  background: rgb(255 255 255 / 0.45);
+  border: 1.5px solid rgb(180 180 200 / 0.18);
+  box-shadow: 0 2px 16px 0 rgb(80 80 120 / 0.07);
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+}
+
+.ribbon-admin-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: transparent;
+}
+
+.ribbon-admin-panel {
+  position: absolute;
+  bottom: 120px;
+  left: 250px;
+  z-index: 1000;
+  min-width: 280px;
+  max-width: 400px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+  overflow: hidden;
+}
+
+.ribbon-admin-group-label {
+  padding: 12px 16px 8px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 600;
+  color: #333;
+}
+
+.ribbon-admin-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ribbon-admin-item:last-child {
+  border-bottom: none;
+}
+
+.ribbon-admin-item:hover {
+  background: #f8f9fa;
+}
+
+.ribbon-admin-item-icon {
+  font-size: 18px;
+}
+
+.ribbon-admin-item-title {
+  font-weight: 500;
+}
+
+.ribbon-admin-item-cmd {
+  font-size: 12px;
+  color: #666;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  margin-top: 2px;
 }

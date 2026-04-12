@@ -60,6 +60,8 @@ useConsolidatedAppStore = create(
           immersivePip: false,
           showDock: true,
           classicMode: false,
+          /** Ribbon/shell follow Spotify album-art colors (synced with Spotify Match preset). */
+          spotifyMatchEnabled: false,
           channelOpacity: 1,
           lastChannelHoverTime: Date.now(),
           // Modal states
@@ -840,6 +842,7 @@ useConsolidatedAppStore = create(
               immersivePip: false,
               showDock: true,
               classicMode: false,
+              spotifyMatchEnabled: false,
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),
             },

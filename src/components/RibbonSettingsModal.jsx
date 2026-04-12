@@ -5,18 +5,18 @@ import Button from '../ui/WButton';
 import Slider from '../ui/Slider';
 import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
-import { spacing } from '../ui/tokens';
 // New unified data layer imports
 import { useRibbonState } from '../utils/useConsolidatedAppHooks';
 
 import './SoundModal.css';
+import './settings-modal-forms.css';
 
 function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon, setGlassWiiRibbon }) {
   // New unified data layer hooks
   const { ribbon, setRibbonState } = useRibbonState();
-const ribbonSettings = ribbon;
-const updateRibbonSetting = (key, value) => setRibbonState({ [key]: value });
-  
+  const ribbonSettings = ribbon;
+  const updateRibbonSetting = (key, value) => setRibbonState({ [key]: value });
+
   const [glassEnabled, setGlassEnabled] = useState(glassWiiRibbon);
   const [glassOpacity, setGlassOpacity] = useState(0.18);
   const [glassBlur, setGlassBlur] = useState(2.5);
@@ -115,29 +115,11 @@ const updateRibbonSetting = (key, value) => setRibbonState({ [key]: value });
       onClose={onClose}
       maxWidth="700px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+        <div className="modal-footer-row">
           <button 
-            className="reset-button" 
+            type="button"
+            className="ribbon-reset-btn" 
             onClick={resetToDefault}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: '2px solid #0099ff',
-              background: 'transparent',
-              color: '#0099ff',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = '#0099ff';
-              e.target.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent';
-              e.target.style.color = '#0099ff';
-            }}
           >
             Reset to Default
           </button>
@@ -150,84 +132,58 @@ const updateRibbonSetting = (key, value) => setRibbonState({ [key]: value });
         title="Ribbon Styles"
         separator
         desc="Customize the appearance of the Wii Ribbon including colors and glow effects."
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="modal-card-tight"
       >
-        <div style={{ marginTop: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <label style={{ fontWeight: 500, minWidth: 120 }}>Ribbon Color</label>
+        <div className="modal-section-mt">
+          <div className="modal-color-row">
+            <label className="modal-label-inline">Ribbon Color</label>
             <input
               type="color"
               value={ribbonColor}
               onChange={e => setRibbonColor(e.target.value)}
-              style={{
-                width: 50,
-                height: 40,
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer'
-              }}
+              className="modal-color-input"
             />
-            <span style={{ color: '#888', fontSize: 14 }}>
+            <span className="modal-hex-muted">
               {ribbonColor.toUpperCase()}
             </span>
           </div>
           {recentRibbonColors.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
-              <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
-              {recentRibbonColors.map((color, idx) => (
+            <div className="modal-prev-row mb-4">
+              <span className="modal-prev-label">Previous:</span>
+              {recentRibbonColors.map((color) => (
                 <button
                   key={color}
+                  type="button"
                   onClick={() => setRibbonColor(color)}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    border: color === ribbonColor ? '2px solid #0099ff' : '1.5px solid #bbb',
-                    background: color,
-                    cursor: 'pointer',
-                    outline: 'none',
-                    marginLeft: idx === 0 ? 0 : 2
-                  }}
+                  className={`modal-swatch ${color === ribbonColor ? 'modal-swatch--active' : ''}`}
+                  style={{ backgroundColor: color }}
                   title={color}
                 />
               ))}
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <label style={{ fontWeight: 500, minWidth: 120 }}>Ribbon Glow Color</label>
+          <div className="modal-color-row">
+            <label className="modal-label-inline">Ribbon Glow Color</label>
             <input
               type="color"
               value={ribbonGlowColor}
               onChange={e => setRibbonGlowColor(e.target.value)}
-              style={{
-                width: 50,
-                height: 40,
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer'
-              }}
+              className="modal-color-input"
             />
-            <span style={{ color: '#888', fontSize: 14 }}>
+            <span className="modal-hex-muted">
               {ribbonGlowColor.toUpperCase()}
             </span>
           </div>
           {recentRibbonGlowColors.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.md }}>
-              <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
-              {recentRibbonGlowColors.map((color, idx) => (
+            <div className="modal-prev-row mb-4">
+              <span className="modal-prev-label">Previous:</span>
+              {recentRibbonGlowColors.map((color) => (
                 <button
                   key={color}
+                  type="button"
                   onClick={() => setRibbonGlowColor(color)}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    border: color === ribbonGlowColor ? '2px solid #0099ff' : '1.5px solid #bbb',
-                    background: color,
-                    cursor: 'pointer',
-                    outline: 'none',
-                    marginLeft: idx === 0 ? 0 : 2
-                  }}
+                  className={`modal-swatch ${color === ribbonGlowColor ? 'modal-swatch--active' : ''}`}
+                  style={{ backgroundColor: color }}
                   title={color}
                 />
               ))}
@@ -271,10 +227,10 @@ const updateRibbonSetting = (key, value) => setRibbonState({ [key]: value });
             onChange={(checked) => setGlassEnabled(checked)}
           />
         }
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="modal-card-tight"
       >
         {glassEnabled && (
-          <div style={{ marginTop: 14 }}>
+          <div className="modal-section-mt">
             <Slider
               label="Background Opacity"
               value={glassOpacity}

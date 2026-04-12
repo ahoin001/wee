@@ -1,0 +1,151 @@
+/**
+ * Wii-style Card variants — palette tokens via data-wii-color.
+ * Keeps gradients/borders in one place (no per-render inline objects).
+ */
+
+.wii-card-text-title {
+  color: hsl(var(--text-primary));
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+.wii-card-text-sub {
+  color: hsl(var(--text-secondary));
+  text-shadow: 0 1px 1px rgb(255 255 255 / 0.5);
+}
+
+.wii-card-text-muted {
+  color: hsl(var(--text-secondary));
+}
+
+/* —— Palette: blue —— */
+.wii-card[data-wii-color='blue'] {
+  --wii-card-bg: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 50%, #b8d9e8 100%);
+  --wii-card-border: #33beed;
+  --wii-card-shadow: rgb(51 190 237 / 0.15);
+  --wii-card-shadow-inner: rgb(51 190 237 / 0.2);
+  --wii-card-shadow-stat: rgb(51 190 237 / 0.1);
+  --wii-card-icon-bg: linear-gradient(135deg, #33beed 0%, #0099ff 100%);
+  --wii-card-accent: #33beed;
+}
+
+/* —— red —— */
+.wii-card[data-wii-color='red'] {
+  --wii-card-bg: linear-gradient(135deg, #ffe5e5 0%, #fff0f0 100%);
+  --wii-card-border: #ff6b6b;
+  --wii-card-shadow: rgb(255 107 107 / 0.15);
+  --wii-card-shadow-inner: rgb(255 107 107 / 0.2);
+  --wii-card-shadow-stat: rgb(255 107 107 / 0.1);
+  --wii-card-icon-bg: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
+  --wii-card-accent: #ff6b6b;
+}
+
+/* —— green —— */
+.wii-card[data-wii-color='green'] {
+  --wii-card-bg: linear-gradient(135deg, #e8f5e8 0%, #f0fff0 100%);
+  --wii-card-border: #4caf50;
+  --wii-card-shadow: rgb(76 175 80 / 0.15);
+  --wii-card-shadow-inner: rgb(76 175 80 / 0.2);
+  --wii-card-shadow-stat: rgb(76 175 80 / 0.1);
+  --wii-card-icon-bg: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+  --wii-card-accent: #4caf50;
+}
+
+/* —— orange —— */
+.wii-card[data-wii-color='orange'] {
+  --wii-card-bg: linear-gradient(135deg, #fff3e0 0%, #fff8e1 100%);
+  --wii-card-border: #ff9800;
+  --wii-card-shadow: rgb(255 152 0 / 0.15);
+  --wii-card-shadow-inner: rgb(255 152 0 / 0.2);
+  --wii-card-shadow-stat: rgb(255 152 0 / 0.1);
+  --wii-card-icon-bg: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+  --wii-card-accent: #ff9800;
+}
+
+/* —— purple —— */
+.wii-card[data-wii-color='purple'] {
+  --wii-card-bg: linear-gradient(135deg, #f3e5f5 0%, #f8f4ff 100%);
+  --wii-card-border: #9c27b0;
+  --wii-card-shadow: rgb(156 39 176 / 0.15);
+  --wii-card-shadow-inner: rgb(156 39 176 / 0.2);
+  --wii-card-shadow-stat: rgb(156 39 176 / 0.1);
+  --wii-card-icon-bg: linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%);
+  --wii-card-accent: #9c27b0;
+}
+
+/* —— yellow —— */
+.wii-card[data-wii-color='yellow'] {
+  --wii-card-bg: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);
+  --wii-card-border: #ffd93d;
+  --wii-card-shadow: rgb(255 217 61 / 0.15);
+  --wii-card-shadow-inner: rgb(255 217 61 / 0.2);
+  --wii-card-shadow-stat: rgb(255 217 61 / 0.1);
+  --wii-card-icon-bg: linear-gradient(135deg, #ffd93d 0%, #ffe566 100%);
+  --wii-card-accent: #ffd93d;
+}
+
+/* —— gray —— */
+.wii-card[data-wii-color='gray'] {
+  --wii-card-bg: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  --wii-card-border: #6c757d;
+  --wii-card-shadow: rgb(108 117 125 / 0.15);
+  --wii-card-shadow-inner: rgb(108 117 125 / 0.2);
+  --wii-card-shadow-stat: rgb(108 117 125 / 0.1);
+  --wii-card-icon-bg: linear-gradient(135deg, #6c757d 0%, #868e96 100%);
+  --wii-card-accent: #6c757d;
+}
+
+/* Emphasis */
+.wii-card--emphasis {
+  background: var(--wii-card-bg);
+  border: 3px solid var(--wii-card-border);
+  box-shadow:
+    0 8px 24px var(--wii-card-shadow),
+    inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.wii-card-deco-tr {
+  background: radial-gradient(
+    circle,
+    var(--wii-card-border) 0%,
+    var(--wii-card-accent) 100%
+  );
+}
+
+.wii-card-deco-bl {
+  background: radial-gradient(
+    circle,
+    var(--wii-card-accent) 0%,
+    var(--wii-card-border) 100%
+  );
+}
+
+.wii-card-icon-circle {
+  background: var(--wii-card-icon-bg);
+  box-shadow: 0 4px 12px var(--wii-card-shadow);
+}
+
+.wii-card-deco-feature {
+  background: radial-gradient(
+    circle,
+    var(--wii-card-border) 0%,
+    var(--wii-card-accent) 100%
+  );
+}
+
+.wii-card-feature-body {
+  background: hsl(var(--surface-primary) / 0.62);
+  border: 2px solid var(--wii-card-shadow-inner);
+}
+
+.wii-card-feature-badge {
+  background: var(--wii-card-icon-bg);
+}
+
+.wii-card-stat-cell {
+  background: rgb(255 255 255 / 0.7);
+  border: 2px solid var(--wii-card-shadow-stat);
+}
+
+.wii-card-stat-icon {
+  color: var(--wii-card-accent);
+}

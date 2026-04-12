@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import WToggle from '../ui/WToggle';
+import WButton from '../ui/WButton';
 import { useNavigationState, useIconState } from '../utils/useConsolidatedAppHooks';
+import './surfaceStyles.css';
 
 function NavigationCustomizationModal() {
   const { navigation, navigationManager } = useNavigationState();
@@ -204,128 +206,53 @@ function NavigationCustomizationModal() {
       onClose={closeModal}
       maxWidth="800px"
       footerContent={() => (
-        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-          <button
+        <div className="surface-row-between w-full">
+          <WButton
+            variant="secondary"
             onClick={handleReset}
-            style={{ 
-              background: '#dc3545', 
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}
+            className="!bg-[hsl(var(--state-error))] !text-[hsl(var(--text-inverse))]"
           >
             🔄 Reset to Default
-          </button>
+          </WButton>
           
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
+          <div className="surface-actions">
+            <WButton
+              variant="secondary"
               onClick={closeModal}
-              style={{ 
-                background: '#6c757d', 
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
             >
               Cancel
-            </button>
-            <button
+            </WButton>
+            <WButton
+              variant="primary"
               onClick={handleSave}
-              style={{ 
-                background: '#0ea5e9', 
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
             >
               Save Changes
-            </button>
+            </WButton>
           </div>
         </div>
       )}
     >
-      {/* Preview Card */}
-      {/* <Card 
-        title="Preview"
-        separator={true}
-        style={{ marginBottom: 18 }}
-      >
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-            boxShadow: '0 8px 25px rgba(59, 130, 246, 0.3)',
-            marginBottom: '12px'
-          }}>
-            {selectedIcon ? (
-              <img 
-                src={selectedIcon} 
-                alt="Selected icon" 
-                style={{ width: 32, height: 32, objectFit: 'contain' }}
-              />
-            ) : (
-              <div style={{ color: 'white' }}>
-                {getDefaultIcon()}
-              </div>
-            )}
-          </div>
-          <div style={{ fontSize: '14px', color: '#666' }}>
-            {selectedIcon ? 'Custom Icon' : 'Default Icon'}
-          </div>
-        </div>
-      </Card> */}
-
       {/* Icon Selection Card */}
       <Card 
         title="Icon Selection"
         separator={true}
-        style={{ marginBottom: 18 }}
+        className="mb-[18px]"
       >
         {/* Default Icon Option */}
-        <div style={{ marginBottom: 16 }}>
+        <div className="mb-4">
           <button
             onClick={() => setSelectedIcon(null)}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              border: selectedIcon === null ? '2px solid #0ea5e9' : '2px solid #e5e7eb',
-              borderRadius: '8px',
-              background: selectedIcon === null ? '#f0f9ff' : 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
+            className={`w-full px-4 py-3 rounded-lg flex items-center gap-3 cursor-pointer transition-all ${selectedIcon === null ? 'border-2 border-sky-500 bg-sky-50' : 'border-2 border-slate-200 bg-white'}`}
           >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '6px',
-              background: '#f3f4f6'
-            }}>
+            <div className="flex items-center justify-center w-10 h-10 rounded-md bg-slate-100">
               {getDefaultIcon()}
             </div>
-            <div style={{ textAlign: 'left', flex: 1 }}>
-              <div style={{ fontWeight: 500, color: '#1f2937' }}>Default Arrow</div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>Use the built-in arrow icon</div>
+            <div className="text-left flex-1">
+              <div className="font-medium text-slate-800">Default Arrow</div>
+              <div className="text-[14px] text-slate-500">Use the built-in arrow icon</div>
             </div>
             {selectedIcon === null && (
-              <div style={{ color: '#0ea5e9' }}>
+              <div className="text-sky-500">
                 <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
@@ -335,112 +262,64 @@ function NavigationCustomizationModal() {
         </div>
 
         {/* Upload Button */}
-        <div style={{ marginBottom: 20 }}>
-          <button
+        <div className="mb-5">
+          <WButton
+            variant="primary"
             onClick={handleIconUpload}
             disabled={iconsUploading}
-            style={{
-              width: '100%',
-              padding: '10px 16px',
-              background: iconsUploading ? '#9ca3af' : '#0ea5e9',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              cursor: iconsUploading ? 'not-allowed' : 'pointer'
-            }}
+            className="w-full"
           >
             {iconsUploading ? '🔄 Uploading...' : '🎨 Upload Custom Icon'}
-          </button>
+          </WButton>
           {iconsUploadError && (
-            <div style={{ color: '#dc3545', fontSize: '13px', marginTop: '8px' }}>
+            <div className="text-[hsl(var(--state-error))] text-[13px] mt-2">
               {iconsUploadError}
             </div>
           )}
-          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+          <div className="text-[12px] text-secondary mt-1">
             Supports PNG files up to 2MB
           </div>
         </div>
 
         {/* Saved Icons Grid */}
         <div>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            marginBottom: '12px' 
-          }}>
-            <div style={{ fontWeight: 500, color: '#1f2937' }}>Your Icons</div>
+          <div className="surface-row-between mb-3">
+            <div className="font-medium text-primary">Your Icons</div>
             <button
               onClick={fetchIcons}
               disabled={iconsLoading}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#0ea5e9',
-                cursor: iconsLoading ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                fontWeight: 500
-              }}
+              className="bg-transparent border-0 text-[hsl(var(--wii-blue))] text-[14px] font-medium disabled:opacity-60"
             >
               {iconsLoading ? '🔄' : '↻'} Refresh
             </button>
           </div>
 
           {iconsLoading ? (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#6b7280' }}>
+            <div className="text-center py-8 text-secondary">
               Loading your icons...
             </div>
           ) : savedIcons.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#6b7280' }}>
+            <div className="text-center py-8 text-secondary">
               No custom icons yet. Upload one to get started!
             </div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))',
-              gap: '8px',
-              maxHeight: '200px',
-              overflowY: 'auto'
-            }}>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(60px,1fr))] gap-2 max-h-[200px] overflow-y-auto">
               {savedIcons.map((iconData) => (
                 <div
                   key={iconData.url}
-                  style={{
-                    position: 'relative',
-                    cursor: 'pointer'
-                  }}
+                  className="relative cursor-pointer"
                   onClick={() => setSelectedIcon(iconData.url)}
                 >
                   <div
-                    style={{
-                      border: selectedIcon === iconData.url ? '2px solid #0ea5e9' : '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      padding: '8px',
-                      background: selectedIcon === iconData.url ? '#f0f9ff' : 'white',
-                      transition: 'all 0.2s ease',
-                      height: '60px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
+                    className={`rounded-lg p-2 transition-all h-[60px] flex items-center justify-center ${selectedIcon === iconData.url ? 'border-2 border-sky-500 bg-sky-50' : 'border-2 border-slate-200 bg-white'}`}
                   >
                     <img
                       src={iconData.url}
                       alt={iconData.name}
-                      style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        objectFit: 'contain' 
-                      }}
+                      className="w-10 h-10 object-contain"
                     />
                     {selectedIcon === iconData.url && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        color: '#0ea5e9'
-                      }}>
+                      <div className="absolute top-1 right-1 text-sky-500">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
@@ -452,23 +331,7 @@ function NavigationCustomizationModal() {
                       e.stopPropagation();
                       handleDeleteIcon(iconData.url);
                     }}
-                    style={{
-                      position: 'absolute',
-                      top: '-4px',
-                      left: '-4px',
-                      background: '#dc3545',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '20px',
-                      height: '20px',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}
+                    className="absolute -top-1 -left-1 bg-red-600 text-white border-0 rounded-full w-5 h-5 text-[12px] cursor-pointer flex items-center justify-center shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
                   >
                     ×
                   </button>
@@ -491,29 +354,19 @@ function NavigationCustomizationModal() {
           />
         }
       >
-        <div style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>
+        <div className="text-secondary text-[14px] mb-4">
           Apply a glass morphism effect to the navigation button for a modern, translucent appearance.
         </div>
         
         {useGlassEffect && (
-          <div style={{ 
-            padding: '16px',
-            background: '#f9fafb',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div className="p-4 bg-secondary rounded-[8px] border border-primary">
             {/* Glass Opacity */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: 8 
-              }}>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
+            <div className="mb-4">
+              <div className="surface-row-between mb-2">
+                <span className="text-[14px] font-medium text-slate-700">
                   Glass Opacity
                 </span>
-                <span style={{ fontSize: 14, color: '#6b7280' }}>
+                <span className="text-[14px] text-slate-500">
                   {(glassOpacity * 100).toFixed(0)}%
                 </span>
               </div>
@@ -524,22 +377,17 @@ function NavigationCustomizationModal() {
                 step="0.01"
                 value={glassOpacity}
                 onChange={(e) => setGlassOpacity(parseFloat(e.target.value))}
-                style={{ width: '100%' }}
+                className="w-full"
               />
             </div>
 
             {/* Glass Blur */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: 8 
-              }}>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
+            <div className="mb-4">
+              <div className="surface-row-between mb-2">
+                <span className="text-[14px] font-medium text-slate-700">
                   Blur Strength
                 </span>
-                <span style={{ fontSize: 14, color: '#6b7280' }}>
+                <span className="text-[14px] text-slate-500">
                   {glassBlur.toFixed(1)}px
                 </span>
               </div>
@@ -550,22 +398,17 @@ function NavigationCustomizationModal() {
                 step="0.1"
                 value={glassBlur}
                 onChange={(e) => setGlassBlur(parseFloat(e.target.value))}
-                style={{ width: '100%' }}
+                className="w-full"
               />
             </div>
 
             {/* Glass Border Opacity */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: 8 
-              }}>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
+            <div className="mb-4">
+              <div className="surface-row-between mb-2">
+                <span className="text-[14px] font-medium text-slate-700">
                   Border Opacity
                 </span>
-                <span style={{ fontSize: 14, color: '#6b7280' }}>
+                <span className="text-[14px] text-slate-500">
                   {(glassBorderOpacity * 100).toFixed(0)}%
                 </span>
               </div>
@@ -576,22 +419,17 @@ function NavigationCustomizationModal() {
                 step="0.05"
                 value={glassBorderOpacity}
                 onChange={(e) => setGlassBorderOpacity(parseFloat(e.target.value))}
-                style={{ width: '100%' }}
+                className="w-full"
               />
             </div>
 
             {/* Glass Shine Opacity */}
             <div>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: 8 
-              }}>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
+              <div className="surface-row-between mb-2">
+                <span className="text-[14px] font-medium text-slate-700">
                   Shine Opacity
                 </span>
-                <span style={{ fontSize: 14, color: '#6b7280' }}>
+                <span className="text-[14px] text-slate-500">
                   {(glassShineOpacity * 100).toFixed(0)}%
                 </span>
               </div>
@@ -602,7 +440,7 @@ function NavigationCustomizationModal() {
                 step="0.05"
                 value={glassShineOpacity}
                 onChange={(e) => setGlassShineOpacity(parseFloat(e.target.value))}
-                style={{ width: '100%' }}
+                className="w-full"
               />
             </div>
           </div>

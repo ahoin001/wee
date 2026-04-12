@@ -1,0 +1,232 @@
+.surface-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.surface-title {
+  color: hsl(var(--text-primary));
+  margin-bottom: 8px;
+}
+
+.surface-subtitle {
+  color: hsl(var(--text-secondary));
+  margin-bottom: 16px;
+}
+
+.surface-card-body {
+  padding: 20px;
+}
+
+.surface-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.surface-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.surface-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.surface-color-label {
+  min-width: 140px;
+  color: hsl(var(--text-secondary));
+}
+
+.surface-color-label-sm {
+  min-width: 120px;
+  color: hsl(var(--text-secondary));
+}
+
+.surface-color-input {
+  width: 50px;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: transparent;
+}
+
+.surface-caption {
+  color: hsl(var(--text-tertiary));
+  margin-top: 4px;
+}
+
+.surface-help {
+  color: hsl(var(--text-secondary));
+  font-size: 13px;
+}
+
+.surface-help-indent {
+  margin-top: 4px;
+  margin-left: 24px;
+}
+
+.surface-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.surface-tab-nav {
+  display: flex;
+  border-bottom: 1px solid hsl(var(--border-primary));
+  margin-bottom: 24px;
+}
+
+.surface-tab-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--nav-duration-base) var(--nav-ease-standard);
+}
+
+.surface-tab-button-active {
+  color: hsl(var(--text-primary));
+  border-bottom: 2px solid hsl(var(--wii-blue));
+  font-weight: 600;
+}
+
+.surface-tab-button-inactive {
+  color: hsl(var(--text-secondary));
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+}
+
+.surface-input,
+.surface-select,
+.surface-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid hsl(var(--border-primary));
+  border-radius: 6px;
+  background: hsl(var(--surface-primary));
+  color: hsl(var(--text-primary));
+}
+
+.surface-textarea {
+  resize: vertical;
+}
+
+.surface-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.surface-actions-end {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.surface-soft-panel {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-secondary));
+}
+
+.surface-card-section {
+  padding: 20px;
+}
+
+.surface-card-title {
+  color: hsl(var(--text-primary));
+  margin-bottom: 16px;
+}
+
+.surface-card-description {
+  color: hsl(var(--text-secondary));
+  margin-bottom: 16px;
+}
+
+.surface-theme-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.surface-theme-chevron {
+  transition: transform var(--nav-duration-base) var(--nav-ease-standard);
+}
+
+.surface-theme-chevron-open {
+  transform: rotate(180deg);
+}
+
+.surface-theme-chevron-closed {
+  transform: rotate(0deg);
+}
+
+.surface-theme-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.surface-theme-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--nav-duration-base) var(--nav-ease-standard);
+}
+
+.surface-theme-button-selected {
+  border: 2px solid hsl(var(--wii-blue));
+  background: hsl(var(--wii-blue) / 0.08);
+}
+
+.surface-theme-button-unselected {
+  border: 2px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-primary));
+}
+
+.surface-color-swatches {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.surface-color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border-primary));
+}
+
+.surface-selected-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: hsl(var(--wii-blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: hsl(var(--text-inverse));
+  font-size: 10px;
+  font-weight: 700;
+}

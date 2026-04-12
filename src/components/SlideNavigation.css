@@ -25,7 +25,7 @@
 
 /* Smooth transitions */
 .slide-navigation-pages {
-  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: transform var(--nav-duration-slow) var(--nav-ease-standard);
 }
 
 /* Performance optimizations */
@@ -36,7 +36,7 @@
 
 /* Accessibility */
 .slide-navigation-container:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline: 2px solid var(--nav-focus-ring);
   outline-offset: 2px;
 }
 

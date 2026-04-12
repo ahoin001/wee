@@ -11,10 +11,12 @@ import { useChannelState, useRibbonState } from '../utils/useConsolidatedAppHook
 import useChannelOperations from '../utils/useChannelOperations';
 import useSoundManager from '../utils/useSoundManager';
 import './Channel.css';
+import { getStoragePublicObjectUrl } from '../utils/supabase';
+import { useLaunchFeedback } from '../contexts/LaunchFeedbackContext';
 
 // Guard for window.api to prevent errors in browser
 const api = window.api || {
-  launchApp: () => {},
+  launchApp: async () => ({ ok: true }),
   openExternal: (url) => window.open(url, '_blank'), // fallback for browser
   openPipWindow: (url) => {},
 };
@@ -78,6 +80,7 @@ const Channel = React.memo(({
   
   // Floating widget store
   const { ui } = useConsolidatedAppStore();
+  const { showLaunchError } = useLaunchFeedback();
   
   // Auto-fade is now handled at grid level in PaginatedChannels
   
@@ -264,18 +267,34 @@ const Channel = React.memo(({
       // Play channel click sound if enabled
       await playChannelClickSound();
       
-      // Launch app or URL
+      // Launch app or URL (main process: launchApp.cjs — openExternal / spawn / openPath)
       if (effectiveType === 'url' && effectivePath.startsWith('http')) {
         const immersivePip = (() => { try { return JSON.parse(localStorage.getItem('immersivePip')) || false; } catch { return false; } })();
         if (immersivePip && api.openPipWindow) {
           api.openPipWindow(effectivePath);
-        } else if (api.openExternal) {
-          api.openExternal(effectivePath);
         } else {
-          window.open(effectivePath, '_blank'); // fallback for browser only
+          const result = await api.launchApp({ type: 'url', path: effectivePath, asAdmin: false });
+          if (result && result.ok === false) {
+            console.error('[Channel] Failed to open URL:', result.error);
+            showLaunchError({
+              technicalError: result.error,
+              launchType: 'url',
+              path: effectivePath,
+              source: 'channel',
+            });
+          }
         }
       } else {
-        api.launchApp({ type: effectiveType, path: effectivePath, asAdmin: effectiveAsAdmin });
+        const result = await api.launchApp({ type: effectiveType, path: effectivePath, asAdmin: effectiveAsAdmin });
+        if (result && result.ok === false) {
+          console.error('[Channel] Failed to launch:', result.error);
+          showLaunchError({
+            technicalError: result.error,
+            launchType: effectiveType,
+            path: effectivePath,
+            source: 'channel',
+          });
+        }
       }
     }
   };
@@ -344,7 +363,7 @@ const Channel = React.memo(({
   const handleImageSelect = (mediaItem) => {
     
     // Convert Supabase media item to the format expected by Channel component
-    const mediaUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${mediaItem.file_url}`;
+    const mediaUrl = getStoragePublicObjectUrl('media-library', mediaItem.file_url);
     
     // Determine MIME type based on file_type
     let mimeType = 'image/png'; // default

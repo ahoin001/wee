@@ -17,7 +17,7 @@ const WiiSideNavigation = () => {
 
   // Get Spotify colors from store
   const spotifyColors = useConsolidatedAppStore(state => state.spotify.extractedColors);
-  const spotifyEnabled = useConsolidatedAppStore(state => state.spotify.dynamicColorMatching);
+  const spotifyEnabled = useConsolidatedAppStore(state => state.ui.spotifyMatchEnabled);
 
   // Get sound manager for click sounds
   const { playChannelClickSound } = useSoundManager();
@@ -91,49 +91,33 @@ const WiiSideNavigation = () => {
   };
 
   // Generate glass effect styles with enhanced Spotify color strategy
-  const getGlassStyles = (glassSettings, side = 'left') => {
+  const getGlassStyleVars = (glassSettings) => {
     if (!glassSettings.enabled) return {};
     
-    // Use enhanced Spotify color strategy if enabled and available
-    let background, border, boxShadow;
+    let background = `rgba(255, 255, 255, ${glassSettings.opacity})`;
+    let border = `rgba(255, 255, 255, ${glassSettings.borderOpacity})`;
+    let glow = `rgba(31, 38, 135, 0.37)`;
     
     if (spotifyEnabled && navigationSpotifyIntegration && spotifyColors) {
-      // Enhanced color strategy: Primary for backgrounds, Secondary for borders, Accent for highlights
       const primaryColor = spotifyColors.primary;
       const secondaryColor = spotifyColors.secondary;
       const accentColor = spotifyColors.accent;
       
       if (primaryColor && secondaryColor && accentColor) {
         background = rgbToRgba(primaryColor, glassSettings.opacity);
-        border = `1px solid ${rgbToRgba(secondaryColor, glassSettings.borderOpacity)}`;
-        boxShadow = `
-          0 8px 32px ${rgbToRgba(accentColor, 0.37)},
-          inset 0 1px 0 ${rgbToRgba(accentColor, glassSettings.shineOpacity)}
-        `;
-      } else {
-        // Fallback to white if Spotify colors not available
-        background = `rgba(255, 255, 255, ${glassSettings.opacity})`;
-        border = `1px solid rgba(255, 255, 255, ${glassSettings.borderOpacity})`;
-        boxShadow = `
-          0 8px 32px rgba(31, 38, 135, 0.37),
-          inset 0 1px 0 rgba(255, 255, 255, ${glassSettings.shineOpacity})
-        `;
+        border = rgbToRgba(secondaryColor, glassSettings.borderOpacity);
+        glow = rgbToRgba(accentColor, 0.37);
       }
-    } else {
-      // Default white glass effect
-      background = `rgba(255, 255, 255, ${glassSettings.opacity})`;
-      border = `1px solid rgba(255, 255, 255, ${glassSettings.borderOpacity})`;
-      boxShadow = `
-        0 8px 32px rgba(31, 38, 135, 0.37),
-        inset 0 1px 0 rgba(255, 255, 255, ${glassSettings.shineOpacity})
-      `;
     }
     
     return {
-      background,
-      backdropFilter: `blur(${glassSettings.blur}px)`,
-      border,
-      boxShadow,
+      '--side-nav-surface-bg': `linear-gradient(145deg, ${background} 0%, ${background} 100%)`,
+      '--side-nav-surface-border': border,
+      '--side-nav-surface-border-hover': border,
+      '--side-nav-shadow': `0 6px 20px ${glow}`,
+      '--side-nav-shadow-hover': `0 8px 25px ${glow}`,
+      '--side-nav-shadow-active': `0 4px 15px ${glow}`,
+      '--nav-glass-blur': `${glassSettings.blur}px`,
     };
   };
 
@@ -173,27 +157,21 @@ const WiiSideNavigation = () => {
           src={customIcon} 
           alt="navigation icon" 
           style={{ 
-            width: 20, 
-            height: 20,
-            objectFit: 'contain',
             filter: spotifyEnabled && navigationSpotifyIntegration && spotifyColors?.text ? 'brightness(0) saturate(100%) invert(1)' : 'none'
           }}
+          className="wii-side-nav-icon"
           onError={(e) => {
             console.warn('Navigation icon failed to load, falling back to default:', customIcon);
-            // Reset the custom icon if it fails to load
-            // We need to identify which side this icon belongs to
             if (customIcon === leftIcon) {
-              setLeftIcon(null);
               saveIconSettings('left', null);
             } else if (customIcon === rightIcon) {
-              setRightIcon(null);
               saveIconSettings('right', null);
             }
           }}
         />
       );
     }
-    return <DefaultIcon style={{ color: textColor }} />;
+    return <span style={{ color: textColor }}><DefaultIcon /></span>;
   };
 
   // Keyboard and mouse navigation
@@ -274,7 +252,7 @@ const WiiSideNavigation = () => {
       {/* Left Navigation Button */}
       {canGoLeft && (
         <button
-          className="wii-peek-button wii-peek-button-left"
+          className="wii-side-nav-button wii-side-nav-button-left"
           onClick={async () => {
             await playChannelClickSound();
             prevPage();
@@ -284,10 +262,10 @@ const WiiSideNavigation = () => {
           title="Previous page (Right-click to customize)"
         >
           <div 
-            className="wii-button-surface"
-            style={getGlassStyles(leftGlassSettings, 'left')}
+            className="wii-side-nav-surface"
+            style={getGlassStyleVars(leftGlassSettings)}
           >
-            <div className="wii-button-content">
+            <div className="wii-side-nav-content">
               {renderIcon(leftIcon, DefaultLeftIcon, 'left')}
             </div>
           </div>
@@ -297,7 +275,7 @@ const WiiSideNavigation = () => {
       {/* Right Navigation Button */}
       {canGoRight && (
         <button
-          className="wii-peek-button wii-peek-button-right"
+          className="wii-side-nav-button wii-side-nav-button-right"
           onClick={async () => {
             await playChannelClickSound();
             nextPage();
@@ -307,10 +285,10 @@ const WiiSideNavigation = () => {
           title="Next page (Right-click to customize)"
         >
           <div 
-            className="wii-button-surface"
-            style={getGlassStyles(rightGlassSettings, 'right')}
+            className="wii-side-nav-surface"
+            style={getGlassStyleVars(rightGlassSettings)}
           >
-            <div className="wii-button-content">
+            <div className="wii-side-nav-content">
               {renderIcon(rightIcon, DefaultRightIcon, 'right')}
             </div>
           </div>

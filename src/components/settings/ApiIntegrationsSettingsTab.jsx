@@ -7,6 +7,16 @@ import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
 import AdminPanel from '../AdminPanel';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import './api-integrations-settings.css';
+
+const spotifyBtnClass = (active, isGreen = true) =>
+  active
+    ? '!bg-red-600 !border-red-600 hover:!bg-red-700 text-white border-solid'
+    : isGreen
+      ? '!bg-[#1DB954] !border-[#1DB954] hover:!brightness-110 text-white border-solid'
+      : '!bg-[#2196F3] !border-[#2196F3] hover:!brightness-110 text-white border-solid';
+
+const adminOrangeBtn = '!bg-[#FF6B35] !border-[#FF6B35] hover:!brightness-110 text-white border-solid';
 
 const ApiIntegrationsSettingsTab = () => {
   // Use consolidated store
@@ -120,11 +130,7 @@ const ApiIntegrationsSettingsTab = () => {
         shadowColor="rgba(29, 185, 84, 0.3)"
         defaultCollapsed={true}
       >
-        <Card className="mb-6" style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          backdropFilter: 'blur(10px)'
-        }}>
+        <Card className="mb-6 api-integ-glass-card">
           <div className="p-6">
             {/* Widget Enable/Disable Control */}
             <div className="flex items-center justify-between mb-6 p-4 bg-[rgba(0,0,0,0.2)] rounded-lg">
@@ -143,11 +149,8 @@ const ApiIntegrationsSettingsTab = () => {
                 <WButton
                   onClick={handleToggleSpotifyWidget}
                   size="sm"
-                  style={{
-                    backgroundColor: floatingWidgets.spotify.visible ? '#dc2626' : '#1DB954',
-                    borderColor: floatingWidgets.spotify.visible ? '#dc2626' : '#1DB954',
-                    color: 'white'
-                  }}
+                  variant="primary"
+                  className={spotifyBtnClass(floatingWidgets.spotify.visible, true)}
                 >
                   {floatingWidgets.spotify.visible ? 'Disable' : 'Enable'}
                 </WButton>
@@ -180,12 +183,9 @@ const ApiIntegrationsSettingsTab = () => {
                     onClick={spotify.isConnected ? handleSpotifyDisconnect : handleSpotifyConnect}
                     size="sm"
                     disabled={spotify.loading}
-                    style={{
-                      backgroundColor: spotify.isConnected ? '#dc2626' : '#1DB954',
-                      borderColor: spotify.isConnected ? '#dc2626' : '#1DB954',
-                      color: 'white',
-                      width: '100%'
-                    }}
+                    variant="primary"
+                    fullWidth
+                    className={spotifyBtnClass(spotify.isConnected, true)}
                   >
                     {spotify.loading ? 'Connecting...' : (spotify.isConnected ? 'Disconnect' : 'Connect to Spotify')}
                   </WButton>
@@ -213,12 +213,9 @@ const ApiIntegrationsSettingsTab = () => {
                     <WButton
                       onClick={handleToggleSpotifyWidget}
                       size="sm"
-                      style={{
-                        backgroundColor: floatingWidgets.spotify.visible ? '#dc2626' : '#1DB954',
-                        borderColor: floatingWidgets.spotify.visible ? '#dc2626' : '#1DB954',
-                        color: 'white',
-                        width: '100%'
-                      }}
+                      variant="primary"
+                      fullWidth
+                      className={spotifyBtnClass(floatingWidgets.spotify.visible, true)}
                     >
                       {floatingWidgets.spotify.visible ? 'Hide Widget' : 'Show Widget'}
                     </WButton>
@@ -232,10 +229,7 @@ const ApiIntegrationsSettingsTab = () => {
                 Features
               </Text>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
                   <div className="flex items-center">
                     <span className="text-sm mr-2">🎵</span>
                     <Text variant="caption" className="text-white text-xs font-medium">
@@ -245,14 +239,11 @@ const ApiIntegrationsSettingsTab = () => {
                   <WToggle
                     checked={floatingWidgets.spotify.settings.autoShowWidget}
                     onChange={(checked) => handleUpdateSpotifySettings({ autoShowWidget: checked })}
-                    style={{ '--wii-blue': '#1DB954' }}
+                    containerClassName="wii-toggle-spotify-accent"
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
                   <div className="flex items-center">
                     <span className="text-sm mr-2">👁️</span>
                     <Text variant="caption" className="text-white text-xs font-medium">
@@ -262,14 +253,11 @@ const ApiIntegrationsSettingsTab = () => {
           <WToggle
                     checked={floatingWidgets.spotify.settings.autoHideWidget}
                     onChange={(checked) => handleUpdateSpotifySettings({ autoHideWidget: checked })}
-                    style={{ '--wii-blue': '#1DB954' }}
+                    containerClassName="wii-toggle-spotify-accent"
           />
         </div>
 
-                <div className="flex items-center justify-between p-3 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
                   <div className="flex items-center">
                     <span className="text-sm mr-2">🎨</span>
                     <Text variant="caption" className="text-white text-xs font-medium">
@@ -279,7 +267,7 @@ const ApiIntegrationsSettingsTab = () => {
                   <WToggle
                     checked={floatingWidgets.spotify.settings.dynamicColors}
                     onChange={(checked) => handleUpdateSpotifySettings({ dynamicColors: checked })}
-                    style={{ '--wii-blue': '#1DB954' }}
+                    containerClassName="wii-toggle-spotify-accent"
                   />
                 </div>
               </div>
@@ -302,11 +290,7 @@ const ApiIntegrationsSettingsTab = () => {
         shadowColor="rgba(33, 150, 243, 0.3)"
         defaultCollapsed={true}
       >
-        <Card className="mb-6" style={{
-               background: 'rgba(255, 255, 255, 0.1)',
-               border: '1px solid rgba(255, 255, 255, 0.2)',
-               backdropFilter: 'blur(10px)'
-             }}>
+        <Card className="mb-6 api-integ-glass-card">
           <div className="p-6">
             {/* Widget Enable/Disable Control */}
             <div className="flex items-center justify-between mb-6 p-4 bg-[rgba(0,0,0,0.2)] rounded-lg">
@@ -325,11 +309,8 @@ const ApiIntegrationsSettingsTab = () => {
                  <WButton
                   onClick={handleToggleSystemInfoWidget}
                    size="sm"
-                   style={{
-                    backgroundColor: floatingWidgets.systemInfo.visible ? '#dc2626' : '#2196F3',
-                    borderColor: floatingWidgets.systemInfo.visible ? '#dc2626' : '#2196F3',
-                    color: 'white'
-                  }}
+                   variant="primary"
+                   className={spotifyBtnClass(floatingWidgets.systemInfo.visible, false)}
                 >
                                       {floatingWidgets.systemInfo.visible ? 'Disable' : 'Enable'}
                  </WButton>
@@ -364,35 +345,23 @@ const ApiIntegrationsSettingsTab = () => {
               <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
                 Features
               </Text>
-              <div className="grid gap-2 mb-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-                <div className="p-2 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+              <div className="mb-2 grid gap-2 api-integ-grid-features">
+                <div className="api-integ-pill rounded-md p-2">
                   <Text variant="caption" className="text-white text-[11px] font-semibold">
                     📊 CPU & Memory
                   </Text>
                 </div>
-                <div className="p-2 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-pill rounded-md p-2">
                   <Text variant="caption" className="text-white text-[11px] font-semibold">
                     🎮 GPU & Storage
                   </Text>
                 </div>
-                <div className="p-2 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-pill rounded-md p-2">
                   <Text variant="caption" className="text-white text-[11px] font-semibold">
                     🔋 Battery & Power
                   </Text>
                 </div>
-                <div className="p-2 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-pill rounded-md p-2">
                   <Text variant="caption" className="text-white text-[11px] font-semibold">
                     🖥️ Task Manager
                   </Text>
@@ -417,11 +386,7 @@ const ApiIntegrationsSettingsTab = () => {
         shadowColor="rgba(255, 107, 53, 0.3)"
         defaultCollapsed={true}
       >
-        <Card className="mb-6" style={{
-                 background: 'rgba(255, 255, 255, 0.1)',
-                 border: '1px solid rgba(255, 255, 255, 0.2)',
-                 backdropFilter: 'blur(10px)'
-               }}>
+        <Card className="mb-6 api-integ-glass-card">
           <div className="p-6">
             {/* Widget Enable/Disable Control */}
             <div className="flex items-center justify-between mb-6 p-4 bg-[rgba(0,0,0,0.2)] rounded-lg">
@@ -440,11 +405,12 @@ const ApiIntegrationsSettingsTab = () => {
                         <WButton
                   onClick={handleToggleAdminPanelWidget}
                           size="sm"
-                          style={{
-                    backgroundColor: floatingWidgets.adminPanel.visible ? '#dc2626' : '#FF6B35',
-                    borderColor: floatingWidgets.adminPanel.visible ? '#dc2626' : '#FF6B35',
-                    color: 'white'
-                  }}
+                          variant="primary"
+                          className={
+                            floatingWidgets.adminPanel.visible
+                              ? '!bg-red-600 !border-red-600 hover:!bg-red-700 text-white border-solid'
+                              : adminOrangeBtn
+                          }
                 >
                                       {floatingWidgets.adminPanel.visible ? 'Disable' : 'Enable'}
                         </WButton>
@@ -459,10 +425,7 @@ const ApiIntegrationsSettingsTab = () => {
               <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
                 Quick Access Menu
               </Text>
-              <div className="mb-4 p-4 rounded-lg border" style={{
-                background: 'rgba(0, 0, 0, 0.2)',
-                borderColor: 'rgba(255, 255, 255, 0.1)'
-              }}>
+              <div className="api-integ-admin-inner mb-4 rounded-lg border p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <Text variant="caption" className="text-white font-semibold text-sm">
@@ -475,23 +438,17 @@ const ApiIntegrationsSettingsTab = () => {
                            <WButton
                     onClick={() => setShowAdminPanel(true)}
                              size="sm"
-                             style={{
-                      backgroundColor: '#FF6B35',
-                      borderColor: '#FF6B35',
-                      color: 'white'
-                    }}
+                             variant="primary"
+                             className={adminOrangeBtn}
                   >
                     Configure Actions
                            </WButton>
                          </div>
                          
                 {adminPanelConfig.powerActions && adminPanelConfig.powerActions.length > 0 ? (
-                  <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                  <div className="grid gap-2 api-integ-grid-actions">
                     {adminPanelConfig.powerActions.slice(0, 6).map((action, index) => (
-                      <div key={action.id} className="p-3 rounded-md" style={{
-                                  background: 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)'
-                      }}>
+                      <div key={action.id} className="api-integ-feature-row rounded-md p-3">
                         <div className="flex items-center">
                           <span className="text-sm mr-2">{action.icon}</span>
                           <Text variant="caption" className="text-white text-xs font-medium">
@@ -501,10 +458,7 @@ const ApiIntegrationsSettingsTab = () => {
                                 </div>
                               ))}
                     {adminPanelConfig.powerActions.length > 6 && (
-                      <div className="p-3 rounded-md" style={{
-                                  background: 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)'
-                      }}>
+                      <div className="api-integ-feature-row rounded-md p-3">
                         <Text variant="caption" className="text-white text-xs font-medium">
                           +{adminPanelConfig.powerActions.length - 6} more actions
                         </Text>
@@ -528,35 +482,23 @@ const ApiIntegrationsSettingsTab = () => {
               <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
                 Features
                    </Text>
-              <div className="grid gap-2 mb-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-                <div className="p-2 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+              <div className="mb-2 grid gap-2 api-integ-grid-features">
+                <div className="api-integ-pill rounded-md p-2">
                   <Text variant="caption" className="text-white text-[11px] font-semibold">
                     🔌 Power Management
                    </Text>
                  </div>
-                <div className="p-2 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-pill rounded-md p-2">
                   <Text variant="caption" className="text-white text-[11px] font-semibold">
                     🛠️ System Tools
                      </Text>
                    </div>
-                <div className="p-2 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-pill rounded-md p-2">
                   <Text variant="caption" className="text-white text-[11px] font-semibold">
                     🎛️ Settings
                      </Text>
                    </div>
-                <div className="p-2 rounded-md" style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
+                <div className="api-integ-pill rounded-md p-2">
                   <Text variant="caption" className="text-white text-[11px] font-semibold">
                     📁 File Management
                    </Text>

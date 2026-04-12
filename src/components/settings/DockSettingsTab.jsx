@@ -6,6 +6,7 @@ import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import WSelect from '../../ui/WSelect';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import '../surfaceStyles.css';
 
 // Theme groups for collapsible organization
 const THEME_GROUPS = {
@@ -179,6 +180,26 @@ const THEME_GROUPS = {
   }
 };
 
+const ColorSettingRow = ({ label, value, fallback, onChange }) => {
+  const resolvedValue = value ?? fallback;
+  return (
+    <div className="surface-row">
+      <Text variant="body" className="surface-color-label">
+        {label}
+      </Text>
+      <input
+        type="color"
+        value={resolvedValue}
+        onChange={(e) => onChange(e.target.value)}
+        className="surface-color-input"
+      />
+      <Text variant="caption" className="surface-caption !mt-0">
+        {resolvedValue.toUpperCase()}
+      </Text>
+    </div>
+  );
+};
+
 const ClassicDockSettingsTab = React.memo(() => {
   // Use legacy settings system to work with SettingsModal
   const [localDockSettings, setLocalDockSettings] = useState({});
@@ -190,8 +211,6 @@ const ClassicDockSettingsTab = React.memo(() => {
         // Load from legacy window.settings system
         const legacySettings = window.settings || {};
         const dockSettings = legacySettings.dockSettings || {};
-        
-        console.log('[DockSettingsTab] Loading dock settings from legacy system:', dockSettings);
         setLocalDockSettings(dockSettings);
       } catch (error) {
         console.error('[DockSettingsTab] Failed to load dock settings:', error);
@@ -204,8 +223,6 @@ const ClassicDockSettingsTab = React.memo(() => {
   // Utility function to save dock setting to legacy system
   const saveDockSetting = useCallback((key, value) => {
     try {
-      console.log(`[DockSettingsTab] saveDockSetting called with: ${key} = ${value}`);
-      
       // Update local state
       setLocalDockSettings(prev => ({
         ...prev,
@@ -225,11 +242,6 @@ const ClassicDockSettingsTab = React.memo(() => {
       window.dispatchEvent(new CustomEvent('settingsChanged', {
         detail: { type: 'dockSettings', key, value }
       }));
-      
-      console.log(`[DockSettingsTab] ✅ Successfully saved setting: ${key} = ${value}`);
-      console.log('[DockSettingsTab] 📁 Updated window.settings.dockSettings:', window.settings.dockSettings);
-      console.log('[DockSettingsTab] 📡 Custom event dispatched with detail:', { type: 'dockSettings', key, value });
-      
     } catch (error) {
       console.error(`[DockSettingsTab] Failed to save ${key} setting:`, error);
     }
@@ -240,27 +252,6 @@ const ClassicDockSettingsTab = React.memo(() => {
     classic: true,
     games: false
   });
-
-  // Debug: Monitor dock state changes
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DockSettingsTab] Local dock settings changed:', {
-        particleSystemEnabled: localDockSettings?.particleSystemEnabled,
-        particleEffectType: localDockSettings?.particleEffectType,
-        particleDirection: localDockSettings?.particleDirection,
-        particleSpeed: localDockSettings?.particleSpeed,
-        particleCount: localDockSettings?.particleCount
-      });
-      console.log('[DockSettingsTab] Full local dock settings:', localDockSettings);
-    }
-  }, [localDockSettings?.particleSystemEnabled, localDockSettings?.particleEffectType, localDockSettings?.particleDirection, localDockSettings?.particleSpeed, localDockSettings?.particleCount, localDockSettings]);
-
-  // Debug: Log when component mounts
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DockSettingsTab] Component mounted, current local dock settings:', localDockSettings);
-    }
-  }, []);
 
   // Apply theme function with immediate save
   const applyTheme = useCallback((themePath) => {
@@ -288,7 +279,6 @@ const ClassicDockSettingsTab = React.memo(() => {
           window.settings.dockSettings[key] = value;
         });
         
-        console.log('[DockSettingsTab] Theme applied and saved to legacy system:', theme.colors);
       } catch (error) {
         console.error('[DockSettingsTab] Failed to save theme:', error);
       }
@@ -381,14 +371,9 @@ const ClassicDockSettingsTab = React.memo(() => {
 
   // Particle system handlers with immediate save
   const handleParticleEnabledChange = useCallback((checked) => {
-    console.log('[DockSettingsTab] 🎯 Particle system enabled changed to:', checked);
-    console.log('[DockSettingsTab] Current local dock settings before update:', localDockSettings);
     setLocalDockSettings(prev => ({ ...prev, particleSystemEnabled: checked }));
-    console.log('[DockSettingsTab] Local dock settings updated, new value should be:', checked);
     saveDockSetting('particleSystemEnabled', checked);
-    console.log('[DockSettingsTab] ✅ Save completed for particleSystemEnabled:', checked);
-    console.log('[DockSettingsTab] 📡 Custom event dispatched to notify components');
-  }, [saveDockSetting, localDockSettings]);
+  }, [saveDockSetting]);
 
   const handleParticleEffectTypeChange = useCallback((value) => {
     setLocalDockSettings(prev => ({ ...prev, particleEffectType: value }));
@@ -461,191 +446,49 @@ const ClassicDockSettingsTab = React.memo(() => {
   }, [saveDockSetting]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+    <div className="surface-stack">
+      <Text variant="h2" className="surface-title">
         Classic Dock Settings
       </Text>
       
-      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+      <Text variant="body" className="surface-subtitle">
         Customize the appearance of the Classic Wii Dock including colors, themes, glass effects, and sizing.
       </Text>
       
-      {/* Debug Test Button */}
-      {process.env.NODE_ENV === 'development' && (
-        <Card>
-          <div style={{ padding: '20px' }}>
-            <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
-              Debug: Particle System Test
-            </Text>
-            <WButton
-              onClick={() => {
-                setLocalDockSettings(prev => ({
-                  ...prev,
-                  particleSystemEnabled: true,
-                  particleEffectType: 'stars',
-                  particleCount: 10,
-                  particleSpeed: 3
-                }));
-                saveDockSetting('particleSystemEnabled', true);
-                saveDockSetting('particleEffectType', 'stars');
-                saveDockSetting('particleCount', 10);
-                saveDockSetting('particleSpeed', 3);
-                console.log('[DockSettingsTab] Debug: Enabled particle system with stars');
-              }}
-              style={{ marginRight: '10px' }}
-            >
-              Enable Stars (Debug)
-            </WButton>
-            <WButton
-              onClick={() => {
-                setLocalDockSettings(prev => ({
-                  ...prev,
-                  particleSystemEnabled: false
-                }));
-                saveDockSetting('particleSystemEnabled', false);
-                console.log('[DockSettingsTab] Debug: Disabled particle system');
-              }}
-            >
-              Disable Particles (Debug)
-            </WButton>
-            <WButton
-              onClick={async () => {
-                console.log('[DockSettingsTab] Debug: Testing API...');
-                try {
-                  if (window.api?.data?.get) {
-                    const data = await window.api.data.get();
-                    console.log('[DockSettingsTab] Debug: API test successful:', data);
-                    console.log('[DockSettingsTab] Debug: Dock settings from API:', data?.settings?.dock);
-                  } else {
-                    console.error('[DockSettingsTab] Debug: API not available');
-                  }
-                } catch (error) {
-                  console.error('[DockSettingsTab] Debug: API test failed:', error);
-                }
-              }}
-              style={{ marginTop: '10px', width: '100%' }}
-            >
-              Test API (Debug)
-            </WButton>
-            <WButton
-              onClick={async () => {
-                console.log('[DockSettingsTab] Debug: Testing save and load...');
-                try {
-                  // First, save a test value
-                  saveDockSetting('particleSystemEnabled', true);
-                  console.log('[DockSettingsTab] Debug: Saved test value');
-                  
-                  // Then, load it back from window.settings
-                  const loadedValue = window.settings?.dockSettings?.particleSystemEnabled;
-                  console.log('[DockSettingsTab] Debug: Loaded value from window.settings:', loadedValue);
-                } catch (error) {
-                  console.error('[DockSettingsTab] Debug: Save/load test failed:', error);
-                }
-              }}
-              style={{ marginTop: '10px', width: '100%' }}
-            >
-              Test Save/Load (Debug)
-            </WButton>
-            <WButton
-              onClick={async () => {
-                console.log('[DockSettingsTab] Debug: Testing current state...');
-                try {
-                  // Check current local state
-                  console.log('[DockSettingsTab] Debug: Current local dock settings:', localDockSettings);
-                  
-                  // Check window.settings state
-                  console.log('[DockSettingsTab] Debug: window.settings:', window.settings);
-                  console.log('[DockSettingsTab] Debug: window.settings.dockSettings:', window.settings?.dockSettings);
-                  
-                  // Check if they match
-                  const windowEnabled = window.settings?.dockSettings?.particleSystemEnabled;
-                  const localEnabled = localDockSettings?.particleSystemEnabled;
-                  console.log('[DockSettingsTab] Debug: window.settings enabled:', windowEnabled, 'Local enabled:', localEnabled);
-                  console.log('[DockSettingsTab] Debug: States match:', windowEnabled === localEnabled);
-                } catch (error) {
-                  console.error('[DockSettingsTab] Debug: State test failed:', error);
-                }
-              }}
-              style={{ marginTop: '10px', width: '100%' }}
-            >
-              Test Current State (Debug)
-            </WButton>
-            <WButton
-              onClick={async () => {
-                console.log('[DockSettingsTab] Debug: Testing setLocalDockSettings action...');
-                try {
-                  // Test the setLocalDockSettings action directly
-                  console.log('[DockSettingsTab] Debug: Before setLocalDockSettings, particleSystemEnabled:', localDockSettings?.particleSystemEnabled);
-                  
-                  setLocalDockSettings(prev => ({ ...prev, particleSystemEnabled: true }));
-                  saveDockSetting('particleSystemEnabled', true);
-                  
-                  // Check if it was updated
-                  setTimeout(() => {
-                    console.log('[DockSettingsTab] Debug: After setLocalDockSettings, particleSystemEnabled:', localDockSettings?.particleSystemEnabled);
-                    console.log('[DockSettingsTab] Debug: window.settings.dockSettings:', window.settings?.dockSettings);
-                  }, 100);
-                  
-                } catch (error) {
-                  console.error('[DockSettingsTab] Debug: setLocalDockSettings test failed:', error);
-                }
-              }}
-              style={{ marginTop: '10px', width: '100%' }}
-            >
-              Test setLocalDockSettings (Debug)
-            </WButton>
-          </div>
-        </Card>
-      )}
-
       {/* Preset Themes */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+        <div className="surface-card-section">
+          <Text variant="h3" className="surface-card-title">
             Preset Themes
           </Text>
-          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+          <Text variant="body" className="surface-card-description">
             Choose from pre-made themes or customize your own.
           </Text>
           
           {Object.entries(THEME_GROUPS).map(([groupKey, group]) => (
-            <div key={groupKey} style={{ marginBottom: '20px' }}>
+            <div key={groupKey} className="mb-5">
               <div
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  padding: '8px 0'
-                }}
+                className="surface-theme-header"
                 onClick={() => setExpandedGroups(prev => ({
                   ...prev,
                   [groupKey]: !prev[groupKey]
                 }))}
               >
                 <div>
-                  <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '4px' }}>
+                  <Text variant="h4" className="text-primary mb-1">
                     {group.name}
                   </Text>
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                  <Text variant="caption" className="text-secondary">
                     {group.description}
                   </Text>
                 </div>
-                <div style={{ 
-                  transform: expandedGroups[groupKey] ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease'
-                }}>
+                <div className={`surface-theme-chevron ${expandedGroups[groupKey] ? 'surface-theme-chevron-open' : 'surface-theme-chevron-closed'}`}>
                   ▼
                 </div>
               </div>
               
               {expandedGroups[groupKey] && (
-                <div style={{ 
-                  display: 'grid', 
-                  gap: '12px', 
-                  marginTop: '12px',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
-                }}>
+                <div className="surface-theme-grid">
                   {Object.entries(group.themes).map(([themeKey, theme]) => {
                     const themePath = `${groupKey}.${themeKey}`;
                     const isSelected = getCurrentTheme() === themePath;
@@ -654,71 +497,22 @@ const ClassicDockSettingsTab = React.memo(() => {
                       <button
                         key={themeKey}
                         onClick={() => applyTheme(themePath)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                          textAlign: 'left',
-                          padding: '12px',
-                          borderRadius: '8px',
-                          border: `2px solid ${isSelected ? '#0099ff' : '#e5e7eb'}`,
-                          background: isSelected ? '#eff6ff' : 'white',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
+                        className={`surface-theme-button ${isSelected ? 'surface-theme-button-selected' : 'surface-theme-button-unselected'}`}
                       >
-                        <Text variant="body" style={{ fontWeight: '600', color: 'hsl(var(--text-primary))' }}>
+                        <Text variant="body" className="font-semibold text-primary">
                           {theme.name}
                         </Text>
-                        <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                        <Text variant="caption" className="text-secondary">
                           {theme.description}
                         </Text>
-                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                          <div style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '50%', 
-                            border: '1px solid #e5e7eb',
-                            background: theme.colors.dockBaseGradientStart 
-                          }} />
-                          <div style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '50%', 
-                            border: '1px solid #e5e7eb',
-                            background: theme.colors.dockAccentColor 
-                          }} />
-                          <div style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '50%', 
-                            border: '1px solid #e5e7eb',
-                            background: theme.colors.buttonGradientStart 
-                          }} />
-                          <div style={{ 
-                            width: '16px', 
-                            height: '16px', 
-                            borderRadius: '50%', 
-                            border: '1px solid #e5e7eb',
-                            background: theme.colors.buttonIconColor 
-                          }} />
+                        <div className="surface-color-swatches">
+                          <div className="surface-color-dot" style={{ background: theme.colors.dockBaseGradientStart }} />
+                          <div className="surface-color-dot" style={{ background: theme.colors.dockAccentColor }} />
+                          <div className="surface-color-dot" style={{ background: theme.colors.buttonGradientStart }} />
+                          <div className="surface-color-dot" style={{ background: theme.colors.buttonIconColor }} />
                         </div>
                         {isSelected && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '8px',
-                            right: '8px',
-                            width: '16px',
-                            height: '16px',
-                            borderRadius: '50%',
-                            background: '#0099ff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontSize: '10px',
-                            fontWeight: 'bold'
-                          }}>
+                          <div className="surface-selected-check">
                             ✓
                           </div>
                         )}
@@ -734,286 +528,124 @@ const ClassicDockSettingsTab = React.memo(() => {
 
       {/* Dock Base Colors */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+        <div className="surface-card-section">
+          <Text variant="h3" className="surface-card-title">
             Dock Base Colors
           </Text>
-          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+          <Text variant="body" className="surface-card-description">
             Customize the main dock structure colors.
           </Text>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Gradient Start
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.dockBaseGradientStart ?? '#BDBEC2'}
-                onChange={(e) => handleColorChange('dockBaseGradientStart', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.dockBaseGradientStart ?? '#BDBEC2').toUpperCase()}
-              </Text>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Gradient End
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.dockBaseGradientEnd ?? '#DADDE6'}
-                onChange={(e) => handleColorChange('dockBaseGradientEnd', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.dockBaseGradientEnd ?? '#DADDE6').toUpperCase()}
-              </Text>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Accent Color
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.dockAccentColor ?? '#33BEED'}
-                onChange={(e) => handleColorChange('dockAccentColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.dockAccentColor ?? '#33BEED').toUpperCase()}
-              </Text>
-            </div>
+          <div className="surface-controls">
+            <ColorSettingRow
+              label="Gradient Start"
+              value={localDockSettings?.dockBaseGradientStart}
+              fallback="#BDBEC2"
+              onChange={(next) => handleColorChange('dockBaseGradientStart', next)}
+            />
+            <ColorSettingRow
+              label="Gradient End"
+              value={localDockSettings?.dockBaseGradientEnd}
+              fallback="#DADDE6"
+              onChange={(next) => handleColorChange('dockBaseGradientEnd', next)}
+            />
+            <ColorSettingRow
+              label="Accent Color"
+              value={localDockSettings?.dockAccentColor}
+              fallback="#33BEED"
+              onChange={(next) => handleColorChange('dockAccentColor', next)}
+            />
           </div>
         </div>
       </Card>
 
       {/* SD Card Colors */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+        <div className="surface-card-section">
+          <Text variant="h3" className="surface-card-title">
             SD Card Colors
           </Text>
-          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+          <Text variant="body" className="surface-card-description">
             Customize the SD card appearance.
           </Text>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Card Body
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.sdCardBodyColor ?? '#B9E1F2'}
-                onChange={(e) => handleColorChange('sdCardBodyColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.sdCardBodyColor ?? '#B9E1F2').toUpperCase()}
-              </Text>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Card Border
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.sdCardBorderColor ?? '#33BEED'}
-                onChange={(e) => handleColorChange('sdCardBorderColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.sdCardBorderColor ?? '#33BEED').toUpperCase()}
-              </Text>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Label Area
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.sdCardLabelColor ?? 'white'}
-                onChange={(e) => handleColorChange('sdCardLabelColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.sdCardLabelColor ?? 'white').toUpperCase()}
-              </Text>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Bottom Section
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.sdCardBottomColor ?? '#31BEED'}
-                onChange={(e) => handleColorChange('sdCardBottomColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.sdCardBottomColor ?? '#31BEED').toUpperCase()}
-              </Text>
-            </div>
+          <div className="surface-controls">
+            <ColorSettingRow
+              label="Card Body"
+              value={localDockSettings?.sdCardBodyColor}
+              fallback="#B9E1F2"
+              onChange={(next) => handleColorChange('sdCardBodyColor', next)}
+            />
+            <ColorSettingRow
+              label="Card Border"
+              value={localDockSettings?.sdCardBorderColor}
+              fallback="#33BEED"
+              onChange={(next) => handleColorChange('sdCardBorderColor', next)}
+            />
+            <ColorSettingRow
+              label="Label Area"
+              value={localDockSettings?.sdCardLabelColor}
+              fallback="white"
+              onChange={(next) => handleColorChange('sdCardLabelColor', next)}
+            />
+            <ColorSettingRow
+              label="Bottom Section"
+              value={localDockSettings?.sdCardBottomColor}
+              fallback="#31BEED"
+              onChange={(next) => handleColorChange('sdCardBottomColor', next)}
+            />
           </div>
         </div>
       </Card>
 
       {/* Button Pod Colors */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+        <div className="surface-card-section">
+          <Text variant="h3" className="surface-card-title">
             Button Pod Colors
           </Text>
-          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+          <Text variant="body" className="surface-card-description">
             Customize the button pod appearance.
           </Text>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Left Pod Base
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.leftPodBaseColor ?? '#D2D3DA'}
-                onChange={(e) => handleColorChange('leftPodBaseColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.leftPodBaseColor ?? '#D2D3DA').toUpperCase()}
-              </Text>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Right Pod Base
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.rightPodBaseColor ?? '#DCDCDF'}
-                onChange={(e) => handleColorChange('rightPodBaseColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.rightPodBaseColor ?? '#DCDCDF').toUpperCase()}
-              </Text>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Button Border
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.buttonBorderColor ?? '#22BEF3'}
-                onChange={(e) => handleColorChange('buttonBorderColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.buttonBorderColor ?? '#22BEF3').toUpperCase()}
-              </Text>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                Button Icon
-              </Text>
-              <input
-                type="color"
-                value={localDockSettings?.buttonIconColor ?? '#979796'}
-                onChange={(e) => handleColorChange('buttonIconColor', e.target.value)}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                {(localDockSettings?.buttonIconColor ?? '#979796').toUpperCase()}
-              </Text>
-            </div>
+          <div className="surface-controls">
+            <ColorSettingRow
+              label="Left Pod Base"
+              value={localDockSettings?.leftPodBaseColor}
+              fallback="#D2D3DA"
+              onChange={(next) => handleColorChange('leftPodBaseColor', next)}
+            />
+            <ColorSettingRow
+              label="Right Pod Base"
+              value={localDockSettings?.rightPodBaseColor}
+              fallback="#DCDCDF"
+              onChange={(next) => handleColorChange('rightPodBaseColor', next)}
+            />
+            <ColorSettingRow
+              label="Button Border"
+              value={localDockSettings?.buttonBorderColor}
+              fallback="#22BEF3"
+              onChange={(next) => handleColorChange('buttonBorderColor', next)}
+            />
+            <ColorSettingRow
+              label="Button Icon"
+              value={localDockSettings?.buttonIconColor}
+              fallback="#979796"
+              onChange={(next) => handleColorChange('buttonIconColor', next)}
+            />
           </div>
         </div>
       </Card>
 
       {/* Glass Effect */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div className="surface-card-section">
+          <div className="surface-row-between mb-4">
             <div>
-              <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+              <Text variant="h3" className="surface-title">
                 Glass Effect
               </Text>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+              <Text variant="body" className="text-secondary">
                 Apply a glass morphism effect to the dock.
               </Text>
             </div>
@@ -1024,9 +656,9 @@ const ClassicDockSettingsTab = React.memo(() => {
           </div>
           
           {localDockSettings?.glassEnabled && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="surface-controls">
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Glass Opacity
                 </Text>
                 <Slider
@@ -1036,13 +668,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                   step={0.01}
                   onChange={handleGlassOpacityChange}
                 />
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                <Text variant="caption" className="surface-caption">
                   {Math.round((localDockSettings?.glassOpacity ?? 0.18) * 100)}%
                 </Text>
               </div>
               
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Glass Blur
                 </Text>
                 <Slider
@@ -1052,13 +684,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                   step={0.1}
                   onChange={handleGlassBlurChange}
                 />
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                <Text variant="caption" className="surface-caption">
                   {localDockSettings?.glassBlur ?? 2.5}px
                 </Text>
               </div>
               
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Border Opacity
                 </Text>
                 <Slider
@@ -1068,13 +700,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                   step={0.05}
                   onChange={handleGlassBorderOpacityChange}
                 />
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                <Text variant="caption" className="surface-caption">
                   {Math.round((localDockSettings?.glassBorderOpacity ?? 0.5) * 100)}%
                 </Text>
               </div>
               
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Shine Opacity
                 </Text>
                 <Slider
@@ -1084,7 +716,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                   step={0.05}
                   onChange={handleGlassShineOpacityChange}
                 />
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                <Text variant="caption" className="surface-caption">
                   {Math.round((localDockSettings?.glassShineOpacity ?? 0.7) * 100)}%
                 </Text>
               </div>
@@ -1095,17 +727,17 @@ const ClassicDockSettingsTab = React.memo(() => {
 
       {/* Size Settings */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+        <div className="surface-card-section">
+          <Text variant="h3" className="surface-card-title">
             Size Settings
           </Text>
-          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+          <Text variant="body" className="surface-card-description">
             Adjust the height of dock elements. The dock maintains full width while scaling height.
           </Text>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="surface-controls">
             <div>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+              <Text variant="body" className="text-secondary mb-2">
                 Dock Height
               </Text>
               <Slider
@@ -1115,13 +747,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                 step={0.05}
                 onChange={handleDockScaleChange}
               />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+              <Text variant="caption" className="surface-caption">
                 {Math.round((localDockSettings?.dockScale ?? 1.0) * 100)}%
               </Text>
             </div>
             
             <div>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+              <Text variant="body" className="text-secondary mb-2">
                 Button Size
               </Text>
               <Slider
@@ -1131,13 +763,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                 step={0.05}
                 onChange={handleButtonSizeChange}
               />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+              <Text variant="caption" className="surface-caption">
                 {Math.round((localDockSettings?.buttonSize ?? 1.0) * 100)}%
               </Text>
             </div>
             
             <div>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+              <Text variant="body" className="text-secondary mb-2">
                 SD Card Size
               </Text>
               <Slider
@@ -1147,7 +779,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                 step={0.05}
                 onChange={handleSdCardSizeChange}
               />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+              <Text variant="caption" className="surface-caption">
                 {Math.round((localDockSettings?.sdCardSize ?? 1.0) * 100)}%
               </Text>
             </div>
@@ -1157,13 +789,13 @@ const ClassicDockSettingsTab = React.memo(() => {
 
       {/* Particle System */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div className="surface-card-section">
+          <div className="surface-row-between mb-4">
             <div>
-              <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+              <Text variant="h3" className="surface-title">
                 Particle System
               </Text>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+              <Text variant="body" className="text-secondary">
                 Add magical particle effects around the dock for visual enhancement.
               </Text>
             </div>
@@ -1174,10 +806,10 @@ const ClassicDockSettingsTab = React.memo(() => {
           </div>
           
           {localDockSettings?.particleSystemEnabled && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="surface-controls">
               {/* Effect Type */}
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Effect Type
                 </Text>
                 <WSelect
@@ -1198,7 +830,7 @@ const ClassicDockSettingsTab = React.memo(() => {
 
               {/* Direction */}
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Direction
                 </Text>
                 <WSelect
@@ -1212,9 +844,9 @@ const ClassicDockSettingsTab = React.memo(() => {
               </div>
 
               {/* Basic Settings */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="surface-grid-2">
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="text-secondary mb-2">
                     Particle Speed
                   </Text>
                   <Slider
@@ -1224,13 +856,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                     step={0.1}
                     onChange={handleParticleSpeedChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="surface-caption">
                     {localDockSettings?.particleSpeed ?? 2}x speed
                   </Text>
                 </div>
                 
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="text-secondary mb-2">
                     Particle Count
                   </Text>
                   <Slider
@@ -1240,13 +872,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                     step={1}
                     onChange={handleParticleCountChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="surface-caption">
                     {localDockSettings?.particleCount ?? 3} particles
                   </Text>
                 </div>
                 
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="text-secondary mb-2">
                     Spawn Rate
                   </Text>
                   <Slider
@@ -1256,13 +888,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                     step={5}
                     onChange={handleParticleSpawnRateChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="surface-caption">
                     {localDockSettings?.particleSpawnRate ?? 60} per second
                   </Text>
                 </div>
                 
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="text-secondary mb-2">
                     Particle Size
                   </Text>
                   <Slider
@@ -1272,16 +904,16 @@ const ClassicDockSettingsTab = React.memo(() => {
                     step={0.5}
                     onChange={handleParticleSizeChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="surface-caption">
                     {localDockSettings?.particleSize ?? 3}px
                   </Text>
                 </div>
               </div>
 
               {/* Physics Settings */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="surface-grid-2">
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="text-secondary mb-2">
                     Gravity
                   </Text>
                   <Slider
@@ -1291,13 +923,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                     step={0.005}
                     onChange={handleParticleGravityChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="surface-caption">
                     {localDockSettings?.particleGravity ?? 0.02}
                   </Text>
                 </div>
                 
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="text-secondary mb-2">
                     Fade Speed
                   </Text>
                   <Slider
@@ -1307,13 +939,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                     step={0.001}
                     onChange={handleParticleFadeSpeedChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="surface-caption">
                     {localDockSettings?.particleFadeSpeed ?? 0.008}
                   </Text>
                 </div>
                 
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="text-secondary mb-2">
                     Size Decay
                   </Text>
                   <Slider
@@ -1323,13 +955,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                     step={0.005}
                     onChange={handleParticleSizeDecayChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="surface-caption">
                     {localDockSettings?.particleSizeDecay ?? 0.02}
                   </Text>
                 </div>
                 
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="text-secondary mb-2">
                     Rotation Speed
                   </Text>
                   <Slider
@@ -1339,7 +971,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                     step={0.01}
                     onChange={handleParticleRotationSpeedChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="surface-caption">
                     {localDockSettings?.particleRotationSpeed ?? 0.05}
                   </Text>
                 </div>
@@ -1347,8 +979,8 @@ const ClassicDockSettingsTab = React.memo(() => {
 
               {/* Color Settings */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+                <div className="surface-row-between mb-2">
+                  <Text variant="body" className="text-secondary">
                     Use Adaptive Colors
                   </Text>
                   <WToggle
@@ -1356,15 +988,15 @@ const ClassicDockSettingsTab = React.memo(() => {
                     onChange={handleParticleUseAdaptiveColorChange}
                   />
                 </div>
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+                <Text variant="caption" className="text-tertiary">
                   Use dock accent color for particles
                 </Text>
               </div>
 
               {localDockSettings?.particleUseAdaptiveColor && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="surface-grid-2">
                   <div>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    <Text variant="body" className="text-secondary mb-2">
                       Color Intensity
                     </Text>
                     <Slider
@@ -1374,13 +1006,13 @@ const ClassicDockSettingsTab = React.memo(() => {
                       step={0.1}
                       onChange={handleParticleColorIntensityChange}
                     />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    <Text variant="caption" className="surface-caption">
                       {localDockSettings?.particleColorIntensity ?? 1.0}x
                     </Text>
                   </div>
                   
                   <div>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    <Text variant="body" className="text-secondary mb-2">
                       Color Variation
                     </Text>
                     <Slider
@@ -1390,7 +1022,7 @@ const ClassicDockSettingsTab = React.memo(() => {
                       step={0.1}
                       onChange={handleParticleColorVariationChange}
                     />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    <Text variant="caption" className="surface-caption">
                       {localDockSettings?.particleColorVariation ?? 0.3}
                     </Text>
                   </div>
@@ -1398,7 +1030,7 @@ const ClassicDockSettingsTab = React.memo(() => {
               )}
               
               {/* Save Button for Particle System */}
-              <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid hsl(var(--border))' }}>
+              <div className="mt-5 pt-4 border-t border-primary">
                 <WButton
                   onClick={async () => {
                     try {
@@ -1429,13 +1061,12 @@ const ClassicDockSettingsTab = React.memo(() => {
                           }
                         };
                         await window.api.data.set(updatedData);
-                        console.log('[DockSettingsTab] Particle system settings saved to backend');
                       }
                     } catch (error) {
                       console.error('[DockSettingsTab] Failed to save particle system settings:', error);
                     }
                   }}
-                  style={{ width: '100%' }}
+                  className="w-full"
                 >
                   Save Particle System Settings
                 </WButton>

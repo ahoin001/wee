@@ -70,10 +70,7 @@ const SlideNavigation = ({ children }) => {
       <div 
         ref={pagesRef}
         className="slide-navigation-pages"
-        style={{
-          transform: getSlideTransform(),
-          transition: 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)'
-        }}
+        style={{ transform: getSlideTransform() }}
       >
         {children}
       </div>

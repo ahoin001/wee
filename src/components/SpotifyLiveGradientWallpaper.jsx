@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useSpotifyState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { registerSpotifyGradientSave } from '../utils/presets/spotifyLookRegistry';
 
 const SpotifyLiveGradientWallpaper = () => {
   const { spotify } = useSpotifyState();
@@ -368,20 +369,16 @@ const SpotifyLiveGradientWallpaper = () => {
     };
   }, []);
 
-  // Save current look permanently
-  const saveCurrentLook = async () => {
+  // Save current gradient to wallpaper library (registered for Settings UI)
+  const saveCurrentLook = useCallback(async () => {
     if (!currentGradientFile.current || !extractedColors) {
       console.warn('[LiveGradientWallpaper] No current look to save');
       return;
     }
 
     try {
-      console.log('[LiveGradientWallpaper] Saving current look permanently...');
-      
-      // Get current wallpaper data
       const wallpaperData = await window.api.wallpapers.get();
-      
-      // Create a permanent version of the current gradient
+
       const permanentWallpaper = {
         url: currentGradientFile.current,
         name: `Spotify Look - ${extractedColors.primary ? 'Custom' : 'Dynamic'}`,
@@ -394,33 +391,26 @@ const SpotifyLiveGradientWallpaper = () => {
           intensity: immersiveMode.intensity,
           animationLevel: immersiveMode.animationLevel,
           style: immersiveMode.style,
-          overlayMode: immersiveMode.overlayMode
-        }
+          overlayMode: immersiveMode.overlayMode,
+        },
       };
-      
-      // Remove the temporary flag and add permanent version
-      const updatedWallpapers = (wallpaperData.savedWallpapers || []).map(wp => 
-        wp.url === currentGradientFile.current 
-          ? { ...wp, isTemporary: false, ...permanentWallpaper }
-          : wp
+
+      const updatedWallpapers = (wallpaperData.savedWallpapers || []).map((wp) =>
+        wp.url === currentGradientFile.current ? { ...wp, isTemporary: false, ...permanentWallpaper } : wp
       );
-      
-      const updatedData = {
+
+      await window.api.wallpapers.set({
         ...wallpaperData,
-        savedWallpapers: updatedWallpapers
-      };
-      
-      await window.api.wallpapers.set(updatedData);
-      console.log('[LiveGradientWallpaper] ✅ Current look saved permanently!');
-      
-      // Show success message
+        savedWallpapers: updatedWallpapers,
+      });
       alert('Current Spotify look saved! You can find it in your wallpaper collection.');
-      
     } catch (error) {
       console.error('[LiveGradientWallpaper] Failed to save current look:', error);
-      alert('Failed to save current look: ' + error.message);
+      alert(`Failed to save current look: ${error.message}`);
     }
-  };
+  }, [extractedColors, immersiveMode]);
+
+  useEffect(() => registerSpotifyGradientSave(saveCurrentLook), [saveCurrentLook]);
 
   // Debug function to test live gradient wallpaper
   useEffect(() => {
@@ -593,9 +583,6 @@ const SpotifyLiveGradientWallpaper = () => {
          console.log('[LiveGradientWallpaper] === END WALLPAPER API TEST ===');
        };
 
-       // Save current look function
-       window.saveCurrentSpotifyLook = saveCurrentLook;
-
       window.forceGradientWallpaper = async () => {
         console.log('[LiveGradientWallpaper] === FORCING CURRENT GRADIENT ===');
         if (!createGradientOverlay) {
@@ -672,7 +659,6 @@ const SpotifyLiveGradientWallpaper = () => {
          delete window.createTestGradient;
          delete window.forceGradientWallpaper;
          delete window.testWallpaperAPI;
-         delete window.saveCurrentSpotifyLook;
        };
   }, [immersiveMode.liveGradientWallpaper, extractedColors, isPlaying, progress, duration, createGradientOverlay]);
 

@@ -77,12 +77,12 @@ const ChannelsSettingsTab = React.memo(() => {
   }, [actions, settings.idleAnimationTypes]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+    <div className="flex flex-col gap-6">
+      <Text variant="h2" className="mb-2 text-[hsl(var(--text-primary))]">
         Channel Settings
       </Text>
       
-      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+      <Text variant="body" className="mb-4 text-[hsl(var(--text-secondary))]">
         Configure global channel behavior and animation settings.
       </Text>
 
@@ -126,23 +126,23 @@ const ChannelsSettingsTab = React.memo(() => {
       >
         {settings.idleAnimationEnabled && (
           <>
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Animation Types:</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div className="mt-4">
+              <div className="mb-2 font-medium">Animation Types:</div>
+              <div className="flex flex-wrap gap-2">
                 {['pulse', 'bounce', 'glow', 'heartbeat', 'shake', 'wiggle'].map(type => (
                   <WToggle
                     key={type}
                     checked={(settings.idleAnimationTypes || ['pulse', 'bounce', 'glow']).includes(type)}
                     onChange={() => handleIdleAnimationTypeToggle(type)}
                     label={type.charAt(0).toUpperCase() + type.slice(1)}
-                    style={{ fontSize: 14 }}
+                    containerClassName="text-sm"
                   />
                 ))}
               </div>
             </div>
             
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Animation Interval: {settings.idleAnimationInterval ?? 8} seconds</div>
+            <div className="mt-4">
+              <div className="mb-2 font-medium">Animation Interval: {settings.idleAnimationInterval ?? 8} seconds</div>
               <Slider
                 value={settings.idleAnimationInterval ?? 8}
                 min={2}
@@ -169,8 +169,8 @@ const ChannelsSettingsTab = React.memo(() => {
       >
         {settings.kenBurnsEnabled && (
           <>
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Trigger Mode:</div>
+            <div className="mt-4">
+              <div className="mb-2 font-medium">Trigger Mode:</div>
               <WSelect
                 value={settings.kenBurnsMode ?? 'hover'}
                 onChange={handleKenBurnsModeChange}
@@ -182,11 +182,11 @@ const ChannelsSettingsTab = React.memo(() => {
               />
             </div>
 
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Scale Settings:</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="mt-4">
+              <div className="mb-2 font-medium">Scale Settings:</div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Hover Scale: {settings.kenBurnsHoverScale ?? 1.1}</label>
+                  <label className="text-xs text-[hsl(var(--text-tertiary))]">Hover Scale: {settings.kenBurnsHoverScale ?? 1.1}</label>
                   <Slider
                     value={settings.kenBurnsHoverScale ?? 1.1}
                     min={1.0}
@@ -196,7 +196,7 @@ const ChannelsSettingsTab = React.memo(() => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Autoplay Scale: {settings.kenBurnsAutoplayScale ?? 1.15}</label>
+                  <label className="text-xs text-[hsl(var(--text-tertiary))]">Autoplay Scale: {settings.kenBurnsAutoplayScale ?? 1.15}</label>
                   <Slider
                     value={settings.kenBurnsAutoplayScale ?? 1.15}
                     min={1.0}
@@ -208,11 +208,11 @@ const ChannelsSettingsTab = React.memo(() => {
               </div>
             </div>
 
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Duration Settings:</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="mt-4">
+              <div className="mb-2 font-medium">Duration Settings:</div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Hover Duration: {settings.kenBurnsHoverDuration ?? 8000}ms</label>
+                  <label className="text-xs text-[hsl(var(--text-tertiary))]">Hover Duration: {settings.kenBurnsHoverDuration ?? 8000}ms</label>
                   <Slider
                     value={settings.kenBurnsHoverDuration ?? 8000}
                     min={2000}
@@ -222,7 +222,7 @@ const ChannelsSettingsTab = React.memo(() => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Autoplay Duration: {settings.kenBurnsAutoplayDuration ?? 12000}ms</label>
+                  <label className="text-xs text-[hsl(var(--text-tertiary))]">Autoplay Duration: {settings.kenBurnsAutoplayDuration ?? 12000}ms</label>
                   <Slider
                     value={settings.kenBurnsAutoplayDuration ?? 12000}
                     min={5000}
@@ -234,11 +234,11 @@ const ChannelsSettingsTab = React.memo(() => {
               </div>
             </div>
 
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>Advanced Settings:</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="mt-4">
+              <div className="mb-2 font-medium">Advanced Settings:</div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Crossfade Duration: {settings.kenBurnsCrossfadeDuration ?? 1000}ms</label>
+                  <label className="text-xs text-[hsl(var(--text-tertiary))]">Crossfade Duration: {settings.kenBurnsCrossfadeDuration ?? 1000}ms</label>
                   <Slider
                     value={settings.kenBurnsCrossfadeDuration ?? 1000}
                     min={500}
@@ -248,7 +248,7 @@ const ChannelsSettingsTab = React.memo(() => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: '#666' }}>Easing:</label>
+                  <label className="text-xs text-[hsl(var(--text-tertiary))]">Easing:</label>
                   <WSelect
                     value={settings.kenBurnsEasing ?? 'ease-out'}
                     onChange={handleKenBurnsEasingChange}
@@ -282,8 +282,8 @@ const ChannelsSettingsTab = React.memo(() => {
         }
       >
         {(settings.channelAutoFadeTimeout ?? 5) > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontWeight: 500, marginBottom: 8 }}>Fade Timeout: {settings.channelAutoFadeTimeout ?? 5}s</div>
+          <div className="mt-4">
+            <div className="mb-2 font-medium">Fade Timeout: {settings.channelAutoFadeTimeout ?? 5}s</div>
             <Slider
               value={settings.channelAutoFadeTimeout ?? 5}
               min={1}
@@ -291,7 +291,7 @@ const ChannelsSettingsTab = React.memo(() => {
               step={1}
               onChange={handleChannelAutoFadeTimeoutChange}
             />
-            <div style={{ fontSize: 13, color: '#666', marginTop: 8 }}>
+            <div className="mt-2 text-[13px] text-[hsl(var(--text-tertiary))]">
               <strong>Fade Timeout:</strong> The time in seconds before channels start to fade out when not hovered.
             </div>
           </div>

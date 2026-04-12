@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Switch } from '@headlessui/react';
 
-const WToggle = React.memo(({ checked, onChange, label, disabled = false, disableLabelClick = false, style, ...props }) => {
+const WToggle = React.memo(({ checked, onChange, label, disabled = false, disableLabelClick = false, style, containerClassName = '', ...props }) => {
   const handleLabelClick = () => {
     if (!disabled && !disableLabelClick && onChange) {
       onChange(!checked);
@@ -10,13 +10,13 @@ const WToggle = React.memo(({ checked, onChange, label, disabled = false, disabl
   };
 
   return (
-    <div className="flex items-center gap-2.5" style={style}>
+    <div className={`flex items-center gap-2.5 ${containerClassName}`.trim()} style={style}>
       <Switch
         checked={checked}
         onChange={onChange}
         disabled={disabled}
         className={`
-          group relative flex h-6 w-11 cursor-pointer rounded-[12px] p-0.5 ease-in-out focus:outline-none focus:ring-2 focus:ring-wii-blue focus:ring-offset-2 focus:ring-offset-surface-primary
+          group relative flex h-[var(--toggle-track-height)] w-[var(--toggle-track-width)] cursor-pointer rounded-[var(--toggle-track-radius)] p-0.5 ease-in-out focus:outline-none focus:ring-2 focus:ring-wii-blue focus:ring-offset-2 focus:ring-offset-surface-primary
           ${checked 
             ? 'bg-[hsl(var(--wii-blue))]' 
             : 'bg-[hsl(var(--border-primary))]'
@@ -31,8 +31,8 @@ const WToggle = React.memo(({ checked, onChange, label, disabled = false, disabl
         <span
           aria-hidden="true"
           className={`
-            pointer-events-none inline-block h-5 w-5 rounded-full bg-[hsl(var(--surface-primary))] shadow-[0_1px_4px_#0002] ring-0 transition duration-220 ease-[cubic-bezier(.4,1.3,.5,1)]
-            ${checked ? 'translate-x-5' : 'translate-x-0'}
+            pointer-events-none inline-block h-[var(--toggle-thumb-size)] w-[var(--toggle-thumb-size)] rounded-[var(--radius-pill)] bg-[hsl(var(--surface-primary))] shadow-[var(--toggle-thumb-shadow)] ring-0 transition duration-220 ease-[cubic-bezier(.4,1.3,.5,1)]
+            ${checked ? 'translate-x-[calc(var(--toggle-track-width)-var(--toggle-thumb-size)-4px)]' : 'translate-x-0'}
           `}
         />
       </Switch>
@@ -65,6 +65,7 @@ WToggle.propTypes = {
   disabled: PropTypes.bool,
   disableLabelClick: PropTypes.bool,
   style: PropTypes.object,
+  containerClassName: PropTypes.string,
 };
 
 export default WToggle; 

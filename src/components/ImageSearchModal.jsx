@@ -4,7 +4,8 @@ import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import Button from '../ui/WButton';
 import Text from '../ui/Text';
-import { searchMedia, uploadMedia, downloadMedia } from '../utils/supabase';
+import { searchMedia, uploadMedia, downloadMedia, getStoragePublicObjectUrl } from '../utils/supabase';
+import './surfaceStyles.css';
 
 const FILETYPE_OPTIONS = [
   { label: 'All', value: 'all' },
@@ -220,20 +221,13 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
       footerContent={null}
     >
       {error && (
-        <div style={{ 
-          padding: '12px', 
-          borderRadius: '6px', 
-          marginBottom: '16px',
-          background: 'hsl(var(--error-light))',
-          color: 'hsl(var(--error))',
-          border: '1px solid hsl(var(--error))'
-        }}>
+        <div className="p-3 rounded-[6px] mb-4 bg-[hsl(var(--error-light))] text-[hsl(var(--error))] border border-[hsl(var(--error))]">
           {error}
         </div>
       )}
 
       {/* Mode Toggle */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+      <div className="surface-actions mb-4">
         <Button
           variant={mode === 'browse' ? 'primary' : 'secondary'}
           onClick={() => setMode('browse')}
@@ -251,34 +245,21 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
       {mode === 'browse' ? (
         <>
           {/* Search and Filter Controls */}
-          <Card style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: '200px' }}>
+          <Card className="mb-4">
+            <div className="surface-actions flex-wrap">
+              <div className="flex-1 min-w-[200px]">
                 <input
                   type="text"
                   placeholder="Search media..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid hsl(var(--border-primary))',
-                    borderRadius: '6px',
-                    background: 'hsl(var(--surface-primary))',
-                    color: 'hsl(var(--text-primary))'
-                  }}
+                  className="surface-input"
                 />
               </div>
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid hsl(var(--border-primary))',
-                  borderRadius: '6px',
-                  background: 'hsl(var(--surface-primary))',
-                  color: 'hsl(var(--text-primary))'
-                }}
+                className="surface-select"
               >
                 {FILETYPE_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
@@ -289,13 +270,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid hsl(var(--border-primary))',
-                  borderRadius: '6px',
-                  background: 'hsl(var(--surface-primary))',
-                  color: 'hsl(var(--text-primary))'
-                }}
+                className="surface-select"
               >
                 {SORT_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
@@ -314,7 +289,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
 
           {/* Media Grid/List */}
           {loading && media.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div className="text-center p-10">
               <Text>Loading media...</Text>
             </div>
           ) : (
@@ -331,7 +306,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
 
           {/* Load More Button */}
           {hasMore && !loading && (
-            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <div className="text-center mt-4">
               <Button variant="secondary" onClick={loadMore}>
                 Load More ({media.length} of {media.length + (hasMore ? '...' : '')} items)
               </Button>
@@ -340,13 +315,13 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
 
           {/* Loading indicator for pagination */}
           {loading && currentPage > 1 && (
-            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <div className="text-center mt-4">
               <Text>Loading more items...</Text>
             </div>
           )}
 
           {!loading && media.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div className="text-center p-10">
               <Text>No media found.</Text>
             </div>
           )}
@@ -354,84 +329,51 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
       ) : (
         /* Upload Mode */
         <Card>
-          <div style={{ padding: '16px' }}>
-            <Text variant="label" style={{ marginBottom: '8px' }}>Title *</Text>
+          <div className="p-4">
+            <Text variant="label" className="mb-2">Title *</Text>
             <input
               type="text"
               value={uploadForm.title}
               onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
               placeholder="Enter media title..."
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid hsl(var(--border-primary))',
-                borderRadius: '6px',
-                background: 'hsl(var(--surface-primary))',
-                color: 'hsl(var(--text-primary))',
-                marginBottom: '12px'
-              }}
+              className="surface-input mb-3"
             />
 
-            <Text variant="label" style={{ marginBottom: '8px' }}>Description</Text>
+            <Text variant="label" className="mb-2">Description</Text>
             <textarea
               value={uploadForm.description}
               onChange={(e) => setUploadForm(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Describe your media..."
               rows={3}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid hsl(var(--border-primary))',
-                borderRadius: '6px',
-                background: 'hsl(var(--surface-primary))',
-                color: 'hsl(var(--text-primary))',
-                marginBottom: '12px',
-                resize: 'vertical'
-              }}
+              className="surface-textarea mb-3"
             />
 
-            <Text variant="label" style={{ marginBottom: '8px' }}>Tags</Text>
+            <Text variant="label" className="mb-2">Tags</Text>
             <input
               type="text"
               value={uploadForm.tags}
               onChange={(e) => setUploadForm(prev => ({ ...prev, tags: e.target.value }))}
               placeholder="gaming, dark theme, minimal, etc."
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid hsl(var(--border-primary))',
-                borderRadius: '6px',
-                background: 'hsl(var(--surface-primary))',
-                color: 'hsl(var(--text-primary))',
-                marginBottom: '12px'
-              }}
+              className="surface-input mb-3"
             />
 
-            <Text variant="label" style={{ marginBottom: '8px' }}>File *</Text>
+            <Text variant="label" className="mb-2">File *</Text>
             <input
               type="file"
               accept="image/*,video/*"
               onChange={handleFileSelect}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid hsl(var(--border-primary))',
-                borderRadius: '6px',
-                background: 'hsl(var(--surface-primary))',
-                color: 'hsl(var(--text-primary))',
-                marginBottom: '16px'
-              }}
+              className="surface-input mb-4"
             />
 
             {uploadForm.file && (
-              <div style={{ marginBottom: '16px' }}>
-                <Text variant="small" style={{ color: 'hsl(var(--text-secondary))' }}>
+              <div className="mb-4">
+                <Text variant="small" className="text-secondary">
                   Selected: {uploadForm.file.name} ({(uploadForm.file.size / 1024 / 1024).toFixed(2)} MB)
                 </Text>
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div className="surface-actions justify-end">
               <Button
                 variant="secondary"
                 onClick={() => setMode('browse')}
@@ -465,79 +407,53 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
   };
   
   return (
-    <Card style={{ padding: '12px', cursor: 'pointer' }} onClick={handleCardClick}>
-      <div style={{ position: 'relative', marginBottom: '8px' }}>
+    <Card className="p-3 cursor-pointer" onClick={handleCardClick}>
+      <div className="relative mb-2">
         {isVideo ? (
           <video
-            src={`https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${item.file_url}`}
-            style={{
-              width: '100%',
-              height: viewMode === 'grid' ? '120px' : '80px',
-              objectFit: 'cover',
-              borderRadius: '4px'
-            }}
+            src={getStoragePublicObjectUrl('media-library', item.file_url)}
+            className={`w-full object-cover rounded ${viewMode === 'grid' ? 'h-[120px]' : 'h-[80px]'}`}
             muted
             loop
            autoPlay
           />
         ) : (
           <img
-            src={`https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${item.file_url}`}
+            src={getStoragePublicObjectUrl('media-library', item.file_url)}
             alt={item.title}
-            style={{
-              width: '100%',
-              height: viewMode === 'grid' ? '120px' : '80px',
-              objectFit: 'cover',
-              borderRadius: '4px'
-            }}
+            className={`w-full object-cover rounded ${viewMode === 'grid' ? 'h-[120px]' : 'h-[80px]'}`}
           />
         )}
         
         {/* File type indicator */}
-        <div style={{
-          position: 'absolute',
-          top: '4px',
-          right: '4px',
-          background: 'rgba(0, 0, 0, 0.7)',
-          color: 'white',
-          padding: '2px 6px',
-          borderRadius: '4px',
-          fontSize: '10px',
-          fontWeight: '500'
-        }}>
+        <div className="absolute top-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-[10px] font-medium">
           {isVideo ? 'video' : isGif ? 'gif' : 'image'}
         </div>
       </div>
 
-      <div style={{ marginBottom: '8px' }}>
-        <Text variant="p" style={{ fontWeight: 600, marginBottom: '2px', fontSize: '14px' }}>
+      <div className="mb-2">
+        <Text variant="p" className="font-semibold mb-0.5 text-[14px]">
           {item.title}
         </Text>
         {item.description && (
-          <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', fontSize: '11px' }}>
+          <Text variant="small" className="text-secondary text-[11px]">
             {item.description}
           </Text>
         )}
         
         {/* Tags */}
         {item.tags && item.tags.length > 0 && (
-          <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
+          <div className="mt-1 flex flex-wrap gap-0.5">
             {item.tags.slice(0, 3).map(tag => (
               <span
                 key={tag}
-                style={{
-                  background: 'hsl(var(--primary))',
-                  color: 'white',
-                  padding: '1px 4px',
-                  borderRadius: '2px',
-                  fontSize: '9px'
-                }}
+                className="bg-[hsl(var(--primary))] text-white px-1 py-[1px] rounded-[2px] text-[9px]"
               >
                 {tag}
               </span>
             ))}
             {item.tags.length > 3 && (
-              <span style={{ fontSize: '9px', color: 'hsl(var(--text-secondary))' }}>
+              <span className="text-[9px] text-secondary">
                 +{item.tags.length - 3}
               </span>
             )}
@@ -545,8 +461,8 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
         )}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', fontSize: '10px' }}>
+      <div className="surface-row-between">
+        <Text variant="small" className="text-secondary text-[10px]">
           ⬇️ {item.downloads || 0}
         </Text>
         <Button
@@ -557,7 +473,7 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
             onDownload(item);
           }}
           disabled={itemLoading[item.id]}
-          style={{ padding: '4px 8px', fontSize: '10px' }}
+          className="!px-2 !py-1 !text-[10px]"
         >
           {downloadSuccess[item.id] ? '✅' : itemLoading[item.id] ? '⏳' : '⬇️'}
         </Button>

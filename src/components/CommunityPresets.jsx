@@ -4,7 +4,8 @@ import Card from '../ui/Card';
 import Text from '../ui/Text';
 import Button from '../ui/WButton';
 import ImageModal from './ImageModal';
-import { getSharedPresets, downloadPreset } from '../utils/supabase';
+import { getSharedPresets, downloadPreset, getStoragePublicObjectUrl } from '../utils/supabase';
+import './community-presets.css';
 
 const CommunityPresets = ({ onImportPreset, onClose }) => {
   const [presets, setPresets] = useState([]);
@@ -115,50 +116,33 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div className="community-presets-root">
       {message.text && (
-        <div style={{ 
-          padding: '12px', 
-          borderRadius: '6px', 
-          marginBottom: '16px',
-          background: message.type === 'success' ? 'hsl(var(--success-light))' : 'hsl(var(--error-light))',
-          color: message.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--error))',
-          border: `1px solid ${message.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--error))'}`
-        }}>
+        <div
+          className={`community-msg ${
+            message.type === 'success' ? 'community-msg--success' : 'community-msg--error'
+          }`}
+        >
           {message.text}
         </div>
       )}
 
       {/* Search and Sort Controls */}
-      <Card style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '200px' }}>
+      <Card className="mb-4">
+        <div className="community-toolbar">
+          <div className="community-search-grow">
             <input
               type="text"
               placeholder="Search presets..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid hsl(var(--border-primary))',
-                borderRadius: '6px',
-                background: 'hsl(var(--surface-primary))',
-                color: 'hsl(var(--text-primary))'
-              }}
+              className="community-input"
             />
           </div>
           <select
             value={selectedTag}
             onChange={(e) => setSelectedTag(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid hsl(var(--border-primary))',
-              borderRadius: '6px',
-              background: 'hsl(var(--surface-primary))',
-              color: 'hsl(var(--text-primary))',
-              minWidth: '120px'
-            }}
+            className="community-select community-select--tags"
           >
             <option value="">All Tags</option>
             {allTags.map(tag => (
@@ -168,13 +152,7 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid hsl(var(--border-primary))',
-              borderRadius: '6px',
-              background: 'hsl(var(--surface-primary))',
-              color: 'hsl(var(--text-primary))'
-            }}
+            className="community-select"
           >
             <option value="created_at">Newest First</option>
             <option value="downloads">Most Downloaded</option>
@@ -185,110 +163,71 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
 
       {/* Presets Grid */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
+        <div className="community-center-pad">
           <Text>Loading community presets...</Text>
         </div>
       ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '12px',
-          maxWidth: '100%'
-        }}>
+        <div className="community-grid">
           {filteredPresets.map((preset) => (
-            <Card key={preset.id} style={{ padding: '12px', position: 'relative', minHeight: '200px' }}>
+            <Card key={preset.id} className="community-preset-card">
               {/* Image Section */}
-              <div style={{ marginBottom: '8px' }}>
+              <div className="community-mb-8">
                 {preset.display_image_url ? (
                   <div 
-                    style={{ 
-                      position: 'relative',
-                      cursor: 'pointer',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      border: '1px solid hsl(var(--border-primary))'
-                    }}
+                    className="community-thumb-wrap"
                     onClick={() => handleImageClick(
-                      `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/preset-displays/${preset.display_image_url}`,
+                      getStoragePublicObjectUrl('preset-displays', preset.display_image_url),
                       preset.name
                     )}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleImageClick(
+                          getStoragePublicObjectUrl('preset-displays', preset.display_image_url),
+                          preset.name
+                        );
+                      }
+                    }}
                   >
                     <img 
-                      src={`https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/preset-displays/${preset.display_image_url}`}
+                      src={getStoragePublicObjectUrl('preset-displays', preset.display_image_url)}
                       alt="Preset thumbnail"
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover',
-                        transition: 'transform 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.02)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)';
-                      }}
                     />
-                    <div style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: 'rgba(0, 0, 0, 0.7)',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      fontWeight: 500
-                    }}>
+                    <div className="community-thumb-badge">
                       Click to view
                     </div>
                   </div>
                 ) : (
-                  <div style={{
-                    width: '100%',
-                    height: '120px',
-                    background: 'hsl(var(--surface-secondary))',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid hsl(var(--border-primary))'
-                  }}>
-                    <Text variant="small" style={{ fontSize: '36px' }}>🎨</Text>
+                  <div className="community-placeholder">
+                    <span className="community-placeholder-emoji" aria-hidden>🎨</span>
                   </div>
                 )}
               </div>
 
               {/* Content Section */}
-              <div style={{ marginBottom: '8px' }}>
-                <Text variant="p" style={{ fontWeight: 600, marginBottom: '2px', fontSize: '14px' }}>
+              <div className="community-mb-8">
+                <Text variant="p" className="community-preset-title">
                   {preset.name}
                 </Text>
-                <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '4px', fontSize: '12px' }}>
+                <Text variant="small" className="community-preset-meta">
                   by {preset.creator_name || 'Anonymous'}
                 </Text>
                 <br />
                 {preset.description && (
-                  <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', lineHeight: '1.3', fontSize: '11px' }}>
+                  <Text variant="small" className="community-preset-desc">
                     {preset.description}
                   </Text>
                 )}
                 
                 {/* Tags Section */}
                 {preset.tags && preset.tags.length > 0 && (
-                  <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  <div className="community-tags">
                     {preset.tags.map(tag => (
                       <span
                         key={tag}
-                        style={{
-                          background: 'hsl(var(--primary))',
-                          color: 'white',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          fontSize: '10px',
-                          cursor: 'pointer',
-                          opacity: selectedTag === tag ? 1 : 0.7
-                        }}
+                        className={`community-tag ${selectedTag === tag ? '' : 'community-tag--dim'}`}
                         onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
                         title={`Filter by ${tag}`}
                       >
@@ -300,22 +239,22 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
               </div>
 
               {/* Stats and Actions */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', fontSize: '11px' }}>
+              <div className="community-footer-row">
+                <div className="community-stat-group">
+                  <Text variant="small" className="community-stat">
                     ⬇️ {preset.downloads || 0}
                   </Text>
-                  <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', fontSize: '11px' }}>
+                  <Text variant="small" className="community-stat">
                     📅 {formatDate(preset.created_at)}
                   </Text>
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div className="community-actions">
                   <Button 
                     variant="primary"
                     onClick={() => handleDownload(preset)}
                     disabled={downloading === preset.id}
                     size="sm"
-                    style={{ padding: '4px 8px', fontSize: '11px' }}
+                    className="community-btn-download"
                   >
                     {downloading === preset.id ? 'Downloading...' : 'Download'}
                   </Button>
@@ -327,9 +266,9 @@ const CommunityPresets = ({ onImportPreset, onClose }) => {
       )}
 
       {!loading && filteredPresets.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
+        <div className="community-center-pad">
           <Text>No community presets found.</Text>
-          <Text variant="small" style={{ color: 'hsl(var(--text-secondary))', marginTop: '8px' }}>
+          <Text variant="small" className="community-empty-sub">
             Be the first to share a preset!
           </Text>
         </div>

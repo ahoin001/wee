@@ -1,3 +1,5 @@
+require('./scripts/load-env.cjs');
+
 const { app, BrowserWindow, ipcMain, shell, protocol, dialog, screen } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
@@ -24,7 +26,6 @@ const CURRENT_VERSION = '2.7.4';
 
 // --- Data module helpers ---
 const dataDir = path.join(app.getPath('userData'), 'data');
-const soundsFile = path.join(dataDir, 'sounds.json');
 const savedSoundsPath = path.join(dataDir, 'savedSounds.json');
 const wallpapersFile = path.join(dataDir, 'wallpapers.json');
 const channelsFile = path.join(dataDir, 'channels.json');
@@ -41,21 +42,6 @@ async function ensureDataDir() {
   await fsPromises.mkdir(userChannelHoverSoundsPath, { recursive: true });
   await fsPromises.mkdir(userIconsPath, { recursive: true });
 }
-
-// --- Sounds Data Module ---
-const soundsData = {
-  async get() {
-    await ensureDataDir();
-    try { return JSON.parse(await fsPromises.readFile(soundsFile, 'utf-8')); } catch { return { sounds: [], settings: {} }; }
-  },
-  async set(data) {
-    await ensureDataDir();
-    await fsPromises.writeFile(soundsFile, JSON.stringify(data, null, 2), 'utf-8');
-  },
-  async reset() {
-    await this.set({ sounds: [], settings: {} });
-  }
-};
 
 // --- Wallpapers Data Module ---
 const wallpapersData = {
@@ -343,16 +329,6 @@ const unifiedData = {
 ipcMain.handle('data:get', async () => await unifiedData.get());
 ipcMain.handle('data:set', async (e, data) => { await unifiedData.set(data); return true; });
 
-// Legacy APIs (for migration)
-ipcMain.handle('sounds:get', async () => {
-  console.log('[DEBUG] 📡 IPC: sounds:get called');
-  const result = await soundsData.get();
-  console.log('[DEBUG] 📡 IPC: sounds:get completed');
-  return result;
-});
-ipcMain.handle('sounds:set', async (e, data) => { await soundsData.set(data); return true; });
-ipcMain.handle('sounds:reset', async () => { await soundsData.reset(); return true; });
-
 // Re-enabled wallpaper API - infinite loop fixed
   ipcMain.handle('wallpapers:get', async (event) => {
     console.log('[DEBUG] 📡 IPC: wallpapers:get called');
@@ -537,7 +513,25 @@ ipcMain.handle('install-update', async () => {
 
 // --- Reset All ---
 ipcMain.handle('settings:resetAll', async () => {
-  await soundsData.reset();
+  const data = await unifiedData.get();
+  const defaultSounds = {
+    backgroundMusicEnabled: true,
+    backgroundMusicLooping: true,
+    backgroundMusicPlaylistMode: false,
+    channelClickEnabled: true,
+    channelClickVolume: 0.5,
+    channelHoverEnabled: true,
+    channelHoverVolume: 0.5,
+    startupEnabled: true,
+    startupVolume: 0.5,
+  };
+  await unifiedData.set({
+    ...data,
+    settings: {
+      ...data.settings,
+      sounds: defaultSounds,
+    },
+  });
   await wallpapersData.reset();
   // Do NOT reset channels unless explicitly requested
   return true;
@@ -1791,265 +1785,15 @@ ipcMain.handle('set-auto-launch', (event, enable) => {
   return true;
 });
 
-// --- App Launching Logic ---
+// --- App Launching Logic (see launchApp.cjs) ---
+const { launchChannelApp } = require('./launchApp.cjs');
 
-// Helper function to check if an app is running and bring it to foreground
-async function checkAndBringToForeground(executablePath, args = []) {
+ipcMain.handle('launch-app', async (event, payload) => {
   try {
-    // Get the process name from the executable path
-    const processName = path.basename(executablePath, path.extname(executablePath));
-    
-    // For launcher executables, try to find the actual process name
-    let targetProcessName = processName;
-    
-    // Common launcher patterns
-    if (processName === 'Update' && args.includes('--processStart')) {
-      // Extract the actual process name from --processStart argument
-      const processStartIndex = args.indexOf('--processStart');
-      if (processStartIndex !== -1 && args[processStartIndex + 1]) {
-        targetProcessName = args[processStartIndex + 1].replace('.exe', '');
-        console.log('[FOREGROUND] Launcher detected, checking for process:', targetProcessName);
-      }
-    } else if (processName === 'Launcher' && args.includes('--launch')) {
-      // Common pattern for launcher executables
-      const launchIndex = args.indexOf('--launch');
-      if (launchIndex !== -1 && args[launchIndex + 1]) {
-        targetProcessName = args[launchIndex + 1].replace('.exe', '');
-        console.log('[FOREGROUND] Launcher detected, checking for process:', targetProcessName);
-      }
-    } else if (processName === 'Updater' && args.includes('--process')) {
-      // Another common launcher pattern
-      const processIndex = args.indexOf('--process');
-      if (processIndex !== -1 && args[processIndex + 1]) {
-        targetProcessName = args[processIndex + 1].replace('.exe', '');
-        console.log('[FOREGROUND] Launcher detected, checking for process:', targetProcessName);
-      }
-    }
-    
-    // Use PowerShell to check if the process is running and bring it to foreground
-    const psCommand = `
-      Add-Type -TypeDefinition @"
-        using System;
-        using System.Runtime.InteropServices;
-        public class Win32 {
-          [DllImport("user32.dll")]
-          [return: MarshalAs(UnmanagedType.Bool)]
-          public static extern bool SetForegroundWindow(IntPtr hWnd);
-          
-          [DllImport("user32.dll")]
-          [return: MarshalAs(UnmanagedType.Bool)]
-          public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-        }
-"@
-      
-      $processes = Get-Process -Name "${targetProcessName}" -ErrorAction SilentlyContinue
-      if ($processes) {
-        foreach ($process in $processes) {
-          try {
-            $hwnd = $process.MainWindowHandle
-            if ($hwnd -ne [System.IntPtr]::Zero) {
-              # Bring window to foreground
-              [Win32]::SetForegroundWindow($hwnd)
-              # Restore window if minimized
-              [Win32]::ShowWindow($hwnd, 9) # SW_RESTORE = 9
-              Write-Host "Brought ${targetProcessName} to foreground"
-              exit 0
-            }
-          } catch {
-            Write-Host "Could not bring ${targetProcessName} to foreground: $_"
-          }
-        }
-      }
-      exit 1
-    `;
-    
-    const result = await new Promise((resolve) => {
-      const child = spawn('powershell', ['-Command', psCommand], {
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-      
-      let output = '';
-      child.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-      
-      child.stderr.on('data', (data) => {
-        console.error('PowerShell error:', data.toString());
-      });
-      
-      child.on('close', (code) => {
-        resolve({ success: code === 0, output: output.trim() });
-      });
-    });
-    
-    return result.success;
-  } catch (error) {
-    console.error('Error checking/bringing app to foreground:', error);
-    return false;
-  }
-}
-
-ipcMain.on('launch-app', async (event, { type, path: appPath, asAdmin }) => {
-  console.log(`Launching app: type=${type}, path=${appPath}, asAdmin=${asAdmin}`);
-
-  if (type === 'url') {
-    shell.openExternal(appPath).catch(err => {
-      console.error('Failed to open URL:', err);
-    });
-  } else if (type === 'steam' || (typeof appPath === 'string' && appPath.startsWith('steam://'))) {
-    console.log('Launching Steam URI:', appPath);
-    shell.openExternal(appPath).catch(err => {
-      console.error('Failed to open Steam URI:', err);
-    });
-  } else if (type === 'epic' || (typeof appPath === 'string' && appPath.startsWith('com.epicgames.launcher://'))) {
-    console.log('Launching Epic URI:', appPath);
-    shell.openExternal(appPath).catch(err => {
-      console.error('Failed to open Epic URI:', err);
-    });
-  } else if (type === 'microsoftstore') {
-    // Launch Microsoft Store (UWP) app using the start command
-    try {
-      const command = `start shell:AppsFolder\\${appPath}`;
-      const child = spawn('cmd', ['/c', command], {
-        detached: true,
-        stdio: 'ignore',
-        shell: true
-      });
-      child.on('error', (err) => console.error('Failed to launch Microsoft Store app:', err));
-      child.on('spawn', () => { console.log('Microsoft Store app launched successfully'); child.unref(); });
-    } catch (err) {
-      console.error('Failed to launch Microsoft Store app:', err);
-    }
-  } else if (type === 'exe') {
-    try {
-      // FIX: Fallback paths for common system applications
-      // This ensures that even if the app scanning missed some system apps,
-      // they can still be launched by name
-      // Fallback paths for common system applications
-      const systemAppFallbacks = {
-        'File Explorer': 'C:\\Windows\\explorer.exe',
-        'explorer': 'C:\\Windows\\explorer.exe',
-        'Explorer': 'C:\\Windows\\explorer.exe',
-        'Notepad': 'C:\\Windows\\System32\\notepad.exe',
-        'notepad': 'C:\\Windows\\System32\\notepad.exe',
-        'Calculator': 'C:\\Windows\\System32\\calc.exe',
-        'calc': 'C:\\Windows\\System32\\calc.exe',
-        'Paint': 'C:\\Windows\\System32\\mspaint.exe',
-        'mspaint': 'C:\\Windows\\System32\\mspaint.exe',
-        'Command Prompt': 'C:\\Windows\\System32\\cmd.exe',
-        'cmd': 'C:\\Windows\\System32\\cmd.exe',
-        'PowerShell': 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
-        'powershell': 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
-      };
-
-      // Check if the app name matches a system app fallback
-      const appName = path.basename(appPath, path.extname(appPath));
-      if (systemAppFallbacks[appName] && fs.existsSync(systemAppFallbacks[appName])) {
-        appPath = systemAppFallbacks[appName];
-        console.log(`[LAUNCH] Using fallback path for ${appName}: ${appPath}`);
-      }
-
-      // Robustly parse the executable path and arguments, even with spaces.
-      function parseExeAndArgs(appPath) {
-        console.log('[PARSE] Parsing path:', appPath);
-        
-        // If quoted, use quoted part
-        if (appPath.startsWith('"')) {
-          const match = appPath.match(/^"([^\"]+)"\s*(.*)$/);
-          if (match) {
-            const exe = match[1];
-            const argsString = match[2] || '';
-            const args = argsString.match(/(?:[^\s\"]+|"[^"]*")+/g) || [];
-            console.log('[PARSE] Quoted path - exe:', exe, 'args:', args);
-            return [exe, ...args.map(arg => arg.replace(/^"|"$/g, ''))];
-          }
-        }
-        
-        // Handle paths with spaces by checking if the entire path exists first
-        if (fs.existsSync(appPath)) {
-          console.log('[PARSE] Full path exists:', appPath);
-          return [appPath];
-        }
-        
-        // If the full path doesn't exist, try to parse it
-        // Split by spaces and try to find the executable
-        let parts = appPath.split(' ');
-        let exe = parts[0];
-        let i = 1;
-        
-        // Find the longest valid executable path
-        while (i <= parts.length) {
-          const testPath = parts.slice(0, i).join(' ');
-          if (fs.existsSync(testPath)) {
-            exe = testPath;
-            i++;
-          } else {
-            break;
-          }
-        }
-        
-        // Everything after the executable path becomes arguments
-        const args = parts.slice(i - 1);
-        console.log('[PARSE] Parsed - exe:', exe, 'args:', args);
-        return [exe, ...args];
-      }
-      const [executablePath, ...args] = parseExeAndArgs(appPath);
-      const workingDir = path.dirname(executablePath);
-      
-      console.log('[LAUNCH] Parsed executable:', executablePath);
-      console.log('[LAUNCH] Parsed arguments:', args);
-      console.log('[LAUNCH] Working directory:', workingDir);
-      
-      // First, try to bring the app to foreground if it's already running
-      console.log('[FOREGROUND CHECK] Checking if app is already running:', executablePath, 'with args:', args);
-      const broughtToForeground = await checkAndBringToForeground(executablePath, args);
-      
-      if (broughtToForeground) {
-        console.log('[FOREGROUND SUCCESS] App was already running and brought to foreground');
-        return; // Don't launch a new instance
-      }
-      
-      console.log('[SPAWN CALL] App not running, launching new instance:', `spawn(${JSON.stringify(executablePath)}, ${JSON.stringify(args)}, { cwd: ${JSON.stringify(workingDir)}, detached: true, stdio: "ignore", shell: false })`);
-      
-      if (asAdmin) {
-        const argsString = args.length > 0 ? ` -ArgumentList "${args.join('", "')}"` : '';
-        const command = `Start-Process -FilePath "${executablePath}"${argsString} -Verb RunAs`;
-        const child = spawn('powershell', ['-Command', command], {
-          detached: true,
-          stdio: 'ignore',
-          shell: true
-        });
-        child.on('error', (err) => console.error('Failed to launch executable as admin:', err));
-        child.on('spawn', () => { console.log('Executable launched as admin successfully'); child.unref(); });
-      } else {
-        // Normal launch using the parsed path and setting the working directory.
-        const child = spawn(executablePath, args, {
-          cwd: workingDir,
-          detached: true,
-          stdio: 'ignore',
-          shell: false
-        });
-        child.on('error', (err) => {
-          console.error('[LAUNCH ERROR] Failed to launch executable:', err);
-          console.error('[LAUNCH ERROR] Executable path:', executablePath);
-          console.error('[LAUNCH ERROR] Arguments:', args);
-          console.error('[LAUNCH ERROR] Working directory:', workingDir);
-        });
-        child.on('spawn', () => { 
-          console.log('[LAUNCH SUCCESS] Executable launched successfully'); 
-          child.unref(); 
-        });
-        child.on('exit', (code, signal) => {
-          console.log('[LAUNCH EXIT] App exited with code:', code, 'signal:', signal);
-        });
-      }
-    } catch (err) {
-      console.error('Failed to launch executable:', err);
-    }
-  } else {
-    shell.openPath(appPath).catch(err => {
-      console.error('Failed to open path:', err);
-    });
+    return await launchChannelApp(payload);
+  } catch (err) {
+    console.error('[launch-app] handler error:', err);
+    return { ok: false, error: err.message || String(err) };
   }
 });
 
@@ -4150,111 +3894,6 @@ ipcMain.handle('execute-command', async (event, command) => {
 
 
 
-// --- Supabase Backend Operations ---
-const { createClient } = require('@supabase/supabase-js');
-
-// Supabase client for backend operations (uses hardcoded credentials)
-const supabaseUrl = 'https://bmlcydwltfexgbsyunkf.supabase.co';
-const supabaseSecretKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbGN5ZHdsdGZleGdic3l1bmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MTMzNDAsImV4cCI6MjA2OTM4OTM0MH0.m1kx74I5ytK0dLFPFAwD18Q907wvE56jvyQr3otp5A4'; // Anon key for backend operations
-
-if (!supabaseSecretKey) {
-  console.warn('Supabase secret key not found. Upload functionality will be disabled.');
-}
-
-const supabaseBackend = supabaseSecretKey ? createClient(supabaseUrl, supabaseSecretKey) : null;
-
-// IPC: Upload preset to Supabase (backend proxy)
-ipcMain.handle('supabase:upload', async (event, { presetData, formData, thumbnailBase64, presetFileName, thumbnailFileName }) => {
-  try {
-    if (!supabaseBackend) {
-      return { success: false, error: 'Supabase backend not configured. Please check your environment variables.' };
-    }
-
-    console.log('Backend: Starting Supabase upload...');
-    
-    // Upload preset file
-    console.log('Backend: Uploading preset file...');
-    const { data: presetFile, error: presetError } = await supabaseBackend.storage
-      .from('presets')
-      .upload(presetFileName, Buffer.from(presetData), { contentType: 'application/json' });
-
-    if (presetError) {
-      console.error('Backend: Preset upload error:', presetError);
-      return { success: false, error: presetError.message };
-    }
-    console.log('Backend: Preset file uploaded successfully:', presetFile.path);
-
-    // Upload thumbnail or custom image
-    let thumbnailFile;
-    if (formData.custom_image) {
-      console.log('Backend: Uploading custom image...');
-      const customImageBase64 = formData.custom_image.split(',')[1]; // Remove data URL prefix
-      const { data: customImageData, error: customImageError } = await supabaseBackend.storage
-        .from('thumbnails')
-        .upload(thumbnailFileName, Buffer.from(customImageBase64, 'base64'), { contentType: 'image/png' });
-
-      if (customImageError) {
-        console.error('Backend: Custom image upload error:', customImageError);
-        return { success: false, error: customImageError.message };
-      }
-      console.log('Backend: Custom image uploaded successfully:', customImageData.path);
-      thumbnailFile = customImageData;
-    } else {
-      console.log('Backend: Uploading auto-generated thumbnail...');
-      const { data: autoThumbnailData, error: thumbnailError } = await supabaseBackend.storage
-        .from('thumbnails')
-        .upload(thumbnailFileName, Buffer.from(thumbnailBase64, 'base64'), { contentType: 'image/png' });
-
-      if (thumbnailError) {
-        console.error('Backend: Thumbnail upload error:', thumbnailError);
-        return { success: false, error: thumbnailError.message };
-      }
-      console.log('Backend: Thumbnail uploaded successfully:', autoThumbnailData.path);
-      thumbnailFile = autoThumbnailData;
-    }
-
-    // Save to database using public client (for RLS policies)
-    console.log('Backend: Saving to database...');
-    console.log('Backend: Insert data:', {
-      name: formData.name,
-      description: formData.description,
-      creator_name: formData.creator_name || 'Anonymous',
-      creator_email: formData.creator_email || '',
-      tags: formData.tags || [],
-      preset_file_url: presetFile.path,
-      thumbnail_url: thumbnailFile.path,
-      file_size: presetData.length,
-      downloads: 0,
-    });
-    
-    const { data: insertData, error: dbError } = await supabaseBackend
-      .from('shared_presets')
-      .insert({
-        name: formData.name,
-        description: formData.description,
-        creator_name: formData.creator_name || 'Anonymous',
-        creator_email: formData.creator_email || '',
-        tags: formData.tags || [],
-        preset_file_url: presetFile.path,
-        thumbnail_url: thumbnailFile.path,
-        file_size: presetData.length,
-        downloads: 0,
-      })
-      .select();
-
-    if (dbError) {
-      console.error('Backend: Database insert error:', dbError);
-      return { success: false, error: dbError.message };
-    }
-    console.log('Backend: Database record created successfully:', insertData);
-
-    return { success: true };
-  } catch (error) {
-    console.error('Backend: Upload failed:', error);
-    return { success: false, error: error.message };
-  }
-});
-
 // IPC: Take screenshot of the homescreen
 ipcMain.handle('take-screenshot', async (event) => {
   try {
@@ -4313,80 +3952,70 @@ ipcMain.handle('take-screenshot', async (event) => {
   }
 });
 
-// IPC: Delete preset from Supabase (backend proxy)
-ipcMain.handle('supabase:delete', async (event, { presetId }) => {
+// IPC: Capture a clean homescreen thumbnail for presets.
+ipcMain.handle('capture-preset-thumbnail', async (event, options = {}) => {
+  const hideUiScript = `
+    (() => {
+      const styleId = '__weePresetCaptureHideUI__';
+      if (document.getElementById(styleId)) return true;
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = [
+        '[role="dialog"]',
+        '[class*="modal"]',
+        '[class*="popover"]',
+        '[class*="tooltip"]',
+        '[class*="widget"]',
+        '.settings-action-menu'
+      ].join(',') + '{ visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }';
+      document.head.appendChild(style);
+      return true;
+    })();
+  `;
+
+  const restoreUiScript = `
+    (() => {
+      const style = document.getElementById('__weePresetCaptureHideUI__');
+      if (style) style.remove();
+      return true;
+    })();
+  `;
+
   try {
-    if (!supabaseBackend) {
-      return { success: false, error: 'Supabase backend not configured. Please check your environment variables.' };
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) {
+      return { success: false, error: 'Window not found' };
     }
 
-    console.log('Backend: Starting Supabase delete...');
-    
-    // First, get the preset to check ownership and get file URLs
-    const { data: preset, error: fetchError } = await supabaseBackend
-      .from('shared_presets')
-      .select('*')
-      .eq('id', presetId)
-      .single();
+    const width = Number(options.width) || 960;
+    const height = Number(options.height) || 540;
+    const quality = Math.min(95, Math.max(60, Number(options.quality) || 88));
 
-    if (fetchError) {
-      console.error('Backend: Preset fetch error:', fetchError);
-      return { success: false, error: fetchError.message };
-    }
+    await win.webContents.executeJavaScript(hideUiScript);
+    await new Promise((resolve) => setTimeout(resolve, 80));
 
-    if (!preset) {
-      return { success: false, error: 'Preset not found' };
-    }
+    const image = await win.webContents.capturePage();
+    const resized = image.resize({ width, height, quality: 'best' });
+    const buffer = resized.toJPEG(quality);
 
-    // Note: Since users don't have accounts, anyone can delete any preset
-    // In a future version, this could be improved with proper authentication
-
-    // Delete files from storage
-    const deletePromises = [];
-    
-    if (preset.preset_file_url) {
-      deletePromises.push(
-        supabaseBackend.storage
-          .from('presets')
-          .remove([preset.preset_file_url])
-      );
-    }
-    
-    if (preset.thumbnail_url) {
-      deletePromises.push(
-        supabaseBackend.storage
-          .from('thumbnails')
-          .remove([preset.thumbnail_url])
-      );
-    }
-    
-    if (preset.screenshot_url) {
-      deletePromises.push(
-        supabaseBackend.storage
-          .from('screenshots')
-          .remove([preset.screenshot_url])
-      );
-    }
-
-    // Wait for all file deletions
-    await Promise.all(deletePromises);
-
-    // Delete from database
-    const { error: deleteError } = await supabaseBackend
-      .from('shared_presets')
-      .delete()
-      .eq('id', presetId);
-
-    if (deleteError) {
-      console.error('Backend: Database delete error:', deleteError);
-      return { success: false, error: deleteError.message };
-    }
-
-    console.log('Backend: Preset deleted successfully');
-    return { success: true };
+    return {
+      success: true,
+      dataUrl: `data:image/jpeg;base64,${buffer.toString('base64')}`,
+      mimeType: 'image/jpeg',
+      width,
+      height
+    };
   } catch (error) {
-    console.error('Backend: Delete failed:', error);
     return { success: false, error: error.message };
+  } finally {
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win && !win.isDestroyed()) {
+        await win.webContents.executeJavaScript(restoreUiScript);
+      }
+    } catch {
+      // noop: best-effort style cleanup
+    }
   }
 });
 

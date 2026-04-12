@@ -3,47 +3,31 @@ import { useSpotifyState, useFloatingWidgetsState } from '../utils/useConsolidat
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { useAppActivity } from '../hooks/useAppActivity';
 import { useFloatingWidgetFrame } from '../hooks/useFloatingWidgetFrame';
+import { usePlaybackSeek } from '../hooks/usePlaybackSeek';
 import WToggle from '../ui/WToggle';
 import Slider from '../ui/Slider';
 import './FloatingSpotifyWidget.css';
 
-const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
+const DEFAULT_DYNAMIC_COLORS = {
+  primary: '#1db954',
+  secondary: '#1ed760',
+  accent: '#ffffff',
+  text: '#ffffff',
+  textSecondary: '#e0e0e0'
+};
+
+const FloatingSpotifyWidget = ({ isVisible }) => {
   const { spotify, spotifyManager, setSpotifyState } = useSpotifyState();
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
   const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
   const { isAppActive } = useAppActivity();
   
-  // Debug: Log spotify state
-  useEffect(() => {
-    console.log('[SpotifyWidget] Spotify state:', {
-      isConnected: spotify.isConnected,
-      currentTrack: spotify.currentTrack,
-      isPlaying: spotify.isPlaying,
-      settings: spotify.settings,
-      hasAlbumArt: !!spotify.currentTrack?.album?.images?.[0]?.url,
-      albumArtUrl: spotify.currentTrack?.album?.images?.[0]?.url,
-      progress: spotify.progress,
-      duration: spotify.duration
-    });
-  }, [spotify]);
-
-  // Debug: Log widget visibility
-  useEffect(() => {
-    console.log('[SpotifyWidget] Widget visibility:', {
-      isVisible,
-      spotifyWidgetVisible: floatingWidgets.spotify.visible,
-      position: floatingWidgets.spotify.position
-    });
-  }, [isVisible, floatingWidgets.spotify]);
-
   const {
-    isConnected,
     currentTrack,
     isPlaying,
-    volume,
-    deviceId,
-    error,
-    loading
+    isConnected,
+    loading: spotifyLoading,
+    error: spotifyError,
   } = spotify;
 
   // Get spotify widget state from floating widgets
@@ -70,9 +54,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
 
   const spotifySettings = getSpotifySettings();
 
-  // Mock state for compatibility
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [playlists, setPlaylists] = useState([]);
   const [savedTracks, setSavedTracks] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
@@ -82,26 +63,35 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('playlists'); // 'playlists', 'songs', 'search'
   const [dynamicBackground, setDynamicBackground] = useState(null);
-  const [blurredBackground, setBlurredBackground] = useState(null);
-  const [dynamicColors, setDynamicColors] = useState({
-    primary: '#1db954',
-    secondary: '#1ed760',
-    accent: '#ffffff',
-    text: '#ffffff',
-    textSecondary: '#e0e0e0'
-  });
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [seekPosition, setSeekPosition] = useState(0);
-  const animationRef = useRef(null);
+  const [dynamicColors, setDynamicColors] = useState(DEFAULT_DYNAMIC_COLORS);
   const lastVisualizerFrameRef = useRef(0);
+  const visualizerLoopActiveRef = useRef(false);
   const {
     widgetRef,
     size,
     isDragging,
     isResizing,
-    handleHeaderMouseDown,
-    handleResizeStart,
-  } = useFloatingWidgetFrame({ setPosition: setSpotifyPosition });
+    handleHeaderPointerDown,
+    handleResizePointerDown,
+  } = useFloatingWidgetFrame({ setPosition: setSpotifyPosition, position: spotifyPosition });
+
+  const handleSeekCommit = useCallback(
+    (ms) => {
+      spotifyManager?.seekToPosition(ms);
+    },
+    [spotifyManager]
+  );
+
+  const {
+    progressBarRef,
+    isSeeking,
+    seekPosition,
+    handleSeekHandlePointerDown,
+    handleProgressBarPointerDown,
+  } = usePlaybackSeek({
+    durationMs: spotify.duration || 0,
+    onCommitSeek: handleSeekCommit,
+  });
 
   const allowEnhancedVisualizerEffects = isAppActive && !lowPowerMode;
   const visualizerFrameThrottleMs = lowPowerMode ? 120 : 48;
@@ -115,15 +105,11 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   // Extract colors from album art using Canvas API with improved contrast
   const extractColorsFromImage = (imageUrl) => {
     return new Promise((resolve) => {
-      console.log('[COLOR EXTRACTION] Starting extraction for:', imageUrl);
-      
       const img = new Image();
       img.crossOrigin = 'anonymous';
       
       img.onload = () => {
         try {
-          console.log('[COLOR EXTRACTION] Image loaded successfully, dimensions:', img.width, 'x', img.height);
-          
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
@@ -176,8 +162,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
             avgColor.g = Math.min(255, Math.round(avgColor.g * boost));
             avgColor.b = Math.min(255, Math.round(avgColor.b * boost));
             
-            console.log('[COLOR EXTRACTION] Average color:', avgColor);
-            
             // Create Apple Music-style color palette
             const primaryColor = `rgb(${avgColor.r}, ${avgColor.g}, ${avgColor.b})`;
             const secondaryColor = `rgb(${Math.max(0, avgColor.r - 40)}, ${Math.max(0, avgColor.g - 40)}, ${Math.max(0, avgColor.b - 40)})`;
@@ -210,9 +194,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
               rgba(${avgColor.r}, ${avgColor.g}, ${avgColor.b}, 0.8) 0%, 
               rgba(${Math.max(0, avgColor.r - 40)}, ${Math.max(0, avgColor.g - 40)}, ${Math.max(0, avgColor.b - 40)}, 0.6) 100%)`;
             
-            console.log('[COLOR EXTRACTION] Created gradient:', gradient);
-            console.log('[COLOR EXTRACTION] Created blurred background:', blurredBackground);
-            
             resolve({
               gradient,
               blurredBackground,
@@ -225,7 +206,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
               }
             });
           } else {
-            console.log('[COLOR EXTRACTION] No valid colors found');
             resolve(null);
           }
         } catch (error) {
@@ -244,62 +224,37 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   };
 
   // Update dynamic background when track changes
+  const albumArtUrl = currentTrack?.album?.images?.[0]?.url;
   useEffect(() => {
-    console.log('[BACKGROUND UPDATE] Track changed:', currentTrack?.name, 'Album art:', currentTrack?.album?.images?.[0]?.url);
-    
-    if (currentTrack?.album?.images?.[0]?.url && spotifySettings.dynamicColors) {
-      extractColorsFromImage(currentTrack.album.images[0].url).then(result => {
+    if (albumArtUrl && spotifySettings.dynamicColors) {
+      extractColorsFromImage(albumArtUrl).then(result => {
         if (result) {
-          console.log('[BACKGROUND UPDATE] Setting dynamic background:', result.gradient);
-          console.log('[BACKGROUND UPDATE] Setting blurred background:', result.blurredBackground);
-          console.log('[BACKGROUND UPDATE] Setting dynamic colors:', result.colors);
-          
           // Set local state for widget - only show dynamic background on player page
           if (currentPage === 'player') {
             setDynamicBackground(result.gradient);
-            setBlurredBackground(result.blurredBackground);
             setDynamicColors(result.colors);
           } else {
             // Keep default colors for widget display on other pages
-            const defaultColors = {
-              primary: '#1db954',
-              secondary: '#1ed760',
-              accent: '#ffffff',
-              text: '#ffffff',
-              textSecondary: '#e0e0e0'
-            };
             setDynamicBackground(null);
-            setBlurredBackground(null);
-            setDynamicColors(defaultColors);
+            setDynamicColors(DEFAULT_DYNAMIC_COLORS);
           }
           
           // 🚀 SHARE COLORS GLOBALLY: Save extracted colors to global Spotify state for WiiRibbon
-          console.log('[SPOTIFY COLORS] Sharing colors globally:', result.colors);
           setSpotifyState({ 
             extractedColors: result.colors 
           });
         }
       });
     } else {
-      console.log('[BACKGROUND UPDATE] No album art or dynamic colors disabled, clearing dynamic background');
-      const defaultColors = {
-        primary: '#1db954',
-        secondary: '#1ed760',
-        accent: '#ffffff',
-        text: '#ffffff',
-        textSecondary: '#e0e0e0'
-      };
-      
       setDynamicBackground(null);
-      setBlurredBackground(null);
-      setDynamicColors(defaultColors);
+      setDynamicColors(DEFAULT_DYNAMIC_COLORS);
       
       // Clear global extracted colors
       setSpotifyState({ 
         extractedColors: null 
       });
     }
-  }, [currentTrack?.album?.images?.[0]?.url, spotifySettings.dynamicColors, currentPage, setSpotifyState]);
+  }, [albumArtUrl, spotifySettings.dynamicColors, currentPage, setSpotifyState]);
 
   // Enhanced music-synced visualizer with engaging animations and effects
   const updateVisualizer = useCallback(() => {
@@ -365,28 +320,28 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
     setAudioData(newData);
   }, [isPlaying, currentTrack, spotify.progress, spotify.duration]);
 
-  // Optimized animation loop for visualizer
+  // Optimized animation loop for visualizer (single RAF chain + cancel flag)
   useEffect(() => {
-    let animationId = null;
-    
-    const animate = (timestamp) => {
-      if (timestamp - lastVisualizerFrameRef.current >= visualizerFrameThrottleMs) {
-        updateVisualizer();
-        lastVisualizerFrameRef.current = timestamp;
-      }
-      animationId = requestAnimationFrame(animate);
-    };
-    
-    if (isVisible && isAppActive && currentPage === 'player' && isPlaying) {
-      console.log('[Visualizer] Starting optimized animation loop');
-      animate();
+    if (!isVisible || !isAppActive || currentPage !== 'player' || !isPlaying) {
+      return undefined;
     }
-    
-    return () => {
-      if (animationId) {
-        console.log('[Visualizer] Stopping animation loop');
-        cancelAnimationFrame(animationId);
+    let rafId = 0;
+    visualizerLoopActiveRef.current = true;
+
+    const animate = (timestamp) => {
+      if (!visualizerLoopActiveRef.current) return;
+      const ts = Number.isFinite(timestamp) ? timestamp : performance.now();
+      if (ts - lastVisualizerFrameRef.current >= visualizerFrameThrottleMs) {
+        updateVisualizer();
+        lastVisualizerFrameRef.current = ts;
       }
+      rafId = requestAnimationFrame(animate);
+    };
+
+    rafId = requestAnimationFrame(animate);
+    return () => {
+      visualizerLoopActiveRef.current = false;
+      cancelAnimationFrame(rafId);
     };
   }, [isVisible, isAppActive, currentPage, isPlaying, updateVisualizer, visualizerFrameThrottleMs]);
 
@@ -408,8 +363,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
     if (isVisible && currentPage === 'browse') {
       const loadData = async () => {
         try {
-          console.log('[SpotifyWidget] Loading browse data...');
-          
           // Check if spotifyManager is available
           if (!spotifyManager) {
             console.error('[SpotifyWidget] spotifyManager is not available');
@@ -436,11 +389,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
             })
           ]);
           
-          console.log('[SpotifyWidget] Browse data loaded:', {
-            playlistsCount: playlistsData?.length || 0,
-            tracksCount: tracksData?.length || 0
-          });
-          
           setPlaylists(playlistsData || []);
           setSavedTracks(tracksData || []);
         } catch (error) {
@@ -457,15 +405,12 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   const handleSearch = async () => {
     if (searchQuery.trim()) {
       try {
-        console.log('[SpotifyWidget] Searching for:', searchQuery);
-        
         if (!spotifyManager || !spotifyManager.searchTracks) {
           console.error('[SpotifyWidget] spotifyManager.searchTracks is not available');
           return;
         }
         
         const results = await spotifyManager.searchTracks(searchQuery);
-        console.log('[SpotifyWidget] Search results:', results?.length || 0);
         setSearchResults(results || []);
         setActiveTab('search');
       } catch (error) {
@@ -495,64 +440,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
     }
   };
 
-  // Enhanced seeker bar interaction with draggable circle
-  const progressBarRef = useRef(null);
-
-  const handleSeekerMove = useCallback((e) => {
-    if (!progressBarRef.current || !spotify.duration) return;
-    
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-    const newPosition = Math.floor(spotify.duration * percentage);
-    
-    if (isSeeking) {
-      setSeekPosition(newPosition);
-    }
-  }, [isSeeking, spotify.duration]);
-
-  const handleSeekerMouseDown = useCallback((e) => {
-    if (!spotify.duration) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    setIsSeeking(true);
-    handleSeekerMove(e);
-  }, [spotify.duration, handleSeekerMove]);
-
-  const handleSeekerMouseUp = useCallback(() => {
-    if (!isSeeking) return;
-    
-    setIsSeeking(false);
-    spotifyManager.seekToPosition(seekPosition);
-  }, [isSeeking, seekPosition, spotifyManager]);
-
-  // Handle click-to-seek on progress bar
-  const handleProgressBarClick = useCallback((e) => {
-    if (!spotify.duration || isSeeking) return;
-    
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-    const newPosition = Math.floor(spotify.duration * percentage);
-    
-    spotifyManager.seekToPosition(newPosition);
-  }, [spotify.duration, isSeeking, spotifyManager]);
-
-  // Global mouse event listeners for seeking
-  useEffect(() => {
-    if (isSeeking) {
-      document.addEventListener('mousemove', handleSeekerMove);
-      document.addEventListener('mouseup', handleSeekerMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleSeekerMove);
-        document.removeEventListener('mouseup', handleSeekerMouseUp);
-      };
-    }
-  }, [isSeeking, handleSeekerMove, handleSeekerMouseUp]);
-
   // Format time helper function
   const formatTime = (ms) => {
     if (!ms) return '0:00';
@@ -560,142 +447,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
     const seconds = Math.floor((ms % 60000) / 1000);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
-
-  // Debug: Test widget features
-  useEffect(() => {
-    window.testSpotifyWidget = () => {
-      console.log('[SpotifyWidget] === TESTING WIDGET FEATURES ===');
-      console.log('[SpotifyWidget] Current track:', spotify.currentTrack);
-      console.log('[SpotifyWidget] Track artists:', spotify.currentTrack?.artists);
-      console.log('[SpotifyWidget] Track album:', spotify.currentTrack?.album);
-      console.log('[SpotifyWidget] Settings:', spotify.settings);
-      console.log('[SpotifyWidget] Progress:', spotify.progress);
-      console.log('[SpotifyWidget] Duration:', spotify.duration);
-      console.log('[SpotifyWidget] Is playing:', spotify.isPlaying);
-      console.log('[SpotifyWidget] Dynamic background:', dynamicBackground);
-      console.log('[SpotifyWidget] Blurred background:', blurredBackground);
-      console.log('[SpotifyWidget] Dynamic colors:', dynamicColors);
-      console.log('[SpotifyWidget] Current page:', currentPage);
-      console.log('[SpotifyWidget] Album art URL:', spotify.currentTrack?.album?.images?.[0]?.url);
-      console.log('[SpotifyWidget] === END TEST ===');
-    };
-
-    window.enableSpotifyFeatures = () => {
-      console.log('[SpotifyWidget] Enabling all Spotify features...');
-      spotifyManager.updateSpotifySettings({
-        dynamicColors: true,
-        useBlurredBackground: true,
-        blurAmount: 15,
-        autoShowWidget: true,
-        visualizerType: 'bars',
-        trackInfoPanelOpacity: 0.8,
-        trackInfoPanelBlur: 15
-      });
-      console.log('[SpotifyWidget] Features enabled!');
-    };
-
-    window.enableImmersiveMode = () => {
-      console.log('[SpotifyWidget] Enabling immersive mode...');
-      setSpotifyState({
-        immersiveMode: {
-          enabled: true,
-          liveGradientWallpaper: true,
-          wallpaperOverlay: true,
-          ambientLighting: true,
-          pulseEffects: true,
-          overlayIntensity: 0.3,
-          ambientIntensity: 0.15,
-          pulseIntensity: 0.2,
-          beatSync: true
-        }
-      });
-      console.log('[SpotifyWidget] Immersive mode enabled!');
-    };
-
-    window.testSpotifyAPI = async () => {
-      console.log('[SpotifyWidget] === TESTING SPOTIFY API ===');
-      
-      try {
-        // Test current playback
-        const playback = await spotifyManager.refreshPlaybackState();
-        console.log('[SpotifyWidget] Playback data:', playback);
-        
-        if (playback && playback.item) {
-          console.log('[SpotifyWidget] ✅ Current track found:', {
-            name: playback.item.name,
-            artists: playback.item.artists?.map(a => a.name).join(', '),
-            album: playback.item.album?.name,
-            albumArt: playback.item.album?.images?.[0]?.url,
-            duration: playback.duration_ms,
-            progress: playback.progress_ms,
-            isPlaying: playback.is_playing
-          });
-        } else {
-          console.log('[SpotifyWidget] ⚠️ No active playback found');
-        }
-        
-        // Test user profile
-        const profile = await spotifyManager.getUserProfile();
-        console.log('[SpotifyWidget] User profile:', profile);
-        
-        // Test playlists
-        const playlists = await spotifyManager.loadPlaylists();
-        console.log('[SpotifyWidget] Playlists count:', playlists?.length || 0);
-        
-        // Test saved tracks
-        const savedTracks = await spotifyManager.loadSavedTracks();
-        console.log('[SpotifyWidget] Saved tracks count:', savedTracks?.length || 0);
-        
-      } catch (error) {
-        console.error('[SpotifyWidget] API test error:', error);
-      }
-      
-      console.log('[SpotifyWidget] === END API TEST ===');
-    };
-
-    window.debugBrowsePage = () => {
-      console.log('[SpotifyWidget] === DEBUGGING BROWSE PAGE ===');
-      console.log('[SpotifyWidget] Current page:', currentPage);
-      console.log('[SpotifyWidget] Is visible:', isVisible);
-      console.log('[SpotifyWidget] Spotify manager:', spotifyManager);
-      console.log('[SpotifyWidget] Spotify manager functions:', {
-        loadPlaylists: !!spotifyManager?.loadPlaylists,
-        loadSavedTracks: !!spotifyManager?.loadSavedTracks,
-        searchTracks: !!spotifyManager?.searchTracks,
-        getUserProfile: !!spotifyManager?.getUserProfile
-      });
-      console.log('[SpotifyWidget] Current state:', {
-        playlists: playlists?.length || 0,
-        savedTracks: savedTracks?.length || 0,
-        searchResults: searchResults?.length || 0,
-        activeTab: activeTab,
-        searchQuery: searchQuery
-      });
-      console.log('[SpotifyWidget] === END BROWSE DEBUG ===');
-    };
-
-    window.debugVisualizer = () => {
-      console.log('[SpotifyWidget] === DEBUGGING VISUALIZER ===');
-      console.log('[SpotifyWidget] Current page:', currentPage);
-      console.log('[SpotifyWidget] Is visible:', isVisible);
-      console.log('[SpotifyWidget] Is playing:', isPlaying);
-      console.log('[SpotifyWidget] Current track:', currentTrack?.name);
-      console.log('[SpotifyWidget] Audio data length:', audioData?.length || 0);
-      console.log('[SpotifyWidget] Audio data sample:', audioData?.slice(0, 5));
-      console.log('[SpotifyWidget] Visualizer type:', spotifySettings.visualizerType);
-      console.log('[SpotifyWidget] Animation ref:', !!animationRef.current);
-      console.log('[SpotifyWidget] === END VISUALIZER DEBUG ===');
-    };
-
-    return () => {
-      delete window.testSpotifyWidget;
-      delete window.enableSpotifyFeatures;
-      delete window.enableImmersiveMode;
-      delete window.testSpotifyAPI;
-      delete window.debugBrowsePage;
-      delete window.debugVisualizer;
-    };
-  }, [spotify.currentTrack, spotify.settings, dynamicBackground, blurredBackground, dynamicColors, currentPage, spotifyManager, playlists, savedTracks, searchResults, activeTab, searchQuery, isPlaying, currentTrack, audioData, spotifySettings.visualizerType, animationRef.current]);
 
   if (!isVisible) return null;
 
@@ -727,33 +478,35 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
 
   // Settings handlers
   const handleDynamicColorsToggle = (checked) => {
-    console.log('[SpotifyWidget] Toggling dynamic colors:', checked);
     spotifyManager.updateSpotifySettings({ dynamicColors: checked });
   };
 
   const handleBlurredBackgroundToggle = (checked) => {
-    console.log('[SpotifyWidget] Toggling blurred background:', checked);
     spotifyManager.updateSpotifySettings({ useBlurredBackground: checked });
   };
 
   const handleBlurAmountChange = (value) => {
-    console.log('[SpotifyWidget] Changing blur amount:', value);
     spotifyManager.updateSpotifySettings({ blurAmount: value });
   };
 
   const handleAutoShowWidgetToggle = (checked) => {
-    console.log('[SpotifyWidget] Toggling auto show widget:', checked);
     spotifyManager.updateSpotifySettings({ autoShowWidget: checked });
   };
 
   const handleVisualizerTypeChange = (type) => {
-    console.log('[SpotifyWidget] Changing visualizer type:', type);
     spotifyManager.updateSpotifySettings({ visualizerType: type });
   };
 
+  const hasDynamicAlbumColors = Boolean(
+    spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url
+  );
+
+  const getVisualizerOptionClass = (type) =>
+    `visualizer-option-modern ${spotifySettings.visualizerType === type ? 'active visualizer-option-modern-active' : 'visualizer-option-modern-inactive'}`;
+
   return (
     <div 
-      className={`floating-spotify-widget ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${size.width < 300 ? 'small-widget' : size.width < 450 ? 'medium-widget' : 'large-widget'}`}
+      className={`floating-spotify-widget ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${size.width < 300 ? 'small-widget' : size.width < 450 ? 'medium-widget' : 'large-widget'} ${hasDynamicAlbumColors ? 'has-dynamic-colors' : ''}`}
       ref={widgetRef}
       style={{
         left: `${spotifyPosition.x}px`,
@@ -764,7 +517,12 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
         '--glow-primary': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? dynamicColors.primary : '#1db954',
         '--glow-secondary': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? dynamicColors.secondary : '#1ed760',
         '--glow-opacity': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? '0.4' : '0.3',
-        '--glow-brightness': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? '1.1' : '1'
+        '--glow-brightness': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? '1.1' : '1',
+        '--spotify-dyn-primary': dynamicColors.primary || '#1db954',
+        '--spotify-dyn-accent': dynamicColors.accent || '#ffffff',
+        '--spotify-dyn-text': dynamicColors.text || '#ffffff',
+        '--spotify-track-info-opacity': spotifySettings.trackInfoPanelOpacity,
+        '--spotify-track-info-blur': `${effectiveTrackInfoBlur}px`
       }}
     >
       {/* Blurred Background Layer - only for player page with album art */}
@@ -782,7 +540,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
       {currentPage === 'player' && (
         <div 
           className={`visualizer-header visualizer-${spotifySettings.visualizerType || 'bars'}`}
-          onMouseDown={handleHeaderMouseDown}
+          onPointerDown={handleHeaderPointerDown}
         >
           {audioData.map((height, index) => {
             // Calculate responsive dimensions based on widget size
@@ -795,15 +553,11 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
             if (isSmallWidget && index >= barCount) return null;
             
             // Create engaging visual effects based on amplitude
-            const intensity = height;
-            const glowIntensity = Math.pow(intensity, 1.5); // Enhanced glow for higher amplitudes
-            const pulseIntensity = Math.sin(Date.now() * 0.01 + index * 0.5) * 0.1 + 0.9;
-            
             // Enhanced visualizer styles based on type with Spotify color strategy
             let visualizerStyle = {};
             
             switch (spotifySettings.visualizerType) {
-              case 'circles':
+              case 'circles': {
                 const circleSize = Math.max(8, height * 25);
                 visualizerStyle = {
                   width: `${circleSize}px`,
@@ -816,7 +570,8 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   animation: allowEnhancedVisualizerEffects && height > 0.5 ? 'pulse 0.5s ease-in-out infinite alternate' : 'none'
                 };
                 break;
-              case 'waves':
+              }
+              case 'waves': {
                 visualizerStyle = {
                   width: `${barWidth}px`,
                   height: `${height * maxHeight}px`,
@@ -828,7 +583,8 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   animation: allowEnhancedVisualizerEffects && height > 0.6 ? 'wave 0.8s ease-in-out infinite' : 'none'
                 };
                 break;
-              case 'sparkle':
+              }
+              case 'sparkle': {
                 const sparkleSize = Math.max(4, height * 20);
                 visualizerStyle = {
                   width: `${sparkleSize}px`,
@@ -842,7 +598,8 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   background: `radial-gradient(circle, ${dynamicColors.accent || '#ffffff'} 0%, transparent 70%)`
                 };
                 break;
-              default: // bars
+              }
+              default: { // bars
                 const barHeight = height * maxHeight;
                 visualizerStyle = {
                   width: `${barWidth}px`,
@@ -860,6 +617,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                       : 'rgba(255, 255, 255, 0.9)')
                 };
                 break;
+              }
             }
             
             return (
@@ -884,6 +642,26 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
               {/* Widget Content */}
         <div className="widget-content">
 
+        {(!isConnected || spotifyError) && (
+          <div
+            className="floating-widget-status-banner"
+            role="status"
+            aria-live="polite"
+          >
+            {!isConnected && (
+              <span>Spotify is not connected. Connect in Settings → API &amp; integrations.</span>
+            )}
+            {isConnected && spotifyError && (
+              <span title={spotifyError}>Playback issue: {spotifyError}</span>
+            )}
+          </div>
+        )}
+        {isConnected && spotifyLoading && !currentTrack && (
+          <div className="floating-widget-status-banner floating-widget-status-banner--subtle" role="status">
+            Syncing playback…
+          </div>
+        )}
+
         {/* Right Sidebar Navigation - Peek button style */}
         <div className="sidebar-navigation-right">
           <div className="sidebar-peek-button">
@@ -894,37 +672,22 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
               className={`sidebar-btn ${currentPage === 'player' ? 'active' : ''}`}
               onClick={() => setCurrentPage('player')}
               title="Now Playing"
-              style={{
-                color: currentPage === 'player' ? dynamicColors.text : dynamicColors.textSecondary,
-                                  backgroundColor: spotifySettings.dynamicColors && dynamicColors ? dynamicColors.primary : 'rgba(255, 255, 255, 0.1)',
-                borderColor: dynamicColors.accent
-              }}
             >
               <span className="sidebar-icon">▶</span>
               <span className="sidebar-label">Now Playing</span>
             </button>
             <button 
-              className={`sidebar-btn ${currentPage === 'browse' ? 'active' : ''}`}
+              className={`sidebar-btn ${currentPage === 'browse' ? 'active sidebar-btn-dark-active' : ''}`}
               onClick={() => setCurrentPage('browse')}
               title="Browse Music"
-              style={{
-                color: currentPage === 'browse' ? '#000000' : '#ffffff',
-                backgroundColor: currentPage === 'browse' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.1)',
-                borderColor: '#1db954'
-              }}
             >
               <span className="sidebar-icon">📚</span>
               <span className="sidebar-label">Browse</span>
             </button>
             <button 
-              className={`sidebar-btn ${currentPage === 'settings' ? 'active' : ''}`}
+              className={`sidebar-btn ${currentPage === 'settings' ? 'active sidebar-btn-dark-active' : ''}`}
               onClick={() => setCurrentPage('settings')}
               title="Widget Settings"
-              style={{
-                color: currentPage === 'settings' ? '#000000' : '#ffffff',
-                backgroundColor: currentPage === 'settings' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.1)',
-                borderColor: '#1db954'
-              }}
             >
               <span className="sidebar-icon">⚙️</span>
               <span className="sidebar-label">Settings</span>
@@ -939,10 +702,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
             {currentTrack ? (
               <div 
                 className={`track-info-card ${size.width < 300 ? 'flex-col items-center text-center' : 'flex-row items-start text-left'}`}
-                style={{
-                  opacity: spotifySettings.trackInfoPanelOpacity,
-                  backdropFilter: `blur(${effectiveTrackInfoBlur}px)`
-                }}
               >
                 <div 
                   className={`track-artwork-large ${size.width < 300 ? 'w-20 h-20 mb-3' : 'w-30 h-30'}`}
@@ -981,10 +740,10 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                       <div 
                         ref={progressBarRef}
                         className="progress-bar-modern bg-white/20" 
-                        onClick={handleProgressBarClick}
+                        onPointerDown={handleProgressBarPointerDown}
                       >
                         <div 
-                          className="progress-fill-modern bg-[#1db954]"
+                          className="progress-fill-modern bg-[rgb(var(--spotify-green-rgb))]"
                           style={{
                             width: `${((isSeeking ? seekPosition : (spotify.progress || 0)) / (spotify.duration || 1)) * 100}%`
                           }}
@@ -994,7 +753,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                           style={{ 
                             left: `${((isSeeking ? seekPosition : (spotify.progress || 0)) / (spotify.duration || 1)) * 100}%`
                           }}
-                          onMouseDown={handleSeekerMouseDown}
+                          onPointerDown={handleSeekHandlePointerDown}
                         />
                       </div>
                       <div className="progress-time-modern text-white/80 text-xs">
@@ -1005,38 +764,23 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                     {/* Playback Controls */}
                     <div className="playback-controls-modern justify-center gap-2">
                       <button 
-                        className="control-btn-modern w-9 h-9 text-sm"
+                        className="control-btn-modern spotify-playback-btn w-9 h-9 text-sm"
                         onClick={spotifyManager.skipToPrevious}
                         title="Previous Track"
-                        style={{
-                          color: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.text : '#ffffff',
-                          backgroundColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.primary : 'rgba(255, 255, 255, 0.1)',
-                          borderColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.accent : 'rgba(255, 255, 255, 0.2)'
-                        }}
                       >
                         ⏮
                       </button>
                       <button 
-                        className="control-btn-modern play-pause-modern scale-110 w-12 h-12 text-lg"
+                        className="control-btn-modern play-pause-modern spotify-playback-btn spotify-playback-btn-play scale-110 w-12 h-12 text-lg"
                         onClick={spotifyManager.togglePlayback}
                         title={isPlaying ? 'Pause' : 'Play'}
-                        style={{
-                          color: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.text : '#000000',
-                          backgroundColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.primary : '#1db954',
-                          borderColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.accent : '#1db954'
-                        }}
                       >
                         {isPlaying ? '⏸' : '▶'}
                       </button>
                       <button 
-                        className="control-btn-modern w-9 h-9 text-sm"
+                        className="control-btn-modern spotify-playback-btn w-9 h-9 text-sm"
                         onClick={spotifyManager.skipToNext}
                         title="Next Track"
-                        style={{
-                          color: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.text : '#ffffff',
-                          backgroundColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.primary : 'rgba(255, 255, 255, 0.1)',
-                          borderColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.accent : 'rgba(255, 255, 255, 0.2)'
-                        }}
                       >
                         ⏭
                       </button>
@@ -1060,10 +804,10 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   <div 
                     ref={progressBarRef}
                     className="progress-bar-modern bg-white/20" 
-                    onClick={handleProgressBarClick}
+                    onPointerDown={handleProgressBarPointerDown}
                   >
                     <div 
-                      className="progress-fill-modern bg-[#1db954]"
+                      className="progress-fill-modern bg-[rgb(var(--spotify-green-rgb))]"
                       style={{
                         width: `${((isSeeking ? seekPosition : (spotify.progress || 0)) / (spotify.duration || 1)) * 100}%`
                       }}
@@ -1073,7 +817,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                       style={{ 
                         left: `${((isSeeking ? seekPosition : (spotify.progress || 0)) / (spotify.duration || 1)) * 100}%`
                       }}
-                      onMouseDown={handleSeekerMouseDown}
+                      onPointerDown={handleSeekHandlePointerDown}
                     />
                   </div>
                   <div className="progress-time-modern text-white/80 text-xs">
@@ -1084,38 +828,23 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                 {/* Modern Playback Controls */}
                 <div className="playback-controls-modern justify-center gap-3">
                   <button 
-                    className="control-btn-modern w-11 h-11 text-base"
+                    className="control-btn-modern spotify-playback-btn w-11 h-11 text-base"
                     onClick={spotifyManager.skipToPrevious}
                     title="Previous Track"
-                    style={{
-                      color: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.text : '#ffffff',
-                      backgroundColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.primary : 'rgba(255, 255, 255, 0.1)',
-                      borderColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.accent : 'rgba(255, 255, 255, 0.2)'
-                    }}
                   >
                     ⏮
                   </button>
                   <button 
-                    className="control-btn-modern play-pause-modern scale-110 w-14 h-14 text-xl"
+                    className="control-btn-modern play-pause-modern spotify-playback-btn spotify-playback-btn-play scale-110 w-14 h-14 text-xl"
                     onClick={spotifyManager.togglePlayback}
                     title={isPlaying ? 'Pause' : 'Play'}
-                    style={{
-                      color: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.text : '#000000',
-                      backgroundColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.primary : '#1db954',
-                      borderColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.accent : '#1db954'
-                    }}
                   >
                     {isPlaying ? '⏸' : '▶'}
                   </button>
                   <button 
-                    className="control-btn-modern w-11 h-11 text-base"
+                    className="control-btn-modern spotify-playback-btn w-11 h-11 text-base"
                     onClick={spotifyManager.skipToNext}
                     title="Next Track"
-                    style={{
-                      color: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.text : '#ffffff',
-                      backgroundColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.primary : 'rgba(255, 255, 255, 0.1)',
-                      borderColor: spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url ? dynamicColors.accent : 'rgba(255, 255, 255, 0.2)'
-                    }}
                   >
                     ⏭
                   </button>
@@ -1136,11 +865,11 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   placeholder="Search songs, artists, or albums..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="search-input-modern text-black bg-white/95"
                 />
                 <button 
-                  className="search-btn-modern text-black bg-white/95 border-[#1db954]" 
+                  className="search-btn-modern text-black bg-white/95 border-white/40"
                   onClick={handleSearch}
                 >
                   🔍
@@ -1151,14 +880,14 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
             {/* Modern Tab Navigation */}
             <div className="tab-navigation-modern">
               <button 
-                className={`tab-btn-modern ${activeTab === 'playlists' ? 'active' : ''} ${activeTab === 'playlists' ? 'text-black bg-white/95' : 'text-white bg-white/20'} border-[#1db954]`}
+                className={`tab-btn-modern ${activeTab === 'playlists' ? 'active' : ''} ${activeTab === 'playlists' ? 'text-black bg-white/95' : 'text-white bg-white/20'} border-white/40`}
                 onClick={() => setActiveTab('playlists')}
               >
                 <span className="tab-icon">📚</span>
                 <span className="tab-label">Playlists</span>
               </button>
               <button 
-                className={`tab-btn-modern ${activeTab === 'songs' ? 'active' : ''} ${activeTab === 'songs' ? 'text-black bg-white/95' : 'text-white bg-white/20'} border-[#1db954]`}
+                className={`tab-btn-modern ${activeTab === 'songs' ? 'active' : ''} ${activeTab === 'songs' ? 'text-black bg-white/95' : 'text-white bg-white/20'} border-white/40`}
                 onClick={() => setActiveTab('songs')}
               >
                 <span className="tab-icon">🎵</span>
@@ -1166,7 +895,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
               </button>
               {searchResults.length > 0 && (
                 <button 
-                  className={`tab-btn-modern ${activeTab === 'search' ? 'active' : ''} ${activeTab === 'search' ? 'text-black bg-white/95' : 'text-white bg-white/20'} border-[#1db954]`}
+                  className={`tab-btn-modern ${activeTab === 'search' ? 'active' : ''} ${activeTab === 'search' ? 'text-black bg-white/95' : 'text-white bg-white/20'} border-white/40`}
                   onClick={() => setActiveTab('search')}
                 >
                   <span className="tab-icon">🔍</span>
@@ -1187,6 +916,11 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   {/* Playlists Tab */}
                   {activeTab === 'playlists' && (
                     <div className="playlists-grid-modern">
+                      {playlists.length === 0 && (
+                        <div className="browse-empty-modern text-white/70 text-sm text-center py-6">
+                          No playlists loaded. Check your connection or try again later.
+                        </div>
+                      )}
                       {playlists.slice(0, 8).map((playlist) => (
                         <div 
                           key={playlist.id} 
@@ -1212,6 +946,11 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   {/* Songs Tab */}
                   {activeTab === 'songs' && (
                     <div className="songs-list-modern">
+                      {savedTracks.length === 0 && (
+                        <div className="browse-empty-modern text-white/70 text-sm text-center py-6">
+                          No saved tracks yet.
+                        </div>
+                      )}
                       {savedTracks.slice(0, 8).map((track) => (
                         <div 
                           key={track.id} 
@@ -1237,6 +976,11 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   {/* Search Tab */}
                   {activeTab === 'search' && (
                     <div className="search-results-modern">
+                      {searchResults.length === 0 && searchQuery.trim() && (
+                        <div className="browse-empty-modern text-white/70 text-sm text-center py-6">
+                          No results. Try different keywords.
+                        </div>
+                      )}
                       {searchResults.slice(0, 8).map((track) => (
                         <div 
                           key={track.id} 
@@ -1294,14 +1038,14 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                     onChange={handleBlurredBackgroundToggle}
                     label="Blurred Album Art Background"
                   />
-                  <p className="setting-description" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                  <p className="setting-description text-white/60">
                     Use the current track's album art as a blurred background
                   </p>
                 </div>
                 
                 {spotifySettings.useBlurredBackground && (
                   <div className="setting-item-modern">
-                    <div className="setting-label" style={{ color: '#ffffff', marginBottom: 8 }}>Blur Amount</div>
+                    <div className="setting-label text-white mb-2">Blur Amount</div>
                     <div className="slider-container">
                       <input
                         type="range"
@@ -1312,11 +1056,11 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                         onChange={e => handleBlurAmountChange(Number(e.target.value))}
                         className="blur-slider"
                       />
-                      <span className="slider-value" style={{ color: '#ffffff', fontWeight: 600 }}>
+                      <span className="slider-value text-white font-semibold">
                         {spotifySettings.blurAmount || 0}px
                       </span>
                     </div>
-                    <p className="setting-description" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                    <p className="setting-description text-white/60">
                       Higher blur makes the album art more blurry. 0px = no blur, 24px = very blurry.
                     </p>
                   </div>
@@ -1325,7 +1069,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
 
               {/* Behavior Section */}
               <div className="settings-section-modern">
-                <h3 className="section-title" style={{ color: '#ffffff' }}>⚡ Behavior</h3>
+                <h3 className="section-title text-white">⚡ Behavior</h3>
                 
                 <div className="setting-item-modern">
                   <WToggle
@@ -1333,7 +1077,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                     onChange={handleAutoShowWidgetToggle}
                     label="Auto-show Widget on Playback"
                   />
-                  <p className="setting-description" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                  <p className="setting-description text-white/60">
                     Automatically show the widget when music starts playing
                   </p>
                 </div>
@@ -1341,48 +1085,32 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
 
               {/* Visualizer Section */}
               <div className="settings-section-modern">
-                <h3 className="section-title" style={{ color: '#ffffff' }}>🎵 Visualizer</h3>
+                <h3 className="section-title text-white">🎵 Visualizer</h3>
                 
                 <div className="setting-item-modern">
-                  <div className="setting-label" style={{ color: '#ffffff', marginBottom: 8 }}>Visualizer Type</div>
+                  <div className="setting-label text-white mb-2">Visualizer Type</div>
                   <div className="visualizer-options-modern">
                     <button
-                      className={`visualizer-option-modern ${spotifySettings.visualizerType === 'bars' ? 'active' : ''}`}
+                      className={getVisualizerOptionClass('bars')}
                       onClick={() => handleVisualizerTypeChange('bars')}
-                      style={{
-                        color: spotifySettings.visualizerType === 'bars' ? '#000000' : '#ffffff',
-                        backgroundColor: spotifySettings.visualizerType === 'bars' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.2)'
-                      }}
                     >
                       Bars
                     </button>
                     <button
-                      className={`visualizer-option-modern ${spotifySettings.visualizerType === 'circles' ? 'active' : ''}`}
+                      className={getVisualizerOptionClass('circles')}
                       onClick={() => handleVisualizerTypeChange('circles')}
-                      style={{
-                        color: spotifySettings.visualizerType === 'circles' ? '#000000' : '#ffffff',
-                        backgroundColor: spotifySettings.visualizerType === 'circles' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.2)'
-                      }}
                     >
                       Circles
                     </button>
                     <button
-                      className={`visualizer-option-modern ${spotifySettings.visualizerType === 'waves' ? 'active' : ''}`}
+                      className={getVisualizerOptionClass('waves')}
                       onClick={() => handleVisualizerTypeChange('waves')}
-                      style={{
-                        color: spotifySettings.visualizerType === 'waves' ? '#000000' : '#ffffff',
-                        backgroundColor: spotifySettings.visualizerType === 'waves' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.2)'
-                      }}
                     >
                       Waves
                     </button>
                     <button
-                      className={`visualizer-option-modern ${spotifySettings.visualizerType === 'sparkle' ? 'active' : ''}`}
+                      className={getVisualizerOptionClass('sparkle')}
                       onClick={() => handleVisualizerTypeChange('sparkle')}
-                      style={{
-                        color: spotifySettings.visualizerType === 'sparkle' ? '#000000' : '#ffffff',
-                        backgroundColor: spotifySettings.visualizerType === 'sparkle' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.2)'
-                      }}
                     >
                       Sparkle
                     </button>
@@ -1394,10 +1122,10 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
 
               {/* Track Info Panel Section */}
               <div className="settings-section-modern">
-                <h3 className="section-title" style={{ color: '#ffffff' }}>📋 Track Info Panel</h3>
+                <h3 className="section-title text-white">📋 Track Info Panel</h3>
                 
                 <div className="setting-item-modern">
-                  <div className="setting-label" style={{ color: '#ffffff', marginBottom: 8 }}>Opacity</div>
+                  <div className="setting-label text-white mb-2">Opacity</div>
                   <div className="slider-container">
                     <Slider
                       value={spotifySettings.trackInfoPanelOpacity}
@@ -1406,14 +1134,14 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                       step={0.1}
                       onChange={(value) => spotifyManager.updateSpotifySettings({ trackInfoPanelOpacity: value })}
                     />
-                    <span className="slider-value" style={{ color: '#ffffff', fontWeight: 600 }}>
+                    <span className="slider-value text-white font-semibold">
                       {Math.round(spotifySettings.trackInfoPanelOpacity * 100)}%
                     </span>
                   </div>
                 </div>
                 
                 <div className="setting-item-modern">
-                  <div className="setting-label" style={{ color: '#ffffff', marginBottom: 8 }}>Blur</div>
+                  <div className="setting-label text-white mb-2">Blur</div>
                   <div className="slider-container">
                     <Slider
                       value={spotifySettings.trackInfoPanelBlur}
@@ -1422,7 +1150,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                       step={1}
                       onChange={(value) => spotifyManager.updateSpotifySettings({ trackInfoPanelBlur: value })}
                     />
-                    <span className="slider-value" style={{ color: '#ffffff', fontWeight: 600 }}>
+                    <span className="slider-value text-white font-semibold">
                       {spotifySettings.trackInfoPanelBlur}px
                     </span>
                   </div>
@@ -1436,9 +1164,8 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
       {/* Resize Handle */}
       <div 
         className="resize-handle"
-        onMouseDown={handleResizeStart}
-        onMouseMove={handleResizeMove}
-        onMouseUp={handleResizeEnd}
+        onPointerDown={handleResizePointerDown}
+        aria-label="Resize Spotify widget"
       >
         ↙
       </div>

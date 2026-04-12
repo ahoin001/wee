@@ -7,6 +7,7 @@ import WButton from '../../ui/WButton';
 import WSelect from '../../ui/WSelect';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { findDockThemePath, getDockThemeByPath } from '../../utils/dockThemeUtils';
+import '../surfaceStyles.css';
 
 // Add CSS for pulse animation
 const pulseAnimation = `
@@ -216,6 +217,26 @@ const SUB_TABS = [
   }
 ];
 
+const ColorSettingRow = ({ label, value, fallback, onChange }) => {
+  const resolvedValue = value ?? fallback;
+  return (
+    <div className="surface-row">
+      <Text variant="body" className="surface-color-label">
+        {label}
+      </Text>
+      <input
+        type="color"
+        value={resolvedValue}
+        onChange={(e) => onChange(e.target.value)}
+        className="surface-color-input"
+      />
+      <Text variant="caption" className="surface-caption !mt-0">
+        {resolvedValue.toUpperCase()}
+      </Text>
+    </div>
+  );
+};
+
 const UnifiedDockSettingsTab = React.memo(() => {
   // Use consolidated store for better performance and consistency
   const { dock, ribbon, ui } = useConsolidatedAppStore();
@@ -224,8 +245,6 @@ const UnifiedDockSettingsTab = React.memo(() => {
   // Utility function to save settings to new architecture
   const saveSetting = useCallback(async (category, key, value) => {
     try {
-      console.log(`[UnifiedDockSettingsTab] saveSetting called with: ${category}.${key} = ${value}`);
-      
       // Update consolidated store
       if (category === 'dock') {
         setDockState({ [key]: value });
@@ -238,7 +257,6 @@ const UnifiedDockSettingsTab = React.memo(() => {
       // Save to backend for persistence
       if (window.api?.data?.set) {
         await window.api.data.set(`settings.${category}.${key}`, value);
-        console.log(`[UnifiedDockSettingsTab] ✅ Successfully saved setting to backend: ${category}.${key} = ${value}`);
       }
       
     } catch (error) {
@@ -248,19 +266,12 @@ const UnifiedDockSettingsTab = React.memo(() => {
   
   // Local state for sub-tabs and expanded groups
   const [activeSubTab, setActiveSubTab] = useState(() => {
-    console.log('[UnifiedDockSettingsTab] Initializing with ui state:', {
-      dockSubTab: ui?.dockSubTab,
-      classicMode: ui?.classicMode
-    });
-    
     // Use dockSubTab from UI state if available, otherwise fall back to dock mode
     if (ui?.dockSubTab) {
-      console.log('[UnifiedDockSettingsTab] Using dockSubTab from UI state:', ui.dockSubTab);
       return ui.dockSubTab;
     }
     // Automatically set the appropriate sub-tab based on current dock mode
     const fallbackTab = ui?.classicMode ? 'classic-dock' : 'wii-ribbon';
-    console.log('[UnifiedDockSettingsTab] Using fallback tab based on classicMode:', fallbackTab);
     return fallbackTab;
   });
   const [expandedGroups, setExpandedGroups] = useState({
@@ -270,12 +281,9 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
   // Clear dockSubTab after component mounts to allow manual tab switching
   React.useEffect(() => {
-    console.log('[UnifiedDockSettingsTab] useEffect triggered with ui?.dockSubTab:', ui?.dockSubTab);
     if (ui?.dockSubTab) {
-      console.log('[UnifiedDockSettingsTab] Clearing dockSubTab after 100ms delay');
       // Clear the dockSubTab after a short delay to allow the initial tab to be set
       const timer = setTimeout(() => {
-        console.log('[UnifiedDockSettingsTab] Clearing dockSubTab now');
         saveSetting('ui', 'dockSubTab', undefined);
       }, 100);
       return () => clearTimeout(timer);
@@ -384,10 +392,8 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
   // Animation handlers
   const handleParticleEnabledChange = useCallback((checked) => {
-    console.log('[UnifiedDockSettingsTab] 🎯 Particle system enabled changed to:', checked);
     setDockState({ particleSystemEnabled: checked });
     saveSetting('dock', 'particleSystemEnabled', checked);
-    console.log('[UnifiedDockSettingsTab] ✅ Particle system setting saved');
   }, [saveSetting, setDockState]);
 
   const handleParticleEffectTypeChange = useCallback((value) => {
@@ -460,29 +466,29 @@ const UnifiedDockSettingsTab = React.memo(() => {
     switch (activeSubTab) {
       case 'dock-type':
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+          <div className="surface-stack">
+            <Text variant="h3" className="surface-card-title">
               Choose Your Dock Type
             </Text>
-            <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '24px' }}>
+            <Text variant="body" className="text-secondary mb-6">
               Select between the Classic Wii Dock or the modern Wii Ribbon. Each has its own customization options.
             </Text>
             
-            <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(300px,1fr))]">
               {/* Classic Dock Option */}
               <Card>
-                <div style={{ padding: '20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎮</div>
-                  <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+                <div className="surface-card-section text-center">
+                  <div className="text-[48px] mb-4">🎮</div>
+                  <Text variant="h4" className="surface-title">
                     Classic Wii Dock
                   </Text>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+                  <Text variant="body" className="surface-card-description">
                     Authentic Wii-style dock with SD card slot and button pods. Perfect for nostalgia and classic gaming themes.
                   </Text>
                   <WButton
                     variant={ui.classicMode ? 'primary' : 'secondary'}
                     onClick={() => handleDockTypeChange('classic')}
-                    style={{ width: '100%' }}
+                    className="w-full"
                   >
                     {ui.classicMode ? '✓ Selected' : 'Select Classic Dock'}
                   </WButton>
@@ -491,18 +497,18 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
               {/* Wii Ribbon Option */}
               <Card>
-                <div style={{ padding: '20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎗️</div>
-                  <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+                <div className="surface-card-section text-center">
+                  <div className="text-[48px] mb-4">🎗️</div>
+                  <Text variant="h4" className="surface-title">
                     Wii Ribbon
                   </Text>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+                  <Text variant="body" className="surface-card-description">
                     Modern ribbon-style dock with glass effects and customizable buttons. Great for contemporary themes.
                   </Text>
                   <WButton
                     variant={!ui.classicMode ? 'primary' : 'secondary'}
                     onClick={() => handleDockTypeChange('ribbon')}
-                    style={{ width: '100%' }}
+                    className="w-full"
                   >
                     {!ui.classicMode ? '✓ Selected' : 'Select Wii Ribbon'}
                   </WButton>
@@ -514,62 +520,48 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
       case 'classic-dock':
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+          <div className="surface-stack">
+            <Text variant="h3" className="surface-card-title">
               Classic Dock Customization
             </Text>
-            <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+            <Text variant="body" className="surface-card-description">
               Customize the appearance of the Classic Wii Dock including colors, themes, glass effects, and sizing.
             </Text>
 
             {/* Preset Themes */}
             <Card>
-              <div style={{ padding: '20px' }}>
-                <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+              <div className="surface-card-section">
+                <Text variant="h4" className="surface-card-title">
                   Preset Themes
                 </Text>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+                <Text variant="body" className="surface-card-description">
                   Choose from pre-made themes or customize your own.
                 </Text>
                 
                 {Object.entries(THEME_GROUPS).map(([groupKey, group]) => (
-                  <div key={groupKey} style={{ marginBottom: '20px' }}>
+                  <div key={groupKey} className="mb-5">
                     <div
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        padding: '8px 0'
-                      }}
+                      className="surface-theme-header"
                       onClick={() => setExpandedGroups(prev => ({
                         ...prev,
                         [groupKey]: !prev[groupKey]
                       }))}
                     >
                       <div>
-                        <Text variant="h5" style={{ color: 'hsl(var(--text-primary))', marginBottom: '4px' }}>
+                        <Text variant="h5" className="text-primary mb-1">
                           {group.name}
                         </Text>
-                        <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                        <Text variant="caption" className="text-secondary">
                           {group.description}
                         </Text>
                       </div>
-                      <div style={{ 
-                        transform: expandedGroups[groupKey] ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s ease'
-                      }}>
+                      <div className={`surface-theme-chevron ${expandedGroups[groupKey] ? 'surface-theme-chevron-open' : 'surface-theme-chevron-closed'}`}>
                         ▼
                       </div>
                     </div>
                     
                     {expandedGroups[groupKey] && (
-                      <div style={{ 
-                        display: 'grid', 
-                        gap: '12px', 
-                        marginTop: '12px',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
-                      }}>
+                      <div className="surface-theme-grid">
                         {Object.entries(group.themes).map(([themeKey, theme]) => {
                           const themePath = `${groupKey}.${themeKey}`;
                           const isSelected = getCurrentTheme() === themePath;
@@ -578,71 +570,22 @@ const UnifiedDockSettingsTab = React.memo(() => {
                             <button
                               key={themeKey}
                               onClick={() => applyTheme(themePath)}
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '6px',
-                                textAlign: 'left',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                border: `2px solid ${isSelected ? '#0099ff' : '#e5e7eb'}`,
-                                background: isSelected ? '#eff6ff' : 'white',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                              }}
+                              className={`surface-theme-button ${isSelected ? 'surface-theme-button-selected' : 'surface-theme-button-unselected'}`}
                             >
-                              <Text variant="body" style={{ fontWeight: '600', color: 'hsl(var(--text-primary))' }}>
+                              <Text variant="body" className="font-semibold text-primary">
                                 {theme.name}
                               </Text>
-                              <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                              <Text variant="caption" className="text-secondary">
                                 {theme.description}
                               </Text>
-                              <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                                <div style={{ 
-                                  width: '16px', 
-                                  height: '16px', 
-                                  borderRadius: '50%', 
-                                  border: '1px solid #e5e7eb',
-                                  background: theme.colors.dockBaseGradientStart 
-                                }} />
-                                <div style={{ 
-                                  width: '16px', 
-                                  height: '16px', 
-                                  borderRadius: '50%', 
-                                  border: '1px solid #e5e7eb',
-                                  background: theme.colors.dockAccentColor 
-                                }} />
-                                <div style={{ 
-                                  width: '16px', 
-                                  height: '16px', 
-                                  borderRadius: '50%', 
-                                  border: '1px solid #e5e7eb',
-                                  background: theme.colors.buttonGradientStart 
-                                }} />
-                                <div style={{ 
-                                  width: '16px', 
-                                  height: '16px', 
-                                  borderRadius: '50%', 
-                                  border: '1px solid #e5e7eb',
-                                  background: theme.colors.buttonIconColor 
-                                }} />
+                              <div className="surface-color-swatches">
+                                <div className="surface-color-dot" style={{ background: theme.colors.dockBaseGradientStart }} />
+                                <div className="surface-color-dot" style={{ background: theme.colors.dockAccentColor }} />
+                                <div className="surface-color-dot" style={{ background: theme.colors.buttonGradientStart }} />
+                                <div className="surface-color-dot" style={{ background: theme.colors.buttonIconColor }} />
                               </div>
                               {isSelected && (
-                                <div style={{
-                                  position: 'absolute',
-                                  top: '8px',
-                                  right: '8px',
-                                  width: '16px',
-                                  height: '16px',
-                                  borderRadius: '50%',
-                                  background: '#0099ff',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: 'white',
-                                  fontSize: '10px',
-                                  fontWeight: 'bold'
-                                }}>
+                                <div className="surface-selected-check">
                                   ✓
                                 </div>
                               )}
@@ -658,90 +601,46 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
             {/* Dock Base Colors */}
             <Card>
-              <div style={{ padding: '20px' }}>
-                <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+              <div className="surface-card-section">
+                <Text variant="h4" className="surface-card-title">
                   Dock Base Colors
                 </Text>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+                <Text variant="body" className="surface-card-description">
                   Customize the main dock structure colors.
                 </Text>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                      Gradient Start
-                    </Text>
-                    <input
-                      type="color"
-                      value={dock?.dockBaseGradientStart ?? '#BDBEC2'}
-                      onChange={(e) => handleColorChange('dockBaseGradientStart', e.target.value)}
-                      style={{
-                        width: 50,
-                        height: 40,
-                        border: 'none',
-                        borderRadius: 8,
-                        cursor: 'pointer'
-                      }}
-                    />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                      {(dock?.dockBaseGradientStart ?? '#BDBEC2').toUpperCase()}
-                    </Text>
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                      Gradient End
-                    </Text>
-                    <input
-                      type="color"
-                      value={dock?.dockBaseGradientEnd ?? '#DADDE6'}
-                      onChange={(e) => handleColorChange('dockBaseGradientEnd', e.target.value)}
-                      style={{
-                        width: 50,
-                        height: 40,
-                        border: 'none',
-                        borderRadius: 8,
-                        cursor: 'pointer'
-                      }}
-                    />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                      {(dock?.dockBaseGradientEnd ?? '#DADDE6').toUpperCase()}
-                    </Text>
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '140px' }}>
-                      Accent Color
-                    </Text>
-                    <input
-                      type="color"
-                      value={dock?.dockAccentColor ?? '#33BEED'}
-                      onChange={(e) => handleColorChange('dockAccentColor', e.target.value)}
-                      style={{
-                        width: 50,
-                        height: 40,
-                        border: 'none',
-                        borderRadius: 8,
-                        cursor: 'pointer'
-                      }}
-                    />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
-                      {(dock?.dockAccentColor ?? '#33BEED').toUpperCase()}
-                    </Text>
-                  </div>
+                <div className="surface-controls">
+                  <ColorSettingRow
+                    label="Gradient Start"
+                    value={dock?.dockBaseGradientStart}
+                    fallback="#BDBEC2"
+                    onChange={(next) => handleColorChange('dockBaseGradientStart', next)}
+                  />
+                  <ColorSettingRow
+                    label="Gradient End"
+                    value={dock?.dockBaseGradientEnd}
+                    fallback="#DADDE6"
+                    onChange={(next) => handleColorChange('dockBaseGradientEnd', next)}
+                  />
+                  <ColorSettingRow
+                    label="Accent Color"
+                    value={dock?.dockAccentColor}
+                    fallback="#33BEED"
+                    onChange={(next) => handleColorChange('dockAccentColor', next)}
+                  />
                 </div>
               </div>
             </Card>
 
             {/* Glass Effect */}
             <Card>
-              <div style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div className="surface-card-section">
+                <div className="surface-row-between mb-4">
                   <div>
-                    <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+                    <Text variant="h4" className="surface-title">
                       Glass Effect
                     </Text>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+                    <Text variant="body" className="text-secondary">
                       Apply a glass morphism effect to the dock.
                     </Text>
                   </div>
@@ -755,9 +654,9 @@ const UnifiedDockSettingsTab = React.memo(() => {
                 </div>
                 
                 {dock?.glassEnabled && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="surface-controls">
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Glass Opacity
                       </Text>
                       <Slider
@@ -770,13 +669,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                           saveSetting('dock', 'glassOpacity', value);
                         }}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {Math.round((dock?.glassOpacity ?? 0.18) * 100)}%
                       </Text>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Glass Blur
                       </Text>
                       <Slider
@@ -789,7 +688,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                           saveSetting('dock', 'glassBlur', value);
                         }}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {dock?.glassBlur ?? 2.5}px
                       </Text>
                     </div>
@@ -802,65 +701,53 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
       case 'wii-ribbon':
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+          <div className="surface-stack">
+            <Text variant="h3" className="surface-card-title">
               Wii Ribbon Customization
             </Text>
-            <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+            <Text variant="body" className="surface-card-description">
               Customize the appearance of the Wii Ribbon including colors, glow effects, and glass morphism.
             </Text>
 
             {/* Ribbon Colors and Effects */}
             <Card>
-              <div style={{ padding: '20px' }}>
-                <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+              <div className="surface-card-section">
+                <Text variant="h4" className="surface-card-title">
                   Ribbon Colors & Effects
                 </Text>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '120px' }}>
+                <div className="surface-controls">
+                  <div className="surface-row">
+                    <Text variant="body" className="surface-color-label-sm">
                       Ribbon Color
                     </Text>
                     <input
                       type="color"
                       value={ribbon?.ribbonColor ?? '#e0e6ef'}
                       onChange={handleRibbonColorChange}
-                      style={{
-                        width: 50,
-                        height: 40,
-                        border: 'none',
-                        borderRadius: 8,
-                        cursor: 'pointer'
-                      }}
+                      className="surface-color-input"
                     />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+                    <Text variant="caption" className="surface-caption !mt-0">
                       {(ribbon?.ribbonColor ?? '#e0e6ef').toUpperCase()}
                     </Text>
                   </div>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '120px' }}>
+                  <div className="surface-row">
+                    <Text variant="body" className="surface-color-label-sm">
                       Ribbon Glow Color
                     </Text>
                     <input
                       type="color"
                       value={ribbon?.ribbonGlowColor ?? '#0099ff'}
                       onChange={handleRibbonGlowColorChange}
-                      style={{
-                        width: 50,
-                        height: 40,
-                        border: 'none',
-                        borderRadius: 8,
-                        cursor: 'pointer'
-                      }}
+                      className="surface-color-input"
                     />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+                    <Text variant="caption" className="surface-caption !mt-0">
                       {(ribbon?.ribbonGlowColor ?? '#0099ff').toUpperCase()}
                     </Text>
                   </div>
                   
                   <div>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    <Text variant="body" className="text-secondary mb-2">
                       Glow Strength
                     </Text>
                     <Slider
@@ -870,13 +757,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                       step={1}
                       onChange={handleRibbonGlowStrengthChange}
                     />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    <Text variant="caption" className="surface-caption">
                       {ribbon?.ribbonGlowStrength ?? 20}px
                     </Text>
                   </div>
                   
                   <div>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                    <Text variant="body" className="text-secondary mb-2">
                       Glow Strength on Hover
                     </Text>
                     <Slider
@@ -886,7 +773,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                       step={1}
                       onChange={handleRibbonGlowStrengthHoverChange}
                     />
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                    <Text variant="caption" className="surface-caption">
                       {ribbon?.ribbonGlowStrengthHover ?? 28}px
                     </Text>
                   </div>
@@ -896,13 +783,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
             {/* Glass Effect */}
             <Card>
-              <div style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div className="surface-card-section">
+                <div className="surface-row-between mb-4">
                   <div>
-                    <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+                    <Text variant="h4" className="surface-title">
                       Glass Effect
                     </Text>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+                    <Text variant="body" className="text-secondary">
                       Add a modern glass morphism effect to the ribbon.
                     </Text>
                   </div>
@@ -913,9 +800,9 @@ const UnifiedDockSettingsTab = React.memo(() => {
                 </div>
                 
                 {ribbon?.glassWiiRibbon && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="surface-controls">
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Glass Opacity
                       </Text>
                       <Slider
@@ -925,13 +812,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={0.01}
                         onChange={handleGlassOpacityChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {Math.round((ribbon?.glassOpacity ?? 0.18) * 100)}%
                       </Text>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Glass Blur
                       </Text>
                       <Slider
@@ -941,7 +828,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={0.5}
                         onChange={handleGlassBlurChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {ribbon?.glassBlur ?? 2.5}px
                       </Text>
                     </div>
@@ -954,27 +841,27 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
       case 'animations':
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+          <div className="surface-stack">
+            <Text variant="h3" className="surface-card-title">
               Animation & Particle Effects
             </Text>
-            <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+            <Text variant="body" className="surface-card-description">
               Customize particle effects and animations that apply to both dock types.
             </Text>
 
             {/* Particle System */}
             <Card>
-              <div style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div className="surface-card-section">
+                <div className="surface-row-between mb-4">
                   <div>
-                    <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+                    <Text variant="h4" className="surface-title">
                       Particle System
                     </Text>
-                    <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+                    <Text variant="body" className="text-secondary">
                       Add floating particles around the dock for visual enhancement.
                     </Text>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="surface-row">
                     <div style={{
                       width: '8px',
                       height: '8px',
@@ -990,30 +877,22 @@ const UnifiedDockSettingsTab = React.memo(() => {
                 </div>
                 
                 {dock?.particleSystemEnabled && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="surface-controls">
                     {/* Status indicator */}
-                    <div style={{
-                      padding: '12px',
-                      borderRadius: '8px',
-                      background: 'rgba(16, 185, 129, 0.1)',
-                      border: '1px solid rgba(16, 185, 129, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <div style={{ fontSize: '16px' }}>✨</div>
+                    <div className="surface-soft-panel !bg-emerald-500/10 !border-emerald-500/20 surface-row">
+                      <div className="text-[16px]">✨</div>
                       <div>
-                        <Text variant="body" style={{ color: '#10b981', fontWeight: '600' }}>
+                        <Text variant="body" className="text-emerald-500 font-semibold">
                           Particle System Active
                         </Text>
-                        <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                        <Text variant="caption" className="text-secondary">
                           {dock?.particleEffectType || 'normal'} effect with {dock?.particleCount || 3} particles
                         </Text>
                       </div>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Effect Type
                       </Text>
                       <WSelect
@@ -1032,7 +911,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Direction
                       </Text>
                       <WSelect
@@ -1051,8 +930,8 @@ const UnifiedDockSettingsTab = React.memo(() => {
                     </div>
                     
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+                      <div className="surface-row-between mb-2">
+                        <Text variant="body" className="text-secondary">
                           Follow Border Path
                         </Text>
                         <WToggle
@@ -1060,13 +939,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                           onChange={(checked) => handleParticleClipPathFollowChange(checked)}
                         />
                       </div>
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+                      <Text variant="caption" className="text-tertiary">
                         Particles emit from dock/ribbon borders instead of base
                       </Text>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Particle Count
                       </Text>
                       <Slider
@@ -1076,13 +955,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={1}
                         onChange={handleParticleCountChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {dock?.particleCount ?? 3} particles
                       </Text>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Animation Speed
                       </Text>
                       <Slider
@@ -1092,13 +971,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={0.1}
                         onChange={handleParticleSpeedChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {dock?.particleSpeed ?? 2}x speed
                       </Text>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Particle Size
                       </Text>
                       <Slider
@@ -1108,13 +987,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={0.5}
                         onChange={handleParticleSizeChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {dock?.particleSize ?? 3}px
                       </Text>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Gravity
                       </Text>
                       <Slider
@@ -1124,13 +1003,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={0.005}
                         onChange={handleParticleGravityChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {dock?.particleGravity ?? 0.02}
                       </Text>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Fade Speed
                       </Text>
                       <Slider
@@ -1140,13 +1019,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={0.001}
                         onChange={handleParticleFadeSpeedChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {dock?.particleFadeSpeed ?? 0.008}
                       </Text>
                     </div>
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Particle Lifetime
                       </Text>
                       <Slider
@@ -1156,7 +1035,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={0.5}
                         onChange={handleParticleLifetimeChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {dock?.particleLifetime ?? 3.0}s
                       </Text>
                     </div>
@@ -1168,21 +1047,21 @@ const UnifiedDockSettingsTab = React.memo(() => {
             {/* Advanced Particle Settings */}
             {dock?.particleSystemEnabled && (
               <Card>
-                <div style={{ padding: '20px' }}>
-                  <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+                <div className="surface-card-section">
+                  <Text variant="h4" className="surface-card-title">
                     Advanced Particle Settings
                   </Text>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+                  <Text variant="body" className="surface-card-description">
                     Fine-tune particle appearance and behavior.
                   </Text>
                   
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="surface-controls">
+                    <div className="surface-row-between">
                       <div>
-                        <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '4px' }}>
+                        <Text variant="body" className="text-secondary mb-1">
                           Adaptive Colors
                         </Text>
-                        <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+                        <Text variant="caption" className="text-tertiary">
                           Particles adapt to dock colors
                         </Text>
                       </div>
@@ -1195,7 +1074,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                     {!dock?.particleUseAdaptiveColor && (
                       <>
                         <div>
-                          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                          <Text variant="body" className="text-secondary mb-2">
                             Color Intensity
                           </Text>
                           <Slider
@@ -1205,13 +1084,13 @@ const UnifiedDockSettingsTab = React.memo(() => {
                             step={0.1}
                             onChange={handleParticleColorIntensityChange}
                           />
-                          <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                          <Text variant="caption" className="surface-caption">
                             {dock?.particleColorIntensity ?? 1.0}x
                           </Text>
                         </div>
                         
                         <div>
-                          <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                          <Text variant="body" className="text-secondary mb-2">
                             Color Variation
                           </Text>
                           <Slider
@@ -1221,7 +1100,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                             step={0.1}
                             onChange={handleParticleColorVariationChange}
                           />
-                          <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                          <Text variant="caption" className="surface-caption">
                             {Math.round((dock?.particleColorVariation ?? 0.3) * 100)}%
                           </Text>
                         </div>
@@ -1229,7 +1108,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                     )}
                     
                     <div>
-                      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                      <Text variant="body" className="text-secondary mb-2">
                         Rotation Speed
                       </Text>
                       <Slider
@@ -1239,7 +1118,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
                         step={0.01}
                         onChange={handleParticleRotationSpeedChange}
                       />
-                      <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                      <Text variant="caption" className="surface-caption">
                         {dock?.particleRotationSpeed ?? 0.05}
                       </Text>
                     </div>
@@ -1250,25 +1129,20 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
             {/* Performance & Optimization */}
             <Card>
-              <div style={{ padding: '20px' }}>
-                <Text variant="h4" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+              <div className="surface-card-section">
+                <Text variant="h4" className="surface-card-title">
                   Performance & Optimization
                 </Text>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+                <Text variant="body" className="surface-card-description">
                   Tips for optimal performance with particle effects.
                 </Text>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{
-                    padding: '12px',
-                    borderRadius: '6px',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)'
-                  }}>
-                    <Text variant="body" style={{ color: '#3b82f6', fontWeight: '600', marginBottom: '4px' }}>
+                <div className="surface-controls !gap-3">
+                  <div className="surface-soft-panel !bg-blue-500/10 !border-blue-500/20">
+                    <Text variant="body" className="text-blue-500 font-semibold mb-1">
                       💡 Performance Tips
                     </Text>
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                    <Text variant="caption" className="text-secondary">
                       • Lower particle count for better performance<br/>
                       • Use 'normal' or 'dust' effects for minimal impact<br/>
                       • Disable adaptive colors if not needed<br/>
@@ -1276,16 +1150,11 @@ const UnifiedDockSettingsTab = React.memo(() => {
                     </Text>
                   </div>
                   
-                  <div style={{
-                    padding: '12px',
-                    borderRadius: '6px',
-                    background: 'rgba(245, 158, 11, 0.1)',
-                    border: '1px solid rgba(245, 158, 11, 0.2)'
-                  }}>
-                    <Text variant="body" style={{ color: '#f59e0b', fontWeight: '600', marginBottom: '4px' }}>
+                  <div className="surface-soft-panel !bg-amber-500/10 !border-amber-500/20">
+                    <Text variant="body" className="text-amber-500 font-semibold mb-1">
                       ⚡ New Features
                     </Text>
-                    <Text variant="caption" style={{ color: 'hsl(var(--text-secondary))' }}>
+                    <Text variant="caption" className="text-secondary">
                       • Clip Path Followers: Particles follow dock shape<br/>
                       • Energy Orbs: Pulsing energy effects<br/>
                       • Magic Sparkles: Enhanced sparkle effects<br/>
@@ -1306,43 +1175,27 @@ const UnifiedDockSettingsTab = React.memo(() => {
   return (
     <>
       <style>{pulseAnimation}</style>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+      <div className="surface-stack">
+        <Text variant="h2" className="surface-title">
           Dock Settings
         </Text>
       
-      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+      <Text variant="body" className="surface-subtitle">
         Customize your dock appearance, choose between Classic and Ribbon styles, and configure animations.
       </Text>
 
       {/* Sub-tab Navigation */}
-      <div style={{ 
-        display: 'flex', 
-        borderBottom: '1px solid hsl(var(--border-primary))',
-        marginBottom: '24px'
-      }}>
+      <div className="surface-tab-nav">
         {SUB_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 16px',
-              border: 'none',
-              background: 'transparent',
-              color: activeSubTab === tab.id ? 'hsl(var(--text-primary))' : 'hsl(var(--text-secondary))',
-              borderBottom: activeSubTab === tab.id ? '2px solid #0099ff' : '2px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              fontWeight: activeSubTab === tab.id ? '600' : '500'
-            }}
+            className={`surface-tab-button ${activeSubTab === tab.id ? 'surface-tab-button-active' : 'surface-tab-button-inactive'}`}
           >
-            <span style={{ fontSize: '16px' }}>{tab.icon}</span>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '14px', fontWeight: 'inherit' }}>{tab.label}</div>
-              <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '2px' }}>{tab.description}</div>
+            <span className="text-[16px]">{tab.icon}</span>
+            <div className="text-left">
+              <div className="text-[14px] font-inherit">{tab.label}</div>
+              <div className="text-[11px] opacity-70 mt-0.5">{tab.description}</div>
             </div>
           </button>
         ))}

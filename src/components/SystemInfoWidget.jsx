@@ -6,18 +6,13 @@ import Slider from '../ui/Slider';
 import { useFloatingWidgetsState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { useAppActivity } from '../hooks/useAppActivity';
+import { useFloatingWidgetFrame } from '../hooks/useFloatingWidgetFrame';
 import './SystemInfoWidget.css';
 
 const SystemInfoWidget = ({ isVisible, onClose }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
   const { isAppActive } = useAppActivity();
-  
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeHandle, setResizeHandle] = useState(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [resizeOffset, setResizeOffset] = useState({ x: 0, y: 0 });
-  const widgetRef = useRef(null);
+
   const intervalRef = useRef(null);
 
   // Get system info widget state from floating widgets
@@ -29,19 +24,51 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
   const isLoading = systemInfoWidget.isLoading;
   const error = systemInfoWidget.error;
 
-  // Update system info widget position
-  const setSystemInfoWidgetPosition = (position) => {
-    setFloatingWidgetsState({
-      systemInfo: { ...systemInfoWidget, position }
-    });
-  };
+  const setSystemInfoWidgetPosition = useCallback(
+    (position) => {
+      setFloatingWidgetsState({
+        systemInfo: { ...systemInfoWidget, position },
+      });
+    },
+    [setFloatingWidgetsState, systemInfoWidget]
+  );
 
-  // Update system info widget size
-  const setSystemInfoWidgetSize = (size) => {
-    setFloatingWidgetsState({
-      systemInfo: { ...systemInfoWidget, size }
-    });
-  };
+  const setSystemInfoWidgetSize = useCallback(
+    (size) => {
+      setFloatingWidgetsState({
+        systemInfo: { ...systemInfoWidget, size },
+      });
+    },
+    [setFloatingWidgetsState, systemInfoWidget]
+  );
+
+  const {
+    widgetRef,
+    size,
+    isDragging,
+    isResizing,
+    handleDragPointerDown,
+    handleResizeSouthEastPointerDown,
+    handleResizeSouthPointerDown,
+    handleResizeEastPointerDown,
+  } = useFloatingWidgetFrame({
+    setPosition: setSystemInfoWidgetPosition,
+    position: systemInfoPosition,
+    size: systemInfoSize,
+    setSize: setSystemInfoWidgetSize,
+    resizable: true,
+    resizeVariant: 'edges',
+    minSize: { width: 280, height: 300 },
+    shouldCancelDrag: (e) =>
+      !!(
+        e.target.closest('.metric-card') ||
+        e.target.closest('.close-btn') ||
+        e.target.closest('.refresh-btn') ||
+        e.target.closest('.resize-handle') ||
+        e.target.closest('.interval-slider') ||
+        e.target.closest('input[type="range"]')
+      ),
+  });
 
   // Update system info interval
   const updateSystemInfoInterval = (interval) => {
@@ -49,74 +76,6 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       systemInfo: { ...systemInfoWidget, updateInterval: interval }
     });
   };
-
-  // Handle resize start
-  const handleResizeStart = useCallback((e, handle) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeHandle(handle);
-    const rect = widgetRef.current.getBoundingClientRect();
-    setResizeOffset({
-      x: e.clientX - rect.right,
-      y: e.clientY - rect.bottom
-    });
-  }, []);
-
-  // Dragging logic
-  const handleMouseDown = useCallback((e) => {
-    if (e.target.closest('.metric-card') || e.target.closest('.close-btn') || e.target.closest('.refresh-btn') || e.target.closest('.resize-handle')) return;
-    
-    setIsDragging(true);
-    const rect = widgetRef.current.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
-  }, []);
-
-  const handleMouseMove = useCallback((e) => {
-    if (isDragging && !isResizing) {
-      const newX = e.clientX - dragOffset.x;
-      const newY = e.clientY - dragOffset.y;
-      setSystemInfoWidgetPosition({ x: newX, y: newY });
-    } else if (isResizing) {
-      const currentWidth = systemInfoSize.width;
-      const currentHeight = systemInfoSize.height;
-      
-      let newWidth = currentWidth;
-      let newHeight = currentHeight;
-      
-      if (resizeHandle === 'bottom-right') {
-        newWidth = Math.max(280, e.clientX - systemInfoPosition.x - resizeOffset.x);
-        newHeight = Math.max(300, e.clientY - systemInfoPosition.y - resizeOffset.y);
-      } else if (resizeHandle === 'bottom') {
-        newHeight = Math.max(300, e.clientY - systemInfoPosition.y - resizeOffset.y);
-      } else if (resizeHandle === 'right') {
-        newWidth = Math.max(280, e.clientX - systemInfoPosition.x - resizeOffset.x);
-      }
-      
-      setSystemInfoWidgetSize({ width: newWidth, height: newHeight });
-    }
-  }, [isDragging, isResizing, dragOffset, resizeOffset, resizeHandle, systemInfoPosition, systemInfoSize, setSystemInfoWidgetPosition, setSystemInfoWidgetSize]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setIsResizing(false);
-    setResizeHandle(null);
-  }, []);
-
-  // Global mouse event listeners for dragging and resizing
-  useEffect(() => {
-    if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   // Fetch system info using store manager
   const fetchSystemInfo = useCallback(async () => {
@@ -309,13 +268,13 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
         position: 'fixed',
         left: `${systemInfoPosition.x}px`,
         top: `${systemInfoPosition.y}px`,
-        width: `${systemInfoSize.width}px`,
-        height: `${systemInfoSize.height}px`,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
         zIndex: 10000,
         cursor: isDragging ? 'grabbing' : isResizing ? 'nw-resize' : 'grab',
-        resize: 'none'
+        resize: 'none',
       }}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handleDragPointerDown}
     >
       {/* Widget Header */}
       <div className="widget-header">
@@ -358,7 +317,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
         ) : formattedSystemInfo ? (
           <div className="metrics-grid" style={{
             display: 'grid',
-            gridTemplateColumns: systemInfoSize.width < 400 ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))',
+            gridTemplateColumns: size.width < 400 ? '1fr' : 'repeat(auto-fit, minmax(140px, 1fr))',
             gap: '12px',
             height: '100%'
           }}>
@@ -549,7 +508,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       {/* Resize Handles */}
       <div 
         className="resize-handle resize-handle-bottom-right"
-        onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
+        onPointerDown={handleResizeSouthEastPointerDown}
         style={{
           position: 'absolute',
           bottom: 0,
@@ -568,7 +527,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       />
       <div 
         className="resize-handle resize-handle-bottom"
-        onMouseDown={(e) => handleResizeStart(e, 'bottom')}
+        onPointerDown={handleResizeSouthPointerDown}
         style={{
           position: 'absolute',
           bottom: 0,
@@ -588,7 +547,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       />
       <div 
         className="resize-handle resize-handle-right"
-        onMouseDown={(e) => handleResizeStart(e, 'right')}
+        onPointerDown={handleResizeEastPointerDown}
         style={{
           position: 'absolute',
           top: '50%',

@@ -26,7 +26,8 @@ const PresetListItem = ({
   onSaveEdit,
   onCancelEdit,
   onEditNameChange,
-  onKeyPress
+  onKeyPress,
+  hasCommunityUpdate
 }) => {
   return (
     <li
@@ -103,6 +104,23 @@ const PresetListItem = ({
               🎯
             </span>
           )}
+          {hasCommunityUpdate && (
+            <span
+              style={{
+                marginLeft: 8,
+                padding: '2px 6px',
+                background: 'hsl(var(--warning)/0.18)',
+                color: 'hsl(var(--warning))',
+                borderRadius: 4,
+                fontSize: 10,
+                fontWeight: 600,
+                verticalAlign: 'middle'
+              }}
+              title="A newer community version is available"
+            >
+              Update
+            </span>
+          )}
         </Text>
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -177,6 +195,7 @@ PresetListItem.propTypes = {
   onCancelEdit: PropTypes.func.isRequired,
   onEditNameChange: PropTypes.func.isRequired,
   onKeyPress: PropTypes.func.isRequired,
+  hasCommunityUpdate: PropTypes.bool,
 };
 
 export default PresetListItem; 

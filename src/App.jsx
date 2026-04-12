@@ -21,6 +21,7 @@ import {
   useTimeFont 
 } from './utils/useConsolidatedAppHooks';
 import ErrorBoundary from './components/ErrorBoundary';
+import { LaunchFeedbackProvider } from './contexts/LaunchFeedbackContext';
 import SplashScreen from './components/SplashScreen';
 import WallpaperOverlay from './components/WallpaperOverlay';
 import IsolatedWallpaperBackground from './components/IsolatedWallpaperBackground';
@@ -378,6 +379,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <LaunchFeedbackProvider>
       <div 
         className={`app-container ${useCustomCursor ? 'custom-cursor' : ''} ${isDarkMode ? 'dark-mode' : ''}`}
         onContextMenu={handleGlobalRightClick}
@@ -530,7 +532,7 @@ function App() {
         )}
 
         {/* Modals */}
-        <Suspense fallback={<div>Loading settings...</div>}>
+        <Suspense fallback={null}>
           {showSettingsModal && (
           <LazySettingsModal
               isOpen={showSettingsModal}
@@ -542,7 +544,7 @@ function App() {
         </Suspense>
 
         {/* Settings Action Menu - Independent of dock visibility */}
-        <Suspense fallback={<div>Loading settings menu...</div>}>
+        <Suspense fallback={null}>
           {showSettingsActionMenu && (
             <LazySettingsActionMenu
               ref={settingsActionMenuRef}
@@ -563,7 +565,7 @@ function App() {
         <SpotifyGradientOverlay />
 
         {/* Floating Widgets */}
-        <Suspense fallback={<div>Loading widgets...</div>}>
+        <Suspense fallback={null}>
           {/* Spotify Widget */}
           {floatingWidgets.spotify.visible && (
             <LazyFloatingSpotifyWidget 
@@ -611,6 +613,7 @@ function App() {
 
 
       </div>
+      </LaunchFeedbackProvider>
     </ErrorBoundary>
   );
 }

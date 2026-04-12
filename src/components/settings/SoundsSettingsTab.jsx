@@ -8,6 +8,7 @@ import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
 import ResourceUsageIndicator from '../ResourceUsageIndicator';
 import Slider from '../../ui/Slider';
+import '../sound-management.css';
 
 /**
  * Sound Settings Tab - Complete sound management interface
@@ -366,31 +367,27 @@ const SoundsSettingsTab = React.memo(() => {
     const sounds = getSoundsByCategory(category.key);
     const enabledSounds = getEnabledSoundsByCategory(category.key);
     const likedSounds = getLikedSoundsByCategory(category.key);
+    const catIconClass =
+      category.key === 'backgroundMusic'
+        ? 'sound-cat-icon--bg-music'
+        : category.key === 'channelClick'
+          ? 'sound-cat-icon--click'
+          : 'sound-cat-icon--hover';
+    const catEmoji =
+      category.key === 'backgroundMusic' ? '🎵' : category.key === 'channelClick' ? '🖱️' : '🎧';
 
   return (
       <Card
         key={category.key}
+        className="sound-settings-card"
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: category.key === 'backgroundMusic' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
-                         category.key === 'channelClick' ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' :
-                         'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '16px',
-              color: 'white'
-            }}>
-              {category.key === 'backgroundMusic' ? '🎵' : 
-               category.key === 'channelClick' ? '🖱️' : '🎧'}
+          <div className="sound-mgmt-title-row">
+            <div className={`sound-cat-icon ${catIconClass}`}>
+              {catEmoji}
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: '700', fontSize: '16px' }}>{category.label}</span>
+              <div className="sound-cat-title-row">
+                <span className="sound-cat-label">{category.label}</span>
                 {category.key === 'backgroundMusic' && (
                   <ResourceUsageIndicator 
                     level="high" 
@@ -404,11 +401,7 @@ const SoundsSettingsTab = React.memo(() => {
                   />
                 )}
               </div>
-              <div style={{ 
-                fontSize: '12px', 
-                color: 'hsl(var(--text-secondary))',
-                fontWeight: '500'
-              }}>
+              <div className="sound-cat-desc">
                 {category.key === 'backgroundMusic' ? 'Continuous background audio' :
                  category.key === 'channelClick' ? 'Sounds when clicking channels' :
                  'Sounds when hovering over channels'}
@@ -417,44 +410,22 @@ const SoundsSettingsTab = React.memo(() => {
           </div>
         }
         separator
-        style={{ 
-          marginBottom: '24px',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-          border: '1px solid hsl(var(--border-primary))'
-        }}
       >
-        <div style={{ padding: '20px' }}>
+        <div className="sound-card-pad">
           {/* Category-specific settings */}
           {category.key === 'backgroundMusic' && (
-          <div style={{ marginBottom: '20px' }}>
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '16px',
-                padding: '20px',
-                background: 'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)',
-                borderRadius: '12px',
-                border: '1px solid hsl(var(--border-primary))',
-                marginBottom: '20px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  paddingBottom: '12px',
-                  borderBottom: '2px solid hsl(var(--border-primary))'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>⚙️</span>
-                    <Text variant="p" style={{ fontWeight: 700, margin: 0, fontSize: '16px' }}>
+          <div className="sound-mb-20">
+              <div className="sound-panel">
+                <div className="sound-panel-head">
+                  <div className="sound-panel-head-row">
+                    <span className="sound-emoji-lg">⚙️</span>
+                    <Text variant="p" className="sound-section-heading">
                       Background Music Settings
                     </Text>
                   </div>
                 </div>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="sound-stack-12">
                   <WToggle
                     checked={sounds?.backgroundMusicEnabled ?? true}
                     onChange={(checked) => handleSettingChange('backgroundMusicEnabled', checked)}
@@ -482,21 +453,14 @@ const SoundsSettingsTab = React.memo(() => {
 
               {/* Playlist Mode Info */}
               {(sounds?.backgroundMusicEnabled ?? true) && (sounds?.backgroundMusicPlaylistMode ?? false) && (
-                <div style={{ 
-                  padding: '16px', 
-                  background: 'linear-gradient(135deg, #eef 0%, #ccf 100%)', 
-                  border: '1px solid #bee5eb', 
-                  borderRadius: '12px',
-                  marginBottom: '20px',
-                  boxShadow: '0 2px 8px rgba(23, 162, 184, 0.1)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>🎵</span>
-                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#0c5460' }}>
+                <div className="sound-callout sound-callout--playlist">
+                  <div className="sound-callout-head">
+                    <span className="sound-emoji-lg">🎵</span>
+                    <div className="sound-callout--playlist-title">
                       Playlist Mode Active ({likedSounds.length} liked sounds)
                     </div>
                   </div>
-                  <div style={{ fontSize: '13px', color: '#0c5460', lineHeight: '1.4' }}>
+                  <div className="sound-callout--playlist-body">
                     Only liked sounds will play in the order they appear below. 
                     Click the ❤️ to like/unlike sounds and drag items to reorder your playlist.
                   </div>
@@ -505,21 +469,14 @@ const SoundsSettingsTab = React.memo(() => {
 
           {/* Background Music Disabled Warning */}
               {!(sounds?.backgroundMusicEnabled ?? true) && (
-            <div style={{ 
-              padding: '16px', 
-              background: 'linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%)', 
-              border: '1px solid #ffeaa7', 
-              borderRadius: '12px',
-              marginBottom: '20px',
-              boxShadow: '0 2px 8px rgba(255, 193, 7, 0.1)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '18px' }}>🔇</span>
-                <div style={{ fontWeight: '700', fontSize: '14px', color: '#856404' }}>
+            <div className="sound-callout sound-callout--warn-music">
+              <div className="sound-callout-head">
+                <span className="sound-emoji-lg">🔇</span>
+                <div className="sound-callout--warn-music-title">
                   Background Music Disabled
                 </div>
               </div>
-              <div style={{ fontSize: '13px', color: '#856404', lineHeight: '1.4' }}>
+              <div className="sound-callout--warn-music-body">
                 Background music is currently disabled. Enable it above to hear background music sounds.
               </div>
             </div>
@@ -529,28 +486,12 @@ const SoundsSettingsTab = React.memo(() => {
 
           {/* Channel Click Settings */}
           {category.key === 'channelClick' && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '16px',
-                padding: '20px',
-                background: 'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)',
-                borderRadius: '12px',
-                border: '1px solid hsl(var(--border-primary))',
-                marginBottom: '20px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  paddingBottom: '12px',
-                  borderBottom: '2px solid hsl(var(--border-primary))'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>⚙️</span>
-                    <Text variant="p" style={{ fontWeight: 700, margin: 0, fontSize: '16px' }}>
+            <div className="sound-mb-20">
+              <div className="sound-panel">
+                <div className="sound-panel-head">
+                  <div className="sound-panel-head-row">
+                    <span className="sound-emoji-lg">⚙️</span>
+                    <Text variant="p" className="sound-section-heading">
                       Channel Click Settings
                     </Text>
                   </div>
@@ -567,28 +508,12 @@ const SoundsSettingsTab = React.memo(() => {
 
           {/* Channel Hover Settings */}
           {category.key === 'channelHover' && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '16px',
-                padding: '20px',
-                background: 'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)',
-                borderRadius: '12px',
-                border: '1px solid hsl(var(--border-primary))',
-                marginBottom: '20px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  paddingBottom: '12px',
-                  borderBottom: '2px solid hsl(var(--border-primary))'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>⚙️</span>
-                    <Text variant="p" style={{ fontWeight: 700, margin: 0, fontSize: '16px' }}>
+            <div className="sound-mb-20">
+              <div className="sound-panel">
+                <div className="sound-panel-head">
+                  <div className="sound-panel-head-row">
+                    <span className="sound-emoji-lg">⚙️</span>
+                    <Text variant="p" className="sound-section-heading">
                       Channel Hover Settings
                     </Text>
                   </div>
@@ -605,21 +530,13 @@ const SoundsSettingsTab = React.memo(() => {
 
           {/* Other category test buttons */}
           {category.key === 'channelClick' && (
-            <div style={{ marginBottom: '16px' }}>
+            <div className="sound-mb-16">
               <Button
                 variant="secondary"
                 size="sm"
+                className="sound-btn-test-click"
                 onClick={handleTestChannelClick}
                 disabled={!(sounds?.channelClickEnabled ?? true) || enabledSounds.length === 0}
-                style={{
-                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                  border: 'none',
-                  color: 'white',
-                  fontWeight: '600',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 8px rgba(240, 147, 251, 0.3)'
-                }}
               >
                 🎵 Test Channel Click Sound
               </Button>
@@ -627,21 +544,13 @@ const SoundsSettingsTab = React.memo(() => {
           )}
 
           {category.key === 'channelHover' && (
-            <div style={{ marginBottom: '16px' }}>
+            <div className="sound-mb-16">
               <Button
                 variant="secondary"
                 size="sm"
+                className="sound-btn-test-hover"
                 onClick={handleTestChannelHover}
                 disabled={!(sounds?.channelHoverEnabled ?? true) || enabledSounds.length === 0}
-                style={{
-                  background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                  border: 'none',
-                  color: 'white',
-                  fontWeight: '600',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 8px rgba(79, 172, 254, 0.3)'
-                }}
               >
                 🎵 Test Channel Hover Sound
               </Button>
@@ -649,62 +558,46 @@ const SoundsSettingsTab = React.memo(() => {
           )}
 
           {/* Sound List */}
-          <div style={{ marginBottom: '16px' }}>
+          <div className="sound-mb-16">
             {sounds.length === 0 && (
-              <Text variant="help" style={{ fontStyle: 'italic' }}>No sounds yet. Add your first sound below.</Text>
+              <Text variant="help" className="sound-help-italic">No sounds yet. Add your first sound below.</Text>
             )}
             
             {sounds.map(sound => (
               <div
                 key={sound.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '16px',
-                  marginBottom: '12px',
-                  background: sound.enabled ? 
-                    'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)' : 
-                    'hsl(var(--surface-tertiary))',
-                  border: `2px solid ${sound.enabled ? 'hsl(var(--border-primary))' : 'hsl(var(--border-secondary))'}`,
-                  borderRadius: '12px',
-                  opacity: category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true) ? 0.6 : 1,
-                  cursor: category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false) ? 'grab' : 'default',
-                  transform: draggedItem === sound.id ? 'scale(0.98)' : 'none',
-                  transition: 'all 0.3s ease',
-                  boxShadow: sound.enabled ? '0 2px 8px rgba(0, 0, 0, 0.1)' : 'none'
-                }}
+                className={[
+                  'sound-row',
+                  sound.enabled ? 'sound-row--enabled' : 'sound-row--disabled',
+                  draggedItem === sound.id ? 'sound-row--dragging' : '',
+                  category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true) ? 'sound-row--faded' : '',
+                  category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false) ? 'sound-row--draggable' : '',
+                ].filter(Boolean).join(' ')}
                 draggable={category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false)}
                 onDragStart={(e) => handleDragStart(e, sound.id)}
                 onDragOver={(e) => handleDragOver(e, sound.id)}
                 onDrop={(e) => handleDrop(e, sound.id)}
                 onDragEnd={handleDragEnd}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                <div className="sound-row-main">
                   {category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false) && (
-                    <span style={{ cursor: 'grab', fontSize: '16px' }} title="Drag to reorder">⋮⋮</span>
+                    <span className="sound-drag-handle" title="Drag to reorder">⋮⋮</span>
                   )}
                   
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 500 }}>{sound.name}</span>
+                  <div className="sound-row-body">
+                    <div className="sound-name-row">
+                      <span className="sound-name">{sound.name}</span>
                       {sound.isDefault && (
-                        <span style={{ 
-                          fontSize: '10px', 
-                          padding: '2px 6px', 
-                          background: '#007bff', 
-                          color: 'white', 
-                          borderRadius: '4px' 
-                        }}>
+                        <span className="sound-badge-default">
                           Default
                         </span>
                       )}
                       {sound.liked && <span>❤️</span>}
           </div>
           
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                        <span style={{ fontSize: '12px', minWidth: '40px' }}>Volume:</span>
+                    <div className="sound-vol-row">
+                      <div className="sound-vol-group">
+                        <span className="sound-vol-label">Volume:</span>
                         <Slider
                           value={sound.volume ?? 0.5}
                           onChange={(value) => handleVolumeChange(category.key, sound.id, value)}
@@ -712,9 +605,10 @@ const SoundsSettingsTab = React.memo(() => {
                     max={1}
                     step={0.01}
                           disabled={category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true)}
-                          style={{ flex: 1 }}
+                          hideValue
+                          containerClassName="!mb-0 sound-slider-grow"
                   />
-                        <span style={{ fontSize: '12px', minWidth: '30px' }}>
+                        <span className="sound-vol-pct">
                           {Math.round((sound.volume ?? 0.5) * 100)}%
                   </span>
                 </div>
@@ -722,13 +616,13 @@ const SoundsSettingsTab = React.memo(() => {
             </div>
                 </div>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="sound-actions">
                   {testing[sound.id] ? (
                     <Button 
                       variant="secondary" 
                       size="sm" 
+                      className="sound-btn-min-60"
                       onClick={() => handleStopTest(sound.id)}
-                      style={{ minWidth: 60 }}
                     >
                       Stop
                     </Button>
@@ -736,8 +630,8 @@ const SoundsSettingsTab = React.memo(() => {
                     <Button 
                       variant="secondary" 
                       size="sm" 
+                      className="sound-btn-min-60"
                       onClick={() => handleTestSound(category.key, sound)} 
-                      style={{ minWidth: 60 }}
                       disabled={category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true)}
                     >
                       Test
@@ -748,14 +642,10 @@ const SoundsSettingsTab = React.memo(() => {
                     <Button 
                       variant="tertiary" 
                       size="sm" 
+                      className={`sound-btn-icon ${sound.liked ? 'sound-like--active' : 'sound-like--inactive'}`}
                       onClick={() => handleToggleLike(sound.id)}
                       title={sound.liked ? 'Unlike' : 'Like'}
                       disabled={!(sounds?.backgroundMusicEnabled ?? true)}
-                      style={{ 
-                        minWidth: 40, 
-                        padding: '4px 8px',
-                        color: sound.liked ? '#e91e63' : 'hsl(var(--text-secondary))'
-                      }}
                     >
                       {sound.liked ? '❤️' : '🤍'}
                     </Button>
@@ -765,9 +655,9 @@ const SoundsSettingsTab = React.memo(() => {
                     <Button 
                       variant="danger-secondary" 
                       size="sm" 
+                      className="sound-btn-icon"
                       onClick={() => handleDeleteSound(category.key, sound.id)} 
                       title="Delete Sound"
-                      style={{ minWidth: 40, padding: '4px 8px' }}
                     >
                       🗑️
                     </Button>
@@ -783,22 +673,13 @@ const SoundsSettingsTab = React.memo(() => {
             ))}
           </div>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="sound-row-actions">
             <Button
               variant="primary"
               size="sm"
+              className="sound-btn-add"
               onClick={() => handleUploadClick(category.key)}
               disabled={uploading[category.key]}
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                color: 'white',
-                fontWeight: '600',
-                padding: '10px 20px',
-                borderRadius: '10px',
-                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
             >
               {uploading[category.key] ? '⏳ Uploading...' : '➕ Add Sound'}
             </Button>
@@ -808,58 +689,28 @@ const SoundsSettingsTab = React.memo(() => {
     );
   };
 
+  const messageToneClass =
+    message.type === 'error'
+      ? 'sound-msg--error'
+      : message.type === 'success'
+        ? 'sound-msg--success'
+        : message.type === 'info'
+          ? 'sound-msg--info'
+          : 'sound-msg--hint';
+
   return (
-    <div>
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
+    <div className="sound-mgmt">
       {/* Enhanced Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '24px',
-        padding: '20px',
-        background: 'linear-gradient(135deg, hsl(var(--surface-secondary)) 0%, hsl(var(--surface-tertiary)) 100%)',
-        borderRadius: '12px',
-        border: '1px solid hsl(var(--border-primary))',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px'
-          }}>
+      <div className="sound-mgmt-header">
+        <div className="sound-mgmt-title-row">
+          <div className="sound-mgmt-header-icon">
             🔊
           </div>
           <div>
-            <h3 style={{ 
-              margin: '0 0 4px 0', 
-              fontSize: '18px', 
-              fontWeight: '700',
-              background: 'linear-gradient(135deg, hsl(var(--text-primary)) 0%, hsl(var(--text-secondary)) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
+            <h3 className="sound-mgmt-title">
               Sound Management
             </h3>
-            <p style={{ 
-              margin: 0, 
-              fontSize: '14px', 
-              color: 'hsl(var(--text-secondary))',
-              fontWeight: '500'
-            }}>
+            <p className="sound-mgmt-subtitle">
               Manage background music, channel click sounds, and hover effects
             </p>
           </div>
@@ -869,31 +720,16 @@ const SoundsSettingsTab = React.memo(() => {
 
       {/* Enhanced Error/Message Display */}
       {error && (
-        <div style={{ 
-          marginBottom: '16px', 
-          padding: '16px', 
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, #fee 0%, #fcc 100%)',
-          border: '1px solid #f5c6cb',
-          color: '#721c24',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 2px 8px rgba(220, 53, 69, 0.1)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px' }}>⚠️</span>
+        <div className="sound-alert sound-alert--error">
+          <div className="sound-msg-row">
+            <span className="sound-emoji-md">⚠️</span>
             <strong>Error:</strong> {error}
           </div>
           <Button 
             variant="tertiary" 
             size="sm" 
+            className="sound-msg-dismiss"
             onClick={clearError}
-            style={{ 
-              padding: '4px 12px',
-              borderRadius: '6px',
-              fontSize: '12px'
-            }}
           >
             Dismiss
           </Button>
@@ -901,30 +737,9 @@ const SoundsSettingsTab = React.memo(() => {
       )}
 
       {message.text && (
-        <div style={{ 
-          marginBottom: '16px', 
-          padding: '16px', 
-          borderRadius: '12px',
-          background: message.type === 'error' ? 'linear-gradient(135deg, #fee 0%, #fcc 100%)' : 
-                     message.type === 'success' ? 'linear-gradient(135deg, #efe 0%, #cfc 100%)' : 
-                     message.type === 'info' ? 'linear-gradient(135deg, #eef 0%, #ccf 100%)' : 
-                     'linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%)',
-          border: `1px solid ${message.type === 'error' ? '#f5c6cb' : 
-                               message.type === 'success' ? '#c3e6cb' : 
-                               message.type === 'info' ? '#bee5eb' : '#ffeaa7'}`,
-          color: message.type === 'error' ? '#721c24' : 
-                 message.type === 'success' ? '#155724' : 
-                 message.type === 'info' ? '#0c5460' : '#856404',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: `0 2px 8px ${message.type === 'error' ? 'rgba(220, 53, 69, 0.1)' : 
-                                    message.type === 'success' ? 'rgba(40, 167, 69, 0.1)' : 
-                                    message.type === 'info' ? 'rgba(23, 162, 184, 0.1)' : 
-                                    'rgba(255, 193, 7, 0.1)'}`
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px' }}>
+        <div className={`sound-msg ${messageToneClass}`}>
+          <div className="sound-msg-row">
+            <span className="sound-emoji-md">
               {message.type === 'error' ? '⚠️' : 
                message.type === 'success' ? '✅' : 
                message.type === 'info' ? 'ℹ️' : '💡'}
@@ -936,27 +751,9 @@ const SoundsSettingsTab = React.memo(() => {
 
       {/* Enhanced Loading State */}
       {loading && (
-        <div style={{ 
-          marginBottom: '16px', 
-          padding: '16px', 
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, #eef 0%, #ccf 100%)',
-          border: '1px solid #bee5eb',
-          color: '#0c5460',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          boxShadow: '0 2px 8px rgba(23, 162, 184, 0.1)'
-        }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            border: '2px solid #bee5eb',
-            borderTop: '2px solid #0c5460',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }}></div>
-          <span style={{ fontWeight: '600' }}>Loading sound library...</span>
+        <div className="sound-loading">
+          <div className="sound-loading-spinner" aria-hidden />
+          <span className="sound-loading-label">Loading sound library...</span>
         </div>
       )}
 
@@ -970,10 +767,10 @@ const SoundsSettingsTab = React.memo(() => {
       <Card
           title="Debug Info"
         separator
-        style={{ marginBottom: '20px' }}
+        className="sound-settings-card--tight sound-card-pad--debug"
       >
-        <div style={{ padding: '20px' }}>
-            <Text variant="p" style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+        <div className="sound-card-pad">
+            <Text variant="p" className="sound-debug-pre">
               {JSON.stringify(soundSettings, null, 2)}
             </Text>
           </div>

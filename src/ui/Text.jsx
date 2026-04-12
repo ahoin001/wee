@@ -14,46 +14,46 @@ const variantMap = {
   h1: {
     as: "h1",
     className:
-      "text-4xl font-bold text-[hsl(var(--text-primary))] mb-3 leading-tight tracking-tight",
+      "text-[2.05rem] font-semibold text-[hsl(var(--text-primary))] mb-3 leading-tight tracking-[-0.01em]",
   },
   h2: {
     as: "h2",
     className:
-      "text-3xl font-bold text-[hsl(var(--text-primary))] mb-2.5 leading-tight tracking-tight",
+      "text-[1.72rem] font-semibold text-[hsl(var(--text-primary))] mb-2.5 leading-tight tracking-[-0.01em]",
   },
   h3: {
     as: "h3",
     className:
-      "text-2xl font-semibold text-[hsl(var(--text-primary))] mb-2 leading-snug tracking-tight",
+      "text-[1.34rem] font-semibold text-[hsl(var(--text-primary))] mb-2 leading-snug",
   },
   h4: {
     as: "h4",
     className:
-      "text-xl font-semibold text-[hsl(var(--text-primary))] mb-1.5 leading-snug tracking-tight",
+      "text-[1.1rem] font-semibold text-[hsl(var(--text-primary))] mb-1.5 leading-snug",
   },
   p: {
     as: "p",
     className:
-      "text-base font-normal text-[hsl(var(--text-primary))] mb-4 leading-relaxed",
+      "text-[0.98rem] font-normal text-[hsl(var(--text-primary))] mb-4 leading-[1.58]",
   },
   label: {
     as: "label",
     className:
-      "text-base font-medium text-[hsl(var(--text-secondary))] mb-0.5 leading-normal",
+      "text-[0.92rem] font-medium text-[hsl(var(--text-secondary))] mb-0.5 leading-[1.45]",
   },
   span: {
     as: "span",
-    className: "text-base font-normal text-[hsl(var(--text-primary))]",
+    className: "text-[0.95rem] font-normal text-[hsl(var(--text-primary))] leading-[1.5]",
   },
   desc: {
     as: "p",
     className:
-      "text-sm font-normal text-[hsl(var(--text-secondary))] mb-2 leading-relaxed",
+      "text-[0.88rem] font-normal text-[hsl(var(--text-secondary))] mb-2 leading-[1.55]",
   },
   help: {
     as: "p",
     className:
-      "text-sm font-normal text-[hsl(var(--text-tertiary))] mt-1 leading-relaxed",
+      "text-[0.84rem] font-normal text-[hsl(var(--text-tertiary))] mt-1 leading-[1.5]",
   },
   error: {
     as: "p",
@@ -63,7 +63,7 @@ const variantMap = {
   caption: {
     as: "p",
     className:
-      "text-xs font-normal text-[hsl(var(--text-tertiary))] mt-1 leading-relaxed",
+      "text-[0.76rem] font-normal text-[hsl(var(--text-tertiary))] mt-1 leading-[1.45]",
   },
   small: {
     as: "span",

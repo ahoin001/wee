@@ -2,24 +2,29 @@
 
 .page-navigation {
   position: fixed;
-  bottom: 200px;
+  bottom: var(--nav-standard-bottom-offset);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: var(--nav-z-index);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(4px);
-  border-radius: 20px;
-  padding: 6px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s ease;
+  background: var(--nav-standard-bg);
+  backdrop-filter: blur(var(--nav-standard-blur));
+  border-radius: var(--nav-indicator-radius);
+  padding: var(--nav-standard-padding-y) var(--nav-standard-padding-x);
+  border: 1px solid var(--nav-standard-border);
+  transition: all var(--nav-duration-base) var(--nav-ease-standard);
+}
+
+.page-navigation-top {
+  top: var(--nav-standard-top-offset);
+  bottom: auto;
 }
 
 .page-navigation:hover {
-  background: rgba(0, 0, 0, 0.25);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--nav-standard-bg-hover);
+  border-color: var(--nav-standard-border-hover);
 }
 
 
@@ -27,83 +32,85 @@
 /* Page Indicators */
 .page-indicators {
   display: flex;
-  gap: 6px;
+  gap: var(--nav-dot-gap);
   align-items: center;
 }
 
 .page-indicator {
-  width: 20px;
-  height: 20px;
+  width: var(--nav-standard-hit-size);
+  height: var(--nav-standard-hit-size);
   border: none;
   background: transparent;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: all var(--nav-duration-base) var(--nav-ease-standard);
   padding: 0;
+  will-change: transform, background;
+  backface-visibility: hidden;
 }
 
 .page-indicator:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: scale(1.1);
+  background: var(--nav-dot-hit-bg-hover);
+  transform: scale(var(--nav-dot-hover-scale));
 }
 
 .page-indicator.active {
-  background: rgba(255, 255, 255, 0.15);
-  transform: scale(1.1);
+  background: var(--nav-dot-hit-bg-active);
+  transform: scale(var(--nav-dot-hover-scale));
 }
 
 .page-indicator:active {
-  transform: scale(0.95);
+  transform: scale(var(--nav-side-active-scale));
 }
 
 .indicator-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
-  transition: all 0.15s ease;
+  width: var(--nav-dot-size);
+  height: var(--nav-dot-size);
+  border-radius: var(--radius-pill);
+  background: var(--nav-dot-bg);
+  transition: all var(--nav-duration-base) var(--nav-ease-standard);
 }
 
 .page-indicator.active .indicator-dot {
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  background: var(--nav-dot-bg-active);
+  box-shadow: var(--nav-dot-shadow-active);
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
   .page-navigation {
-    bottom: 120px;
-    padding: 4px 8px;
+    bottom: var(--nav-standard-bottom-offset-sm);
+    padding: var(--nav-standard-padding-y-sm) var(--nav-standard-padding-x-sm);
   }
   
   .page-indicators {
-    gap: 4px;
+    gap: var(--nav-dot-gap-xs);
   }
 }
 
 @media (max-width: 480px) {
   .page-navigation {
-    bottom: 100px;
-    padding: 3px 6px;
+    bottom: var(--nav-standard-bottom-offset-xs);
+    padding: var(--nav-standard-padding-y-xs) var(--nav-standard-padding-x-xs);
   }
 
   .page-indicator {
-    width: 16px;
-    height: 16px;
+    width: var(--nav-standard-hit-size-xs);
+    height: var(--nav-standard-hit-size-xs);
   }
 
   .indicator-dot {
-    width: 5px;
-    height: 5px;
+    width: var(--nav-dot-size-xs);
+    height: var(--nav-dot-size-xs);
   }
 }
 
 /* ===== ACCESSIBILITY ===== */
 .page-indicator:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline: 2px solid var(--nav-focus-ring);
   outline-offset: 2px;
 }
 
@@ -119,9 +126,3 @@
     transform: none;
   }
 }
-
-/* ===== PERFORMANCE OPTIMIZATIONS ===== */
-.page-indicator {
-  will-change: transform, background, color;
-  backface-visibility: hidden;
-} 

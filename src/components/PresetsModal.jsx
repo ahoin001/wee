@@ -10,8 +10,10 @@ import Card from '../ui/Card';
 import PresetListItem from './PresetListItem';
 import WToggle from '../ui/WToggle';
 import CommunityPresets from './CommunityPresets';
+import './presets-modal.css';
 
 import { uploadPreset } from '../utils/supabase';
+import { parseTags, resolveCustomImageFileForShare, resolveWallpaperFileForShare } from '../utils/presetSharing';
 
 function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, onApplyPreset, onUpdatePreset, onRenamePreset, onImportPresets, onReorderPresets }) {
   const fileInputRef = useRef();
@@ -549,7 +551,9 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
         data: presetSettings, // Convert 'settings' to 'data' for compatibility with App.jsx handleApplyPreset
         timestamp: new Date().toISOString(),
         isCommunity: true,
-        communityId: preset.id
+        communityId: preset.id,
+        communityRootId: preset.rootPresetId || preset.parentPresetId || preset.id,
+        communityVersion: preset.version || 1
       };
       
       console.log(`[PresetsModal] Converted preset ${index} structure:`, convertedPreset);
@@ -583,64 +587,15 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       console.log('[UPLOAD] Wallpaper URL:', uploadFormData.selectedPreset.data?.wallpaper?.url);
       console.log('[UPLOAD] Custom image:', uploadFormData.custom_image ? 'Present' : 'None');
 
-      // Get current wallpaper if it exists
-      let wallpaperFile = null;
-      if (uploadFormData.selectedPreset.data?.wallpaper?.url) {
-        try {
-          console.log('[UPLOAD] Processing wallpaper...');
-          // For local wallpaper URLs, we need to get the file data from the filesystem
-          if (uploadFormData.selectedPreset.data.wallpaper.url.startsWith('userdata://')) {
-            console.log('[UPLOAD] Getting local wallpaper file...');
-            // Use Electron API to get the file data
-            const wallpaperResult = await window.api.wallpapers.getFile(uploadFormData.selectedPreset.data.wallpaper.url);
-            console.log('[UPLOAD] Wallpaper result:', wallpaperResult);
-            if (wallpaperResult.success) {
-              // Convert base64 data to File object
-              const binaryString = atob(wallpaperResult.data);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-              wallpaperFile = new File([bytes], wallpaperResult.filename, { 
-                type: uploadFormData.selectedPreset.data.wallpaper.mimeType || 'image/jpeg' 
-              });
-              console.log('[UPLOAD] Created wallpaper file:', wallpaperFile.name, wallpaperFile.size);
-            }
-          } else {
-            console.log('[UPLOAD] Getting external wallpaper...');
-            // For external URLs, try to fetch
-            const response = await fetch(uploadFormData.selectedPreset.data.wallpaper.url);
-            const blob = await response.blob();
-            wallpaperFile = new File([blob], 'wallpaper.jpg', { type: 'image/jpeg' });
-            console.log('[UPLOAD] Created external wallpaper file:', wallpaperFile.name, wallpaperFile.size);
-          }
-        } catch (error) {
-          console.warn('[UPLOAD] Could not load wallpaper for upload:', error);
-        }
-      } else {
-        console.log('[UPLOAD] No wallpaper found in preset');
-      }
-
-      // Process custom image if provided
-      let customImageFile = null;
-      if (uploadFormData.custom_image) {
-        try {
-          console.log('[UPLOAD] Processing custom image...');
-          // Convert base64 to File object
-          const base64Data = uploadFormData.custom_image.split(',')[1]; // Remove data URL prefix
-          const binaryString = atob(base64Data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          customImageFile = new File([bytes], 'custom-display.jpg', { type: 'image/jpeg' });
-          console.log('[UPLOAD] Created custom image file:', customImageFile.name, customImageFile.size);
-        } catch (error) {
-          console.warn('[UPLOAD] Could not process custom image:', error);
-        }
-      } else {
-        console.log('[UPLOAD] No custom image provided');
-      }
+      const warnings = [];
+      const { file: wallpaperFile, warning: wallpaperWarning } = await resolveWallpaperFileForShare(uploadFormData.selectedPreset);
+      if (wallpaperWarning) warnings.push(wallpaperWarning);
+      const autoThumbnailDataUrl = uploadFormData.selectedPreset.thumbnailDataUrl || null;
+      const { file: customImageFile, warning: customImageWarning } = resolveCustomImageFileForShare(
+        uploadFormData.custom_image,
+        autoThumbnailDataUrl
+      );
+      if (customImageWarning) warnings.push(customImageWarning);
 
       // Create preset data for new schema
       const presetData = {
@@ -648,18 +603,6 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
         wallpaper: wallpaperFile,
         customImage: customImageFile
       };
-
-      // CRITICAL: Remove channel data from shared presets for security and compatibility
-      if (presetData.settings) {
-        // Remove all channel-related data
-        delete presetData.settings.channels;
-        delete presetData.settings.mediaMap;
-        delete presetData.settings.appPathMap;
-        delete presetData.settings.channelData;
-        
-        // Also remove sound library data for security
-        delete presetData.settings.soundLibrary;
-      }
 
       console.log('[UPLOAD] Preset data created:', {
         hasSettings: !!presetData.settings,
@@ -673,9 +616,16 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       const formData = {
         name: uploadFormData.name,
         description: uploadFormData.description,
-        tags: uploadFormData.tags ? uploadFormData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [],
+        tags: parseTags(uploadFormData.tags),
         creator_name: uploadFormData.creator_name || 'Anonymous'
       };
+      const sourceRootId =
+        uploadFormData.selectedPreset.communityRootId ||
+        uploadFormData.selectedPreset.communityId ||
+        null
+      if (sourceRootId) {
+        formData.parent_preset_id = sourceRootId
+      }
 
       console.log('[UPLOAD] Form data:', formData);
       console.log('[UPLOAD] Calling uploadPreset...');
@@ -685,7 +635,12 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
       console.log('[UPLOAD] Upload result:', result);
       
       if (result) {
-        setUploadMessage({ type: 'success', text: 'Preset uploaded successfully!' });
+        const allWarnings = [...warnings, ...(result.warnings || [])];
+        if (allWarnings.length > 0) {
+          setUploadMessage({ type: 'success', text: `Preset uploaded with notes: ${allWarnings.join(' ')}` });
+        } else {
+          setUploadMessage({ type: 'success', text: 'Preset uploaded successfully!' });
+        }
         setTimeout(() => {
           setShowUploadForm(false);
           setUploadFormData({ 
@@ -716,7 +671,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
 
   // ✅ DATA LAYER: Memoize footerContent to prevent infinite loops
   const footerContent = useCallback(({ handleClose }) => (
-    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+    <div className="preset-modal-footer">
         <Button variant="secondary" onClick={handleClose}>Close</Button>
     </div>
   ), []);
@@ -732,72 +687,55 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
         maxWidth="1400px"
       footerContent={footerContent}
     >
-      {importError && <div style={{ color: 'red', marginBottom: 12 }}>{importError}</div>}
+      {importError && <div className="text-red-600 mb-3">{importError}</div>}
      
-      <Card style={{ marginBottom: 18 }} title="Save Current as Preset" separator>
+      <Card className="preset-card-mb" title="Save Current as Preset" separator>
         <div className="wee-card-desc">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="preset-form-row">
             <input
               type="text"
               placeholder="Preset name"
               value={newPresetName}
               onChange={e => { setNewPresetName(e.target.value); setError(''); }}
-              style={{ 
-                flex: 1, 
-                padding: 8, 
-                borderRadius: 6, 
-                  border: '1.5px solid hsl(var(--border-primary))', 
-                fontSize: 15, 
-                  background: 'hsl(var(--surface-primary))', 
-                  color: 'hsl(var(--text-primary))',
-              
-                opacity: presets.length >= 6 ? 0.6 : 1
-              }}
+              className={`preset-form-input ${presets.length >= 6 ? 'preset-form-input--dimmed' : ''}`}
               maxLength={32}
               
               
             />
                 {/* tabIndex={presets.length >= 6 ? -1 : 0} */}
-            <Button variant="primary" style={{ minWidth: 90 }} onClick={handleSave} disabled={presets.length >= 6}>
+            <Button variant="primary" className="preset-btn-min" onClick={handleSave} disabled={presets.length >= 6}>
               Save Preset
             </Button>
           </div>
             
             {/* Include Channel Data Toggle */}
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="preset-toggle-row">
               <WToggle
                   checked={includeChannels}
                 onChange={setIncludeChannels}
                 label="Include Channel Data"
               />
-              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 8 }}>
+              <Text size="sm" color="hsl(var(--text-secondary))" className="preset-toggle-hint">
                 Save channels, their media, and app paths for workspace switching
             </Text>
               </div>
             
             {/* Include Sound Settings Toggle */}
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="preset-toggle-row preset-toggle-row--tight">
               <WToggle
                   checked={includeSounds}
                 onChange={setIncludeSounds}
                 label="Include Sound Settings"
               />
-              <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginLeft: 8 }}>
+              <Text size="sm" color="hsl(var(--text-secondary))" className="preset-toggle-hint">
                 Save sound library and audio preferences
             </Text>
               </div>
             
             {/* Help text for channel data feature */}
             {includeChannels && (
-              <div style={{ 
-                marginTop: 8, 
-                padding: 8, 
-                background: 'hsl(var(--primary) / 0.1)', 
-                border: '1px solid hsl(var(--primary) / 0.2)', 
-                borderRadius: 6,
-                fontSize: 12
-              }}>
-                <Text size="sm" color="hsl(var(--primary))" style={{ fontWeight: 500, marginBottom: 4 }}>
+              <div className="preset-workspace-hint">
+                <Text size="sm" color="hsl(var(--primary))" className="preset-workspace-hint-title">
                   🎯 Workspace Mode Enabled
                 </Text>
                 <Text size="sm" color="hsl(var(--text-secondary))">
@@ -807,48 +745,48 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
             </div>
             )}
             
-          {error && <Text size="sm" color={"#dc3545"} style={{ marginTop: 6 }}>{error}</Text>}
-            {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginTop: 6 }}>You can save up to 6 presets.</Text>}
+          {error && <Text size="sm" className="preset-text-error">{error}</Text>}
+            {presets.length >= 6 && <Text size="sm" color="hsl(var(--text-secondary))" className="preset-text-muted-mt">You can save up to 6 presets.</Text>}
         </div>
       </Card>
       <Card 
-        style={{ marginBottom: 18 }} 
+        className="preset-card-mb"
         title="Saved Presets" 
         separator
         desc={!selectMode ? "Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings." : "Select presets to export them as a ZIP file."}
       >
           
 
-          <hr style={{ border: 'none', borderTop: '1.5px solid hsl(var(--border-primary))', margin: '10px 0 18px 0' }} />
+          <hr className="preset-divider" />
         
          {showImportPreview && importedPresets && (
-          <div className="import-preview-modal" style={{ background: 'hsl(var(--surface-secondary))', border: '1.5px solid hsl(var(--wii-blue))', borderRadius: 12, padding: 24, marginBottom: 18 }}>
+          <div className="import-preview-modal preset-import-preview">
           <h3>Preview Imported Presets</h3>
-          <ul style={{ textAlign: 'left', margin: '12px 0 18px 0' }}>
+          <ul className="preset-import-list">
             {importedPresets.map((preset, idx) => {
               const exists = presets.some(p => p.name === preset.name);
               return (
-                <li key={idx} style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <b>{preset.name}</b> {preset.data ? '' : <span style={{ color: 'red' }}>(Invalid)</span>}
+                <li key={idx} className="preset-import-li">
+                  <b>{preset.name}</b> {preset.data ? '' : <span className="preset-invalid">(Invalid)</span>}
                   {exists && (
                     <WToggle
                       checked={overwriteMap[preset.name]}
                       onChange={() => handleToggleOverwrite(preset.name)}
                       label="Overwrite existing"
-                      style={{ fontSize: 13, color: 'hsl(var(--wii-blue))', marginLeft: 8 }}
+                      containerClassName="preset-toggle-inline"
                     />
                   )}
-                    {exists && !overwriteMap[preset.name] && <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 13 }}>(Will skip)</span>}
+                    {exists && !overwriteMap[preset.name] && <span className="preset-skip-hint">(Will skip)</span>}
                 </li>
               );
             })}
           </ul>
-            <Button variant="primary" onClick={handleConfirmImport} style={{ marginRight: 12 }}>Import</Button>
+            <Button variant="primary" onClick={handleConfirmImport} className="preset-btn-mr">Import</Button>
             <Button variant="secondary" onClick={handleCancelImport}>Cancel</Button>
         </div>
       )}
         
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, marginBottom: 0 }}>
+        <ul className="preset-list-plain">
           {presets.map((preset, idx) => {
             const isDragging = draggingPreset === preset.name;
             const isDropTarget = dropTarget === preset.name;
@@ -888,16 +826,16 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
 
         {/* Community Presets Section */}
         <Card 
-          style={{ marginBottom: 18 }} 
+          className="preset-card-mb"
           title="Community Presets" 
           separator
           desc="Browse and download presets shared by the community."
         >
-          <div style={{ marginBottom: '16px' }}>
+          <div className="preset-community-actions">
             <Button 
               variant="secondary" 
               onClick={toggleCommunitySection}
-              style={{ marginRight: '12px' }}
+              className="preset-btn-mr"
             >
               {showCommunitySection ? 'Hide Community' : 'Browse Community'}
             </Button>
@@ -924,22 +862,19 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
 
           {/* Upload Form Section */}
           {showUploadForm && (
-            <Card style={{ marginBottom: '16px', padding: '16px' }}>
+            <Card className="preset-upload-card">
               {uploadMessage.text && (
-                <div style={{ 
-                  padding: '12px', 
-                  borderRadius: '6px', 
-                  marginBottom: '16px',
-                  background: uploadMessage.type === 'success' ? 'hsl(var(--success-light))' : 'hsl(var(--error-light))',
-                  color: uploadMessage.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--error))',
-                  border: `1px solid ${uploadMessage.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--error))'}`
-                }}>
+                <div
+                  className={`preset-upload-msg ${
+                    uploadMessage.type === 'success' ? 'preset-upload-msg--success' : 'preset-upload-msg--error'
+                  }`}
+                >
                   {uploadMessage.text}
                 </div>
               )}
 
-              <div style={{ marginBottom: '12px' }}>
-                <Text variant="label" style={{ marginBottom: '8px' }}>Select Preset to Share *</Text>
+              <div className="preset-field-block">
+                <Text variant="label" className="preset-label-mb block">Select Preset to Share *</Text>
                 <select
                   value={uploadFormData.selectedPreset ? uploadFormData.selectedPreset.name : ''}
                   onChange={(e) => {
@@ -950,14 +885,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                       selectedPreset: selectedPreset || null
                     }));
                   }}
-                    style={{ 
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid hsl(var(--border-primary))',
-                    borderRadius: '6px',
-                    background: 'hsl(var(--surface-primary))',
-                    color: 'hsl(var(--text-primary))'
-                  }}
+                  className="preset-select"
                 >
                   <option value="">Select a preset to share...</option>
                   {presets.map((preset) => (
@@ -968,28 +896,20 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 </select>
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <Text variant="label" style={{ marginBottom: '8px' }}>Description</Text>
+              <div className="preset-field-block">
+                <Text variant="label" className="preset-label-mb block">Description</Text>
                 <textarea
                   value={uploadFormData.description}
                   onChange={(e) => handleUploadInputChange('description', e.target.value)}
                   placeholder="Describe your preset..."
                   rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid hsl(var(--border-primary))',
-                    borderRadius: '6px',
-                    background: 'hsl(var(--surface-primary))',
-                    color: 'hsl(var(--text-primary))',
-                    resize: 'vertical'
-                  }}
+                  className="preset-textarea"
                 />
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <Text variant="label" style={{ marginBottom: '8px' }}>Tags (Optional)</Text>
-                <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginBottom: '8px' }}>
+              <div className="preset-field-block">
+                <Text variant="label" className="preset-label-mb block">Tags (Optional)</Text>
+                <Text size="sm" color="hsl(var(--text-secondary))" className="preset-label-mb block">
                   Add tags to help others find your preset. Separate with commas.
                 </Text>
                     <input
@@ -997,41 +917,27 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                   value={uploadFormData.tags}
                   onChange={(e) => handleUploadInputChange('tags', e.target.value)}
                   placeholder="gaming, dark theme, minimal, etc."
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid hsl(var(--border-primary))',
-                    borderRadius: '6px',
-                    background: 'hsl(var(--surface-primary))',
-                    color: 'hsl(var(--text-primary))'
-                  }}
+                  className="preset-input-full"
                 />
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <Text variant="label" style={{ marginBottom: '8px' }}>Your Name (Optional)</Text>
+              <div className="preset-field-block--lg">
+                <Text variant="label" className="preset-label-mb block">Your Name (Optional)</Text>
                 <input
                   type="text"
                   value={uploadFormData.creator_name}
                   onChange={(e) => handleUploadInputChange('creator_name', e.target.value)}
                   placeholder="Anonymous"
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid hsl(var(--border-primary))',
-                    borderRadius: '6px',
-                    background: 'hsl(var(--surface-primary))',
-                    color: 'hsl(var(--text-primary))'
-                  }}
+                  className="preset-input-full"
                 />
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <Text variant="label" style={{ marginBottom: '8px' }}>Custom Image (Optional)</Text>
-                <Text size="sm" color="hsl(var(--text-secondary))" style={{ marginBottom: '8px' }}>
+              <div className="preset-field-block--lg">
+                <Text variant="label" className="preset-label-mb block">Custom Image (Optional)</Text>
+                <Text size="sm" color="hsl(var(--text-secondary))" className="preset-label-mb block">
                   Upload a custom image to represent your preset. If not provided, a thumbnail will be auto-generated.
                 </Text>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className="preset-image-row">
                   <input
                     type="file"
                     accept="image/*"
@@ -1045,13 +951,13 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                         reader.readAsDataURL(file);
                       }
                     }}
-                    style={{ display: 'none' }}
+                    className="preset-hidden-input"
                     id="custom-image-upload"
                   />
                   <Button
                     variant="secondary"
+                    className="preset-btn-flex"
                     onClick={() => document.getElementById('custom-image-upload').click()}
-                    style={{ flex: 1 }}
                   >
                     Choose Image
                     </Button>
@@ -1065,17 +971,11 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
                 )}
               </div>
                 {uploadFormData.custom_image && (
-                  <div style={{ marginTop: '8px' }}>
+                  <div className="preset-img-preview-wrap">
                     <img
                       src={uploadFormData.custom_image}
                       alt="Custom image preview"
-                      style={{
-                        width: '100px',
-                        height: '60px',
-                        objectFit: 'cover',
-                        borderRadius: '4px',
-                        border: '1px solid hsl(var(--border-primary))'
-                      }}
+                      className="preset-img-preview"
                     />
                   </div>
                 )}
@@ -1085,7 +985,7 @@ function PresetsModal({ isOpen, onClose, presets, onSavePreset, onDeletePreset, 
 
 
 
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <div className="preset-form-actions">
                 <Button 
                   variant="secondary" 
                   onClick={() => {

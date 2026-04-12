@@ -48,6 +48,7 @@ const GeneralSettingsTab = React.memo(() => {
             lowPowerMode: systemSettings.lowPowerMode ?? false,
             classicMode: dockSettings.classicMode ?? false,
             showDock: dockSettings.showDock ?? true,
+            spotifyMatchEnabled: appearanceSettings.spotifyMatchEnabled ?? false,
           });
         }
       } catch (error) {

@@ -3,8 +3,8 @@ import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
-import { spacing } from '../../ui/tokens';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import '../surfaceStyles.css';
 
 const RibbonSettingsTab = React.memo(() => {
   // Use consolidated store for ribbon settings
@@ -53,66 +53,54 @@ const RibbonSettingsTab = React.memo(() => {
   }, [setRibbonState]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+    <div className="surface-stack">
+      <Text variant="h2" className="surface-title">
         Ribbon Appearance Settings
       </Text>
       
-      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+      <Text variant="body" className="surface-subtitle">
         Customize the appearance of the Wii Ribbon including colors, glow effects, and glass morphism.
       </Text>
 
       {/* Ribbon Colors and Effects */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '16px' }}>
+        <div className="surface-card-body">
+          <Text variant="h3" className="surface-subtitle">
             Ribbon Colors & Effects
           </Text>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '120px' }}>
+          <div className="surface-controls">
+            <div className="surface-row">
+              <Text variant="body" className="surface-color-label-sm">
                 Ribbon Color
               </Text>
               <input
                 type="color"
                 value={ribbon?.ribbonColor ?? '#e0e6ef'}
                 onChange={handleRibbonColorChange}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="surface-color-input"
               />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+              <Text variant="caption" className="surface-caption !mt-0">
                 {(ribbon?.ribbonColor ?? '#e0e6ef').toUpperCase()}
               </Text>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', minWidth: '120px' }}>
+            <div className="surface-row">
+              <Text variant="body" className="surface-color-label-sm">
                 Ribbon Glow Color
               </Text>
               <input
                 type="color"
                 value={ribbon?.ribbonGlowColor ?? '#0099ff'}
                 onChange={handleRibbonGlowColorChange}
-                style={{
-                  width: 50,
-                  height: 40,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
+                className="surface-color-input"
               />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))' }}>
+              <Text variant="caption" className="surface-caption !mt-0">
                 {(ribbon?.ribbonGlowColor ?? '#0099ff').toUpperCase()}
               </Text>
             </div>
             
             <div>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+              <Text variant="body" className="text-secondary mb-2">
                 Glow Strength
               </Text>
               <Slider
@@ -122,13 +110,13 @@ const RibbonSettingsTab = React.memo(() => {
                 step={1}
                 onChange={handleRibbonGlowStrengthChange}
               />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+              <Text variant="caption" className="surface-caption">
                 {ribbon?.ribbonGlowStrength ?? 20}px
               </Text>
             </div>
             
             <div>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+              <Text variant="body" className="text-secondary mb-2">
                 Glow Strength on Hover
               </Text>
               <Slider
@@ -138,13 +126,13 @@ const RibbonSettingsTab = React.memo(() => {
                 step={1}
                 onChange={handleRibbonGlowStrengthHoverChange}
               />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+              <Text variant="caption" className="surface-caption">
                 {ribbon?.ribbonGlowStrengthHover ?? 28}px
               </Text>
             </div>
             
             <div>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+              <Text variant="body" className="text-secondary mb-2">
                 Dock Opacity
               </Text>
               <Slider
@@ -154,7 +142,7 @@ const RibbonSettingsTab = React.memo(() => {
                 step={0.1}
                 onChange={handleRibbonDockOpacityChange}
               />
-              <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+              <Text variant="caption" className="surface-caption">
                 {Math.round((ribbon?.ribbonDockOpacity ?? 1) * 100)}%
               </Text>
             </div>
@@ -164,13 +152,13 @@ const RibbonSettingsTab = React.memo(() => {
 
       {/* Glass Effect */}
       <Card>
-        <div style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div className="surface-card-body">
+          <div className="surface-row-between mb-4">
             <div>
-              <Text variant="h3" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+              <Text variant="h3" className="surface-title">
                 Glass Effect
               </Text>
-              <Text variant="body" style={{ color: 'hsl(var(--text-secondary))' }}>
+              <Text variant="body" className="text-secondary">
                 Add a modern glass morphism effect to the ribbon.
               </Text>
             </div>
@@ -181,9 +169,9 @@ const RibbonSettingsTab = React.memo(() => {
           </div>
           
           {ribbon?.glassWiiRibbon && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="surface-controls">
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Glass Opacity
                 </Text>
                 <Slider
@@ -193,13 +181,13 @@ const RibbonSettingsTab = React.memo(() => {
                   step={0.01}
                   onChange={handleGlassOpacityChange}
                 />
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                <Text variant="caption" className="surface-caption">
                   {Math.round((ribbon?.glassOpacity ?? 0.18) * 100)}%
                 </Text>
               </div>
               
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Glass Blur
                 </Text>
                 <Slider
@@ -209,13 +197,13 @@ const RibbonSettingsTab = React.memo(() => {
                   step={0.5}
                   onChange={handleGlassBlurChange}
                 />
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                <Text variant="caption" className="surface-caption">
                   {ribbon?.glassBlur ?? 2.5}px
                 </Text>
               </div>
               
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Border Opacity
                 </Text>
                 <Slider
@@ -225,13 +213,13 @@ const RibbonSettingsTab = React.memo(() => {
                   step={0.05}
                   onChange={handleGlassBorderOpacityChange}
                 />
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                <Text variant="caption" className="surface-caption">
                   {Math.round((ribbon?.glassBorderOpacity ?? 0.5) * 100)}%
                 </Text>
               </div>
               
               <div>
-                <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                <Text variant="body" className="text-secondary mb-2">
                   Shine Opacity
                 </Text>
                 <Slider
@@ -241,7 +229,7 @@ const RibbonSettingsTab = React.memo(() => {
                   step={0.05}
                   onChange={handleGlassShineOpacityChange}
                 />
-                <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                <Text variant="caption" className="surface-caption">
                   {Math.round((ribbon?.glassShineOpacity ?? 0.7) * 100)}%
                 </Text>
               </div>

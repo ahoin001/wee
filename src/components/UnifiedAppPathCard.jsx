@@ -6,7 +6,9 @@ import Button from '../ui/WButton';
 const UnifiedAppPathCard = React.memo(({
   value = {},
   onChange,
-  disabled = false
+  disabled = false,
+  /** Canonical validation from ChannelModal (debounced); shown with local browse errors */
+  externalValidationError = '',
 }) => {
   // Use unified apps state from consolidated store
   const { unifiedApps, setUnifiedAppsState } = useUnifiedAppsState();
@@ -61,11 +63,13 @@ const UnifiedAppPathCard = React.memo(({
   // Sync with selected app from value prop or store - only when selectedApp changes
   useEffect(() => {
     const currentSelectedApp = value.selectedApp || selectedApp;
-    console.log('[UnifiedAppPathCard] Selected app changed:', {
-      valueSelectedApp: value.selectedApp,
-      storeSelectedApp: selectedApp,
-      currentSelectedApp
-    });
+    if (import.meta.env.DEV) {
+      console.log('[UnifiedAppPathCard] Selected app changed:', {
+        valueSelectedApp: value.selectedApp,
+        storeSelectedApp: selectedApp,
+        currentSelectedApp
+      });
+    }
     
     if (currentSelectedApp) {
       try {
@@ -75,7 +79,9 @@ const UnifiedAppPathCard = React.memo(({
         if (currentSelectedApp?.args && currentSelectedApp.args.trim()) {
           generatedPath += ' ' + currentSelectedApp.args.trim();
         }
-        console.log('[UnifiedAppPathCard] Generated path:', generatedPath);
+        if (import.meta.env.DEV) {
+          console.log('[UnifiedAppPathCard] Generated path:', generatedPath);
+        }
         setPath(generatedPath);
       } catch (error) {
         console.error('[UnifiedAppPathCard] Error generating path for app:', currentSelectedApp, error);
@@ -122,8 +128,10 @@ const UnifiedAppPathCard = React.memo(({
   }, [clearSelection]);
 
   const handleAppNameChange = useCallback((name) => {
-    console.log('[UnifiedAppPathCard] handleAppNameChange called with:', name);
-    console.log('[UnifiedAppPathCard] Current selectedApp:', selectedApp);
+    if (import.meta.env.DEV) {
+      console.log('[UnifiedAppPathCard] handleAppNameChange called with:', name);
+      console.log('[UnifiedAppPathCard] Current selectedApp:', selectedApp);
+    }
     
     setAppName(name);
     setPathError('');
@@ -158,6 +166,8 @@ const UnifiedAppPathCard = React.memo(({
       }
     }
   }, []);
+
+  const displayPathError = pathError || externalValidationError;
 
   const validatePath = useCallback(() => {
     if (launchType === 'url') {
@@ -233,7 +243,7 @@ const UnifiedAppPathCard = React.memo(({
               <input
                 type="text"
                 className={`text-input flex-1 px-[14px] py-3 text-base rounded-lg border-[1.5px] ${
-                  pathError
+                  displayPathError
                     ? 'border-[hsl(var(--state-error))]'
                     : 'border-[hsl(var(--border-primary))]'
                 } bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))]`}
@@ -252,9 +262,9 @@ const UnifiedAppPathCard = React.memo(({
                 Browse
               </Button>
             </div>
-            {pathError && (
+            {displayPathError && (
               <div className="text-[hsl(var(--state-error))] text-xs mt-1">
-                {pathError}
+                {displayPathError}
               </div>
             )}
           </div>
@@ -287,7 +297,7 @@ const UnifiedAppPathCard = React.memo(({
             <input
               type="text"
               className={`text-input w-full px-[14px] py-3 text-base rounded-lg border-[1.5px] ${
-                pathError
+                displayPathError
                   ? 'border-[hsl(var(--state-error))]'
                   : 'border-[hsl(var(--border-primary))]'
               } bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))]`}
@@ -296,9 +306,9 @@ const UnifiedAppPathCard = React.memo(({
               onChange={(e) => handlePathChange(e.target.value)}
               disabled={disabled}
             />
-            {pathError && (
+            {displayPathError && (
               <div className="text-[hsl(var(--state-error))] text-xs mt-1">
-                {pathError}
+                {displayPathError}
               </div>
             )}
           </div>

@@ -32,7 +32,7 @@ const WRadioGroup = ({
               value={option.value}
               className={({ active, checked, disabled }) => `
                 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                relative flex items-start p-4 rounded-lg border transition-all duration-200
+                relative flex items-start p-4 rounded-[var(--control-radius)] border transition-all duration-[var(--control-transition-duration)]
                 ${checked 
                   ? 'border-[hsl(var(--wii-blue))] bg-[hsl(var(--wii-blue))]/5' 
                   : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))]'

@@ -17,13 +17,13 @@ const WInput = forwardRef(({
   ...props 
 }, ref) => {
   const baseClasses = `
-    w-full px-4 py-3 text-base font-medium
+    w-full px-[var(--control-padding-x)] py-[var(--control-padding-y)] text-[length:var(--control-font-size)] font-medium
     bg-[hsl(var(--surface-secondary))] 
     border border-[hsl(var(--border-primary))]
     text-[hsl(var(--text-primary))]
     placeholder-[hsl(var(--text-tertiary))]
-    rounded-lg
-    transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]
+    rounded-[var(--control-radius)]
+    transition-all duration-[var(--control-transition-duration)] ease-[var(--control-ease)]
     focus:outline-none focus:ring-2 focus:ring-[hsl(var(--wii-blue))] focus:ring-offset-2 focus:ring-offset-[hsl(var(--surface-primary))]
     focus:border-[hsl(var(--wii-blue))]
     hover:border-[hsl(var(--border-secondary))]

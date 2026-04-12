@@ -20,7 +20,6 @@ export const useChannelModalInitialization = ({
   setKenBurnsCrossfadeDuration,
   setKenBurnsEasing,
   setAsAdmin,
-  setSelectedGameFeedback,
   installedAppsLength,
   uwpAppsLength,
   steamGamesLength,
@@ -37,12 +36,6 @@ export const useChannelModalInitialization = ({
   fetchEpicGames,
   preloadMediaLibrary,
 }) => {
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedGameFeedback(null);
-    }
-  }, [isOpen, setSelectedGameFeedback]);
-
   useEffect(() => {
     if (!channelId) return;
 

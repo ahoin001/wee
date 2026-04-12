@@ -9,6 +9,47 @@ const safeCall = async (fn, fallback = null) => {
   }
 };
 
+/** Merge fields into `unified-data.json` → `settings.appearance` (e.g. spotifyMatchEnabled). */
+export async function saveUnifiedAppearancePatch(patch) {
+  const api = getApi();
+  if (!api?.data?.get || !api?.data?.set) return false;
+  const current = await safeCall(() => api.data.get(), null);
+  if (!current?.settings) return false;
+  return safeCall(
+    () =>
+      api.data.set({
+        ...current,
+        settings: {
+          ...current.settings,
+          appearance: {
+            ...current.settings.appearance,
+            ...patch,
+          },
+        },
+      }),
+    false
+  );
+}
+
+/** Persist the consolidated sounds slice into `unified-data.json` → `settings.sounds`. */
+export async function saveUnifiedSoundSettings(soundsState) {
+  const api = getApi();
+  if (!api?.data?.get || !api?.data?.set) return false;
+  const current = await safeCall(() => api.data.get(), null);
+  if (!current?.settings) return false;
+  return safeCall(
+    () =>
+      api.data.set({
+        ...current,
+        settings: {
+          ...current.settings,
+          sounds: soundsState,
+        },
+      }),
+    false
+  );
+}
+
 export const electronApi = {
   async getUnifiedData() {
     const api = getApi();

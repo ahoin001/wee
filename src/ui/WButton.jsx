@@ -14,27 +14,31 @@ const buttonVariants = tv({
   base: [
     "inline-flex items-center justify-center",
     "cursor-pointer outline-none relative",
-    "transition-all duration-[0.18s] ease-out",
-    "font-semibold",
+    "transition-all duration-[0.22s] ease-[cubic-bezier(0.4,0,0.2,1)]",
+    "font-medium",
     "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
     "disabled:cursor-not-allowed disabled:opacity-50",
-    "border-[1.5px] border-solid",
+    "border-[1.5px] border-solid rounded-[14px]",
   ],
   variants: {
     variant: {
       primary: [
-        "bg-wii-blue border-wii-blue text-text-inverse",
-        "shadow-card",
-        "hover:bg-wii-blue-hover hover:border-wii-blue-hover",
-        "hover:transform hover:-translate-y-[1px] hover:scale-[1.03]",
+        "text-text-inverse border-[hsl(var(--border-accent))]",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0.04)_100%),hsl(var(--wii-blue))]",
+        "shadow-[var(--shadow-soft)]",
+        "hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.08)_100%),hsl(var(--wii-blue-hover))]",
+        "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
+        "active:scale-[0.98]",
         "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
         "disabled:bg-state-disabled disabled:border-state-disabled",
       ],
       secondary: [
-        "bg-surface-secondary border-border-primary text-text-primary",
-        "shadow-card",
-        "hover:bg-state-hover hover:border-wii-blue",
-        "hover:transform hover:-translate-y-[1px] hover:scale-[1.03]",
+        "text-text-primary border-border-primary",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.6)_0%,rgba(255,255,255,0.25)_100%),hsl(var(--surface-secondary))]",
+        "backdrop-blur-[6px] shadow-[var(--shadow-soft)]",
+        "hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.75)_0%,rgba(255,255,255,0.32)_100%),hsl(var(--state-hover))] hover:border-wii-blue",
+        "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
+        "active:scale-[0.98]",
         "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
         "disabled:bg-state-disabled disabled:border-state-disabled",
       ],
@@ -42,7 +46,7 @@ const buttonVariants = tv({
         "bg-transparent border-transparent text-text-primary",
         "shadow-none",
         "hover:bg-state-hover hover:shadow-none",
-        "hover:transform hover:-translate-y-[1px]",
+        "hover:transform hover:-translate-y-[1px] active:scale-[0.98]",
         "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
         "disabled:bg-transparent disabled:border-transparent",
       ],
@@ -56,17 +60,18 @@ const buttonVariants = tv({
       ],
       "danger-secondary": [
         "bg-surface-secondary border-state-error text-state-error",
-        "shadow-card",
+        "shadow-[var(--shadow-soft)]",
         "hover:bg-state-error-light hover:border-state-error",
-        "hover:transform hover:-translate-y-[1px] hover:scale-[1.03]",
+        "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
+        "active:scale-[0.98]",
         "focus:ring-2 focus:ring-state-error focus:ring-offset-2",
         "disabled:bg-state-disabled disabled:border-state-disabled",
       ],
     },
     size: {
-      sm: "text-[13px] px-[0.8rem] py-[0.32rem]",
-      md: "text-[15px] px-[1.1rem] py-[0.45rem]",
-      lg: "text-[18px] px-[1.6rem] py-[0.7rem]",
+      sm: "text-[13px] px-[0.86rem] py-[0.38rem]",
+      md: "text-[15px] px-[1.18rem] py-[0.52rem]",
+      lg: "text-[18px] px-[1.65rem] py-[0.75rem]",
     },
     weight: {
       400: "font-normal",
@@ -75,8 +80,8 @@ const buttonVariants = tv({
       700: "font-bold",
     },
     rounded: {
-      true: "rounded-full",
-      false: "rounded-[8px]",
+      true: "rounded-[var(--radius-pill)]",
+      false: "rounded-[14px]",
     },
     fullWidth: {
       true: "w-full",
@@ -131,11 +136,11 @@ const WButton = React.memo(({
     
     if (variant === "primary") {
       return {
-        boxShadow: "var(--shadow-md), 0 0 20px rgb(0 153 255 / 0.3)",
+        boxShadow: "var(--shadow-soft-hover), 0 0 18px rgb(0 153 255 / 0.24)",
       };
     } else if (variant === "secondary") {
       return {
-        boxShadow: "var(--shadow-md)",
+        boxShadow: "var(--shadow-soft-hover)",
       };
     } else if (variant === "tertiary") {
       return {
@@ -143,11 +148,11 @@ const WButton = React.memo(({
       };
     } else if (variant === "danger-primary") {
       return {
-        boxShadow: "var(--shadow-md), 0 0 20px rgb(220 38 38 / 0.3)",
+        boxShadow: "var(--shadow-soft-hover), 0 0 18px rgb(220 38 38 / 0.24)",
       };
     } else if (variant === "danger-secondary") {
       return {
-        boxShadow: "var(--shadow-md)",
+        boxShadow: "var(--shadow-soft-hover)",
       };
     }
     return {};

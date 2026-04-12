@@ -1,12 +1,34 @@
 import { createClient } from '@supabase/supabase-js'
+import { sanitizePresetSettingsForCommunity } from './presetSharing'
 
-// Built-in Supabase configuration for community features
-const SUPABASE_URL = 'https://bmlcydwltfexgbsyunkf.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbGN5ZHdsdGZleGdic3l1bmtmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzgxMzM0MCwiZXhwIjoyMDY5Mzg5MzQwfQ.bAAIvW06rnyPVdXTKL2BL790JczCaCJiMr8fAx8PhQY'
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+const APP_SCHEMA = import.meta.env.VITE_SUPABASE_APP_SCHEMA || 'app_wee_v1'
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+/** Project base URL with no trailing slash (for storage public URLs). */
+export const supabaseProjectUrl = String(SUPABASE_URL || '').replace(/\/$/, '')
 
-console.log('[SUPABASE] Client created with service role for full access');
+/**
+ * Public Storage URL for `storage/v1/object/public/<bucket>/<path>`.
+ * @param {string} bucket
+ * @param {string} objectPath path as stored in DB (no leading slash)
+ */
+export function getStoragePublicObjectUrl(bucket, objectPath) {
+  const p = String(objectPath || '').replace(/^\/+/, '')
+  return `${supabaseProjectUrl}/storage/v1/object/public/${bucket}/${p}`
+}
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.warn(
+    '[SUPABASE] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Copy .env.example to .env and set values.'
+  )
+}
+
+export const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '')
+const spokeClient = supabase.schema(APP_SCHEMA)
+export const supabaseSpoke = spokeClient
+
+console.log('[SUPABASE] Client created (anon key + schema:', APP_SCHEMA + ')')
 
 // =====================================================
 // SESSION MANAGEMENT
@@ -14,7 +36,7 @@ console.log('[SUPABASE] Client created with service role for full access');
 
 export const createSession = async () => {
   const sessionToken = crypto.randomUUID()
-  const { data, error } = await supabase
+  const { data, error } = await spokeClient
     .from('user_sessions')
     .insert({
       session_token: sessionToken,
@@ -73,7 +95,7 @@ export const uploadMedia = async (file, metadata) => {
     }
     
     // Create media record
-    const { data: mediaData, error: insertError } = await supabase
+    const { data: mediaData, error: insertError } = await spokeClient
       .from('media_library')
       .insert({
         title: metadata.title,
@@ -100,7 +122,7 @@ export const uploadMedia = async (file, metadata) => {
 
 export const searchMedia = async (filters = {}) => {
   try {
-    let queryBuilder = supabase
+    let queryBuilder = spokeClient
       .from('media_library')
       .select('*')
       .eq('is_approved', true)
@@ -164,7 +186,7 @@ export const downloadMedia = async (mediaId) => {
     const sessionId = await ensureSession()
     
     // Get media info
-    const { data: media, error: mediaError } = await supabase
+    const { data: media, error: mediaError } = await spokeClient
       .from('media_library')
       .select('*')
       .eq('id', mediaId)
@@ -175,7 +197,7 @@ export const downloadMedia = async (mediaId) => {
     }
     
     // Track download
-    await supabase
+    await spokeClient
       .from('media_downloads')
       .insert({
         media_id: mediaId,
@@ -406,25 +428,56 @@ export const uploadPreset = async (presetData, formData) => {
     }
   }
   
+  const wallpaperPublicUrl = wallpaperUrl
+    ? getStoragePublicObjectUrl('preset-wallpapers', wallpaperUrl)
+    : null
+  const sharedSettings = sanitizePresetSettingsForCommunity(presetData.settings, { wallpaperPublicUrl })
+  const rootPresetId = formData.parent_preset_id || null
+  let nextVersion = 1
+
+  if (rootPresetId) {
+    const [rootResult, childrenResult] = await Promise.all([
+      spokeClient
+        .from('presets')
+        .select('id, version')
+        .eq('id', rootPresetId)
+        .limit(1),
+      spokeClient
+        .from('presets')
+        .select('id, version')
+        .eq('parent_preset_id', rootPresetId)
+        .order('version', { ascending: false })
+        .limit(1)
+    ])
+
+    const candidates = []
+    if (!rootResult.error && Array.isArray(rootResult.data)) candidates.push(...rootResult.data)
+    if (!childrenResult.error && Array.isArray(childrenResult.data)) candidates.push(...childrenResult.data)
+    const highestVersion = candidates.reduce((acc, row) => Math.max(acc, Number(row?.version) || 1), 1)
+    nextVersion = highestVersion + 1
+  }
+
   // Create preset record
   console.log('[SUPABASE] Creating preset record...');
   const presetRecord = {
     name: formData.name,
     description: formData.description,
     tags: formData.tags || [],
-    settings_config: presetData.settings,
+    settings_config: sharedSettings,
     wallpaper_url: wallpaperUrl,
     wallpaper_file_size: wallpaperFile?.size,
     wallpaper_mime_type: wallpaperFile?.type,
     display_image_url: customImageUrl, // Add custom image URL
     display_image_size: customImageFile?.size,
     display_image_mime_type: customImageFile?.type,
-    created_by_session_id: sessionId
+    created_by_session_id: sessionId,
+    parent_preset_id: rootPresetId,
+    version: nextVersion
   };
   
   console.log('[SUPABASE] Preset record to insert:', presetRecord);
   
-  const { data, error } = await supabase
+  const { data, error } = await spokeClient
     .from('presets')
     .insert(presetRecord)
     .select()
@@ -438,7 +491,15 @@ export const uploadPreset = async (presetData, formData) => {
   }
   
   console.log('[SUPABASE] Upload successful:', data);
-  return data
+  const warnings = []
+  if (!wallpaperFile && presetData?.settings?.wallpaper?.url) {
+    warnings.push('Wallpaper could not be included with this shared preset.')
+  }
+  return {
+    ...data,
+    includesWallpaper: Boolean(wallpaperUrl),
+    warnings
+  }
 }
 
 export const downloadPreset = async (presetId) => {
@@ -446,7 +507,7 @@ export const downloadPreset = async (presetId) => {
     const sessionId = await ensureSession()
     
     // Get preset data
-    const { data: preset, error: presetError } = await supabase
+    const { data: preset, error: presetError } = await spokeClient
       .from('presets')
       .select('*')
       .eq('id', presetId)
@@ -462,7 +523,7 @@ export const downloadPreset = async (presetId) => {
     }
     
     // Track download - handle duplicate download gracefully
-    const { error: downloadError } = await supabase
+    const { error: downloadError } = await spokeClient
       .from('preset_downloads')
       .insert({
         preset_id: presetId,
@@ -518,6 +579,9 @@ export const downloadPreset = async (presetId) => {
         name: preset.name,
         settings: presetData,
         id: preset.id,
+        version: preset.version || 1,
+        parentPresetId: preset.parent_preset_id || null,
+        rootPresetId: preset.parent_preset_id || preset.id,
         wallpaper: wallpaperData ? {
           data: wallpaperData,
           mimeType: preset.wallpaper_mime_type,
@@ -533,7 +597,7 @@ export const downloadPreset = async (presetId) => {
 
 export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at') => {
   try {
-    let query = supabase
+    let query = spokeClient
       .from('presets')
       .select('*')
       .eq('is_public', true)
@@ -557,8 +621,68 @@ export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at') =
   }
 }
 
+export const getCommunityPresetUpdates = async (installedPresets = []) => {
+  try {
+    const refs = installedPresets
+      .map((preset) => ({
+        localKey: String(preset.localKey || ''),
+        rootPresetId: String(preset.rootPresetId || ''),
+        installedVersion: Number(preset.installedVersion) || 1
+      }))
+      .filter((preset) => preset.localKey && preset.rootPresetId)
+
+    if (refs.length === 0) return { success: true, data: {} }
+
+    const uniqueRootIds = [...new Set(refs.map((preset) => preset.rootPresetId))]
+    const [rootRows, childRows] = await Promise.all([
+      spokeClient
+        .from('presets')
+        .select('id, parent_preset_id, version, updated_at')
+        .in('id', uniqueRootIds)
+        .eq('is_public', true)
+        .eq('is_approved', true),
+      spokeClient
+        .from('presets')
+        .select('id, parent_preset_id, version, updated_at')
+        .in('parent_preset_id', uniqueRootIds)
+        .eq('is_public', true)
+        .eq('is_approved', true)
+    ])
+
+    if (rootRows.error) throw rootRows.error
+    if (childRows.error) throw childRows.error
+
+    const latestByRoot = {}
+    const rows = [...(rootRows.data || []), ...(childRows.data || [])]
+    for (const row of rows) {
+      const rootId = row.parent_preset_id || row.id
+      const current = latestByRoot[rootId]
+      if (!current || Number(row.version || 1) > Number(current.version || 1)) {
+        latestByRoot[rootId] = row
+      }
+    }
+
+    const result = {}
+    for (const ref of refs) {
+      const latest = latestByRoot[ref.rootPresetId]
+      const latestVersion = Number(latest?.version || ref.installedVersion || 1)
+      result[ref.localKey] = {
+        hasUpdate: latestVersion > ref.installedVersion,
+        latestVersion,
+        latestPresetId: latest?.id || ref.rootPresetId,
+        updatedAt: latest?.updated_at || null
+      }
+    }
+
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('[SUPABASE] Error checking community preset updates:', error)
+    return { success: false, error: error.message, data: {} }
+  }
+}
+
 export const getFeaturedPresets = async () => {
-  const { data, error } = await supabase
+  const { data, error } = await spokeClient
     .from('featured_presets')
     .select('*')
     .limit(20)
@@ -568,7 +692,7 @@ export const getFeaturedPresets = async () => {
 }
 
 export const getPopularMedia = async () => {
-  const { data, error } = await supabase
+  const { data, error } = await spokeClient
     .from('popular_media')
     .select('*')
     .limit(50)
@@ -632,8 +756,8 @@ export const downloadPresetLegacy = async (preset) => {
     // Increment download count
     console.log('Incrementing download count for preset:', preset.id);
     const currentDownloads = preset.downloads || 0;
-    const { error: updateError } = await supabase
-      .from('shared_presets')
+    const { error: updateError } = await spokeClient
+      .from('presets')
       .update({ downloads: currentDownloads + 1 })
       .eq('id', preset.id);
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { saveUnifiedSoundSettings } from './electronApi';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 
 /**
@@ -31,13 +32,10 @@ export const useSoundManager = () => {
     initAudioManager();
   }, []);
 
-  // Save sound settings to backend
+  // Save sound settings to unified-data.json (settings.sounds)
   const saveSoundSettings = useCallback(async (newSounds) => {
     try {
-      // Save to unified data API
-      await window.electronAPI.saveUnifiedData({
-        sounds: newSounds
-      });
+      await saveUnifiedSoundSettings(newSounds);
     } catch (error) {
       // console.error('Failed to save sound settings:', error);
     }

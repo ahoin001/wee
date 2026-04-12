@@ -5,6 +5,7 @@ import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
 import { useMonitorState } from '../utils/useConsolidatedAppHooks';
 import MonitorWallpaperCard from './MonitorWallpaperCard';
+import './surfaceStyles.css';
 
 const MonitorSelectionModal = ({ isOpen, onClose }) => {
   const {
@@ -89,7 +90,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
         onClose={onClose}
         maxWidth="800px"
         footerContent={({ handleClose }) => (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <div className="surface-actions-end">
             <Button variant="secondary" onClick={handleClose}>
               Close
             </Button>
@@ -97,14 +98,14 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
         )}
       >
         <Card title="Monitor APIs Not Available" separator desc="The monitor APIs are not available in this environment.">
-          <div style={{ textAlign: 'center', padding: '20px', color: 'hsl(var(--text-secondary))' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🖥️</div>
-            <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>Monitor Support Unavailable</div>
-            <div style={{ fontSize: '14px' }}>
+          <div className="text-center p-5 text-secondary">
+            <div className="text-[48px] mb-4">🖥️</div>
+            <div className="text-[18px] font-semibold mb-2">Monitor Support Unavailable</div>
+            <div className="text-[14px]">
               Multi-monitor support is not available in this environment. 
               This feature requires the Electron desktop application.
             </div>
-            <div style={{ fontSize: '12px', marginTop: '10px', padding: '10px', background: 'hsl(var(--surface-secondary))', borderRadius: '4px' }}>
+            <div className="text-[12px] mt-2.5 p-2.5 bg-secondary rounded">
               Debug Info: window.api.monitors is undefined
             </div>
           </div>
@@ -119,7 +120,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
       onClose={onClose}
       maxWidth="800px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div className="surface-actions-end">
           <Button variant="secondary" onClick={handleClose}>
             Close
           </Button>
@@ -129,19 +130,19 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
       {/* Monitor Detection */}
       <Card title="Detected Monitors" separator desc="Manage which monitor the launcher appears on.">
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: 'hsl(var(--text-secondary))' }}>
+          <div className="text-center p-5 text-secondary">
             Detecting monitors...
           </div>
         ) : error ? (
-          <div style={{ color: 'hsl(var(--state-error))', padding: '10px' }}>
+          <div className="text-[hsl(var(--state-error))] p-2.5">
             Error: {error}
           </div>
         ) : displays.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: 'hsl(var(--text-secondary))' }}>
+          <div className="text-center p-5 text-secondary">
             No monitors detected
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="surface-controls">
             {displays.map((display) => (
               <div
                 key={display.id}
@@ -156,37 +157,23 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
                   transition: 'all 0.2s ease'
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontWeight: '600', color: 'hsl(var(--text-primary))' }}>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-primary">
                       {getDisplayName(display)}
                     </span>
                     {display.primary && (
-                      <span style={{
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        background: 'hsl(var(--state-success))',
-                        color: 'hsl(var(--text-inverse))'
-                      }}>
+                      <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--state-success))] text-[hsl(var(--text-inverse))]">
                         Primary
                       </span>
                     )}
                     {currentDisplay?.id === display.id && (
-                      <span style={{
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        background: 'hsl(var(--wii-blue))',
-                        color: 'hsl(var(--text-inverse))'
-                      }}>
+                      <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--wii-blue))] text-[hsl(var(--text-inverse))]">
                         Current
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '13px', color: 'hsl(var(--text-secondary))' }}>
+                  <div className="text-[13px] text-secondary">
                     {getDisplayInfo(display)}
                   </div>
                 </div>
@@ -206,14 +193,14 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
 
       {/* Monitor Preferences */}
       <Card title="Launch Preferences" separator desc="Choose which monitor the launcher should appear on when starting.">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="surface-controls">
           {/* Preference Selection */}
           <div>
-            <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block', color: 'hsl(var(--text-primary))' }}>
+            <label className="block font-semibold mb-2 text-primary">
               Preferred Monitor
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="preferredMonitor"
@@ -221,10 +208,10 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
                   checked={preferredMonitor === 'primary'}
                   onChange={(e) => handlePreferenceChange(e.target.value)}
                 />
-                <span style={{ color: 'hsl(var(--text-primary))' }}>Primary Monitor</span>
+                <span className="text-primary">Primary Monitor</span>
               </label>
               
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="preferredMonitor"
@@ -232,10 +219,10 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
                   checked={preferredMonitor === 'secondary'}
                   onChange={(e) => handlePreferenceChange(e.target.value)}
                 />
-                <span style={{ color: 'hsl(var(--text-primary))' }}>Secondary Monitor</span>
+                <span className="text-primary">Secondary Monitor</span>
               </label>
               
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="preferredMonitor"
@@ -243,10 +230,10 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
                   checked={preferredMonitor === 'last-used'}
                   onChange={(e) => handlePreferenceChange(e.target.value)}
                 />
-                <span style={{ color: 'hsl(var(--text-primary))' }}>Last Used Monitor</span>
+                <span className="text-primary">Last Used Monitor</span>
               </label>
               
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="preferredMonitor"
@@ -254,7 +241,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
                   checked={preferredMonitor === 'specific'}
                   onChange={(e) => handlePreferenceChange(e.target.value)}
                 />
-                <span style={{ color: 'hsl(var(--text-primary))' }}>Specific Monitor</span>
+                <span className="text-primary">Specific Monitor</span>
               </label>
             </div>
           </div>
@@ -262,20 +249,13 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
           {/* Specific Monitor Selection */}
           {preferredMonitor === 'specific' && (
             <div>
-              <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block', color: 'hsl(var(--text-primary))' }}>
+              <label className="block font-semibold mb-2 text-primary">
                 Select Monitor
               </label>
               <select
                 value={specificMonitorId || ''}
                 onChange={(e) => setSpecificMonitorId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid hsl(var(--border-primary))',
-                  background: 'hsl(var(--surface-primary))',
-                  color: 'hsl(var(--text-primary))'
-                }}
+                className="surface-select"
               >
                 {displays.map((display) => (
                   <option key={display.id} value={display.id}>
@@ -293,7 +273,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
               onChange={(checked) => setRememberLastMonitor(checked)}
               label="Remember last used monitor"
             />
-            <div style={{ fontSize: '13px', color: 'hsl(var(--text-secondary))', marginTop: '4px', marginLeft: '24px' }}>
+            <div className="surface-help surface-help-indent">
               When enabled, the launcher will remember which monitor you last used and return to it on startup.
             </div>
           </div>
@@ -303,7 +283,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
              {/* Monitor-Specific Settings */}
        {displays.length > 0 && (
          <Card title="Monitor-Specific Settings" separator desc="Customize wallpapers and settings for each monitor.">
-           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+           <div className="surface-controls">
              {displays.map((display) => (
                <MonitorWallpaperCard
                  key={display.id}
@@ -317,7 +297,7 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
 
        {/* Quick Actions */}
        <Card title="Quick Actions" separator desc="Quick monitor management actions.">
-         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+         <div className="surface-actions flex-wrap">
            <Button
              variant="secondary"
              size="sm"

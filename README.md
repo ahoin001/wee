@@ -64,7 +64,19 @@ If you'd like to contribute or run the app in a development environment, follow 
      VITE_SUPABASE_URL=https://your-project.supabase.co
      VITE_SUPABASE_ANON_KEY=your-anon-key
      ```
-   - See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for detailed setup instructions
+   - See [docs/supabase-setup.md](docs/supabase-setup.md) for detailed setup instructions
+
+### Project layout
+
+| Path | Contents |
+|------|----------|
+| `src/` | React app (components, hooks, utils, UI kit) |
+| `scripts/` | Release, migration, and tooling (`load-env.cjs`, `test/`, `supabase/`, `debug/`) |
+| `supabase/migrations/` | Versioned SQL migrations |
+| `supabase/sql/manual/` | One-off / reference SQL (not auto-run) |
+| `docs/` | [Documentation index](docs/README.md) (Supabase, Spotify, releases, installer) |
+| `config/` | Sample or optional JSON config |
+| `electron.cjs`, `preload.cjs` | Electron main and preload |
 
 ## 🖥️ Multi-Monitor Settings Guide
 

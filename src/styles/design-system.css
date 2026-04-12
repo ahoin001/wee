@@ -2,6 +2,10 @@
 /* Optimized Dark Mode Color Palette */
 
 :root {
+  /* Typography */
+  --font-ui: "Nunito", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Nunito", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
   /* Light Mode Colors */
   --wii-blue: 195 75% 60%;
   --wii-blue-hover: 195 75% 55%;
@@ -40,6 +44,15 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --shadow-glow: 0 0 20px rgb(0 153 255 / 0.3);
+  --shadow-soft: 0 8px 22px -8px rgb(15 36 61 / 0.16);
+  --shadow-soft-hover: 0 12px 28px -10px rgb(15 36 61 / 0.22);
+
+  /* Radius scale */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
   
   /* Light Mode States */
   --state-hover: 220 10% 95%;
@@ -48,11 +61,142 @@
   --state-error: 0 84% 60%;
   --state-success: 142 76% 36%;
   --state-warning: 38 92% 50%;
+
+  /* Scrollbar tokens */
+  --scrollbar-size: 12px;
+  --scrollbar-radius: 999px;
+  --scrollbar-track: 220 15% 92%;
+  --scrollbar-thumb: 220 12% 72%;
+  --scrollbar-thumb-hover: 220 12% 62%;
+  --scrollbar-thumb-active: 195 75% 56%;
+  --scrollbar-border: 0 0% 100%;
   
   /* Light Mode Glass Effects */
   --glass-bg: 0 0% 100% / 0.15;
   --glass-border: 0 0% 100% / 0.2;
   --glass-shadow: 0 8px 32px rgb(31 38 135 / 0.2);
+
+  /* Navigation tokens */
+  --nav-z-index: 1000;
+  --nav-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --nav-duration-base: 0.2s;
+  --nav-duration-slow: 0.3s;
+  --nav-focus-ring: rgb(255 255 255 / 0.5);
+
+  /* Side buttons */
+  --nav-side-button-size: 48px;
+  --nav-side-button-size-md: 44px;
+  --nav-side-button-size-sm: 40px;
+  --nav-side-button-size-xs: 36px;
+  --nav-side-offset: 20px;
+  --nav-side-offset-md: 16px;
+  --nav-side-offset-sm: 12px;
+  --nav-side-offset-xs: 8px;
+  --nav-icon-size: 20px;
+  --nav-side-hover-scale: 1.08;
+  --nav-side-active-scale: 0.95;
+  --nav-side-shadow: 0 8px 30px rgb(31 38 135 / 0.34);
+  --nav-side-shadow-hover: 0 12px 36px rgb(31 38 135 / 0.46);
+  --nav-side-shadow-active: 0 4px 16px rgb(31 38 135 / 0.3);
+  --nav-glass-opacity: 0.18;
+  --nav-glass-blur: 2.5px;
+  --nav-glass-border-opacity: 0.5;
+  --nav-glass-shine-opacity: 0.7;
+
+  /* Shared indicator shell */
+  --nav-indicator-radius: 20px;
+  --nav-indicator-gap: 8px;
+  --nav-indicator-padding-y: 8px;
+  --nav-indicator-padding-x: 16px;
+  --nav-indicator-padding-y-sm: 6px;
+  --nav-indicator-padding-x-sm: 12px;
+  --nav-indicator-padding-y-xs: 4px;
+  --nav-indicator-padding-x-xs: 8px;
+  --nav-indicator-hover-scale: 1.03;
+  --nav-indicator-bottom-offset: 180px;
+  --nav-indicator-top-offset: 20px;
+  --nav-indicator-bg: rgb(0 0 0 / 0.3);
+  --nav-indicator-blur: 10px;
+  --nav-indicator-border: rgb(255 255 255 / 0.1);
+  --nav-indicator-shadow-hover: var(--shadow-soft-hover);
+
+  /* Dots and counters */
+  --nav-dot-gap: 6px;
+  --nav-dot-gap-xs: 4px;
+  --nav-dot-size: 8px;
+  --nav-dot-size-xs: 6px;
+  --nav-dot-bg: rgb(255 255 255 / 0.5);
+  --nav-dot-bg-hover: rgb(255 255 255 / 0.82);
+  --nav-dot-bg-active: rgb(255 255 255 / 0.95);
+  --nav-dot-hit-bg-hover: rgb(255 255 255 / 0.1);
+  --nav-dot-hit-bg-active: rgb(255 255 255 / 0.15);
+  --nav-dot-shadow-active: 0 0 8px rgb(255 255 255 / 0.45);
+  --nav-dot-hover-scale: 1.12;
+  --nav-counter-font-size: 12px;
+  --nav-counter-font-size-sm: 11px;
+  --nav-counter-margin-left: 8px;
+  --nav-counter-color: rgb(255 255 255 / 0.82);
+
+  /* Standard page nav (non-Wii) */
+  --nav-standard-bottom-offset: 200px;
+  --nav-standard-bottom-offset-sm: 120px;
+  --nav-standard-bottom-offset-xs: 100px;
+  --nav-standard-top-offset: 20px;
+  --nav-standard-bg: rgb(0 0 0 / 0.15);
+  --nav-standard-bg-hover: rgb(0 0 0 / 0.25);
+  --nav-standard-blur: 4px;
+  --nav-standard-border: rgb(255 255 255 / 0.1);
+  --nav-standard-border-hover: rgb(255 255 255 / 0.2);
+  --nav-standard-padding-y: 6px;
+  --nav-standard-padding-x: 12px;
+  --nav-standard-padding-y-sm: 4px;
+  --nav-standard-padding-x-sm: 8px;
+  --nav-standard-padding-y-xs: 3px;
+  --nav-standard-padding-x-xs: 6px;
+  --nav-standard-hit-size: 20px;
+  --nav-standard-hit-size-xs: 16px;
+
+  /* Side navigation (legacy Wii side controls) */
+  --side-nav-z-index: 100;
+  --side-nav-width: 80px;
+  --side-nav-height: 60px;
+  --side-nav-peek-offset: 50px;
+  --side-nav-reveal-offset: 10px;
+  --side-nav-radius: 30px;
+  --side-nav-transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --side-nav-surface-bg: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  --side-nav-surface-bg-hover: linear-gradient(145deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%);
+  --side-nav-surface-border: #0ea5e9;
+  --side-nav-surface-border-hover: #0284c7;
+  --side-nav-shadow: 0 6px 20px rgb(14 165 233 / 0.4), inset 0 3px 10px rgb(255 255 255 / 0.7), inset 0 -3px 6px rgb(0 0 0 / 0.1);
+  --side-nav-shadow-hover: 0 8px 25px rgb(14 165 233 / 0.5), inset 0 4px 12px rgb(255 255 255 / 0.8), inset 0 -4px 8px rgb(0 0 0 / 0.15);
+  --side-nav-shadow-active: 0 4px 15px rgb(14 165 233 / 0.6), inset 0 6px 12px rgb(0 0 0 / 0.2);
+  --side-nav-ripple-size: 80px;
+  --side-nav-text-color: #475569;
+  --side-nav-text-color-hover: #334155;
+
+  /* Form controls */
+  --control-radius: var(--radius-md);
+  --control-radius-sm: var(--radius-sm);
+  --control-padding-x: 16px;
+  --control-padding-y: 12px;
+  --control-font-size: 15px;
+  --control-label-font-size: 14px;
+  --control-helper-font-size: 14px;
+  --control-gap-y: 8px;
+  --control-transition-duration: 0.2s;
+  --control-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --toggle-track-width: 44px;
+  --toggle-track-height: 24px;
+  --toggle-thumb-size: 20px;
+  --toggle-track-radius: 12px;
+  --toggle-thumb-shadow: 0 1px 4px rgb(0 0 0 / 0.14);
+
+  /* Accent RGB helpers for rgba usage */
+  --accent-blue-rgb: 0 153 255;
+  --accent-cyan-rgb: 51 190 237;
+  --spotify-green-rgb: 29 185 84;
+  --spotify-green-secondary-rgb: 30 215 96;
 }
 
 /* Dark Mode Colors */
@@ -90,6 +234,8 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
   --shadow-glow: 0 0 20px rgb(0 153 255 / 0.4);
+  --shadow-soft: 0 10px 26px -12px rgb(0 0 0 / 0.45);
+  --shadow-soft-hover: 0 14px 32px -12px rgb(0 0 0 / 0.5);
   
   /* Dark Mode States */
   --state-hover: 220 15% 20%;
@@ -98,11 +244,46 @@
   --state-error: 0 84% 60%;
   --state-success: 142 76% 36%;
   --state-warning: 38 92% 50%;
+
+  /* Scrollbar tokens */
+  --scrollbar-track: 220 15% 18%;
+  --scrollbar-thumb: 220 12% 42%;
+  --scrollbar-thumb-hover: 220 12% 50%;
+  --scrollbar-thumb-active: 195 75% 60%;
+  --scrollbar-border: 220 15% 12%;
   
   /* Dark Mode Glass Effects */
   --glass-bg: 220 15% 12% / 0.8;
   --glass-border: 220 15% 30% / 0.3;
   --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.4);
+
+  /* Navigation token overrides */
+  --nav-side-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
+  --nav-side-shadow-hover: 0 14px 36px rgb(0 0 0 / 0.6);
+  --nav-side-shadow-active: 0 4px 14px rgb(0 0 0 / 0.42);
+  --nav-indicator-bg: rgb(10 14 20 / 0.62);
+  --nav-indicator-border: rgb(255 255 255 / 0.16);
+  --nav-standard-bg: rgb(10 14 20 / 0.5);
+  --nav-standard-bg-hover: rgb(10 14 20 / 0.66);
+  --nav-standard-border: rgb(255 255 255 / 0.14);
+  --nav-standard-border-hover: rgb(255 255 255 / 0.24);
+  --nav-dot-bg: rgb(226 236 248 / 0.56);
+  --nav-dot-bg-hover: rgb(226 236 248 / 0.9);
+  --nav-dot-bg-active: rgb(241 247 255 / 1);
+  --nav-dot-hit-bg-hover: rgb(226 236 248 / 0.12);
+  --nav-dot-hit-bg-active: rgb(226 236 248 / 0.2);
+  --nav-counter-color: rgb(231 239 250 / 0.9);
+
+  /* Side navigation token overrides */
+  --side-nav-surface-bg: linear-gradient(145deg, #303a49 0%, #273240 50%, #1e2937 100%);
+  --side-nav-surface-bg-hover: linear-gradient(145deg, #394659 0%, #2f3d4e 50%, #253243 100%);
+  --side-nav-surface-border: #38bdf8;
+  --side-nav-surface-border-hover: #7dd3fc;
+  --side-nav-shadow: 0 8px 22px rgb(0 0 0 / 0.45), inset 0 2px 6px rgb(255 255 255 / 0.12), inset 0 -3px 8px rgb(0 0 0 / 0.28);
+  --side-nav-shadow-hover: 0 10px 26px rgb(0 0 0 / 0.52), inset 0 2px 8px rgb(255 255 255 / 0.16), inset 0 -3px 10px rgb(0 0 0 / 0.34);
+  --side-nav-shadow-active: 0 4px 14px rgb(0 0 0 / 0.48), inset 0 5px 10px rgb(0 0 0 / 0.38);
+  --side-nav-text-color: #d8e6f7;
+  --side-nav-text-color-hover: #ecf5ff;
 }
 
 /* Global Dark Mode Overrides for Components Not Using Design System */
@@ -131,23 +312,74 @@
   box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 }
 
-/* Ensure scrollbars are styled in dark mode */
-.dark-mode ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Universal scrollbar system */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
 }
 
-.dark-mode ::-webkit-scrollbar-track {
-  background: hsl(var(--surface-secondary));
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
 }
 
-.dark-mode ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border-primary));
-  border-radius: 4px;
+*::-webkit-scrollbar-track {
+  background: hsl(var(--scrollbar-track));
+  border-radius: var(--scrollbar-radius);
 }
 
-.dark-mode ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--border-accent));
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--scrollbar-thumb));
+  border-radius: var(--scrollbar-radius);
+  border: 2px solid hsl(var(--scrollbar-border));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--scrollbar-thumb-hover));
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--scrollbar-thumb-active));
+}
+
+/* Design system utility classes for explicit usage */
+.scrollbar-soft {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
+}
+
+.scrollbar-soft::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+.scrollbar-soft::-webkit-scrollbar-track {
+  background: hsl(var(--scrollbar-track));
+  border-radius: var(--scrollbar-radius);
+}
+
+.scrollbar-soft::-webkit-scrollbar-thumb {
+  background: hsl(var(--scrollbar-thumb));
+  border-radius: var(--scrollbar-radius);
+  border: 2px solid hsl(var(--scrollbar-border));
+}
+
+.scrollbar-soft::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--scrollbar-thumb-hover));
+}
+
+.scrollbar-soft::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--scrollbar-thumb-active));
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
 }
 
 /* Ensure modals and overlays work properly in dark mode */

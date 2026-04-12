@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
@@ -6,6 +6,7 @@ import Text from '../ui/Text';
 import Button from '../ui/WButton';
 import { useUIState } from '../utils/useConsolidatedAppHooks';
 import { formatShortcut, validateShortcut, checkShortcutConflict, getShortcutsByCategory } from '../utils/keyboardShortcuts';
+import './settings-modal-forms.css';
 
 
 function AppShortcutsModal({ isOpen, onClose }) {
@@ -90,21 +91,14 @@ function AppShortcutsModal({ isOpen, onClose }) {
     };
 
     return (
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div className="flex items-center gap-2">
         <input
           type="text"
           value={formatShortcut({ key, modifier })}
           onKeyDown={handleKeyDown}
           onFocus={(e) => e.target.select()}
           placeholder="Press a key combination..."
-          style={{
-            padding: '4px 8px',
-            border: '1px solid #ddd',
-            borderRadius: 4,
-            fontSize: '12px',
-            fontFamily: 'monospace',
-            minWidth: 120
-          }}
+          className="min-w-[120px] rounded border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] px-2 py-1 font-mono text-xs text-[hsl(var(--text-primary))]"
           readOnly
         />
         <Button size="sm" onClick={handleSave}>Save</Button>
@@ -123,14 +117,9 @@ function AppShortcutsModal({ isOpen, onClose }) {
       onClose={onClose}
       maxWidth="1200px"
     >
-      <div style={{ padding: '20px' }}>
+      <div className="p-5">
         {/* Header Actions */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 20
-        }}>
+        <div className="mb-5 flex items-center justify-between">
           <Text size="lg" weight={600}>Keyboard Shortcuts</Text>
           <Button
             variant="secondary"
@@ -143,30 +132,18 @@ function AppShortcutsModal({ isOpen, onClose }) {
 
         {/* Error Display */}
         {shortcutError && (
-          <div style={{ 
-            padding: '8px 12px', 
-            background: '#ffeaea', 
-            border: '1px solid #ffcccc',
-            borderRadius: 4,
-            color: '#dc3545',
-            marginBottom: 16
-          }}>
+          <div className="modal-error-banner" role="alert">
             {shortcutError}
           </div>
         )}
 
         {/* Keyboard Shortcuts List */}
-        <div style={{ 
-          display: 'grid', 
-          gap: 12,
-          maxHeight: '500px',
-          overflowY: 'auto'
-        }}>
+        <div className="grid max-h-[500px] gap-3 overflow-y-auto">
           {(() => {
             // ✅ DATA LAYER: Add safety check for keyboard shortcuts
             if (!keyboardShortcuts || keyboardShortcuts.length === 0) {
               return (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                <div className="p-5 text-center text-[hsl(var(--text-secondary))]">
                   No keyboard shortcuts available
                 </div>
               );
@@ -181,48 +158,33 @@ function AppShortcutsModal({ isOpen, onClose }) {
                 <Text 
                   weight={600} 
                   size="md" 
-                  style={{ 
-                    marginBottom: 8, 
-                    padding: '8px 0',
-                    borderBottom: '1px solid #eee',
-                    color: '#666'
-                  }}
+                  className="mb-2 border-b border-[hsl(var(--border-primary))] pb-2 text-[hsl(var(--text-secondary))]"
                 >
                   {category}
                 </Text>
-                <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+                <div className="mb-4 grid gap-2">
                   {groupedShortcuts[category]
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((shortcut) => (
-                    <Card key={shortcut.id} style={{ padding: '16px' }}>
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 16 
-                      }}>
+                    <Card key={shortcut.id} className="p-4">
+                      <div className="flex items-center gap-4">
                         {/* Shortcut Icon */}
-                        <div style={{ flexShrink: 0 }}>
-                          <span style={{ fontSize: '24px' }}>{shortcut.icon}</span>
+                        <div className="shrink-0">
+                          <span className="text-2xl">{shortcut.icon}</span>
                         </div>
                         
                         {/* Shortcut Info */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text weight={600} size="lg" style={{ marginBottom: 4 }}>
+                        <div className="min-w-0 flex-1">
+                          <Text weight={600} size="lg" className="mb-1 block">
                             {shortcut.name}
                           </Text>
-                          <br />
-                          <Text color="#666" size="sm" style={{ marginBottom: 2 }}>
+                          <Text size="sm" className="block text-[hsl(var(--text-secondary))]">
                             {shortcut.description}
                           </Text>
                         </div>
                         
                         {/* Shortcut Key */}
-                        <div style={{ 
-                          display: 'flex', 
-                          gap: 8,
-                          flexShrink: 0,
-                          alignItems: 'center'
-                        }}>
+                        <div className="flex shrink-0 items-center gap-2">
                           {editingShortcut?.id === shortcut.id ? (
                             <ShortcutInput
                               shortcut={shortcut}
@@ -231,22 +193,18 @@ function AppShortcutsModal({ isOpen, onClose }) {
                             />
                           ) : (
                             <>
-                              <div style={{
-                                padding: '4px 8px',
-                                background: shortcut.enabled ? '#e6f3ff' : '#f5f5f5',
-                                border: `1px solid ${shortcut.enabled ? '#0099ff' : '#ddd'}`,
-                                borderRadius: 4,
-                                fontSize: '12px',
-                                fontFamily: 'monospace',
-                                color: shortcut.enabled ? '#0099ff' : '#999',
-                                minWidth: 80,
-                                textAlign: 'center'
-                              }}>
+                              <div
+                                className={`min-w-[80px] rounded border px-2 py-1 text-center font-mono text-xs ${
+                                  shortcut.enabled
+                                    ? 'border-[hsl(var(--wii-blue))] bg-[hsl(var(--wii-blue)/0.12)] text-[hsl(var(--wii-blue))]'
+                                    : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-tertiary))]'
+                                }`}
+                              >
                                 {formatShortcut(shortcut)}
                               </div>
                               
                               {/* Actions */}
-                              <div style={{ display: 'flex', gap: 4 }}>
+                              <div className="flex gap-1">
                                 <Button
                                   variant="secondary"
                                   size="sm"
@@ -286,4 +244,4 @@ AppShortcutsModal.propTypes = {
   onClose: PropTypes.func.isRequired,
 };
 
-export default AppShortcutsModal; 
+export default AppShortcutsModal;

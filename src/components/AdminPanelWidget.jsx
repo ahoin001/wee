@@ -1,71 +1,43 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Card from '../ui/Card';
+import React, { useState, useCallback } from 'react';
 import Text from '../ui/Text';
 import WButton from '../ui/WButton';
 import { useFloatingWidgetsState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { useFloatingWidgetFrame } from '../hooks/useFloatingWidgetFrame';
 import AdminPanel from './AdminPanel';
 import './AdminPanelWidget.css';
 
 const AdminPanelWidget = ({ isVisible, onClose }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
-  
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const widgetRef = useRef(null);
 
   // Get admin panel widget state from floating widgets
   const adminPanelWidget = floatingWidgets.adminPanel;
   const adminPanelPosition = adminPanelWidget.position;
   const adminPanelConfig = adminPanelWidget.config || { powerActions: [] };
 
+  const setAdminPanelWidgetPosition = useCallback(
+    (position) => {
+      setFloatingWidgetsState({
+        adminPanel: { ...adminPanelWidget, position },
+      });
+    },
+    [setFloatingWidgetsState, adminPanelWidget]
+  );
 
-
-  // Update admin panel widget position
-  const setAdminPanelWidgetPosition = (position) => {
-    setFloatingWidgetsState({
-      adminPanel: { ...adminPanelWidget, position }
-    });
-  };
-
-  // Dragging logic
-  const handleMouseDown = useCallback((e) => {
-    if (e.target.closest('.action-btn') || e.target.closest('.close-btn')) return;
-    
-    setIsDragging(true);
-    const rect = widgetRef.current.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
-  }, []);
-
-  const handleMouseMove = useCallback((e) => {
-    if (!isDragging) return;
-    
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
-    
-    setAdminPanelWidgetPosition({ x: newX, y: newY });
-  }, [isDragging, dragOffset, setAdminPanelWidgetPosition]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  // Global mouse event listeners for dragging
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  const { widgetRef, size, isDragging, handleDragPointerDown } = useFloatingWidgetFrame({
+    setPosition: setAdminPanelWidgetPosition,
+    position: adminPanelPosition,
+    initialSize: { width: 300, height: 520 },
+    resizable: false,
+    shouldCancelDrag: (e) =>
+      !!(
+        e.target.closest('.action-btn') ||
+        e.target.closest('.close-btn') ||
+        e.target.closest('.config-btn')
+      ),
+  });
 
   const handleActionClick = (action) => {
     if (window.api && window.api.executeCommand) {
@@ -101,10 +73,12 @@ const AdminPanelWidget = ({ isVisible, onClose }) => {
         position: 'fixed',
         left: `${adminPanelPosition.x}px`,
         top: `${adminPanelPosition.y}px`,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
         zIndex: 10000,
-        cursor: isDragging ? 'grabbing' : 'grab'
+        cursor: isDragging ? 'grabbing' : 'grab',
       }}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handleDragPointerDown}
     >
       {/* Widget Header */}
       <div className="widget-header">

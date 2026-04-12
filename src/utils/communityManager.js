@@ -1,48 +1,30 @@
-import { supabase, getSharedPresets, downloadPreset as downloadPresetFromSupabase, uploadPreset } from './supabase';
-import { communityService } from './communityService';
+import { getSharedPresets, downloadPreset, uploadPreset } from './supabase'
 
 class CommunityManager {
-  constructor() {
-    this.useBuiltInSupabase = !!supabase;
-  }
-
-  // Browse presets using the appropriate method
   async browsePresets() {
-    if (this.useBuiltInSupabase) {
-      return await this.browsePresetsWithSupabase();
-    } else {
-      return await this.browsePresetsWithBackend();
-    }
+    return getSharedPresets()
   }
 
-  // Download preset using the appropriate method
   async downloadPreset(presetId) {
-    if (this.useBuiltInSupabase) {
-      return await this.downloadPresetWithSupabase(presetId);
-    } else {
-      return await this.downloadPresetWithBackend(presetId);
+    return downloadPreset(presetId)
+  }
+
+  async uploadPreset(presetData, formData) {
+    try {
+      const data = await uploadPreset(presetData, formData)
+      return { success: true, data }
+    } catch (error) {
+      return { success: false, error: error.message }
     }
   }
 
-  // Upload preset using backend proxy (secure)
-  async uploadPreset(presetData) {
-    return await this.uploadPresetWithBackend(presetData);
-  }
-
-  // Delete preset using backend proxy (secure)
-  async deletePreset(presetId) {
-    return await this.deletePresetWithBackend(presetId);
-  }
-
-  // Check if community features are available
   isCommunityAvailable() {
-    return this.useBuiltInSupabase || true; // Always available with backend proxy
+    return true
   }
 
-  // Get the current method being used
   getCurrentMethod() {
-    return this.useBuiltInSupabase ? 'Built-in Supabase' : 'Backend Proxy';
+    return 'Supabase spoke client'
   }
 }
 
-export const communityManager = new CommunityManager(); 
+export const communityManager = new CommunityManager()

@@ -6,6 +6,7 @@ import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
 import useSoundManager from '../utils/useSoundManager';
+import './sound-management.css';
 
 const SOUND_CATEGORIES = [
   { key: 'backgroundMusic', label: 'Background Music' },
@@ -13,73 +14,19 @@ const SOUND_CATEGORIES = [
   { key: 'channelHover', label: 'Channel Hover Sound' },
 ];
 
-// Sound API interface
-const soundsApi = window.api?.sounds || {
-  getLibrary: async () => {
-    try {
-      return await window.api.invoke('get-sound-library');
-    } catch (error) {
-      console.error('Failed to get sound library:', error);
-      return {};
-    }
-  },
-  selectFile: async () => {
-    try {
-      return await window.api.invoke('select-sound-file');
-    } catch (error) {
-      console.error('Failed to select sound file:', error);
-      return { success: false, error: error.message };
-    }
-  },
-  add: async ({ soundType, file, name }) => {
-    try {
-      return await window.api.invoke('add-sound', { soundType, file, name });
-    } catch (error) {
-      console.error('Failed to add sound:', error);
-      return { success: false, error: error.message };
-    }
-  },
-  remove: async ({ soundType, soundId }) => {
-    try {
-      return await window.api.invoke('remove-sound', { soundType, soundId });
-    } catch (error) {
-      console.error('Failed to remove sound:', error);
-      return { success: false, error: error.message };
-    }
-  },
-  update: async ({ soundType, soundId, updates }) => {
-    try {
-      return await window.api.invoke('update-sound', { soundType, soundId, updates });
-    } catch (error) {
-      console.error('Failed to update sound:', error);
-      return { success: false, error: error.message };
-    }
-  },
-  toggleLike: async ({ soundId }) => {
-    try {
-      return await window.api.invoke('sounds:toggleLike', { soundId });
-    } catch (error) {
-      console.error('Failed to toggle like:', error);
-      return { success: false, error: error.message };
-    }
-  },
-  getBackgroundMusicSettings: async () => {
-    try {
-      return await window.api.invoke('sounds:getBackgroundMusicSettings');
-    } catch (error) {
-      console.error('Failed to get background music settings:', error);
-      return { success: false, error: error.message };
-    }
-  },
-  setBackgroundMusicSettings: async (settings) => {
-    try {
-      return await window.api.invoke('sounds:setBackgroundMusicSettings', settings);
-    } catch (error) {
-      console.error('Failed to set background music settings:', error);
-      return { success: false, error: error.message };
-    }
-  },
-};
+// Preload exposes `window.api.sounds.*`; stub only when not running under Electron.
+const soundsApi =
+  window.api?.sounds ??
+  {
+    getLibrary: async () => ({}),
+    selectFile: async () => ({ success: false, error: 'Sounds API unavailable' }),
+    add: async () => ({ success: false, error: 'Sounds API unavailable' }),
+    remove: async () => ({ success: false, error: 'Sounds API unavailable' }),
+    update: async () => ({ success: false, error: 'Sounds API unavailable' }),
+    toggleLike: async () => ({ success: false, error: 'Sounds API unavailable' }),
+    getBackgroundMusicSettings: async () => ({}),
+    setBackgroundMusicSettings: async () => ({ success: false }),
+  };
 
 /**
  * Core sound management component that can be used in different contexts
@@ -603,8 +550,9 @@ const SoundManagementCore = React.memo(({
       return (
         <Card
           key={cat.key}
+          className="sound-settings-card--tight"
           title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="sound-title-inline">
               <ResourceUsageIndicator 
                 level="high" 
                 tooltip="Background music plays continuously and can use significant CPU and memory resources"
@@ -613,34 +561,18 @@ const SoundManagementCore = React.memo(({
             </div>
           }
           separator
-          style={{ marginBottom: '20px' }}
         >
-          <div style={{ padding: '20px' }}>
+          <div className="sound-card-pad">
             {/* Background Music Settings */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '12px',
-                padding: '16px',
-                background: 'hsl(var(--surface-secondary))',
-                borderRadius: '8px',
-                border: '1px solid hsl(var(--border-primary))',
-                marginBottom: '16px'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  paddingBottom: '8px',
-                  borderBottom: '1px solid hsl(var(--border-primary))'
-                }}>
-                  <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
+            <div className="sound-mb-20">
+              <div className="sound-panel--sm">
+                <div className="sound-panel-head--sm">
+                  <Text variant="p" className="sound-section-heading">
                     Background Music Settings
                   </Text>
                 </div>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="sound-stack-12">
                   <WToggle
                     checked={soundSettings?.backgroundMusicEnabled ?? true}
                     onChange={(checked) => {
@@ -686,17 +618,11 @@ const SoundManagementCore = React.memo(({
 
             {/* Playlist Mode Info */}
             {soundSettings?.backgroundMusicEnabled && soundSettings?.backgroundMusicPlaylistMode && (
-              <div style={{ 
-                padding: '15px', 
-                background: '#d1ecf1', 
-                border: '1px solid #bee5eb', 
-                borderRadius: '8px',
-                marginBottom: '20px'
-              }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+              <div className="sound-callout--core-info">
+                <div className="sound-callout-head--sm font-bold">
                   🎵 Playlist Mode Active ({getLikedBackgroundMusic().length} liked sounds)
                 </div>
-                <div style={{ fontSize: '14px', color: '#0c5460' }}>
+                <div className="sound-core-callout-text-info">
                   Only liked sounds will play in the order they appear below. 
                   Click the ❤️ to like/unlike sounds and drag items to reorder your playlist.
                 </div>
@@ -705,42 +631,29 @@ const SoundManagementCore = React.memo(({
 
             {/* Background Music Disabled Warning */}
             {!soundSettings?.backgroundMusicEnabled && (
-              <div style={{ 
-                padding: '15px', 
-                background: '#fff3cd', 
-                border: '1px solid #ffeaa7', 
-                borderRadius: '8px',
-                marginBottom: '20px'
-              }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>🔇 Background Music Disabled</div>
-                <div style={{ fontSize: '14px', color: '#856404' }}>
+              <div className="sound-callout--core-warn">
+                <div className="sound-callout-head--sm font-bold">🔇 Background Music Disabled</div>
+                <div className="sound-core-callout-text-warn">
                   Background music is currently disabled. Enable it above to hear background music sounds.
                 </div>
               </div>
             )}
 
             {/* Sound List */}
-            <div style={{ marginBottom: '16px' }}>
+            <div className="sound-mb-16">
               {localState[cat.key]?.length === 0 && (
-                <Text variant="help" style={{ fontStyle: 'italic' }}>No sounds yet.</Text>
+                <Text variant="help" className="sound-help-italic">No sounds yet.</Text>
               )}
               {localState[cat.key]?.map(sound => (
                 <div
                   key={sound.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px',
-                    marginBottom: '8px',
-                    background: sound.enabled ? 'hsl(var(--surface-secondary))' : 'hsl(var(--surface-tertiary))',
-                    border: '1px solid hsl(var(--border-primary))',
-                    borderRadius: '8px',
-                    opacity: !soundSettings?.backgroundMusicEnabled ? 0.6 : 1,
-                    cursor: soundSettings?.backgroundMusicPlaylistMode ? 'grab' : 'default',
-                    transform: draggedItem === sound.id ? 'scale(0.98)' : 'none',
-                    transition: 'all 0.2s ease'
-                  }}
+                  className={[
+                    'sound-row--core',
+                    sound.enabled ? 'sound-row--enabled' : 'sound-row--disabled',
+                    draggedItem === sound.id ? 'sound-row--dragging' : '',
+                    !soundSettings?.backgroundMusicEnabled ? 'sound-row--faded' : '',
+                    soundSettings?.backgroundMusicPlaylistMode ? 'sound-row--draggable' : '',
+                  ].filter(Boolean).join(' ')}
                   draggable={soundSettings?.backgroundMusicPlaylistMode}
                   onDragStart={(e) => handleDragStart(e, sound.id)}
                   onDragOver={(e) => handleDragOver(e, sound.id)}
@@ -749,41 +662,35 @@ const SoundManagementCore = React.memo(({
                   onDrop={(e) => handleDrop(e, sound.id)}
                   onDragEnd={handleDragEnd}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                  <div className="sound-row-main">
                     {soundSettings?.backgroundMusicPlaylistMode && (
-                      <span style={{ cursor: 'grab', fontSize: '16px' }} title="Drag to reorder">⋮⋮</span>
+                      <span className="sound-drag-handle" title="Drag to reorder">⋮⋮</span>
                     )}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 500 }}>{sound.name}</span>
+                    <div className="sound-row-body">
+                      <div className="sound-name-row">
+                        <span className="sound-name">{sound.name}</span>
                         {sound.isDefault && (
-                          <span style={{ 
-                            fontSize: '10px', 
-                            padding: '2px 6px', 
-                            background: '#007bff', 
-                            color: 'white', 
-                            borderRadius: '4px' 
-                          }}>
+                          <span className="sound-badge-default">
                             Default
                           </span>
                         )}
                         {sound.liked && <span>❤️</span>}
                       </div>
                       
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                          <span style={{ fontSize: '12px', minWidth: '40px' }}>Volume:</span>
+                      <div className="sound-vol-row">
+                        <div className="sound-vol-group">
+                          <span className="sound-vol-label">Volume:</span>
                           <input
                             type="range"
+                            className="sound-slider-grow w-full accent-[hsl(var(--wii-blue))]"
                             min={0}
                             max={1}
                             step={0.01}
                             value={sound.volume ?? 0.5}
                             onChange={e => handleVolumeChange(cat.key, sound.id, Number(e.target.value))}
                             disabled={!soundSettings?.backgroundMusicEnabled}
-                            style={{ flex: 1 }}
                           />
-                          <span style={{ fontSize: '12px', minWidth: '30px' }}>
+                          <span className="sound-vol-pct">
                             {Math.round((sound.volume ?? 0.5) * 100)}%
                           </span>
                         </div>
@@ -791,13 +698,13 @@ const SoundManagementCore = React.memo(({
                     </div>
                   </div>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="sound-actions">
                     {testing[sound.id] ? (
                       <Button 
                         variant="secondary" 
                         size="sm" 
+                        className="sound-btn-min-60"
                         onClick={() => handleStopTest(sound.id)}
-                        style={{ minWidth: 60 }}
                       >
                         Stop
                       </Button>
@@ -805,8 +712,8 @@ const SoundManagementCore = React.memo(({
                       <Button 
                         variant="secondary" 
                         size="sm" 
+                        className="sound-btn-min-60"
                         onClick={() => handleTestSound(cat.key, sound)} 
-                        style={{ minWidth: 60 }}
                         disabled={!soundSettings?.backgroundMusicEnabled}
                       >
                         Test
@@ -815,14 +722,10 @@ const SoundManagementCore = React.memo(({
                     <Button 
                       variant="tertiary" 
                       size="sm" 
+                      className={`sound-btn-icon ${sound.liked ? 'sound-like--active' : 'sound-like--inactive'}`}
                       onClick={() => handleToggleLike(sound.id)}
                       title={sound.liked ? 'Unlike' : 'Like'}
                       disabled={!soundSettings?.backgroundMusicEnabled}
-                      style={{ 
-                        minWidth: 40, 
-                        padding: '4px 8px',
-                        color: sound.liked ? '#e91e63' : 'hsl(var(--text-secondary))'
-                      }}
                     >
                       {sound.liked ? '❤️' : '🤍'}
                     </Button>
@@ -830,9 +733,9 @@ const SoundManagementCore = React.memo(({
                       <Button 
                         variant="danger-secondary" 
                         size="sm" 
+                        className="sound-btn-icon"
                         onClick={() => handleDeleteSound(cat.key, sound.id)} 
                         title="Delete Sound"
-                        style={{ minWidth: 40, padding: '4px 8px' }}
                       >
                         🗑️
                       </Button>
@@ -855,12 +758,12 @@ const SoundManagementCore = React.memo(({
               ))}
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="sound-row-actions">
               <Button 
                 variant="secondary" 
                 size="sm" 
+                className="sound-btn-disable-all"
                 onClick={() => handleDisableAll(cat.key)}
-                style={{ background: '#bbb', color: '#222' }}
               >
                 Disable All
               </Button>
@@ -882,9 +785,10 @@ const SoundManagementCore = React.memo(({
     return (
       <Card
         key={cat.key}
+        className="sound-settings-card--tight"
         title={
           cat.key === 'channelHover' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="sound-title-inline">
               <ResourceUsageIndicator 
                 level="medium" 
                 tooltip="Hover sounds play frequently and can impact performance with many channels"
@@ -896,57 +800,41 @@ const SoundManagementCore = React.memo(({
           )
         }
         separator
-        style={{ marginBottom: '20px' }}
       >
-        <div style={{ padding: '20px' }}>
-          <div style={{ marginBottom: '16px' }}>
+        <div className="sound-card-pad">
+          <div className="sound-mb-16">
             {localState[cat.key]?.length === 0 && (
-              <Text variant="help" style={{ fontStyle: 'italic' }}>No sounds yet.</Text>
+              <Text variant="help" className="sound-help-italic">No sounds yet.</Text>
             )}
             {localState[cat.key]?.map(sound => (
               <div
                 key={sound.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px',
-                  marginBottom: '8px',
-                  background: sound.enabled ? 'hsl(var(--surface-secondary))' : 'hsl(var(--surface-tertiary))',
-                  border: '1px solid hsl(var(--border-primary))',
-                  borderRadius: '8px'
-                }}
+                className={`sound-row--core ${sound.enabled ? 'sound-row--enabled' : 'sound-row--disabled'}`}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 500 }}>{sound.name}</span>
+                <div className="sound-row-main">
+                  <div className="sound-row-body">
+                    <div className="sound-name-row">
+                      <span className="sound-name">{sound.name}</span>
                       {sound.isDefault && (
-                        <span style={{ 
-                          fontSize: '10px', 
-                          padding: '2px 6px', 
-                          background: '#007bff', 
-                          color: 'white', 
-                          borderRadius: '4px' 
-                        }}>
+                        <span className="sound-badge-default">
                           Default
                         </span>
                       )}
                     </div>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                        <span style={{ fontSize: '12px', minWidth: '40px' }}>Volume:</span>
+                    <div className="sound-vol-row">
+                      <div className="sound-vol-group">
+                        <span className="sound-vol-label">Volume:</span>
                         <input
                           type="range"
+                          className="sound-slider-grow w-full accent-[hsl(var(--wii-blue))]"
                           min={0}
                           max={1}
                           step={0.01}
                           value={sound.volume ?? 0.5}
                           onChange={e => handleVolumeChange(cat.key, sound.id, Number(e.target.value))}
-                          style={{ flex: 1 }}
                         />
-                        <span style={{ fontSize: '12px', minWidth: '30px' }}>
+                        <span className="sound-vol-pct">
                           {Math.round((sound.volume ?? 0.5) * 100)}%
                         </span>
                       </div>
@@ -954,13 +842,13 @@ const SoundManagementCore = React.memo(({
                   </div>
                 </div>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="sound-actions">
                   {testing[sound.id] ? (
                     <Button 
                       variant="secondary" 
                       size="sm" 
+                      className="sound-btn-min-60"
                       onClick={() => handleStopTest(sound.id)}
-                      style={{ minWidth: 60 }}
                     >
                       Stop
                     </Button>
@@ -968,8 +856,8 @@ const SoundManagementCore = React.memo(({
                     <Button 
                       variant="secondary" 
                       size="sm" 
+                      className="sound-btn-min-60"
                       onClick={() => handleTestSound(cat.key, sound)}
-                      style={{ minWidth: 60 }}
                     >
                       Test
                     </Button>
@@ -978,9 +866,9 @@ const SoundManagementCore = React.memo(({
                     <Button 
                       variant="danger-secondary" 
                       size="sm" 
+                      className="sound-btn-icon"
                       onClick={() => handleDeleteSound(cat.key, sound.id)} 
                       title="Delete Sound"
-                      style={{ minWidth: 40, padding: '4px 8px' }}
                     >
                       🗑️
                     </Button>
@@ -1003,12 +891,12 @@ const SoundManagementCore = React.memo(({
             ))}
           </div>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="sound-row-actions">
             <Button 
               variant="secondary" 
               size="sm" 
+              className="sound-btn-disable-all"
               onClick={() => handleDisableAll(cat.key)}
-              style={{ background: '#bbb', color: '#222' }}
             >
               Disable All
             </Button>
@@ -1026,32 +914,32 @@ const SoundManagementCore = React.memo(({
     );
   };
 
+  const messageFlatClass =
+    message.type === 'error'
+      ? 'sound-msg-flat--error'
+      : message.type === 'success'
+        ? 'sound-msg-flat--success'
+        : message.type === 'info'
+          ? 'sound-msg-flat--info'
+          : 'sound-msg-flat--hint';
+
   return (
-    <div>
+    <div className="sound-mgmt">
       {showHeader && (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '20px',
-          padding: '16px',
-          background: 'hsl(var(--surface-secondary))',
-          borderRadius: '8px',
-          border: '1px solid hsl(var(--border-primary))'
-        }}>
+        <div className="sound-mgmt-header sound-mgmt-header--compact">
           <div>
-            <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600' }}>
+            <h3 className="sound-mgmt-title sound-mgmt-title--plain">
               🔊 Sound Management
             </h3>
-            <p style={{ margin: 0, fontSize: '14px', color: 'hsl(var(--text-secondary))' }}>
+            <p className="sound-mgmt-subtitle">
               Upload, manage, and configure individual sound files
             </p>
           </div>
           {showSaveButton && isModal && onClose && (
             <Button
               variant="primary"
+              className="sound-btn-save"
               onClick={() => handleSave(onClose)}
-              style={{ minWidth: '120px' }}
             >
               Save & Close
             </Button>
@@ -1059,8 +947,8 @@ const SoundManagementCore = React.memo(({
           {showSaveButton && !isModal && (
             <Button
               variant="primary"
+              className="sound-btn-save"
               onClick={() => handleSave()}
-              style={{ minWidth: '120px' }}
             >
               Save Settings
             </Button>
@@ -1069,20 +957,7 @@ const SoundManagementCore = React.memo(({
       )}
 
       {message.text && (
-        <div style={{ 
-          marginBottom: '16px', 
-          padding: '12px', 
-          borderRadius: '8px',
-          background: message.type === 'error' ? '#f8d7da' : 
-                     message.type === 'success' ? '#d4edda' : 
-                     message.type === 'info' ? '#d1ecf1' : '#fff3cd',
-          border: `1px solid ${message.type === 'error' ? '#f5c6cb' : 
-                               message.type === 'success' ? '#c3e6cb' : 
-                               message.type === 'info' ? '#bee5eb' : '#ffeaa7'}`,
-          color: message.type === 'error' ? '#721c24' : 
-                 message.type === 'success' ? '#155724' : 
-                 message.type === 'info' ? '#0c5460' : '#856404'
-        }}>
+        <div className={`sound-msg-flat ${messageFlatClass}`}>
           {message.text}
         </div>
       )}
@@ -1096,10 +971,10 @@ const SoundManagementCore = React.memo(({
         <Card
           title="Debug Info"
           separator
-          style={{ marginBottom: '20px' }}
+          className="sound-settings-card--tight sound-card-pad--debug"
         >
-          <div style={{ padding: '20px' }}>
-            <Text variant="p" style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+          <div className="sound-card-pad">
+            <Text variant="p" className="sound-debug-pre">
               {JSON.stringify(soundSettings, null, 2)}
             </Text>
           </div>

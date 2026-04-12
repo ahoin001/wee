@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+Add new features or make changes to features always considering systematic approaches. Design systems, component libraries, tokenized approaches etc should always be considered for high quality maintainable and scalable code. Avoid ad hoc code, drifting, and elements of unpredictability

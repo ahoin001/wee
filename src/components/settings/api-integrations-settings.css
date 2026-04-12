@@ -1,0 +1,35 @@
+/* API & Widgets tab — glass panels inside CollapsibleSection */
+
+.api-integ-glass-card {
+  background: rgb(255 255 255 / 0.1);
+  border: 1px solid rgb(255 255 255 / 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.api-integ-feature-row {
+  background: rgb(255 255 255 / 0.1);
+  border: 1px solid rgb(255 255 255 / 0.2);
+}
+
+.api-integ-pill {
+  background: rgb(255 255 255 / 0.1);
+  border: 1px solid rgb(255 255 255 / 0.2);
+}
+
+.api-integ-admin-inner {
+  background: rgb(0 0 0 / 0.2);
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+.api-integ-grid-features {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.api-integ-grid-actions {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* Spotify green ≈ #1DB954 for WToggle (uses hsl(var(--wii-blue))) */
+.wii-toggle-spotify-accent {
+  --wii-blue: 142 72% 45%;
+}

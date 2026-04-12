@@ -1,13 +1,21 @@
 import React from "react";
 
-export default function Slider({ label, value, min, max, step, onChange }) {
+export default function Slider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  className = "",
+  containerClassName = "",
+  disabled = false,
+  hideValue = false,
+}) {
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div className={`mb-4 ${containerClassName}`.trim()}>
       {label && (
-        <div 
-          className="text-[hsl(var(--text-secondary))] mb-1" 
-          style={{ marginBottom: 4 }}
-        >
+        <div className="mb-1 text-[hsl(var(--text-secondary))] text-[length:var(--control-label-font-size)]">
           {label}
         </div>
       )}
@@ -17,15 +25,15 @@ export default function Slider({ label, value, min, max, step, onChange }) {
         min={min}
         max={max}
         step={step}
+        disabled={disabled}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{ width: "100%" }}
+        className={`w-full accent-[hsl(var(--wii-blue))] ${className}`.trim()}
       />
-      <span 
-        className="text-[hsl(var(--text-secondary))] ml-2"
-        style={{ marginLeft: 8 }}
-      >
-        {value}
-      </span>
+      {!hideValue && (
+        <span className="ml-2 text-[hsl(var(--text-secondary))] text-[length:var(--control-helper-font-size)]">
+          {value}
+        </span>
+      )}
     </div>
   );
 } 

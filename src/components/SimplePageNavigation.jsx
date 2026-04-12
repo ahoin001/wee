@@ -28,7 +28,7 @@ const SimplePageNavigation = ({
 
 
   return (
-    <div className="simple-page-navigation">
+    <div className={`simple-page-navigation simple-page-navigation-${position}`}>
       {/* Navigation Buttons */}
       {showNavigationButtons && (
         <div className="navigation-buttons">

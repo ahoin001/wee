@@ -12,17 +12,41 @@ import WRadioGroup from '../ui/WRadioGroup';
 import UnifiedAppPathCard from './UnifiedAppPathCard';
 import { useAppLibraryState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
-import { preloadMediaLibrary, findGameMedia, getCacheStatus, getCachedMediaLibrary, getAllMatchingMedia } from '../utils/mediaLibraryCache';
+import { preloadMediaLibrary, getAllMatchingMedia } from '../utils/mediaLibraryCache';
 import { useChannelModalInitialization } from '../hooks/useChannelModalInitialization';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
 import useSoundLibrary from '../utils/useSoundLibrary';
 import Slider from '../ui/Slider';
+import { useChannelModalMedia } from '../hooks/useChannelModalMedia';
+import { validateChannelPath, normalizeChannelPath } from '../utils/channelPathValidation';
+import { findMatchingAppForPath } from '../utils/channelModalFindMatchingApp';
+import ChannelModalSuggestedGames from './ChannelModalSuggestedGames';
+import ChannelModalDevDebug from './ChannelModalDevDebug';
+import ChannelPathSmartSuggestions from './ChannelPathSmartSuggestions';
 
 const channelsApi = window.api?.channels;
 
 function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode, isOpen = true }) {
-  const [media, setMedia] = useState(currentMedia);
+  const {
+    media,
+    setMedia,
+    imageGallery,
+    setImageGallery,
+    galleryMode,
+    setGalleryMode,
+    fileInputRef,
+    galleryFileInputRef,
+    showImageSearch,
+    setShowImageSearch,
+    handleFileSelect,
+    handleGalleryFilesSelect,
+    handleRemoveGalleryImage,
+    handleImageSelect,
+    handleUploadClick,
+    handleRemoveImage,
+  } = useChannelModalMedia({ currentMedia });
+
   const [path, setPath] = useState(currentPath || '');
   const [type, setType] = useState(currentType || 'exe');
   const [pathError, setPathError] = useState('');
@@ -30,13 +54,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   // Tab state
   const [activeTab, setActiveTab] = useState('setup');
   
-  // Multi-image gallery state for Ken Burns slideshow
-  const [imageGallery, setImageGallery] = useState(currentMedia?.gallery || []);
-  const [galleryMode, setGalleryMode] = useState(false); // FEATURE NOT READY: Gallery disabled
   const [asAdmin, setAsAdmin] = useState(currentAsAdmin);
-  const fileInputRef = useRef();
-  const galleryFileInputRef = useRef();
-  const [showImageSearch, setShowImageSearch] = useState(false);
   // Hover sound state
   const [hoverSound, setHoverSound] = useState(currentHoverSound || null);
   const hoverSoundInputRef = useRef();
@@ -47,9 +65,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [hoverSoundAudio, setHoverSoundAudio] = useState(null);
   const [showError, setShowError] = useState(false);
   const [animatedOnHover, setAnimatedOnHover] = useState(currentAnimatedOnHover);
-  
-  // Selection feedback state
-  const [selectedGameFeedback, setSelectedGameFeedback] = useState(null);
   
   // Ken Burns settings
   const [kenBurnsEnabled, setKenBurnsEnabled] = useState(currentKenBurnsEnabled);
@@ -67,43 +82,44 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   // Use app library state from consolidated store
   const { appLibrary, appLibraryManager } = useAppLibraryState();
   const {
-    installedApps, appsLoading, appsError,
+    installedApps, appsLoading,
     steamGames, steamLoading, steamError,
     epicGames, epicLoading, epicError,
-    uwpApps, uwpLoading, uwpError,
+    uwpApps, uwpLoading,
     customSteamPath
   } = appLibrary || {};
   
   // Get channels data from consolidated store
   const { channels, actions } = useConsolidatedAppStore();
-  const channelConfigs = channels?.data?.channelConfigs || {};
-  const configuredChannels = channels?.data?.configuredChannels || {};
+  const channelConfigs = useMemo(
+    () => channels?.data?.channelConfigs || {},
+    [channels?.data?.channelConfigs]
+  );
+  const configuredChannels = useMemo(
+    () => channels?.data?.configuredChannels || {},
+    [channels?.data?.configuredChannels]
+  );
   
   const {
-    fetchInstalledApps, fetchSteamGames, fetchEpicGames, fetchUwpApps, setCustomSteamPath
+    fetchInstalledApps, fetchSteamGames, fetchEpicGames, fetchUwpApps
   } = appLibraryManager || {};
   
   // Use sound library for hover sound selection
   const {
     soundLibrary,
     loading: soundLibraryLoading,
-    error: soundLibraryError,
     addSound,
     selectSoundFile,
     getSoundsByCategory,
-    getEnabledSoundsByCategory,
     loadSoundLibrary
   } = useSoundLibrary();
   
   // Alias functions for compatibility
-  const rescanInstalledApps = fetchInstalledApps;
   const rescanSteamGames = fetchSteamGames;
   const rescanEpicGames = fetchEpicGames;
-  const rescanUwpApps = fetchUwpApps;
 
   // Hover sound selection state
   const [selectedHoverSoundId, setSelectedHoverSoundId] = useState(null);
-  const [showHoverSoundSelector, setShowHoverSoundSelector] = useState(false);
   const [uploadingHoverSound, setUploadingHoverSound] = useState(false);
 
   useChannelModalInitialization({
@@ -126,7 +142,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setKenBurnsCrossfadeDuration,
     setKenBurnsEasing,
     setAsAdmin,
-    setSelectedGameFeedback,
     installedAppsLength: installedApps?.length || 0,
     uwpAppsLength: uwpApps?.length || 0,
     steamGamesLength: steamGames?.length || 0,
@@ -186,7 +201,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         setHoverSoundVolume(selectedSound.volume ?? 0.7);
         setSelectedHoverSoundId(soundId);
         setHoverSoundEnabled(true);
-        setShowHoverSoundSelector(false);
       }
     } catch (error) {
       console.error('[ChannelModal] Error selecting hover sound:', error);
@@ -274,298 +288,41 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
   };
   
-  // Stop hover sound (fade out)
-  const handleStopHoverSound = () => {
-    if (hoverSoundAudio) {
-      const audio = hoverSoundAudio;
-      
-      // Clear any existing fade interval
-      if (audio._fadeInterval) {
-        clearInterval(audio._fadeInterval);
-      }
-      
-      let v = audio.volume;
-      const fade = setInterval(() => {
-        v -= 0.07;
-        if (v > 0) {
-          audio.volume = Math.max(v, 0);
-        } else {
-          clearInterval(fade);
-          audio.pause();
-          audio.src = '';
-          audio.load();
-          setHoverSoundAudio(null);
-        }
-      }, 40);
-      
-      // Store interval reference for cleanup
-      audio._fadeInterval = fade;
-    }
-  };
-
-  const handleFileSelect = async (file) => {
-    if (file) {
-      // Create temporary blob URL for immediate preview
-      const tempUrl = URL.createObjectURL(file);
-      setMedia({ url: tempUrl, type: file.type, name: file.name, loading: true });
-      
-      try {
-        // Convert file to base64 and save to persistent storage
-        const base64Data = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64 = reader.result.split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        
-        // Save to persistent storage using wallpapers API
-        const result = await window.api.wallpapers.saveFile({ 
-          filename: file.name,
-          data: base64Data
-        });
-        
-        if (result.success) {
-          // Update with persistent URL and clean up temp URL
-          setMedia({ url: result.url, type: file.type, name: file.name, loading: false });
-          URL.revokeObjectURL(tempUrl);
-        } else {
-          console.error('Failed to save media file:', result.error);
-          // Keep blob URL as fallback but mark as temporary
-          setMedia({ url: tempUrl, type: file.type, name: file.name, loading: false, temporary: true });
-        }
-      } catch (error) {
-        console.error('Error saving media file:', error);
-        // Keep blob URL as fallback but mark as temporary
-        setMedia({ url: tempUrl, type: file.type, name: file.name, loading: false, temporary: true });
-      }
-    }
-  };
-
-  const handleGalleryFilesSelect = async (files) => {
-    if (files && files.length > 0) {
-      try {
-        // Convert FileList to Array
-        const fileArray = Array.from(files);
-        
-        // Create temporary entries with loading state
-        const tempImages = fileArray.map(file => ({
-          url: URL.createObjectURL(file), // Temporary URL for preview
-          type: file.type,
-          name: file.name,
-          id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          loading: true // Indicate this is being processed
-        }));
-        
-        // Add temporary images to gallery for immediate preview
-        setImageGallery(prev => [...prev, ...tempImages]);
-        
-        // Convert files to base64 and save to persistent storage
-        const persistentImages = [];
-        for (let i = 0; i < fileArray.length; i++) {
-          const file = fileArray[i];
-          const tempImage = tempImages[i];
-          
-          try {
-            // Convert file to base64
-            const base64Data = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                // Remove the "data:image/xxx;base64," prefix
-                const base64 = reader.result.split(',')[1];
-                resolve(base64);
-              };
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
-            
-            // Save to persistent storage using wallpapers API
-            const result = await window.api.wallpapers.saveFile({ 
-              filename: file.name,
-              data: base64Data
-            });
-            
-            if (result.success) {
-              persistentImages.push({
-                url: result.url, // userdata:// URL
-                type: file.type,
-                name: file.name,
-                id: tempImage.id,
-                loading: false
-              });
-            } else {
-              console.error('Failed to save gallery image:', result.error);
-              // Keep the blob URL as fallback
-              persistentImages.push({
-                ...tempImage,
-                loading: false,
-                error: 'Failed to save'
-              });
-            }
-          } catch (error) {
-            console.error('Error saving gallery image:', error);
-            // Keep the blob URL as fallback
-            persistentImages.push({
-              ...tempImage,
-              loading: false,
-              error: error.message
-            });
-          }
-        }
-        
-        // Replace temporary images with persistent ones
-        setImageGallery(prev => {
-          const newGallery = [...prev];
-          // Remove the temporary images and add persistent ones
-          tempImages.forEach(tempImg => {
-            const index = newGallery.findIndex(img => img.id === tempImg.id);
-            if (index !== -1) {
-              const persistentImg = persistentImages.find(img => img.id === tempImg.id);
-              if (persistentImg) {
-                newGallery[index] = persistentImg;
-                // Clean up blob URL
-                if (tempImg.url.startsWith('blob:')) {
-                  URL.revokeObjectURL(tempImg.url);
-                }
-              }
-            }
-          });
-          return newGallery;
-        });
-        
-      } catch (error) {
-        console.error('Error processing gallery files:', error);
-        // Fallback to blob URLs
-        const newImages = Array.from(files).map(file => ({
-          url: URL.createObjectURL(file),
-          type: file.type,
-          name: file.name,
-          id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          error: 'Could not save persistently'
-        }));
-        setImageGallery(prev => [...prev, ...newImages]);
-      }
-    }
-  };
-
-  const handleRemoveGalleryImage = (imageId) => {
-    setImageGallery(prev => prev.filter(img => img.id !== imageId));
-  };
-
-  const handleReorderGalleryImages = (startIndex, endIndex) => {
-    setImageGallery(prev => {
-      const result = Array.from(prev);
-      const [removed] = result.splice(startIndex, 1);
-      result.splice(endIndex, 0, removed);
-      return result;
-    });
-  };
-
-
-
-  const handleImageSelect = (mediaItem) => {
-    // console.log('ChannelModal: handleImageSelect called with:', mediaItem);
-    
-    // Convert Supabase media item to the format expected by ChannelModal
-    const mediaUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${mediaItem.file_url}`;
-    
-    // Determine MIME type based on file_type
-    let mimeType = 'image/png'; // default
-    if (mediaItem.file_type === 'gif') {
-      mimeType = 'image/gif';
-    } else if (mediaItem.file_type === 'video') {
-      mimeType = 'video/mp4';
-    } else if (mediaItem.mime_type) {
-      mimeType = mediaItem.mime_type;
-    }
-    
-    const convertedMedia = { 
-      url: mediaUrl, 
-      type: mimeType, 
-      name: mediaItem.title || mediaItem.file_url,
-      isBuiltin: true 
-    };
-    
-    // console.log('ChannelModal: Setting media to:', convertedMedia);
-    setMedia(convertedMedia);
-    setShowImageSearch(false);
-  };
-
-  const handleUploadClick = () => {
-    setShowImageSearch(false);
-    setTimeout(() => fileInputRef.current?.click(), 100); // slight delay to allow modal to close
-  };
-
-  const validatePath = () => {
-    if (!path.trim()) {
+  const validatePath = useCallback(() => {
+    const trimmed = path.trim();
+    if (!trimmed) {
       setPathError('');
-      return true; // Allow empty paths if media is provided
+      return true;
     }
+    const { valid, error } = validateChannelPath(trimmed, type);
+    setPathError(error || '');
+    return valid;
+  }, [path, type]);
 
-    if (type === 'url') {
-      // Validate URL format
-      try {
-        const url = new URL(path.trim());
-        if (url.protocol === 'http:' || url.protocol === 'https:') {
-          setPathError('');
-          return true;
-        } else {
-          setPathError('Please enter a valid HTTP or HTTPS URL');
-          return false;
-        }
-      } catch {
-        setPathError('Please enter a valid URL (e.g., https://example.com)');
-        return false;
-      }
-    } else if (type === 'steam') {
-      // Validate Steam URI/AppID format
-      if (path.trim().startsWith('steam://') || path.trim().startsWith('steam://rungameid/') || path.trim().startsWith('steam://launch/')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Steam URI (e.g., steam://rungameid/252950) or AppID (e.g., 252950)');
-        return false;
-      }
-    } else if (type === 'epic') {
-      // Validate Epic URI format
-      if (path.trim().startsWith('com.epicgames.launcher://apps/')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Epic URI (e.g., com.epicgames.launcher://apps/Fortnite?action=launch&silent=true)');
-        return false;
-      }
-    } else if (type === 'microsoftstore') {
-      // Accept any AppID containing an exclamation mark
-      if (typeof path === 'string' && path.includes('!')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Microsoft Store AppID (e.g., ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr!App)');
-        return false;
-      }
-    } else {
-      // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
-      const trimmedPath = path.trim();
-      if (/\.exe(\s+.*)?$/i.test(trimmedPath) || /\.exe/i.test(trimmedPath)) {
-        setPathError('');
-        return true;
-      } else if (trimmedPath.startsWith('\\')) {
-        setPathError('');
-        return true;
-                 } else {
-             setPathError('Please enter a valid file path or use "Browse Files" to select an executable');
-             return false;
-           }
-         }
-         
-         return true;
-  };
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const trimmed = path.trim();
+    if (!trimmed) {
+      setPathError('');
+      return undefined;
+    }
+    const id = window.setTimeout(() => {
+      const { valid, error } = validateChannelPath(trimmed, type);
+      setPathError(valid ? '' : error || '');
+    }, 320);
+    return () => clearTimeout(id);
+  }, [path, type, isOpen]);
+
+  const handleApplySmartSuggestion = useCallback((s) => {
+    setType(s.applyType);
+    setPath(s.applyPath);
+    setShowError(false);
+    const { valid, error } = validateChannelPath(s.applyPath.trim(), s.applyType);
+    setPathError(valid ? '' : error || '');
+  }, [setType, setPath]);
 
   // Unified app path change handler
-  const handleUnifiedAppPathChange = (config) => {
+  const handleUnifiedAppPathChange = useCallback((config) => {
     if (config.launchType === 'url') {
       setType('url');
       setPath(config.path || '');
@@ -592,22 +349,24 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       setType(newType);
       setPath(config.path || '');
     }
-  };
+  }, [setType, setPath]);
 
   // On save, use consolidated store and channels API
   const handleSave = async (handleClose) => {
-    // Only validate path if one is provided
-    const pathValid = path.trim() ? validatePath() : true;
-    
+    const trimmed = path.trim();
+    const pathValid = trimmed ? validatePath() : true;
+
     if (!pathValid || !media) {
       setShowError(true);
       return;
     }
 
+    const persistedPath = trimmed ? normalizeChannelPath(trimmed, type) : null;
+
     const newChannel = {
       media,
-      path: path.trim() || null, // Use null for empty paths
-      type: path.trim() ? type : null, // Only set type if there's a path
+      path: persistedPath || null,
+      type: persistedPath ? type : null,
       asAdmin,
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
       animatedOnHover: animatedOnHover !== 'global' ? animatedOnHover : undefined
@@ -646,10 +405,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
     
     handleClose();
-  };
-
-  const handleRemoveImage = () => {
-    setMedia(null);
   };
 
   const handleClearChannel = async (handleClose) => {
@@ -861,17 +616,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                     ) : media && typeof media.type === 'string' && (media.type.startsWith('video/') || media.type === 'video' || media.type === 'gif') ? (
                       <video src={media.url} autoPlay loop muted className="max-w-full max-h-[120px]" />
                     ) : null}
-                    <div style={{
-                      position: 'absolute',
-                      top: 5,
-                      right: 5,
-                      backgroundColor: 'rgba(255, 165, 0, 0.9)',
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      fontSize: 12,
-                      fontWeight: 500
-                    }}>
+                    <div className="channel-temp-badge">
                       ⚠️ Temporary
                     </div>
                   </div>
@@ -880,7 +625,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                     {media && typeof media.type === 'string' && (media.type.startsWith('image/') || media.type === 'image') ? (
                       <img src={media.url} alt="Channel preview" />
                     ) : media && typeof media.type === 'string' && (media.type.startsWith('video/') || media.type === 'video' || media.type === 'gif') ? (
-                      <video src={media.url} autoPlay loop muted style={{ maxWidth: '100%', maxHeight: 120 }} />
+                      <video src={media.url} autoPlay loop muted className="max-w-full max-h-[120px]" />
                     ) : null}
                   </>
                 )}
@@ -897,16 +642,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         )}
 
         {/* Gallery Mode - FEATURE NOT READY: Disabled */}
-        {false && galleryMode && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {galleryMode && (
+          <div className="channel-stack-16">
             {/* Gallery Grid */}
             {imageGallery.length > 0 && (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', 
-                gap: 12,
-                marginBottom: 12
-              }}>
+              <div className="channel-gallery-grid">
                 {imageGallery.map((image, index) => (
                   <div key={image.id} className="relative">
                     <div className="w-full h-20 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-100">
@@ -949,7 +689,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             {/* Add Images Button */}
             <button 
               className="file-button" 
-              style={{ background: '#f7fafd', color: '#222', border: '2px solid #b0c4d8', fontWeight: 500 }}
+              id="channel-gallery-add-button"
               onClick={() => galleryFileInputRef.current?.click()}
             >
               {imageGallery.length === 0 ? 'Add Images for Gallery' : 'Add More Images'}
@@ -970,7 +710,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           accept="image/*,video/mp4"
           ref={fileInputRef}
           onChange={(e) => handleFileSelect(e.target.files[0])}
-          style={{ display: 'none' }}
+          className="hidden"
         />
         <input
           type="file"
@@ -978,787 +718,36 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           multiple
           ref={galleryFileInputRef}
           onChange={(e) => handleGalleryFilesSelect(e.target.files)}
-          style={{ display: 'none' }}
+          className="hidden"
         />
       </div>
     );
   };
 
-  // Helper function to find matching app for existing path - memoized for performance
-  const findMatchingAppForPath = useCallback((path, type) => {
-    if (!path || !type) return null;
-    
-    try {
-      const unifiedAppsState = useConsolidatedAppStore.getState().unifiedApps;
-      const unifiedApps = Array.isArray(unifiedAppsState?.apps) ? unifiedAppsState.apps : [];
-      
-      // If unified apps haven't loaded yet, return null
-      if (unifiedApps.length === 0) {
-        return null;
-      }
-    
-    // For Steam games, extract app ID from path
-    if (type === 'steam' && path.startsWith('steam://rungameid/')) {
-      const appId = path.replace('steam://rungameid/', '');
-      const match = unifiedApps.find(app => app.type === 'steam' && app.appId === appId);
-      return match;
-    }
-    
-    // For Epic games, extract app name from path
-    if (type === 'epic' && path.includes('com.epicgames.launcher://apps/')) {
-      const appName = path.match(/com\.epicgames\.launcher:\/\/apps\/([^?]+)/)?.[1];
-      if (appName) {
-        return unifiedApps.find(app => app.type === 'epic' && app.appName === appName);
-      }
-    }
-    
-    // For Microsoft Store apps
-    if (type === 'microsoftstore' && path.includes('!')) {
-      return unifiedApps.find(app => app.type === 'microsoft' && app.appId === path);
-    }
-    
-    // For EXE apps, try to match by path
-    if (type === 'exe') {
-      return unifiedApps.find(app => app.type === 'exe' && app.path === path);
-    }
-    
-    return null;
-    } catch (error) {
-      console.error('[ChannelModal] Error in findMatchingAppForPath:', error);
-      return null;
-    }
-  }, []);
+  const matchingApp = useMemo(() => findMatchingAppForPath(path, type), [path, type]);
 
-  // Memoize the matching app to prevent recalculation
-  const matchingApp = useMemo(() => {
-    return findMatchingAppForPath(path, type);
-  }, [findMatchingAppForPath, path, type]);
-
-  // Unified app path section - memoized to prevent unnecessary re-renders
   const renderUnifiedAppPathSection = useCallback(() => {
-    // Only render when modal is open
-    if (!isOpen) {
-      return null;
-    }
-    
-    // Don't automatically set the selected app here - let the user select it manually
-    // This prevents infinite loops when the component re-renders
-    
-    return (
-      <UnifiedAppPathCard
-        key={`unified-app-path-${channelId}-${isOpen}`} // Force remount when channel changes or modal opens
-        value={{
-          launchType: type === 'url' ? 'url' : 'application',
-          appName: matchingApp ? matchingApp.name : '', // Use app name if found
-          path: path,
-          selectedApp: matchingApp // Pass the matching app
-        }}
-        onChange={handleUnifiedAppPathChange}
-      />
-    );
-  }, [isOpen, matchingApp, channelId, type, path, handleUnifiedAppPathChange]);
-
-  // State for Epic game media carousel
-  const [epicMediaIndexes, setEpicMediaIndexes] = useState({});
-  
-  // Helper function to show selection feedback
-  const showSelectionFeedback = useCallback((gameName, launcher) => {
-    setSelectedGameFeedback({
-      gameName,
-      message: `Added to channel from ${launcher}`,
-      timestamp: Date.now()
-    });
-    
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      setSelectedGameFeedback(null);
-    }, 3000);
-  }, []);
-  
-  // State for search and pagination
-  const [gamesSearchTerm, setGamesSearchTerm] = useState('');
-  const [gamesPage, setGamesPage] = useState(0);
-  const gamesPerPage = 6;
-  
-  // State for sorting
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc'
-  
-  // State for collapsible sections
-  const [gamesSectionExpanded, setGamesSectionExpanded] = useState(true);
-
-  // Suggested games section (Steam and Epic games, expandable for other launchers) - memoized to prevent unnecessary re-renders
-  const renderSuggestedGames = useCallback(() => {
-    // Only render when modal is open
     if (!isOpen) {
       return null;
     }
 
-    const realSteamGames = steamGames || [];
-    const realEpicGames = epicGames || [];
-
-    // Helper function to get all matching media items for a game
-    const getAllMatchingMedia = (gameName) => {
-      const mediaLibrary = getCachedMediaLibrary();
-      const matches = [];
-      
-      for (const item of mediaLibrary) {
-        const score = fuzzyMatch(gameName, item.title);
-        if (score > 0.3) { // Same threshold as findGameMedia
-          matches.push({ ...item, score });
-        }
-      }
-      
-      // Sort by score (highest first)
-      return matches.sort((a, b) => b.score - a.score);
-    };
-    
-
-
-    // Helper function for fuzzy matching (copied from mediaLibraryCache.js)
-    const fuzzyMatch = (str1, str2) => {
-      if (!str1 || !str2) return false;
-      
-      const normalize = (str) => str.toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '') // Remove special characters
-        .replace(/\s+/g, ' ') // Normalize spaces
-        .trim();
-      
-      const normalized1 = normalize(str1);
-      const normalized2 = normalize(str2);
-      
-      // Exact match
-      if (normalized1 === normalized2) return 1.0;
-      
-      // Contains match
-      if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
-        return 0.8;
-      }
-      
-      // Word-based matching
-      const words1 = normalized1.split(' ');
-      const words2 = normalized2.split(' ');
-      
-      const commonWords = words1.filter(word => 
-        words2.some(word2 => word2.includes(word) || word.includes(word2))
-      );
-      
-      if (commonWords.length > 0) {
-        const matchRatio = commonWords.length / Math.max(words1.length, words2.length);
-        return matchRatio > 0.5 ? matchRatio : 0;
-      }
-      
-      return 0;
-    };
-
-    // Helper function to filter games by search term
-    const filterGames = (games, searchTerm) => {
-      if (!searchTerm.trim()) return games;
-      const term = searchTerm.toLowerCase();
-      return games.filter(game => 
-        game.name.toLowerCase().includes(term)
-      );
-    };
-
-    // Helper function to sort games
-    const sortGames = (games, order) => {
-      return [...games].sort((a, b) => {
-        const nameA = a.name.toLowerCase();
-        const nameB = b.name.toLowerCase();
-        if (order === 'asc') {
-          return nameA.localeCompare(nameB);
-        } else {
-          return nameB.localeCompare(nameA);
-        }
-      });
-    };
-    
-    // Helper function to paginate games
-    const paginateGames = (games, page, perPage) => {
-      const startIndex = page * perPage;
-      return games.slice(startIndex, startIndex + perPage);
-    };
-
-    // Get filtered and paginated games
-    // Remove duplicates from Steam games based on appId (note the capital I)
-    const uniqueSteamGames = realSteamGames.filter((game, index, self) => 
-      index === self.findIndex(g => g.appId === game.appId)
-    );
-    
-    // For Steam games, be less restrictive - if they're in the list, they're likely installed
-    // Only filter out games that are explicitly marked as not installed
-    const installedSteamGames = uniqueSteamGames.filter(game => {
-      // If installed is explicitly false, exclude it
-      if (game.installed === false) return false;
-      // Otherwise, include it (installed === true, undefined, or any other value)
-      return true;
-    });
-    
-    const installedEpicGames = realEpicGames.filter(game => game.installed !== false);
-    
-    // Combine all games and add source information
-    const allGames = [
-      ...installedSteamGames.map(game => ({
-        ...game,
-        source: 'steam',
-        sourceName: 'Steam',
-        badgeColor: '#171a21',
-        badgeText: 'S'
-      })),
-      ...installedEpicGames.map(game => ({
-        ...game,
-        source: 'epic',
-        sourceName: 'Epic Games',
-        badgeColor: '#2a2a2a',
-        badgeText: 'E'
-      }))
-    ];
-    
-    const filteredGames = filterGames(allGames, gamesSearchTerm);
-    const sortedGames = sortGames(filteredGames, sortOrder);
-    const paginatedGames = paginateGames(sortedGames, gamesPage, gamesPerPage);
-    const totalGamesPages = Math.ceil(sortedGames.length / gamesPerPage);
-    
-    // Debug the filtering results - REMOVED TO REDUCE CONSOLE SPAM
-    // console.log('[ChannelModal] Game filtering debug:', {
-    //   steamTotal: realSteamGames.length,
-    //   steamUnique: uniqueSteamGames.length,
-    //   steamInstalled: installedSteamGames.length,
-    //   epicTotal: realEpicGames.length,
-    //   epicInstalled: installedEpicGames.length,
-    //   allGamesTotal: allGames.length,
-    //   filteredGames: filteredGames.length,
-    //   gamesBySource: {
-    //     steam: allGames.filter(g => g.source === 'steam').length,
-    //     epic: allGames.filter(g => g.source === 'epic').length
-    //   }
-    // });
-    
-    // Enhanced Steam games debugging - REMOVED TO REDUCE CONSOLE SPAM
-    // if (realSteamGames.length > 0) {
-    //   console.log('[ChannelModal] Steam games detailed debug:', {
-    //     totalGames: realSteamGames.length,
-    //     uniqueGames: uniqueSteamGames.length,
-    //     installedGames: installedSteamGames.length,
-    //     sampleGame: realSteamGames[0],
-    //     sampleGameProperties: realSteamGames[0] ? Object.keys(realSteamGames[0]) : [],
-    //     gamesWithSize: realSteamGames.filter(g => g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0).length,
-    //     gamesWithInstalledTrue: realSteamGames.filter(g => g.installed === true).length,
-    //     gamesWithInstalledUndefined: realSteamGames.filter(g => g.installed === undefined).length,
-    //     gamesWithInstalledFalse: realSteamGames.filter(g => g.installed === false).length
-    //   });
-      
-    //   // Log first few games for inspection
-    //   console.log('[ChannelModal] First 3 Steam games:', realSteamGames.slice(0, 3).map(g => ({
-    //     name: g.name,
-    //     appid: g.appid,
-    //     installed: g.installed,
-    //     sizeOnDisk: g.sizeOnDisk,
-    //     hasSize: g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0,
-    //     wouldBeInstalled: (g.sizeOnDisk && parseInt(g.sizeOnDisk) > 0) || (g.installed === true || g.installed === undefined)
-    //   })));
-    // }
-    
-    // Check for duplicates in Steam games
-    const steamGameNames = realSteamGames.map(g => g.name);
-    const steamGameAppIds = realSteamGames.map(g => g.appId); // Fixed: use appId with capital I
-    const duplicateNames = steamGameNames.filter((name, index) => steamGameNames.indexOf(name) !== index);
-    const duplicateAppIds = steamGameAppIds.filter((appId, index) => steamGameAppIds.indexOf(appId) !== index);
-    
-    if (duplicateNames.length > 0) {
-      console.warn('[ChannelModal] Duplicate Steam game names found:', duplicateNames);
-    }
-    if (duplicateAppIds.length > 0) {
-      console.warn('[ChannelModal] Duplicate Steam app IDs found:', duplicateAppIds);
-    }
-
     return (
-      <Card 
-        title="Suggested Content" 
-        separator 
-        desc="Quickly add your installed games and apps to this channel. Click any item to auto-fill the path and add its cover art."
-      >
-
-
-        {/* Loading State */}
-        {(steamLoading || epicLoading) && (
-          <div className="text-center py-8">
-            <div className="text-[hsl(var(--text-tertiary))] text-sm">
-              <div className="mb-2">⏳</div>
-              <div className="font-medium mb-1">
-                {steamLoading && epicLoading ? 'Scanning games...' :
-                 steamLoading ? 'Scanning Steam games...' : 
-                 epicLoading ? 'Scanning Epic games...' : 'Scanning...'}
-              </div>
-              <div className="text-xs">
-                This may take a few moments.
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {(steamError || epicError) && (
-          <div className="text-center py-8">
-            <div className="text-[hsl(var(--state-error))] text-sm">
-              <div className="mb-2">⚠️</div>
-              <div className="font-medium mb-1">Content scan failed</div>
-              <div className="text-xs">
-                {steamError && `Steam: ${steamError}`}
-                {steamError && epicError && <br />}
-                {epicError && `Epic: ${epicError}`}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Games Content */}
-        {!steamLoading && !steamError && !epicLoading && !epicError && allGames.length > 0 && (
-          <>
-            {/* Unified Games Section */}
-            <div className="flex items-center gap-2 mb-3">
-              <button
-                onClick={() => setGamesSectionExpanded(!gamesSectionExpanded)}
-                className="flex items-center gap-2 hover:bg-[hsl(var(--surface-secondary))] px-2 py-1 rounded transition-colors"
-              >
-                <div className="w-6 h-6 bg-[hsl(var(--wii-blue))] rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">🎮</span>
-                </div>
-                <Text size="sm" weight={600} className="text-[hsl(var(--text-primary))]">
-                  All Games ({sortedGames.length} of {allGames.length} installed)
-                </Text>
-                <span className={`text-[hsl(var(--text-tertiary))] transition-transform duration-200 ${gamesSectionExpanded ? 'rotate-90' : ''}`}>
-                  ›
-                </span>
-              </button>
-              
-              {/* Sort Controls */}
-              <div className="flex items-center gap-1 ml-auto">
-                <button
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors hover:bg-[hsl(var(--surface-secondary))]"
-                  title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
-                >
-                  <span className="text-[hsl(var(--text-secondary))]">Sort:</span>
-                  <span className="text-[hsl(var(--text-primary))]">
-                    {sortOrder === 'asc' ? 'A→Z' : 'Z→A'}
-                  </span>
-                  <span className="text-[hsl(var(--text-tertiary))]">
-                    {sortOrder === 'asc' ? '↑' : '↓'}
-                  </span>
-                </button>
-                
-                <WButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    // console.log('[ChannelModal] Manual games refresh triggered');
-                    rescanSteamGames();
-                    rescanEpicGames();
-                  }}
-                  disabled={steamLoading || epicLoading}
-                >
-                  {(steamLoading || epicLoading) ? 'Scanning...' : 'Refresh'}
-                </WButton>
-              </div>
-            </div>
-            
-            {/* Games Content */}
-            {gamesSectionExpanded && (
-              <>
-                {/* Games Search */}
-                <div className="mb-3">
-                  <input
-                    type="text"
-                    placeholder="Search all games..."
-                    value={gamesSearchTerm}
-                    onChange={(e) => {
-                      setGamesSearchTerm(e.target.value);
-                      setGamesPage(0); // Reset to first page when searching
-                    }}
-                    className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))] placeholder-[hsl(var(--text-tertiary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--wii-blue))] focus:border-transparent"
-                  />
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                  {paginatedGames.map((game, index) => (
-                    <div
-                      key={game.appId || game.id || game.appName}
-                      onClick={() => {
-                        try {
-                          if (game.source === 'steam') {
-                            // Handle Steam game
-                            const gameId = game.appId; // Steam games use appId (capital I)
-                            
-                            if (!gameId) {
-                              console.error('[ChannelModal] No valid Steam app ID found for game:', game.name);
-                              return;
-                            }
-                            
-                            // Create Steam app object
-                            const steamApp = {
-                              id: `steam-${gameId}`,
-                              name: game.name,
-                              type: 'steam',
-                              appId: gameId,
-                              path: `steam://rungameid/${gameId}`,
-                              icon: `https://cdn.cloudflare.steamstatic.com/steam/apps/${gameId}/header.jpg`,
-                              source: 'steam',
-                              category: 'Steam Game',
-                              installed: game.installed,
-                              sizeOnDisk: game.sizeOnDisk
-                            };
-                            
-                            // console.log('[ChannelModal] Created steamApp:', steamApp);
-                            
-                            // Set the selected app in the unified store
-                            useConsolidatedAppStore.getState().unifiedAppManager.setSelectedApp(steamApp);
-                            
-                            // Set the game's cover art as the channel image
-                            const coverUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${gameId}/header.jpg`;
-                            // console.log(`[ChannelModal] Setting Steam media for ${game.name}:`, {
-                            //   coverUrl,
-                            //   gameId
-                            // });
-                            
-                            setMedia({
-                              url: coverUrl,
-                              type: 'image/jpeg',
-                              name: `${game.name} Cover`,
-                              isSteamGame: true,
-                              steamAppId: gameId
-                            });
-                            
-                            // Show selection feedback
-                            showSelectionFeedback(game.name, 'Steam');
-                            
-                          } else if (game.source === 'epic') {
-                            // Handle Epic game
-                            
-                            // Auto-fill the channel with Epic game data
-                            setType('epic');
-                            
-                            // Get all matching media items for this game
-                            const allMatchingMedia = getAllMatchingMedia(game.name);
-                            const gameId = game.appName || game.id;
-                            const currentIndex = epicMediaIndexes[gameId] || 0;
-                            
-                            // Determine which media to show (matching media or fallback)
-                            let currentMedia = null;
-                            let coverUrl = '';
-                            let source = '';
-                            
-                            if (allMatchingMedia.length > 0) {
-                              // Use the current index from carousel
-                              currentMedia = allMatchingMedia[currentIndex];
-                              coverUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${currentMedia.file_url}`;
-                              source = 'Media Library';
-                            } else {
-                              // Fallback to Epic CDN
-                              coverUrl = game.image || `https://cdn2.unrealengine.com/${game.appName || game.id}-1200x630-${game.appName || game.id}.jpg`;
-                              source = game.image ? 'Epic CDN' : 'Epic CDN Fallback';
-                            }
-                            
-                            // Create Epic app object
-                            const epicApp = {
-                              id: `epic-${game.appName || game.id}`,
-                              name: game.name,
-                              type: 'epic',
-                              appName: game.appName || game.id,
-                              path: `com.epicgames.launcher://apps/${game.appName || game.id}?action=launch&silent=true`,
-                              icon: coverUrl,
-                              source: 'epic',
-                              category: 'Epic Game'
-                            };
-                            
-                            // console.log('[ChannelModal] Created epicApp:', epicApp);
-                            
-                            // Set the selected app in the unified store
-                            useConsolidatedAppStore.getState().unifiedAppManager.setSelectedApp(epicApp);
-                            
-                            // Set the game's cover art as the channel image
-                            // Use the currently selected media from carousel, or fallback to first match
-                            const selectedMedia = currentMedia || (allMatchingMedia.length > 0 ? allMatchingMedia[0] : null);
-                            const finalCoverUrl = selectedMedia 
-                              ? `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${selectedMedia.file_url}`
-                              : coverUrl;
-                            
-                            // console.log(`[ChannelModal] Setting media for ${game.name}:`, {
-                            //   selectedMedia: selectedMedia ? selectedMedia.title : 'None',
-                            //   fileType: selectedMedia ? selectedMedia.file_type : 'fallback',
-                            //   finalCoverUrl,
-                            //   carouselIndex: currentIndex
-                            // });
-                            
-                            setMedia({
-                              url: finalCoverUrl,
-                              type: selectedMedia ? selectedMedia.file_type : 'image/jpeg',
-                              name: `${game.name} Cover`,
-                              isEpicGame: true,
-                              epicAppName: game.appName || game.id
-                            });
-                            
-                            // Show selection feedback
-                            showSelectionFeedback(game.name, 'Epic Games');
-                          }
-                          
-                        } catch (error) {
-                          console.error('[ChannelModal] Error in game click handler:', error);
-                        }
-                      }}
-                      title={`Replace current channel with ${game.name}`}
-                      className="group relative flex flex-col items-center p-3 rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] hover:bg-[hsl(var(--surface-secondary))] hover:border-[hsl(var(--border-secondary))] transition-all duration-200 cursor-pointer"
-                    >
-                      {/* Game Cover */}
-                      <div className="relative w-full aspect-video rounded overflow-hidden mb-2">
-                        {game.source === 'steam' ? (
-                          <img
-                            src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appId}/header.jpg`}
-                            alt={`${game.name} cover`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                            loading={index < 3 ? "eager" : "lazy"}
-                            onError={(e) => {
-                              // Fallback to a generic game icon if cover fails to load
-                              e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzM0MzQzNCIvPgo8cGF0aCBkPSJNMTIgMTJIMjhWMjhIMTJWMjJaIiBmaWxsPSIjNjY2NjY2Ii8+Cjwvc3ZnPgo=';
-                            }}
-                          />
-                        ) : game.source === 'epic' ? (
-                          // Epic game cover logic with media library integration
-                          (() => {
-                            // Get all matching media items for this game
-                            const allMatchingMedia = getAllMatchingMedia(game.name);
-                            const gameId = game.appName || game.id;
-                            const currentIndex = epicMediaIndexes[gameId] || 0;
-                            
-                            // Determine which media to show (matching media or fallback)
-                            let currentMedia = null;
-                            let coverUrl = '';
-                            let source = '';
-                            
-                            if (allMatchingMedia.length > 0) {
-                              // Use the current index from carousel
-                              currentMedia = allMatchingMedia[currentIndex];
-                              coverUrl = `https://bmlcydwltfexgbsyunkf.supabase.co/storage/v1/object/public/media-library/${currentMedia.file_url}`;
-                              source = 'Media Library';
-                            } else {
-                              // Fallback to Epic CDN
-                              coverUrl = game.image || `https://cdn2.unrealengine.com/${game.appName || game.id}-1200x630-${game.appName || game.id}.jpg`;
-                              source = game.image ? 'Epic CDN' : 'Epic CDN Fallback';
-                            }
-                            
-                            return (
-                              <div className="relative w-full h-full">
-                                {currentMedia && (currentMedia.file_type === 'gif' || currentMedia.file_type === 'video') ? (
-                                  // Use video element for GIFs and MP4s
-                                  <video
-                                    src={coverUrl}
-                                    alt={`${game.name} cover`}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                    muted
-                                    loop
-                                    autoPlay
-                                    onError={(e) => {
-                                      // Fallback to a generic game icon if video fails to load
-                                      e.target.style.display = 'none';
-                                      const fallbackImg = document.createElement('img');
-                                      fallbackImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzM0MzQzNCIvPgo8cGF0aCBkPSJNMTIgMTJIMjhWMjhIMTJWMjJaIiBmaWxsPSIjNjY2NjY2Ii8+Cjwvc3ZnPgo=';
-                                      fallbackImg.className = 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-200';
-                                      e.target.parentNode.appendChild(fallbackImg);
-                                    }}
-                                  />
-                                ) : (
-                                  // Use img element for static images
-                                  <img
-                                    src={coverUrl}
-                                    alt={`${game.name} cover`}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                    loading={index < 3 ? "eager" : "lazy"}
-                                    onError={(e) => {
-                                      // Fallback to a generic game icon if cover fails to load
-                                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzM0MzQzNCIvPgo8cGF0aCBkPSJNMTIgMTJIMjhWMjhIMTJWMjJaIiBmaWxsPSIjNjY2NjY2Ii8+Cjwvc3ZnPgo=';
-                                    }}
-                                  />
-                                )}
-                                
-                                {/* Media Library Badge if using cached media */}
-                                {currentMedia && (
-                                  <div className="absolute top-1 left-1 bg-[hsl(var(--wii-blue))] text-white px-1.5 py-0.5 rounded text-[10px] font-semibold">
-                                    📚
-                                  </div>
-                                )}
-                                
-                                {/* Navigation Arrows for Multiple Matches */}
-                                {allMatchingMedia.length > 1 && (
-                                  <>
-                                    {/* Left Arrow */}
-                                    <button
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        const newIndex = currentIndex === 0 ? allMatchingMedia.length - 1 : currentIndex - 1;
-                                        setEpicMediaIndexes(prev => ({
-                                          ...prev,
-                                          [gameId]: newIndex
-                                        }));
-                                      }}
-                                      onMouseDown={(e) => e.stopPropagation()}
-                                      onMouseUp={(e) => e.stopPropagation()}
-                                      className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 opacity-0 group-hover:opacity-100 z-10"
-                                      title={`Previous media (${currentIndex + 1}/${allMatchingMedia.length})`}
-                                    >
-                                      ‹
-                                    </button>
-                                    
-                                    {/* Right Arrow */}
-                                    <button
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        const newIndex = currentIndex === allMatchingMedia.length - 1 ? 0 : currentIndex + 1;
-                                        setEpicMediaIndexes(prev => ({
-                                          ...prev,
-                                          [gameId]: newIndex
-                                        }));
-                                      }}
-                                      onMouseDown={(e) => e.stopPropagation()}
-                                      onMouseUp={(e) => e.stopPropagation()}
-                                      className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 opacity-0 group-hover:opacity-100 z-10"
-                                      title={`Next media (${currentIndex + 1}/${allMatchingMedia.length})`}
-                                    >
-                                      ›
-                                    </button>
-                                    
-                                    {/* Media Counter */}
-                                    <div className="absolute bottom-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold">
-                                      {currentIndex + 1}/{allMatchingMedia.length}
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            );
-                          })()
-                        ) : null}
-                        
-                        {/* Source Badge */}
-                        <div className="absolute top-1 right-1 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ backgroundColor: game.badgeColor }}>
-                          {game.source === 'steam' ? '🎮' : game.source === 'epic' ? '🎯' : game.badgeText}
-                        </div>
-                      </div>
-                      
-                      {/* Game Name */}
-                      <div className="text-center">
-                        <div className="text-sm font-medium text-[hsl(var(--text-primary))] line-clamp-2 leading-tight">
-                          {game.name}
-                        </div>
-                        <div className="text-xs text-[hsl(var(--text-tertiary))] mt-1">
-                          {game.source === 'steam' ? 'Steam Game' : game.source === 'epic' ? 'Epic Game' : game.sourceName}
-                        </div>
-                      </div>
-                      
-                      {/* Hover Effect */}
-                      <div className="absolute inset-0 bg-[hsl(var(--wii-blue)_/_0.1)] opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
-                        <div className="bg-[hsl(var(--wii-blue))] text-white px-3 py-1.5 rounded text-sm font-semibold">
-                          {path.trim() ? 'Replace Channel' : 'Add to Channel'}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Games Pagination */}
-                {totalGamesPages > 1 && (
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm text-[hsl(var(--text-tertiary))]">
-                      Page {gamesPage + 1} of {totalGamesPages}
-                    </div>
-                    <div className="flex gap-2">
-                      <WButton
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setGamesPage(Math.max(0, gamesPage - 1))}
-                        disabled={gamesPage === 0}
-                      >
-                        Previous
-                      </WButton>
-                      <WButton
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setGamesPage(Math.min(totalGamesPages - 1, gamesPage + 1))}
-                        disabled={gamesPage === totalGamesPages - 1}
-                      >
-                        Next
-                      </WButton>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
-
-
-
-        {/* Selection Feedback */}
-        {selectedGameFeedback && (
-          <div className="fixed top-4 right-4 bg-[hsl(var(--wii-blue))] text-white px-4 py-3 rounded-lg shadow-lg z-50 animate-in slide-in-from-right duration-300">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                ✓
-              </div>
-              <div>
-                <div className="font-semibold">{selectedGameFeedback.gameName}</div>
-                <div className="text-sm opacity-90">{selectedGameFeedback.message}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* No Content Found Messages */}
-        {!steamLoading && !steamError && !epicLoading && !epicError && allGames.length === 0 && (
-          <div className="text-center py-8">
-            <div className="text-[hsl(var(--text-tertiary))] text-sm">
-              <div className="mb-2">🎮</div>
-              <div className="font-medium mb-1">No games found</div>
-              <div className="text-xs">
-                Make sure Steam and/or Epic Games are installed and you have games in your libraries.
-              </div>
-              <div className="text-xs mt-2 text-[hsl(var(--text-secondary))]">
-                Debug: Steam games loaded: {realSteamGames.length}, Installed: {realSteamGames.filter(g => g.installed).length} | Epic games loaded: {realEpicGames.length}, Installed: {realEpicGames.filter(g => g.installed !== false).length}
-              </div>
-              <div className="mt-4 flex gap-2 justify-center">
-                <WButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    // console.log('[ChannelModal] Force clearing Steam cache and rescanning...');
-                    localStorage.removeItem('app_cache_steamGames');
-                    localStorage.removeItem('app_cache_timestamp_steamGames');
-                    rescanSteamGames();
-                  }}
-                  disabled={steamLoading}
-                >
-                  {steamLoading ? 'Scanning...' : 'Rescan Steam'}
-                </WButton>
-                <WButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    // console.log('[ChannelModal] Force clearing Epic cache and rescanning...');
-                    localStorage.removeItem('app_cache_epicGames');
-                    localStorage.removeItem('app_cache_timestamp_epicGames');
-                    rescanEpicGames();
-                  }}
-                  disabled={epicLoading}
-                >
-                  {epicLoading ? 'Scanning...' : 'Rescan Epic'}
-                </WButton>
-              </div>
-            </div>
-          </div>
-        )}
-
-
-      </Card>
+      <>
+        <UnifiedAppPathCard
+          key={`unified-app-path-${channelId}-${isOpen}`}
+          value={{
+            launchType: type === 'url' ? 'url' : 'application',
+            appName: matchingApp ? matchingApp.name : '',
+            path,
+            selectedApp: matchingApp,
+          }}
+          onChange={handleUnifiedAppPathChange}
+          externalValidationError={pathError}
+        />
+        <ChannelPathSmartSuggestions path={path} type={type} onApply={handleApplySmartSuggestion} />
+      </>
     );
-  }, [isOpen, steamGames, epicGames, steamLoading, epicLoading, steamError, epicError, gamesSearchTerm, gamesPage, sortOrder, gamesSectionExpanded, showSelectionFeedback, handleUnifiedAppPathChange, setMedia, setType, epicMediaIndexes]);
+  }, [isOpen, matchingApp, channelId, type, path, pathError, handleUnifiedAppPathChange, handleApplySmartSuggestion]);
 
   // Channel Behavior Tab
   const renderChannelBehaviorTab = () => (
@@ -1781,11 +770,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         }
       >
         {hoverSoundEnabled && (
-          <div style={{ marginTop: 0 }}>
-            {renderHoverSoundSection()}
-          </div>
+          <div>{renderHoverSoundSection()}</div>
         )}
-        {!hoverSoundEnabled && <span style={{ color: '#888' }}>Set a custom sound to play when hovering over this channel.</span>}
+        {!hoverSoundEnabled && <span className="channel-inline-help">Set a custom sound to play when hovering over this channel.</span>}
       </Card>
 
       {/* Animation Toggle */}
@@ -1801,8 +788,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   );
 
   const renderDisplayOptionsSection = () => (
-    <div style={{ display: 'flex', gap: '1.5em', alignItems: 'center', fontSize: '1em' }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+    <div className="channel-row-radio">
+      <label className="channel-radio-label channel-radio-label-compact">
         <input
           type="radio"
           name={`admin-mode-${channelId}`}
@@ -1811,7 +798,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         />
         Normal Launch
       </label>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+      <label className="channel-radio-label channel-radio-label-compact">
         <input
           type="radio"
           name={`admin-mode-${channelId}`}
@@ -1827,17 +814,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     const channelHoverSounds = getSoundsByCategory('channelHover') || [];
     
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="channel-stack-16">
         {/* Current Selection */}
         {hoverSoundEnabled && hoverSoundUrl && (
-          <div style={{ 
-            padding: '12px', 
-            background: 'hsl(var(--surface-secondary))', 
-            border: '1px solid hsl(var(--border-primary))', 
-            borderRadius: '8px' 
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
+          <div className="channel-surface-block">
+            <div className="channel-header-row">
+              <Text variant="p" className="!font-semibold !m-0">
                 Selected Sound: {hoverSoundName}
               </Text>
               <WButton
@@ -1855,7 +837,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               </WButton>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="channel-row-gap-12">
               <WButton
                 variant="secondary"
                 size="sm"
@@ -1865,17 +847,17 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 {hoverSoundAudio ? 'Stop' : 'Test'}
               </WButton>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                <span style={{ fontSize: '12px', minWidth: '40px' }}>Volume:</span>
+              <div className="channel-row-gap-8 channel-fill">
+                <span className="channel-volume-label">Volume:</span>
                 <Slider
                   value={hoverSoundVolume}
                   onChange={(value) => handleHoverSoundVolumeChange(value)}
                   min={0}
                   max={1}
                   step={0.01}
-                  style={{ flex: 1 }}
+                  className="channel-fill"
                 />
-                <span style={{ fontSize: '12px', minWidth: '30px' }}>
+                <span className="channel-volume-value">
                   {Math.round(hoverSoundVolume * 100)}%
                 </span>
               </div>
@@ -1885,8 +867,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
         {/* Sound Library Selection */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <Text variant="p" style={{ fontWeight: 600, margin: 0 }}>
+          <div className="channel-row-gap-12 channel-row-between channel-mb-12">
+            <Text variant="p" className="!font-semibold !m-0">
               Choose from Sound Library
             </Text>
             <WButton
@@ -1900,60 +882,31 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
           </div>
           
           {soundLibraryLoading ? (
-            <div style={{ 
-              padding: '20px', 
-              textAlign: 'center', 
-              color: 'hsl(var(--text-tertiary))',
-              background: 'hsl(var(--surface-secondary))',
-              borderRadius: '8px'
-            }}>
+            <div className="channel-surface-block channel-surface-centered channel-surface-p20 channel-text-tertiary">
               Loading sound library...
             </div>
           ) : channelHoverSounds.length === 0 ? (
-            <div style={{ 
-              padding: '20px', 
-              textAlign: 'center', 
-              color: 'hsl(var(--text-tertiary))',
-              background: 'hsl(var(--surface-secondary))',
-              borderRadius: '8px'
-            }}>
+            <div className="channel-surface-block channel-surface-centered channel-surface-p20 channel-text-tertiary">
               No hover sounds available. Upload your first sound above.
             </div>
           ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
-              gap: '12px',
-              maxHeight: '200px',
-              overflowY: 'auto'
-            }}>
+            <div className="channel-sound-grid">
               {channelHoverSounds.map(sound => (
                 <div
                   key={sound.id}
                   onClick={() => handleHoverSoundSelect(sound.id)}
-                  style={{
-                    padding: '12px',
-                    background: selectedHoverSoundId === sound.id 
-                      ? 'hsl(var(--wii-blue) / 0.1)' 
-                      : 'hsl(var(--surface-secondary))',
-                    border: selectedHoverSoundId === sound.id 
-                      ? '2px solid hsl(var(--wii-blue))' 
-                      : '1px solid hsl(var(--border-primary))',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
+                  className={`channel-sound-card ${selectedHoverSoundId === sound.id ? 'channel-sound-card-selected' : ''}`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <Text variant="p" style={{ fontWeight: 500, margin: 0, fontSize: '14px' }}>
+                  <div className="channel-header-row">
+                    <Text variant="p" className="!font-medium !m-0 !text-[14px]">
                       {sound.name}
                     </Text>
                     {selectedHoverSoundId === sound.id && (
-                      <span style={{ color: 'hsl(var(--wii-blue))', fontSize: '16px' }}>✓</span>
+                      <span className="channel-checkmark">✓</span>
                     )}
                   </div>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="channel-row-gap-8">
                     <WButton
                       variant="tertiary"
                       size="sm"
@@ -1968,14 +921,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                           testAudio.load();
                         };
                       }}
-                      style={{ minWidth: '60px' }}
+                      className="channel-min-w-60"
                     >
                       Test
                     </WButton>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                      <span style={{ fontSize: '10px' }}>Vol:</span>
-                      <span style={{ fontSize: '10px' }}>
+                    <div className="channel-row-gap-4 channel-fill">
+                      <span className="channel-tiny-label">Vol:</span>
+                      <span className="channel-tiny-label">
                         {Math.round((sound.volume ?? 0.5) * 100)}%
                       </span>
                     </div>
@@ -1987,19 +940,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         </div>
 
         {/* Legacy File Upload (Fallback) */}
-        <div style={{ 
-          padding: '12px', 
-          background: 'hsl(var(--surface-tertiary))', 
-          border: '1px solid hsl(var(--border-primary))', 
-          borderRadius: '8px' 
-        }}>
-          <Text variant="p" style={{ fontWeight: 600, margin: '0 0 8px 0', fontSize: '14px' }}>
+        <div className="channel-surface-block channel-surface-subtle">
+          <Text variant="p" className="!font-semibold !m-0 !mb-2 !text-[14px]">
             Legacy File Upload
           </Text>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="channel-row-gap-10">
             <button
               className="file-button"
-              style={{ minWidth: 120 }}
+              id="channel-legacy-upload-button"
               onClick={async () => {
                 if (window.api && window.api.sounds && window.api.sounds.selectFile) {
                   const result = await window.api.sounds.selectFile();
@@ -2020,15 +968,15 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               accept="audio/*"
               ref={hoverSoundInputRef}
               onChange={e => handleHoverSoundFile(e.target.files[0])}
-              style={{ display: 'none' }}
+              className="hidden"
             />
-            <span style={{ color: 'hsl(var(--text-tertiary))', fontSize: '12px' }}>
+            <span className="channel-legacy-upload-note">
               Direct file upload (not saved to library)
             </span>
           </div>
         </div>
 
-        <Text variant="help" style={{ fontSize: '13px' }}>
+        <Text variant="help" className="channel-help-sm">
           Sound will fade in on hover, and fade out on leave or click. 
           Sounds uploaded to the library are saved permanently and can be reused across channels.
         </Text>
@@ -2037,8 +985,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   };
 
   const renderAnimationToggleSection = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div className="channel-stack-8">
+      <label className="channel-radio-label">
         <input
           type="radio"
           name="animatedOnHover"
@@ -2048,7 +996,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         />
         Use global setting
       </label>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <label className="channel-radio-label">
         <input
           type="radio"
           name="animatedOnHover"
@@ -2058,7 +1006,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         />
         Only play animation on hover (override)
       </label>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <label className="channel-radio-label">
         <input
           type="radio"
           name="animatedOnHover"
@@ -2072,14 +1020,14 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   );
 
   const renderKenBurnsSection = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="channel-stack-16">
       {/* Ken Burns Enabled Setting */}
       <div>
-        <Text as="label" size="md" weight={600} style={{ display: 'block', marginBottom: 8 }}>
+        <Text as="label" size="md" weight={600} className="block mb-2">
           Ken Burns Effect
         </Text>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="channel-stack-8">
+          <label className="channel-radio-label">
             <input
               type="radio"
               name="kenBurnsEnabled"
@@ -2089,7 +1037,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             />
             Use global setting
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <label className="channel-radio-label">
             <input
               type="radio"
               name="kenBurnsEnabled"
@@ -2099,7 +1047,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             />
             Enable for this channel (override)
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <label className="channel-radio-label">
             <input
               type="radio"
               name="kenBurnsEnabled"
@@ -2115,11 +1063,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       {/* Ken Burns Mode Setting - only show when enabled */}
       {kenBurnsEnabled === true && (
         <div>
-          <Text as="label" size="md" weight={600} style={{ display: 'block', marginBottom: 8 }}>
+          <Text as="label" size="md" weight={600} className="block mb-2">
             Activation Mode
           </Text>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="channel-stack-8">
+            <label className="channel-radio-label">
               <input
                 type="radio"
                 name="kenBurnsMode"
@@ -2129,7 +1077,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               />
               Use global setting
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <label className="channel-radio-label">
               <input
                 type="radio"
                 name="kenBurnsMode"
@@ -2139,7 +1087,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               />
               Hover to activate (override)
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <label className="channel-radio-label">
               <input
                 type="radio"
                 name="kenBurnsMode"
@@ -2149,7 +1097,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               />
               Always active (override)
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: 0.5 }}>
+            <label className="channel-radio-label channel-radio-disabled">
               <input
                 type="radio"
                 name="kenBurnsMode"
@@ -2158,7 +1106,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 onChange={() => setKenBurnsMode('slideshow')}
                 disabled
               />
-              Slideshow mode (override) <span style={{ color: '#dc3545', fontSize: '11px' }}>- Not Ready</span>
+              Slideshow mode (override) <span className="text-[hsl(var(--state-error))] text-[11px]">- Not Ready</span>
             </label>
           </div>
         </div>
@@ -2223,19 +1171,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         isOpen={isOpen}
       >
         {/* Sticky Tab Navigation */}
-        <div style={{ 
-          position: 'sticky', 
-          top: 0, 
-          background: 'hsl(var(--surface-primary))', 
-          zIndex: 10,
-          borderBottom: '1px solid hsl(var(--border-primary))',
-          marginBottom: '20px'
-        }}>
+        <div className="channel-sticky-tabs">
           {renderTabNavigation()}
         </div>
         
         {/* Scrollable Content */}
-        <div style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+        <div className="channel-scroll-body">
           {/* Tab Content */}
           {activeTab === 'setup' && (
             <div className="space-y-6">
@@ -2247,10 +1188,24 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               {/* App Path/URL Card */}
               <Card title="Unified App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
                 {renderUnifiedAppPathSection()}
+                <ChannelModalDevDebug path={path} type={type} pathError={pathError} />
               </Card>
               
-              {/* Suggested Games Card */}
-              {renderSuggestedGames()}
+              <ChannelModalSuggestedGames
+                isOpen={isOpen}
+                path={path}
+                setPath={setPath}
+                setType={setType}
+                setMedia={setMedia}
+                steamGames={steamGames}
+                epicGames={epicGames}
+                steamLoading={steamLoading}
+                epicLoading={epicLoading}
+                steamError={steamError}
+                epicError={epicError}
+                rescanSteamGames={rescanSteamGames}
+                rescanEpicGames={rescanEpicGames}
+              />
             </div>
           )}
           

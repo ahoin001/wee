@@ -16,7 +16,7 @@ const UnifiedAppPathSearch = ({
   const { unifiedApps, setUnifiedAppsState } = useUnifiedAppsState();
   const {
     apps, loading: unifiedAppsLoading, error: unifiedAppsError,
-    searchQuery, selectedAppType, selectedApp
+    searchQuery, selectedAppType
   } = unifiedApps;
   
   // Memoize manager functions to prevent infinite loops
@@ -53,7 +53,6 @@ const UnifiedAppPathSearch = ({
   
   // Use ref to track if apps have been fetched
   const hasFetchedApps = useRef(false);
-  const isUpdatingFromStore = useRef(false);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState(value || '');
@@ -172,14 +171,19 @@ const UnifiedAppPathSearch = ({
     }
   };
 
+  const filterPillClass = (value) =>
+    selectedAppType === value
+      ? 'border-[hsl(var(--wii-blue))] bg-[hsl(var(--wii-blue))] text-[hsl(var(--text-inverse))]'
+      : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))]';
+
   return (
-    <div style={{ position: 'relative', marginBottom: 16 }}>
+    <div className="relative mb-4">
       {/* Type Filter */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <label style={{ fontSize: '14px', fontWeight: '500', color: 'hsl(var(--text-secondary))' }}>
+      <div className="mb-3 flex items-center gap-2">
+        <label className="text-sm font-medium text-[hsl(var(--text-secondary))]">
           Filter:
         </label>
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div className="flex gap-1">
           {[
             { value: 'all', label: 'All' },
             { value: 'exe', label: 'Apps' },
@@ -191,17 +195,7 @@ const UnifiedAppPathSearch = ({
               key={value}
               type="button"
               onClick={() => handleTypeFilterChange(value)}
-              style={{
-                padding: '4px 12px',
-                borderRadius: '16px',
-                border: `1px solid ${selectedAppType === value ? 'hsl(var(--wii-blue))' : 'hsl(var(--border-primary))'}`,
-                background: selectedAppType === value ? 'hsl(var(--wii-blue))' : 'hsl(var(--surface-primary))',
-                color: selectedAppType === value ? 'hsl(var(--text-inverse))' : 'hsl(var(--text-primary))',
-                fontSize: '12px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
+              className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-all duration-200 ease-out ${filterPillClass(value)}`}
             >
               {label}
             </button>
@@ -210,25 +204,16 @@ const UnifiedAppPathSearch = ({
       </div>
 
       {/* Search Input */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="flex items-center gap-2">
         <input
           type="text"
-          className="text-input"
+          className="text-input flex-1 rounded-lg border-[1.5px] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] px-3.5 py-3 text-base text-[hsl(var(--text-primary))]"
           placeholder={placeholder}
           value={localSearchQuery}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           disabled={disabled}
-          style={{ 
-            flex: 1,
-            padding: '12px 14px', 
-            fontSize: '16px', 
-            borderRadius: '8px', 
-            border: '1.5px solid hsl(var(--border-primary))',
-            background: 'hsl(var(--surface-primary))',
-            color: 'hsl(var(--text-primary))'
-          }}
         />
         
         <Button
@@ -236,7 +221,7 @@ const UnifiedAppPathSearch = ({
           size="sm"
           onClick={handleRescan}
           disabled={unifiedAppsLoading || disabled}
-          style={{ whiteSpace: 'nowrap' }}
+          className="shrink-0 whitespace-nowrap"
         >
           {unifiedAppsLoading ? 'Scanning...' : 'Rescan'}
         </Button>
@@ -246,123 +231,57 @@ const UnifiedAppPathSearch = ({
 
       {/* Loading State */}
       {unifiedAppsLoading && localSearchQuery && filteredApps.length === 0 && (
-        <div style={{ 
-          position: 'absolute', 
-          left: 0, 
-          top: '100%', 
-          color: 'hsl(var(--wii-blue))', 
-          fontWeight: '500', 
-          fontSize: '15px', 
-          marginTop: 4 
-        }}>
+        <div className="absolute left-0 top-full mt-1 text-[15px] font-medium text-[hsl(var(--wii-blue))]">
           <span>Scanning for apps...</span>
         </div>
       )}
 
       {/* Error State */}
       {unifiedAppsError && (
-        <div style={{ color: 'hsl(var(--state-error))', fontSize: '13px', marginTop: 8 }}>
+        <div className="mt-2 text-[13px] text-[hsl(var(--state-error))]">
           {unifiedAppsError}
         </div>
       )}
 
       {/* Results Dropdown */}
       {dropdownOpen && filteredApps.length > 0 && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          background: 'hsl(var(--surface-primary))',
-          border: '1px solid hsl(var(--border-primary))',
-          borderRadius: '8px',
-          boxShadow: 'var(--shadow-lg)',
-          zIndex: 1000,
-          maxHeight: '300px',
-          overflowY: 'auto'
-        }}>
-          {/* Virtual scrolling for large lists - show only first 50 items initially */}
-          {filteredApps.slice(0, 50).map((app, idx) => (
+        <div
+          className="absolute left-0 right-0 top-full z-[1000] max-h-[300px] overflow-y-auto rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] shadow-[var(--shadow-lg)]"
+        >
+          <div className="divide-y divide-[hsl(var(--border-primary))]">
+          {filteredApps.slice(0, 50).map((app) => (
             <div
               key={app.id}
-              style={{ 
-                padding: '12px 16px', 
-                cursor: 'pointer', 
-                borderBottom: idx < Math.min(filteredApps.length, 50) - 1 ? '1px solid hsl(var(--border-primary))' : 'none',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                borderRadius: idx === 0 ? '8px 8px 0 0' : idx === Math.min(filteredApps.length, 50) - 1 ? '0 0 8px 8px' : '0',
-                position: 'relative',
-                fontSize: '16px',
-                fontWeight: '500',
-                color: 'hsl(var(--text-primary))',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}
+              className="flex cursor-pointer items-center gap-3 px-4 py-3 text-base font-medium text-[hsl(var(--text-primary))] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-px hover:bg-[hsl(var(--state-hover))] hover:shadow-[var(--shadow-sm)]"
               onMouseDown={() => handleAppSelect(app)}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'hsl(var(--state-hover))';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
             >
               {/* App Icon */}
               {app.icon ? (
                 <img 
                   src={app.icon} 
                   alt={`${app.name} icon`}
-                  style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    borderRadius: '4px',
-                    objectFit: 'cover',
-                    transition: 'transform 0.2s ease'
-                  }}
-                  onError={e => {
+                  className="h-8 w-8 rounded object-cover transition-transform duration-200 ease-out"
+                  onError={(e) => {
                     e.target.style.display = 'none';
                   }}
                 />
               ) : (
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '4px',
-                  background: 'hsl(var(--surface-secondary))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '16px'
-                }}>
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-[hsl(var(--surface-secondary))] text-base">
                   {getAppTypeIcon(app.type)}
                 </div>
               )}
 
               {/* App Info */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', marginBottom: '2px' }}>
+              <div className="min-w-0 flex-1">
+                <div className="mb-0.5 font-semibold">
                   {app.name}
                 </div>
-                <div style={{ 
-                  fontSize: '13px', 
-                  color: 'hsl(var(--text-secondary))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
+                <div className="flex items-center gap-1 text-[13px] text-[hsl(var(--text-secondary))]">
                   <span>{getAppTypeLabel(app.type)}</span>
                   {app.path && (
                     <>
                       <span>•</span>
-                      <span style={{ 
-                        fontFamily: 'monospace',
-                        fontSize: '12px',
-                        opacity: '0.8'
-                      }}>
+                      <span className="font-mono text-xs opacity-80">
                         {app.path.length > 40 ? app.path.substring(0, 40) + '...' : app.path}
                       </span>
                     </>
@@ -371,30 +290,16 @@ const UnifiedAppPathSearch = ({
               </div>
 
               {/* Type Badge */}
-              <div style={{
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontSize: '11px',
-                fontWeight: '600',
-                background: 'hsl(var(--surface-secondary))',
-                color: 'hsl(var(--text-secondary))',
-                border: '1px solid hsl(var(--border-primary))'
-              }}>
+              <div className="shrink-0 rounded-xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-2 py-0.5 text-[11px] font-semibold text-[hsl(var(--text-secondary))]">
                 {getAppTypeLabel(app.type)}
               </div>
             </div>
           ))}
+          </div>
           
           {/* Show message if there are more results */}
           {filteredApps.length > 50 && (
-            <div style={{
-              padding: '8px 16px',
-              fontSize: '12px',
-              color: 'hsl(var(--text-secondary))',
-              textAlign: 'center',
-              borderTop: '1px solid hsl(var(--border-primary))',
-              background: 'hsl(var(--surface-secondary))'
-            }}>
+            <div className="border-t border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-4 py-2 text-center text-xs text-[hsl(var(--text-secondary))]">
               Showing first 50 results. Refine your search to see more.
             </div>
           )}
@@ -403,13 +308,7 @@ const UnifiedAppPathSearch = ({
 
       {/* No Results */}
       {dropdownOpen && !unifiedAppsLoading && filteredApps.length === 0 && localSearchQuery && (
-        <div style={{ 
-          color: 'hsl(var(--text-tertiary))', 
-          marginTop: 8,
-          fontSize: '14px',
-          textAlign: 'center',
-          padding: '12px'
-        }}>
+        <div className="mt-2 px-3 py-3 text-center text-sm text-[hsl(var(--text-tertiary))]">
           No apps found matching "{localSearchQuery}"
         </div>
       )}
@@ -417,4 +316,4 @@ const UnifiedAppPathSearch = ({
   );
 };
 
-export default UnifiedAppPathSearch; 
+export default UnifiedAppPathSearch;

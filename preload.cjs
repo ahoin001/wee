@@ -15,12 +15,7 @@ contextBridge.exposeInMainWorld('api', {
     get: () => ipcRenderer.invoke('channels:get'),
     set: (data) => ipcRenderer.invoke('channels:set', data),
   },
-  supabaseUpload: (data) => ipcRenderer.invoke('supabase:upload', data),
-  supabaseDelete: (data) => ipcRenderer.invoke('supabase:delete', data),
   sounds: {
-    get: () => ipcRenderer.invoke('sounds:get'),
-    set: (data) => ipcRenderer.invoke('sounds:set', data),
-    reset: () => ipcRenderer.invoke('sounds:reset'),
     add: (args) => ipcRenderer.invoke('add-sound', args),
     remove: (args) => ipcRenderer.invoke('remove-sound', args),
     update: (args) => ipcRenderer.invoke('update-sound', args),
@@ -80,7 +75,7 @@ contextBridge.exposeInMainWorld('api', {
   onFrameState: (cb) => ipcRenderer.on('frame-state', (e, val) => cb(val)),
   openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
   openExternal: (url) => ipcRenderer.send('open-external-url', url),
-  launchApp: (data) => ipcRenderer.send('launch-app', data),
+  launchApp: (data) => ipcRenderer.invoke('launch-app', data),
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
   setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
   // Auto-updater APIs
@@ -130,6 +125,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   executeCommand: (command) => ipcRenderer.invoke('execute-command', command),
   takeScreenshot: () => ipcRenderer.invoke('take-screenshot'),
+  capturePresetThumbnail: (options) => ipcRenderer.invoke('capture-preset-thumbnail', options),
   // Fresh install API
   getFreshInstallInfo: () => ipcRenderer.invoke('get-fresh-install-info'),
   triggerFreshInstall: () => ipcRenderer.invoke('trigger-fresh-install'),

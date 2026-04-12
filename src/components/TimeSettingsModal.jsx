@@ -4,27 +4,24 @@ import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
-// New unified data layer imports
+import './settings-modal-forms.css';
 import { useTimeState } from '../utils/useConsolidatedAppHooks';
 
 
 function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
-  // New unified data layer hooks
   const { time, setTimeState } = useTimeState();
-const timeSettings = time;
-const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
-  
-  const [timeColor, setTimeColor] = useState('#ffffff'); // Default white
-  const [recentTimeColors, setRecentTimeColors] = useState([]); // Color history
-  const [enableTimePill, setEnableTimePill] = useState(true); // Default enabled
-  const [timePillBlur, setTimePillBlur] = useState(8); // Default blur amount
-  const [timePillOpacity, setTimePillOpacity] = useState(0.05); // Default background opacity
-  const [timeFont, setTimeFont] = useState('default'); // Default font
+  const timeSettings = time;
+  const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
 
-  // Load current time settings on mount
+  const [timeColor, setTimeColor] = useState('#ffffff');
+  const [recentTimeColors, setRecentTimeColors] = useState([]);
+  const [enableTimePill, setEnableTimePill] = useState(true);
+  const [timePillBlur, setTimePillBlur] = useState(8);
+  const [timePillOpacity, setTimePillOpacity] = useState(0.05);
+  const [timeFont, setTimeFont] = useState('default');
+
   useEffect(() => {
     if (isOpen && timeSettings) {
-      // Load current settings from unified data layer
       setTimeColor(timeSettings.color || '#ffffff');
       setRecentTimeColors(timeSettings.recentColors || []);
       setEnableTimePill(timeSettings.enablePill ?? true);
@@ -34,17 +31,14 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
     }
   }, [isOpen, timeSettings]);
 
-  // Update color history when timeColor changes
   const updateTimeColor = (newColor) => {
     setTimeColor(newColor);
-    // Add to recent colors (keep only last 3)
     setRecentTimeColors(prev => {
       const filtered = prev.filter(color => color !== newColor);
       return [newColor, ...filtered].slice(0, 3);
     });
   };
 
-  // Reset to default values
   const resetToDefault = () => {
     setTimeColor('#ffffff');
     setEnableTimePill(true);
@@ -56,7 +50,6 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
 
   const handleSave = async (handleClose) => {
     try {
-      // Update using unified data layer
       updateTimeSetting('color', timeColor);
       updateTimeSetting('recentColors', recentTimeColors);
       updateTimeSetting('enablePill', enableTimePill);
@@ -64,7 +57,6 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
       updateTimeSetting('pillOpacity', timePillOpacity);
       updateTimeSetting('font', timeFont);
       
-      // Call onSettingsChange to notify parent component of the new settings
       if (onSettingsChange) {
         onSettingsChange({
           timeColor: timeColor,
@@ -89,78 +81,59 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
       onClose={onClose}
       maxWidth="700px"
       footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+        <div className="modal-footer-row">
           <Button 
             variant="secondary" 
             onClick={resetToDefault}
-            style={{
-              border: '2px solid hsl(var(--wii-blue))',
-              color: 'hsl(var(--wii-blue))',
-              background: 'transparent'
-            }}
+            className="modal-btn-reset-outline"
           >
             Reset to Default
           </Button>
           <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => handleSave(handleClose)} style={{ minWidth: 90 }}>Save</Button>
+          <Button variant="primary" onClick={() => handleSave(handleClose)} className="min-w-[90px]">Save</Button>
         </div>
       )}
     >
-      {/* Time Display Color Card */}
       <Card 
         title="Time Display Color"
         separator
         desc="Choose the color for the time and date display text."
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="modal-card-tight"
       >
-        <div style={{ marginTop: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <div className="modal-section-mt">
+          <div className="modal-color-row">
             <input
               type="color"
               value={timeColor}
               onChange={(e) => updateTimeColor(e.target.value)}
-              style={{
-                width: 50,
-                height: 40,
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer'
-              }}
+              className="modal-color-input"
             />
-            <span style={{ color: '#888', fontSize: 14 }}>
+            <span className="modal-hex-muted">
               {timeColor.toUpperCase()}
             </span>
           </div>
           {recentTimeColors.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <span style={{ fontSize: 13, color: '#888', marginRight: 2 }}>Previous:</span>
-              {recentTimeColors.map((color, idx) => (
+            <div className="modal-prev-row">
+              <span className="modal-prev-label">Previous:</span>
+              {recentTimeColors.map((color) => (
                 <button
                   key={color}
+                  type="button"
                   onClick={() => updateTimeColor(color)}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    border: color === timeColor ? '2px solid #0099ff' : '1.5px solid #bbb',
-                    background: color,
-                    cursor: 'pointer',
-                    outline: 'none',
-                    marginLeft: idx === 0 ? 0 : 2
-                  }}
+                  className={`modal-swatch ${color === timeColor ? 'modal-swatch--active' : ''}`}
+                  style={{ backgroundColor: color }}
                   title={color}
                 />
               ))}
             </div>
           )}
         </div>
-        {/* Font Selection */}
-        <div style={{ marginTop: 18 }}>
-          <label style={{ fontWeight: 500, marginRight: 10 }}>Time Font</label>
+        <div className="modal-font-row">
+          <label className="modal-font-label">Time Font</label>
           <select
             value={timeFont}
             onChange={e => setTimeFont(e.target.value)}
-            style={{ padding: 4, borderRadius: 6 }}
+            className="modal-select-compact"
           >
             <option value="default">Default</option>
             <option value="digital">DigitalDisplayRegular-ODEO</option>
@@ -168,9 +141,6 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
         </div>
       </Card>
 
-
-
-      {/* Time Pill Card */}
       <Card 
         title="Time Pill Display"
         separator
@@ -181,13 +151,13 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
             onChange={(checked) => setEnableTimePill(checked)}
           />
         }
-        style={{ marginTop: 18, marginBottom: 0 }}
+        className="modal-card-tight"
       >
         {enableTimePill && (
           <>
-            <div style={{ marginTop: 14 }}>
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+            <div className="modal-section-mt">
+              <div className="modal-mb-12">
+                <label className="modal-label-block">
                   Backdrop Blur: {timePillBlur}px
                 </label>
                 <input
@@ -196,11 +166,11 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
                   max="20"
                   value={timePillBlur}
                   onChange={(e) => setTimePillBlur(Number(e.target.value))}
-                  style={{ width: '100%' }}
+                  className="modal-range-full"
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+                <label className="modal-label-block">
                   Background Opacity: {Math.round(timePillOpacity * 100)}%
                 </label>
                 <input
@@ -210,7 +180,7 @@ const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
                   step="0.01"
                   value={timePillOpacity}
                   onChange={(e) => setTimePillOpacity(Number(e.target.value))}
-                  style={{ width: '100%' }}
+                  className="modal-range-full"
                 />
               </div>
             </div>
@@ -227,4 +197,4 @@ TimeSettingsModal.propTypes = {
   onSettingsChange: PropTypes.func,
 };
 
-export default TimeSettingsModal; 
+export default TimeSettingsModal;

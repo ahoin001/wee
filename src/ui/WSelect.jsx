@@ -22,8 +22,8 @@ const WSelect = ({
     bg-[hsl(var(--surface-secondary))] 
     border border-[hsl(var(--border-primary))]
     text-[hsl(var(--text-primary))]
-    rounded-lg
-    transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]
+    rounded-[var(--control-radius)]
+    transition-all duration-[var(--control-transition-duration)] ease-[var(--control-ease)]
     hover:border-[hsl(var(--border-secondary))]
     disabled:opacity-50 disabled:cursor-not-allowed
   `;
@@ -46,7 +46,7 @@ const WSelect = ({
           <Listbox.Button 
             className={`
               ${baseClasses} ${errorClasses} ${className}
-              px-4 py-3 text-left text-base font-medium
+              px-[var(--control-padding-x)] py-[var(--control-padding-y)] text-left text-[length:var(--control-font-size)] font-medium
               focus:outline-none focus:ring-2 focus:ring-[hsl(var(--wii-blue))] focus:ring-offset-2 focus:ring-offset-[hsl(var(--surface-primary))]
               focus:border-[hsl(var(--wii-blue))]
             `}
@@ -75,7 +75,7 @@ const WSelect = ({
             onEnter={() => setIsOpen(true)}
             onLeave={() => setIsOpen(false)}
           >
-            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-[hsl(var(--surface-secondary))] py-1 shadow-[var(--shadow-lg)] border border-[hsl(var(--border-primary))] focus:outline-none">
+            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-[var(--control-radius)] bg-[hsl(var(--surface-secondary))] py-1 shadow-[var(--shadow-lg)] border border-[hsl(var(--border-primary))] focus:outline-none">
               {options.map((option, index) => (
                 <Listbox.Option
                   key={option.value}

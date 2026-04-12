@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import './WiiStyleButton.css';
 
 const WiiStyleButton = ({ 
   children, 
@@ -47,26 +48,26 @@ const WiiStyleButton = ({
   };
 
   const baseStyle = {
-    minWidth: '80px',
-    height: '70px',
-    borderRadius: '50%',
-    background: useGlassEffect 
+    '--wii-style-bg': useGlassEffect
       ? (spotifySecondaryColor ? rgbToRgba(spotifySecondaryColor, glassOpacity) : `rgba(255, 255, 255, ${glassOpacity})`)
-      : (spotifySecondaryColor ? spotifySecondaryColor : 'white'),
-    border: useGlassEffect 
-      ? (spotifyAccentColor ? `4px solid ${rgbToRgba(spotifyAccentColor, glassBorderOpacity)}` : `4px solid rgba(255, 255, 255, ${glassBorderOpacity})`)
-      : (spotifyAccentColor ? `4px solid ${spotifyAccentColor}` : '4px solid #b0b0b0'),
-    boxShadow: useGlassEffect 
-      ? '0 4px 8px rgba(0, 0, 0, 0.1)'
-      : '0 4px 8px rgba(0, 0, 0, 0.2)',
-    backdropFilter: useGlassEffect ? `blur(${glassBlur}px)` : 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    outline: 'none',
-    position: 'relative',
+      : (spotifySecondaryColor || 'hsl(var(--surface-primary))'),
+    '--wii-style-border': useGlassEffect
+      ? (spotifyAccentColor ? rgbToRgba(spotifyAccentColor, glassBorderOpacity) : `rgba(255, 255, 255, ${glassBorderOpacity})`)
+      : (spotifyAccentColor || 'hsl(var(--border-primary))'),
+    '--wii-style-shadow': useGlassEffect ? '0 4px 8px rgba(0, 0, 0, 0.1)' : '0 4px 8px rgba(0, 0, 0, 0.2)',
+    '--wii-style-backdrop-blur': useGlassEffect ? `${glassBlur}px` : '0px',
+    '--wii-style-hover-shadow': useGlowEffect
+      ? `0 0 ${glowStrength}px ${spotifyAccentColor || (useAdaptiveColor ? ribbonGlowColor : 'hsl(var(--wii-blue))')}`
+      : useGlassEffect
+        ? '0 6px 12px rgba(0, 0, 0, 0.15)'
+        : '0 6px 12px rgba(0, 0, 0, 0.3)',
+    '--wii-style-hover-border': useGlowEffect
+      ? 'hsl(var(--border-primary))'
+      : useGlassEffect
+        ? (spotifyAccentColor ? rgbToRgba(spotifyAccentColor, glassBorderOpacity * 1.2) : `rgba(255, 255, 255, ${glassBorderOpacity})`)
+        : (spotifyAccentColor || (useAdaptiveColor ? ribbonGlowColor : 'hsl(var(--wii-blue))')),
+    '--wii-style-text': spotifyTextColor || 'inherit',
+    '--wii-style-shine': `linear-gradient(135deg, rgba(255,255,255,${glassShineOpacity}) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)`,
     ...style
   };
 
@@ -81,29 +82,10 @@ const WiiStyleButton = ({
     onMouseLeave?.(e);
   };
 
-  const hoverStyle = {
-    ...baseStyle,
-    transform: 'scale(1.05)',
-    boxShadow: useGlowEffect 
-      ? `0 0 ${glowStrength}px ${spotifyAccentColor || (useAdaptiveColor ? ribbonGlowColor : '#0099ff')}`
-      : useGlassEffect
-        ? '0 6px 12px rgba(0, 0, 0, 0.15)'
-        : '0 6px 12px rgba(0, 0, 0, 0.3)',
-    border: useGlowEffect 
-      ? '4px solid #b0b0b0' // Keep original border when using glow
-      : useGlassEffect
-        ? (spotifyAccentColor ? `4px solid ${rgbToRgba(spotifyAccentColor, glassBorderOpacity * 1.2)}` : `4px solid rgba(255, 255, 255, ${glassBorderOpacity})`)
-        : (spotifyAccentColor
-            ? `4px solid ${spotifyAccentColor}` 
-            : (useAdaptiveColor 
-                ? `4px solid ${ribbonGlowColor}` 
-                : '4px solid #0099ff'))
-  };
-
   return (
     <div
       className={`wii-style-button ${className}`}
-      style={isHovered ? hoverStyle : baseStyle}
+      style={{ ...baseStyle, '--wii-style-is-hovered': isHovered ? 1 : 0 }}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onMouseEnter={handleMouseEnter}
@@ -121,26 +103,10 @@ const WiiStyleButton = ({
     >
       {/* Glass shine effect */}
       {useGlassEffect && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: '50%',
-            background: `linear-gradient(135deg, rgba(255,255,255,${glassShineOpacity}) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)`,
-            pointerEvents: 'none',
-            zIndex: 1
-          }}
-        />
+        <div className="wii-style-button-shine" />
       )}
       {/* Content with higher z-index to appear above glass */}
-      <div style={{ 
-        position: 'relative', 
-        zIndex: 2,
-        color: spotifyTextColor || 'inherit'
-      }}>
+      <div className="wii-style-button-content">
         {children}
       </div>
     </div>
