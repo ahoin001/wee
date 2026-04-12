@@ -8,6 +8,7 @@ import WToggle from '../ui/WToggle';
 import SDCardiconModal from './SDCardiconModal';
 import WSelect from '../ui/WSelect';
 import { spacing } from '../ui/tokens';
+import { findDockThemePath, getDockThemeByPath } from '../utils/dockThemeUtils';
 
 import './SoundModal.css';
 
@@ -945,45 +946,33 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
 
   // Check if current colors match a theme
   const getCurrentTheme = () => {
-    for (const [groupKey, group] of Object.entries(THEME_GROUPS)) {
-      for (const [themeKey, theme] of Object.entries(group.themes)) {
-        const themePath = `${groupKey}.${themeKey}`;
-        const colors = theme.colors;
-        
-        if (
-          colors.dockBaseGradientStart === dockBaseGradientStart &&
-          colors.dockBaseGradientEnd === dockBaseGradientEnd &&
-          colors.dockAccentColor === dockAccentColor &&
-          colors.sdCardBodyColor === sdCardBodyColor &&
-          colors.sdCardBorderColor === sdCardBorderColor &&
-          colors.sdCardLabelColor === sdCardLabelColor &&
-          colors.sdCardLabelBorderColor === sdCardLabelBorderColor &&
-          colors.sdCardBottomColor === sdCardBottomColor &&
-          colors.leftPodBaseColor === leftPodBaseColor &&
-          colors.leftPodAccentColor === leftPodAccentColor &&
-          colors.leftPodDetailColor === leftPodDetailColor &&
-          colors.rightPodBaseColor === rightPodBaseColor &&
-          colors.rightPodAccentColor === rightPodAccentColor &&
-          colors.rightPodDetailColor === rightPodDetailColor &&
-          colors.buttonBorderColor === buttonBorderColor &&
-          colors.buttonGradientStart === buttonGradientStart &&
-          colors.buttonGradientEnd === buttonGradientEnd &&
-          colors.buttonIconColor === buttonIconColor &&
-          colors.rightButtonIconColor === rightButtonIconColor &&
-          colors.buttonHighlightColor === buttonHighlightColor
-        ) {
-          return themePath;
-        }
-      }
-    }
-    return null; // No matching theme found
+    return findDockThemePath(THEME_GROUPS, {
+      dockBaseGradientStart,
+      dockBaseGradientEnd,
+      dockAccentColor,
+      sdCardBodyColor,
+      sdCardBorderColor,
+      sdCardLabelColor,
+      sdCardLabelBorderColor,
+      sdCardBottomColor,
+      leftPodBaseColor,
+      leftPodAccentColor,
+      leftPodDetailColor,
+      rightPodBaseColor,
+      rightPodAccentColor,
+      rightPodDetailColor,
+      buttonBorderColor,
+      buttonGradientStart,
+      buttonGradientEnd,
+      buttonIconColor,
+      rightButtonIconColor,
+      buttonHighlightColor,
+    });
   };
 
   // Apply theme function
   const applyTheme = (themePath) => {
-    const [groupKey, themeKey] = themePath.split('.');
-    const group = THEME_GROUPS[groupKey];
-    const theme = group?.themes[themeKey];
+    const theme = getDockThemeByPath(THEME_GROUPS, themePath);
     if (theme) {
       setDockBaseGradientStart(theme.colors.dockBaseGradientStart);
       setDockBaseGradientEnd(theme.colors.dockBaseGradientEnd);

@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { useAppActivity } from '../hooks/useAppActivity';
 
 // Particle effect types
 const PARTICLE_TYPES = {
@@ -403,6 +405,9 @@ const DockParticleSystem = React.memo(({
   ribbonGlowColor = '#0099ff',
   clipPathFollow = false // New prop for clip path following
 }) => {
+  const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
+  const { isAppActive } = useAppActivity();
+
   // Performance optimization: Memoize settings to prevent unnecessary re-renders
   const memoizedSettings = useMemo(() => ({
     size: settings.size || 3,
@@ -421,7 +426,20 @@ const DockParticleSystem = React.memo(({
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
   const lastSpawnTimeRef = useRef(0);
+  const lastFrameTimeRef = useRef(0);
   const particlePoolRef = useRef([]);
+  const effectiveParticleCount = useMemo(
+    () => (lowPowerMode ? Math.max(1, Math.ceil(particleCount * 0.5)) : particleCount),
+    [lowPowerMode, particleCount]
+  );
+  const effectiveSpawnRate = useMemo(
+    () => (lowPowerMode ? Math.max(8, Math.floor(spawnRate * 0.5)) : spawnRate),
+    [lowPowerMode, spawnRate]
+  );
+  const frameIntervalMs = useMemo(
+    () => (lowPowerMode ? 1000 / 24 : 1000 / 60),
+    [lowPowerMode]
+  );
 
 
 
@@ -595,12 +613,12 @@ const DockParticleSystem = React.memo(({
     }
 
     const now = Date.now();
-    const spawnInterval = 1000 / spawnRate;
+    const spawnInterval = 1000 / effectiveSpawnRate;
     
     if (now - lastSpawnTimeRef.current < spawnInterval) return;
     lastSpawnTimeRef.current = now;
 
-    for (let i = 0; i < particleCount; i++) {
+    for (let i = 0; i < effectiveParticleCount; i++) {
       let x, y, speedX, speedY;
 
       if (clipPathFollow) {
@@ -678,13 +696,19 @@ const DockParticleSystem = React.memo(({
     }
     
 
-      }, [enabled, direction, speed, particleCount, spawnRate, effectType, memoizedSettings, getDockPosition, getParticleFromPool, clipPathFollow, getRandomBorderPoint]);
+      }, [enabled, direction, speed, effectiveParticleCount, effectiveSpawnRate, effectType, memoizedSettings, getDockPosition, getParticleFromPool, clipPathFollow, getRandomBorderPoint]);
 
   // Animation loop
-  const animate = useCallback(() => {
-    if (!enabled || !canvasRef.current) {
+  const animate = useCallback((timestamp = 0) => {
+    if (!enabled || !isAppActive || !canvasRef.current) {
       return;
     }
+
+    if (timestamp - lastFrameTimeRef.current < frameIntervalMs) {
+      animationRef.current = requestAnimationFrame(animate);
+      return;
+    }
+    lastFrameTimeRef.current = timestamp;
 
     const ctx = canvasRef.current.getContext('2d');
     const canvas = canvasRef.current;
@@ -721,13 +745,14 @@ const DockParticleSystem = React.memo(({
 
 
     // Limit particle count for performance based on device capabilities
-    const maxParticles = navigator.hardwareConcurrency ? Math.min(200, navigator.hardwareConcurrency * 10) : 150;
+    const baseMaxParticles = navigator.hardwareConcurrency ? Math.min(200, navigator.hardwareConcurrency * 10) : 150;
+    const maxParticles = lowPowerMode ? Math.min(baseMaxParticles, 80) : baseMaxParticles;
     if (particles.length > maxParticles) {
       particles.splice(0, particles.length - maxParticles);
     }
 
     animationRef.current = requestAnimationFrame(animate);
-  }, [enabled, createParticles, returnParticleToPool]);
+  }, [enabled, isAppActive, frameIntervalMs, lowPowerMode, createParticles, returnParticleToPool]);
 
   // Handle canvas resize
   const resizeCanvas = useCallback(() => {
@@ -748,7 +773,7 @@ const DockParticleSystem = React.memo(({
   // Effect hooks
   useEffect(() => {
     
-    if (!enabled) {
+    if (!enabled || !isAppActive) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
@@ -758,6 +783,7 @@ const DockParticleSystem = React.memo(({
     }
 
     resizeCanvas();
+    lastFrameTimeRef.current = 0;
     animate();
 
     const handleResize = () => {
@@ -772,7 +798,7 @@ const DockParticleSystem = React.memo(({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [enabled, animate, resizeCanvas]);
+  }, [enabled, isAppActive, animate, resizeCanvas]);
 
   // Cleanup on unmount
   useEffect(() => {

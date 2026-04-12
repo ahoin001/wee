@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSpotifyState, useFloatingWidgetsState } from '../utils/useConsolidatedAppHooks';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { useAppActivity } from '../hooks/useAppActivity';
+import { useFloatingWidgetFrame } from '../hooks/useFloatingWidgetFrame';
 import WToggle from '../ui/WToggle';
 import Slider from '../ui/Slider';
 import './FloatingSpotifyWidget.css';
@@ -7,6 +10,8 @@ import './FloatingSpotifyWidget.css';
 const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   const { spotify, spotifyManager, setSpotifyState } = useSpotifyState();
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
+  const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
+  const { isAppActive } = useAppActivity();
   
   // Debug: Log spotify state
   useEffect(() => {
@@ -44,11 +49,11 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   // Get spotify widget state from floating widgets
   const spotifyWidget = floatingWidgets.spotify;
   const spotifyPosition = spotifyWidget.position;
-  const setSpotifyPosition = (position) => {
+  const setSpotifyPosition = useCallback((position) => {
     setFloatingWidgetsState({
       spotify: { ...spotifyWidget, position }
     });
-  };
+  }, [setFloatingWidgetsState, spotifyWidget]);
 
   // Get settings with fallbacks
   const getSpotifySettings = () => {
@@ -72,22 +77,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   const [savedTracks, setSavedTracks] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
 
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  // Responsive size management
-  const [size, setSize] = useState(() => {
-    // Initialize with responsive size based on screen dimensions
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    
-    // Calculate responsive size (30-40% of screen, but within bounds)
-    const responsiveWidth = Math.min(Math.max(screenWidth * 0.35, 280), 600);
-    const responsiveHeight = Math.min(Math.max(screenHeight * 0.4, 250), 500);
-    
-    return { width: responsiveWidth, height: responsiveHeight };
-  });
   const [audioData, setAudioData] = useState(new Array(32).fill(0));
   const [currentPage, setCurrentPage] = useState('player'); // 'player', 'browse', or 'settings'
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,79 +92,25 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   });
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekPosition, setSeekPosition] = useState(0);
-  const widgetRef = useRef(null);
   const animationRef = useRef(null);
+  const lastVisualizerFrameRef = useRef(0);
+  const {
+    widgetRef,
+    size,
+    isDragging,
+    isResizing,
+    handleHeaderMouseDown,
+    handleResizeStart,
+  } = useFloatingWidgetFrame({ setPosition: setSpotifyPosition });
 
-  // Header dragging logic - only allow dragging from header
-  const handleHeaderMouseDown = useCallback((e) => {
-    // Prevent dragging if clicking on interactive elements
-    if (e.target.closest('.page-btn')) return;
-    
-    setIsDragging(true);
-    const rect = widgetRef.current.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
-  }, []);
-
-  const handleMouseMove = useCallback((e) => {
-    if (!isDragging) return;
-    
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
-    
-    // Ensure widget stays within viewport bounds
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    
-    const boundedX = Math.max(0, Math.min(screenWidth - size.width, newX));
-    const boundedY = Math.max(0, Math.min(screenHeight - size.height, newY));
-    
-    setSpotifyPosition({ x: boundedX, y: boundedY });
-  }, [isDragging, dragOffset, setSpotifyPosition, size.width, size.height]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  // Resizing logic
-  const handleResizeStart = useCallback((e) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    const rect = widgetRef.current.getBoundingClientRect();
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY,
-      width: rect.width,
-      height: rect.height
-    });
-  }, []);
-
-  const handleResizeMove = useCallback((e) => {
-    if (!isResizing) return;
-    
-    const deltaX = e.clientX - resizeStart.x;
-    const deltaY = e.clientY - resizeStart.y;
-    
-    // Responsive resize limits based on screen size
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    
-    const minWidth = Math.max(200, screenWidth * 0.15);
-    const maxWidth = Math.min(800, screenWidth * 0.8);
-    const minHeight = Math.max(150, screenHeight * 0.2);
-    const maxHeight = Math.min(600, screenHeight * 0.7);
-    
-    const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStart.width + deltaX));
-    const newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStart.height + deltaY));
-    
-    setSize({ width: newWidth, height: newHeight });
-  }, [isResizing, resizeStart]);
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-  }, []);
+  const allowEnhancedVisualizerEffects = isAppActive && !lowPowerMode;
+  const visualizerFrameThrottleMs = lowPowerMode ? 120 : 48;
+  const effectiveBlurAmount = allowEnhancedVisualizerEffects
+    ? (spotifySettings.blurAmount || 0)
+    : Math.min(spotifySettings.blurAmount || 0, 8);
+  const effectiveTrackInfoBlur = allowEnhancedVisualizerEffects
+    ? (spotifySettings.trackInfoPanelBlur || 0)
+    : Math.min(spotifySettings.trackInfoPanelBlur || 0, 6);
 
   // Extract colors from album art using Canvas API with improved contrast
   const extractColorsFromImage = (imageUrl) => {
@@ -434,12 +369,15 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
   useEffect(() => {
     let animationId = null;
     
-    const animate = () => {
-      updateVisualizer();
+    const animate = (timestamp) => {
+      if (timestamp - lastVisualizerFrameRef.current >= visualizerFrameThrottleMs) {
+        updateVisualizer();
+        lastVisualizerFrameRef.current = timestamp;
+      }
       animationId = requestAnimationFrame(animate);
     };
     
-    if (isVisible && currentPage === 'player' && isPlaying) {
+    if (isVisible && isAppActive && currentPage === 'player' && isPlaying) {
       console.log('[Visualizer] Starting optimized animation loop');
       animate();
     }
@@ -450,18 +388,20 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
         cancelAnimationFrame(animationId);
       }
     };
-  }, [isVisible, currentPage, isPlaying, updateVisualizer]);
+  }, [isVisible, isAppActive, currentPage, isPlaying, updateVisualizer, visualizerFrameThrottleMs]);
 
   // Refresh playback state and load data periodically
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || !isAppActive) return;
+
+    const playbackPollIntervalMs = lowPowerMode ? 6000 : 2000;
     
     const interval = setInterval(() => {
       spotifyManager.refreshPlaybackState();
-    }, 2000);
+    }, playbackPollIntervalMs);
     
     return () => clearInterval(interval);
-  }, [isVisible, spotifyManager]);
+  }, [isVisible, isAppActive, lowPowerMode, spotifyManager]);
 
   // Load playlists and saved tracks when browsing page is opened
   useEffect(() => {
@@ -512,62 +452,6 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
       loadData();
     }
   }, [isVisible, currentPage, spotifyManager]);
-
-  // Global mouse event listeners for dragging
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
-
-  // Global mouse event listeners for resizing
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleResizeMove);
-      document.addEventListener('mouseup', handleResizeEnd);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleResizeMove);
-        document.removeEventListener('mouseup', handleResizeEnd);
-      };
-    }
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
-
-  // Responsive window resize handler
-  useEffect(() => {
-    const handleWindowResize = () => {
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
-      
-      // Adjust widget size if it's too large for the new screen size
-      const maxWidth = Math.min(800, screenWidth * 0.8);
-      const maxHeight = Math.min(600, screenHeight * 0.7);
-      
-      if (size.width > maxWidth || size.height > maxHeight) {
-        setSize(prev => ({
-          width: Math.min(prev.width, maxWidth),
-          height: Math.min(prev.height, maxHeight)
-        }));
-      }
-      
-      // Ensure widget position is within bounds
-      const boundedX = Math.max(0, Math.min(screenWidth - size.width, spotifyPosition.x));
-      const boundedY = Math.max(0, Math.min(screenHeight - size.height, spotifyPosition.y));
-      
-      if (boundedX !== spotifyPosition.x || boundedY !== spotifyPosition.y) {
-        setSpotifyPosition({ x: boundedX, y: boundedY });
-      }
-    };
-
-    window.addEventListener('resize', handleWindowResize);
-    return () => window.removeEventListener('resize', handleWindowResize);
-  }, [size.width, size.height, spotifyPosition.x, spotifyPosition.y, setSpotifyPosition]);
 
   // Handle search
   const handleSearch = async () => {
@@ -889,7 +773,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
           className="blurred-background-layer"
           style={{
             background: `url(${currentTrack.album.images[0].url}) center/cover`,
-            filter: `blur(${spotifySettings.blurAmount || 0}px)`,
+            filter: `blur(${effectiveBlurAmount}px)`,
           }}
         />
       )}
@@ -926,10 +810,10 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   height: `${circleSize}px`,
                   borderRadius: '50%',
                   transform: `scale(${0.3 + height * 0.7}) rotate(${height * 360}deg)`,
-                  boxShadow: height > 0.3 ? 
+                  boxShadow: allowEnhancedVisualizerEffects && height > 0.3 ? 
                     `0 0 ${height * 15}px ${height * 8}px ${dynamicColors.accent || '#ffffff'}` : 'none',
-                  filter: height > 0.6 ? 'blur(0.3px)' : 'none',
-                  animation: height > 0.5 ? 'pulse 0.5s ease-in-out infinite alternate' : 'none'
+                  filter: allowEnhancedVisualizerEffects && height > 0.6 ? 'blur(0.3px)' : 'none',
+                  animation: allowEnhancedVisualizerEffects && height > 0.5 ? 'pulse 0.5s ease-in-out infinite alternate' : 'none'
                 };
                 break;
               case 'waves':
@@ -938,10 +822,10 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   height: `${height * maxHeight}px`,
                   borderRadius: `${barWidth}px`,
                   transform: `scaleY(${0.2 + height * 0.8}) scaleX(${0.8 + height * 0.4})`,
-                  filter: height > 0.5 ? `blur(${height * 0.8}px)` : 'none',
-                  boxShadow: height > 0.4 ? 
+                  filter: allowEnhancedVisualizerEffects && height > 0.5 ? `blur(${height * 0.8}px)` : 'none',
+                  boxShadow: allowEnhancedVisualizerEffects && height > 0.4 ? 
                     `0 0 ${height * 12}px ${height * 4}px ${dynamicColors.accent || '#ffffff'}` : 'none',
-                  animation: height > 0.6 ? 'wave 0.8s ease-in-out infinite' : 'none'
+                  animation: allowEnhancedVisualizerEffects && height > 0.6 ? 'wave 0.8s ease-in-out infinite' : 'none'
                 };
                 break;
               case 'sparkle':
@@ -951,10 +835,10 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   height: `${sparkleSize}px`,
                   borderRadius: '50%',
                   transform: `scale(${0.2 + height * 0.8}) rotate(${height * 720 + index * 45}deg)`,
-                  boxShadow: height > 0.2 ? 
+                  boxShadow: allowEnhancedVisualizerEffects && height > 0.2 ? 
                     `0 0 ${height * 20}px ${height * 6}px ${dynamicColors.accent || '#ffffff'}` : 'none',
-                  filter: height > 0.5 ? 'blur(0.2px)' : 'none',
-                  animation: height > 0.4 ? `sparkle ${0.4 + height * 0.6}s ease-in-out infinite` : 'none',
+                  filter: allowEnhancedVisualizerEffects && height > 0.5 ? 'blur(0.2px)' : 'none',
+                  animation: allowEnhancedVisualizerEffects && height > 0.4 ? `sparkle ${0.4 + height * 0.6}s ease-in-out infinite` : 'none',
                   background: `radial-gradient(circle, ${dynamicColors.accent || '#ffffff'} 0%, transparent 70%)`
                 };
                 break;
@@ -965,10 +849,10 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   height: `${barHeight}px`,
                   borderRadius: `${barWidth / 2}px`,
                   transform: `scaleY(${0.1 + height * 0.9}) scaleX(${0.9 + height * 0.2})`,
-                  boxShadow: height > 0.3 ? 
+                  boxShadow: allowEnhancedVisualizerEffects && height > 0.3 ? 
                     `0 0 ${height * 12}px ${height * 3}px ${dynamicColors.accent || '#ffffff'}` : 'none',
-                  filter: height > 0.7 ? 'blur(0.2px)' : 'none',
-                  animation: height > 0.5 ? `barPulse ${0.3 + height * 0.4}s ease-in-out infinite alternate` : 'none',
+                  filter: allowEnhancedVisualizerEffects && height > 0.7 ? 'blur(0.2px)' : 'none',
+                  animation: allowEnhancedVisualizerEffects && height > 0.5 ? `barPulse ${0.3 + height * 0.4}s ease-in-out infinite alternate` : 'none',
                   background: height > 0.6 ? 
                     `linear-gradient(180deg, ${dynamicColors.accent || '#ffffff'} 0%, ${dynamicColors.primary || '#1db954'} 100%)` :
                     (spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url 
@@ -986,7 +870,9 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                   ...visualizerStyle,
                   animationDelay: `${index * 0.03}s`,
                   opacity: height > 0 ? 0.6 + height * 0.4 : 0.15,
-                  transition: 'all 0.08s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: allowEnhancedVisualizerEffects
+                    ? 'all 0.08s cubic-bezier(0.4, 0, 0.2, 1)'
+                    : 'transform 0.16s linear, opacity 0.16s linear',
                   zIndex: Math.floor(height * 10)
                 }}
               />
@@ -1055,7 +941,7 @@ const FloatingSpotifyWidget = ({ isVisible, onClose }) => {
                 className={`track-info-card ${size.width < 300 ? 'flex-col items-center text-center' : 'flex-row items-start text-left'}`}
                 style={{
                   opacity: spotifySettings.trackInfoPanelOpacity,
-                  backdropFilter: `blur(${spotifySettings.trackInfoPanelBlur}px)`
+                  backdropFilter: `blur(${effectiveTrackInfoBlur}px)`
                 }}
               >
                 <div 

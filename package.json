@@ -56,6 +56,7 @@
     "release": "node scripts/release.cjs",
     "test-installer": "node scripts/test-installer.cjs",
     "test-updates": "node test-update-check.js",
+    "test:smoke": "node scripts/smoke-check.cjs",
     "release:patch": "node scripts/auto-release.cjs patch",
     "release:minor": "node scripts/auto-release.cjs minor",
     "release:major": "node scripts/auto-release.cjs major",

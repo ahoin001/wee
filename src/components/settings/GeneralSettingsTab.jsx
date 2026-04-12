@@ -45,6 +45,7 @@ const GeneralSettingsTab = React.memo(() => {
             useCustomCursor: appearanceSettings.useCustomCursor ?? true,
             cursorStyle: appearanceSettings.cursorStyle ?? 'classic',
             settingsShortcut: systemSettings.settingsShortcut || '',
+            lowPowerMode: systemSettings.lowPowerMode ?? false,
             classicMode: dockSettings.classicMode ?? false,
             showDock: dockSettings.showDock ?? true,
           });
@@ -162,6 +163,12 @@ const GeneralSettingsTab = React.memo(() => {
     saveUISettings({ cursorStyle: style }, 'appearance');
   }, [setUIState, saveUISettings]);
 
+  const handleLowPowerModeChange = useCallback((checked) => {
+    console.log('[GeneralSettingsTab] Low Power Mode changed:', checked);
+    setUIState({ lowPowerMode: checked });
+    saveUISettings({ lowPowerMode: checked }, 'system');
+  }, [setUIState, saveUISettings]);
+
   const handleFreshInstall = useCallback(async () => {
     if (window.confirm('Are you sure you want to restore to a fresh install? This will backup your current data and give you a clean start. Your old data will be preserved in a backup folder.')) {
       try {
@@ -250,6 +257,20 @@ const GeneralSettingsTab = React.memo(() => {
           <WToggle
             checked={ui.showDock ?? true}
             onChange={handleShowDockChange}
+          />
+        }
+        className="mb-5"
+      />
+
+      {/* Low Power Mode */}
+      <Card
+        title="Low Power Mode"
+        separator
+        desc="Reduces background polling and animation cadence to keep CPU/GPU usage lower while the app is idle or running in the background."
+        headerActions={
+          <WToggle
+            checked={ui.lowPowerMode ?? false}
+            onChange={handleLowPowerModeChange}
           />
         }
         className="mb-5"

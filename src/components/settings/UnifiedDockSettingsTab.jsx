@@ -6,6 +6,7 @@ import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import WSelect from '../../ui/WSelect';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { findDockThemePath, getDockThemeByPath } from '../../utils/dockThemeUtils';
 
 // Add CSS for pulse animation
 const pulseAnimation = `
@@ -288,9 +289,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
   // Classic Dock handlers
   const applyTheme = useCallback((themePath) => {
-    const [groupKey, themeKey] = themePath.split('.');
-    const group = THEME_GROUPS[groupKey];
-    const theme = group?.themes[themeKey];
+    const theme = getDockThemeByPath(THEME_GROUPS, themePath);
     if (theme) {
       // Update consolidated store with theme colors
       setDockState(theme.colors);
@@ -303,38 +302,28 @@ const UnifiedDockSettingsTab = React.memo(() => {
   }, [saveSetting, setDockState]);
 
   const getCurrentTheme = useCallback(() => {
-    for (const [groupKey, group] of Object.entries(THEME_GROUPS)) {
-      for (const [themeKey, theme] of Object.entries(group.themes)) {
-        const themePath = `${groupKey}.${themeKey}`;
-        const colors = theme.colors;
-        
-        if (
-          colors.dockBaseGradientStart === dock?.dockBaseGradientStart &&
-          colors.dockBaseGradientEnd === dock?.dockBaseGradientEnd &&
-          colors.dockAccentColor === dock?.dockAccentColor &&
-          colors.sdCardBodyColor === dock?.sdCardBodyColor &&
-          colors.sdCardBorderColor === dock?.sdCardBorderColor &&
-          colors.sdCardLabelColor === dock?.sdCardLabelColor &&
-          colors.sdCardLabelBorderColor === dock?.sdCardLabelBorderColor &&
-          colors.sdCardBottomColor === dock?.sdCardBottomColor &&
-          colors.leftPodBaseColor === dock?.leftPodBaseColor &&
-          colors.leftPodAccentColor === dock?.leftPodAccentColor &&
-          colors.leftPodDetailColor === dock?.leftPodDetailColor &&
-          colors.rightPodBaseColor === dock?.rightPodBaseColor &&
-          colors.rightPodAccentColor === dock?.rightPodAccentColor &&
-          colors.rightPodDetailColor === dock?.rightPodDetailColor &&
-          colors.buttonBorderColor === dock?.buttonBorderColor &&
-          colors.buttonGradientStart === dock?.buttonGradientStart &&
-          colors.buttonGradientEnd === dock?.buttonGradientEnd &&
-          colors.buttonIconColor === dock?.buttonIconColor &&
-          colors.rightButtonIconColor === dock?.rightButtonIconColor &&
-          colors.buttonHighlightColor === dock?.buttonHighlightColor
-        ) {
-          return themePath;
-        }
-      }
-    }
-    return null;
+    return findDockThemePath(THEME_GROUPS, {
+      dockBaseGradientStart: dock?.dockBaseGradientStart,
+      dockBaseGradientEnd: dock?.dockBaseGradientEnd,
+      dockAccentColor: dock?.dockAccentColor,
+      sdCardBodyColor: dock?.sdCardBodyColor,
+      sdCardBorderColor: dock?.sdCardBorderColor,
+      sdCardLabelColor: dock?.sdCardLabelColor,
+      sdCardLabelBorderColor: dock?.sdCardLabelBorderColor,
+      sdCardBottomColor: dock?.sdCardBottomColor,
+      leftPodBaseColor: dock?.leftPodBaseColor,
+      leftPodAccentColor: dock?.leftPodAccentColor,
+      leftPodDetailColor: dock?.leftPodDetailColor,
+      rightPodBaseColor: dock?.rightPodBaseColor,
+      rightPodAccentColor: dock?.rightPodAccentColor,
+      rightPodDetailColor: dock?.rightPodDetailColor,
+      buttonBorderColor: dock?.buttonBorderColor,
+      buttonGradientStart: dock?.buttonGradientStart,
+      buttonGradientEnd: dock?.buttonGradientEnd,
+      buttonIconColor: dock?.buttonIconColor,
+      rightButtonIconColor: dock?.rightButtonIconColor,
+      buttonHighlightColor: dock?.buttonHighlightColor,
+    });
   }, [dock]);
 
   const handleColorChange = useCallback((key, value) => {

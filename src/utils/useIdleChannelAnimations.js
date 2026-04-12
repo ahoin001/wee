@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import useConsolidatedAppStore from './useConsolidatedAppStore';
+import { useAppActivity } from '../hooks/useAppActivity';
 
 const useIdleChannelAnimations = (
   enabled,
@@ -6,6 +8,8 @@ const useIdleChannelAnimations = (
   interval = 8,
   channels = []
 ) => {
+  const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
+  const { isAppActive } = useAppActivity();
   const [activeAnimations, setActiveAnimations] = useState(new Set());
   const intervalRef = useRef(null);
   const timeoutRefs = useRef(new Set());
@@ -108,9 +112,11 @@ const useIdleChannelAnimations = (
     startAnimation(channelId, randomAnimationType);
   }, [getChannelsWithContent, animationTypes, activeAnimations, startAnimation]);
 
+  const effectiveInterval = lowPowerMode ? Math.max(interval, 20) : interval;
+
   // Set up interval for random animations - with proper dependencies
   useEffect(() => {
-    if (!enabled || animationTypes.length === 0) {
+    if (!enabled || animationTypes.length === 0 || !isAppActive) {
       // Clear existing interval and animations
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -148,7 +154,7 @@ const useIdleChannelAnimations = (
       }
 
       startAnimation(channelId, randomAnimationType);
-    }, interval * 1000);
+    }, effectiveInterval * 1000);
 
     return () => {
       if (intervalRef.current) {
@@ -156,7 +162,7 @@ const useIdleChannelAnimations = (
         intervalRef.current = null;
       }
     };
-  }, [enabled, interval, animationTypes.length, getChannelsWithContent, animationTypes, startAnimation]);
+  }, [enabled, effectiveInterval, animationTypes.length, getChannelsWithContent, animationTypes, startAnimation, isAppActive]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -197,6 +203,7 @@ const useIdleChannelAnimations = (
     getChannelAnimationClass,
     isChannelAnimating,
     activeAnimations: activeAnimations.size,
+    isThrottled: lowPowerMode || !isAppActive,
     triggerRandomAnimation: enabled ? triggerRandomAnimation : null
   };
 };

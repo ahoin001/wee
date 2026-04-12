@@ -1,8 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
+import { useShallow } from 'zustand/react/shallow';
 import useWallpaperCycling from './utils/useWallpaperCycling';
 import useSoundManager from './utils/useSoundManager';
 import useKeyboardShortcuts from './utils/useKeyboardShortcuts';
+import { electronApi } from './utils/electronApi';
+import {
+  useCursorEffect,
+  useThemeEffect,
+  useBackgroundMusicEffects,
+  useFullscreenEffect,
+  useGlobalKeyHandlers,
+} from './hooks/useAppShellEffects';
+import { useAppInitialization } from './hooks/useAppInitialization';
 import { 
   useTimeColor, 
   useEnableTimePill, 
@@ -13,6 +23,7 @@ import {
 import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen from './components/SplashScreen';
 import WallpaperOverlay from './components/WallpaperOverlay';
+import IsolatedWallpaperBackground from './components/IsolatedWallpaperBackground';
 import SpotifyImmersiveOverlay from './components/SpotifyImmersiveOverlay';
 import SpotifyGradientOverlay from './components/SpotifyGradientOverlay';
 import SpotifyLiveGradientWallpaper from './components/SpotifyLiveGradientWallpaper';
@@ -33,47 +44,77 @@ const LazyPerformanceMonitor = React.lazy(() => import('./components/Performance
 
 
 function App() {
-  // Use consolidated store for single source of truth
   const {
-    app: { appReady, isLoading, splashFading },
-        ui: {
-      isDarkMode,
-      useCustomCursor,
-      cursorStyle,
-      startInFullscreen,
-      showDock,
-      classicMode,
-      showSettingsModal,
-      settingsActiveTab,
-      showSettingsActionMenu
-    },
-    ribbon: {
-        ribbonColor,
-        ribbonGlowColor,
-        ribbonGlowStrength,
-        ribbonGlowStrengthHover,
-        ribbonDockOpacity,
-      glassWiiRibbon,
-      glassOpacity,
-      glassBlur,
-      glassBorderOpacity,
-      glassShineOpacity,
-        ribbonButtonConfigs,
-      presetsButtonConfig
-    },
+    appReady,
+    isLoading,
+    splashFading,
+    isDarkMode,
+    useCustomCursor,
+    cursorStyle,
+    startInFullscreen,
+    showDock,
+    classicMode,
+    showSettingsModal,
+    settingsActiveTab,
+    showSettingsActionMenu,
+    ribbonColor,
+    ribbonGlowColor,
+    ribbonGlowStrength,
+    ribbonGlowStrengthHover,
+    ribbonDockOpacity,
+    glassWiiRibbon,
+    glassOpacity,
+    glassBlur,
+    glassBorderOpacity,
+    glassShineOpacity,
+    ribbonButtonConfigs,
+    presetsButtonConfig,
     wallpaper,
-    overlay: {
-      enabled,
-      effect,
-      intensity,
-      speed,
-      wind,
-      gravity
-    },
+    enabled,
+    effect,
+    intensity,
+    speed,
+    wind,
+    gravity,
     floatingWidgets,
     dock,
-    // Time settings using individual hooks for proper property mapping
-  } = useConsolidatedAppStore();
+  } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      appReady: state.app.appReady,
+      isLoading: state.app.isLoading,
+      splashFading: state.app.splashFading,
+      isDarkMode: state.ui.isDarkMode,
+      useCustomCursor: state.ui.useCustomCursor,
+      cursorStyle: state.ui.cursorStyle,
+      startInFullscreen: state.ui.startInFullscreen,
+      showDock: state.ui.showDock,
+      classicMode: state.ui.classicMode,
+      showSettingsModal: state.ui.showSettingsModal,
+      settingsActiveTab: state.ui.settingsActiveTab,
+      showSettingsActionMenu: state.ui.showSettingsActionMenu,
+      ribbonColor: state.ribbon.ribbonColor,
+      ribbonGlowColor: state.ribbon.ribbonGlowColor,
+      ribbonGlowStrength: state.ribbon.ribbonGlowStrength,
+      ribbonGlowStrengthHover: state.ribbon.ribbonGlowStrengthHover,
+      ribbonDockOpacity: state.ribbon.ribbonDockOpacity,
+      glassWiiRibbon: state.ribbon.glassWiiRibbon,
+      glassOpacity: state.ribbon.glassOpacity,
+      glassBlur: state.ribbon.glassBlur,
+      glassBorderOpacity: state.ribbon.glassBorderOpacity,
+      glassShineOpacity: state.ribbon.glassShineOpacity,
+      ribbonButtonConfigs: state.ribbon.ribbonButtonConfigs,
+      presetsButtonConfig: state.ribbon.presetsButtonConfig,
+      wallpaper: state.wallpaper,
+      enabled: state.overlay.enabled,
+      effect: state.overlay.effect,
+      intensity: state.overlay.intensity,
+      speed: state.overlay.speed,
+      wind: state.overlay.wind,
+      gravity: state.overlay.gravity,
+      floatingWidgets: state.floatingWidgets,
+      dock: state.dock,
+    }))
+  );
 
   // Time settings using individual hooks for proper property mapping
   const timeColor = useTimeColor();
@@ -83,55 +124,6 @@ function App() {
   const timeFont = useTimeFont();
   
 
-
-  // Initialize store with backend data on app startup
-  useEffect(() => {
-    const initializeStoreFromBackend = async () => {
-      try {
-        console.log('[App] Initializing store from backend...');
-        
-        if (window.api?.data?.get) {
-          const data = await window.api.data.get();
-          console.log('[App] Backend data loaded:', data);
-          
-          // Update store with backend settings
-          const { actions } = useConsolidatedAppStore.getState();
-          
-          // Update dock settings
-          if (data?.settings?.dock) {
-            console.log('[App] Updating dock settings from backend:', data.settings.dock);
-            actions.setDockState(data.settings.dock);
-          }
-          
-          // Update other settings as needed
-          if (data?.settings?.sounds) {
-            console.log('[App] Updating sound settings from backend:', data.settings.sounds);
-            actions.setSoundState(data.settings.sounds);
-          }
-          
-          if (data?.settings?.ui) {
-            console.log('[App] Updating UI settings from backend:', data.settings.ui);
-            actions.setUIState(data.settings.ui);
-          }
-          
-          console.log('[App] Store initialization complete');
-          
-          // Debug: Check final dock state after initialization
-          const finalState = useConsolidatedAppStore.getState();
-          console.log('[App] Final dock state after initialization:', finalState.dock);
-        } else {
-          console.error('[App] Backend API not available for store initialization');
-        }
-      } catch (error) {
-        console.error('[App] Failed to initialize store from backend:', error);
-      }
-    };
-    
-    // Only initialize when app is ready
-    if (appReady) {
-      initializeStoreFromBackend();
-    }
-  }, [appReady]);
 
   // Initialize wallpaper cycling (only for cycling status indicator)
   const { isCycling, cycleToNextWallpaper } = useWallpaperCycling();
@@ -197,42 +189,13 @@ function App() {
     };
   }, [floatingWidgets]);
 
-  // Initialize background music when app is ready
-  useEffect(() => {
-    if (appReady && soundSettings?.backgroundMusicEnabled) {
-      console.log('[App] App ready and background music enabled - starting background music...');
-      startBackgroundMusic();
-    }
-  }, [appReady, soundSettings?.backgroundMusicEnabled, startBackgroundMusic]);
-
-  // Handle background music updates when sound settings change
-  useEffect(() => {
-    if (appReady && soundSettings?.backgroundMusicEnabled) {
-      console.log('[App] Sound settings changed - updating background music...');
-      updateBackgroundMusic();
-    }
-  }, [appReady, soundSettings, updateBackgroundMusic]);
-
-  // Watch for background music enable/disable changes and respond immediately
-  useEffect(() => {
-    if (appReady) {
-      if (soundSettings?.backgroundMusicEnabled) {
-        console.log('[App] Background music enabled - starting immediately...');
-        startBackgroundMusic();
-      } else {
-        console.log('[App] Background music disabled - stopping immediately...');
-        stopBackgroundMusic();
-      }
-    }
-  }, [appReady, soundSettings?.backgroundMusicEnabled, startBackgroundMusic, stopBackgroundMusic]);
-
-  // Cleanup background music on unmount
-  useEffect(() => {
-    return () => {
-      console.log('[App] App unmounting - stopping background music...');
-      stopBackgroundMusic();
-    };
-  }, [stopBackgroundMusic]);
+  useBackgroundMusicEffects({
+    appReady,
+    soundSettings,
+    startBackgroundMusic,
+    stopBackgroundMusic,
+    updateBackgroundMusic,
+  });
 
   // Handle settings changes from SettingsModal
   const handleSettingsChange = useCallback((settings) => {
@@ -250,17 +213,32 @@ function App() {
 
   // Actions from consolidated store
   const {
-    actions: { 
-      setAppState, 
-      setUIState, 
-      setRibbonState, 
-      setWallpaperState, 
-      setChannelState,
-      setOverlayState,
-      setTimeState,
-      setPresets
-    }
-  } = useConsolidatedAppStore();
+    setAppState,
+    setUIState,
+    setRibbonState,
+    setWallpaperState,
+    setChannelState,
+    setChannelData,
+    setOverlayState,
+    setTimeState,
+    setDockState,
+    setSoundsState,
+    setPresets,
+  } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setAppState: state.actions.setAppState,
+      setUIState: state.actions.setUIState,
+      setRibbonState: state.actions.setRibbonState,
+      setWallpaperState: state.actions.setWallpaperState,
+      setChannelState: state.actions.setChannelState,
+      setChannelData: state.actions.setChannelData,
+      setOverlayState: state.actions.setOverlayState,
+      setTimeState: state.actions.setTimeState,
+      setDockState: state.actions.setDockState,
+      setSoundsState: state.actions.setSoundsState,
+      setPresets: state.actions.setPresets,
+    }))
+  );
 
   // Settings action menu state and positioning
   const [settingsMenuPosition, setSettingsMenuPosition] = useState({ x: 0, y: 0 });
@@ -282,666 +260,63 @@ function App() {
 
   // Debug function to open developer tools
   const openDevTools = useCallback(() => {
-    console.log('[DEBUG] 🔧 Attempting to open DevTools...');
-    console.log('[DEBUG] 🔧 window.api available:', !!window.api);
-    console.log('[DEBUG] 🔧 window.api.openDevTools available:', !!window.api?.openDevTools);
-    console.log('[DEBUG] 🔧 window.api.forceDevTools available:', !!window.api?.forceDevTools);
-    
-    // Log all available window.api methods
-    if (window.api) {
-      console.log('[DEBUG] 🔧 Available window.api methods:', Object.keys(window.api));
-    }
-    
-    // Try multiple methods
-    const tryOpenDevTools = async () => {
-      try {
-        // Method 1: Standard openDevTools
-        if (window.api?.openDevTools) {
-          console.log('[DEBUG] 🔧 Trying openDevTools...');
-          const result = await window.api.openDevTools();
-          console.log('[DEBUG] 🔧 openDevTools result:', result);
-          if (result.success) return;
-        }
-        
-        // Method 2: Force DevTools
-        if (window.api?.forceDevTools) {
-          console.log('[DEBUG] 🔧 Trying forceDevTools...');
-          const result = await window.api.forceDevTools();
-          console.log('[DEBUG] 🔧 forceDevTools result:', result);
-          if (result.success) return;
-        }
-        
-        // Method 3: Try to trigger keyboard shortcut programmatically
-        console.log('[DEBUG] 🔧 Trying keyboard shortcut simulation...');
-        const event = new KeyboardEvent('keydown', {
-          key: 'F12',
-          code: 'F12',
-          keyCode: 123,
-          which: 123,
-          ctrlKey: false,
-          shiftKey: false,
-          altKey: false,
-          metaKey: false,
-          bubbles: true
-        });
-        document.dispatchEvent(event);
-        
-        console.log('[DEBUG] 🔧 All methods attempted');
-      } catch (error) {
-        console.error('[DEBUG] 🔧 Error opening DevTools:', error);
+    electronApi.openDevTools().then((result) => {
+      if (import.meta.env.DEV) {
+        console.log('[DEBUG] openDevTools result:', result);
       }
-    };
-    
-    tryOpenDevTools();
+    });
   }, []);
 
-    // Add keyboard event listener for DevTools shortcuts
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      // F12 key
-      if (event.key === 'F12' || event.keyCode === 123) {
-        console.log('[DEBUG] 🔧 F12 pressed in renderer');
-        event.preventDefault();
-        openDevTools();
-      }
-      // Ctrl+Shift+I
-      else if (event.ctrlKey && event.shiftKey && event.key === 'I') {
-        console.log('[DEBUG] 🔧 Ctrl+Shift+I pressed in renderer');
-        event.preventDefault();
-        openDevTools();
-      }
-      // Ctrl+Shift+J
-      else if (event.ctrlKey && event.shiftKey && event.key === 'J') {
-        console.log('[DEBUG] 🔧 Ctrl+Shift+J pressed in renderer');
-        event.preventDefault();
-        openDevTools();
-      }
-    };
+  useGlobalKeyHandlers({
+    showSettingsActionMenu,
+    settingsActionMenuRef,
+    closeSettingsActionMenu,
+    handleSettingsActionMenuOpen,
+    openDevTools,
+  });
 
-    document.addEventListener('keydown', handleKeyDown);
-    
-    // Handle Escape key to open/close settings action menu
-    const handleEscapeKey = (event) => {
-      if (event.key === 'Escape') {
-        if (showSettingsActionMenu) {
-          // Close settings action menu when Escape is pressed - use the menu's own close method
-          if (settingsActionMenuRef.current?.handleClose) {
-            settingsActionMenuRef.current.handleClose();
-          } else {
-            // Fallback to direct close if ref method not available
-            closeSettingsActionMenu();
-          }
-        } else {
-          // Open settings action menu when Escape is pressed and no other menus are open
-          handleSettingsActionMenuOpen();
-        }
-      }
-    };
-    
-    document.addEventListener('keydown', handleEscapeKey);
-    
-    // Cleanup function
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keydown', handleEscapeKey);
-    };
-  }, [showSettingsActionMenu, closeSettingsActionMenu, handleSettingsActionMenuOpen]);
+  useCursorEffect(useCustomCursor, cursorStyle);
+  useThemeEffect(isDarkMode);
 
-  // Initialize custom cursor on app load
   useEffect(() => {
-    if (useCustomCursor) {
-      // Add class to body to enable global cursor hiding
-      document.body.classList.add('custom-cursor-enabled');
-      
-      // Create custom cursor element if it doesn't exist
-      let customCursor = document.getElementById('wii-custom-cursor');
-      if (!customCursor) {
-        customCursor = document.createElement('div');
-        customCursor.id = 'wii-custom-cursor';
-        document.body.appendChild(customCursor);
-        console.log('[App] Created new cursor element');
-      } else {
-        console.log('[App] Found existing cursor element, current style:', customCursor.getAttribute('data-style'));
-      }
-      
-      // Set cursor style using the prop (which is reactive)
-      console.log('[App] Setting cursor style to:', cursorStyle || 'classic');
-      customCursor.setAttribute('data-style', cursorStyle || 'classic');
-      
-      // Debug: Log the actual attribute value
-      console.log('[App] Cursor data-style attribute:', customCursor.getAttribute('data-style'));
-      
-      // Show custom cursor
-      customCursor.style.display = 'block';
-      
-      // Simple mouse tracking for better performance
-      const handleMouseMove = (e) => {
-        customCursor.style.left = e.clientX + 'px';
-        customCursor.style.top = e.clientY + 'px';
-      };
-      
-      // Simple click effects
-      const handleMouseDown = () => {
-        customCursor.classList.add('clicking');
-      };
-      
-      const handleMouseUp = () => {
-        customCursor.classList.remove('clicking');
-      };
-      
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mousedown', handleMouseDown);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      // Cleanup function
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mousedown', handleMouseDown);
-        document.removeEventListener('mouseup', handleMouseUp);
-        customCursor.classList.remove('clicking');
-      };
-    } else {
-      // Remove class from body to restore default cursors
-      document.body.classList.remove('custom-cursor-enabled');
-      
-      // Hide custom cursor
-      const customCursor = document.getElementById('wii-custom-cursor');
-      if (customCursor) {
-        customCursor.style.display = 'none';
-        customCursor.classList.remove('clicking');
-      }
+    if (!import.meta.env.DEV) {
+      return undefined;
     }
-  }, [useCustomCursor, cursorStyle]);
 
-  // Apply dark mode to document body for global styling
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark-mode');
-      document.body.classList.add('dark-mode');
-      // Set data attribute for additional styling hooks
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark-mode');
-      document.body.classList.remove('dark-mode');
-      // Set data attribute for additional styling hooks
-      document.documentElement.setAttribute('data-theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  // Expose DevTools and debug functions globally
-  useEffect(() => {
-    // Expose openDevTools globally for console access
-    window.openDevTools = openDevTools;
-    
-    // Expose shortcut testing functions
-    window.testShortcut = (key, modifier) => {
-      console.log(`[Debug] Testing shortcut: ${modifier}+${key}`);
-      if (window.handleGlobalShortcut) {
-        return window.handleGlobalShortcut(key, modifier);
-      }
-      return false;
-    };
-    
-    window.listShortcuts = () => {
-      const { ui } = useConsolidatedAppStore.getState();
-      console.log('[Debug] Current shortcuts:', ui?.keyboardShortcuts || []);
-    };
-    window.forceDevTools = () => {
-      if (window.api?.forceDevTools) {
-        window.api.forceDevTools().then(result => {
-          console.log('[DEBUG] 🔧 Force DevTools result:', result);
-        });
-      }
-    };
-    
-    // Expose test functions for debugging
-    window.testCursorStyles = () => {
-      console.log('[DEBUG] 🎯 === TESTING CURSOR STYLES ===');
-      const { ui } = useConsolidatedAppStore.getState();
-      console.log('[DEBUG] 🎯 Current cursor settings:', {
-        useCustomCursor: ui.useCustomCursor,
-        cursorStyle: ui.cursorStyle
-      });
-      
-      const cursorElement = document.getElementById('wii-custom-cursor');
-      if (cursorElement) {
-        console.log('[DEBUG] 🎯 Cursor element found:', {
-          dataStyle: cursorElement.getAttribute('data-style'),
-          display: cursorElement.style.display,
-          className: cursorElement.className
-        });
-      } else {
-        console.log('[DEBUG] 🎯 No cursor element found');
-      }
-      
-      console.log('[DEBUG] 🎯 Body classes:', document.body.className);
-      console.log('[DEBUG] 🎯 === END CURSOR TEST ===');
-    };
-    
-    window.changeCursorStyle = (style) => {
-      console.log('[DEBUG] 🎯 Manually changing cursor style to:', style);
-      const { actions } = useConsolidatedAppStore.getState();
-      actions.setUIState({ cursorStyle: style });
-      
-      // Also update the cursor element directly
-      const cursorElement = document.getElementById('wii-custom-cursor');
-      if (cursorElement) {
-        cursorElement.setAttribute('data-style', style);
-        console.log('[DEBUG] 🎯 Cursor element updated, new style:', cursorElement.getAttribute('data-style'));
-      }
-    };
-    
-    window.testPresetFunctions = () => {
-      console.log('[DEBUG] 🧪 === TESTING PRESET FUNCTIONS ===');
-      console.log('[DEBUG] 🧪 Current store state:', useConsolidatedAppStore.getState());
-      console.log('[DEBUG] 🧪 Available window.api methods:', Object.keys(window.api || {}));
-      console.log('[DEBUG] 🧪 Settings API available:', !!window.api?.settings);
-      console.log('[DEBUG] 🧪 Wallpapers API available:', !!window.api?.wallpapers);
-      console.log('[DEBUG] 🧪 === END TEST ===');
-    };
-    
-    // Test preset structure comparison
-    window.comparePresetStructures = async () => {
-      console.log('[DEBUG] 🧪 === COMPARING PRESET STRUCTURES ===');
-      try {
-        const settings = await window.api.settings.get();
-        const presets = settings.presets || [];
-        
-        console.log('[DEBUG] 🧪 Total presets:', presets.length);
-        
-        presets.forEach((preset, index) => {
-          console.log(`[DEBUG] 🧪 Preset ${index + 1}: ${preset.name}`);
-          console.log(`[DEBUG] 🧪 - Type: ${preset.isCommunity ? 'Community' : 'Local'}`);
-          console.log(`[DEBUG] 🧪 - Has data: ${!!preset.data}`);
-          console.log(`[DEBUG] 🧪 - Data keys: ${preset.data ? Object.keys(preset.data) : 'N/A'}`);
-          
-          if (preset.data) {
-            console.log(`[DEBUG] 🧪 - Wallpaper: ${!!preset.data.wallpaper}`);
-            console.log(`[DEBUG] 🧪 - Ribbon: ${!!preset.data.ribbon}`);
-            console.log(`[DEBUG] 🧪 - Time: ${!!preset.data.time}`);
-            console.log(`[DEBUG] 🧪 - Overlay: ${!!preset.data.overlay}`);
-            console.log(`[DEBUG] 🧪 - UI: ${!!preset.data.ui}`);
-          }
-          console.log('[DEBUG] 🧪 ---');
-        });
-      } catch (error) {
-        console.error('[DEBUG] 🧪 Error comparing presets:', error);
-      }
-      console.log('[DEBUG] 🧪 === END COMPARISON ===');
-    };
-    
-    // Test channel operations
-    window.testChannelOperations = () => {
-      console.log('[DEBUG] 🧪 === TESTING CHANNEL OPERATIONS ===');
-      const { channels } = useConsolidatedAppStore.getState();
-      console.log('[DEBUG] 🧪 Channel state:', channels);
-      console.log('[DEBUG] 🧪 Channel data:', channels?.data);
-      console.log('[DEBUG] 🧪 Channel settings:', channels?.settings);
-      console.log('[DEBUG] 🧪 Configured channels:', channels?.data?.configuredChannels);
-      console.log('[DEBUG] 🧪 Navigation:', channels?.data?.navigation);
-      console.log('[DEBUG] 🧪 === END CHANNEL TEST ===');
-    };
-    
-    // Test DevTools functionality
-    window.testDevTools = async () => {
-      console.log('[DEBUG] 🧪 === TESTING DEVTOOLS FUNCTIONALITY ===');
-      try {
-        console.log('[DEBUG] 🧪 Testing DevTools methods...');
-        
-        // Test 1: Standard openDevTools
-        if (window.api?.openDevTools) {
-          console.log('[DEBUG] 🧪 Testing openDevTools...');
-          const result1 = await window.api.openDevTools();
-          console.log('[DEBUG] 🧪 openDevTools result:', result1);
-        }
-        
-        // Test 2: Force DevTools
-        if (window.api?.forceDevTools) {
-          console.log('[DEBUG] 🧪 Testing forceDevTools...');
-          const result2 = await window.api.forceDevTools();
-          console.log('[DEBUG] 🧪 forceDevTools result:', result2);
-        }
-        
-        // Test 3: Check window state
-        console.log('[DEBUG] 🧪 Window state check...');
-        console.log('[DEBUG] 🧪 - window.api available:', !!window.api);
-        console.log('[DEBUG] 🧪 - openDevTools available:', !!window.api?.openDevTools);
-        console.log('[DEBUG] 🧪 - forceDevTools available:', !!window.api?.forceDevTools);
-        
-      } catch (error) {
-        console.error('[DEBUG] 🧪 Error testing DevTools:', error);
-      }
-    };
-    
-    // Test community preset structure
-    window.testCommunityPresetStructure = async () => {
-      console.log('[DEBUG] 🧪 === TESTING COMMUNITY PRESET STRUCTURE ===');
-      try {
-        // Simulate a community preset download structure
-        const communityPreset = {
-          name: 'Community Test Preset',
-          settings: {
-            time: {
-              color: '#00ff00',
-              enablePill: false,
-              pillBlur: 5,
-              pillOpacity: 0.05,
-              font: 'default'
-            },
-            wallpaper: {
-              current: null,
-              opacity: 1,
-              blur: 0
-            },
-            ribbon: {
-              ribbonColor: '#e0e6ef',
-              ribbonGlowColor: '#0099ff'
-            }
-          },
-          id: 'test-community-id',
-          wallpaper: null
-        };
-        
-        console.log('[DEBUG] 🧪 Community preset structure:', communityPreset);
-        
-        // Simulate the import process
-        const convertedPreset = {
-          name: communityPreset.name,
-          data: communityPreset.settings,
-          timestamp: new Date().toISOString(),
-          isCommunity: true,
-          communityId: communityPreset.id
-        };
-        
-        console.log('[DEBUG] 🧪 Converted preset structure:', convertedPreset);
-        
-        // Test the apply process
-        const { setTimeState, setWallpaperState, setRibbonState } = useConsolidatedAppStore.getState().actions;
-        
-        if (convertedPreset.data.time) {
-          console.log('[DEBUG] 🧪 Applying time settings:', convertedPreset.data.time);
-          setTimeState(convertedPreset.data.time);
-        }
-        
-        if (convertedPreset.data.wallpaper) {
-          console.log('[DEBUG] 🧪 Applying wallpaper settings:', convertedPreset.data.wallpaper);
-          setWallpaperState(convertedPreset.data.wallpaper);
-        }
-        
-        if (convertedPreset.data.ribbon) {
-          console.log('[DEBUG] 🧪 Applying ribbon settings:', convertedPreset.data.ribbon);
-          setRibbonState(convertedPreset.data.ribbon);
-        }
-        
-        console.log('[DEBUG] 🧪 Community preset test completed');
-        
-      } catch (error) {
-        console.error('[DEBUG] 🧪 Error testing community preset structure:', error);
-      }
-    };
-    
-    // Test wallpaper persistence
-    window.testWallpaperPersistence = async () => {
-      console.log('[DEBUG] 🧪 === TESTING WALLPAPER PERSISTENCE ===');
-      try {
-        // Check current wallpaper state
-        const { wallpaper } = useConsolidatedAppStore.getState();
-        console.log('[DEBUG] 🧪 Current wallpaper state:', wallpaper);
-        
-        // Check backend wallpaper data
-        if (window.api?.wallpapers?.get) {
-          const backendData = await window.api.wallpapers.get();
-          console.log('[DEBUG] 🧪 Backend wallpaper data:', backendData);
-          console.log('[DEBUG] 🧪 Backend current wallpaper:', backendData?.wallpaper);
-          console.log('[DEBUG] 🧪 Backend wallpaper opacity:', backendData?.wallpaperOpacity);
-          console.log('[DEBUG] 🧪 Backend wallpaper blur:', backendData?.wallpaperBlur);
-        }
-        
-        // Check general settings
-        if (window.api?.settings?.get) {
-          const settingsData = await window.api.settings.get();
-          console.log('[DEBUG] 🧪 General settings data:', settingsData);
-        }
-        
-        console.log('[DEBUG] 🧪 Wallpaper persistence test completed');
-        
-      } catch (error) {
-        console.error('[DEBUG] 🧪 Error testing wallpaper persistence:', error);
-      }
-    };
-    
-    console.log('[DEBUG] 🔧 DevTools functions exposed to window:');
-    console.log('[DEBUG] 🔧 - window.openDevTools()');
-    console.log('[DEBUG] 🔧 - window.forceDevTools()');
-    console.log('[DEBUG] 🔧 - window.testPresetFunctions()');
-    console.log('[DEBUG] 🔧 - window.comparePresetStructures()');
-    console.log('[DEBUG] 🔧 - window.testChannelOperations()');
-    console.log('[DEBUG] 🔧 - window.testDevTools()');
-    console.log('[DEBUG] 🔧 - window.testCommunityPresetStructure()');
-    console.log('[DEBUG] 🔧 - window.testWallpaperPersistence()');
-    
-    return () => {
-      delete window.openDevTools;
-      delete window.forceDevTools;
-      delete window.testPresetFunctions;
-      delete window.comparePresetStructures;
-      delete window.testChannelOperations;
-      delete window.testDevTools;
-      delete window.testCommunityPresetStructure;
-      delete window.testWallpaperPersistence;
-    };
-  }, [openDevTools]);
-
-    // Debug wallpaper cycling functionality
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      window.debugWallpaperCycling = () => {
-        console.log('[DEBUG] 🖼️ === WALLPAPER CYCLING DEBUG ===');
-        console.log('[DEBUG] 🖼️ Current wallpaper state:', wallpaper);
-        console.log('[DEBUG] 🖼️ Cycling settings:', {
-          cycleWallpapers: wallpaper.cycleWallpapers,
-          cycleInterval: wallpaper.cycleInterval,
-          cycleAnimation: wallpaper.cycleAnimation,
-          likedWallpapersCount: wallpaper.likedWallpapers?.length
-        });
-        console.log('[DEBUG] 🖼️ Cycling hook state:', {
+    let cleanup = () => {};
+    import('./utils/devDebugBindings')
+      .then(({ registerDevDebugBindings }) => {
+        cleanup = registerDevDebugBindings({
+          openDevTools,
+          wallpaper,
           isCycling,
-          currentWallpaper: 'Isolated Component',
-          nextWallpaper: 'Isolated Component'
+          cycleToNextWallpaper,
         });
-      };
-      
-      window.cycleToNextWallpaper = () => {
-        console.log('[DEBUG] 🖼️ Manually triggering wallpaper cycle');
-        cycleToNextWallpaper();
-      };
-      
-      console.log('[DEBUG] 🖼️ - window.debugWallpaperCycling()');
-      console.log('[DEBUG] 🖼️ - window.cycleToNextWallpaper()');
-      
-      return () => {
-        delete window.debugWallpaperCycling;
-        delete window.cycleToNextWallpaper;
-      };
-    }
-  }, [isCycling, cycleToNextWallpaper, wallpaper]);
+      })
+      .catch((error) => {
+        console.warn('[App] Failed to load dev debug bindings:', error);
+      });
 
-  // Debug DevTools functionality
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      window.debugDevTools = async () => {
-        console.log('[DEBUG] 🔧 === DEVTOOLS DEBUG ===');
-        console.log('[DEBUG] 🔧 Testing DevTools methods...');
-        
-        try {
-          // Test 1: Standard openDevTools
-          if (window.api?.openDevTools) {
-            console.log('[DEBUG] 🔧 Testing openDevTools...');
-            const result1 = await window.api.openDevTools();
-            console.log('[DEBUG] 🔧 openDevTools result:', result1);
-          }
-          
-          // Test 2: Force DevTools
-          if (window.api?.forceDevTools) {
-            console.log('[DEBUG] 🔧 Testing forceDevTools...');
-            const result2 = await window.api.forceDevTools();
-            console.log('[DEBUG] 🔧 forceDevTools result:', result2);
-          }
-          
-          // Test 3: Check available methods
-          console.log('[DEBUG] 🔧 Available DevTools methods:');
-          console.log('[DEBUG] 🔧 - openDevTools available:', !!window.api?.openDevTools);
-          console.log('[DEBUG] 🔧 - forceDevTools available:', !!window.api?.forceDevTools);
-          
-        } catch (error) {
-          console.error('[DEBUG] 🔧 Error testing DevTools:', error);
-        }
-      };
-      
-      // Expose DevTools functions globally for testing
-      window.testDevTools = window.debugDevTools;
-      
-      console.log('[DEBUG] 🔧 - window.debugDevTools()');
-      console.log('[DEBUG] 🔧 - window.testDevTools()');
-      
-      return () => {
-        delete window.debugDevTools;
-        delete window.testDevTools;
-      };
-    }
-  }, []);
-
-  // Comprehensive logging system
-  useEffect(() => {
-    console.log('[DEBUG] 📊 === APP STATE LOGGING ===');
-    console.log('[DEBUG] 📊 App Ready:', appReady);
-    console.log('[DEBUG] 📊 Is Loading:', isLoading);
-    console.log('[DEBUG] 📊 Splash Fading:', splashFading);
-    console.log('[DEBUG] 📊 Show Settings Modal:', showSettingsModal);
-    console.log('[DEBUG] 📊 Settings Active Tab:', settingsActiveTab);
-    console.log('[DEBUG] 📊 Classic Mode:', classicMode);
-    console.log('[DEBUG] 📊 Start In Fullscreen:', startInFullscreen);
-    console.log('[DEBUG] 📊 Current Wallpaper: Isolated Component');
-    console.log('[DEBUG] 📊 Next Wallpaper: Isolated Component');
-    console.log('[DEBUG] 📊 Is Transitioning: Isolated Component');
-    console.log('[DEBUG] 📊 Overlay Enabled:', enabled);
-    console.log('[DEBUG] 📊 Cycling Active:', isCycling);
-    console.log('[DEBUG] 📊 === END APP STATE ===');
-  }, [appReady, isLoading, splashFading, showSettingsModal, settingsActiveTab, classicMode, startInFullscreen, enabled, isCycling]);
-
-  // Initialize app with data loading
-  useEffect(() => {
-    console.log('[DEBUG] 🚀 Starting app initialization with data loading');
-    
-    const initializeApp = async () => {
-      try {
-        // Set app as ready immediately to show interface
-        setAppState({ 
-          appReady: true, 
-          isLoading: false, 
-          splashFading: false 
-        });
-
-        // Load essential data in background
-        console.log('[DEBUG] 📡 Loading essential data...');
-        
-        // Load wallpaper data
-        if (window.api?.wallpapers?.get) {
-          try {
-            const wallpaperData = await window.api.wallpapers.get();
-            console.log('[DEBUG] ✅ Wallpaper data loaded:', wallpaperData ? 'success' : 'null');
-            console.log('[DEBUG] 📊 Cycling settings:', wallpaperData?.cyclingSettings);
-            console.log('[DEBUG] 📊 Liked wallpapers count:', wallpaperData?.likedWallpapers?.length);
-            if (wallpaperData) {
-              setWallpaperState({
-                current: wallpaperData.wallpaper || null, // Load the current wallpaper
-                savedWallpapers: wallpaperData.savedWallpapers || [],
-                likedWallpapers: wallpaperData.likedWallpapers || [],
-                opacity: wallpaperData.wallpaperOpacity ?? 1,
-                blur: wallpaperData.wallpaperBlur ?? 0,
-                // Load cycling settings
-                cycleWallpapers: wallpaperData.cyclingSettings?.enabled ?? false,
-                cycleInterval: wallpaperData.cyclingSettings?.interval ?? 30,
-                cycleAnimation: wallpaperData.cyclingSettings?.animation ?? 'fade',
-                slideDirection: wallpaperData.cyclingSettings?.slideDirection ?? 'right',
-                crossfadeDuration: wallpaperData.cyclingSettings?.crossfadeDuration ?? 1.2,
-                crossfadeEasing: wallpaperData.cyclingSettings?.crossfadeEasing ?? 'ease-out',
-                slideRandomDirection: wallpaperData.cyclingSettings?.slideRandomDirection ?? false,
-                slideDuration: wallpaperData.cyclingSettings?.slideDuration ?? 1.5,
-                slideEasing: wallpaperData.cyclingSettings?.slideEasing ?? 'ease-out'
-              });
-
-              // Load overlay settings
-              setOverlayState({
-                enabled: wallpaperData.overlayEnabled ?? false,
-                effect: wallpaperData.overlayEffect ?? 'snow',
-                intensity: wallpaperData.overlayIntensity ?? 50,
-                speed: wallpaperData.overlaySpeed ?? 1,
-                wind: wallpaperData.overlayWind ?? 0.02,
-                gravity: wallpaperData.overlayGravity ?? 0.1
-              });
-            }
-          } catch (error) {
-            console.warn('[DEBUG] ⚠️ Failed to load wallpaper data:', error);
-          }
-        }
-
-        // Load channel data
-        if (window.api?.channels?.get) {
-          try {
-            const channelData = await window.api.channels.get();
-            console.log('[DEBUG] ✅ Channel data loaded:', channelData ? 'success' : 'null');
-            if (channelData) {
-              setChannelState({
-                configuredChannels: channelData.configuredChannels || []
-              });
-            }
-          } catch (error) {
-            console.warn('[DEBUG] ⚠️ Failed to load channel data:', error);
-          }
-        }
-
-        // Load settings data
-        if (window.api?.settings?.get) {
-          try {
-            const settingsData = await window.api.settings.get();
-            console.log('[DEBUG] ✅ Settings data loaded:', settingsData ? 'success' : 'null');
-            if (settingsData) {
-              // Apply settings to consolidated store
-              if (settingsData.ui) setUIState(settingsData.ui);
-              if (settingsData.ribbon) setRibbonState(settingsData.ribbon);
-              if (settingsData.channels) setChannelState(settingsData.channels);
-              if (settingsData.time) setTimeState(settingsData.time);
-              if (settingsData.presets) setPresets(settingsData.presets);
-            }
-          } catch (error) {
-            console.warn('[DEBUG] ⚠️ Failed to load settings data:', error);
-          }
-        }
-
-        console.log('[DEBUG] ✅ App initialization complete');
-        
-      } catch (error) {
-        console.error('[DEBUG] ❌ Error during app initialization:', error);
-        // Even if there's an error, mark app as ready
-        setAppState({ 
-          appReady: true, 
-          isLoading: false, 
-          splashFading: false 
-        });
-      }
+    return () => {
+      cleanup();
     };
-      
-    initializeApp();
-  }, [setAppState, setWallpaperState, setChannelState, setUIState, setRibbonState, setTimeState, setPresets]);
+  }, [openDevTools, wallpaper, isCycling, cycleToNextWallpaper]);
 
-  // Apply fullscreen setting when UI state changes
-  useEffect(() => {
-    if (appReady && window.api?.setFullscreen) {
-      console.log('[App] Applying fullscreen setting:', startInFullscreen);
-      window.api.setFullscreen(startInFullscreen);
-    }
-  }, [appReady, startInFullscreen]);
+  useAppInitialization({
+    setAppState,
+    setWallpaperState,
+    setOverlayState,
+    setChannelState,
+    setChannelData,
+    setUIState,
+    setRibbonState,
+    setTimeState,
+    setDockState,
+    setSoundsState,
+    setPresets,
+  });
+
+  useFullscreenEffect({ appReady, startInFullscreen });
 
   // Optimized handlers using consolidated store with useCallback
   const openSettingsModal = useCallback(() => setUIState({ showSettingsModal: true }), [setUIState]);
@@ -990,279 +365,6 @@ function App() {
       console.log('[DEBUG] 🖼️ Channels should NOT be affected by cycling transitions');
     }
   }, []);
-
-  // Create isolated wallpaper component to prevent re-renders
-  const IsolatedWallpaperBackground = React.memo(() => {
-    const { wallpaper } = useConsolidatedAppStore();
-    const {
-      isCycling,
-      isTransitioning: cyclingTransitioning,
-      currentWallpaper,
-      nextWallpaper,
-      crossfadeProgress: cyclingProgress,
-      slideProgress: cyclingSlideProgress,
-      slideDirection: cyclingSlideDirection,
-      forceUpdate,
-    } = useWallpaperCycling();
-
-    const { opacity, blur, cycleAnimation } = wallpaper;
-
-    // Animation-specific style calculations
-    const getCurrentWallpaperStyle = useCallback(() => {
-      if (!cyclingTransitioning || !currentWallpaper?.url) {
-        return {
-          opacity: opacity,
-          transform: 'none',
-          filter: `blur(${blur}px)`,
-        };
-      }
-
-      const progress = cyclingProgress;
-      
-      switch (cycleAnimation) {
-        case 'fade':
-          return {
-            opacity: opacity * (1 - progress),
-            transform: 'none',
-            filter: `blur(${blur}px)`,
-          };
-          
-        case 'slide':
-          const slideOffset = progress * 100;
-          let slideTransform = 'none';
-          
-          switch (cyclingSlideDirection) {
-            case 'left':
-              slideTransform = `translateX(-${slideOffset}%)`;
-              break;
-            case 'right':
-              slideTransform = `translateX(${slideOffset}%)`;
-              break;
-            case 'up':
-              slideTransform = `translateY(-${slideOffset}%)`;
-              break;
-            case 'down':
-              slideTransform = `translateY(${slideOffset}%)`;
-              break;
-          }
-          
-          return {
-            opacity: opacity,
-            transform: slideTransform,
-            filter: `blur(${blur}px)`,
-          };
-          
-        case 'zoom':
-          const zoomScale = 1 + (progress * 0.1); // Scale from 1.0 to 1.1
-          return {
-            opacity: opacity * (1 - progress * 0.5), // Fade out slightly during zoom
-            transform: `scale(${zoomScale})`,
-            filter: `blur(${blur + (progress * 2)}px)`, // Increase blur during zoom
-          };
-          
-        case 'ken-burns':
-          const kenBurnsScale = 1 + (progress * 0.15); // More dramatic scale
-          const kenBurnsX = progress * 3; // Pan horizontally
-          const kenBurnsY = progress * 1.5; // Pan vertically
-          return {
-            opacity: opacity * (1 - progress * 0.3),
-            transform: `scale(${kenBurnsScale}) translateX(${kenBurnsX}%) translateY(${kenBurnsY}%)`,
-            filter: `blur(${blur}px)`,
-          };
-          
-        case 'morph':
-          const morphScale = 1 + (progress * 0.05);
-          const morphRotate = progress * 2; // Subtle rotation
-          const morphSkew = progress * 1; // Subtle skew
-          return {
-            opacity: opacity * (1 - progress * 0.7),
-            transform: `scale(${morphScale}) rotate(${morphRotate}deg) skew(${morphSkew}deg)`,
-            filter: `blur(${blur + (progress * 1)}px)`,
-          };
-          
-        case 'blur':
-          const blurIntensity = blur + (progress * 10); // Dramatic blur increase
-          return {
-            opacity: opacity * (1 - progress * 0.8),
-            transform: 'none',
-            filter: `blur(${blurIntensity}px)`,
-          };
-          
-        default:
-          return {
-            opacity: opacity,
-            transform: 'none',
-            filter: `blur(${blur}px)`,
-          };
-      }
-    }, [cyclingTransitioning, currentWallpaper?.url, opacity, blur, cycleAnimation, cyclingProgress, cyclingSlideDirection]);
-
-    const getNextWallpaperStyle = useCallback(() => {
-      if (!cyclingTransitioning || !nextWallpaper?.url) {
-        return {
-          opacity: 0,
-          transform: 'none',
-          filter: `blur(${blur}px)`,
-        };
-      }
-
-      const progress = cyclingProgress;
-      
-      switch (cycleAnimation) {
-        case 'fade':
-          return {
-            opacity: opacity * progress,
-            transform: 'none',
-            filter: `blur(${blur}px)`,
-          };
-          
-        case 'slide':
-          const slideOffset = (1 - progress) * 100;
-          let slideTransform = 'none';
-          
-          switch (cyclingSlideDirection) {
-            case 'left':
-              slideTransform = `translateX(${slideOffset}%)`;
-              break;
-            case 'right':
-              slideTransform = `translateX(-${slideOffset}%)`;
-              break;
-            case 'up':
-              slideTransform = `translateY(${slideOffset}%)`;
-              break;
-            case 'down':
-              slideTransform = `translateY(-${slideOffset}%)`;
-              break;
-          }
-          
-          return {
-            opacity: opacity,
-            transform: slideTransform,
-            filter: `blur(${blur}px)`,
-          };
-          
-        case 'zoom':
-          const zoomScale = 1.1 - (progress * 0.1); // Scale from 1.1 to 1.0
-          return {
-            opacity: opacity * progress,
-            transform: `scale(${zoomScale})`,
-            filter: `blur(${blur + ((1 - progress) * 2)}px)`, // Decrease blur as it comes in
-          };
-          
-        case 'ken-burns':
-          const kenBurnsScale = 1.15 - (progress * 0.15); // More dramatic scale
-          const kenBurnsX = (1 - progress) * 3; // Pan horizontally
-          const kenBurnsY = (1 - progress) * 1.5; // Pan vertically
-          return {
-            opacity: opacity * progress,
-            transform: `scale(${kenBurnsScale}) translateX(-${kenBurnsX}%) translateY(-${kenBurnsY}%)`,
-            filter: `blur(${blur}px)`,
-          };
-          
-        case 'morph':
-          const morphScale = 1.05 - (progress * 0.05);
-          const morphRotate = (1 - progress) * 2; // Subtle rotation
-          const morphSkew = (1 - progress) * 1; // Subtle skew
-          return {
-            opacity: opacity * progress,
-            transform: `scale(${morphScale}) rotate(-${morphRotate}deg) skew(-${morphSkew}deg)`,
-            filter: `blur(${blur + ((1 - progress) * 1)}px)`,
-          };
-          
-        case 'blur':
-          const blurIntensity = blur + ((1 - progress) * 10); // Dramatic blur decrease
-          return {
-            opacity: opacity * progress,
-            transform: 'none',
-            filter: `blur(${blurIntensity}px)`,
-          };
-          
-        default:
-          return {
-            opacity: opacity * progress,
-            transform: 'none',
-            filter: `blur(${blur}px)`,
-          };
-      }
-    }, [cyclingTransitioning, nextWallpaper?.url, opacity, blur, cycleAnimation, cyclingProgress, cyclingSlideDirection]);
-
-    // Debug animation values
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DEBUG] 🎬 Animation State:', {
-        cycleAnimation,
-        cyclingTransitioning,
-        cyclingProgress,
-        cyclingSlideProgress,
-        cyclingSlideDirection,
-        forceUpdate,
-        currentWallpaper: currentWallpaper?.url ? 'Set' : 'Not Set',
-        nextWallpaper: nextWallpaper?.url ? 'Set' : 'Not Set',
-        wallpaperState: {
-          cycleAnimation: wallpaper.cycleAnimation,
-          cycleWallpapers: wallpaper.cycleWallpapers,
-          cycleInterval: wallpaper.cycleInterval
-        }
-      });
-      
-      if (cyclingTransitioning) {
-        const currentStyle = getCurrentWallpaperStyle();
-        const nextStyle = getNextWallpaperStyle();
-        
-        console.log('[DEBUG] 🎬 Style Values:', {
-          currentStyle,
-          nextStyle,
-          progress: cyclingProgress
-        });
-      }
-    }
-
-    // Force re-render when transition state changes
-    const transitionKey = `${cyclingTransitioning}-${cyclingProgress}-${cyclingSlideProgress}-${cyclingSlideDirection}-${forceUpdate}`;
-
-  return (
-      <div key={transitionKey}>
-        {/* Current Wallpaper Background */}
-        {currentWallpaper && currentWallpaper.url && (
-          <div
-            className="wallpaper-bg"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              zIndex: 0,
-              pointerEvents: 'none',
-              background: `url('${currentWallpaper.url}') center center / cover no-repeat`,
-              ...getCurrentWallpaperStyle(),
-              transition: cyclingTransitioning ? 'none' : 'opacity 0.3s ease-out, transform 0.3s ease-out, filter 0.3s ease-out',
-            }}
-            data-debug={`current-${cycleAnimation}-${cyclingTransitioning}-${cyclingProgress.toFixed(3)}`}
-          />
-        )}
-            
-            {/* Next Wallpaper Background for Transitions */}
-        {cyclingTransitioning && nextWallpaper && nextWallpaper.url && (
-          <div
-            className="wallpaper-bg-next"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              zIndex: 1,
-              pointerEvents: 'none',
-              background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
-              ...getNextWallpaperStyle(),
-                  transition: 'none',
-            }}
-            data-debug={`next-${cycleAnimation}-${cyclingTransitioning}-${cyclingProgress.toFixed(3)}`}
-          />
-        )}
-      </div>
-    );
-  });
 
   // Render splash screen only if not ready
   if (!appReady || isLoading) {

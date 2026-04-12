@@ -13,6 +13,7 @@ import UnifiedAppPathCard from './UnifiedAppPathCard';
 import { useAppLibraryState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { preloadMediaLibrary, findGameMedia, getCacheStatus, getCachedMediaLibrary, getAllMatchingMedia } from '../utils/mediaLibraryCache';
+import { useChannelModalInitialization } from '../hooks/useChannelModalInitialization';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
 import useSoundLibrary from '../utils/useSoundLibrary';
@@ -105,116 +106,43 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [showHoverSoundSelector, setShowHoverSoundSelector] = useState(false);
   const [uploadingHoverSound, setUploadingHoverSound] = useState(false);
 
-  // Clear feedback when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedGameFeedback(null);
-    }
-  }, [isOpen]);
-
-  // Reset state when channelId changes
-  useEffect(() => {
-    if (channelId) {
-      // Reset form state
-      setPath('');
-      setPathError('');
-      setShowError(false);
-      setMedia(null);
-      setHoverSound(null);
-      setAnimatedOnHover('none');
-      setKenBurnsEnabled(false);
-      setKenBurnsMode('hover');
-      setKenBurnsHoverScale(1.1);
-      setKenBurnsAutoplayScale(1.15);
-      setKenBurnsHoverDuration(8000);
-      setKenBurnsAutoplayDuration(12000);
-      setKenBurnsCrossfadeDuration(1000);
-      setKenBurnsEasing('ease-out');
-      setAsAdmin(false);
-      
-      // Load existing channel data
-      const existingChannel = configuredChannels[channelId];
-      if (existingChannel) {
-        setPath(existingChannel.path || '');
-        setMedia(existingChannel.media || null);
-        setHoverSound(existingChannel.hoverSound || null);
-        setAnimatedOnHover(existingChannel.animation || 'none');
-        setAsAdmin(existingChannel.asAdmin || false);
-        
-        // Load Ken Burns settings from channel config
-        const channelConfig = channelConfigs[channelId];
-        if (channelConfig) {
-          setKenBurnsEnabled(channelConfig.kenBurnsEnabled ?? false);
-          setKenBurnsMode(channelConfig.kenBurnsMode ?? 'hover');
-          setKenBurnsHoverScale(channelConfig.kenBurnsHoverScale ?? 1.1);
-          setKenBurnsAutoplayScale(channelConfig.kenBurnsAutoplayScale ?? 1.15);
-          setKenBurnsHoverDuration(channelConfig.kenBurnsHoverDuration ?? 8000);
-          setKenBurnsAutoplayDuration(channelConfig.kenBurnsAutoplayDuration ?? 12000);
-          setKenBurnsCrossfadeDuration(channelConfig.kenBurnsCrossfadeDuration ?? 1000);
-          setKenBurnsEasing(channelConfig.kenBurnsEasing ?? 'ease-out');
-        }
-      }
-    }
-  }, [channelId, configuredChannels, channelConfigs]);
-
-  // Preload data when modal opens
-  useEffect(() => {
-    if (isOpen && window.api) {
-      // Preload installed apps
-      if (installedApps?.length === 0 && window.api.apps?.getInstalled) {
-        window.api.apps.getInstalled();
-      }
-      
-      // Preload UWP apps
-      if (uwpApps?.length === 0 && window.api.uwp?.listApps) {
-        window.api.uwp.listApps();
-      }
-      
-      // Preload Steam games
-      if (steamGames?.length === 0 && window.api.steam?.getInstalledGames) {
-        window.api.steam.getInstalledGames();
-      }
-      
-      // Preload Epic games
-      if (epicGames?.length === 0 && window.api.epic?.getInstalledGames) {
-        window.api.epic.getInstalledGames();
-      }
-      
-      // Preload media library cache for Epic game thumbnails
-      preloadMediaLibrary();
-    }
-  }, [isOpen, installedApps?.length, uwpApps?.length, steamGames?.length, epicGames?.length, preloadMediaLibrary]);
-
-  // Fetch app library data when modal opens (for unified system)
-  useEffect(() => {
-    // Only fetch if modal is open and data is not already loading
-    if (!isOpen) return;
-    
-    // Load sound library for hover sound selection
-    if (loadSoundLibrary) {
-      loadSoundLibrary();
-    }
-    
-    // Fetch installed apps if not already loaded and not loading
-    if (installedApps?.length === 0 && !appsLoading && fetchInstalledApps) {
-      fetchInstalledApps();
-    }
-    // Fetch UWP apps if not already loaded and not loading
-    if (uwpApps?.length === 0 && !uwpLoading && fetchUwpApps) {
-      fetchUwpApps();
-    }
-    // Fetch Steam games if not already loaded and not loading
-    if (steamGames?.length === 0 && !steamLoading && fetchSteamGames) {
-      fetchSteamGames(customSteamPath);
-    }
-    // Fetch Epic games if not already loaded and not loading
-    if (epicGames?.length === 0 && !epicLoading && fetchEpicGames) {
-      fetchEpicGames();
-    }
-    
-    // Preload media library cache for Epic game thumbnails
-    preloadMediaLibrary();
-  }, [isOpen, installedApps?.length, appsLoading, uwpApps?.length, uwpLoading, steamGames?.length, steamLoading, epicGames?.length, epicLoading, customSteamPath, loadSoundLibrary, fetchInstalledApps, fetchUwpApps, fetchSteamGames, fetchEpicGames]);
+  useChannelModalInitialization({
+    isOpen,
+    channelId,
+    configuredChannels,
+    channelConfigs,
+    setPath,
+    setPathError,
+    setShowError,
+    setMedia,
+    setHoverSound,
+    setAnimatedOnHover,
+    setKenBurnsEnabled,
+    setKenBurnsMode,
+    setKenBurnsHoverScale,
+    setKenBurnsAutoplayScale,
+    setKenBurnsHoverDuration,
+    setKenBurnsAutoplayDuration,
+    setKenBurnsCrossfadeDuration,
+    setKenBurnsEasing,
+    setAsAdmin,
+    setSelectedGameFeedback,
+    installedAppsLength: installedApps?.length || 0,
+    uwpAppsLength: uwpApps?.length || 0,
+    steamGamesLength: steamGames?.length || 0,
+    epicGamesLength: epicGames?.length || 0,
+    appsLoading,
+    uwpLoading,
+    steamLoading,
+    epicLoading,
+    customSteamPath,
+    loadSoundLibrary,
+    fetchInstalledApps,
+    fetchUwpApps,
+    fetchSteamGames,
+    fetchEpicGames,
+    preloadMediaLibrary,
+  });
 
   // Handle hover sound file select
   const handleHoverSoundFile = async (file) => {

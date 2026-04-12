@@ -5,10 +5,12 @@ import WButton from '../ui/WButton';
 import Slider from '../ui/Slider';
 import { useFloatingWidgetsState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { useAppActivity } from '../hooks/useAppActivity';
 import './SystemInfoWidget.css';
 
 const SystemInfoWidget = ({ isVisible, onClose }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
+  const { isAppActive } = useAppActivity();
   
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -118,7 +120,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
 
   // Fetch system info using store manager
   const fetchSystemInfo = useCallback(async () => {
-    if (!isVisible) return;
+    if (!isVisible || !isAppActive) return;
     
     console.log('[SystemInfoWidget] Fetching system info...');
     const store = useConsolidatedAppStore.getState();
@@ -143,11 +145,11 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       console.error('[SystemInfoWidget] Failed to fetch system info:', error);
       store.actions.floatingWidgetManager.setSystemInfoError(`Failed to fetch: ${error.message}`);
     }
-  }, [isVisible]);
+  }, [isVisible, isAppActive]);
 
   // Set up interval for automatic updates
   useEffect(() => {
-    if (updateInterval > 0 && isVisible) {
+    if (updateInterval > 0 && isVisible && isAppActive) {
       intervalRef.current = setInterval(fetchSystemInfo, updateInterval * 1000);
       return () => {
         if (intervalRef.current) {
@@ -159,35 +161,14 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
         clearInterval(intervalRef.current);
       }
     }
-  }, [updateInterval, isVisible, fetchSystemInfo]);
+  }, [updateInterval, isVisible, isAppActive, fetchSystemInfo]);
 
   // Initial fetch when widget becomes visible
   useEffect(() => {
-    if (isVisible) {
-      console.log('[SystemInfoWidget] Widget became visible, fetching system info...');
+    if (isVisible && isAppActive) {
       fetchSystemInfo();
     }
-  }, [isVisible, fetchSystemInfo]);
-
-  // Test API on mount
-  useEffect(() => {
-    console.log('[SystemInfoWidget] Testing API availability...');
-    if (window.api && window.api.getSystemInfo) {
-      console.log('[SystemInfoWidget] API is available');
-      
-      // Test the API call
-      window.api.getSystemInfo().then(response => {
-        console.log('[SystemInfoWidget] Test API response:', response);
-        if (response && response.success) {
-          console.log('[SystemInfoWidget] Test API data:', response.data);
-        }
-      }).catch(error => {
-        console.error('[SystemInfoWidget] Test API error:', error);
-      });
-    } else {
-      console.error('[SystemInfoWidget] API is not available');
-    }
-  }, []);
+  }, [isVisible, isAppActive, fetchSystemInfo]);
 
   // Handle item click to open relevant applications
   const handleItemClick = useCallback((itemType) => {

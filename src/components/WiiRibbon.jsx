@@ -13,6 +13,7 @@ import intervalManager from '../utils/IntervalManager';
 import { useUIState, useSpotifyState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import useSoundManager from '../utils/useSoundManager';
+import { useAppActivity } from '../hooks/useAppActivity';
 // import more icons as needed
 
 // Add a helper function to convert opacity to hex alpha if needed
@@ -46,6 +47,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
     ui,
     setUIState
   } = useUIState();
+  const { isAppActive } = useAppActivity();
   const [isFullscreen, setIsFullscreen] = useState(true);
   const [isFrameless, setIsFrameless] = useState(true);
   const [showGeneralModal, setShowGeneralModal] = useState(false);
@@ -182,7 +184,13 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
 
   // Check if Spotify Match preset is active - run on mount and periodically
   useEffect(() => {
+    const pollIntervalMs = ui.lowPowerMode ? 10000 : 2000;
+
     const checkSpotifyMatchPreset = async () => {
+      if (!isAppActive) {
+        return;
+      }
+
       try {
         if (window.api?.settings?.get) {
           const settings = await window.api.settings.get();
@@ -203,11 +211,11 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
     
     checkSpotifyMatchPreset();
     
-    // Check periodically for changes (every 2 seconds)
-    const interval = setInterval(checkSpotifyMatchPreset, 2000);
+    // Check periodically for changes
+    const interval = setInterval(checkSpotifyMatchPreset, pollIntervalMs);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [ui.lowPowerMode, isAppActive]);
 
   // Update colors when Spotify track changes and Spotify Match is enabled
   useEffect(() => {

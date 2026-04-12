@@ -15,10 +15,6 @@ contextBridge.exposeInMainWorld('api', {
     get: () => ipcRenderer.invoke('channels:get'),
     set: (data) => ipcRenderer.invoke('channels:set', data),
   },
-  wallpapers: {
-    get: () => ipcRenderer.invoke('wallpapers:get'),
-    set: (data) => ipcRenderer.invoke('wallpapers:set', data),
-  },
   supabaseUpload: (data) => ipcRenderer.invoke('supabase:upload', data),
   supabaseDelete: (data) => ipcRenderer.invoke('supabase:delete', data),
   sounds: {
@@ -91,12 +87,15 @@ contextBridge.exposeInMainWorld('api', {
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
     dismissUpdateNotification: () => ipcRenderer.invoke('update-notification:dismiss'),
-    installUpdate: () => ipcRenderer.invoke('update-notification:install-update'),
     downloadUpdate: () => ipcRenderer.invoke('download-update'),
     installUpdate: () => ipcRenderer.invoke('install-update'),
     onUpdateStatus: (cb) => ipcRenderer.on('update-status', (e, data) => cb(data)),
     offUpdateStatus: (cb) => ipcRenderer.removeListener('update-status', cb),
   },
+  // Top-level updater aliases for legacy settings tabs
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
   // Update notification event listeners
   onUpdateNotificationAvailable: (cb) => ipcRenderer.on('update-notification-available', (e, data) => cb(data)),
   offUpdateNotificationAvailable: (cb) => ipcRenderer.removeListener('update-notification-available', cb),

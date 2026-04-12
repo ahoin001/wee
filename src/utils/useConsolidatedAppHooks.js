@@ -312,31 +312,31 @@ export const useTimeFont = () => {
 };
 
 export const useChannelAutoFadeTimeout = () => {
-  return useConsolidatedAppStore((state) => state.channels.autoFadeTimeout);
+  return useConsolidatedAppStore((state) => state.channels.settings.autoFadeTimeout);
 };
 
 export const useChannelAnimation = () => {
-  return useConsolidatedAppStore((state) => state.channels.animation);
+  return useConsolidatedAppStore((state) => state.channels.settings.animation);
 };
 
 export const useAdaptiveEmptyChannels = () => {
-  return useConsolidatedAppStore((state) => state.channels.adaptiveEmptyChannels);
+  return useConsolidatedAppStore((state) => state.channels.settings.adaptiveEmptyChannels);
 };
 
 export const useAnimatedOnHover = () => {
-  return useConsolidatedAppStore((state) => state.channels.animatedOnHover);
+  return useConsolidatedAppStore((state) => state.channels.settings.animatedOnHover);
 };
 
 export const useIdleAnimationEnabled = () => {
-  return useConsolidatedAppStore((state) => state.channels.idleAnimationEnabled);
+  return useConsolidatedAppStore((state) => state.channels.settings.idleAnimationEnabled);
 };
 
 export const useKenBurnsEnabled = () => {
-  return useConsolidatedAppStore((state) => state.channels.kenBurnsEnabled);
+  return useConsolidatedAppStore((state) => state.channels.settings.kenBurnsEnabled);
 };
 
 export const useDockSettings = () => {
-  return useConsolidatedAppStore((state) => state.dock.settings);
+  return useConsolidatedAppStore((state) => state.dock);
 };
 
 export const useParticleSettings = () => {
@@ -417,28 +417,28 @@ export const useTimeStyles = () => {
 
 export const useChannelStyles = () => {
   // ✅ DATA LAYER: Use separate selectors to prevent infinite loops
-  const autoFadeTimeout = useConsolidatedAppStore((state) => state.channels.autoFadeTimeout);
-  const animation = useConsolidatedAppStore((state) => state.channels.animation);
-  const adaptiveEmptyChannels = useConsolidatedAppStore((state) => state.channels.adaptiveEmptyChannels);
-  const animatedOnHover = useConsolidatedAppStore((state) => state.channels.animatedOnHover);
-  const idleAnimationEnabled = useConsolidatedAppStore((state) => state.channels.idleAnimationEnabled);
-  const idleAnimationTypes = useConsolidatedAppStore((state) => state.channels.idleAnimationTypes);
-  const idleAnimationInterval = useConsolidatedAppStore((state) => state.channels.idleAnimationInterval);
-  const kenBurnsEnabled = useConsolidatedAppStore((state) => state.channels.kenBurnsEnabled);
-  const kenBurnsMode = useConsolidatedAppStore((state) => state.channels.kenBurnsMode);
-  const kenBurnsHoverScale = useConsolidatedAppStore((state) => state.channels.kenBurnsHoverScale);
-  const kenBurnsAutoplayScale = useConsolidatedAppStore((state) => state.channels.kenBurnsAutoplayScale);
-  const kenBurnsSlideshowScale = useConsolidatedAppStore((state) => state.channels.kenBurnsSlideshowScale);
-  const kenBurnsHoverDuration = useConsolidatedAppStore((state) => state.channels.kenBurnsHoverDuration);
-  const kenBurnsAutoplayDuration = useConsolidatedAppStore((state) => state.channels.kenBurnsAutoplayDuration);
-  const kenBurnsSlideshowDuration = useConsolidatedAppStore((state) => state.channels.kenBurnsSlideshowDuration);
-  const kenBurnsCrossfadeDuration = useConsolidatedAppStore((state) => state.channels.kenBurnsCrossfadeDuration);
-  const kenBurnsForGifs = useConsolidatedAppStore((state) => state.channels.kenBurnsForGifs);
-  const kenBurnsForVideos = useConsolidatedAppStore((state) => state.channels.kenBurnsForVideos);
-  const kenBurnsEasing = useConsolidatedAppStore((state) => state.channels.kenBurnsEasing);
-  const kenBurnsAnimationType = useConsolidatedAppStore((state) => state.channels.kenBurnsAnimationType);
-  const kenBurnsCrossfadeReturn = useConsolidatedAppStore((state) => state.channels.kenBurnsCrossfadeReturn);
-  const kenBurnsTransitionType = useConsolidatedAppStore((state) => state.channels.kenBurnsTransitionType);
+  const autoFadeTimeout = useConsolidatedAppStore((state) => state.channels.settings.autoFadeTimeout);
+  const animation = useConsolidatedAppStore((state) => state.channels.settings.animation);
+  const adaptiveEmptyChannels = useConsolidatedAppStore((state) => state.channels.settings.adaptiveEmptyChannels);
+  const animatedOnHover = useConsolidatedAppStore((state) => state.channels.settings.animatedOnHover);
+  const idleAnimationEnabled = useConsolidatedAppStore((state) => state.channels.settings.idleAnimationEnabled);
+  const idleAnimationTypes = useConsolidatedAppStore((state) => state.channels.settings.idleAnimationTypes);
+  const idleAnimationInterval = useConsolidatedAppStore((state) => state.channels.settings.idleAnimationInterval);
+  const kenBurnsEnabled = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsEnabled);
+  const kenBurnsMode = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsMode);
+  const kenBurnsHoverScale = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsHoverScale);
+  const kenBurnsAutoplayScale = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsAutoplayScale);
+  const kenBurnsSlideshowScale = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsSlideshowScale);
+  const kenBurnsHoverDuration = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsHoverDuration);
+  const kenBurnsAutoplayDuration = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsAutoplayDuration);
+  const kenBurnsSlideshowDuration = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsSlideshowDuration);
+  const kenBurnsCrossfadeDuration = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsCrossfadeDuration);
+  const kenBurnsForGifs = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsForGifs);
+  const kenBurnsForVideos = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsForVideos);
+  const kenBurnsEasing = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsEasing);
+  const kenBurnsAnimationType = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsAnimationType);
+  const kenBurnsCrossfadeReturn = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsCrossfadeReturn);
+  const kenBurnsTransitionType = useConsolidatedAppStore((state) => state.channels.settings.kenBurnsTransitionType);
   
   return {
     autoFadeTimeout,
@@ -508,14 +508,18 @@ export const useMonitorState = () => {
   // ✅ DATA LAYER: Use separate selectors to prevent infinite loops
   const monitors = useConsolidatedAppStore((state) => state.monitors);
   const setMonitorState = useConsolidatedAppStore((state) => state.actions.setMonitorState);
+  const primaryDisplay = monitors?.displays?.find((display) => display.primary) || null;
   
   return {
     // Monitor state
     displays: monitors?.displays || [],
     currentDisplay: monitors?.currentDisplay || null,
+    primaryDisplay,
     preferredMonitor: monitors?.preferredMonitor || 'primary',
     specificMonitorId: monitors?.specificMonitorId || null,
     rememberLastMonitor: monitors?.rememberLastMonitor || false,
+    isLoading: monitors?.isLoading || false,
+    error: monitors?.error || null,
     
     // Monitor actions
     setDisplays: (displays) => setMonitorState({ displays }),
@@ -538,14 +542,17 @@ export const useMonitorState = () => {
     
     fetchDisplays: async () => {
       try {
+        setMonitorState({ isLoading: true, error: null });
         if (window.api?.monitors?.getDisplays) {
           const displays = await window.api.monitors.getDisplays();
-          setMonitorState({ displays });
+          setMonitorState({ displays, isLoading: false, error: null });
           return displays;
         }
+        setMonitorState({ isLoading: false, error: 'Monitor API not available' });
         return [];
       } catch (error) {
         console.error('[useMonitorState] Error fetching displays:', error);
+        setMonitorState({ isLoading: false, error: error.message || 'Failed to fetch displays' });
         return [];
       }
     },
@@ -566,8 +573,8 @@ export const useMonitorState = () => {
     
     saveMonitorWallpaper: async (monitorId, wallpaperData) => {
       try {
-        if (window.api?.wallpapers?.saveMonitorWallpaper) {
-          return await window.api.wallpapers.saveMonitorWallpaper(monitorId, wallpaperData);
+        if (window.api?.wallpapers?.setMonitorWallpaper) {
+          return await window.api.wallpapers.setMonitorWallpaper(monitorId, wallpaperData);
         }
         return { success: false, error: 'Wallpaper API not available' };
       } catch (error) {
@@ -577,8 +584,8 @@ export const useMonitorState = () => {
     
     saveMonitorSettings: async (monitorId, settings) => {
       try {
-        if (window.api?.wallpapers?.saveMonitorSettings) {
-          return await window.api.wallpapers.saveMonitorSettings(monitorId, settings);
+        if (window.api?.wallpapers?.setMonitorSettings) {
+          return await window.api.wallpapers.setMonitorSettings(monitorId, settings);
         }
         return { success: false, error: 'Settings API not available' };
       } catch (error) {

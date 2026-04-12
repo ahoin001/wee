@@ -1,9 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
+import { useAppActivity } from '../hooks/useAppActivity';
 
 const useWallpaperCycling = () => {
   const { wallpaper } = useConsolidatedAppStore();
   const { setWallpaperState } = useConsolidatedAppStore(state => state.actions);
+  const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
+  const { isAppActive } = useAppActivity();
   const intervalRef = useRef(null);
   const isTransitioningRef = useRef(false);
   
@@ -41,6 +44,7 @@ const useWallpaperCycling = () => {
     savedWallpapers,
     current
   } = wallpaper;
+  const effectiveCycleInterval = lowPowerMode ? Math.max(cycleInterval, 60) : cycleInterval;
 
   // Simple function to get next wallpaper
   const getNextWallpaper = useCallback(() => {
@@ -196,7 +200,7 @@ const useWallpaperCycling = () => {
 
   // Simple cycle function
   const cycleToNext = useCallback(() => {
-    if (isTransitioningRef.current) {
+    if (!isAppActive || isTransitioningRef.current) {
       return; // Don't cycle if already transitioning
     }
 
@@ -205,7 +209,7 @@ const useWallpaperCycling = () => {
     if (nextWallpaper) {
       transitionToWallpaper(nextWallpaper);
     }
-  }, [getNextWallpaper, transitionToWallpaper]);
+  }, [getNextWallpaper, transitionToWallpaper, isAppActive]);
 
   // Manage cycling lifecycle - simplified to prevent infinite loops
   useEffect(() => {
@@ -216,12 +220,12 @@ const useWallpaperCycling = () => {
     }
 
     // Start cycling if conditions are met
-    if (cycleWallpapers && likedWallpapers && likedWallpapers.length > 1) {
+    if (isAppActive && cycleWallpapers && likedWallpapers && likedWallpapers.length > 1) {
       intervalRef.current = setInterval(() => {
         if (!isTransitioningRef.current) {
           cycleToNext();
         }
-      }, cycleInterval * 1000);
+      }, effectiveCycleInterval * 1000);
     }
 
     // Cleanup function
@@ -231,14 +235,14 @@ const useWallpaperCycling = () => {
         intervalRef.current = null;
       }
     };
-  }, [cycleWallpapers, likedWallpapers?.length, cycleInterval, cycleToNext]); // Only depend on these stable values
+  }, [cycleWallpapers, likedWallpapers?.length, effectiveCycleInterval, cycleToNext, isAppActive]); // Only depend on these stable values
 
   // Manual cycle function
   const manualCycle = useCallback(() => {
-    if (!isTransitioningRef.current) {
+    if (isAppActive && !isTransitioningRef.current) {
       cycleToNext();
     }
-  }, [cycleToNext]);
+  }, [cycleToNext, isAppActive]);
 
   return {
     isCycling: cycleWallpapers && likedWallpapers && likedWallpapers.length > 1,
@@ -253,6 +257,7 @@ const useWallpaperCycling = () => {
     // Debug info
     debug: {
       cycleWallpapers,
+      lowPowerMode,
       likedWallpapersCount: likedWallpapers?.length,
       savedWallpapersCount: savedWallpapers?.length,
       hasMultipleLiked: likedWallpapers && likedWallpapers.length > 1
