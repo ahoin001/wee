@@ -28,6 +28,7 @@ import IsolatedWallpaperBackground from './components/IsolatedWallpaperBackgroun
 import SpotifyImmersiveOverlay from './components/SpotifyImmersiveOverlay';
 import SpotifyGradientOverlay from './components/SpotifyGradientOverlay';
 import SpotifyLiveGradientWallpaper from './components/SpotifyLiveGradientWallpaper';
+import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 
 // Lazy load components to reduce initial bundle size
 const LazyPaginatedChannels = React.lazy(() => import('./components/PaginatedChannels'));
@@ -427,7 +428,7 @@ function App() {
                 onDockContextMenu={() => {}}
   
                 showPresetsButton={true}
-                timeColor={timeColor ?? '#ffffff'}
+                timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
                 timeFont={timeFont ?? 'default'}
                 ribbonGlowColor={ribbonGlowColor}
                 accessoryButtonConfig={{}}
@@ -456,7 +457,7 @@ function App() {
                 enableTimePill={enableTimePill ?? true}
                 timePillBlur={timePillBlur ?? 8}
                 timePillOpacity={timePillOpacity ?? 0.05}
-                timeColor={timeColor ?? '#ffffff'}
+                timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
                 timeFont={timeFont ?? 'default'}
                 // Particle settings from consolidated store
                 particleSettings={dock}

@@ -21,12 +21,12 @@
   --dock-glass-shine-opacity: 0.7;
   --dock-glass-svg-opacity: 1;
   --dock-pod-svg-opacity: 1;
-  --dock-button-border: #22bef3;
-  --dock-button-gradient-start: #e0dcdc;
-  --dock-button-gradient-end: #cbcbcb;
-  --dock-button-icon-left: #979796;
-  --dock-button-icon-right: #a4a4a4;
-  --dock-button-highlight: #e4e4e4;
+  --dock-button-border: hsl(var(--wii-blue));
+  --dock-button-gradient-start: hsl(var(--dock-chrome-face-start));
+  --dock-button-gradient-end: hsl(var(--dock-chrome-face-end));
+  --dock-button-icon-left: hsl(var(--dock-chrome-icon-muted));
+  --dock-button-icon-right: hsl(var(--dock-chrome-icon-mid));
+  --dock-button-highlight: hsl(var(--dock-chrome-highlight));
   width: 100%;
   height: auto;
   margin: 0;
@@ -37,7 +37,7 @@
   position: relative;
   width: 100%;
   margin: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -56,7 +56,8 @@
   width: 100%;
   height: auto;
   opacity: var(--dock-glass-svg-opacity);
-  filter: drop-shadow(0 10px 8px rgb(0 0 0 / 0.04)) drop-shadow(0 4px 3px rgb(0 0 0 / 0.1));
+  filter: drop-shadow(0 10px 8px hsl(var(--text-primary) / 0.04))
+    drop-shadow(0 4px 3px hsl(var(--text-primary) / 0.1));
 }
 
 .wii-dock-glass-svg {
@@ -65,9 +66,9 @@
 }
 
 .wii-dock-glass-fill {
-  fill: rgb(255 255 255 / var(--dock-glass-opacity));
+  fill: hsl(var(--color-pure-white) / var(--dock-glass-opacity));
   backdrop-filter: blur(var(--dock-glass-blur));
-  stroke: rgb(255 255 255 / var(--dock-glass-border-opacity));
+  stroke: hsl(var(--color-pure-white) / var(--dock-glass-border-opacity));
   stroke-width: 1px;
   clip-path: url(#dock-clip-path);
 }
@@ -89,15 +90,15 @@
 }
 
 .dock-glass-enabled .wii-sd-card {
-  background: rgb(255 255 255 / var(--dock-glass-opacity));
+  background: hsl(var(--color-pure-white) / var(--dock-glass-opacity));
   backdrop-filter: blur(var(--dock-glass-blur));
-  border: 1px solid rgb(255 255 255 / var(--dock-glass-border-opacity));
-  box-shadow: 0 8px 32px rgb(31 38 135 / 0.37), inset 0 1px 0 rgb(255 255 255 / var(--dock-glass-shine-opacity));
+  border: 1px solid hsl(var(--color-pure-white) / var(--dock-glass-border-opacity));
+  box-shadow: var(--glass-shadow), inset 0 1px 0 hsl(var(--color-pure-white) / var(--dock-glass-shine-opacity));
 }
 
 .wii-sd-card:hover {
   transform: scale(1.1);
-  filter: brightness(1.2) drop-shadow(0 0 8px rgba(51, 190, 237, 0.6));
+  filter: brightness(1.2) drop-shadow(0 0 8px rgb(var(--accent-cyan-rgb) / 0.6));
 }
 
 .wii-sd-card:active {
@@ -184,7 +185,7 @@
 }
 
 .wii-pod-glow {
-  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.7));
+  filter: drop-shadow(0 0 12px hsl(var(--wii-blue) / 0.7));
   transition: filter 0.2s ease-in-out;
 }
 
@@ -198,7 +199,7 @@
   border-radius: 50%;
   border: 2px solid var(--dock-button-border);
   background: radial-gradient(circle at 25% 25%, var(--dock-button-gradient-start), var(--dock-button-gradient-end));
-  box-shadow: inset 0 0 5px rgb(0 0 0 / 0.2);
+  box-shadow: inset 0 0 5px hsl(var(--text-primary) / 0.2);
   transition: all 0.2s ease;
   cursor: pointer;
   outline: none;
@@ -216,7 +217,7 @@
   border-radius: 50%;
   border: 2px solid var(--dock-button-border);
   background: radial-gradient(circle at 75% 75%, var(--dock-button-gradient-start), var(--dock-button-gradient-end));
-  box-shadow: inset 0 0 5px rgb(0 0 0 / 0.2);
+  box-shadow: inset 0 0 5px hsl(var(--text-primary) / 0.2);
   transition: all 0.2s ease;
   cursor: pointer;
   outline: none;
@@ -226,10 +227,10 @@
 }
 
 .wii-button-glass {
-  background: rgb(255 255 255 / var(--dock-glass-opacity-soft));
+  background: hsl(var(--color-pure-white) / var(--dock-glass-opacity-soft));
   backdrop-filter: blur(var(--dock-glass-blur));
-  border: 1px solid rgb(255 255 255 / var(--dock-glass-border-opacity));
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.1);
+  border: 1px solid hsl(var(--color-pure-white) / var(--dock-glass-border-opacity));
+  box-shadow: var(--shadow-md);
 }
 
 /* Button Content */

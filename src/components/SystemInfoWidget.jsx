@@ -5,6 +5,19 @@ import WButton from '../ui/WButton';
 import Slider from '../ui/Slider';
 import { useFloatingWidgetsState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { CSS_COLOR_PURE_WHITE } from '../design/runtimeColorStrings.js';
+
+const GLASS_TEST_BTN_STYLE = {
+  background: 'hsl(var(--color-pure-white) / 0.2)',
+  border: '1px solid hsl(var(--color-pure-white) / 0.3)',
+  borderRadius: '8px',
+  padding: '8px 16px',
+  color: CSS_COLOR_PURE_WHITE,
+  fontSize: '14px',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  backdropFilter: 'blur(10px)',
+};
 import { useAppActivity } from '../hooks/useAppActivity';
 import { useFloatingWidgetFrame } from '../hooks/useFloatingWidgetFrame';
 import './SystemInfoWidget.css';
@@ -420,17 +433,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
                     console.error('[SystemInfoWidget] Test API error:', error);
                   });
                 }}
-                style={{ 
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(10px)'
-                }}
+                style={GLASS_TEST_BTN_STYLE}
               >
                 Test API
               </WButton>
@@ -468,17 +471,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
                   };
                   store.actions.floatingWidgetManager.updateSystemInfoData(mockData);
                 }}
-                style={{ 
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(10px)'
-                }}
+                style={GLASS_TEST_BTN_STYLE}
               >
                 Test Store
               </WButton>

@@ -1,7 +1,7 @@
 /* Dock Effects Modal Styles */
 .dock-effects-modal {
   --dock-effects-thumb-glow: hsl(var(--wii-blue) / 0.7);
-  --dock-effects-thumb-border: hsl(var(--text-inverse));
+  --dock-effects-thumb-border: hsl(var(--text-on-accent));
   --dock-effects-elev-hover: var(--shadow-sm);
 }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useUnifiedAppsState } from '../utils/useConsolidatedAppHooks';
 import Button from '../ui/WButton';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import './unified-app-path-search.css';
 // import { useAppSearchPerformance } from '../utils/performanceHooks';
 
 const UnifiedAppPathSearch = ({ 
@@ -171,19 +172,18 @@ const UnifiedAppPathSearch = ({
     }
   };
 
-  const filterPillClass = (value) =>
-    selectedAppType === value
-      ? 'border-[hsl(var(--wii-blue))] bg-[hsl(var(--wii-blue))] text-[hsl(var(--text-inverse))]'
-      : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))]';
-
   return (
-    <div className="relative mb-4">
+    <div className="uaps">
       {/* Type Filter */}
-      <div className="mb-3 flex items-center gap-2">
-        <label className="text-sm font-medium text-[hsl(var(--text-secondary))]">
+      <div className="uaps__filter-row">
+        <span className="uaps__filter-label" id="uaps-filter-label">
           Filter:
-        </label>
-        <div className="flex gap-1">
+        </span>
+        <div
+          className="uaps__filter-pills"
+          role="group"
+          aria-labelledby="uaps-filter-label"
+        >
           {[
             { value: 'all', label: 'All' },
             { value: 'exe', label: 'Apps' },
@@ -195,7 +195,7 @@ const UnifiedAppPathSearch = ({
               key={value}
               type="button"
               onClick={() => handleTypeFilterChange(value)}
-              className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-all duration-200 ease-out ${filterPillClass(value)}`}
+              className={`uaps__filter-pill ${selectedAppType === value ? 'uaps__filter-pill--active' : ''}`}
             >
               {label}
             </button>
@@ -204,10 +204,10 @@ const UnifiedAppPathSearch = ({
       </div>
 
       {/* Search Input */}
-      <div className="flex items-center gap-2">
+      <div className="uaps__search-row">
         <input
           type="text"
-          className="text-input flex-1 rounded-lg border-[1.5px] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] px-3.5 py-3 text-base text-[hsl(var(--text-primary))]"
+          className="uaps__input"
           placeholder={placeholder}
           value={localSearchQuery}
           onChange={handleInputChange}
@@ -221,67 +221,61 @@ const UnifiedAppPathSearch = ({
           size="sm"
           onClick={handleRescan}
           disabled={unifiedAppsLoading || disabled}
-          className="shrink-0 whitespace-nowrap"
+          className="uaps__rescan"
         >
           {unifiedAppsLoading ? 'Scanning...' : 'Rescan'}
         </Button>
-        
-
       </div>
 
       {/* Loading State */}
       {unifiedAppsLoading && localSearchQuery && filteredApps.length === 0 && (
-        <div className="absolute left-0 top-full mt-1 text-[15px] font-medium text-[hsl(var(--wii-blue))]">
+        <div className="uaps__loading">
           <span>Scanning for apps...</span>
         </div>
       )}
 
       {/* Error State */}
       {unifiedAppsError && (
-        <div className="mt-2 text-[13px] text-[hsl(var(--state-error))]">
+        <div className="uaps__error">
           {unifiedAppsError}
         </div>
       )}
 
       {/* Results Dropdown */}
       {dropdownOpen && filteredApps.length > 0 && (
-        <div
-          className="absolute left-0 right-0 top-full z-[1000] max-h-[300px] overflow-y-auto rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] shadow-[var(--shadow-lg)]"
-        >
-          <div className="divide-y divide-[hsl(var(--border-primary))]">
+        <div className="uaps__dropdown">
+          <div className="uaps__results">
           {filteredApps.slice(0, 50).map((app) => (
             <div
               key={app.id}
-              className="flex cursor-pointer items-center gap-3 px-4 py-3 text-base font-medium text-[hsl(var(--text-primary))] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-px hover:bg-[hsl(var(--state-hover))] hover:shadow-[var(--shadow-sm)]"
+              className="uaps__result-row"
               onMouseDown={() => handleAppSelect(app)}
             >
-              {/* App Icon */}
               {app.icon ? (
                 <img 
                   src={app.icon} 
                   alt={`${app.name} icon`}
-                  className="h-8 w-8 rounded object-cover transition-transform duration-200 ease-out"
+                  className="uaps__app-icon"
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.currentTarget.classList.add('uaps__app-icon--hidden');
                   }}
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-[hsl(var(--surface-secondary))] text-base">
+                <div className="uaps__app-icon-fallback">
                   {getAppTypeIcon(app.type)}
                 </div>
               )}
 
-              {/* App Info */}
-              <div className="min-w-0 flex-1">
-                <div className="mb-0.5 font-semibold">
+              <div className="uaps__meta">
+                <div className="uaps__title">
                   {app.name}
                 </div>
-                <div className="flex items-center gap-1 text-[13px] text-[hsl(var(--text-secondary))]">
+                <div className="uaps__subtitle">
                   <span>{getAppTypeLabel(app.type)}</span>
                   {app.path && (
                     <>
                       <span>•</span>
-                      <span className="font-mono text-xs opacity-80">
+                      <span className="uaps__path">
                         {app.path.length > 40 ? app.path.substring(0, 40) + '...' : app.path}
                       </span>
                     </>
@@ -289,17 +283,15 @@ const UnifiedAppPathSearch = ({
                 </div>
               </div>
 
-              {/* Type Badge */}
-              <div className="shrink-0 rounded-xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-2 py-0.5 text-[11px] font-semibold text-[hsl(var(--text-secondary))]">
+              <div className="uaps__badge">
                 {getAppTypeLabel(app.type)}
               </div>
             </div>
           ))}
           </div>
           
-          {/* Show message if there are more results */}
           {filteredApps.length > 50 && (
-            <div className="border-t border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-4 py-2 text-center text-xs text-[hsl(var(--text-secondary))]">
+            <div className="uaps__more-footer">
               Showing first 50 results. Refine your search to see more.
             </div>
           )}
@@ -308,7 +300,7 @@ const UnifiedAppPathSearch = ({
 
       {/* No Results */}
       {dropdownOpen && !unifiedAppsLoading && filteredApps.length === 0 && localSearchQuery && (
-        <div className="mt-2 px-3 py-3 text-center text-sm text-[hsl(var(--text-tertiary))]">
+        <div className="uaps__empty">
           No apps found matching "{localSearchQuery}"
         </div>
       )}

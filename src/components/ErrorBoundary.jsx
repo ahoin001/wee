@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import Card from '../ui/Card';
 import Button from '../ui/WButton';
 import Text from '../ui/Text';
+import '../styles/error-ui.css';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -66,62 +67,27 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-          padding: '20px',
-          background: 'hsl(var(--surface-primary))'
-        }}>
-          <Card style={{ maxWidth: '600px', width: '100%' }}>
-            <div style={{ padding: '24px', textAlign: 'center' }}>
-              <div style={{ 
-                fontSize: '48px', 
-                marginBottom: '16px',
-                color: 'hsl(var(--wii-red))'
-              }}>
+        <div className="app-error-fullpage">
+          <Card className="app-error-card-shell">
+            <div className="app-error-card-inner">
+              <div className="app-error-emoji">
                 ⚠️
               </div>
               
-              <Text variant="h2" style={{ 
-                color: 'hsl(var(--text-primary))', 
-                marginBottom: '12px' 
-              }}>
+              <Text variant="h2" className="mb-3 text-[hsl(var(--text-primary))]">
                 Something went wrong
               </Text>
               
-              <Text variant="body" style={{ 
-                color: 'hsl(var(--text-secondary))', 
-                marginBottom: '24px' 
-              }}>
+              <Text variant="body" className="mb-6 text-[hsl(var(--text-secondary))]">
                 An unexpected error occurred. The app has been prevented from crashing.
               </Text>
 
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details style={{ 
-                  marginBottom: '24px',
-                  textAlign: 'left',
-                  background: 'hsl(var(--surface-secondary))',
-                  padding: '16px',
-                  borderRadius: '8px',
-                  border: '1px solid hsl(var(--border-primary))'
-                }}>
-                  <summary style={{ 
-                    cursor: 'pointer',
-                    color: 'hsl(var(--text-primary))',
-                    fontWeight: '600',
-                    marginBottom: '8px'
-                  }}>
+                <details className="app-error-details">
+                  <summary>
                     Error Details (Development)
                   </summary>
-                  <pre style={{ 
-                    fontSize: '12px',
-                    color: 'hsl(var(--text-secondary))',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    margin: '0'
-                  }}>
+                  <pre className="app-error-pre">
                     {this.state.error.toString()}
                     {'\n\n'}
                     {this.state.errorInfo?.componentStack}
@@ -129,16 +95,11 @@ class ErrorBoundary extends React.Component {
                 </details>
               )}
 
-              <div style={{ 
-                display: 'flex', 
-                gap: '12px', 
-                justifyContent: 'center',
-                flexWrap: 'wrap'
-              }}>
+              <div className="app-error-actions">
                 <Button 
                   variant="primary" 
                   onClick={this.handleRetry}
-                  style={{ minWidth: '120px' }}
+                  className="app-error-btn-wide"
                 >
                   Try Again
                 </Button>
@@ -146,7 +107,7 @@ class ErrorBoundary extends React.Component {
                 <Button 
                   variant="secondary" 
                   onClick={this.handleReportError}
-                  style={{ minWidth: '120px' }}
+                  className="app-error-btn-wide"
                 >
                   Report Error
                 </Button>
@@ -154,18 +115,14 @@ class ErrorBoundary extends React.Component {
                 <Button 
                   variant="secondary" 
                   onClick={() => window.location.reload()}
-                  style={{ minWidth: '120px' }}
+                  className="app-error-btn-wide"
                 >
                   Reload App
                 </Button>
               </div>
 
               {this.state.errorId && (
-                <Text variant="caption" style={{ 
-                  color: 'hsl(var(--text-tertiary))', 
-                  marginTop: '16px',
-                  display: 'block'
-                }}>
+                <Text variant="caption" className="app-error-caption">
                   Error ID: {this.state.errorId}
                 </Text>
               )}

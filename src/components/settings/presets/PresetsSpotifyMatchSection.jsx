@@ -40,48 +40,48 @@ const PresetsSpotifyMatchSection = React.memo(
       >
         <div className="bg-white/70 rounded-xl p-4 mb-4">
           <div className="mb-3">
-            <Text size="sm" color="#2C3E50" className="mb-2 leading-[1.4]">
+            <Text size="sm" color="hsl(var(--text-primary))" className="mb-2 leading-[1.4]">
               When enabled, your ribbon colors, glow effects, and time display adapt to the current track&apos;s album art
               colors (stored in Settings → consolidated state, not polled from disk).
             </Text>
-            <Text size="sm" color="#4CAF50" className="italic font-medium mb-3">
+            <Text size="sm" color="hsl(var(--state-success))" className="italic font-medium mb-3">
               Cohesive visuals that respond to your music.
             </Text>
             <WToggle checked={spotifyMatchEnabled} onChange={onSpotifyMatchToggle} label="Enable Spotify Match" />
           </div>
         </div>
 
-        <div className="bg-white/60 rounded-xl p-4 border-2 border-[#4caf50]/20">
+        <div className="bg-white/60 rounded-xl p-4 border-2 border-[hsl(var(--state-success))/0.2]">
           <div className="mb-3">
             <div className="surface-row mb-1">
               <span className="text-[18px]">🌟</span>
-              <Text size="lg" color="#2C3E50" className="font-semibold">
+              <Text size="lg" color="hsl(var(--text-primary))" className="font-semibold">
                 Immersive Experience
               </Text>
             </div>
-            <Text size="sm" color="#5D6D7E" className="leading-[1.4] mb-3">
+            <Text size="sm" color="hsl(var(--text-secondary))" className="leading-[1.4] mb-3">
               Transform your desktop with dynamic colors from the current track
             </Text>
             <WToggle checked={immersiveModeState.enabled || false} onChange={onImmersiveModeToggle} label="Enable Immersive Experience" />
           </div>
 
           {immersiveModeState.enabled && (
-            <div className="mt-4 p-4 bg-white/80 rounded-lg border border-[#4caf50]/30">
+            <div className="mt-4 p-4 bg-white/80 rounded-lg border border-[hsl(var(--state-success))/0.3]">
               <div className="mb-4">
                 <WToggle
                   checked={immersiveModeState.liveGradientWallpaper || false}
                   onChange={onLiveGradientWallpaperToggle}
                   label="Live Gradient Wallpaper"
                 />
-                <Text size="sm" color="#5D6D7E" className="ml-7 mt-1 leading-[1.4]">
+                <Text size="sm" color="hsl(var(--text-secondary))" className="ml-7 mt-1 leading-[1.4]">
                   Replace your wallpaper with a live gradient that matches the current track&apos;s colors
                 </Text>
               </div>
 
-              <div className="mb-4 p-3 bg-[#4caf50]/10 rounded-lg border border-[#4caf50]/20">
+              <div className="mb-4 p-3 bg-[hsl(var(--state-success))/0.1] rounded-lg border border-[hsl(var(--state-success))/0.2]">
                 <div className="surface-row mb-2">
                   <span className="text-[16px]">💾</span>
-                  <Text size="sm" color="#2C3E50" className="font-semibold">
+                  <Text size="sm" color="hsl(var(--text-primary))" className="font-semibold">
                     Save Current Look
                   </Text>
                 </div>
@@ -93,17 +93,17 @@ const PresetsSpotifyMatchSection = React.memo(
                     Save as Named Preset
                   </Button>
                 </div>
-                <Text size="xs" color="#5D6D7E" className="leading-[1.3]">
+                <Text size="xs" color="hsl(var(--text-secondary))" className="leading-[1.3]">
                   Wallpaper library saves the gradient image. Named preset freezes the current look (including Spotify colors)
                   so you can reload it without playing music.
                 </Text>
               </div>
 
               {immersiveModeState.liveGradientWallpaper && (
-                <div className="mb-4 p-4 bg-[#4caf50]/5 rounded-lg border border-[#4caf50]/15">
+                <div className="mb-4 p-4 bg-[hsl(var(--state-success))/0.05] rounded-lg border border-[hsl(var(--state-success))/0.15]">
                   <div className="surface-row mb-3">
                     <span className="text-[16px]">🎨</span>
-                    <Text size="sm" color="#2C3E50" className="font-semibold">
+                    <Text size="sm" color="hsl(var(--text-primary))" className="font-semibold">
                       Gradient Settings
                     </Text>
                   </div>
@@ -114,13 +114,13 @@ const PresetsSpotifyMatchSection = React.memo(
                       onChange={(value) => onImmersiveModeSettingChange('overlayMode', value)}
                       label="Overlay on Existing Wallpaper"
                     />
-                    <Text size="xs" color="#5D6D7E" className="ml-7 mt-1 leading-[1.3]">
+                    <Text size="xs" color="hsl(var(--text-secondary))" className="ml-7 mt-1 leading-[1.3]">
                       When enabled, gradient overlays your current wallpaper instead of replacing it
                     </Text>
                   </div>
 
                   <div className="mb-3">
-                    <Text size="sm" color="#2C3E50" className="mb-1.5 font-medium">
+                    <Text size="sm" color="hsl(var(--text-primary))" className="mb-1.5 font-medium">
                       Intensity: {Math.round((immersiveModeState.intensity || 0.7) * 100)}%
                     </Text>
                     <Slider
@@ -133,7 +133,7 @@ const PresetsSpotifyMatchSection = React.memo(
                   </div>
 
                   <div className="mb-3">
-                    <Text size="sm" color="#2C3E50" className="mb-1.5 font-medium">
+                    <Text size="sm" color="hsl(var(--text-primary))" className="mb-1.5 font-medium">
                       Gradient Style
                     </Text>
                     <WSelect
@@ -148,7 +148,7 @@ const PresetsSpotifyMatchSection = React.memo(
                   </div>
 
                   <div className="mb-3">
-                    <Text size="sm" color="#2C3E50" className="mb-1.5 font-medium">
+                    <Text size="sm" color="hsl(var(--text-primary))" className="mb-1.5 font-medium">
                       Animation Level: {['Static', 'Subtle', 'Dynamic', 'Intense'][immersiveModeState.animationLevel || 2]}
                     </Text>
                     <Slider
@@ -162,10 +162,10 @@ const PresetsSpotifyMatchSection = React.memo(
                 </div>
               )}
 
-              <div className="p-3 bg-[#4caf50]/8 rounded-lg border border-[#4caf50]/20">
+              <div className="p-3 bg-[hsl(var(--state-success))/0.08] rounded-lg border border-[hsl(var(--state-success))/0.2]">
                 <div className="surface-row mb-3">
                   <span className="text-[14px]">✨</span>
-                  <Text size="sm" color="#2C3E50" className="font-semibold">
+                  <Text size="sm" color="hsl(var(--text-primary))" className="font-semibold">
                     Additional Effects
                   </Text>
                 </div>
@@ -176,14 +176,14 @@ const PresetsSpotifyMatchSection = React.memo(
                     onChange={onAmbientLightingToggle}
                     label="Ambient Lighting"
                   />
-                  <Text size="xs" color="#5D6D7E" className="ml-7 mt-1 leading-[1.3]">
+                  <Text size="xs" color="hsl(var(--text-secondary))" className="ml-7 mt-1 leading-[1.3]">
                     Subtle color tinting and floating particles in the interface
                   </Text>
                 </div>
 
                 <div className="mb-3">
                   <WToggle checked={immersiveModeState.pulseEffects || false} onChange={onPulseEffectsToggle} label="Pulse Effects" />
-                  <Text size="xs" color="#5D6D7E" className="ml-7 mt-1 leading-[1.3]">
+                  <Text size="xs" color="hsl(var(--text-secondary))" className="ml-7 mt-1 leading-[1.3]">
                     Pulses synchronized with playback
                   </Text>
                 </div>

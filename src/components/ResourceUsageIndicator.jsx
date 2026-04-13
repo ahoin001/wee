@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CSS_STATE_ERROR, CSS_STATE_SUCCESS } from '../design/runtimeColorStrings.js';
 
 const ResourceUsageIndicator = ({ 
   level = 'medium', // 'low', 'medium', 'high'
@@ -10,10 +11,14 @@ const ResourceUsageIndicator = ({
 
   const getIconColor = () => {
     switch (level) {
-      case 'low': return '#4CAF50';
-      case 'medium': return '#FF9800';
-      case 'high': return '#F44336';
-      default: return '#FF9800';
+      case 'low':
+        return CSS_STATE_SUCCESS;
+      case 'medium':
+        return 'hsl(var(--state-warning))';
+      case 'high':
+        return CSS_STATE_ERROR;
+      default:
+        return 'hsl(var(--state-warning))';
     }
   };
 

@@ -48,7 +48,8 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "node scripts/design-system-check.cjs",
+    "lint:eslint": "eslint .",
     "start": "electron-builder start",
     "package": "electron-builder package",
     "publish": "electron-builder publish",

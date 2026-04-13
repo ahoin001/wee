@@ -1,5 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 import { sanitizePresetSettingsForCommunity } from './presetSharing'
+import {
+  CANVAS_AVATAR_FALLBACK_BG,
+  CANVAS_AVATAR_FALLBACK_FG,
+  CANVAS_PLACEHOLDER_ACCENT,
+  CANVAS_PLACEHOLDER_BG,
+  CANVAS_PLACEHOLDER_GRADIENT_END,
+  CANVAS_PLACEHOLDER_GRADIENT_START,
+  CANVAS_PLACEHOLDER_TEXT_DIM,
+  CANVAS_PLACEHOLDER_TEXT_MUTED,
+  CANVAS_PLACEHOLDER_TEXT_PRIMARY,
+} from '../design/supabaseCanvasColors.js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -239,18 +250,18 @@ export const generatePresetThumbnail = async (presetData) => {
     canvas.height = 200;
     
     // Draw background
-    ctx.fillStyle = '#2a2a2a';
+    ctx.fillStyle = CANVAS_PLACEHOLDER_BG;
     ctx.fillRect(0, 0, 300, 200);
     
     // Draw gradient overlay
     const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-    gradient.addColorStop(0, 'rgba(0, 123, 255, 0.3)');
-    gradient.addColorStop(1, 'rgba(0, 123, 255, 0.1)');
+    gradient.addColorStop(0, CANVAS_PLACEHOLDER_GRADIENT_START);
+    gradient.addColorStop(1, CANVAS_PLACEHOLDER_GRADIENT_END);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 300, 200);
     
     // Add preset name
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = CANVAS_PLACEHOLDER_TEXT_PRIMARY;
     ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(presetData.name || 'Preset', 150, 80);
@@ -258,18 +269,18 @@ export const generatePresetThumbnail = async (presetData) => {
     // Add channel count
     const channelCount = presetData.channels?.length || 0;
     ctx.font = '14px Arial';
-    ctx.fillStyle = '#cccccc';
+    ctx.fillStyle = CANVAS_PLACEHOLDER_TEXT_MUTED;
     ctx.fillText(`${channelCount} channels`, 150, 110);
     
     // Add creator info
     if (presetData.creator_name) {
       ctx.font = '12px Arial';
-      ctx.fillStyle = '#999999';
+      ctx.fillStyle = CANVAS_PLACEHOLDER_TEXT_DIM;
       ctx.fillText(`by ${presetData.creator_name}`, 150, 130);
     }
     
     // Add Wii-style border
-    ctx.strokeStyle = '#007bff';
+    ctx.strokeStyle = CANVAS_PLACEHOLDER_ACCENT;
     ctx.lineWidth = 3;
     ctx.strokeRect(5, 5, 290, 190);
     
@@ -714,11 +725,11 @@ export const generateThumbnail = async (presetData) => {
   canvas.height = 200
   
   // Draw a simple thumbnail based on preset data
-  ctx.fillStyle = '#f0f0f0'
+  ctx.fillStyle = CANVAS_AVATAR_FALLBACK_BG
   ctx.fillRect(0, 0, 300, 200)
   
   // Add preset name
-  ctx.fillStyle = '#333'
+  ctx.fillStyle = CANVAS_AVATAR_FALLBACK_FG
   ctx.font = 'bold 16px Arial'
   ctx.textAlign = 'center'
   ctx.fillText(presetData.name, 150, 100)

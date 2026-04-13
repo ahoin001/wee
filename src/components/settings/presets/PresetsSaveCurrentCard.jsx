@@ -69,7 +69,7 @@ const PresetsSaveCurrentCard = React.memo(
         )}
 
         {error && (
-          <Text size="sm" color="#dc3545" className="mt-1.5">
+          <Text size="sm" color="hsl(var(--state-error))" className="mt-1.5">
             {error}
           </Text>
         )}

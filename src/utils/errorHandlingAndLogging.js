@@ -2,6 +2,7 @@
 // Provides comprehensive error boundaries, logging, and monitoring
 
 import React from 'react';
+import '../styles/error-ui.css';
 
 // ============================================================================
 // ERROR BOUNDARY SYSTEM
@@ -108,77 +109,50 @@ const ErrorFallback = ({ error, errorInfo, errorId, recoveryAttempts, onRetry, o
   const maxRetries = 3;
 
   return (
-    <div style={{
-      padding: '20px',
-      margin: '20px',
-      border: '1px solid #ff6b6b',
-      borderRadius: '8px',
-      backgroundColor: '#fff5f5',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      <h2 style={{ color: '#d63031', marginBottom: '16px' }}>
+    <div className="enhanced-error-fallback">
+      <h2>
         🚨 Something went wrong
       </h2>
       
-      <div style={{ marginBottom: '16px' }}>
-        <p style={{ color: '#2d3436', marginBottom: '8px' }}>
+      <div className="enhanced-error-fallback__row">
+        <p className="enhanced-error-fallback__text">
           <strong>Error ID:</strong> {errorId}
         </p>
-        <p style={{ color: '#2d3436', marginBottom: '8px' }}>
+        <p className="enhanced-error-fallback__text">
           <strong>Error:</strong> {error?.message || 'Unknown error'}
         </p>
         {recoveryAttempts > 0 && (
-          <p style={{ color: '#e17055', marginBottom: '8px' }}>
+          <p className="enhanced-error-fallback__warn">
             <strong>Recovery attempts:</strong> {recoveryAttempts}/{maxRetries}
           </p>
         )}
       </div>
 
-      <div style={{ marginBottom: '16px' }}>
+      <div className="enhanced-error-fallback__actions">
         <button
+          type="button"
           onClick={onRetry}
           disabled={recoveryAttempts >= maxRetries}
-          style={{
-            padding: '8px 16px',
-            marginRight: '8px',
-            backgroundColor: recoveryAttempts >= maxRetries ? '#b2bec3' : '#00b894',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: recoveryAttempts >= maxRetries ? 'not-allowed' : 'pointer'
-          }}
+          className="enhanced-error-fallback__btn enhanced-error-fallback__btn--retry"
         >
           {recoveryAttempts >= maxRetries ? 'Max retries reached' : 'Try Again'}
         </button>
         
         <button
+          type="button"
           onClick={onReset}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#e17055',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
+          className="enhanced-error-fallback__btn enhanced-error-fallback__btn--reset"
         >
           Reset Application
         </button>
       </div>
 
       {process.env.NODE_ENV === 'development' && (
-        <details style={{ marginTop: '16px' }}>
-          <summary style={{ cursor: 'pointer', color: '#2d3436' }}>
+        <details className="enhanced-error-fallback__dev">
+          <summary>
             Error Details (Development)
           </summary>
-          <pre style={{
-            backgroundColor: '#f8f9fa',
-            padding: '12px',
-            borderRadius: '4px',
-            overflow: 'auto',
-            fontSize: '12px',
-            marginTop: '8px'
-          }}>
+          <pre className="enhanced-error-fallback__pre">
             {error?.stack}
             {'\n\n'}
             {errorInfo?.componentStack}

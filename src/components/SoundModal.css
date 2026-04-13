@@ -74,11 +74,11 @@
 }
 
 .sound-item.default {
-  border-left: 4px solid #2196F3;
+  border-left: 4px solid hsl(var(--link));
 }
 
 .sound-item.user {
-  border-left: 4px solid #4CAF50;
+  border-left: 4px solid hsl(var(--state-success));
 }
 
 .sound-item.enabled {
@@ -110,7 +110,7 @@
 
 .default-badge {
   background: hsl(var(--wii-blue));
-  color: hsl(var(--text-inverse));
+  color: hsl(var(--text-on-accent));
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 10px;
@@ -181,7 +181,7 @@ input:checked + .slider:before {
   flex: 1;
   height: 4px;
   border-radius: 2px;
-  background: #ddd;
+  background: hsl(var(--border-secondary));
   outline: none;
   -webkit-appearance: none;
 }
@@ -192,7 +192,7 @@ input:checked + .slider:before {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #4CAF50;
+  background: hsl(var(--state-success));
   cursor: pointer;
 }
 
@@ -200,20 +200,20 @@ input:checked + .slider:before {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #4CAF50;
+  background: hsl(var(--state-success));
   cursor: pointer;
   border: none;
 }
 
 .volume-value {
   font-size: 12px;
-  color: #666;
+  color: hsl(var(--text-tertiary));
   min-width: 30px;
   text-align: right;
 }
 
 .dark-mode .volume-value {
-  color: #aaa;
+  color: hsl(var(--text-secondary));
 }
 
 /* Test and remove button styles now handled by Button.jsx component */
@@ -338,20 +338,28 @@ input:checked + .slider:before {
 
 /* Playlist Info Styles */
 .playlist-info {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--widget-system-info-start)) 0%,
+    hsl(var(--widget-system-info-end)) 100%
+  );
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
-  color: white;
+  color: hsl(var(--color-pure-white));
 }
 
 /* Background Music Disabled Warning */
 .bgm-disabled-warning {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--state-error)) 0%,
+    hsl(var(--state-error-hover)) 100%
+  );
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
-  color: white;
+  color: hsl(var(--color-pure-white));
 }
 
 .warning-header {
@@ -380,7 +388,7 @@ input:checked + .slider:before {
 }
 
 .playlist-count {
-  background: rgba(255, 255, 255, 0.2);
+  background: hsl(var(--color-pure-white) / 0.2);
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 12px;
@@ -417,26 +425,26 @@ input:checked + .slider:before {
 
 /* Enhanced Sound Item Styles */
 .sound-item.liked {
-  border-left: 4px solid #e91e63;
+  border-left: 4px solid hsl(var(--state-error));
   background: hsl(var(--surface-primary) / 0.95);
-  box-shadow: 0 2px 8px rgba(233, 30, 99, 0.1);
+  box-shadow: 0 2px 8px hsl(var(--state-error) / 0.1);
 }
 
 .sound-item.liked:hover {
-  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
+  box-shadow: 0 4px 12px hsl(var(--state-error) / 0.2);
 }
 
 /* Drag and Drop Styles */
 .sound-item.dragging {
   opacity: 0.5;
   transform: rotate(2deg);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-modal);
   z-index: 1000;
   position: relative;
 }
 
 .sound-item.drag-over {
-  border: 2px dashed #4ecdc4;
+  border: 2px dashed hsl(var(--settings-tab-wallpaper));
   background: hsl(var(--surface-primary) / 0.8);
   transform: scale(1.02);
 }
@@ -451,12 +459,12 @@ input:checked + .slider:before {
 }
 
 .sound-item[draggable="true"]:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 /* Drag Handle */
 .drag-handle {
-  color: #888;
+  color: hsl(var(--text-tertiary));
   font-size: 14px;
   margin-right: 8px;
   cursor: grab;
@@ -466,7 +474,7 @@ input:checked + .slider:before {
 }
 
 .drag-handle:hover {
-  color: #4ecdc4;
+  color: hsl(var(--settings-tab-wallpaper));
 }
 
 .sound-item.dragging .drag-handle {
@@ -487,7 +495,7 @@ input:checked + .slider:before {
   left: 50%;
   transform: translateX(-50%);
   background: hsl(var(--state-warning));
-  color: hsl(var(--text-inverse));
+  color: hsl(var(--text-on-accent));
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 10px;

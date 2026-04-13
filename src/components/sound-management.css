@@ -4,32 +4,60 @@
  */
 
 .sound-mgmt {
-  --sound-accent-purple: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --sound-accent-pink: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --sound-accent-cyan: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  --sound-callout-info-bg: linear-gradient(135deg, #eef 0%, #ccf 100%);
-  --sound-callout-info-border: #bee5eb;
-  --sound-callout-info-text: #0c5460;
-  --sound-callout-warn-bg: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
-  --sound-callout-warn-border: #ffeaa7;
-  --sound-callout-warn-text: #856404;
-  --sound-callout-err-bg: linear-gradient(135deg, #fee 0%, #fcc 100%);
-  --sound-callout-err-border: #f5c6cb;
-  --sound-callout-err-text: #721c24;
-  --sound-callout-ok-bg: linear-gradient(135deg, #efe 0%, #cfc 100%);
-  --sound-callout-ok-border: #c3e6cb;
-  --sound-callout-ok-text: #155724;
+  --sound-accent-purple: linear-gradient(
+    135deg,
+    hsl(var(--widget-system-info-start)) 0%,
+    hsl(var(--widget-system-info-end)) 100%
+  );
+  --sound-accent-pink: linear-gradient(
+    135deg,
+    hsl(292 85% 78%) 0%,
+    hsl(340 82% 60%) 100%
+  );
+  --sound-accent-cyan: linear-gradient(
+    135deg,
+    hsl(210 96% 70%) 0%,
+    hsl(188 100% 50%) 100%
+  );
+  --sound-callout-info-bg: linear-gradient(
+    135deg,
+    hsl(var(--surface-wii-tint)) 0%,
+    hsl(195 55% 93%) 100%
+  );
+  --sound-callout-info-border: hsl(var(--border-accent) / 0.45);
+  --sound-callout-info-text: hsl(var(--text-primary));
+  --sound-callout-warn-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-warning-light)) 0%,
+    hsl(38 90% 92%) 100%
+  );
+  --sound-callout-warn-border: hsl(var(--state-warning) / 0.5);
+  --sound-callout-warn-text: hsl(45 90% 28%);
+  --sound-callout-err-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-error-light)) 0%,
+    hsl(0 60% 94%) 100%
+  );
+  --sound-callout-err-border: hsl(var(--state-error) / 0.35);
+  --sound-callout-err-text: hsl(var(--state-error));
+  --sound-callout-ok-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-success-light)) 0%,
+    hsl(142 40% 93%) 100%
+  );
+  --sound-callout-ok-border: hsl(var(--state-success) / 0.45);
+  --sound-callout-ok-text: hsl(var(--state-success));
   --sound-surface-panel: linear-gradient(
     135deg,
     hsl(var(--surface-secondary)) 0%,
     hsl(var(--surface-tertiary)) 100%
   );
-  --sound-default-badge-bg: #007bff;
-  --sound-like-active: #e91e63;
-  --sound-btn-neutral-bg: #bbb;
-  --sound-btn-neutral-fg: #222;
-  --sound-shadow-card: 0 4px 12px rgb(0 0 0 / 0.1);
-  --sound-shadow-soft: 0 2px 8px rgb(0 0 0 / 0.05);
+  --sound-default-badge-bg: hsl(var(--link));
+  --sound-like-active: hsl(var(--state-error));
+  --sound-btn-neutral-bg: hsl(var(--border-secondary));
+  --sound-btn-neutral-fg: hsl(var(--text-primary));
+  --sound-shadow-card: var(--shadow-md);
+  --sound-shadow-soft: var(--shadow-sm);
 }
 
 @keyframes sound-mgmt-spin {
@@ -285,17 +313,17 @@
 
 .sound-callout--core-info {
   padding: 15px;
-  background: #d1ecf1;
+  background: hsl(var(--surface-wii-tint));
   border: 1px solid var(--sound-callout-info-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   margin-bottom: 20px;
 }
 
 .sound-callout--core-warn {
   padding: 15px;
-  background: #fff3cd;
+  background: hsl(var(--state-warning-light));
   border: 1px solid var(--sound-callout-warn-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   margin-bottom: 20px;
 }
 
@@ -599,29 +627,29 @@
 .sound-msg-flat {
   margin-bottom: 16px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .sound-msg-flat--error {
-  background: #f8d7da;
+  background: hsl(var(--state-error-light));
   border: 1px solid var(--sound-callout-err-border);
   color: var(--sound-callout-err-text);
 }
 
 .sound-msg-flat--success {
-  background: #d4edda;
+  background: hsl(var(--state-success-light));
   border: 1px solid var(--sound-callout-ok-border);
   color: var(--sound-callout-ok-text);
 }
 
 .sound-msg-flat--info {
-  background: #d1ecf1;
+  background: hsl(var(--surface-wii-tint));
   border: 1px solid var(--sound-callout-info-border);
   color: var(--sound-callout-info-text);
 }
 
 .sound-msg-flat--hint {
-  background: #fff3cd;
+  background: hsl(var(--state-warning-light));
   border: 1px solid var(--sound-callout-warn-border);
   color: var(--sound-callout-warn-text);
 }

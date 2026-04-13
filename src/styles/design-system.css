@@ -31,11 +31,24 @@
   --border-tertiary: 220 10% 60%;
   --border-accent: 195 75% 60%;
   
+  /* Physical white/black for glass, SVG fills, and overlays (do not flip with theme) */
+  --color-pure-white: 0 0% 100%;
+  --color-pure-black: 0 0% 0%;
+
+  /* Classic Wii dock hardware chrome (stable across light/dark — physical plastic/metal) */
+  --dock-chrome-face-start: 220 10% 88%;
+  --dock-chrome-face-end: 220 8% 78%;
+  --dock-chrome-icon-muted: 220 8% 58%;
+  --dock-chrome-icon-mid: 220 8% 64%;
+  --dock-chrome-highlight: 220 10% 92%;
+
   /* Light Mode Text */
   --text-primary: 220 10% 20%;
   --text-secondary: 220 10% 45%;
   --text-tertiary: 220 10% 60%;
   --text-inverse: 0 0% 100%;
+  /* Text on brand / saturated fills (always light; --text-inverse flips in dark mode for light surfaces) */
+  --text-on-accent: 0 0% 100%;
   --text-accent: 195 75% 60%;
   
   /* Light Mode Shadows */
@@ -59,8 +72,17 @@
   --state-active: 220 10% 90%;
   --state-disabled: 220 10% 85%;
   --state-error: 0 84% 60%;
+  --state-error-hover: 0 84% 55%;
+  --state-error-light: 0 84% 95%;
   --state-success: 142 76% 36%;
+  --state-success-light: 142 45% 94%;
   --state-warning: 38 92% 50%;
+  --state-warning-light: 38 90% 94%;
+  --surface-wii-tint: 195 100% 97%;
+  --link: 234 89% 64%;
+  --link-hover: 234 89% 58%;
+  --shadow-card: 0 2px 8px rgb(0 0 0 / 0.06);
+  --shadow-modal: 0 20px 40px rgb(0 0 0 / 0.3);
 
   /* Scrollbar tokens */
   --scrollbar-size: 12px;
@@ -164,16 +186,34 @@
   --side-nav-reveal-offset: 10px;
   --side-nav-radius: 30px;
   --side-nav-transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  --side-nav-surface-bg: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-  --side-nav-surface-bg-hover: linear-gradient(145deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%);
-  --side-nav-surface-border: #0ea5e9;
-  --side-nav-surface-border-hover: #0284c7;
-  --side-nav-shadow: 0 6px 20px rgb(14 165 233 / 0.4), inset 0 3px 10px rgb(255 255 255 / 0.7), inset 0 -3px 6px rgb(0 0 0 / 0.1);
-  --side-nav-shadow-hover: 0 8px 25px rgb(14 165 233 / 0.5), inset 0 4px 12px rgb(255 255 255 / 0.8), inset 0 -4px 8px rgb(0 0 0 / 0.15);
-  --side-nav-shadow-active: 0 4px 15px rgb(14 165 233 / 0.6), inset 0 6px 12px rgb(0 0 0 / 0.2);
+  --side-nav-surface-bg: linear-gradient(
+    145deg,
+    hsl(210 40% 98%) 0%,
+    hsl(214 32% 91%) 50%,
+    hsl(215 25% 84%) 100%
+  );
+  --side-nav-surface-bg-hover: linear-gradient(
+    145deg,
+    hsl(var(--color-pure-white)) 0%,
+    hsl(210 40% 96%) 50%,
+    hsl(214 32% 91%) 100%
+  );
+  --side-nav-surface-border: hsl(199 89% 48%);
+  --side-nav-surface-border-hover: hsl(201 90% 40%);
+  --side-nav-shadow:
+    0 6px 20px hsl(199 89% 48% / 0.4),
+    inset 0 3px 10px hsl(var(--color-pure-white) / 0.7),
+    inset 0 -3px 6px hsl(var(--color-pure-black) / 0.1);
+  --side-nav-shadow-hover:
+    0 8px 25px hsl(199 89% 48% / 0.5),
+    inset 0 4px 12px hsl(var(--color-pure-white) / 0.8),
+    inset 0 -4px 8px hsl(var(--color-pure-black) / 0.15);
+  --side-nav-shadow-active:
+    0 4px 15px hsl(199 89% 48% / 0.6),
+    inset 0 6px 12px hsl(var(--color-pure-black) / 0.2);
   --side-nav-ripple-size: 80px;
-  --side-nav-text-color: #475569;
-  --side-nav-text-color-hover: #334155;
+  --side-nav-text-color: hsl(215 16% 35%);
+  --side-nav-text-color-hover: hsl(215 19% 27%);
 
   /* Form controls */
   --control-radius: var(--radius-md);
@@ -197,6 +237,44 @@
   --accent-cyan-rgb: 51 190 237;
   --spotify-green-rgb: 29 185 84;
   --spotify-green-secondary-rgb: 30 215 96;
+
+  /* Focus / compat: alias brand hue for hsl(var(--primary)) */
+  --primary: var(--wii-blue);
+
+  /* Settings modal — sidebar tab accent dots (HSL components, use hsl(var(--settings-tab-*))) */
+  --settings-tab-api: 142 72% 45%;
+  --settings-tab-channels: 195 75% 60%;
+  --settings-tab-dock: 45 99% 66%;
+  --settings-tab-general: 252 67% 64%;
+  --settings-tab-layout: 168 100% 36%;
+  --settings-tab-navigation: 344 100% 72%;
+  --settings-tab-monitor: 340 100% 71%;
+  --settings-tab-shortcuts: 32 100% 63%;
+  --settings-tab-sounds: 267 67% 66%;
+  --settings-tab-themes: 312 100% 81%;
+  --settings-tab-time: 193 58% 55%;
+  --settings-tab-updates: 180 100% 41%;
+  --settings-tab-wallpaper: 174 62% 55%;
+
+  /* Card.jsx — accent families not covered by state/wii tokens */
+  --palette-purple: 291 47% 51%;
+  --palette-purple-soft: 291 40% 96%;
+  --palette-yellow: 45 100% 62%;
+  --palette-yellow-soft: 45 90% 94%;
+  --palette-orange-deep: 27 96% 61%;
+  --palette-gray-chrome: 210 9% 46%;
+
+  /* Wallpaper preview — neutral checkerboard tile (transparent PNG thumbnails) */
+  --wallpaper-checker-tile: 220 10% 94%;
+  /* Splash screen — cool blue wash over glass */
+  --splash-overlay-cool: 220 55% 88%;
+  /* Admin floating widget — orange brand (legacy #FF6B35 → #F7931E) */
+  --admin-widget-gradient-start: 14 100% 59%;
+  --admin-widget-gradient-end: 28 89% 55%;
+
+  /* System info widget shell */
+  --widget-system-info-start: 239 84% 67%;
+  --widget-system-info-end: 262 52% 47%;
 }
 
 /* Dark Mode Colors */
@@ -226,7 +304,12 @@
   --text-secondary: 220 15% 80%;
   --text-tertiary: 220 15% 65%;
   --text-inverse: 220 15% 8%;
+  --text-on-accent: 0 0% 100%;
   --text-accent: 195 75% 70%;
+  --surface-wii-tint: 195 40% 18%;
+  --link: 195 75% 70%;
+  --link-hover: 195 75% 78%;
+  --state-error-light: 0 35% 22%;
   
   /* Dark Mode Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
@@ -236,14 +319,21 @@
   --shadow-glow: 0 0 20px rgb(0 153 255 / 0.4);
   --shadow-soft: 0 10px 26px -12px rgb(0 0 0 / 0.45);
   --shadow-soft-hover: 0 14px 32px -12px rgb(0 0 0 / 0.5);
+  --shadow-card: 0 2px 8px rgb(0 0 0 / 0.35);
+  --shadow-modal: 0 20px 40px rgb(0 0 0 / 0.55);
   
   /* Dark Mode States */
   --state-hover: 220 15% 20%;
   --state-active: 220 15% 25%;
   --state-disabled: 220 15% 15%;
   --state-error: 0 84% 60%;
+  --state-error-hover: 0 84% 55%;
   --state-success: 142 76% 36%;
+  --state-success-light: 142 25% 18%;
   --state-warning: 38 92% 50%;
+  --state-warning-light: 38 40% 18%;
+
+  --wallpaper-checker-tile: 220 15% 22%;
 
   /* Scrollbar tokens */
   --scrollbar-track: 220 15% 18%;
@@ -275,15 +365,25 @@
   --nav-counter-color: rgb(231 239 250 / 0.9);
 
   /* Side navigation token overrides */
-  --side-nav-surface-bg: linear-gradient(145deg, #303a49 0%, #273240 50%, #1e2937 100%);
-  --side-nav-surface-bg-hover: linear-gradient(145deg, #394659 0%, #2f3d4e 50%, #253243 100%);
-  --side-nav-surface-border: #38bdf8;
-  --side-nav-surface-border-hover: #7dd3fc;
+  --side-nav-surface-bg: linear-gradient(
+    145deg,
+    hsl(218 22% 25%) 0%,
+    hsl(218 22% 20%) 50%,
+    hsl(218 22% 16%) 100%
+  );
+  --side-nav-surface-bg-hover: linear-gradient(
+    145deg,
+    hsl(218 22% 30%) 0%,
+    hsl(218 22% 24%) 50%,
+    hsl(218 22% 19%) 100%
+  );
+  --side-nav-surface-border: hsl(198 93% 60%);
+  --side-nav-surface-border-hover: hsl(199 94% 74%);
   --side-nav-shadow: 0 8px 22px rgb(0 0 0 / 0.45), inset 0 2px 6px rgb(255 255 255 / 0.12), inset 0 -3px 8px rgb(0 0 0 / 0.28);
   --side-nav-shadow-hover: 0 10px 26px rgb(0 0 0 / 0.52), inset 0 2px 8px rgb(255 255 255 / 0.16), inset 0 -3px 10px rgb(0 0 0 / 0.34);
   --side-nav-shadow-active: 0 4px 14px rgb(0 0 0 / 0.48), inset 0 5px 10px rgb(0 0 0 / 0.38);
-  --side-nav-text-color: #d8e6f7;
-  --side-nav-text-color-hover: #ecf5ff;
+  --side-nav-text-color: hsl(214 60% 91%);
+  --side-nav-text-color-hover: hsl(210 100% 96%);
 }
 
 /* Global Dark Mode Overrides for Components Not Using Design System */
@@ -422,7 +522,10 @@
 .text-secondary { color: hsl(var(--text-secondary)); }
 .text-tertiary { color: hsl(var(--text-tertiary)); }
 .text-inverse { color: hsl(var(--text-inverse)); }
+.text-on-accent { color: hsl(var(--text-on-accent)); }
 .text-accent { color: hsl(var(--text-accent)); }
+.text-link { color: hsl(var(--link)); }
+.text-link:hover { color: hsl(var(--link-hover)); }
 
 .shadow-sm { box-shadow: var(--shadow-sm); }
 .shadow-md { box-shadow: var(--shadow-md); }
@@ -556,25 +659,31 @@
 /* Subtle blue pulse animation for selected items */
 @keyframes pulse-blue {
   0% {
-    box-shadow: 0 0 16px 6px rgba(0,153,255,0.22), 0 2px 8px #0099ff11;
+    box-shadow:
+      0 0 16px 6px rgb(var(--accent-blue-rgb) / 0.22),
+      0 2px 8px hsl(var(--wii-blue) / 0.07);
     transform: scale(1.025);
     animation-timing-function: cubic-bezier(0.7, 0.2, 0.5, 1.1);
   }
   50% {
-    box-shadow: 0 0 0 0 rgba(0,153,255,0.10), 0 2px 8px #0099ff11;
+    box-shadow:
+      0 0 0 0 rgb(var(--accent-blue-rgb) / 0.1),
+      0 2px 8px hsl(var(--wii-blue) / 0.07);
     transform: scale(0.98);
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
   100% {
-    box-shadow: 0 0 16px 6px rgba(0,153,255,0.22), 0 2px 8px #0099ff11;
+    box-shadow:
+      0 0 16px 6px rgb(var(--accent-blue-rgb) / 0.22),
+      0 2px 8px hsl(var(--wii-blue) / 0.07);
     transform: scale(1.025);
   }
 }
 .pulse-blue {
   animation: pulse-blue 2.8s infinite;
-  border: 1.5px solid #0099ff;
-  background: #e6f3ff;
-  border-radius: 10px;
+  border: 1.5px solid hsl(var(--wii-blue));
+  background: hsl(var(--surface-wii-tint));
+  border-radius: var(--radius-sm);
 }
 
 /* Countdown pulse animation */

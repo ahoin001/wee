@@ -6,7 +6,7 @@
   margin: 0 0 0.75rem 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #333;
+  color: hsl(var(--text-primary));
 }
 
 .image-section {
@@ -53,7 +53,7 @@
 
 .remove-image-button:hover {
   background: hsl(var(--state-error));
-  color: hsl(var(--text-inverse));
+  color: hsl(var(--text-on-accent));
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -117,7 +117,7 @@
 .file-picker-button {
   padding: 0.75rem 1rem;
   background: hsl(var(--wii-blue));
-  color: hsl(var(--text-inverse));
+  color: hsl(var(--text-on-accent));
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -136,14 +136,14 @@
 .help-text {
   margin: 0.5rem 0 0 0;
   font-size: 0.8rem;
-  color: #666;
+  color: hsl(var(--text-secondary));
   line-height: 1.4;
 }
 
 .error-text {
   margin: 0.5rem 0 0 0;
   font-size: 0.8rem;
-  color: #dc3545;
+  color: hsl(var(--state-error));
   line-height: 1.4;
 }
 
@@ -158,13 +158,13 @@
   align-items: center;
   cursor: pointer;
   padding: 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   transition: all 0.2s ease;
-  color: #333;
+  color: hsl(var(--text-primary));
 }
 
 .type-option:hover {
-  background: #f8f9fa;
+  background: hsl(var(--surface-secondary));
 }
 
 .type-option input[type="radio"] {
@@ -174,7 +174,7 @@
 .radio-custom {
   width: 18px;
   height: 18px;
-  border: 2px solid #ccc;
+  border: 2px solid hsl(var(--border-secondary));
   border-radius: 50%;
   margin-right: 0.75rem;
   position: relative;
@@ -182,8 +182,8 @@
 }
 
 .type-option input[type="radio"]:checked + .radio-custom {
-  border-color: #0099ff;
-  background: #0099ff;
+  border-color: hsl(var(--wii-blue));
+  background: hsl(var(--wii-blue));
 }
 
 .type-option input[type="radio"]:checked + .radio-custom::after {
@@ -194,69 +194,69 @@
   transform: translate(-50%, -50%);
   width: 6px;
   height: 6px;
-  background: white;
+  background: hsl(var(--text-on-accent));
   border-radius: 50%;
 }
 
 .save-button:disabled {
-  background: #ccc;
-  border-color: #ccc;
+  background: hsl(var(--state-disabled));
+  border-color: hsl(var(--state-disabled));
   cursor: not-allowed;
 }
 
 .save-button:disabled:hover {
-  background: #ccc;
+  background: hsl(var(--state-disabled));
 }
 
 label {
-  color: #666;
+  color: hsl(var(--text-secondary));
 }
 
 .dark-mode label {
-  color: #ccc;
+  color: hsl(var(--text-tertiary));
 }
 
 /* Dark mode styles */
 .dark-mode .form-section h3 {
-  color: #fff;
+  color: hsl(var(--text-primary));
 }
 
 .dark-mode .text-input {
-  background: #3d3d3d;
-  border-color: #555;
-  color: #fff;
+  background: hsl(var(--surface-tertiary));
+  border-color: hsl(var(--border-secondary));
+  color: hsl(var(--text-primary));
 }
 
 .dark-mode .text-input:focus {
-  border-color: #0099ff;
+  border-color: hsl(var(--wii-blue));
 }
 
 .dark-mode .text-input.error {
-  border-color: #dc3545;
+  border-color: hsl(var(--state-error));
 }
 
 .dark-mode .text-input::placeholder {
-  color: #aaa;
+  color: hsl(var(--text-tertiary));
 }
 
 .dark-mode .help-text {
-  color: #ccc;
+  color: hsl(var(--text-secondary));
 }
 
 .dark-mode .error-text {
-  color: #ff6b6b;
+  color: hsl(var(--state-error));
 }
 
 .dark-mode .type-option {
-  color: #fff;
+  color: hsl(var(--text-primary));
 }
 
 .dark-mode .type-option:hover {
-  background: #3d3d3d;
+  background: hsl(var(--surface-tertiary));
 }
 
 .dark-mode .radio-custom {
-  border-color: #666;
+  border-color: hsl(var(--border-secondary));
 }
 
 /* Dark mode styles are now handled by design system CSS variables */
@@ -304,7 +304,7 @@ label {
   flex: 1;
   height: 4px;
   border-radius: 2px;
-  background: #ddd;
+  background: hsl(var(--border-primary));
   outline: none;
   -webkit-appearance: none;
 }
@@ -315,7 +315,7 @@ label {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #4CAF50;
+  background: hsl(var(--state-success));
   cursor: pointer;
 }
 
@@ -323,28 +323,28 @@ label {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #4CAF50;
+  background: hsl(var(--state-success));
   cursor: pointer;
   border: none;
 }
 
 .volume-value {
   font-size: 12px;
-  color: #666;
+  color: hsl(var(--text-secondary));
   min-width: 30px;
   text-align: right;
 }
 
 .dark-mode .volume-value {
-  color: #aaa;
+  color: hsl(var(--text-tertiary));
 }
 
 .test-button {
   background: hsl(var(--wii-blue));
-  color: hsl(var(--text-inverse));
+  color: hsl(var(--text-on-accent));
   border: none;
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 12px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -543,7 +543,7 @@ label {
   top: 5px;
   right: 5px;
   background-color: rgb(255 165 0 / 0.9);
-  color: hsl(var(--text-inverse));
+  color: hsl(var(--text-on-accent));
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;

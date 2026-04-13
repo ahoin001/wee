@@ -12,6 +12,8 @@ export default function LaunchErrorToast({
   technicalError,
   reportText,
   referenceId,
+  settingsTabId,
+  onOpenSettingsTab,
   onDismiss,
 }) {
   const [copyState, setCopyState] = useState('idle');
@@ -69,6 +71,16 @@ export default function LaunchErrorToast({
               </details>
             ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
+              {settingsTabId && onOpenSettingsTab ? (
+                <WButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onOpenSettingsTab(settingsTabId)}
+                >
+                  Open Settings
+                </WButton>
+              ) : null}
               <WButton type="button" variant="secondary" size="sm" onClick={handleCopy}>
                 {copyState === 'done'
                   ? 'Copied'
@@ -93,5 +105,7 @@ LaunchErrorToast.propTypes = {
   technicalError: PropTypes.string,
   reportText: PropTypes.string.isRequired,
   referenceId: PropTypes.string,
+  settingsTabId: PropTypes.string,
+  onOpenSettingsTab: PropTypes.func,
   onDismiss: PropTypes.func.isRequired,
 };

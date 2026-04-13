@@ -1,4 +1,10 @@
 import useConsolidatedAppStore from './useConsolidatedAppStore';
+import { CLASSIC_DOCK_DEFAULT_COLORS } from '../design/classicDockThemeDefaults.js';
+import {
+  DEFAULT_RIBBON_GLOW_HEX,
+  DEFAULT_RIBBON_SURFACE_HEX,
+  INPUT_COLOR_DEFAULT_HEX,
+} from '../design/runtimeColorStrings.js';
 
 // Migration utility to help transition from scattered useState to consolidated store
 export const migrateToConsolidatedStore = (legacyState) => {
@@ -38,9 +44,9 @@ export const migrateToConsolidatedStore = (legacyState) => {
       glassBlur: legacyState.glassBlur || 2.5,
       glassBorderOpacity: legacyState.glassBorderOpacity || 0.5,
       glassShineOpacity: legacyState.glassShineOpacity || 0.7,
-      ribbonColor: legacyState.ribbonColor || '#e0e6ef',
+      ribbonColor: legacyState.ribbonColor || DEFAULT_RIBBON_SURFACE_HEX,
       recentRibbonColors: legacyState.recentRibbonColors || [],
-      ribbonGlowColor: legacyState.ribbonGlowColor || '#0099ff',
+      ribbonGlowColor: legacyState.ribbonGlowColor || DEFAULT_RIBBON_GLOW_HEX,
       recentRibbonGlowColors: legacyState.recentRibbonGlowColors || [],
       ribbonGlowStrength: legacyState.ribbonGlowStrength || 16,
       ribbonGlowStrengthHover: legacyState.ribbonGlowStrengthHover || 20,
@@ -88,7 +94,7 @@ export const migrateToConsolidatedStore = (legacyState) => {
       gravity: legacyState.overlayGravity || 0.1,
     },
     time: {
-      color: legacyState.timeColor || '#ffffff',
+      color: legacyState.timeColor || INPUT_COLOR_DEFAULT_HEX,
       recentColors: legacyState.recentTimeColors || [],
       enablePill: legacyState.enableTimePill ?? true,
       pillBlur: legacyState.timePillBlur || 8,
@@ -121,26 +127,7 @@ export const migrateToConsolidatedStore = (legacyState) => {
     },
     dock: {
       settings: legacyState.dockSettings || {
-        dockBaseGradientStart: '#BDBEC2',
-        dockBaseGradientEnd: '#DADDE6',
-        dockAccentColor: '#33BEED',
-        sdCardBodyColor: '#B9E1F2',
-        sdCardBorderColor: '#33BEED',
-        sdCardLabelColor: 'white',
-        sdCardLabelBorderColor: '#F4F0EE',
-        sdCardBottomColor: '#31BEED',
-        leftPodBaseColor: '#D2D3DA',
-        leftPodAccentColor: '#B6B6BB',
-        leftPodDetailColor: '#D7D8DA',
-        rightPodBaseColor: '#DCDCDF',
-        rightPodAccentColor: '#E4E4E4',
-        rightPodDetailColor: '#B6B6BB',
-        buttonBorderColor: '#22BEF3',
-        buttonGradientStart: '#E0DCDC',
-        buttonGradientEnd: '#CBCBCB',
-        buttonIconColor: '#979796',
-        rightButtonIconColor: '#A4A4A4',
-        buttonHighlightColor: '#E4E4E4',
+        ...CLASSIC_DOCK_DEFAULT_COLORS,
         glassEnabled: false,
         glassOpacity: 0.18,
         glassBlur: 2.5,

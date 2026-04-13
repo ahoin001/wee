@@ -278,19 +278,7 @@ function UpdateModal({ isOpen, onClose }) {
               href="https://github.com/ahoin001/wee/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                display: 'inline-block',
-                backgroundColor: '#f7fafd',
-                color: '#007bff',
-                border: '1px solid #b0c4d8',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: '500',
-                transition: 'background 0.2s, color 0.2s',
-                marginLeft: 0
-              }}
+              className="inline-block rounded-md border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-6 py-3 text-sm font-medium text-[hsl(var(--link))] no-underline transition-colors hover:bg-[hsl(var(--surface-wii-tint))]"
             >
               📦 Download from Release Page
             </a>
@@ -331,10 +319,10 @@ function UpdateModal({ isOpen, onClose }) {
             ⏳ Downloading Update...
           </div>
           <div className="mb-4">
-            <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
-              <div 
+            <div className="h-2 w-full overflow-hidden rounded bg-gray-200">
+              <div
                 className="h-full bg-blue-600 transition-all duration-300 ease-in-out"
-                style={{ width: `${updateStatus.progress || 0}%` }}
+                style={{ width: `${Math.min(100, Math.max(0, updateStatus.progress || 0))}%` }}
               />
             </div>
             <div className="text-sm text-gray-600 mt-2">
@@ -362,16 +350,9 @@ function UpdateModal({ isOpen, onClose }) {
               🔄 Install & Restart
             </button>
             <button
+              type="button"
               onClick={onClose}
-              style={{
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
+              className="cursor-pointer rounded-md border-none bg-gray-500 px-6 py-3 text-sm text-white"
             >
               Later
             </button>
@@ -382,25 +363,18 @@ function UpdateModal({ isOpen, onClose }) {
 
     if (updateStatus?.status === 'error') {
       return (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#dc3545' }}>
+        <div className="p-5 text-center">
+          <div className="mb-2.5 text-lg font-bold text-red-600">
             ❌ Update Error
           </div>
-          <div style={{ color: '#666', marginBottom: '20px' }}>
+          <div className="mb-5 text-gray-600">
             {updateStatus.error || 'An error occurred while checking for updates'}
           </div>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <div className="flex flex-wrap justify-center gap-2.5">
             <button
+              type="button"
               onClick={handleCheckForUpdates}
-              style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
+              className="cursor-pointer rounded-md border-none bg-blue-600 px-6 py-3 text-sm text-white"
             >
               🔄 Try Again
             </button>
@@ -408,17 +382,7 @@ function UpdateModal({ isOpen, onClose }) {
               href="https://github.com/ahoin001/wee/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                display: 'inline-block',
-                backgroundColor: '#f7fafd',
-                color: '#007bff',
-                border: '1px solid #b0c4d8',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
+              className="inline-block rounded-md border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-6 py-3 text-sm font-medium text-[hsl(var(--link))] no-underline"
             >
               📦 Manual Download
             </a>
@@ -429,16 +393,17 @@ function UpdateModal({ isOpen, onClose }) {
 
     // Default state - show check for updates
     return (
-      <div style={{ textAlign: 'center', padding: '20px' }}>
-        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', color: '#333' }}>
+      <div className="p-5 text-center">
+        <div className="mb-2.5 text-lg font-bold text-gray-800">
           🔄 Check for Updates
         </div>
-        <div style={{ color: '#666', marginBottom: '20px' }}>
+        <div className="mb-5 text-gray-600">
           Current version: {appVersion}
         </div>
         <button
+          type="button"
           onClick={handleCheckForUpdates}
-          className="bg-blue-600 text-white border-none px-6 py-3 rounded-md cursor-pointer text-sm"
+          className="cursor-pointer rounded-md border-none bg-blue-600 px-6 py-3 text-sm text-white"
         >
           🔍 Check for Updates
         </button>
@@ -504,16 +469,10 @@ function UpdateModal({ isOpen, onClose }) {
 
   return (
     <WBaseModal onClose={onClose} title="Check for Updates">
-      <div style={{ minHeight: '200px' }}>
+      <div className="min-h-[200px]">
         {renderStatusContent()}
         {showFullChangelog && renderFullChangelog()}
       </div>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </WBaseModal>
   );
 }

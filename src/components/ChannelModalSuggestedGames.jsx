@@ -6,6 +6,10 @@ import WButton from '../ui/WButton';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { getAllMatchingMedia } from '../utils/mediaLibraryCache';
 import { getStoragePublicObjectUrl } from '../utils/supabase';
+import {
+  EPIC_SUGGESTED_BADGE_BG,
+  STEAM_SUGGESTED_BADGE_BG,
+} from '../design/suggestedGameBadgeColors.js';
 
 const GAMES_PER_PAGE = 6;
 
@@ -94,14 +98,14 @@ export default function ChannelModalSuggestedGames({
         ...game,
         source: 'steam',
         sourceName: 'Steam',
-        badgeColor: '#171a21',
+        badgeColor: STEAM_SUGGESTED_BADGE_BG,
         badgeText: 'S',
       })),
       ...installedEpicGames.map((game) => ({
         ...game,
         source: 'epic',
         sourceName: 'Epic Games',
-        badgeColor: '#2a2a2a',
+        badgeColor: EPIC_SUGGESTED_BADGE_BG,
         badgeText: 'E',
       })),
     ];

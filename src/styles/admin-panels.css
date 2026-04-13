@@ -1,0 +1,118 @@
+/* ActionCommand, QuickAccessItem — tokenized rows */
+
+.action-command-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin: 4px 0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.action-command-row--open {
+  background: hsl(var(--surface-primary));
+  border: 1px solid hsl(var(--border-primary));
+  cursor: pointer;
+  opacity: 1;
+}
+
+.action-command-row--open:hover {
+  background: hsl(var(--state-hover));
+  border: 1.5px solid hsl(var(--wii-blue));
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.action-command-row--added {
+  background: hsl(var(--wii-blue) / 0.1);
+  border: 2px solid hsl(var(--wii-blue));
+  cursor: default;
+  opacity: 0.7;
+}
+
+.action-command-row--recent {
+  background: hsl(var(--state-success) / 0.1);
+  border: 2px solid hsl(var(--state-success));
+  cursor: default;
+  opacity: 0.7;
+}
+
+.action-command-icon {
+  font-size: 20px;
+}
+
+.action-command-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-command-name {
+  font-weight: 500;
+  color: hsl(var(--text-primary));
+}
+
+.action-command-cmd {
+  font-size: 12px;
+  color: hsl(var(--text-secondary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.action-command-meta {
+  font-size: 11px;
+  color: hsl(var(--text-tertiary));
+  margin-top: 2px;
+}
+
+.action-command-badge {
+  background: hsl(var(--state-success));
+  color: hsl(var(--text-on-accent));
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.quick-access-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin: 4px 0;
+  background: hsl(var(--surface-primary));
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border-primary));
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.quick-access-row:hover {
+  background: hsl(var(--state-hover));
+  border: 1.5px solid hsl(var(--wii-blue));
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.quick-access-row--drop-before {
+  border-top: 2px solid hsl(var(--wii-blue));
+}
+
+.quick-access-icon {
+  font-size: 18px;
+}
+
+.quick-access-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-access-name {
+  font-weight: 500;
+  color: hsl(var(--text-primary));
+}
+
+.quick-access-cmd {
+  font-size: 12px;
+  color: hsl(var(--text-secondary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}

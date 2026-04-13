@@ -6,6 +6,7 @@ import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
 import './settings-modal-forms.css';
 import { useTimeState } from '../utils/useConsolidatedAppHooks';
+import { INPUT_COLOR_DEFAULT_HEX } from '../design/runtimeColorStrings.js';
 
 
 function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
@@ -13,7 +14,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
   const timeSettings = time;
   const updateTimeSetting = (key, value) => setTimeState({ [key]: value });
 
-  const [timeColor, setTimeColor] = useState('#ffffff');
+  const [timeColor, setTimeColor] = useState(INPUT_COLOR_DEFAULT_HEX);
   const [recentTimeColors, setRecentTimeColors] = useState([]);
   const [enableTimePill, setEnableTimePill] = useState(true);
   const [timePillBlur, setTimePillBlur] = useState(8);
@@ -22,7 +23,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
 
   useEffect(() => {
     if (isOpen && timeSettings) {
-      setTimeColor(timeSettings.color || '#ffffff');
+      setTimeColor(timeSettings.color || INPUT_COLOR_DEFAULT_HEX);
       setRecentTimeColors(timeSettings.recentColors || []);
       setEnableTimePill(timeSettings.enablePill ?? true);
       setTimePillBlur(timeSettings.pillBlur ?? 8);
@@ -40,7 +41,7 @@ function TimeSettingsModal({ isOpen, onClose, onSettingsChange }) {
   };
 
   const resetToDefault = () => {
-    setTimeColor('#ffffff');
+    setTimeColor(INPUT_COLOR_DEFAULT_HEX);
     setEnableTimePill(true);
     setTimePillBlur(8);
     setTimePillOpacity(0.05);

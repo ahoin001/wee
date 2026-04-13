@@ -1,3 +1,23 @@
+/* Matches system-info / widget gradient shell from design-system.css */
+.update-notification-content {
+  --un-glass: hsl(var(--color-pure-white) / 0.1);
+  --un-border: hsl(var(--color-pure-white) / 0.2);
+  --un-text: hsl(var(--text-on-accent));
+  --un-text-muted: hsl(var(--color-pure-white) / 0.8);
+
+  background: linear-gradient(
+    135deg,
+    hsl(var(--widget-system-info-start)) 0%,
+    hsl(var(--widget-system-info-end)) 100%
+  );
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-modal);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--un-border);
+  overflow: hidden;
+  color: var(--un-text);
+}
+
 .update-notification-badge {
   position: fixed;
   top: 20px;
@@ -8,21 +28,11 @@
   animation: slideInFromRight 0.3s ease-out;
 }
 
-.update-notification-content {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  overflow: hidden;
-  color: white;
-}
-
 .update-notification-header {
   display: flex;
   align-items: center;
   padding: 16px 20px 12px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--un-glass);
 }
 
 .update-notification-icon {
@@ -40,18 +50,18 @@
 .update-notification-close {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.7);
+  color: hsl(var(--color-pure-white) / 0.7);
   font-size: 20px;
   cursor: pointer;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: all 0.2s ease;
   line-height: 1;
 }
 
 .update-notification-close:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--un-text);
+  background: var(--un-glass);
 }
 
 .update-notification-body {
@@ -62,18 +72,18 @@
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.9);
+  color: hsl(var(--color-pure-white) / 0.9);
 }
 
 .update-notification-date {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  color: hsl(var(--color-pure-white) / 0.7);
   margin-bottom: 12px;
 }
 
 .update-notification-notes {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--un-text-muted);
   line-height: 1.4;
   margin-bottom: 8px;
 }
@@ -86,11 +96,11 @@
 
 .update-notification-install {
   flex: 1;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  background: hsl(var(--color-pure-white) / 0.2);
+  border: 1px solid hsl(var(--color-pure-white) / 0.3);
+  color: var(--un-text);
   padding: 10px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -98,17 +108,17 @@
 }
 
 .update-notification-install:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: hsl(var(--color-pure-white) / 0.3);
+  border-color: hsl(var(--color-pure-white) / 0.5);
   transform: translateY(-1px);
 }
 
 .update-notification-later {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
+  background: var(--un-glass);
+  border: 1px solid var(--un-border);
+  color: var(--un-text-muted);
   padding: 10px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -116,8 +126,8 @@
 }
 
 .update-notification-later:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: hsl(var(--color-pure-white) / 0.2);
+  color: var(--un-text);
 }
 
 /* Animations */
@@ -150,20 +160,20 @@
     max-width: none;
     min-width: auto;
   }
-  
+
   .update-notification-content {
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
   }
-  
+
   .update-notification-header {
     padding: 12px 16px 8px 16px;
   }
-  
+
   .update-notification-body {
     padding: 12px 16px;
   }
-  
+
   .update-notification-actions {
     padding: 0 16px 12px 16px;
   }
-} 
+}

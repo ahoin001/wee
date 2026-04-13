@@ -147,7 +147,10 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
                     className="flex-1 bg-blue-500 rounded-t"
                     style={{
                       height: `${Math.min((fps / 60) * 100, 100)}%`,
-                      backgroundColor: fps < thresholds.minFps ? '#ef4444' : '#3b82f6'
+                      backgroundColor:
+                        fps < thresholds.minFps
+                          ? 'hsl(var(--state-error))'
+                          : 'hsl(var(--link))'
                     }}
                   />
                 ))}
@@ -169,7 +172,10 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
                     className="flex-1 bg-green-500 rounded-t"
                     style={{
                       height: `${Math.min((memory / thresholds.maxMemoryUsage) * 100, 100)}%`,
-                      backgroundColor: memory > thresholds.maxMemoryUsage * 0.8 ? '#ef4444' : '#10b981'
+                      backgroundColor:
+                        memory > thresholds.maxMemoryUsage * 0.8
+                          ? 'hsl(var(--state-error))'
+                          : 'hsl(var(--state-success))'
                     }}
                   />
                 ))}

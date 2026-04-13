@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { usePerformanceMonitor } from '../utils/usePerformanceOptimization';
+import { CSS_COLOR_PURE_WHITE_90 } from '../design/runtimeColorStrings.js';
 
 // Virtualized wallpaper gallery for optimal performance with large collections
 const VirtualizedWallpaperGallery = React.memo(({
@@ -158,7 +159,9 @@ const VirtualizedWallpaperGallery = React.memo(({
             <button
               onClick={handleLike}
               style={{
-                background: wallpaper.liked ? '#ff4757' : 'rgba(255, 255, 255, 0.9)',
+                background: wallpaper.liked
+                  ? 'hsl(var(--state-error))'
+                  : CSS_COLOR_PURE_WHITE_90,
                 border: 'none',
                 borderRadius: '50%',
                 width: '32px',
@@ -175,7 +178,7 @@ const VirtualizedWallpaperGallery = React.memo(({
             <button
               onClick={handleDelete}
               style={{
-                background: 'rgba(255, 255, 255, 0.9)',
+                background: CSS_COLOR_PURE_WHITE_90,
                 border: 'none',
                 borderRadius: '50%',
                 width: '32px',

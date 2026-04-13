@@ -226,7 +226,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: hsl(var(--text-inverse));
+  color: hsl(var(--text-on-accent));
   font-size: 10px;
   font-weight: 700;
 }

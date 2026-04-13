@@ -21,11 +21,11 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: hsl(var(--link));
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: hsl(var(--link-hover));
 }
 
 body {
@@ -47,11 +47,11 @@ h1 {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: hsl(var(--text-primary));
+    background-color: hsl(var(--bg-primary));
   }
   a:hover {
-    color: #747bff;
+    color: hsl(var(--link-hover));
   }
 }
 
@@ -68,7 +68,7 @@ h1 {
   -webkit-appearance: none;
   appearance: none;
   background: hsl(var(--surface-secondary));
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   height: 8px;
   cursor: pointer;
   outline: none;
@@ -82,8 +82,8 @@ h1 {
   border-radius: 50%;
   background: hsl(var(--wii-blue));
   cursor: pointer;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.7);
-  border: 2px solid #fff;
+  box-shadow: 0 0 5px rgb(var(--accent-blue-rgb) / 0.7);
+  border: 2px solid hsl(var(--text-on-accent));
 }
 
 .slider::-moz-range-thumb {
@@ -92,8 +92,8 @@ h1 {
   border-radius: 50%;
   background: hsl(var(--wii-blue));
   cursor: pointer;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.7);
-  border: 2px solid #fff;
+  box-shadow: 0 0 5px rgb(var(--accent-blue-rgb) / 0.7);
+  border: 2px solid hsl(var(--text-on-accent));
 }
 
 /* Wii-style animations */
@@ -155,7 +155,7 @@ h1 {
 
 .wii-hover:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 /* Wii-style button animations */

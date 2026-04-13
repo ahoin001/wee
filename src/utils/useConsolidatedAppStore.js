@@ -4,6 +4,12 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { DEFAULT_SHORTCUTS } from './keyboardShortcuts';
 import { createStoreManagers } from './store/managers';
 import { CONSOLIDATED_STORE_PERSIST_NAME, partializeConsolidatedState } from './store/persistConfig';
+import { CLASSIC_DOCK_DEFAULT_COLORS } from '../design/classicDockThemeDefaults.js';
+import {
+  DEFAULT_RIBBON_GLOW_HEX,
+  DEFAULT_RIBBON_SURFACE_HEX,
+  INPUT_COLOR_DEFAULT_HEX,
+} from '../design/runtimeColorStrings.js';
 
 let useConsolidatedAppStore;
 const {
@@ -96,9 +102,9 @@ useConsolidatedAppStore = create(
           glassBlur: 2.5,
           glassBorderOpacity: 0.5,
           glassShineOpacity: 0.7,
-          ribbonColor: '#e0e6ef',
+          ribbonColor: DEFAULT_RIBBON_SURFACE_HEX,
           recentRibbonColors: [],
-          ribbonGlowColor: '#0099ff',
+          ribbonGlowColor: DEFAULT_RIBBON_GLOW_HEX,
           recentRibbonGlowColors: [],
           ribbonGlowStrength: 16,
           ribbonGlowStrengthHover: 20,
@@ -152,7 +158,7 @@ useConsolidatedAppStore = create(
 
         // Time display
         time: {
-          color: '#ffffff',
+          color: INPUT_COLOR_DEFAULT_HEX,
           recentColors: [],
           enablePill: true,
           pillBlur: 8,
@@ -232,34 +238,8 @@ useConsolidatedAppStore = create(
 
         // Dock state
         dock: {
-          // Dock base colors
-          dockBaseGradientStart: '#BDBEC2',
-          dockBaseGradientEnd: '#DADDE6',
-          dockAccentColor: '#33BEED',
-          
-          // SD Card colors
-          sdCardBodyColor: '#B9E1F2',
-          sdCardBorderColor: '#33BEED',
-          sdCardLabelColor: 'white',
-          sdCardLabelBorderColor: '#F4F0EE',
-          sdCardBottomColor: '#31BEED',
-          
-          // Pod colors
-          leftPodBaseColor: '#D2D3DA',
-          leftPodAccentColor: '#B6B6BB',
-          leftPodDetailColor: '#D7D8DA',
-          rightPodBaseColor: '#DCDCDF',
-          rightPodAccentColor: '#E4E4E4',
-          rightPodDetailColor: '#B6B6BB',
-          
-          // Button colors
-          buttonBorderColor: '#22BEF3',
-          buttonGradientStart: '#E0DCDC',
-          buttonGradientEnd: '#CBCBCB',
-          buttonIconColor: '#979796',
-          rightButtonIconColor: '#A4A4A4',
-          buttonHighlightColor: 'rgba(255, 255, 255, 0.5)',
-          
+          ...CLASSIC_DOCK_DEFAULT_COLORS,
+
           // Glass effects
           glassEnabled: false,
           glassOpacity: 0.18,
@@ -852,9 +832,9 @@ useConsolidatedAppStore = create(
               glassBlur: 2.5,
               glassBorderOpacity: 0.5,
               glassShineOpacity: 0.7,
-              ribbonColor: '#e0e6ef',
+              ribbonColor: DEFAULT_RIBBON_SURFACE_HEX,
               recentRibbonColors: [],
-              ribbonGlowColor: '#0099ff',
+              ribbonGlowColor: DEFAULT_RIBBON_GLOW_HEX,
               recentRibbonGlowColors: [],
               ribbonGlowStrength: 16,
               ribbonGlowStrengthHover: 20,
@@ -902,7 +882,7 @@ useConsolidatedAppStore = create(
               gravity: 0.1,
             },
             time: {
-              color: '#ffffff',
+              color: INPUT_COLOR_DEFAULT_HEX,
               recentColors: [],
               format24hr: false,
               enablePill: true,
@@ -963,26 +943,7 @@ useConsolidatedAppStore = create(
               }
             },
             dock: {
-              dockBaseGradientStart: '#BDBEC2',
-              dockBaseGradientEnd: '#DADDE6',
-              dockAccentColor: '#33BEED',
-              sdCardBodyColor: '#B9E1F2',
-              sdCardBorderColor: '#33BEED',
-              sdCardLabelColor: 'white',
-              sdCardLabelBorderColor: '#F4F0EE',
-              sdCardBottomColor: '#31BEED',
-              leftPodBaseColor: '#D2D3DA',
-              leftPodAccentColor: '#B6B6BB',
-              leftPodDetailColor: '#D7D8DA',
-              rightPodBaseColor: '#DCDCDF',
-              rightPodAccentColor: '#E4E4E4',
-              rightPodDetailColor: '#B6B6BB',
-              buttonBorderColor: '#22BEF3',
-              buttonGradientStart: '#E0DCDC',
-              buttonGradientEnd: '#CBCBCB',
-              buttonIconColor: '#979796',
-              rightButtonIconColor: '#A4A4A4',
-              buttonHighlightColor: '#E4E4E4',
+              ...CLASSIC_DOCK_DEFAULT_COLORS,
               glassEnabled: false,
               glassOpacity: 0.18,
               glassBlur: 2.5,

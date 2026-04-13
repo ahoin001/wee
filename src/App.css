@@ -46,10 +46,10 @@
   transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em hsl(var(--wii-blue) / 0.67));
 }
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em hsl(180 70% 55% / 0.67));
 }
 
 @keyframes logo-spin {
@@ -70,7 +70,7 @@
 .card {
   padding: 2em;
   background: hsl(var(--surface-primary));
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid hsl(var(--border-primary));
 }
@@ -107,7 +107,7 @@
 .rounded-full { border-radius: 50%; }
 .rounded-\[6rem\] { border-radius: 6rem; }
 .rounded-\[10px\] { border-radius: 10px; }
-.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
 .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
 .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
 .font-bold { font-weight: 700; }
@@ -270,11 +270,11 @@ body, #root {
 .settings-button.active {
   background: hsl(var(--wii-blue));
   border-color: hsl(var(--wii-blue));
-  color: hsl(var(--text-inverse));
+  color: hsl(var(--text-on-accent));
 }
 
 .settings-button.active svg path {
-  stroke: #fff;
+  stroke: hsl(var(--text-on-accent));
 }
 
 @media (max-width: 900px) {
@@ -314,11 +314,11 @@ body, #root {
 
 .context-menu-content {
   min-width: 180px;
-  background: #fff;
-  border-radius: 8px;
+  background: hsl(var(--surface-primary));
+  border-radius: var(--radius-md);
   padding: 8px;
-  box-shadow: 0 10px 38px -10px rgba(22, 23, 24, 0.35), 0 10px 20px -15px rgba(22, 23, 24, 0.2);
-  border: 1px solid #e0e0e6;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid hsl(var(--border-primary));
   animation-duration: 400ms;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
@@ -331,8 +331,8 @@ body, #root {
 .context-menu-item {
   font-size: 14px;
   line-height: 1;
-  color: #374151;
-  border-radius: 4px;
+  color: hsl(var(--text-primary));
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   height: 32px;
@@ -345,17 +345,17 @@ body, #root {
 }
 
 .context-menu-item:hover {
-  background: #e6f3ff;
-  color: #111827;
-  border: 1.5px solid #0099ff;
-  box-shadow: 0 1.5px 6px #0099ff08;
+  background: hsl(var(--surface-wii-tint));
+  color: hsl(var(--text-primary));
+  border: 1.5px solid hsl(var(--wii-blue));
+  box-shadow: 0 1.5px 6px hsl(var(--wii-blue) / 0.08);
 }
 
 .context-menu-item:focus {
-  background: #e6f3ff;
-  color: #111827;
-  border: 1.5px solid #0099ff;
-  box-shadow: 0 1.5px 6px #0099ff08;
+  background: hsl(var(--surface-wii-tint));
+  color: hsl(var(--text-primary));
+  border: 1.5px solid hsl(var(--wii-blue));
+  box-shadow: 0 1.5px 6px hsl(var(--wii-blue) / 0.08);
 }
 
 .context-menu-item.disabled {
@@ -366,19 +366,19 @@ body, #root {
 
 .context-menu-item.disabled:hover {
   background: transparent;
-  color: #374151;
+  color: hsl(var(--text-primary));
   border: none;
   box-shadow: none;
 }
 
 .context-menu-separator {
   height: 1px;
-  background-color: #e0e0e6;
+  background-color: hsl(var(--border-primary));
   margin: 0.25rem 0;
 }
 
 .dark-mode .context-menu-separator {
-  background-color: #444;
+  background-color: hsl(var(--border-secondary));
 }
 
 @keyframes slideDownAndFade {
@@ -417,10 +417,10 @@ body, #root {
 
 .dark-mode .context-menu-item:hover,
 .dark-mode .context-menu-item:focus {
-  background: #e6f3ff;
-  color: #111827;
-  border: 1.5px solid #0099ff;
-  box-shadow: 0 1.5px 6px #0099ff08;
+  background: hsl(var(--surface-wii-tint));
+  color: hsl(var(--text-primary));
+  border: 1.5px solid hsl(var(--wii-blue));
+  box-shadow: 0 1.5px 6px hsl(var(--wii-blue) / 0.12);
 }
 
 .dark-mode .context-menu-item.disabled {
@@ -440,14 +440,14 @@ body, #root {
 .wii-cursor {
   width: 20px;
   height: 20px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 2px solid #0099ff;
+  background: hsl(var(--text-on-accent) / 0.8);
+  border: 2px solid hsl(var(--wii-blue));
   border-radius: 50%;
   position: fixed;
   pointer-events: none;
   z-index: 10001;
   transform: translate(-50%, -50%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-card);
   /* Performance optimizations */
   will-change: transform;
   backface-visibility: hidden;
@@ -458,9 +458,9 @@ body, #root {
 .wii-cursor.hover {
   width: 24px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.9);
+  background: hsl(var(--text-on-accent) / 0.9);
   border-width: 3px;
-  box-shadow: 0 4px 12px rgba(0, 153, 255, 0.4);
+  box-shadow: 0 4px 12px hsl(var(--wii-blue) / 0.4);
   /* Smooth size transition only for hover state */
   transition: width 0.15s ease, height 0.15s ease, border-width 0.15s ease, box-shadow 0.15s ease;
 }

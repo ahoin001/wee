@@ -9,10 +9,7 @@ import './SettingsActionMenu.css';
 const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 0 } }, ref) => {
   const { ui, actions } = useConsolidatedAppStore();
   const { isDarkMode, useCustomCursor, cursorStyle, showDock, classicMode } = ui;
-  
-  // Debug: Log current state values
-  console.log('[SettingsActionMenu] Current state:', { isDarkMode, useCustomCursor, showDock });
-  
+
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -30,8 +27,6 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
         document.body.appendChild(customCursor);
       }
       
-      // Set cursor style
-      console.log('[SettingsActionMenu] Setting cursor style to:', cursorStyle);
       customCursor.setAttribute('data-style', cursorStyle);
       
       // Show custom cursor
@@ -97,22 +92,18 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
 
   // Toggle functions
   const toggleDarkMode = useCallback(() => {
-    console.log('[SettingsActionMenu] Toggling dark mode from:', isDarkMode, 'to:', !isDarkMode);
     actions.setUIState({ isDarkMode: !isDarkMode });
   }, [isDarkMode, actions]);
 
   const toggleDock = useCallback(() => {
-    console.log('[SettingsActionMenu] Toggling dock from:', showDock, 'to:', !showDock);
     actions.setUIState({ showDock: !showDock });
   }, [showDock, actions]);
 
   const toggleCustomCursor = useCallback(() => {
-    console.log('[SettingsActionMenu] Toggling custom cursor from:', useCustomCursor, 'to:', !useCustomCursor);
     actions.setUIState({ useCustomCursor: !useCustomCursor });
   }, [useCustomCursor, actions]);
 
   const toggleDockMode = useCallback(() => {
-    console.log('[SettingsActionMenu] Toggling dock mode from:', classicMode, 'to:', !classicMode);
     actions.setUIState({ classicMode: !classicMode });
   }, [classicMode, actions]);
 
@@ -182,7 +173,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
         <div className="fixed inset-0 overflow-y-auto z-[10000]">
           <div className="flex min-h-full items-center justify-center p-4">
             <Dialog.Panel 
-              className={`settings-action-menu w-[95%] max-h-[95vh] min-w-[400px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[350px] md:w-[95%] md:min-w-[300px] sm:w-[98%] sm:min-w-[280px] relative z-[10000]`}
+              className="settings-action-menu relative z-[10000] flex max-h-[95vh] w-[95%] min-w-[280px] max-w-[min(100%,380px)] flex-col overflow-hidden sm:w-[98%] sm:min-w-[280px] md:w-[95%] md:min-w-[300px] lg:w-[90%] lg:min-w-[350px]"
               style={{
                 maxHeight: '70vh',
                 animation: isAnimating 
@@ -196,13 +187,17 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
                   <Dialog.Title as="h3" className="m-0 text-xl font-semibold text-[hsl(var(--text-primary))]">
                     Quick Settings
                   </Dialog.Title>
-                  <button 
-                    className="close-button"
+                  <Button
+                    type="button"
+                    variant="tertiary"
+                    size="sm"
                     onClick={handleClose}
                     title="Close menu"
+                    aria-label="Close quick settings"
+                    className="!h-8 !min-h-8 !w-8 !min-w-8 shrink-0 !border-0 !p-0 !shadow-none"
                   >
                     ✕
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="menu-sections-container">

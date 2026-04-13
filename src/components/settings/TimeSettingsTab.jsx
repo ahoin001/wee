@@ -5,6 +5,8 @@ import WSelect from '../../ui/WSelect';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings.js';
+import '../settings-modal-forms.css';
 
 const TimeSettingsTab = React.memo(() => {
   // Use consolidated store for time settings
@@ -33,12 +35,12 @@ const TimeSettingsTab = React.memo(() => {
   }, [setTimeState]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <Text variant="h2" style={{ color: 'hsl(var(--text-primary))', marginBottom: '8px' }}>
+    <div className="flex flex-col gap-6">
+      <Text variant="h2" className="mb-2 text-[hsl(var(--text-primary))]">
         Time Display Settings
       </Text>
       
-      <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+      <Text variant="body" className="mb-4 text-[hsl(var(--text-secondary))]">
         Customize the appearance and behavior of the time and date display.
       </Text>
 
@@ -49,41 +51,28 @@ const TimeSettingsTab = React.memo(() => {
         desc="Choose the color for the time and date display text."
         actions={
           <>
-            <div style={{ marginTop: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div className="modal-section-mt">
+              <div className="modal-color-row">
                 <input
                   type="color"
-                  value={time?.color ?? '#ffffff'}
+                  value={time?.color ?? INPUT_COLOR_DEFAULT_HEX}
                   onChange={handleTimeColorChange}
-                  style={{
-                    width: 50,
-                    height: 40,
-                    border: 'none',
-                    borderRadius: 8,
-                    cursor: 'pointer'
-                  }}
+                  className="modal-color-input"
                 />
-                <span style={{ color: 'hsl(var(--text-secondary))', fontSize: 14 }}>
-                  {(time?.color ?? '#ffffff').toUpperCase()}
+                <span className="modal-hex-muted">
+                  {(time?.color ?? INPUT_COLOR_DEFAULT_HEX).toUpperCase()}
                 </span>
               </div>
               {(time?.recentColors ?? []).length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <span style={{ fontSize: 13, color: 'hsl(var(--text-secondary))', marginRight: 2 }}>Previous:</span>
-                  {(time?.recentColors ?? []).map((color, idx) => (
+                <div className="modal-prev-row">
+                  <span className="modal-prev-label">Previous:</span>
+                  {(time?.recentColors ?? []).map((color) => (
                     <button
                       key={color}
+                      type="button"
                       onClick={() => setTimeState({ color: color })}
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
-                        border: color === (time?.color ?? '#ffffff') ? '2px solid hsl(var(--wii-blue))' : '1.5px solid hsl(var(--border-secondary))',
-                        background: color,
-                        cursor: 'pointer',
-                        outline: 'none',
-                        marginLeft: idx === 0 ? 0 : 2
-                      }}
+                      className={`modal-swatch ${color === (time?.color ?? INPUT_COLOR_DEFAULT_HEX) ? 'modal-swatch--active' : ''}`}
+                      style={{ backgroundColor: color }}
                       title={color}
                     />
                   ))}
@@ -92,7 +81,7 @@ const TimeSettingsTab = React.memo(() => {
             </div>
             
             {/* Font Selection */}
-            <div style={{ marginTop: 18 }}>
+            <div className="modal-font-row">
               <WSelect
                 label="Time Font"
                 options={[
@@ -121,9 +110,9 @@ const TimeSettingsTab = React.memo(() => {
         actions={
           time?.enablePill && (
             <>
-              <div style={{ marginTop: 14 }}>
-                <div style={{ marginBottom: 16 }}>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+              <div className="modal-section-mt">
+                <div className="modal-mb-12">
+                  <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
                     Backdrop Blur
                   </Text>
                   <Slider
@@ -133,12 +122,12 @@ const TimeSettingsTab = React.memo(() => {
                     step={1}
                     onChange={handleTimePillBlurChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="mt-1 text-[hsl(var(--text-tertiary))]">
                     {time?.pillBlur ?? 8}px
                   </Text>
                 </div>
                 <div>
-                  <Text variant="body" style={{ color: 'hsl(var(--text-secondary))', marginBottom: '8px' }}>
+                  <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
                     Background Opacity
                   </Text>
                   <Slider
@@ -148,7 +137,7 @@ const TimeSettingsTab = React.memo(() => {
                     step={0.01}
                     onChange={handleTimePillOpacityChange}
                   />
-                  <Text variant="caption" style={{ color: 'hsl(var(--text-tertiary))', marginTop: '4px' }}>
+                  <Text variant="caption" className="mt-1 text-[hsl(var(--text-tertiary))]">
                     {Math.round((time?.pillOpacity ?? 0.05) * 100)}%
                   </Text>
                 </div>
@@ -163,4 +152,4 @@ const TimeSettingsTab = React.memo(() => {
 
 TimeSettingsTab.displayName = 'TimeSettingsTab';
 
-export default TimeSettingsTab; 
+export default TimeSettingsTab;

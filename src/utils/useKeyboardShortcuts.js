@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { handleGlobalShortcut } from './keyboardShortcuts';
+import { openSettingsToTab } from './settingsNavigation';
 
 const useKeyboardShortcuts = () => {
   const { ui, actions } = useConsolidatedAppStore();
@@ -217,10 +218,7 @@ const useKeyboardShortcuts = () => {
     
     // Settings modal functions
     window.openSettingsModal = (tab = null) => {
-      actions.setUIState({ 
-        showSettingsModal: true,
-        settingsActiveTab: tab || 'general'
-      });
+      openSettingsToTab(tab || 'general');
     };
 
     // Widget toggle functions - using the actual functions from the store

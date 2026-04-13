@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import { WALLPAPER_OVERLAY_COLORS } from '../design/wallpaperAmbientPalettes.js';
 
 const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, wind = 0.02, gravity = 0.1 }) => {
   const canvasRef = useRef(null);
@@ -12,38 +13,38 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
     snow: {
       particleCount: 80, // Reduced for better performance
       particleSize: { min: 2, max: 6 },
-      colors: ['#ffffff', '#f0f8ff', '#e6f3ff'],
+      colors: WALLPAPER_OVERLAY_COLORS.snow,
       shape: 'circle'
     },
     rain: {
       particleCount: 120, // Reduced for better performance
       particleSize: { min: 1, max: 3 },
-      colors: ['#87ceeb', '#b0e0e6', '#add8e6'],
+      colors: WALLPAPER_OVERLAY_COLORS.rain,
       shape: 'line'
     },
     leaves: {
       particleCount: 30, // Reduced for better performance
       particleSize: { min: 8, max: 15 },
-      colors: ['#8fbc8f', '#90ee90', '#98fb98', '#228b22'],
+      colors: WALLPAPER_OVERLAY_COLORS.leaves,
       shape: 'leaf'
     },
     fireflies: {
       particleCount: 20, // Reduced for better performance
       particleSize: { min: 3, max: 6 },
-      colors: ['#ffff00', '#ffd700', '#ffa500'],
+      colors: WALLPAPER_OVERLAY_COLORS.fireflies,
       shape: 'circle',
       flicker: true
     },
     dust: {
       particleCount: 100, // Reduced for better performance
       particleSize: { min: 1, max: 4 },
-      colors: ['#d2b48c', '#deb887', '#f5deb3'],
+      colors: WALLPAPER_OVERLAY_COLORS.dust,
       shape: 'circle'
     },
     fire: {
       particleCount: 50, // Reduced for better performance
       particleSize: { min: 3, max: 12 },
-      colors: ['#ff4500', '#ff6347', '#ff7f50', '#ff8c00', '#ffa500'],
+      colors: WALLPAPER_OVERLAY_COLORS.fire,
       shape: 'fire',
       flicker: true,
       upward: true

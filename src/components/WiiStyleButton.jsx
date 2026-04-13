@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { CSS_WII_BLUE } from '../design/runtimeColorStrings.js';
 import './WiiStyleButton.css';
 
 const WiiStyleButton = ({ 
@@ -20,14 +21,14 @@ const WiiStyleButton = ({
   glassBlur = 2.5,
   glassBorderOpacity = 0.5,
   glassShineOpacity = 0.7,
-  ribbonGlowColor = '#0099ff',
+  ribbonGlowColor = CSS_WII_BLUE,
   spotifySecondaryColor = null,
   spotifyTextColor = null,
   spotifyAccentColor = null
 }) => {
   // Helper function to convert RGB color to rgba with opacity
   const rgbToRgba = (rgbColor, opacity) => {
-    if (!rgbColor) return `rgba(255, 255, 255, ${opacity})`;
+    if (!rgbColor) return `hsl(var(--color-pure-white) / ${opacity})`;
     
     // Extract RGB values from rgb() or rgba() string
     const match = rgbColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -44,30 +45,30 @@ const WiiStyleButton = ({
       return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     }
     
-    return `rgba(255, 255, 255, ${opacity})`;
+    return `hsl(var(--color-pure-white) / ${opacity})`;
   };
 
   const baseStyle = {
     '--wii-style-bg': useGlassEffect
-      ? (spotifySecondaryColor ? rgbToRgba(spotifySecondaryColor, glassOpacity) : `rgba(255, 255, 255, ${glassOpacity})`)
+      ? (spotifySecondaryColor ? rgbToRgba(spotifySecondaryColor, glassOpacity) : `hsl(var(--color-pure-white) / ${glassOpacity})`)
       : (spotifySecondaryColor || 'hsl(var(--surface-primary))'),
     '--wii-style-border': useGlassEffect
-      ? (spotifyAccentColor ? rgbToRgba(spotifyAccentColor, glassBorderOpacity) : `rgba(255, 255, 255, ${glassBorderOpacity})`)
+      ? (spotifyAccentColor ? rgbToRgba(spotifyAccentColor, glassBorderOpacity) : `hsl(var(--color-pure-white) / ${glassBorderOpacity})`)
       : (spotifyAccentColor || 'hsl(var(--border-primary))'),
-    '--wii-style-shadow': useGlassEffect ? '0 4px 8px rgba(0, 0, 0, 0.1)' : '0 4px 8px rgba(0, 0, 0, 0.2)',
+    '--wii-style-shadow': useGlassEffect ? 'var(--shadow-sm)' : 'var(--shadow-md)',
     '--wii-style-backdrop-blur': useGlassEffect ? `${glassBlur}px` : '0px',
     '--wii-style-hover-shadow': useGlowEffect
       ? `0 0 ${glowStrength}px ${spotifyAccentColor || (useAdaptiveColor ? ribbonGlowColor : 'hsl(var(--wii-blue))')}`
       : useGlassEffect
-        ? '0 6px 12px rgba(0, 0, 0, 0.15)'
-        : '0 6px 12px rgba(0, 0, 0, 0.3)',
+        ? 'var(--shadow-md)'
+        : 'var(--shadow-lg)',
     '--wii-style-hover-border': useGlowEffect
       ? 'hsl(var(--border-primary))'
       : useGlassEffect
-        ? (spotifyAccentColor ? rgbToRgba(spotifyAccentColor, glassBorderOpacity * 1.2) : `rgba(255, 255, 255, ${glassBorderOpacity})`)
+        ? (spotifyAccentColor ? rgbToRgba(spotifyAccentColor, glassBorderOpacity * 1.2) : `hsl(var(--color-pure-white) / ${glassBorderOpacity})`)
         : (spotifyAccentColor || (useAdaptiveColor ? ribbonGlowColor : 'hsl(var(--wii-blue))')),
     '--wii-style-text': spotifyTextColor || 'inherit',
-    '--wii-style-shine': `linear-gradient(135deg, rgba(255,255,255,${glassShineOpacity}) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)`,
+    '--wii-style-shine': `linear-gradient(135deg, hsl(var(--color-pure-white) / ${glassShineOpacity}) 0%, hsl(var(--color-pure-white) / 0.1) 50%, hsl(var(--color-pure-white) / 0) 100%)`,
     ...style
   };
 

@@ -1,0 +1,218 @@
+/* UnifiedAppPathSearch — tokenized layout (pair with UnifiedAppPathSearch.jsx). */
+
+.uaps {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.uaps__filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.uaps__filter-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(var(--text-secondary));
+}
+
+.uaps__filter-pills {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.uaps__filter-pill {
+  cursor: pointer;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-primary));
+  color: hsl(var(--text-primary));
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    opacity 0.15s ease;
+}
+
+.uaps__filter-pill:hover {
+  opacity: 0.92;
+}
+
+.uaps__filter-pill--active {
+  border-color: hsl(var(--wii-blue));
+  background: hsl(var(--wii-blue));
+  color: hsl(var(--text-on-accent));
+}
+
+.uaps__search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.uaps__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 0.875rem;
+  font-size: 1rem;
+  line-height: 1.35;
+  border-radius: 0.5rem;
+  border: 1.5px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-primary));
+  color: hsl(var(--text-primary));
+}
+
+.uaps__input:focus {
+  outline: 2px solid hsl(var(--wii-blue) / 0.35);
+  outline-offset: 1px;
+}
+
+.uaps__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.uaps__rescan {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.uaps__loading {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  font-size: 15px;
+  font-weight: 500;
+  color: hsl(var(--wii-blue));
+}
+
+.uaps__error {
+  margin-top: 0.5rem;
+  font-size: 13px;
+  color: hsl(var(--state-error));
+}
+
+.uaps__dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-primary));
+  box-shadow: var(--shadow-lg);
+}
+
+.uaps__results {
+  display: flex;
+  flex-direction: column;
+}
+
+.uaps__result-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: hsl(var(--text-primary));
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.uaps__result-row + .uaps__result-row {
+  border-top: 1px solid hsl(var(--border-primary));
+}
+
+.uaps__result-row:hover {
+  transform: translateY(-1px);
+  background: hsl(var(--state-hover));
+  box-shadow: var(--shadow-sm);
+}
+
+.uaps__app-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.uaps__app-icon--hidden {
+  display: none;
+}
+
+.uaps__app-icon-fallback {
+  display: flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  background: hsl(var(--surface-secondary));
+  font-size: 1rem;
+}
+
+.uaps__meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.uaps__title {
+  margin-bottom: 0.125rem;
+  font-weight: 600;
+}
+
+.uaps__subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 13px;
+  color: hsl(var(--text-secondary));
+}
+
+.uaps__path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.uaps__badge {
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-secondary));
+  padding: 0.125rem 0.5rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(var(--text-secondary));
+}
+
+.uaps__more-footer {
+  border-top: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-secondary));
+  padding: 0.5rem 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: hsl(var(--text-secondary));
+}
+
+.uaps__empty {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: hsl(var(--text-tertiary));
+}

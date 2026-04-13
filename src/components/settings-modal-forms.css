@@ -33,12 +33,12 @@
   width: 50px;
   height: 40px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .modal-hex-muted {
-  color: #888;
+  color: hsl(var(--text-tertiary));
   font-size: 14px;
 }
 
@@ -51,7 +51,7 @@
 
 .modal-prev-label {
   font-size: 13px;
-  color: #888;
+  color: hsl(var(--text-tertiary));
   margin-right: 2px;
 }
 
@@ -61,12 +61,12 @@
   border-radius: 50%;
   cursor: pointer;
   outline: none;
-  border: 1.5px solid #bbb;
+  border: 1.5px solid hsl(var(--border-secondary));
   padding: 0;
 }
 
 .modal-swatch--active {
-  border: 2px solid #0099ff;
+  border: 2px solid hsl(var(--wii-blue));
 }
 
 .modal-font-row {
@@ -80,7 +80,7 @@
 
 .modal-select-compact {
   padding: 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .modal-label-block {
@@ -104,10 +104,10 @@
 
 .ribbon-reset-btn {
   padding: 8px 16px;
-  border-radius: 6px;
-  border: 2px solid #0099ff;
+  border-radius: var(--radius-sm);
+  border: 2px solid hsl(var(--wii-blue));
   background: transparent;
-  color: #0099ff;
+  color: hsl(var(--wii-blue));
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -117,14 +117,14 @@
 }
 
 .ribbon-reset-btn:hover {
-  background: #0099ff;
-  color: white;
+  background: hsl(var(--wii-blue));
+  color: hsl(var(--text-on-accent));
 }
 
 .modal-error-banner {
   margin-bottom: 16px;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid hsl(var(--state-error) / 0.35);
   background: hsl(var(--state-error) / 0.08);
   color: hsl(var(--state-error));

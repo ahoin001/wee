@@ -40,7 +40,7 @@ const SettingsTabButton = React.memo(({ tab, isActive, onClick }) => {
   }, [isActive, isHovered, tab.color]);
   
   const textColor = useMemo(() => {
-    if (isActive) return 'white';
+    if (isActive) return 'hsl(var(--text-on-accent))';
     if (isHovered) return tab.color;
     return 'hsl(var(--text-secondary))';
   }, [isActive, isHovered, tab.color]);
@@ -94,7 +94,7 @@ const SETTINGS_TABS = [
     id: 'api-integrations', 
     label: 'API & Widgets', 
     icon: '🔌', 
-    color: '#1db954', 
+    color: 'hsl(var(--settings-tab-api))',
     description: 'External services & floating widgets',
     component: ApiIntegrationsSettingsTab
   },
@@ -102,7 +102,7 @@ const SETTINGS_TABS = [
     id: 'channels', 
     label: 'Channels', 
     icon: '📺', 
-    color: '#0099ff', 
+    color: 'hsl(var(--settings-tab-channels))',
     description: 'Animation & display settings',
     component: ChannelsSettingsTab
   },
@@ -110,7 +110,7 @@ const SETTINGS_TABS = [
     id: 'dock', 
     label: 'Dock', 
     icon: '⚓', 
-    color: '#feca57', 
+    color: 'hsl(var(--settings-tab-dock))',
     description: 'Classic & Ribbon dock settings',
     component: UnifiedDockSettingsTab
   },
@@ -118,7 +118,7 @@ const SETTINGS_TABS = [
     id: 'general', 
     label: 'General', 
     icon: '⚙️', 
-    color: '#6c5ce7', 
+    color: 'hsl(var(--settings-tab-general))',
     description: 'App behavior & startup',
     component: GeneralSettingsTab
   },
@@ -126,7 +126,7 @@ const SETTINGS_TABS = [
     id: 'layout', 
     label: 'Layout', 
     icon: '📐', 
-    color: '#00b894', 
+    color: 'hsl(var(--settings-tab-layout))',
     description: 'Grid & navigation modes',
     component: LayoutSettingsTab
   },
@@ -134,7 +134,7 @@ const SETTINGS_TABS = [
     id: 'navigation', 
     label: 'Navigation', 
     icon: '🧭', 
-    color: '#fd79a8', 
+    color: 'hsl(var(--settings-tab-navigation))',
     description: 'Side navigation buttons',
     component: NavigationSettingsTab
   },
@@ -142,7 +142,7 @@ const SETTINGS_TABS = [
     id: 'monitor', 
     label: 'Monitor (beta)', 
     icon: '🖥️', 
-    color: '#ff6b9d', 
+    color: 'hsl(var(--settings-tab-monitor))',
     description: 'Multi-monitor settings',
     component: MonitorSettingsTab
   },
@@ -150,7 +150,7 @@ const SETTINGS_TABS = [
     id: 'shortcuts', 
     label: 'Shortcuts', 
     icon: '⌨️', 
-    color: '#ff9f43', 
+    color: 'hsl(var(--settings-tab-shortcuts))',
     description: 'Keyboard shortcuts & hotkeys',
     component: ShortcutsSettingsTab
   },
@@ -158,7 +158,7 @@ const SETTINGS_TABS = [
     id: 'sounds', 
     label: 'Sounds', 
     icon: '🔊', 
-    color: '#a55eea', 
+    color: 'hsl(var(--settings-tab-sounds))',
     description: 'Audio feedback & music',
     component: SoundsSettingsTab
   },
@@ -166,7 +166,7 @@ const SETTINGS_TABS = [
     id: 'themes', 
     label: 'Presets', 
     icon: '🎨', 
-    color: '#ff9ff3', 
+    color: 'hsl(var(--settings-tab-themes))',
     description: 'Preset themes & customization',
     component: PresetsSettingsTab
   },
@@ -174,7 +174,7 @@ const SETTINGS_TABS = [
     id: 'time', 
     label: 'Time', 
     icon: '🕐', 
-    color: '#45b7d1', 
+    color: 'hsl(var(--settings-tab-time))',
     description: 'Clock & pill display',
     component: TimeSettingsTab
   },
@@ -182,7 +182,7 @@ const SETTINGS_TABS = [
     id: 'updates', 
     label: 'Updates', 
     icon: '🔄', 
-    color: '#00cec9', 
+    color: 'hsl(var(--settings-tab-updates))',
     description: 'Check for updates & version info',
     component: UpdatesSettingsTab
   },
@@ -190,7 +190,7 @@ const SETTINGS_TABS = [
     id: 'wallpaper', 
     label: 'Wallpaper', 
     icon: '🖼️', 
-    color: '#4ecdc4', 
+    color: 'hsl(var(--settings-tab-wallpaper))',
     description: 'Background & cycling',
     component: WallpaperSettingsTab
   }

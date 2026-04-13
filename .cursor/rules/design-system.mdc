@@ -1,0 +1,33 @@
+---
+description: Design tokens, colors, UI primitives, and verification for Wee Desktop Launcher
+alwaysApply: true
+---
+
+# Design system and UI (Wee)
+
+## Colors and CSS
+
+- **App chrome** must use semantic tokens from `src/styles/design-system.css` — reference as `hsl(var(--token-name))` (or `rgb()` / `color-mix()` where the file already does).
+- **Prefer Tailwind** that resolves to tokens over inline `style={{ color: '#…' }}`. When Tailwind needs an arbitrary value, use `hsl(var(--…))`, not raw hex.
+- **Do not add** new `#rrggbb` or `rgba(…)` literals in `src/components/**` for styling. Extend tokens or add a named export in `src/design/` (e.g. `runtimeColorStrings.js`) and import it.
+- **Where hex is OK**: `src/design/*` (defaults, palettes, canvas/album-art constants), `src/data/**` (preset/theme databases like `classicDockThemeGroups.js`), migrations, and strings required by APIs (`<input type="color">`, persisted settings). Document one-off exceptions with a short comment.
+- **New colors**: Add `--your-token: H S% L%;` in `design-system.css` (light `:root` and `.dark-mode` if it should track theme). Run `npm run lint` after changing tokens (design-system check).
+
+## Components
+
+- **Use `src/ui/`** primitives (WButton, WInput, WToggle, Card, Text, etc.) for new controls before adding raw HTML or unstyled widgets.
+- **Match** naming, imports, and patterns in the same folder; avoid drive-by refactors outside the task.
+
+## Architecture and data
+
+- **Unified data layer**: Use consolidated store and hooks (`useSettings`, `useChannels`, `useUI`, etc.). Do not introduce parallel globals or duplicate sources of truth.
+- **Performance**: Treat as a long-running Electron app — avoid unnecessary re-renders, broad subscriptions, and always-on heavy effects.
+
+## Verification
+
+- After meaningful UI/CSS/token changes: `npm run lint` and `npm run build`.
+- `npm run lint` runs `scripts/design-system-check.cjs` (Tailwind ↔ CSS contract). Use `npm run lint:eslint` for full ESLint when needed.
+
+## See also
+
+- `AGENTS.md` (repo root) — short checklist for agents and contributors.

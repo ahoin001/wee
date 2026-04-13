@@ -10,6 +10,10 @@ import { useRibbonState } from '../utils/useConsolidatedAppHooks';
 
 import './SoundModal.css';
 import './settings-modal-forms.css';
+import {
+  DEFAULT_RIBBON_GLOW_HEX,
+  DEFAULT_RIBBON_SURFACE_HEX,
+} from '../design/runtimeColorStrings.js';
 
 function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon, setGlassWiiRibbon }) {
   // New unified data layer hooks
@@ -22,9 +26,9 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
   const [glassBlur, setGlassBlur] = useState(2.5);
   const [glassBorderOpacity, setGlassBorderOpacity] = useState(0.5);
   const [glassShineOpacity, setGlassShineOpacity] = useState(0.7);
-  const [ribbonColor, setRibbonColor] = useState('#e0e6ef');
+  const [ribbonColor, setRibbonColor] = useState(DEFAULT_RIBBON_SURFACE_HEX);
   const [recentRibbonColors, setRecentRibbonColors] = useState([]);
-  const [ribbonGlowColor, setRibbonGlowColor] = useState('#0099ff');
+  const [ribbonGlowColor, setRibbonGlowColor] = useState(DEFAULT_RIBBON_GLOW_HEX);
   const [recentRibbonGlowColors, setRecentRibbonGlowColors] = useState([]);
   const [ribbonGlowStrength, setRibbonGlowStrength] = useState(20);
   const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(28);
@@ -37,9 +41,9 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
       setGlassBlur(ribbonSettings.glassBlur ?? 2.5);
       setGlassBorderOpacity(ribbonSettings.glassBorderOpacity ?? 0.5);
       setGlassShineOpacity(ribbonSettings.glassShineOpacity ?? 0.7);
-      setRibbonColor(ribbonSettings.ribbonColor ?? '#e0e6ef');
+      setRibbonColor(ribbonSettings.ribbonColor ?? DEFAULT_RIBBON_SURFACE_HEX);
       setRecentRibbonColors(ribbonSettings.recentRibbonColors ?? []);
-      setRibbonGlowColor(ribbonSettings.ribbonGlowColor ?? '#0099ff');
+      setRibbonGlowColor(ribbonSettings.ribbonGlowColor ?? DEFAULT_RIBBON_GLOW_HEX);
       setRecentRibbonGlowColors(ribbonSettings.recentRibbonGlowColors ?? []);
       setRibbonGlowStrength(ribbonSettings.ribbonGlowStrength ?? 20);
       setRibbonGlowStrengthHover(ribbonSettings.ribbonGlowStrengthHover ?? 28);
@@ -49,8 +53,8 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
 
   // Reset to default values
   const resetToDefault = () => {
-    setRibbonColor('#e0e6ef');
-    setRibbonGlowColor('#0099ff');
+    setRibbonColor(DEFAULT_RIBBON_SURFACE_HEX);
+    setRibbonGlowColor(DEFAULT_RIBBON_GLOW_HEX);
     setRibbonGlowStrength(20);
     setRibbonGlowStrengthHover(28);
     setRibbonDockOpacity(1);

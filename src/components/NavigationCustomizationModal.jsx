@@ -210,7 +210,7 @@ function NavigationCustomizationModal() {
           <WButton
             variant="secondary"
             onClick={handleReset}
-            className="!bg-[hsl(var(--state-error))] !text-[hsl(var(--text-inverse))]"
+            className="!bg-[hsl(var(--state-error))] !text-[hsl(var(--text-on-accent))]"
           >
             🔄 Reset to Default
           </WButton>
@@ -331,7 +331,7 @@ function NavigationCustomizationModal() {
                       e.stopPropagation();
                       handleDeleteIcon(iconData.url);
                     }}
-                    className="absolute -top-1 -left-1 bg-red-600 text-white border-0 rounded-full w-5 h-5 text-[12px] cursor-pointer flex items-center justify-center shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
+                    className="absolute -top-1 -left-1 bg-red-600 text-white border-0 rounded-full w-5 h-5 text-[12px] cursor-pointer flex items-center justify-center shadow-[var(--shadow-sm)]"
                   >
                     ×
                   </button>

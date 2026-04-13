@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { useAppActivity } from '../hooks/useAppActivity';
+import { PARTICLE_EFFECT_PALETTES as COLOR_PALETTES } from '../design/particleEffectPalettes.js';
+import { DEFAULT_RIBBON_GLOW_HEX } from '../design/runtimeColorStrings.js';
 
 // Particle effect types
 const PARTICLE_TYPES = {
@@ -14,20 +16,6 @@ const PARTICLE_TYPES = {
   DUST: 'dust',
   ENERGY: 'energy',
   MAGIC_SPARKLES: 'magic'
-};
-
-// Color palettes for different effects
-const COLOR_PALETTES = {
-  normal: ['#87cefa', '#ffffff', '#ff0081', '#20c997'],
-  stars: ['#ffcc00', '#fffacd', '#ffd700'],
-  paws: ['#ff69b4', '#ffffff'],
-  waterDrops: ['#e0ffff', '#b0e0e6', '#add8e6'],
-  sparkles: ['#ffffff', '#ffd700', '#ff69b4', '#00ff00'],
-  magic: ['#ff0081', '#00ffff', '#ff69b4', '#ffff00', '#00ff00'],
-  fireflies: ['#ffff00', '#ffd700', '#ffed4e', '#fffacd'],
-  dust: ['#f5f5dc', '#d2b48c', '#deb887', '#f4a460'],
-  energy: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'],
-  'magic-sparkles': ['#ff0081', '#00ffff', '#ffff00', '#ff69b4']
 };
 
 // Helper function to convert hex color to RGB array
@@ -120,7 +108,7 @@ class Particle {
     const selectedColor = palette[Math.floor(Math.random() * palette.length)];
     return selectedColor && typeof selectedColor === 'string' && /^#[0-9A-Fa-f]{6}$/.test(selectedColor) 
       ? selectedColor 
-      : '#0099ff'; // Default fallback
+      : DEFAULT_RIBBON_GLOW_HEX; // Default fallback
   }
 
   hexToRgbString(hex) {
@@ -402,7 +390,7 @@ const DockParticleSystem = React.memo(({
   particleCount = 3,
   spawnRate = 60, // particles per second
   settings = {},
-  ribbonGlowColor = '#0099ff',
+  ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX,
   clipPathFollow = false // New prop for clip path following
 }) => {
   const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);

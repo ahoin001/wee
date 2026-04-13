@@ -54,7 +54,7 @@ const WRadioGroup = ({
                         ${disabled ? 'opacity-50' : ''}
                       `}>
                         {checked && (
-                          <div className="w-2 h-2 bg-[hsl(var(--text-inverse))] rounded-full" />
+                          <div className="w-2 h-2 bg-[hsl(var(--text-on-accent))] rounded-full" />
                         )}
                       </div>
                     </RadioGroup.Description>

@@ -1,16 +1,17 @@
+/** Strings for inline styles — mirror design-system.css :root */
 export const colors = {
-  primary: "#0099ff",
-  accent: "#4CAF50",
-  error: "#dc3545",
-  surface: "#fff",
-  surfaceDark: "#222",
-  card: "#f9fafd",
-  border: "#e0e0e6",
-  text: "#222",
-  textSecondary: "#888",
-  textOnPrimary: "#fff",
-  ribbonDefault: "#e0e6ef",
-  ribbonGlow: "#0099ff",
+  primary: "hsl(var(--wii-blue))",
+  accent: "hsl(var(--state-success))",
+  error: "hsl(var(--state-error))",
+  surface: "hsl(var(--surface-primary))",
+  surfaceDark: "hsl(var(--bg-primary))",
+  card: "hsl(var(--surface-secondary))",
+  border: "hsl(var(--border-primary))",
+  text: "hsl(var(--text-primary))",
+  textSecondary: "hsl(var(--text-secondary))",
+  textOnPrimary: "hsl(var(--text-on-accent))",
+  ribbonDefault: "hsl(var(--surface-secondary))",
+  ribbonGlow: "hsl(var(--wii-blue))",
 };
 
 export const spacing = {
@@ -61,7 +62,7 @@ export const fontSizes = {
 };
 
 export const shadows = {
-  card: "0 2px 8px #0001",
-  modal: "0 20px 40px rgba(0,0,0,0.3)",
+  card: "var(--shadow-card)",
+  modal: "var(--shadow-modal)",
   glow: (color, px) => `0 0 ${px}px ${color}`,
 }; 

@@ -1,24 +1,24 @@
 /* API & Widgets tab — glass panels inside CollapsibleSection */
 
 .api-integ-glass-card {
-  background: rgb(255 255 255 / 0.1);
-  border: 1px solid rgb(255 255 255 / 0.2);
+  background: hsl(var(--color-pure-white) / 0.1);
+  border: 1px solid hsl(var(--color-pure-white) / 0.2);
   backdrop-filter: blur(10px);
 }
 
 .api-integ-feature-row {
-  background: rgb(255 255 255 / 0.1);
-  border: 1px solid rgb(255 255 255 / 0.2);
+  background: hsl(var(--color-pure-white) / 0.1);
+  border: 1px solid hsl(var(--color-pure-white) / 0.2);
 }
 
 .api-integ-pill {
-  background: rgb(255 255 255 / 0.1);
-  border: 1px solid rgb(255 255 255 / 0.2);
+  background: hsl(var(--color-pure-white) / 0.1);
+  border: 1px solid hsl(var(--color-pure-white) / 0.2);
 }
 
 .api-integ-admin-inner {
-  background: rgb(0 0 0 / 0.2);
-  border-color: rgb(255 255 255 / 0.1);
+  background: hsl(var(--color-pure-black) / 0.2);
+  border-color: hsl(var(--color-pure-white) / 0.1);
 }
 
 .api-integ-grid-features {
@@ -29,7 +29,7 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
-/* Spotify green ≈ #1DB954 for WToggle (uses hsl(var(--wii-blue))) */
+/* Spotify accent for WToggle (overrides --wii-blue locally) */
 .wii-toggle-spotify-accent {
-  --wii-blue: 142 72% 45%;
+  --wii-blue: var(--settings-tab-api);
 }

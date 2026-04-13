@@ -5,6 +5,7 @@ import Button from '../ui/WButton';
 import WToggle from '../ui/WToggle';
 import Card from '../ui/Card';
 import { PARTICLE_TYPES } from './DockParticleSystem';
+import { DEFAULT_RIBBON_GLOW_HEX, INPUT_COLOR_DEFAULT_HEX } from '../design/runtimeColorStrings.js';
 import './DockEffectsModal.css';
 
 // Helper function to convert hex color to RGB array
@@ -33,7 +34,7 @@ const DIRECTION_OPTIONS = [
   { value: 'all', label: 'All Directions', emoji: '🌐' }
 ];
 
-function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ribbonGlowColor = '#0099ff' }) {
+function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX }) {
   const [localSettings, setLocalSettings] = useState({
     enabled: false,
     effectType: 'normal',
@@ -427,7 +428,7 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                     ))}
                     <button
                       onClick={() => {
-                        const newColors = [...localSettings.customColors, '#ffffff'];
+                        const newColors = [...localSettings.customColors, INPUT_COLOR_DEFAULT_HEX];
                         updateSetting('customColors', newColors);
                       }}
                       className="px-3 py-1 text-sm border-2 border-dashed border-[hsl(var(--border))] rounded hover:border-[hsl(var(--wii-blue))] text-[hsl(var(--text-secondary))]"

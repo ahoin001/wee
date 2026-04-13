@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import WBaseModal from './WBaseModal';
 import './ChannelModal.css';
@@ -19,6 +19,7 @@ import Text from '../ui/Text';
 import useSoundLibrary from '../utils/useSoundLibrary';
 import Slider from '../ui/Slider';
 import { useChannelModalMedia } from '../hooks/useChannelModalMedia';
+import { useChannelModalHoverSound } from '../hooks/useChannelModalHoverSound';
 import { validateChannelPath, normalizeChannelPath } from '../utils/channelPathValidation';
 import { findMatchingAppForPath } from '../utils/channelModalFindMatchingApp';
 import ChannelModalSuggestedGames from './ChannelModalSuggestedGames';
@@ -55,14 +56,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const [activeTab, setActiveTab] = useState('setup');
   
   const [asAdmin, setAsAdmin] = useState(currentAsAdmin);
-  // Hover sound state
-  const [hoverSound, setHoverSound] = useState(currentHoverSound || null);
-  const hoverSoundInputRef = useRef();
-  const [hoverSoundName, setHoverSoundName] = useState(hoverSound ? hoverSound.name : '');
-  const [hoverSoundUrl, setHoverSoundUrl] = useState(hoverSound ? hoverSound.url : '');
-  const [hoverSoundVolume, setHoverSoundVolume] = useState(hoverSound ? hoverSound.volume : 0.7);
-  const [hoverSoundEnabled, setHoverSoundEnabled] = useState(!!hoverSound);
-  const [hoverSoundAudio, setHoverSoundAudio] = useState(null);
   const [showError, setShowError] = useState(false);
   const [animatedOnHover, setAnimatedOnHover] = useState(currentAnimatedOnHover);
   
@@ -118,9 +111,33 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const rescanSteamGames = fetchSteamGames;
   const rescanEpicGames = fetchEpicGames;
 
-  // Hover sound selection state
-  const [selectedHoverSoundId, setSelectedHoverSoundId] = useState(null);
-  const [uploadingHoverSound, setUploadingHoverSound] = useState(false);
+  const {
+    setHoverSound,
+    hoverSoundInputRef,
+    hoverSoundName,
+    hoverSoundUrl,
+    hoverSoundVolume,
+    hoverSoundEnabled,
+    setHoverSoundEnabled,
+    hoverSoundAudio,
+    selectedHoverSoundId,
+    uploadingHoverSound,
+    handleHoverSoundFile,
+    handleHoverSoundSelect,
+    handleHoverSoundUpload,
+    handleTestHoverSound,
+    handleHoverSoundVolumeChange,
+    clearHoverSoundSelection,
+    resetHoverSoundFields,
+  } = useChannelModalHoverSound({
+    currentHoverSound,
+    isOpen,
+    addSound,
+    selectSoundFile,
+    getSoundsByCategory,
+    loadSoundLibrary,
+    soundLibrary,
+  });
 
   useChannelModalInitialization({
     isOpen,
@@ -159,135 +176,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     preloadMediaLibrary,
   });
 
-  // Handle hover sound file select
-  const handleHoverSoundFile = async (file) => {
-    if (file) {
-      // Persistently store the file using the new API
-      if (file.path) {
-        const result = await window.api.channels.copyHoverSound({ filePath: file.path, filename: file.name });
-        if (result.success) {
-          setHoverSound({ url: result.url, name: file.name, volume: hoverSoundVolume });
-          setHoverSoundName(file.name);
-          setHoverSoundUrl(result.url);
-          setHoverSoundEnabled(true);
-        } else {
-          alert('Failed to save hover sound: ' + result.error);
-        }
-      } else {
-        // Fallback for browsers: use session URL (not persistent)
-        const url = URL.createObjectURL(file);
-        setHoverSound({ url, name: file.name, volume: hoverSoundVolume });
-        setHoverSoundName(file.name);
-        setHoverSoundUrl(url);
-        setHoverSoundEnabled(true);
-      }
-    }
-  };
-
-  // Handle hover sound selection from sound library
-  const handleHoverSoundSelect = useCallback(async (soundId) => {
-    try {
-      const channelHoverSounds = getSoundsByCategory('channelHover');
-      const selectedSound = channelHoverSounds.find(s => s.id === soundId);
-      
-      if (selectedSound) {
-        setHoverSound({
-          url: selectedSound.url,
-          name: selectedSound.name,
-          volume: selectedSound.volume ?? 0.7
-        });
-        setHoverSoundName(selectedSound.name);
-        setHoverSoundUrl(selectedSound.url);
-        setHoverSoundVolume(selectedSound.volume ?? 0.7);
-        setSelectedHoverSoundId(soundId);
-        setHoverSoundEnabled(true);
-      }
-    } catch (error) {
-      console.error('[ChannelModal] Error selecting hover sound:', error);
-    }
-  }, [getSoundsByCategory]);
-
-  // Handle hover sound upload
-  const handleHoverSoundUpload = useCallback(async () => {
-    try {
-      setUploadingHoverSound(true);
-      
-      const fileResult = await selectSoundFile();
-      if (!fileResult.success) {
-        throw new Error(fileResult.error || 'File selection failed');
-      }
-      
-      const { file } = fileResult;
-      const name = file.name.replace(/\.[^/.]+$/, '');
-      
-      const addResult = await addSound('channelHover', file, name);
-      if (!addResult.success) {
-        throw new Error(addResult.error || 'Failed to add sound');
-      }
-      
-      // Reload the sound library
-      await loadSoundLibrary();
-      
-      // Select the newly added sound
-      const channelHoverSounds = getSoundsByCategory('channelHover');
-      const newSound = channelHoverSounds.find(s => s.name === name);
-      if (newSound) {
-        await handleHoverSoundSelect(newSound.id);
-      }
-      
-    } catch (error) {
-      console.error('[ChannelModal] Error uploading hover sound:', error);
-      alert('Failed to upload hover sound: ' + error.message);
-    } finally {
-      setUploadingHoverSound(false);
-    }
-  }, [selectSoundFile, addSound, loadSoundLibrary, getSoundsByCategory, handleHoverSoundSelect]);
-
-  // Cleanup audio on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverSoundAudio) {
-        if (hoverSoundAudio._fadeInterval) {
-          clearInterval(hoverSoundAudio._fadeInterval);
-        }
-        hoverSoundAudio.pause();
-        hoverSoundAudio.src = '';
-        hoverSoundAudio.load();
-      }
-    };
-  }, [hoverSoundAudio]);
-  // Play hover sound (fade in)
-  const handleTestHoverSound = () => {
-    if (hoverSoundAudio) {
-      // Audio is playing → stop it
-      hoverSoundAudio.pause();
-      hoverSoundAudio.currentTime = 0;
-      setHoverSoundAudio(null);
-    } else if (hoverSoundUrl) {
-      // No audio is playing → start it
-      const audio = new Audio(hoverSoundUrl);
-      audio.volume = hoverSoundVolume;
-      audio.play().then(() => {
-        setHoverSoundAudio(audio);
-      }).catch(e => {
-        console.error('[DEBUG] Audio play error:', e);
-      });
-  
-      audio.onended = () => {
-        setHoverSoundAudio(null);
-      };
-    }
-  };
-
-  // Handle volume change for hover sound (live update)
-  const handleHoverSoundVolumeChange = (value) => {
-    setHoverSoundVolume(value);
-    // Live update test audio volume if this sound is being tested
-    if (hoverSoundAudio) {
-      hoverSoundAudio.volume = value;
-    }
-  };
-  
   const validatePath = useCallback(() => {
     const trimmed = path.trim();
     if (!trimmed) {
@@ -414,11 +302,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     setType('exe');
     setPathError('');
     setAsAdmin(false);
-    setHoverSound(null);
-    setHoverSoundName('');
-    setHoverSoundUrl('');
-    setHoverSoundVolume(0.7);
-    setHoverSoundEnabled(false);
+    resetHoverSoundFields();
     setAnimatedOnHover(undefined);
     setKenBurnsEnabled(undefined);
     setKenBurnsMode(undefined);
@@ -594,7 +478,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         {/* Gallery Feature Notice */}
         {!showGalleryOption && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-            <Text size="sm" color="#856404">
+            <Text size="sm" color="hsl(var(--state-warning))">
               🚧 <strong>Multi-image gallery feature is not ready yet.</strong> Currently focusing on perfecting the single image experience with Ken Burns effects.
             </Text>
           </div>
@@ -825,13 +709,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
               <WButton
                 variant="tertiary"
                 size="sm"
-                onClick={() => {
-                  setHoverSound(null);
-                  setHoverSoundName('');
-                  setHoverSoundUrl('');
-                  setSelectedHoverSoundId(null);
-                  setHoverSoundEnabled(false);
-                }}
+                onClick={clearHoverSoundSelection}
               >
                 Clear
               </WButton>
@@ -1148,17 +1026,6 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
       </div>
     </div>
   );
-
-  // Initialize selected hover sound ID when sound library loads
-  useEffect(() => {
-    if (isOpen && soundLibrary && hoverSoundUrl) {
-      const channelHoverSounds = getSoundsByCategory('channelHover') || [];
-      const matchingSound = channelHoverSounds.find(s => s.url === hoverSoundUrl);
-      if (matchingSound) {
-        setSelectedHoverSoundId(matchingSound.id);
-      }
-    }
-  }, [isOpen, soundLibrary, hoverSoundUrl, getSoundsByCategory]);
 
   return (
     <>

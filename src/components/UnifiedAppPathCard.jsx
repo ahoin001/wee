@@ -351,7 +351,7 @@ const UnifiedAppPathCard = React.memo(({
             <span className="font-semibold text-[hsl(var(--text-primary))]">
               {selectedApp.name}
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--state-success))] text-[hsl(var(--text-inverse))]">
+            <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--state-success))] text-[hsl(var(--text-on-accent))]">
               {selectedApp.category}
             </span>
           </div>

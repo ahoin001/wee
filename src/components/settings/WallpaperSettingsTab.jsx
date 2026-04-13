@@ -7,6 +7,7 @@ import WSelect from '../../ui/WSelect';
 import WInput from '../../ui/WInput';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { WALLPAPER_CHECKERBOARD_BG } from '../../design/runtimeColorStrings.js';
 
 const WALLPAPER_ANIMATIONS = [
   { value: 'fade', label: 'Crossfade - Smooth, elegant transition (Recommended)' },
@@ -428,8 +429,7 @@ const WallpaperSettingsTab = React.memo(() => {
                 <div
                   className="w-10 h-[25px] rounded border border-gray-200"
                   style={{
-                    background:
-                      'linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%)',
+                    background: WALLPAPER_CHECKERBOARD_BG,
                     backgroundSize: '8px 8px',
                     backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
                   }}
@@ -455,7 +455,7 @@ const WallpaperSettingsTab = React.memo(() => {
                     className={`
                       relative w-[110px] h-[70px] rounded-xl overflow-hidden
                       ${selectedWallpaper && selectedWallpaper.url === wallpaper.url
-                        ? 'border-2.5 border-blue-400 shadow-[0_0_0_2px_#b0e0ff]'
+                        ? 'border-2.5 border-[hsl(var(--wii-blue))] shadow-[0_0_0_2px_hsl(var(--link)/0.35)]'
                         : 'border border-gray-300 shadow-md'}
                       bg-white cursor-pointer flex items-center justify-center mb-0.5
                       transition-all duration-200

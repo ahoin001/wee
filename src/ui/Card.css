@@ -1,16 +1,15 @@
 /**
- * Wii-style Card variants — palette tokens via data-wii-color.
- * Keeps gradients/borders in one place (no per-render inline objects).
+ * Wii-style Card variants — palette via data-wii-color; colors from design-system.css.
  */
 
 .wii-card-text-title {
   color: hsl(var(--text-primary));
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+  text-shadow: 0 1px 2px hsl(var(--color-pure-black) / 0.1);
 }
 
 .wii-card-text-sub {
   color: hsl(var(--text-secondary));
-  text-shadow: 0 1px 1px rgb(255 255 255 / 0.5);
+  text-shadow: 0 1px 1px hsl(var(--color-pure-white) / 0.5);
 }
 
 .wii-card-text-muted {
@@ -19,79 +18,136 @@
 
 /* —— Palette: blue —— */
 .wii-card[data-wii-color='blue'] {
-  --wii-card-bg: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 50%, #b8d9e8 100%);
-  --wii-card-border: #33beed;
-  --wii-card-shadow: rgb(51 190 237 / 0.15);
-  --wii-card-shadow-inner: rgb(51 190 237 / 0.2);
-  --wii-card-shadow-stat: rgb(51 190 237 / 0.1);
-  --wii-card-icon-bg: linear-gradient(135deg, #33beed 0%, #0099ff 100%);
-  --wii-card-accent: #33beed;
+  --wii-card-bg: linear-gradient(
+    135deg,
+    hsl(var(--surface-wii-tint)) 0%,
+    hsl(195 55% 92%) 50%,
+    hsl(195 45% 86%) 100%
+  );
+  --wii-card-border: hsl(var(--wii-blue));
+  --wii-card-shadow: rgb(var(--accent-cyan-rgb) / 0.15);
+  --wii-card-shadow-inner: rgb(var(--accent-cyan-rgb) / 0.2);
+  --wii-card-shadow-stat: rgb(var(--accent-cyan-rgb) / 0.1);
+  --wii-card-icon-bg: linear-gradient(
+    135deg,
+    hsl(var(--wii-blue)) 0%,
+    hsl(var(--text-accent)) 100%
+  );
+  --wii-card-accent: hsl(var(--wii-blue));
 }
 
 /* —— red —— */
 .wii-card[data-wii-color='red'] {
-  --wii-card-bg: linear-gradient(135deg, #ffe5e5 0%, #fff0f0 100%);
-  --wii-card-border: #ff6b6b;
-  --wii-card-shadow: rgb(255 107 107 / 0.15);
-  --wii-card-shadow-inner: rgb(255 107 107 / 0.2);
-  --wii-card-shadow-stat: rgb(255 107 107 / 0.1);
-  --wii-card-icon-bg: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
-  --wii-card-accent: #ff6b6b;
+  --wii-card-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-error-light)) 0%,
+    hsl(0 50% 97%) 100%
+  );
+  --wii-card-border: hsl(var(--state-error));
+  --wii-card-shadow: hsl(var(--state-error) / 0.15);
+  --wii-card-shadow-inner: hsl(var(--state-error) / 0.2);
+  --wii-card-shadow-stat: hsl(var(--state-error) / 0.1);
+  --wii-card-icon-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-error)) 0%,
+    hsl(var(--state-error-hover)) 100%
+  );
+  --wii-card-accent: hsl(var(--state-error));
 }
 
 /* —— green —— */
 .wii-card[data-wii-color='green'] {
-  --wii-card-bg: linear-gradient(135deg, #e8f5e8 0%, #f0fff0 100%);
-  --wii-card-border: #4caf50;
-  --wii-card-shadow: rgb(76 175 80 / 0.15);
-  --wii-card-shadow-inner: rgb(76 175 80 / 0.2);
-  --wii-card-shadow-stat: rgb(76 175 80 / 0.1);
-  --wii-card-icon-bg: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
-  --wii-card-accent: #4caf50;
+  --wii-card-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-success-light)) 0%,
+    hsl(142 35% 97%) 100%
+  );
+  --wii-card-border: hsl(var(--state-success));
+  --wii-card-shadow: hsl(var(--state-success) / 0.15);
+  --wii-card-shadow-inner: hsl(var(--state-success) / 0.2);
+  --wii-card-shadow-stat: hsl(var(--state-success) / 0.1);
+  --wii-card-icon-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-success)) 0%,
+    hsl(142 50% 42%) 100%
+  );
+  --wii-card-accent: hsl(var(--state-success));
 }
 
 /* —— orange —— */
 .wii-card[data-wii-color='orange'] {
-  --wii-card-bg: linear-gradient(135deg, #fff3e0 0%, #fff8e1 100%);
-  --wii-card-border: #ff9800;
-  --wii-card-shadow: rgb(255 152 0 / 0.15);
-  --wii-card-shadow-inner: rgb(255 152 0 / 0.2);
-  --wii-card-shadow-stat: rgb(255 152 0 / 0.1);
-  --wii-card-icon-bg: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
-  --wii-card-accent: #ff9800;
+  --wii-card-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-warning-light)) 0%,
+    hsl(38 90% 97%) 100%
+  );
+  --wii-card-border: hsl(var(--state-warning));
+  --wii-card-shadow: hsl(var(--state-warning) / 0.15);
+  --wii-card-shadow-inner: hsl(var(--state-warning) / 0.2);
+  --wii-card-shadow-stat: hsl(var(--state-warning) / 0.1);
+  --wii-card-icon-bg: linear-gradient(
+    135deg,
+    hsl(var(--state-warning)) 0%,
+    hsl(var(--palette-orange-deep)) 100%
+  );
+  --wii-card-accent: hsl(var(--state-warning));
 }
 
 /* —— purple —— */
 .wii-card[data-wii-color='purple'] {
-  --wii-card-bg: linear-gradient(135deg, #f3e5f5 0%, #f8f4ff 100%);
-  --wii-card-border: #9c27b0;
-  --wii-card-shadow: rgb(156 39 176 / 0.15);
-  --wii-card-shadow-inner: rgb(156 39 176 / 0.2);
-  --wii-card-shadow-stat: rgb(156 39 176 / 0.1);
-  --wii-card-icon-bg: linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%);
-  --wii-card-accent: #9c27b0;
+  --wii-card-bg: linear-gradient(
+    135deg,
+    hsl(var(--palette-purple-soft)) 0%,
+    hsl(291 35% 97%) 100%
+  );
+  --wii-card-border: hsl(var(--palette-purple));
+  --wii-card-shadow: hsl(var(--palette-purple) / 0.15);
+  --wii-card-shadow-inner: hsl(var(--palette-purple) / 0.2);
+  --wii-card-shadow-stat: hsl(var(--palette-purple) / 0.1);
+  --wii-card-icon-bg: linear-gradient(
+    135deg,
+    hsl(var(--palette-purple)) 0%,
+    hsl(291 47% 58%) 100%
+  );
+  --wii-card-accent: hsl(var(--palette-purple));
 }
 
 /* —— yellow —— */
 .wii-card[data-wii-color='yellow'] {
-  --wii-card-bg: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);
-  --wii-card-border: #ffd93d;
-  --wii-card-shadow: rgb(255 217 61 / 0.15);
-  --wii-card-shadow-inner: rgb(255 217 61 / 0.2);
-  --wii-card-shadow-stat: rgb(255 217 61 / 0.1);
-  --wii-card-icon-bg: linear-gradient(135deg, #ffd93d 0%, #ffe566 100%);
-  --wii-card-accent: #ffd93d;
+  --wii-card-bg: linear-gradient(
+    135deg,
+    hsl(var(--palette-yellow-soft)) 0%,
+    hsl(45 90% 97%) 100%
+  );
+  --wii-card-border: hsl(var(--palette-yellow));
+  --wii-card-shadow: hsl(var(--palette-yellow) / 0.15);
+  --wii-card-shadow-inner: hsl(var(--palette-yellow) / 0.2);
+  --wii-card-shadow-stat: hsl(var(--palette-yellow) / 0.1);
+  --wii-card-icon-bg: linear-gradient(
+    135deg,
+    hsl(var(--palette-yellow)) 0%,
+    hsl(45 100% 70%) 100%
+  );
+  --wii-card-accent: hsl(var(--palette-yellow));
 }
 
 /* —— gray —— */
 .wii-card[data-wii-color='gray'] {
-  --wii-card-bg: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  --wii-card-border: #6c757d;
-  --wii-card-shadow: rgb(108 117 125 / 0.15);
-  --wii-card-shadow-inner: rgb(108 117 125 / 0.2);
-  --wii-card-shadow-stat: rgb(108 117 125 / 0.1);
-  --wii-card-icon-bg: linear-gradient(135deg, #6c757d 0%, #868e96 100%);
-  --wii-card-accent: #6c757d;
+  --wii-card-bg: linear-gradient(
+    135deg,
+    hsl(var(--surface-secondary)) 0%,
+    hsl(var(--surface-tertiary)) 100%
+  );
+  --wii-card-border: hsl(var(--border-secondary));
+  --wii-card-shadow: hsl(var(--text-tertiary) / 0.15);
+  --wii-card-shadow-inner: hsl(var(--text-tertiary) / 0.2);
+  --wii-card-shadow-stat: hsl(var(--text-tertiary) / 0.1);
+  --wii-card-icon-bg: linear-gradient(
+    135deg,
+    hsl(var(--palette-gray-chrome)) 0%,
+    hsl(210 9% 55%) 100%
+  );
+  --wii-card-accent: hsl(var(--palette-gray-chrome));
 }
 
 /* Emphasis */
@@ -100,7 +156,7 @@
   border: 3px solid var(--wii-card-border);
   box-shadow:
     0 8px 24px var(--wii-card-shadow),
-    inset 0 1px 0 rgb(255 255 255 / 0.3);
+    inset 0 1px 0 hsl(var(--color-pure-white) / 0.3);
 }
 
 .wii-card-deco-tr {
@@ -142,7 +198,7 @@
 }
 
 .wii-card-stat-cell {
-  background: rgb(255 255 255 / 0.7);
+  background: hsl(var(--color-pure-white) / 0.7);
   border: 2px solid var(--wii-card-shadow-stat);
 }
 

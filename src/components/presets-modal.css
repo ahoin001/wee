@@ -65,7 +65,7 @@
 }
 
 .preset-text-error {
-  color: #dc3545;
+  color: hsl(var(--state-error));
   margin-top: 6px;
 }
 

@@ -6,179 +6,9 @@ import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import WSelect from '../../ui/WSelect';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { CLASSIC_DOCK_THEME_GROUPS as THEME_GROUPS } from '../../data/dock/classicDockThemeGroups';
+import { CLASSIC_DOCK_DEFAULT_COLORS as DOCK_DEFAULT } from '../../design/classicDockThemeDefaults.js';
 import '../surfaceStyles.css';
-
-// Theme groups for collapsible organization
-const THEME_GROUPS = {
-  classic: {
-    name: 'Classic & Modern Themes',
-    description: 'Original Wii, gaming-inspired, and contemporary themes',
-    themes: {
-      default: {
-        name: 'Default Wii',
-        description: 'Classic Wii dock colors',
-        colors: {
-          dockBaseGradientStart: '#BDBEC2',
-          dockBaseGradientEnd: '#DADDE6',
-          dockAccentColor: '#33BEED',
-          sdCardBodyColor: '#B9E1F2',
-          sdCardBorderColor: '#33BEED',
-          sdCardLabelColor: 'white',
-          sdCardLabelBorderColor: '#F4F0EE',
-          sdCardBottomColor: '#31BEED',
-          leftPodBaseColor: '#D2D3DA',
-          leftPodAccentColor: '#B6B6BB',
-          leftPodDetailColor: '#D7D8DA',
-          rightPodBaseColor: '#DCDCDF',
-          rightPodAccentColor: '#E4E4E4',
-          rightPodDetailColor: '#B6B6BB',
-          buttonBorderColor: '#22BEF3',
-          buttonGradientStart: '#E0DCDC',
-          buttonGradientEnd: '#CBCBCB',
-          buttonIconColor: '#979796',
-          rightButtonIconColor: '#A4A4A4',
-          buttonHighlightColor: 'rgba(255, 255, 255, 0.5)',
-        }
-      },
-      chrome: {
-        name: 'Monochrome',
-        description: 'Monochrome effect',
-        colors: {
-          dockBaseGradientStart: '#e5e7eb',
-          dockBaseGradientEnd: '#d1d5db',
-          dockAccentColor: '#4b5563', 
-          buttonBorderColor: '#6b7280', 
-          buttonGradientStart: '#ffffff',
-          buttonGradientEnd: '#f9fafb',
-          buttonIconColor: '#1f2937',
-          buttonHighlightColor: 'rgba(255, 255, 255, 0.6)',
-          leftPodBaseColor: '#f3f4f6',
-          leftPodAccentColor: '#5A5A82',
-          leftPodDetailColor: '#424268',
-          rightButtonIconColor: '#00FFFF',
-          rightPodBaseColor: '#f9fafb',
-          rightPodAccentColor: '#5A5A82',
-          rightPodDetailColor: '#424268',
-          sdCardBodyColor: '#f3f4f6',
-          sdCardBorderColor: '#9ca3af',
-          sdCardLabelColor: '#374151',
-          sdCardLabelBorderColor: '#e5e7eb',
-          sdCardBottomColor: '#6b7280',
-        }
-      },
-      cyberpunk: {
-        name: 'Cyberpunk',
-        description: 'Cyberpunk esque effect',
-        colors: {
-          dockBaseGradientStart: '#2C2C40',
-          dockBaseGradientEnd: '#1a1a2e',
-          dockAccentColor: '#FF00FF',
-          sdCardBodyColor: '#1a1a2e',
-          sdCardBorderColor: '#00FFFF',
-          sdCardLabelColor: '#00FFFF',
-          sdCardLabelBorderColor: '#424268',
-          sdCardBottomColor: '#00FFFF',
-          leftPodBaseColor: '#33334F',
-          leftPodAccentColor: '#5A5A82',
-          leftPodDetailColor: '#424268',
-          rightPodBaseColor: '#33334F',
-          rightPodAccentColor: '#5A5A82',
-          rightPodDetailColor: '#424268',
-          buttonBorderColor: '#00FFFF',
-          buttonGradientStart: '#1a1a2e',
-          buttonGradientEnd: '#1a1a2e',
-          buttonIconColor: '#00FFFF',
-          rightButtonIconColor: '#00FFFF',
-          buttonHighlightColor: 'rgba(255, 0, 255, 0.4)',
-        }
-      },
-      dark: {
-        name: 'Dark Mode',
-        description: 'Modern dark theme',
-        colors: {
-          dockBaseGradientStart: 'rgba(10,10,10,255)',
-          dockBaseGradientEnd: 'rgba(20,20,20,255)',
-          dockAccentColor: 'rgba(51,185,234,255)',
-          sdCardBodyColor: 'rgba(15,15,15,255)',
-          sdCardBorderColor: 'rgba(51,185,234,255)',
-          sdCardLabelColor: 'rgba(25,25,25,255)',
-          sdCardLabelBorderColor: 'rgba(30,30,30,255)',
-          sdCardBottomColor: 'rgba(51,185,234,255)',
-          leftPodBaseColor: 'rgba(18,18,18,255)',
-          leftPodAccentColor: 'rgba(25,25,25,255)',
-          leftPodDetailColor: 'rgba(22,22,22,255)',
-          rightPodBaseColor: 'rgba(18,18,18,255)',
-          rightPodAccentColor: 'rgba(25,25,25,255)',
-          rightPodDetailColor: 'rgba(22,22,22,255)',
-          buttonBorderColor: 'rgba(51,185,234,255)',
-          buttonGradientStart: 'rgba(33,33,33,255)',
-          buttonGradientEnd: 'rgba(28,28,28,255)',
-          buttonIconColor: 'rgba(38,39,38,255)',
-          rightButtonIconColor: 'rgba(38,39,38,255)',
-          buttonHighlightColor: 'rgba(51,185,234,255)',
-        }
-      }
-    }
-  },
-  games: {
-    name: 'Gamer Collection',
-    description:'Some gamer type themes',
-    themes: {
-      kingdomHearts: {
-        name: 'Kingdom Hearts',
-        description: 'Kingdom Hearts franchise theme',
-        colors: {
-          dockBaseGradientStart: '#0f172a',
-          dockBaseGradientEnd: '#020617',
-          dockAccentColor: '#facc15',
-          sdCardBodyColor: '#334155',
-          sdCardBorderColor: '#facc15',
-          sdCardLabelColor: '#fefce8',
-          sdCardLabelBorderColor: '#64748b',
-          sdCardBottomColor: '#ca8a04',
-          leftPodBaseColor: '#1e293b',
-          leftPodAccentColor: '#475569',
-          leftPodDetailColor: '#334155',
-          rightPodBaseColor: '#1e293b',
-          rightPodAccentColor: '#475569',
-          rightPodDetailColor: '#334155',
-          buttonBorderColor: '#fde047',
-          buttonGradientStart: '#475569',
-          buttonGradientEnd: '#1e293b',
-          buttonIconColor: '#fde047',
-          rightButtonIconColor: '#fde047',
-          buttonHighlightColor: 'rgba(250, 204, 21, 0.3)',
-        }
-      },
-      zelda: {
-        name: 'Zelda Green',
-        description: 'Zelda Green theme',
-        colors: {
-          dockBaseGradientStart: '#14532d',
-          dockBaseGradientEnd: '#052e16',
-          dockAccentColor: '#fde047',
-          sdCardBodyColor: '#bbf7d0',
-          sdCardBorderColor: '#ca8a04',
-          sdCardLabelColor: '#14532d',
-          sdCardLabelBorderColor: '#d9f99d',
-          sdCardBottomColor: '#84cc16',
-          leftPodBaseColor: '#4d7c0f',
-          leftPodAccentColor: '#059669',
-          leftPodDetailColor: '#065F46',
-          rightPodBaseColor: '#4d7c0f',
-          rightPodAccentColor: '#059669',
-          rightPodDetailColor: '#065F46',
-          buttonBorderColor: '#ca8a04',
-          buttonGradientStart: '#fefce8',
-          buttonGradientEnd: '#fef9c3',
-          buttonIconColor: '#166534',
-          rightButtonIconColor: '#34D399',
-          buttonHighlightColor: 'rgba(254, 252, 232, 0.6)',
-        }
-      }
-    }
-  }
-};
 
 const ColorSettingRow = ({ label, value, fallback, onChange }) => {
   const resolvedValue = value ?? fallback;
@@ -540,19 +370,19 @@ const ClassicDockSettingsTab = React.memo(() => {
             <ColorSettingRow
               label="Gradient Start"
               value={localDockSettings?.dockBaseGradientStart}
-              fallback="#BDBEC2"
+              fallback={DOCK_DEFAULT.dockBaseGradientStart}
               onChange={(next) => handleColorChange('dockBaseGradientStart', next)}
             />
             <ColorSettingRow
               label="Gradient End"
               value={localDockSettings?.dockBaseGradientEnd}
-              fallback="#DADDE6"
+              fallback={DOCK_DEFAULT.dockBaseGradientEnd}
               onChange={(next) => handleColorChange('dockBaseGradientEnd', next)}
             />
             <ColorSettingRow
               label="Accent Color"
               value={localDockSettings?.dockAccentColor}
-              fallback="#33BEED"
+              fallback={DOCK_DEFAULT.dockAccentColor}
               onChange={(next) => handleColorChange('dockAccentColor', next)}
             />
           </div>
@@ -573,25 +403,25 @@ const ClassicDockSettingsTab = React.memo(() => {
             <ColorSettingRow
               label="Card Body"
               value={localDockSettings?.sdCardBodyColor}
-              fallback="#B9E1F2"
+              fallback={DOCK_DEFAULT.sdCardBodyColor}
               onChange={(next) => handleColorChange('sdCardBodyColor', next)}
             />
             <ColorSettingRow
               label="Card Border"
               value={localDockSettings?.sdCardBorderColor}
-              fallback="#33BEED"
+              fallback={DOCK_DEFAULT.sdCardBorderColor}
               onChange={(next) => handleColorChange('sdCardBorderColor', next)}
             />
             <ColorSettingRow
               label="Label Area"
               value={localDockSettings?.sdCardLabelColor}
-              fallback="white"
+              fallback={DOCK_DEFAULT.sdCardLabelColor}
               onChange={(next) => handleColorChange('sdCardLabelColor', next)}
             />
             <ColorSettingRow
               label="Bottom Section"
               value={localDockSettings?.sdCardBottomColor}
-              fallback="#31BEED"
+              fallback={DOCK_DEFAULT.sdCardBottomColor}
               onChange={(next) => handleColorChange('sdCardBottomColor', next)}
             />
           </div>
@@ -612,25 +442,25 @@ const ClassicDockSettingsTab = React.memo(() => {
             <ColorSettingRow
               label="Left Pod Base"
               value={localDockSettings?.leftPodBaseColor}
-              fallback="#D2D3DA"
+              fallback={DOCK_DEFAULT.leftPodBaseColor}
               onChange={(next) => handleColorChange('leftPodBaseColor', next)}
             />
             <ColorSettingRow
               label="Right Pod Base"
               value={localDockSettings?.rightPodBaseColor}
-              fallback="#DCDCDF"
+              fallback={DOCK_DEFAULT.rightPodBaseColor}
               onChange={(next) => handleColorChange('rightPodBaseColor', next)}
             />
             <ColorSettingRow
               label="Button Border"
               value={localDockSettings?.buttonBorderColor}
-              fallback="#22BEF3"
+              fallback={DOCK_DEFAULT.buttonBorderColor}
               onChange={(next) => handleColorChange('buttonBorderColor', next)}
             />
             <ColorSettingRow
               label="Button Icon"
               value={localDockSettings?.buttonIconColor}
-              fallback="#979796"
+              fallback={DOCK_DEFAULT.buttonIconColor}
               onChange={(next) => handleColorChange('buttonIconColor', next)}
             />
           </div>

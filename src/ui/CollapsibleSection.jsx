@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import Text from './Text';
+import {
+  CSS_COLOR_PURE_WHITE,
+  SPOTIFY_CARD_SHADOW_SOFT,
+  SPOTIFY_DEFAULT_GRADIENT,
+  CSS_SPOTIFY_PRIMARY,
+} from '../design/runtimeColorStrings.js';
+
+const HEADER_SCRIM = 'hsl(var(--color-pure-white) / 0.1)';
+const TEXT_SHADOW_SOFT = '0 2px 4px hsl(var(--color-pure-black) / 0.3)';
+const ICON_WRAP_SHADOW = '0 4px 16px hsl(var(--color-pure-black) / 0.3)';
+const DIVIDER_LINE = 'hsl(var(--color-pure-white) / 0.15)';
 
 const CollapsibleSection = ({ 
   title, 
   description, 
   icon, 
-  iconBgColor = '#ffffff',
-  gradientBg = 'linear-gradient(135deg, #1DB954 0%, #1ed760 100%)',
-  borderColor = '#1DB954',
-  shadowColor = 'rgba(29, 185, 84, 0.3)',
+  iconBgColor = CSS_COLOR_PURE_WHITE,
+  gradientBg = SPOTIFY_DEFAULT_GRADIENT,
+  borderColor = CSS_SPOTIFY_PRIMARY,
+  shadowColor = SPOTIFY_CARD_SHADOW_SOFT,
   defaultCollapsed = false,
   children,
   className = ''
@@ -33,7 +44,7 @@ const CollapsibleSection = ({
       <div 
         className="flex items-center p-6 rounded-xl cursor-pointer transition-all duration-200"
         style={{
-          background: 'rgba(255, 255, 255, 0.1)',
+          background: HEADER_SCRIM,
           backdropFilter: 'blur(10px)'
         }}
         onClick={handleToggle}
@@ -43,7 +54,7 @@ const CollapsibleSection = ({
           className="w-14 h-14 flex items-center justify-center rounded-xl mr-6"
           style={{
             backgroundColor: iconBgColor,
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
+            boxShadow: ICON_WRAP_SHADOW
           }}
         >
           {typeof icon === 'string' ? (
@@ -59,7 +70,7 @@ const CollapsibleSection = ({
             variant="h3" 
             className="mb-1 text-white font-bold"
             style={{
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+              textShadow: TEXT_SHADOW_SOFT
             }}
           >
             {title}
@@ -69,7 +80,7 @@ const CollapsibleSection = ({
             className="text-white"
             style={{
               opacity: 0.9,
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+              textShadow: '0 1px 2px hsl(var(--color-pure-black) / 0.3)'
             }}
           >
             {description}
@@ -81,7 +92,7 @@ const CollapsibleSection = ({
           className="text-white text-2xl transition-transform duration-200"
           style={{
             transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+            textShadow: TEXT_SHADOW_SOFT
           }}
         >
           ▼
@@ -92,7 +103,7 @@ const CollapsibleSection = ({
       {isExpanded && (
         <div 
           className="pt-6 mt-6 border-t"
-          style={{ borderTopColor: 'rgba(255, 255, 255, 0.15)' }}
+          style={{ borderTopColor: DIVIDER_LINE }}
         >
           {children}
         </div>

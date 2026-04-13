@@ -306,7 +306,7 @@ const GeneralSettingsTab = React.memo(() => {
                       className={`
                         px-3 py-2 rounded-md border transition-all duration-200 text-sm font-medium
                         ${ui.cursorStyle === style.value
-                          ? 'bg-[hsl(var(--wii-blue))] text-white border-[hsl(var(--wii-blue))] shadow-[0_0_8px_rgba(0,153,255,0.3)]'
+                          ? 'bg-[hsl(var(--wii-blue))] text-white border-[hsl(var(--wii-blue))] shadow-[0_0_8px_hsl(var(--wii-blue)/0.3)]'
                           : 'bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))] border-[hsl(var(--border-primary))] hover:bg-[hsl(var(--surface-secondary))] hover:border-[hsl(var(--wii-blue))]'
                         }
                       `}

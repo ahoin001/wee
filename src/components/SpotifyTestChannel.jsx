@@ -3,6 +3,7 @@ import { useSpotifyStore } from '../utils/useSpotifyStore';
 import Card from '../ui/Card';
 import Text from '../ui/Text';
 import WButton from '../ui/WButton';
+import './spotify-test-channel.css';
 
 const SpotifyTestChannel = () => {
   const { 
@@ -18,71 +19,71 @@ const SpotifyTestChannel = () => {
   } = useSpotifyStore();
 
   return (
-    <div style={{ padding: '20px', maxWidth: '600px' }}>
+    <div className="spotify-test-root">
       <Card>
-        <Text variant="h2" style={{ color: '#1db954', marginBottom: '20px' }}>
+        <Text variant="h2" className="spotify-test-title">
           🎵 Spotify Integration Test
         </Text>
         
         {error && (
-          <Text variant="body" style={{ color: '#ff4444', marginBottom: '20px' }}>
+          <Text variant="body" className="spotify-test-error">
             Error: {error}
           </Text>
         )}
         
         {!isAuthenticated ? (
           <div>
-            <Text variant="body" style={{ marginBottom: '20px' }}>
+            <Text variant="body" className="spotify-test-body">
               Connect your Spotify account to start controlling your music.
             </Text>
             <WButton 
               onClick={authenticate}
               variant="primary"
-              style={{ backgroundColor: '#1db954', borderColor: '#1db954' }}
+              className="spotify-test-btn-spotify"
             >
               Connect Spotify Account
             </WButton>
           </div>
         ) : (
           <div>
-            <Text variant="h3" style={{ marginBottom: '10px' }}>
+            <Text variant="h3" className="mb-2.5 block">
               Welcome, {currentUser?.display_name || 'User'}!
             </Text>
             
             {currentTrack ? (
-              <div style={{ marginBottom: '20px' }}>
-                <Text variant="h4" style={{ marginBottom: '10px' }}>
+              <div className="mb-5">
+                <Text variant="h4" className="mb-2.5 block">
                   Now Playing:
                 </Text>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div className="flex items-center gap-4">
                   {currentTrack.albumArt && (
                     <img 
                       src={currentTrack.albumArt} 
                       alt="Album Art" 
-                      style={{ width: '60px', height: '60px', borderRadius: '8px' }}
+                      className="spotify-test-album-art"
                     />
                   )}
                   <div>
-                    <Text variant="body" style={{ fontWeight: 'bold' }}>
+                    <Text variant="body" className="font-bold">
                       {currentTrack.title}
                     </Text>
-                    <Text variant="body" style={{ color: '#888' }}>
+                    <Text variant="body" className="spotify-test-muted">
                       {currentTrack.artist} • {currentTrack.album}
                     </Text>
                   </div>
                 </div>
               </div>
             ) : (
-              <Text variant="body" style={{ marginBottom: '20px', color: '#888' }}>
+              <Text variant="body" className="spotify-test-body spotify-test-muted">
                 No track currently playing
               </Text>
             )}
             
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div className="spotify-test-controls">
               <WButton 
                 onClick={togglePlayback}
                 variant="secondary"
-                style={{ backgroundColor: '#1db954', borderColor: '#1db954', color: 'white' }}
+                className="spotify-test-btn-spotify text-white"
               >
                 {isPlaying ? '⏸️ Pause' : '▶️ Play'}
               </WButton>
@@ -90,7 +91,7 @@ const SpotifyTestChannel = () => {
               <WButton 
                 onClick={skipToPrevious}
                 variant="secondary"
-                style={{ backgroundColor: '#333', borderColor: '#333', color: 'white' }}
+                className="spotify-test-btn-dark"
               >
                 ⏮️ Previous
               </WButton>
@@ -98,7 +99,7 @@ const SpotifyTestChannel = () => {
               <WButton 
                 onClick={skipToNext}
                 variant="secondary"
-                style={{ backgroundColor: '#333', borderColor: '#333', color: 'white' }}
+                className="spotify-test-btn-dark"
               >
                 ⏭️ Next
               </WButton>
@@ -110,4 +111,4 @@ const SpotifyTestChannel = () => {
   );
 };
 
-export default SpotifyTestChannel; 
+export default SpotifyTestChannel;

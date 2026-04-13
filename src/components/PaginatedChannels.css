@@ -180,7 +180,7 @@
 .nav-button:hover:not(:disabled) {
   background: hsl(var(--surface-secondary)) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ===== RESPONSIVE DESIGN ===== */

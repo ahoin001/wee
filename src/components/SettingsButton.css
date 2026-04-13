@@ -33,14 +33,14 @@
 .settings-menu-group-label {
   font-size: 0.95em;
   font-weight: 600;
-  color: #0099ff;
+  color: hsl(var(--wii-blue));
   padding: 6px 16px 2px 16px;
   letter-spacing: 0.02em;
   opacity: 0.85;
 }
 .settings-menu-separator {
   height: 1px;
-  background: #e0e0e6;
+  background: hsl(var(--border-primary));
   margin: 8px 0 4px 0;
   width: 90%;
   margin-left: 5%;

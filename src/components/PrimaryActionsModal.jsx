@@ -11,8 +11,18 @@ import Text from '../ui/Text';
 import Slider from '../ui/Slider';
 import WRadioGroup from '../ui/WRadioGroup';
 import { useAppLibraryState, useIconState, useUnifiedAppsState } from '../utils/useConsolidatedAppHooks';
+import {
+  CSS_STATE_ERROR,
+  DEFAULT_RIBBON_GLOW_HEX,
+} from '../design/runtimeColorStrings.js';
 
-function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [], ribbonGlowColor = '#0099ff' }) {
+const ICON_NEUTRAL_BORDER = 'hsl(var(--border-secondary))';
+const ICON_SURFACE = 'hsl(var(--surface-primary))';
+const ICON_IDLE_SHADOW = 'var(--shadow-sm)';
+const ICON_DELETE_HOVER_BG = 'hsl(var(--state-error) / 0.13)';
+const ICON_DELETE_BADGE_FILL = 'hsl(var(--state-error-light))';
+
+function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [], ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX }) {
   const [type, setType] = useState(config?.type || 'text');
   const [text, setText] = useState(config?.text || (buttonIndex === 0 ? 'Wii' : ''));
   const [icon, setIcon] = useState(config?.icon || null);
@@ -191,7 +201,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     if (useAdaptiveColor) {
       return ribbonGlowColor;
     }
-    return '#0099ff';
+    return DEFAULT_RIBBON_GLOW_HEX;
   };
 
   const getIconFilter = () => {
@@ -473,11 +483,11 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 <button
                   type="button"
                   style={{
-                    border: icon === 'palette' ? `2.5px solid ${getIconColor()}` : '1.5px solid #ccc',
+                    border: icon === 'palette' ? `2.5px solid ${getIconColor()}` : `1.5px solid ${ICON_NEUTRAL_BORDER}`,
                     borderRadius: 8,
                     padding: 8,
-                    background: icon === 'palette' ? `${getIconColor()}10` : '#fff',
-                    boxShadow: icon === 'palette' ? `0 0 0 2px ${getIconColor()}40` : '0 1px 4px #0001',
+                    background: icon === 'palette' ? `${getIconColor()}10` : ICON_SURFACE,
+                    boxShadow: icon === 'palette' ? `0 0 0 2px ${getIconColor()}40` : ICON_IDLE_SHADOW,
                     outline: 'none',
                     cursor: 'pointer',
                     transition: 'border 0.18s, box-shadow 0.18s',
@@ -507,11 +517,11 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 <button
                   type="button"
                   style={{
-                    border: icon === 'star' ? `2.5px solid ${getIconColor()}` : '1.5px solid #ccc',
+                    border: icon === 'star' ? `2.5px solid ${getIconColor()}` : `1.5px solid ${ICON_NEUTRAL_BORDER}`,
                     borderRadius: 8,
                     padding: 8,
-                    background: icon === 'star' ? `${getIconColor()}10` : '#fff',
-                    boxShadow: icon === 'star' ? `0 0 0 2px ${getIconColor()}40` : '0 1px 4px #0001',
+                    background: icon === 'star' ? `${getIconColor()}10` : ICON_SURFACE,
+                    boxShadow: icon === 'star' ? `0 0 0 2px ${getIconColor()}40` : ICON_IDLE_SHADOW,
                     outline: 'none',
                     cursor: 'pointer',
                     transition: 'border 0.18s, box-shadow 0.18s',
@@ -537,11 +547,11 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 <button
                   type="button"
                   style={{
-                    border: icon === 'heart' ? `2.5px solid ${getIconColor()}` : '1.5px solid #ccc',
+                    border: icon === 'heart' ? `2.5px solid ${getIconColor()}` : `1.5px solid ${ICON_NEUTRAL_BORDER}`,
                     borderRadius: 8,
                     padding: 8,
-                    background: icon === 'heart' ? `${getIconColor()}10` : '#fff',
-                    boxShadow: icon === 'heart' ? `0 0 0 2px ${getIconColor()}40` : '0 1px 4px #0001',
+                    background: icon === 'heart' ? `${getIconColor()}10` : ICON_SURFACE,
+                    boxShadow: icon === 'heart' ? `0 0 0 2px ${getIconColor()}40` : ICON_IDLE_SHADOW,
                     outline: 'none',
                     cursor: 'pointer',
                     transition: 'border 0.18s, box-shadow 0.18s',
@@ -589,11 +599,11 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                       <button
                         type="button"
                         style={{
-                          border: icon === i.url ? `2.5px solid ${getIconColor()}` : '1.5px solid #ccc',
+                          border: icon === i.url ? `2.5px solid ${getIconColor()}` : `1.5px solid ${ICON_NEUTRAL_BORDER}`,
                           borderRadius: 8,
                           padding: 0,
-                          background: icon === i.url ? `${getIconColor()}10` : '#fff',
-                          boxShadow: icon === i.url ? `0 0 0 2px ${getIconColor()}40` : '0 1px 4px #0001',
+                          background: icon === i.url ? `${getIconColor()}10` : ICON_SURFACE,
+                          boxShadow: icon === i.url ? `0 0 0 2px ${getIconColor()}40` : ICON_IDLE_SHADOW,
                           outline: 'none',
                           cursor: 'pointer',
                           width: 44,
@@ -625,7 +635,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                           position: 'absolute',
                           top: -8,
                           right: -8,
-                          background: '#fff',
+                          background: ICON_SURFACE,
                           border: 'none',
                           borderRadius: '50%',
                           width: 22,
@@ -634,22 +644,22 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                           fontWeight: 700,
                           cursor: 'pointer',
                           zIndex: 2,
-                          boxShadow: '0 1px 4px #0002',
+                          boxShadow: 'var(--shadow-md)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#dc3545',
+                          color: CSS_STATE_ERROR,
                           transition: 'background 0.18s, color 0.18s',
                         }}
                         onClick={() => handleDeleteSavedIcon(i.url)}
                         aria-label="Delete icon"
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,76,76,0.13)'; e.currentTarget.style.color = '#dc3545'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#dc3545'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = ICON_DELETE_HOVER_BG; e.currentTarget.style.color = CSS_STATE_ERROR; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = ICON_SURFACE; e.currentTarget.style.color = CSS_STATE_ERROR; }}
                       >
                         <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="10" cy="10" r="10" fill="#ffeaea"/>
-                          <path d="M7.5 10.5L10 8m0 0l2.5 2.5M10 8v4" stroke="#dc3545" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <rect x="6.5" y="6.5" width="7" height="7" rx="1.5" stroke="#dc3545" strokeWidth="1.2"/>
+                          <circle cx="10" cy="10" r="10" fill={ICON_DELETE_BADGE_FILL}/>
+                          <path d="M7.5 10.5L10 8m0 0l2.5 2.5M10 8v4" stroke={CSS_STATE_ERROR} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <rect x="6.5" y="6.5" width="7" height="7" rx="1.5" stroke={CSS_STATE_ERROR} strokeWidth="1.2"/>
                         </svg>
                       </button>
                     </div>

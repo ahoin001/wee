@@ -2,29 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import './ClassicWiiDock.css';
 import DockParticleSystem from './DockParticleSystem';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
-
-const DEFAULT_DOCK_COLORS = {
-  dockBaseGradientStart: '#BDBEC2',
-  dockBaseGradientEnd: '#DADDE6',
-  dockAccentColor: '#33BEED',
-  sdCardBodyColor: '#B9E1F2',
-  sdCardBorderColor: '#33BEED',
-  sdCardLabelColor: 'white',
-  sdCardLabelBorderColor: '#F4F0EE',
-  sdCardBottomColor: '#31BEED',
-  leftPodBaseColor: '#D2D3DA',
-  leftPodAccentColor: '#B6B6BB',
-  leftPodDetailColor: '#D7D8DA',
-  rightPodBaseColor: '#DCDCDF',
-  rightPodAccentColor: '#E4E4E4',
-  rightPodDetailColor: '#B6B6BB',
-  buttonBorderColor: '#22BEF3',
-  buttonGradientStart: '#E0DCDC',
-  buttonGradientEnd: '#CBCBCB',
-  buttonIconColor: '#979796',
-  rightButtonIconColor: '#A4A4A4',
-  buttonHighlightColor: '#E4E4E4',
-};
+import { CLASSIC_DOCK_DEFAULT_COLORS as DEFAULT_DOCK_COLORS } from '../design/classicDockThemeDefaults.js';
 
 const WiiDock = ({ 
   dockSettings = {}, 

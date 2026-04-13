@@ -45,7 +45,7 @@ const ImageModal = ({ isOpen, onClose, imageUrl, title }) => {
               maxHeight: '70vh',
               objectFit: 'contain',
               borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+              boxShadow: 'var(--shadow-lg)'
             }}
           />
         </div>

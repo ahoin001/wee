@@ -163,12 +163,12 @@ const MonitorSelectionModal = ({ isOpen, onClose }) => {
                       {getDisplayName(display)}
                     </span>
                     {display.primary && (
-                      <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--state-success))] text-[hsl(var(--text-inverse))]">
+                      <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--state-success))] text-[hsl(var(--text-on-accent))]">
                         Primary
                       </span>
                     )}
                     {currentDisplay?.id === display.id && (
-                      <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--wii-blue))] text-[hsl(var(--text-inverse))]">
+                      <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[hsl(var(--wii-blue))] text-[hsl(var(--text-on-accent))]">
                         Current
                       </span>
                     )}

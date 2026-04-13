@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useSpotifyState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { registerSpotifyGradientSave } from '../utils/presets/spotifyLookRegistry';
+import { CANVAS_FILL_WHITE_80 } from '../design/runtimeColorStrings.js';
 
 const SpotifyLiveGradientWallpaper = () => {
   const { spotify } = useSpotifyState();
@@ -172,7 +173,7 @@ const SpotifyLiveGradientWallpaper = () => {
     
     // Simplified debug text
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = CANVAS_FILL_WHITE_80;
     ctx.font = '20px Arial';
     // ctx.fillText(`Live Gradient - ${style} | Level: ${animationLevel} | Intensity: ${Math.round(intensity * 100)}%`, 50, 100);
     

@@ -1,14 +1,50 @@
-/* System Info Widget - Modern Design */
+/* System Info Widget — glass shell; tokens from design-system.css */
 .system-info-widget {
+  --si-glass: hsl(var(--color-pure-white) / 0.1);
+  --si-glass-strong: hsl(var(--color-pure-white) / 0.2);
+  --si-glass-border: hsl(var(--color-pure-white) / 0.2);
+  --si-text: hsl(var(--text-on-accent));
+  --si-text-muted: hsl(var(--color-pure-white) / 0.8);
+  --si-text-soft: hsl(var(--color-pure-white) / 0.6);
+  --si-fill-default: linear-gradient(
+    90deg,
+    hsl(142 71% 65%) 0%,
+    hsl(var(--state-success)) 100%
+  );
+  --si-fill-cpu: linear-gradient(
+    90deg,
+    hsl(var(--state-error-hover)) 0%,
+    hsl(var(--state-error)) 100%
+  );
+  --si-fill-memory: linear-gradient(
+    90deg,
+    hsl(43 96% 70%) 0%,
+    hsl(var(--state-warning)) 100%
+  );
+  --si-fill-gpu: linear-gradient(
+    90deg,
+    hsl(258 90% 78%) 0%,
+    hsl(var(--palette-purple)) 100%
+  );
+  --si-fill-storage: linear-gradient(
+    90deg,
+    hsl(213 94% 75%) 0%,
+    hsl(var(--link)) 100%
+  );
+
   position: fixed;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--widget-system-info-start)) 0%,
+    hsl(var(--widget-system-info-end)) 100%
+  );
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--si-glass-border);
   overflow: hidden;
   z-index: 1000;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-ui);
   min-width: 320px;
   min-height: 280px;
   max-width: 600px;
@@ -24,9 +60,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--si-glass);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--si-glass);
   cursor: grab;
 }
 
@@ -46,7 +82,7 @@
 }
 
 .header-title {
-  color: #ffffff;
+  color: var(--si-text);
   font-weight: 600;
   font-size: 16px;
   margin: 0;
@@ -58,21 +94,23 @@
   gap: 8px;
 }
 
-.refresh-btn, .close-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+.refresh-btn,
+.close-btn {
+  background: var(--si-glass);
+  border: 1px solid var(--si-glass-border);
+  border-radius: var(--radius-sm);
   padding: 6px 10px;
-  color: #ffffff;
+  color: var(--si-text);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
 }
 
-.refresh-btn:hover, .close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+.refresh-btn:hover,
+.close-btn:hover {
+  background: var(--si-glass-strong);
+  border-color: hsl(var(--color-pure-white) / 0.3);
   transform: scale(1.05);
 }
 
@@ -97,7 +135,7 @@
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: #ffffff;
+  color: var(--si-text);
 }
 
 .loading-spinner {
@@ -106,12 +144,16 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--si-text-muted);
   font-size: 14px;
 }
 
@@ -124,7 +166,7 @@
   height: 100%;
   gap: 16px;
   text-align: center;
-  color: #ffffff;
+  color: var(--si-text);
 }
 
 .error-icon {
@@ -133,17 +175,17 @@
 }
 
 .error-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--si-text-muted);
   font-size: 14px;
   margin: 0;
 }
 
 .retry-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  background: var(--si-glass-strong);
+  border: 1px solid hsl(var(--color-pure-white) / 0.3);
+  border-radius: var(--radius-sm);
   padding: 8px 16px;
-  color: #ffffff;
+  color: var(--si-text);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -151,7 +193,7 @@
 }
 
 .retry-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: hsl(var(--color-pure-white) / 0.3);
   transform: scale(1.05);
 }
 
@@ -165,20 +207,20 @@
 
 /* Metric Cards */
 .metric-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--si-glass);
   backdrop-filter: blur(10px);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--si-glass);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .metric-card:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: hsl(var(--color-pure-white) / 0.15);
+  border-color: var(--si-glass-border);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .metric-card.clickable-item {
@@ -186,8 +228,8 @@
 }
 
 .metric-card.clickable-item:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--si-glass-strong);
+  border-color: hsl(var(--color-pure-white) / 0.3);
 }
 
 .metric-header {
@@ -203,7 +245,7 @@
 }
 
 .metric-title {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--si-text-muted);
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
@@ -219,7 +261,7 @@
 }
 
 .metric-number {
-  color: #ffffff;
+  color: var(--si-text);
   font-size: 24px;
   font-weight: 700;
   margin: 0;
@@ -227,7 +269,7 @@
 }
 
 .metric-unit {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--si-text-soft);
   font-size: 12px;
   font-weight: 500;
   margin: 0;
@@ -243,40 +285,40 @@
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--si-glass);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+  background: var(--si-fill-default);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 /* CPU Card - Red gradient for high usage */
 .cpu-card .progress-fill {
-  background: linear-gradient(90deg, #f87171 0%, #ef4444 100%);
+  background: var(--si-fill-cpu);
 }
 
 /* Memory Card - Orange gradient for medium usage */
 .memory-card .progress-fill {
-  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+  background: var(--si-fill-memory);
 }
 
 /* GPU Card - Purple gradient */
 .gpu-card .progress-fill {
-  background: linear-gradient(90deg, #a78bfa 0%, #8b5cf6 100%);
+  background: var(--si-fill-gpu);
 }
 
 /* Storage Card - Blue gradient */
 .storage-card .progress-fill {
-  background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+  background: var(--si-fill-storage);
 }
 
 .progress-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--si-text-muted);
   font-size: 11px;
   font-weight: 600;
   margin: 0;
@@ -286,11 +328,11 @@
 
 /* Battery Card */
 .battery-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--si-glass);
   backdrop-filter: blur(10px);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--si-glass);
   grid-column: 1 / -1;
 }
 
@@ -307,7 +349,7 @@
 }
 
 .battery-title {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--si-text-muted);
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
@@ -322,7 +364,7 @@
 }
 
 .battery-level {
-  color: #ffffff;
+  color: var(--si-text);
   font-size: 28px;
   font-weight: 700;
   margin: 0;
@@ -337,14 +379,14 @@
 }
 
 .battery-status-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--si-text-muted);
   font-size: 12px;
   font-weight: 500;
   margin: 0;
 }
 
 .battery-time {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--si-text-soft);
   font-size: 11px;
   margin: 0;
 }
@@ -352,8 +394,8 @@
 /* Widget Footer */
 .widget-footer {
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: hsl(var(--color-pure-white) / 0.05);
+  border-top: 1px solid var(--si-glass);
 }
 
 .interval-control {
@@ -363,7 +405,7 @@
 }
 
 .interval-label {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--si-text-muted);
   font-size: 12px;
   font-weight: 500;
   margin: 0;
@@ -375,7 +417,7 @@
 }
 
 .interval-value {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--si-text-muted);
   font-size: 12px;
   font-weight: 600;
   margin: 0;
@@ -389,20 +431,20 @@
     min-width: 280px;
     min-height: 240px;
   }
-  
+
   .metrics-grid {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 12px;
   }
-  
+
   .metric-card {
     padding: 12px;
   }
-  
+
   .metric-number {
     font-size: 20px;
   }
-  
+
   .battery-level {
     font-size: 24px;
   }
@@ -414,15 +456,15 @@
 }
 
 .widget-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--si-glass);
   border-radius: 3px;
 }
 
 .widget-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
+  background: hsl(var(--color-pure-white) / 0.3);
   border-radius: 3px;
 }
 
 .widget-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-} 
+  background: hsl(var(--color-pure-white) / 0.5);
+}

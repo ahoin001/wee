@@ -10,6 +10,18 @@
 import React, { useCallback, useState } from "react";
 import { tv } from "tailwind-variants";
 
+/** Outlined / neutral actions — shared by `secondary` and `secondary-strong` (high label + border contrast). */
+const variantSecondarySurface = [
+  "text-text-primary border-2 border-border-secondary",
+  "bg-surface-secondary",
+  "shadow-sm backdrop-blur-[6px]",
+  "hover:bg-state-hover hover:border-wii-blue",
+  "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
+  "active:scale-[0.98]",
+  "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
+  "disabled:bg-state-disabled disabled:border-state-disabled disabled:opacity-60",
+];
+
 const buttonVariants = tv({
   base: [
     "inline-flex items-center justify-center",
@@ -18,30 +30,24 @@ const buttonVariants = tv({
     "font-medium",
     "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
     "disabled:cursor-not-allowed disabled:opacity-50",
-    "border-[1.5px] border-solid rounded-[14px]",
+    "border-[1.5px] border-solid rounded-[var(--radius-md)]",
   ],
   variants: {
     variant: {
       primary: [
-        "text-text-inverse border-[hsl(var(--border-accent))]",
+        /* Use --text-on-accent, not --text-inverse (inverse flips dark in .dark-mode and disappears on blue). */
+        "text-text-on-accent border-[hsl(var(--border-accent))]",
         "bg-[linear-gradient(180deg,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0.04)_100%),hsl(var(--wii-blue))]",
-        "shadow-[var(--shadow-soft)]",
+        "shadow-[var(--shadow-soft)] [text-shadow:0_1px_0_rgba(0,0,0,0.18)]",
         "hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.08)_100%),hsl(var(--wii-blue-hover))]",
         "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
         "active:scale-[0.98]",
         "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
         "disabled:bg-state-disabled disabled:border-state-disabled",
       ],
-      secondary: [
-        "text-text-primary border-border-primary",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.6)_0%,rgba(255,255,255,0.25)_100%),hsl(var(--surface-secondary))]",
-        "backdrop-blur-[6px] shadow-[var(--shadow-soft)]",
-        "hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.75)_0%,rgba(255,255,255,0.32)_100%),hsl(var(--state-hover))] hover:border-wii-blue",
-        "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
-        "active:scale-[0.98]",
-        "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
-        "disabled:bg-state-disabled disabled:border-state-disabled",
-      ],
+      secondary: variantSecondarySurface,
+      /** Same as `secondary` (alias for existing call sites). */
+      "secondary-strong": variantSecondarySurface,
       tertiary: [
         "bg-transparent border-transparent text-text-primary",
         "shadow-none",
@@ -51,7 +57,7 @@ const buttonVariants = tv({
         "disabled:bg-transparent disabled:border-transparent",
       ],
       "danger-primary": [
-        "bg-state-error border-state-error text-text-inverse",
+        "bg-state-error border-state-error text-text-on-accent [text-shadow:0_1px_0_rgba(0,0,0,0.2)]",
         "shadow-card",
         "hover:bg-state-error-hover hover:border-state-error-hover",
         "hover:transform hover:-translate-y-[1px] hover:scale-[1.03]",
@@ -59,8 +65,8 @@ const buttonVariants = tv({
         "disabled:bg-state-disabled disabled:border-state-disabled",
       ],
       "danger-secondary": [
-        "bg-surface-secondary border-state-error text-state-error",
-        "shadow-[var(--shadow-soft)]",
+        "bg-surface-secondary border-2 border-state-error text-state-error",
+        "shadow-sm",
         "hover:bg-state-error-light hover:border-state-error",
         "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
         "active:scale-[0.98]",
@@ -81,7 +87,7 @@ const buttonVariants = tv({
     },
     rounded: {
       true: "rounded-[var(--radius-pill)]",
-      false: "rounded-[14px]",
+      false: "rounded-[var(--radius-md)]",
     },
     fullWidth: {
       true: "w-full",
@@ -138,7 +144,7 @@ const WButton = React.memo(({
       return {
         boxShadow: "var(--shadow-soft-hover), 0 0 18px rgb(0 153 255 / 0.24)",
       };
-    } else if (variant === "secondary") {
+    } else if (variant === "secondary" || variant === "secondary-strong") {
       return {
         boxShadow: "var(--shadow-soft-hover)",
       };
@@ -152,7 +158,7 @@ const WButton = React.memo(({
       };
     } else if (variant === "danger-secondary") {
       return {
-        boxShadow: "var(--shadow-soft-hover)",
+        boxShadow: "var(--shadow-soft-hover), 0 0 0 1px hsl(var(--state-error) / 0.12)",
       };
     }
     return {};

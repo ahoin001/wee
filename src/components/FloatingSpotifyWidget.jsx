@@ -7,14 +7,23 @@ import { usePlaybackSeek } from '../hooks/usePlaybackSeek';
 import WToggle from '../ui/WToggle';
 import Slider from '../ui/Slider';
 import './FloatingSpotifyWidget.css';
-
-const DEFAULT_DYNAMIC_COLORS = {
-  primary: '#1db954',
-  secondary: '#1ed760',
-  accent: '#ffffff',
-  text: '#ffffff',
-  textSecondary: '#e0e0e0'
-};
+import { extractColorsFromAlbumArt } from '../utils/extractColorsFromAlbumArt';
+import {
+  SPOTIFY_WIDGET_DEFAULT_DYNAMIC_COLORS as DEFAULT_DYNAMIC_COLORS,
+  getResolvedSpotifyWidgetSettings,
+} from '../utils/spotifyWidgetSettings';
+import {
+  openSettingsToTab,
+  openSpotifyWebApp,
+  SETTINGS_TAB_ID,
+} from '../utils/settingsNavigation';
+import {
+  CSS_COLOR_PURE_WHITE,
+  CSS_COLOR_PURE_WHITE_90,
+  CSS_SPOTIFY_PRIMARY,
+  CSS_SPOTIFY_SECONDARY,
+  SPOTIFY_DEFAULT_GRADIENT,
+} from '../design/runtimeColorStrings';
 
 const FloatingSpotifyWidget = ({ isVisible }) => {
   const { spotify, spotifyManager, setSpotifyState } = useSpotifyState();
@@ -39,20 +48,7 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
     });
   }, [setFloatingWidgetsState, spotifyWidget]);
 
-  // Get settings with fallbacks
-  const getSpotifySettings = () => {
-    return {
-      dynamicColors: spotify.settings?.dynamicColors ?? true,
-      useBlurredBackground: spotify.settings?.useBlurredBackground ?? false,
-      blurAmount: spotify.settings?.blurAmount ?? 30,
-      autoShowWidget: spotify.settings?.autoShowWidget ?? false,
-      visualizerType: spotify.settings?.visualizerType ?? 'bars',
-      trackInfoPanelOpacity: spotify.settings?.trackInfoPanelOpacity ?? 0.6,
-      trackInfoPanelBlur: spotify.settings?.trackInfoPanelBlur ?? 10
-    };
-  };
-
-  const spotifySettings = getSpotifySettings();
+  const spotifySettings = getResolvedSpotifyWidgetSettings(spotify);
 
   const [playlists, setPlaylists] = useState([]);
   const [savedTracks, setSavedTracks] = useState([]);
@@ -93,6 +89,10 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
     onCommitSeek: handleSeekCommit,
   });
 
+  const handleOpenSpotifyIntegrationSettings = useCallback(() => {
+    openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);
+  }, []);
+
   const allowEnhancedVisualizerEffects = isAppActive && !lowPowerMode;
   const visualizerFrameThrottleMs = lowPowerMode ? 120 : 48;
   const effectiveBlurAmount = allowEnhancedVisualizerEffects
@@ -102,132 +102,11 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
     ? (spotifySettings.trackInfoPanelBlur || 0)
     : Math.min(spotifySettings.trackInfoPanelBlur || 0, 6);
 
-  // Extract colors from album art using Canvas API with improved contrast
-  const extractColorsFromImage = (imageUrl) => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          // Set canvas size to a reasonable size for processing
-          const maxSize = 100;
-          const scale = Math.min(maxSize / img.width, maxSize / img.height);
-          canvas.width = img.width * scale;
-          canvas.height = img.height * scale;
-          
-          // Draw the image on canvas
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          // Get image data
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
-          
-          // Sample colors from the image with better color detection
-          const colors = [];
-          const step = 5; // Sample more frequently for better color detection
-          
-          for (let i = 0; i < data.length; i += step * 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-            
-            // Only consider non-transparent pixels with sufficient opacity
-            // and avoid very dark or very light pixels for better color representation
-            if (a > 128 && (r + g + b) > 100 && (r + g + b) < 700) {
-              colors.push({ r, g, b });
-            }
-          }
-          
-          if (colors.length > 0) {
-            // Calculate average color
-            const avgColor = colors.reduce((acc, color) => {
-              acc.r += color.r;
-              acc.g += color.g;
-              acc.b += color.b;
-              return acc;
-            }, { r: 0, g: 0, b: 0 });
-            
-            avgColor.r = Math.round(avgColor.r / colors.length);
-            avgColor.g = Math.round(avgColor.g / colors.length);
-            avgColor.b = Math.round(avgColor.b / colors.length);
-            
-            // Boost color saturation for more vibrant appearance
-            const boost = 1.3;
-            avgColor.r = Math.min(255, Math.round(avgColor.r * boost));
-            avgColor.g = Math.min(255, Math.round(avgColor.g * boost));
-            avgColor.b = Math.min(255, Math.round(avgColor.b * boost));
-            
-            // Create Apple Music-style color palette
-            const primaryColor = `rgb(${avgColor.r}, ${avgColor.g}, ${avgColor.b})`;
-            const secondaryColor = `rgb(${Math.max(0, avgColor.r - 40)}, ${Math.max(0, avgColor.g - 40)}, ${Math.max(0, avgColor.b - 40)})`;
-            const accentColor = `rgb(${Math.min(255, avgColor.r + 50)}, ${Math.min(255, avgColor.g + 50)}, ${Math.min(255, avgColor.b + 50)})`;
-            
-            // Improved text color calculation for better contrast
-            const brightness = (avgColor.r * 299 + avgColor.g * 587 + avgColor.b * 114) / 1000;
-            
-            // Use more contrasting colors for text
-            let textColor, textSecondaryColor;
-            if (brightness > 128) {
-              // Light background - use dark text
-              textColor = '#000000';
-              textSecondaryColor = '#333333';
-            } else {
-              // Dark background - use light text
-              textColor = '#ffffff';
-              textSecondaryColor = '#e0e0e0';
-            }
-
-            // Create a vibrant gradient using the extracted color
-            const gradient = `linear-gradient(135deg, 
-              rgba(${avgColor.r}, ${avgColor.g}, ${avgColor.b}, 1) 0%, 
-              rgba(${Math.max(0, avgColor.r - 60)}, ${Math.max(0, avgColor.g - 60)}, ${Math.max(0, avgColor.b - 60)}, 0.95) 30%,
-              rgba(${Math.max(0, avgColor.r - 120)}, ${Math.max(0, avgColor.g - 120)}, ${Math.max(0, avgColor.b - 120)}, 0.9) 70%,
-              rgba(${Math.max(0, avgColor.r - 180)}, ${Math.max(0, avgColor.g - 180)}, ${Math.max(0, avgColor.b - 180)}, 0.85) 100%)`;
-            
-            // Create blurred background style
-            const blurredBackground = `linear-gradient(135deg, 
-              rgba(${avgColor.r}, ${avgColor.g}, ${avgColor.b}, 0.8) 0%, 
-              rgba(${Math.max(0, avgColor.r - 40)}, ${Math.max(0, avgColor.g - 40)}, ${Math.max(0, avgColor.b - 40)}, 0.6) 100%)`;
-            
-            resolve({
-              gradient,
-              blurredBackground,
-              colors: {
-                primary: primaryColor,
-                secondary: secondaryColor,
-                accent: accentColor,
-                text: textColor,
-                textSecondary: textSecondaryColor
-              }
-            });
-          } else {
-            resolve(null);
-          }
-        } catch (error) {
-          console.error('[COLOR EXTRACTION] Failed to extract colors:', error);
-          resolve(null);
-        }
-      };
-      
-      img.onerror = (error) => {
-        console.error('[COLOR EXTRACTION] Failed to load image:', error);
-        resolve(null);
-      };
-      
-      img.src = imageUrl;
-    });
-  };
-
   // Update dynamic background when track changes
   const albumArtUrl = currentTrack?.album?.images?.[0]?.url;
   useEffect(() => {
     if (albumArtUrl && spotifySettings.dynamicColors) {
-      extractColorsFromImage(albumArtUrl).then(result => {
+      extractColorsFromAlbumArt(albumArtUrl).then(result => {
         if (result) {
           // Set local state for widget - only show dynamic background on player page
           if (currentPage === 'player') {
@@ -466,14 +345,14 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
     
     // Fallback to default colors
     if (currentPage === 'browse' || currentPage === 'settings') {
-      return 'linear-gradient(135deg, #1db954 0%, #1ed760 100%)';
+      return SPOTIFY_DEFAULT_GRADIENT;
     }
     
     if (spotifySettings.useBlurredBackground && currentTrack?.album?.images?.[0]?.url) {
       return `url(${currentTrack.album.images[0].url}) center/cover`;
     }
     
-    return dynamicBackground || 'linear-gradient(135deg, #1db954 0%, #1ed760 100%)';
+    return dynamicBackground || SPOTIFY_DEFAULT_GRADIENT;
   };
 
   // Settings handlers
@@ -514,13 +393,13 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
         width: `${size.width}px`,
         height: `${size.height}px`,
         background: getBackground(),
-        '--glow-primary': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? dynamicColors.primary : '#1db954',
-        '--glow-secondary': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? dynamicColors.secondary : '#1ed760',
+        '--glow-primary': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? dynamicColors.primary : CSS_SPOTIFY_PRIMARY,
+        '--glow-secondary': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? dynamicColors.secondary : CSS_SPOTIFY_SECONDARY,
         '--glow-opacity': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? '0.4' : '0.3',
         '--glow-brightness': spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url && currentPage === 'player' ? '1.1' : '1',
-        '--spotify-dyn-primary': dynamicColors.primary || '#1db954',
-        '--spotify-dyn-accent': dynamicColors.accent || '#ffffff',
-        '--spotify-dyn-text': dynamicColors.text || '#ffffff',
+        '--spotify-dyn-primary': dynamicColors.primary || CSS_SPOTIFY_PRIMARY,
+        '--spotify-dyn-accent': dynamicColors.accent || CSS_COLOR_PURE_WHITE,
+        '--spotify-dyn-text': dynamicColors.text || CSS_COLOR_PURE_WHITE,
         '--spotify-track-info-opacity': spotifySettings.trackInfoPanelOpacity,
         '--spotify-track-info-blur': `${effectiveTrackInfoBlur}px`
       }}
@@ -565,7 +444,7 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                   borderRadius: '50%',
                   transform: `scale(${0.3 + height * 0.7}) rotate(${height * 360}deg)`,
                   boxShadow: allowEnhancedVisualizerEffects && height > 0.3 ? 
-                    `0 0 ${height * 15}px ${height * 8}px ${dynamicColors.accent || '#ffffff'}` : 'none',
+                    `0 0 ${height * 15}px ${height * 8}px ${dynamicColors.accent || CSS_COLOR_PURE_WHITE}` : 'none',
                   filter: allowEnhancedVisualizerEffects && height > 0.6 ? 'blur(0.3px)' : 'none',
                   animation: allowEnhancedVisualizerEffects && height > 0.5 ? 'pulse 0.5s ease-in-out infinite alternate' : 'none'
                 };
@@ -579,7 +458,7 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                   transform: `scaleY(${0.2 + height * 0.8}) scaleX(${0.8 + height * 0.4})`,
                   filter: allowEnhancedVisualizerEffects && height > 0.5 ? `blur(${height * 0.8}px)` : 'none',
                   boxShadow: allowEnhancedVisualizerEffects && height > 0.4 ? 
-                    `0 0 ${height * 12}px ${height * 4}px ${dynamicColors.accent || '#ffffff'}` : 'none',
+                    `0 0 ${height * 12}px ${height * 4}px ${dynamicColors.accent || CSS_COLOR_PURE_WHITE}` : 'none',
                   animation: allowEnhancedVisualizerEffects && height > 0.6 ? 'wave 0.8s ease-in-out infinite' : 'none'
                 };
                 break;
@@ -592,10 +471,10 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                   borderRadius: '50%',
                   transform: `scale(${0.2 + height * 0.8}) rotate(${height * 720 + index * 45}deg)`,
                   boxShadow: allowEnhancedVisualizerEffects && height > 0.2 ? 
-                    `0 0 ${height * 20}px ${height * 6}px ${dynamicColors.accent || '#ffffff'}` : 'none',
+                    `0 0 ${height * 20}px ${height * 6}px ${dynamicColors.accent || CSS_COLOR_PURE_WHITE}` : 'none',
                   filter: allowEnhancedVisualizerEffects && height > 0.5 ? 'blur(0.2px)' : 'none',
                   animation: allowEnhancedVisualizerEffects && height > 0.4 ? `sparkle ${0.4 + height * 0.6}s ease-in-out infinite` : 'none',
-                  background: `radial-gradient(circle, ${dynamicColors.accent || '#ffffff'} 0%, transparent 70%)`
+                  background: `radial-gradient(circle, ${dynamicColors.accent || CSS_COLOR_PURE_WHITE} 0%, transparent 70%)`
                 };
                 break;
               }
@@ -607,14 +486,14 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                   borderRadius: `${barWidth / 2}px`,
                   transform: `scaleY(${0.1 + height * 0.9}) scaleX(${0.9 + height * 0.2})`,
                   boxShadow: allowEnhancedVisualizerEffects && height > 0.3 ? 
-                    `0 0 ${height * 12}px ${height * 3}px ${dynamicColors.accent || '#ffffff'}` : 'none',
+                    `0 0 ${height * 12}px ${height * 3}px ${dynamicColors.accent || CSS_COLOR_PURE_WHITE}` : 'none',
                   filter: allowEnhancedVisualizerEffects && height > 0.7 ? 'blur(0.2px)' : 'none',
                   animation: allowEnhancedVisualizerEffects && height > 0.5 ? `barPulse ${0.3 + height * 0.4}s ease-in-out infinite alternate` : 'none',
                   background: height > 0.6 ? 
-                    `linear-gradient(180deg, ${dynamicColors.accent || '#ffffff'} 0%, ${dynamicColors.primary || '#1db954'} 100%)` :
+                    `linear-gradient(180deg, ${dynamicColors.accent || CSS_COLOR_PURE_WHITE} 0%, ${dynamicColors.primary || CSS_SPOTIFY_PRIMARY} 100%)` :
                     (spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url 
                       ? dynamicColors.accent 
-                      : 'rgba(255, 255, 255, 0.9)')
+                      : CSS_COLOR_PURE_WHITE_90)
                 };
                 break;
               }
@@ -644,16 +523,54 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
 
         {(!isConnected || spotifyError) && (
           <div
-            className="floating-widget-status-banner"
+            className="floating-widget-status-banner floating-widget-status-banner--with-actions"
             role="status"
             aria-live="polite"
           >
-            {!isConnected && (
-              <span>Spotify is not connected. Connect in Settings → API &amp; integrations.</span>
-            )}
-            {isConnected && spotifyError && (
-              <span title={spotifyError}>Playback issue: {spotifyError}</span>
-            )}
+            <div className="floating-widget-status-banner__row">
+              <div className="floating-widget-status-banner__text">
+                {!isConnected && (
+                  <span>
+                    Spotify isn&apos;t connected. Connect your account under Settings → API &amp; Widgets to
+                    control playback.
+                  </span>
+                )}
+                {isConnected && spotifyError && (
+                  <span title={spotifyError}>Playback issue: {spotifyError}</span>
+                )}
+              </div>
+              <div className="floating-widget-status-banner__actions">
+                {!isConnected && (
+                  <button
+                    type="button"
+                    className="floating-widget-status-cta"
+                    onClick={handleOpenSpotifyIntegrationSettings}
+                  >
+                    Connect in Settings
+                  </button>
+                )}
+                {isConnected && spotifyError && (
+                  <>
+                    <button
+                      type="button"
+                      className="floating-widget-status-cta"
+                      onClick={handleOpenSpotifyIntegrationSettings}
+                    >
+                      Open API &amp; Widgets
+                    </button>
+                    {/no active device/i.test(String(spotifyError)) ? (
+                      <button
+                        type="button"
+                        className="floating-widget-status-cta floating-widget-status-cta--secondary"
+                        onClick={openSpotifyWebApp}
+                      >
+                        Open Spotify
+                      </button>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
         {isConnected && spotifyLoading && !currentTrack && (

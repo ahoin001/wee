@@ -493,8 +493,8 @@ const KenBurnsImage = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#f5f5f5',
-            color: '#666',
+            backgroundColor: 'hsl(var(--surface-secondary))',
+            color: 'hsl(var(--text-tertiary))',
             fontSize: '14px',
             borderRadius,
             zIndex: 10

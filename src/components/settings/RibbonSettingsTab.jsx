@@ -4,6 +4,10 @@ import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import {
+  DEFAULT_RIBBON_GLOW_HEX,
+  DEFAULT_RIBBON_SURFACE_HEX,
+} from '../../design/runtimeColorStrings.js';
 import '../surfaceStyles.css';
 
 const RibbonSettingsTab = React.memo(() => {
@@ -75,12 +79,12 @@ const RibbonSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={ribbon?.ribbonColor ?? '#e0e6ef'}
+                value={ribbon?.ribbonColor ?? DEFAULT_RIBBON_SURFACE_HEX}
                 onChange={handleRibbonColorChange}
                 className="surface-color-input"
               />
               <Text variant="caption" className="surface-caption !mt-0">
-                {(ribbon?.ribbonColor ?? '#e0e6ef').toUpperCase()}
+                {(ribbon?.ribbonColor ?? DEFAULT_RIBBON_SURFACE_HEX).toUpperCase()}
               </Text>
             </div>
             
@@ -90,12 +94,12 @@ const RibbonSettingsTab = React.memo(() => {
               </Text>
               <input
                 type="color"
-                value={ribbon?.ribbonGlowColor ?? '#0099ff'}
+                value={ribbon?.ribbonGlowColor ?? DEFAULT_RIBBON_GLOW_HEX}
                 onChange={handleRibbonGlowColorChange}
                 className="surface-color-input"
               />
               <Text variant="caption" className="surface-caption !mt-0">
-                {(ribbon?.ribbonGlowColor ?? '#0099ff').toUpperCase()}
+                {(ribbon?.ribbonGlowColor ?? DEFAULT_RIBBON_GLOW_HEX).toUpperCase()}
               </Text>
             </div>
             

@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import LaunchErrorToast from '../components/LaunchErrorToast';
 import { buildLaunchErrorReport, getLaunchErrorPresentation } from '../utils/launchErrorMessages';
+import { openSettingsToTab } from '../utils/settingsNavigation';
 
 const LaunchFeedbackContext = createContext(null);
 
@@ -29,7 +30,7 @@ export function LaunchFeedbackProvider({ children }) {
     ({ technicalError, launchType, path, source = 'app' }) => {
       const refId = `WEE-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
       const at = new Date().toISOString();
-      const { headline, hint } = getLaunchErrorPresentation({
+      const { headline, hint, settingsTabId } = getLaunchErrorPresentation({
         technicalError,
         launchType,
         path,
@@ -52,6 +53,7 @@ export function LaunchFeedbackProvider({ children }) {
         reportText,
         launchType,
         path,
+        settingsTabId,
       });
 
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -78,6 +80,11 @@ export function LaunchFeedbackProvider({ children }) {
           technicalError={toast.technicalError}
           reportText={toast.reportText}
           referenceId={toast.refId}
+          settingsTabId={toast.settingsTabId}
+          onOpenSettingsTab={(tabId) => {
+            openSettingsToTab(tabId);
+            dismiss();
+          }}
           onDismiss={dismiss}
         />
       ) : null}
