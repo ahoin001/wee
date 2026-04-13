@@ -6,10 +6,14 @@
   --font-ui: "Nunito", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-display: "Nunito", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
-  /* Light Mode Colors */
+  /* Light Mode Colors — brand primary (Wii blue default; overridden at runtime from Settings → Ribbon → Accent / glow color) */
   --wii-blue: 195 75% 60%;
   --wii-blue-hover: 195 75% 55%;
   --wii-blue-active: 195 75% 50%;
+  /** Semantic aliases for components / Tailwind `primary` — always mirror `--wii-blue*` */
+  --primary: var(--wii-blue);
+  --primary-hover: var(--wii-blue-hover);
+  --primary-active: var(--wii-blue-active);
   
   /* Light Mode Backgrounds */
   --bg-primary: 0 0% 100%;
@@ -83,6 +87,9 @@
   --link-hover: 234 89% 58%;
   --shadow-card: 0 2px 8px rgb(0 0 0 / 0.06);
   --shadow-modal: 0 20px 40px rgb(0 0 0 / 0.3);
+
+  /* Space between scrollable content and scrollbar thumb */
+  --scroll-edge-inset: 12px;
 
   /* Scrollbar tokens */
   --scrollbar-size: 12px;
@@ -426,6 +433,8 @@
 *::-webkit-scrollbar-track {
   background: hsl(var(--scrollbar-track));
   border-radius: var(--scrollbar-radius);
+  /* Vertical track: breathe away from content edges */
+  margin: 8px 4px;
 }
 
 *::-webkit-scrollbar-thumb {
@@ -457,6 +466,17 @@
 .scrollbar-soft::-webkit-scrollbar-track {
   background: hsl(var(--scrollbar-track));
   border-radius: var(--scrollbar-radius);
+  margin: 8px 4px;
+}
+
+/**
+ * Use on overflow-y containers so text doesn’t sit flush against the scrollbar.
+ * Pair with `scrollbar-soft` for themed thumbs.
+ */
+.scroll-region-inset {
+  scrollbar-gutter: stable;
+  padding-inline-end: var(--scroll-edge-inset);
+  box-sizing: border-box;
 }
 
 .scrollbar-soft::-webkit-scrollbar-thumb {

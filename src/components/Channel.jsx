@@ -9,6 +9,7 @@ import ResourceUsageIndicator from './ResourceUsageIndicator';
 import KenBurnsImage from './KenBurnsImage';
 import { useChannelState, useRibbonState } from '../utils/useConsolidatedAppHooks';
 import useChannelOperations from '../utils/useChannelOperations';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import useSoundManager from '../utils/useSoundManager';
 import './Channel.css';
 import { getStoragePublicObjectUrl } from '../utils/supabase';
@@ -79,7 +80,7 @@ const Channel = React.memo(({
   const channelSettings = channels?.settings || {};
   
   // Floating widget store
-  const { ui } = useConsolidatedAppStore();
+  const ui = useConsolidatedAppStore((state) => state.ui);
   const { showLaunchError } = useLaunchFeedback();
   
   // Auto-fade is now handled at grid level in PaginatedChannels
@@ -269,7 +270,7 @@ const Channel = React.memo(({
       
       // Launch app or URL (main process: launchApp.cjs — openExternal / spawn / openPath)
       if (effectiveType === 'url' && effectivePath.startsWith('http')) {
-        const immersivePip = (() => { try { return JSON.parse(localStorage.getItem('immersivePip')) || false; } catch { return false; } })();
+        const immersivePip = useConsolidatedAppStore.getState().ui?.immersivePip ?? false;
         if (immersivePip && api.openPipWindow) {
           api.openPipWindow(effectivePath);
         } else {

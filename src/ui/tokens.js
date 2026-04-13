@@ -1,6 +1,7 @@
 /** Strings for inline styles — mirror design-system.css :root */
 export const colors = {
-  primary: "hsl(var(--wii-blue))",
+  /** Themeable app primary; kept in sync with --wii-blue (ribbon accent glow). */
+  primary: "hsl(var(--primary))",
   accent: "hsl(var(--state-success))",
   error: "hsl(var(--state-error))",
   surface: "hsl(var(--surface-primary))",
@@ -11,7 +12,7 @@ export const colors = {
   textSecondary: "hsl(var(--text-secondary))",
   textOnPrimary: "hsl(var(--text-on-accent))",
   ribbonDefault: "hsl(var(--surface-secondary))",
-  ribbonGlow: "hsl(var(--wii-blue))",
+  ribbonGlow: "hsl(var(--primary))",
 };
 
 export const spacing = {

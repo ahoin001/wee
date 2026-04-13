@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { electronApi } from '../utils/electronApi';
 import { normalizeChannelPayload } from '../utils/store/storeContracts';
+import { normalizeUnifiedSettingsSnapshot } from '../utils/store/settingsPersistenceContract';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 
 export const useAppInitialization = ({
   setAppState,
@@ -23,14 +25,12 @@ export const useAppInitialization = ({
         if (cancelled) return;
 
         const unifiedData = await electronApi.getUnifiedData();
-        const [wallpaperData, channelData, settingsData] = await Promise.all([
+        const [wallpaperData, channelData] = await Promise.all([
           electronApi.getWallpapers(),
           electronApi.getChannels(),
-          electronApi.getSettings(),
         ]);
 
-        // Unified data is authoritative when available.
-        const resolvedSettings = unifiedData?.settings || settingsData;
+        const resolvedSettings = normalizeUnifiedSettingsSnapshot(unifiedData?.settings || {});
         const resolvedWallpaperData = unifiedData?.wallpapers || wallpaperData;
         const resolvedChannelData = unifiedData?.channels || channelData;
 
@@ -81,6 +81,8 @@ export const useAppInitialization = ({
         if (!cancelled && resolvedSettings) {
           if (resolvedSettings.ui) setUIState(resolvedSettings.ui);
           if (resolvedSettings.ribbon) setRibbonState(resolvedSettings.ribbon);
+          if (resolvedSettings.wallpaper) setWallpaperState(resolvedSettings.wallpaper);
+          if (resolvedSettings.overlay) setOverlayState(resolvedSettings.overlay);
           if (resolvedSettings.channels) {
             const normalizedSettingsChannels = normalizeChannelPayload(resolvedSettings.channels);
             if (normalizedSettingsChannels.settings) {
@@ -93,6 +95,22 @@ export const useAppInitialization = ({
           if (resolvedSettings.time) setTimeState(resolvedSettings.time);
           if (resolvedSettings.dock) setDockState(resolvedSettings.dock);
           if (resolvedSettings.sounds) setSoundsState(resolvedSettings.sounds);
+          if (resolvedSettings.navigation) {
+            const { setNavigationState } = useConsolidatedAppStore.getState().actions;
+            setNavigationState(resolvedSettings.navigation);
+          }
+          if (resolvedSettings.floatingWidgets) {
+            const { setFloatingWidgetsState } = useConsolidatedAppStore.getState().actions;
+            setFloatingWidgetsState(resolvedSettings.floatingWidgets);
+          }
+          if (resolvedSettings.monitors) {
+            const { setMonitorState } = useConsolidatedAppStore.getState().actions;
+            setMonitorState(resolvedSettings.monitors);
+          }
+          if (resolvedSettings.spotify) {
+            const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
+            setSpotifyState(resolvedSettings.spotify);
+          }
           if (resolvedSettings.presets) setPresets(resolvedSettings.presets);
         }
       } catch (error) {

@@ -894,10 +894,10 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
               />
             </div>
             
-            {/* Glass Border Opacity */}
+            {/* Glass Border Intensity */}
             <div className="mb-3">
               <div className="flex justify-between items-center mb-2">
-                <Text variant="small" className="text-gray-600">Border Opacity</Text>
+                <Text variant="small" className="text-gray-600">Glass Border Intensity</Text>
                 <Text variant="small" className="text-gray-600">{Math.round(glassBorderOpacity * 100)}%</Text>
               </div>
               <Slider
@@ -909,10 +909,10 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
               />
             </div>
             
-            {/* Glass Shine Opacity */}
+            {/* Glass Shine Intensity */}
             <div className="mb-3">
               <div className="flex justify-between items-center mb-2">
-                <Text variant="small" className="text-gray-600">Shine Opacity</Text>
+                <Text variant="small" className="text-gray-600">Glass Shine Intensity</Text>
                 <Text variant="small" className="text-gray-600">{Math.round(glassShineOpacity * 100)}%</Text>
               </div>
               <Slider

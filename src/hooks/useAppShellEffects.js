@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { applyPrimaryAccentFromHex } from '../utils/theme/applyPrimaryAccentFromHex';
 
 export const useCursorEffect = (useCustomCursor, cursorStyle) => {
   useEffect(() => {
@@ -57,6 +58,16 @@ export const useThemeEffect = (isDarkMode) => {
     document.body.classList.remove('dark-mode');
     document.documentElement.setAttribute('data-theme', 'light');
   }, [isDarkMode]);
+};
+
+/**
+ * Drives global `--primary` / `--wii-blue*` from the same hex as ribbon accent glow
+ * (Settings → Ribbon), so primary buttons and linked tokens stay on-brand and themeable.
+ */
+export const usePrimaryAccentThemeEffect = (ribbonGlowHex, isDarkMode) => {
+  useEffect(() => {
+    applyPrimaryAccentFromHex(ribbonGlowHex, { isDarkMode });
+  }, [ribbonGlowHex, isDarkMode]);
 };
 
 export const useBackgroundMusicEffects = ({

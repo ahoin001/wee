@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
@@ -73,8 +74,20 @@ const ColorSettingRow = ({ label, value, fallback, onChange }) => {
 
 const UnifiedDockSettingsTab = React.memo(() => {
   // Use consolidated store for better performance and consistency
-  const { dock, ribbon, ui } = useConsolidatedAppStore();
-  const { setDockState, setRibbonState, setUIState } = useConsolidatedAppStore(state => state.actions);
+  const { dock, ribbon, ui } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      dock: state.dock,
+      ribbon: state.ribbon,
+      ui: state.ui,
+    }))
+  );
+  const { setDockState, setRibbonState, setUIState } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setDockState: state.actions.setDockState,
+      setRibbonState: state.actions.setRibbonState,
+      setUIState: state.actions.setUIState,
+    }))
+  );
   
   // Utility function to save settings to new architecture
   const saveSetting = useCallback(async (category, key, value) => {
@@ -87,12 +100,6 @@ const UnifiedDockSettingsTab = React.memo(() => {
       } else if (category === 'ui') {
         setUIState({ [key]: value });
       }
-      
-      // Save to backend for persistence
-      if (window.api?.data?.set) {
-        await window.api.data.set(`settings.${category}.${key}`, value);
-      }
-      
     } catch (error) {
       console.error(`[UnifiedDockSettingsTab] Failed to save ${category}.${key} setting:`, error);
     }
@@ -197,6 +204,11 @@ const UnifiedDockSettingsTab = React.memo(() => {
   const handleRibbonDockOpacityChange = useCallback((value) => {
     setRibbonState({ ribbonDockOpacity: value });
     saveSetting('ribbon', 'ribbonDockOpacity', value);
+  }, [saveSetting, setRibbonState]);
+
+  const handleRibbonHoverAnimationChange = useCallback((checked) => {
+    setRibbonState({ ribbonHoverAnimationEnabled: checked });
+    saveSetting('ribbon', 'ribbonHoverAnimationEnabled', checked);
   }, [saveSetting, setRibbonState]);
 
   const handleGlassWiiRibbonChange = useCallback((checked) => {
@@ -537,19 +549,56 @@ const UnifiedDockSettingsTab = React.memo(() => {
         return (
           <div className="surface-stack">
             <Text variant="h3" className="surface-card-title">
-              Wii Ribbon Customization
+              Ribbon Appearance Settings
             </Text>
             <Text variant="body" className="surface-card-description">
-              Customize the appearance of the Wii Ribbon including colors, glow effects, and glass morphism.
+              Configure style mode, glow, and hover behavior with controls that match live ribbon behavior.
             </Text>
 
-            {/* Ribbon Colors and Effects */}
+            <Card>
+              <div className="surface-card-section">
+                <div className="surface-row-between mb-4">
+                  <div>
+                    <Text variant="h4" className="surface-title">
+                      Ribbon Style
+                    </Text>
+                    <Text variant="body" className="text-secondary">
+                      Switch between solid and glass rendering.
+                    </Text>
+                  </div>
+                  <WToggle
+                    checked={ribbon?.glassWiiRibbon ?? false}
+                    onChange={handleGlassWiiRibbonChange}
+                    label={(ribbon?.glassWiiRibbon ?? false) ? 'Glass' : 'Solid'}
+                  />
+                </div>
+
+                <div className="surface-row-between mb-2">
+                  <Text variant="body" className="text-secondary">
+                    Ribbon Hover Animation
+                  </Text>
+                  <WToggle
+                    checked={ribbon?.ribbonHoverAnimationEnabled ?? true}
+                    onChange={handleRibbonHoverAnimationChange}
+                  />
+                </div>
+                <Text variant="caption" className="surface-caption !mt-0">
+                  Controls hover lift/stretch behavior and hover glow boost.
+                </Text>
+              </div>
+            </Card>
+
             <Card>
               <div className="surface-card-section">
                 <Text variant="h4" className="surface-card-title">
-                  Ribbon Colors & Effects
+                  Ribbon Surface
                 </Text>
-                <div className="surface-controls">
+                <Text variant="caption" className="surface-caption !mt-0 mb-3">
+                  {(ribbon?.glassWiiRibbon ?? false)
+                    ? 'Solid ribbon controls are disabled while Glass mode is active.'
+                    : 'Controls for Solid mode surface rendering.'}
+                </Text>
+                <div className={`surface-controls ${(ribbon?.glassWiiRibbon ?? false) ? 'opacity-60' : ''}`}>
                   <div className="surface-row">
                     <Text variant="body" className="surface-color-label-sm">
                       Ribbon Color
@@ -558,16 +607,42 @@ const UnifiedDockSettingsTab = React.memo(() => {
                       type="color"
                       value={ribbon?.ribbonColor ?? DEFAULT_RIBBON_SURFACE_HEX}
                       onChange={handleRibbonColorChange}
+                      disabled={ribbon?.glassWiiRibbon ?? false}
                       className="surface-color-input"
                     />
                     <Text variant="caption" className="surface-caption !mt-0">
                       {(ribbon?.ribbonColor ?? DEFAULT_RIBBON_SURFACE_HEX).toUpperCase()}
                     </Text>
                   </div>
-                  
+                  <div>
+                    <Text variant="body" className="text-secondary mb-2">
+                      Ribbon Opacity (Solid Mode)
+                    </Text>
+                    <Slider
+                      value={ribbon?.ribbonDockOpacity ?? 1}
+                      min={0.1}
+                      max={1}
+                      step={0.1}
+                      disabled={ribbon?.glassWiiRibbon ?? false}
+                      onChange={handleRibbonDockOpacityChange}
+                    />
+                    <Text variant="caption" className="surface-caption">
+                      {Math.round((ribbon?.ribbonDockOpacity ?? 1) * 100)}%
+                    </Text>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="surface-card-section">
+                <Text variant="h4" className="surface-card-title">
+                  Ribbon Glow
+                </Text>
+                <div className="surface-controls">
                   <div className="surface-row">
                     <Text variant="body" className="surface-color-label-sm">
-                      Ribbon Glow Color
+                      Glow Color
                     </Text>
                     <input
                       type="color"
@@ -595,16 +670,16 @@ const UnifiedDockSettingsTab = React.memo(() => {
                       {ribbon?.ribbonGlowStrength ?? 20}px
                     </Text>
                   </div>
-                  
-                  <div>
+                  <div className={(ribbon?.ribbonHoverAnimationEnabled ?? true) ? '' : 'opacity-60'}>
                     <Text variant="body" className="text-secondary mb-2">
-                      Glow Strength on Hover
+                      Hover Glow Boost
                     </Text>
                     <Slider
                       value={ribbon?.ribbonGlowStrengthHover ?? 28}
                       min={0}
                       max={96}
                       step={1}
+                      disabled={!(ribbon?.ribbonHoverAnimationEnabled ?? true)}
                       onChange={handleRibbonGlowStrengthHoverChange}
                     />
                     <Text variant="caption" className="surface-caption">
@@ -615,35 +690,27 @@ const UnifiedDockSettingsTab = React.memo(() => {
               </div>
             </Card>
 
-            {/* Glass Effect */}
             <Card>
               <div className="surface-card-section">
-                <div className="surface-row-between mb-4">
-                  <div>
-                    <Text variant="h4" className="surface-title">
-                      Glass Effect
-                    </Text>
-                    <Text variant="body" className="text-secondary">
-                      Add a modern glass morphism effect to the ribbon.
-                    </Text>
-                  </div>
-                  <WToggle
-                    checked={ribbon?.glassWiiRibbon ?? false}
-                    onChange={handleGlassWiiRibbonChange}
-                  />
-                </div>
-                
-                {ribbon?.glassWiiRibbon && (
-                  <div className="surface-controls">
+                <Text variant="h4" className="surface-title">
+                  Glass Surface
+                </Text>
+                <Text variant="caption" className="surface-caption !mt-0 mb-3">
+                  {(ribbon?.glassWiiRibbon ?? false)
+                    ? 'Glass mode is active. These controls affect the ribbon surface.'
+                    : 'Enable Glass style above to apply these controls.'}
+                </Text>
+                <div className={`surface-controls ${(ribbon?.glassWiiRibbon ?? false) ? '' : 'opacity-60'}`}>
                     <div>
                       <Text variant="body" className="text-secondary mb-2">
                         Glass Opacity
                       </Text>
                       <Slider
                         value={ribbon?.glassOpacity ?? 0.18}
-                        min={0.05}
+                        min={0}
                         max={0.5}
                         step={0.01}
+                        disabled={!(ribbon?.glassWiiRibbon ?? false)}
                         onChange={handleGlassOpacityChange}
                       />
                       <Text variant="caption" className="surface-caption">
@@ -657,17 +724,49 @@ const UnifiedDockSettingsTab = React.memo(() => {
                       </Text>
                       <Slider
                         value={ribbon?.glassBlur ?? 2.5}
-                        min={0.5}
+                        min={0}
                         max={10}
                         step={0.5}
+                        disabled={!(ribbon?.glassWiiRibbon ?? false)}
                         onChange={handleGlassBlurChange}
                       />
                       <Text variant="caption" className="surface-caption">
                         {ribbon?.glassBlur ?? 2.5}px
                       </Text>
                     </div>
+                    <div>
+                      <Text variant="body" className="text-secondary mb-2">
+                        Glass Border Intensity
+                      </Text>
+                      <Slider
+                        value={ribbon?.glassBorderOpacity ?? 0.5}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        disabled={!(ribbon?.glassWiiRibbon ?? false)}
+                        onChange={handleGlassBorderOpacityChange}
+                      />
+                      <Text variant="caption" className="surface-caption">
+                        {Math.round((ribbon?.glassBorderOpacity ?? 0.5) * 100)}%
+                      </Text>
+                    </div>
+                    <div>
+                      <Text variant="body" className="text-secondary mb-2">
+                        Glass Shine Intensity
+                      </Text>
+                      <Slider
+                        value={ribbon?.glassShineOpacity ?? 0.7}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        disabled={!(ribbon?.glassWiiRibbon ?? false)}
+                        onChange={handleGlassShineOpacityChange}
+                      />
+                      <Text variant="caption" className="surface-caption">
+                        {Math.round((ribbon?.glassShineOpacity ?? 0.7) * 100)}%
+                      </Text>
+                    </div>
                   </div>
-                )}
               </div>
             </Card>
           </div>

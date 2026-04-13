@@ -5,7 +5,9 @@ const ScrollArea = React.forwardRef(({
   hideScrollbar = false,
   ...props
 }, ref) => {
-  const scrollbarClass = hideScrollbar ? 'scrollbar-hidden' : 'scrollbar-soft';
+  const scrollbarClass = hideScrollbar
+    ? 'scrollbar-hidden'
+    : 'scrollbar-soft scroll-region-inset';
   return (
     <div
       ref={ref}

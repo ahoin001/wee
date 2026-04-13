@@ -1,6 +1,6 @@
 /**
  * Classic Wii dock preset theme groups.
- * Single source for ClassicDockSettingsModal, UnifiedDockSettingsTab, and DockSettingsTab.
+ * Single source for ClassicDockSettingsModal and UnifiedDockSettingsTab.
  *
  * Hex/rgba literals below are intentional: this file is the canonical preset database for
  * classic dock themes. Do not duplicate these values in UI components — import defaults

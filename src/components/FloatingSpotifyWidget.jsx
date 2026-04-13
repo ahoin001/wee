@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSpotifyState, useFloatingWidgetsState } from '../utils/useConsolidatedAppHooks';
-import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
-import { useAppActivity } from '../hooks/useAppActivity';
+import useAnimationActivity from '../hooks/useAnimationActivity';
 import { useFloatingWidgetFrame } from '../hooks/useFloatingWidgetFrame';
 import { usePlaybackSeek } from '../hooks/usePlaybackSeek';
 import WToggle from '../ui/WToggle';
@@ -28,8 +27,10 @@ import {
 const FloatingSpotifyWidget = ({ isVisible }) => {
   const { spotify, spotifyManager, setSpotifyState } = useSpotifyState();
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
-  const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
-  const { isAppActive } = useAppActivity();
+  const { isAppActive, isLowPowerMode, pollIntervalMultiplier } = useAnimationActivity({
+    activeFps: 60,
+    lowPowerFps: 24,
+  });
   
   const {
     currentTrack,
@@ -93,8 +94,8 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
     openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);
   }, []);
 
-  const allowEnhancedVisualizerEffects = isAppActive && !lowPowerMode;
-  const visualizerFrameThrottleMs = lowPowerMode ? 120 : 48;
+  const allowEnhancedVisualizerEffects = isAppActive && !isLowPowerMode;
+  const visualizerFrameThrottleMs = isLowPowerMode ? 120 : 48;
   const effectiveBlurAmount = allowEnhancedVisualizerEffects
     ? (spotifySettings.blurAmount || 0)
     : Math.min(spotifySettings.blurAmount || 0, 8);
@@ -228,14 +229,15 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
   useEffect(() => {
     if (!isVisible || !isAppActive) return;
 
-    const playbackPollIntervalMs = lowPowerMode ? 6000 : 2000;
+    const basePlaybackPollIntervalMs = isLowPowerMode ? 6000 : 2000;
+    const playbackPollIntervalMs = Math.round(basePlaybackPollIntervalMs * pollIntervalMultiplier);
     
     const interval = setInterval(() => {
       spotifyManager.refreshPlaybackState();
     }, playbackPollIntervalMs);
     
     return () => clearInterval(interval);
-  }, [isVisible, isAppActive, lowPowerMode, spotifyManager]);
+  }, [isVisible, isAppActive, isLowPowerMode, pollIntervalMultiplier, spotifyManager]);
 
   // Load playlists and saved tracks when browsing page is opened
   useEffect(() => {

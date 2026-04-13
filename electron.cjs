@@ -31,7 +31,6 @@ const wallpapersFile = path.join(dataDir, 'wallpapers.json');
 const channelsFile = path.join(dataDir, 'channels.json');
 const userWallpapersPath = path.join(dataDir, 'wallpapers');
 const userSoundsPath = path.join(dataDir, 'sounds');
-const settingsFile = path.join(dataDir, 'settings.json');
 const userChannelHoverSoundsPath = path.join(dataDir, 'channel-hover-sounds');
 const userIconsPath = path.join(dataDir, 'icons');
 
@@ -136,30 +135,94 @@ const channelsData = {
   }
 };
 
-// --- Settings Data Module ---
-const settingsData = {
-  async get() {
-    await ensureDataDir();
-    try { return JSON.parse(await fsPromises.readFile(settingsFile, 'utf-8')); } catch { return {}; }
-  },
-  async set(data) {
-    await ensureDataDir();
-    await fsPromises.writeFile(settingsFile, JSON.stringify(data, null, 2), 'utf-8');
-  },
-};
-
 // --- Unified Data Module ---
 const unifiedDataFile = path.join(dataDir, 'unified-data.json');
+const SETTINGS_SCHEMA_VERSION = 2;
+const isObjectRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const asObjectRecord = (value) => (isObjectRecord(value) ? value : {});
+
+const migrateUnifiedSettingsShape = (settings) => {
+  const next = { ...asObjectRecord(settings) };
+  const appearance = asObjectRecord(next.appearance);
+  const dock = asObjectRecord(next.dock);
+  const system = asObjectRecord(next.system);
+  const wallpaper = asObjectRecord(next.wallpaper);
+  const cycling = asObjectRecord(wallpaper.cycling);
+  const overlay = asObjectRecord(wallpaper.overlay);
+
+  if (!isObjectRecord(next.ui)) {
+    next.ui = {
+      isDarkMode: appearance.theme === 'dark',
+      useCustomCursor: appearance.useCustomCursor ?? true,
+      cursorStyle: appearance.cursorStyle ?? 'classic',
+      immersivePip: appearance.immersivePip ?? false,
+      startInFullscreen: appearance.startInFullscreen ?? false,
+      showPresetsButton: appearance.showPresetsButton ?? false,
+      startOnBoot: system.startOnBoot ?? false,
+      settingsShortcut: system.settingsShortcut ?? '',
+      lowPowerMode: system.lowPowerMode ?? false,
+      showDock: dock.showDock ?? true,
+      classicMode: dock.classicMode ?? false,
+      spotifyMatchEnabled: appearance.spotifyMatchEnabled ?? false,
+    };
+  }
+
+  if (isObjectRecord(next.wallpaper) && isObjectRecord(next.wallpaper.cycling)) {
+    next.wallpaper = {
+      ...next.wallpaper,
+      cycleWallpapers: next.wallpaper.cycleWallpapers ?? cycling.enabled ?? false,
+      cycleInterval: next.wallpaper.cycleInterval ?? cycling.interval ?? 30,
+      cycleAnimation: next.wallpaper.cycleAnimation ?? cycling.animation ?? 'fade',
+      slideDirection: next.wallpaper.slideDirection ?? cycling.slideDirection ?? 'right',
+      crossfadeDuration: next.wallpaper.crossfadeDuration ?? cycling.crossfadeDuration ?? 1.2,
+      crossfadeEasing: next.wallpaper.crossfadeEasing ?? cycling.crossfadeEasing ?? 'ease-out',
+      slideRandomDirection: next.wallpaper.slideRandomDirection ?? cycling.slideRandomDirection ?? false,
+      slideDuration: next.wallpaper.slideDuration ?? cycling.slideDuration ?? 1.5,
+      slideEasing: next.wallpaper.slideEasing ?? cycling.slideEasing ?? 'ease-out',
+    };
+  }
+
+  if (!isObjectRecord(next.overlay) && isObjectRecord(overlay)) {
+    next.overlay = {
+      enabled: overlay.enabled ?? false,
+      effect: overlay.effect ?? 'snow',
+      intensity: overlay.intensity ?? 50,
+      speed: overlay.speed ?? 1,
+      wind: overlay.wind ?? 0.02,
+      gravity: overlay.gravity ?? 0.1,
+    };
+  }
+
+  if (Object.keys(appearance).length > 0) delete next.appearance;
+  if (Object.keys(system).length > 0) delete next.system;
+  return next;
+};
+
+const normalizeUnifiedDataShape = (data) => {
+  const normalized = { ...asObjectRecord(data) };
+  normalized.settings = migrateUnifiedSettingsShape(normalized.settings);
+  normalized.meta = {
+    ...asObjectRecord(normalized.meta),
+    settingsSchemaVersion: SETTINGS_SCHEMA_VERSION,
+  };
+  return normalized;
+};
+
 const unifiedData = {
   async get() {
     await ensureDataDir();
     try { 
       const data = JSON.parse(await fsPromises.readFile(unifiedDataFile, 'utf-8'));
       console.log('[UNIFIED-DATA] Successfully loaded unified data');
-      return data;
+      const normalizedData = normalizeUnifiedDataShape(data);
+      if (JSON.stringify(normalizedData) !== JSON.stringify(data)) {
+        await fsPromises.writeFile(unifiedDataFile, JSON.stringify(normalizedData, null, 2), 'utf-8');
+        console.log('[UNIFIED-DATA] Migrated settings data to schema version', SETTINGS_SCHEMA_VERSION);
+      }
+      return normalizedData;
     } catch (error) { 
       console.warn('[UNIFIED-DATA] Failed to load unified data, using defaults:', error.message);
-      return {
+      return normalizeUnifiedDataShape({
         settings: {
           appearance: {
             theme: 'light',
@@ -310,18 +373,37 @@ const unifiedData = {
           presets: [],
           icons: [],
         },
-      };
+      });
     }
   },
   async set(data) {
     await ensureDataDir();
-    await fsPromises.writeFile(unifiedDataFile, JSON.stringify(data, null, 2), 'utf-8');
+    const normalizedData = normalizeUnifiedDataShape(data);
+    await fsPromises.writeFile(unifiedDataFile, JSON.stringify(normalizedData, null, 2), 'utf-8');
     console.log('[UNIFIED-DATA] Successfully saved unified data');
   },
   async reset() {
     const defaultData = await this.get();
     await this.set(defaultData);
   }
+};
+
+const getUnifiedIcons = async () => {
+  const data = await unifiedData.get();
+  const icons = data?.content?.icons;
+  return Array.isArray(icons) ? icons : [];
+};
+
+const saveUnifiedIcons = async (icons) => {
+  const data = await unifiedData.get();
+  const content = asObjectRecord(data?.content);
+  await unifiedData.set({
+    ...data,
+    content: {
+      ...content,
+      icons: Array.isArray(icons) ? icons : [],
+    },
+  });
 };
 
 // --- IPC Handlers ---
@@ -345,9 +427,6 @@ ipcMain.handle('channels:get', async () => {
   return result;
 });
 ipcMain.handle('channels:set', async (e, data) => { await channelsData.set(data); return true; });
-
-ipcMain.handle('settings:get', async () => await settingsData.get());
-ipcMain.handle('settings:set', async (e, data) => { await settingsData.set(data); return true; });
 
 // Monitor-specific wallpaper handlers
 ipcMain.handle('wallpapers:getMonitorWallpaper', async (e, monitorId) => {
@@ -863,38 +942,6 @@ function getDefaultChannels() {
   }
   return channels;
 }
-
-// --- Default Settings Helper ---
-function getDefaultSettings() {
-  return {
-    isDarkMode: false,
-    useCustomCursor: true,
-    barType: 'flat',
-    glassWiiRibbon: true,
-    wallpaper: null,
-    wallpaperOpacity: 1,
-    savedWallpapers: [],
-    likedWallpapers: [],
-    cycleWallpapers: false,
-    cycleInterval: 30,
-    cycleAnimation: 'fade',
-    ribbonButtonConfigs: [],
-    presetsButtonConfig: { type: 'icon', icon: 'star' },
-    showPresetsButton: false,
-    savedIcons: [], // Add savedIcons to default settings
-    sounds: {
-      // Will be set up by the sound library loader
-    },
-  };
-}
-
-ipcMain.handle('get-settings', async () => {
-  return await readJson(settingsFile, null);
-});
-
-ipcMain.handle('save-settings', async (event, settings) => {
-  return await writeJson(settingsFile, settings);
-});
 
 ipcMain.handle('get-channel-configs', async () => {
   try {
@@ -1674,14 +1721,10 @@ ipcMain.handle('icons:add', async (event, { filePath, filename }) => {
     }
     const destPath = path.join(userIconsPath, uniqueName);
     await fsExtra.copy(filePath, destPath);
-    // Save metadata in settings.json
-    let settings = {};
-    try { settings = JSON.parse(await fsPromises.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
-    if (!settings.savedIcons) settings.savedIcons = [];
     const url = `userdata://icons/${uniqueName}`;
     const newIcon = { url, name: filename, added: Date.now() };
-    settings.savedIcons.push(newIcon);
-    await fsPromises.writeFile(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
+    const icons = await getUnifiedIcons();
+    await saveUnifiedIcons([...icons, newIcon]);
     return { success: true, icon: newIcon };
   } catch (error) {
     return { success: false, error: error.message };
@@ -1690,9 +1733,7 @@ ipcMain.handle('icons:add', async (event, { filePath, filename }) => {
 
 ipcMain.handle('icons:list', async () => {
   try {
-    let settings = {};
-    try { settings = JSON.parse(await fsPromises.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
-    return { success: true, icons: settings.savedIcons || [] };
+    return { success: true, icons: await getUnifiedIcons() };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1704,11 +1745,9 @@ ipcMain.handle('icons:delete', async (event, { url }) => {
     const filename = url.replace('userdata://icons/', '');
     const filePath = path.join(userIconsPath, filename);
     await fsExtra.remove(filePath);
-    // Remove from settings
-    let settings = {};
-    try { settings = JSON.parse(await fsPromises.readFile(settingsFile, 'utf-8')); } catch { settings = {}; }
-    settings.savedIcons = (settings.savedIcons || []).filter(i => i.url !== url);
-    await fsPromises.writeFile(settingsFile, JSON.stringify(settings, null, 2), 'utf-8');
+    const icons = await getUnifiedIcons();
+    const filteredIcons = icons.filter((icon) => icon.url !== url);
+    await saveUnifiedIcons(filteredIcons);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -1743,22 +1782,30 @@ ipcMain.handle('reset-to-default', async () => {
     }
     await writeJson(savedSoundsPath, initialSoundLibrary);
 
-    // Reset settings but preserve saved icons
-    const currentSettings = await readJson(settingsFile, {});
-    const defaultSettings = getDefaultSettings();
-    // Preserve saved icons from current settings
-    defaultSettings.savedIcons = currentSettings.savedIcons || [];
-    
-    // Set up default sound settings (enable first default sound for each type)
-    for (const soundType of SOUND_TYPES) {
-      const defaultSound = initialSoundLibrary[soundType][0];
-      defaultSettings.sounds[soundType] = {
-        soundId: defaultSound.id,
-        enabled: soundType === 'startup' ? false : true, // Startup sound disabled by default
-        volume: defaultSound.volume || 0.5
-      };
-    }
-    await writeJson(settingsFile, defaultSettings);
+    // Reset unified data but preserve saved icon metadata.
+    const currentUnifiedData = await unifiedData.get();
+    const preservedIcons = Array.isArray(currentUnifiedData?.content?.icons)
+      ? currentUnifiedData.content.icons
+      : [];
+    await unifiedData.set({
+      settings: {},
+      content: {
+        channels: [],
+        wallpapers: {
+          saved: [],
+          liked: [],
+          active: null,
+        },
+        sounds: {
+          backgroundMusic: [],
+          channelClick: [],
+          channelHover: [],
+          startup: [],
+        },
+        presets: [],
+        icons: preservedIcons,
+      },
+    });
 
     // Reset channels
     await writeJson(channelConfigsPath, getDefaultChannels());
@@ -1829,12 +1876,13 @@ async function createWindow(opts = {}) {
   if (opts.fullscreen === undefined) {
     try {
       console.log('[DEBUG] 📋 Loading settings for fullscreen preference');
-      const settings = await settingsData.get();
+      const data = await unifiedData.get();
+      const settings = data?.settings || {};
       
       // Check both old and new settings structure for backward compatibility
       let fullscreenSetting = false;
       if (settings.ui && settings.ui.startInFullscreen !== undefined) {
-        // New architecture: settings.ui.startInFullscreen
+        // Canonical architecture: unified-data settings.ui.startInFullscreen
         fullscreenSetting = settings.ui.startInFullscreen;
         console.log('[DEBUG] 📋 Found startInFullscreen in ui settings:', fullscreenSetting);
       } else if (settings.startInFullscreen !== undefined) {
@@ -3529,6 +3577,14 @@ async function scanInstalledApps() {
   ];
   console.log('[scanInstalledApps] Scanning directories:', startMenuDirs);
   const results = [];
+  /** Yield to the event loop periodically so the UI stays responsive during large Start Menu scans */
+  let lnkProcessed = 0;
+  const yieldIfNeeded = async () => {
+    lnkProcessed += 1;
+    if (lnkProcessed % 48 === 0) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+  };
   
   // Add system applications that might not be properly detected
   const systemApps = [
@@ -3706,6 +3762,7 @@ async function scanInstalledApps() {
         if (entry.isDirectory()) {
           await scanDir(fullPath);
         } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.lnk')) {
+          await yieldIfNeeded();
           try {
             const shortcut = await wsQuery(fullPath);
             let iconDataUrl = null;

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Button from '../../ui/WButton';
@@ -7,7 +8,7 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 const GeneralSettingsTab = React.memo(() => {
   // Use consolidated store
-  const { ui } = useConsolidatedAppStore();
+  const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
   const { setUIState } = useConsolidatedAppStore(state => state.actions);
 
   console.log('[GeneralSettingsTab] UI state:', ui);
@@ -23,34 +24,6 @@ const GeneralSettingsTab = React.memo(() => {
           // Update the UI state to reflect the actual system setting
           setUIState({ startOnBoot: isAutoLaunchEnabled });
         }
-
-        // Load settings from unified data
-        if (window.api?.data?.get) {
-          const currentData = await window.api.data.get();
-          const appearanceSettings = currentData.settings?.appearance || {};
-          const systemSettings = currentData.settings?.system || {};
-          const dockSettings = currentData.settings?.dock || {};
-          
-          console.log('[GeneralSettingsTab] Loaded settings from unified data:', {
-            appearance: appearanceSettings,
-            system: systemSettings,
-            dock: dockSettings
-          });
-          
-          // Update UI state with all relevant settings
-          setUIState({
-            immersivePip: appearanceSettings.immersivePip ?? false,
-            startInFullscreen: appearanceSettings.startInFullscreen ?? false,
-            showPresetsButton: appearanceSettings.showPresetsButton ?? true,
-            useCustomCursor: appearanceSettings.useCustomCursor ?? true,
-            cursorStyle: appearanceSettings.cursorStyle ?? 'classic',
-            settingsShortcut: systemSettings.settingsShortcut || '',
-            lowPowerMode: systemSettings.lowPowerMode ?? false,
-            classicMode: dockSettings.classicMode ?? false,
-            showDock: dockSettings.showDock ?? true,
-            spotifyMatchEnabled: appearanceSettings.spotifyMatchEnabled ?? false,
-          });
-        }
       } catch (error) {
         console.error('[GeneralSettingsTab] Failed to load initial state:', error);
       }
@@ -59,71 +32,31 @@ const GeneralSettingsTab = React.memo(() => {
     loadInitialState();
   }, [setUIState]);
 
-  // Save UI settings to backend using unified data API
-  const saveUISettings = useCallback(async (newSettings, category = 'appearance') => {
-    try {
-      if (window.api?.data?.get && window.api?.data?.set) {
-        const currentData = await window.api.data.get();
-        const updatedData = {
-          ...currentData,
-          settings: {
-            ...currentData.settings,
-            [category]: {
-              ...currentData.settings?.[category],
-              ...newSettings
-            }
-          }
-        };
-        await window.api.data.set(updatedData);
-        console.log(`[GeneralSettingsTab] ${category} settings saved to unified data:`, newSettings);
-      } else if (window.api?.settings?.set) {
-        // Fallback to legacy API
-        const currentSettings = await window.api.settings.get();
-        const updatedSettings = {
-          ...currentSettings,
-          ui: {
-            ...currentSettings.ui,
-            ...newSettings
-          }
-        };
-        await window.api.settings.set(updatedSettings);
-        console.log('[GeneralSettingsTab] UI settings saved to legacy backend:', newSettings);
-      }
-    } catch (error) {
-      console.error('[GeneralSettingsTab] Failed to save UI settings:', error);
-    }
-  }, []);
-
   // Memoize callback functions to prevent unnecessary re-renders
   const handleImmersivePipChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Immersive PiP changed:', checked);
     setUIState({ immersivePip: checked });
-    saveUISettings({ immersivePip: checked }, 'appearance');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleStartInFullscreenChange = useCallback(async (checked) => {
     console.log('[GeneralSettingsTab] Start in Fullscreen changed:', checked);
     setUIState({ startInFullscreen: checked });
-    saveUISettings({ startInFullscreen: checked }, 'appearance');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleShowPresetsButtonChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Show Presets Button changed:', checked);
     setUIState({ showPresetsButton: checked });
-    saveUISettings({ showPresetsButton: checked }, 'appearance');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleClassicModeChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Classic Mode changed:', checked);
     setUIState({ classicMode: checked });
-    saveUISettings({ classicMode: checked }, 'dock');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleShowDockChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Show Dock changed:', checked);
     setUIState({ showDock: checked });
-    saveUISettings({ showDock: checked }, 'dock');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleStartOnBootChange = useCallback(async (checked) => {
     console.log('[GeneralSettingsTab] Start on Boot changed:', checked);
@@ -143,32 +76,27 @@ const GeneralSettingsTab = React.memo(() => {
   const handleSettingsShortcutChange = useCallback(async (shortcut) => {
     console.log('[GeneralSettingsTab] Settings Shortcut changed:', shortcut);
     setUIState({ settingsShortcut: shortcut });
-    saveUISettings({ settingsShortcut: shortcut }, 'system');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleClearShortcut = useCallback(async () => {
     console.log('[GeneralSettingsTab] Clearing settings shortcut');
     setUIState({ settingsShortcut: '' });
-    saveUISettings({ settingsShortcut: '' }, 'system');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleCustomCursorChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Custom Cursor changed:', checked);
     setUIState({ useCustomCursor: checked });
-    saveUISettings({ useCustomCursor: checked }, 'appearance');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleCursorStyleChange = useCallback((style) => {
     console.log('[GeneralSettingsTab] Cursor Style changed:', style);
     setUIState({ cursorStyle: style });
-    saveUISettings({ cursorStyle: style }, 'appearance');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleLowPowerModeChange = useCallback((checked) => {
     console.log('[GeneralSettingsTab] Low Power Mode changed:', checked);
     setUIState({ lowPowerMode: checked });
-    saveUISettings({ lowPowerMode: checked }, 'system');
-  }, [setUIState, saveUISettings]);
+  }, [setUIState]);
 
   const handleFreshInstall = useCallback(async () => {
     if (window.confirm('Are you sure you want to restore to a fresh install? This will backup your current data and give you a clean start. Your old data will be preserved in a backup folder.')) {

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
@@ -7,7 +8,11 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { formatShortcut, validateShortcut, checkShortcutConflict, getShortcutsByCategory, DEFAULT_SHORTCUTS } from '../../utils/keyboardShortcuts';
 
 const ShortcutsSettingsTab = React.memo(() => {
-  const { ui, actions } = useConsolidatedAppStore();
+  const ui = useConsolidatedAppStore((state) => state.ui);
+  const actions = useConsolidatedAppStore(useShallow((state) => ({
+    setUIState: state.actions.setUIState,
+    resetKeyboardShortcuts: state.actions.resetKeyboardShortcuts,
+  })));
   
   // Local state for shortcut recording
   const [editingShortcut, setEditingShortcut] = useState(null);

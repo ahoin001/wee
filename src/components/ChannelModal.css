@@ -562,4 +562,7 @@ label {
 .channel-scroll-body {
   max-height: calc(100vh - 200px);
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-inline-end: var(--scroll-edge-inset, 12px);
+  box-sizing: border-box;
 }

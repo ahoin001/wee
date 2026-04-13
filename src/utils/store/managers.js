@@ -4,11 +4,13 @@ import { createPerformanceManager } from './performanceManager';
 export const createStoreManagers = (getStore) => {
   const appLibraryManager = {
     _cache: {
-      installedApps: { data: null, timestamp: 0, ttl: 5 * 60 * 1000 },
+      /** Align with main-process apps cache (see electron APPS_CACHE_TTL) to avoid redundant full scans */
+      installedApps: { data: null, timestamp: 0, ttl: 24 * 60 * 60 * 1000 },
       steamGames: { data: null, timestamp: 0, ttl: 10 * 60 * 1000 },
       epicGames: { data: null, timestamp: 0, ttl: 10 * 60 * 1000 },
       uwpApps: { data: null, timestamp: 0, ttl: 15 * 60 * 1000 },
     },
+    _backgroundPrefetchScheduled: false,
     _debounceTimers: {
       installedApps: null,
       steamGames: null,
@@ -60,7 +62,12 @@ export const createStoreManagers = (getStore) => {
         }, delay);
       });
     },
-    async fetchInstalledApps(forceRefresh = false) {
+    /**
+     * @param {boolean} forceRefresh - Bypass renderer cache; for PC apps also forces main-process rescan when available
+     * @param {{ silent?: boolean }} [options] - silent: do not toggle appsLoading (for idle/background prefetch)
+     */
+    async fetchInstalledApps(forceRefresh = false, options = {}) {
+      const silent = options.silent === true;
       const store = getStore();
 
       if (!forceRefresh && appLibraryManager._isCacheValid('installedApps')) {
@@ -72,15 +79,27 @@ export const createStoreManagers = (getStore) => {
         return { success: true, apps: cachedData };
       }
 
-      if (store.appLibrary.appsLoading) {
+      if (store.appLibrary.appsLoading && !silent) {
         return { success: false, error: 'Already loading' };
       }
+      if (silent && store.appLibrary.appsLoading) {
+        return { success: false, skipped: true };
+      }
 
-      store.actions.setAppLibraryState({ appsLoading: true, appsError: null });
+      if (!silent) {
+        store.actions.setAppLibraryState({ appsLoading: true, appsError: null });
+      }
 
       try {
-        if (window.api && window.api.apps && window.api.apps.getInstalled) {
-          const result = await window.api.apps.getInstalled();
+        if (window.api && window.api.apps) {
+          let result;
+          if (forceRefresh && window.api.apps.rescanInstalled) {
+            result = await window.api.apps.rescanInstalled();
+          } else if (window.api.apps.getInstalled) {
+            result = await window.api.apps.getInstalled();
+          } else {
+            result = [];
+          }
           const apps = Array.isArray(result) ? result : [];
           appLibraryManager._setCache('installedApps', apps);
           store.actions.setAppLibraryState({ installedApps: apps, appsLoading: false });
@@ -92,14 +111,22 @@ export const createStoreManagers = (getStore) => {
         store.actions.setAppLibraryState({ installedApps: apps, appsLoading: false });
         return { success: true, apps };
       } catch (error) {
+        if (silent) {
+          console.debug('[fetchInstalledApps] background:', error?.message || error);
+        } else {
+          console.warn('[fetchInstalledApps]', error);
+        }
         store.actions.setAppLibraryState({
           appsLoading: false,
-          appsError: error.message || 'Failed to fetch installed apps',
+          ...(silent
+            ? {}
+            : { appsError: error.message || 'Failed to fetch installed apps' }),
         });
         return { success: false, error: error.message };
       }
     },
-    async fetchSteamGames(forceRefresh = false) {
+    async fetchSteamGames(forceRefresh = false, options = {}) {
+      const silent = options.silent === true;
       const store = getStore();
 
       if (!forceRefresh && appLibraryManager._isCacheValid('steamGames')) {
@@ -108,11 +135,16 @@ export const createStoreManagers = (getStore) => {
         return { success: true, games: cachedData };
       }
 
-      if (store.appLibrary.steamLoading) {
+      if (store.appLibrary.steamLoading && !silent) {
         return { success: false, error: 'Already loading' };
       }
+      if (silent && store.appLibrary.steamLoading) {
+        return { success: false, skipped: true };
+      }
 
-      store.actions.setAppLibraryState({ steamLoading: true, steamError: null });
+      if (!silent) {
+        store.actions.setAppLibraryState({ steamLoading: true, steamError: null });
+      }
 
       try {
         if (window.api && window.api.steam && window.api.steam.scanGames) {
@@ -156,14 +188,22 @@ export const createStoreManagers = (getStore) => {
         store.actions.setAppLibraryState({ steamGames: games, steamLoading: false });
         return { success: true, games };
       } catch (error) {
+        if (silent) {
+          console.debug('[fetchSteamGames] background:', error?.message || error);
+        } else {
+          console.warn('[fetchSteamGames]', error);
+        }
         store.actions.setAppLibraryState({
           steamLoading: false,
-          steamError: error.message || 'Failed to fetch Steam games',
+          ...(silent
+            ? {}
+            : { steamError: error.message || 'Failed to fetch Steam games' }),
         });
         return { success: false, error: error.message };
       }
     },
-    async fetchEpicGames(forceRefresh = false) {
+    async fetchEpicGames(forceRefresh = false, options = {}) {
+      const silent = options.silent === true;
       const store = getStore();
 
       if (!forceRefresh && appLibraryManager._isCacheValid('epicGames')) {
@@ -172,11 +212,16 @@ export const createStoreManagers = (getStore) => {
         return { success: true, games: cachedData };
       }
 
-      if (store.appLibrary.epicLoading) {
+      if (store.appLibrary.epicLoading && !silent) {
         return { success: false, error: 'Already loading' };
       }
+      if (silent && store.appLibrary.epicLoading) {
+        return { success: false, skipped: true };
+      }
 
-      store.actions.setAppLibraryState({ epicLoading: true, epicError: null });
+      if (!silent) {
+        store.actions.setAppLibraryState({ epicLoading: true, epicError: null });
+      }
 
       try {
         if (window.api && window.api.epic && window.api.epic.getInstalledGames) {
@@ -192,14 +237,22 @@ export const createStoreManagers = (getStore) => {
         store.actions.setAppLibraryState({ epicGames: games, epicLoading: false });
         return { success: true, games };
       } catch (error) {
+        if (silent) {
+          console.debug('[fetchEpicGames] background:', error?.message || error);
+        } else {
+          console.warn('[fetchEpicGames]', error);
+        }
         store.actions.setAppLibraryState({
           epicLoading: false,
-          epicError: error.message || 'Failed to fetch Epic games',
+          ...(silent
+            ? {}
+            : { epicError: error.message || 'Failed to fetch Epic games' }),
         });
         return { success: false, error: error.message };
       }
     },
-    async fetchUwpApps(forceRefresh = false) {
+    async fetchUwpApps(forceRefresh = false, options = {}) {
+      const silent = options.silent === true;
       const store = getStore();
 
       if (!forceRefresh && appLibraryManager._isCacheValid('uwpApps')) {
@@ -208,11 +261,16 @@ export const createStoreManagers = (getStore) => {
         return { success: true, apps: cachedData };
       }
 
-      if (store.appLibrary.uwpLoading) {
+      if (store.appLibrary.uwpLoading && !silent) {
         return { success: false, error: 'Already loading' };
       }
+      if (silent && store.appLibrary.uwpLoading) {
+        return { success: false, skipped: true };
+      }
 
-      store.actions.setAppLibraryState({ uwpLoading: true, uwpError: null });
+      if (!silent) {
+        store.actions.setAppLibraryState({ uwpLoading: true, uwpError: null });
+      }
 
       try {
         if (window.api && window.api.uwp && window.api.uwp.listApps) {
@@ -228,9 +286,14 @@ export const createStoreManagers = (getStore) => {
         store.actions.setAppLibraryState({ uwpApps: apps, uwpLoading: false });
         return { success: true, apps };
       } catch (error) {
+        if (silent) {
+          console.debug('[fetchUwpApps] background:', error?.message || error);
+        } else {
+          console.warn('[fetchUwpApps]', error);
+        }
         store.actions.setAppLibraryState({
           uwpLoading: false,
-          uwpError: error.message || 'Failed to fetch UWP apps',
+          ...(silent ? {} : { uwpError: error.message || 'Failed to fetch UWP apps' }),
         });
         return { success: false, error: error.message };
       }
@@ -240,6 +303,45 @@ export const createStoreManagers = (getStore) => {
       store.actions.setAppLibraryState({ customSteamPath: path });
       appLibraryManager._clearCache('steamGames');
     },
+    /**
+     * Staggered idle prefetch: fills store without toggling per-source loading flags.
+     * Call once after shell is ready (e.g. appReady) so channel modal opens warm.
+     */
+    scheduleAppLibraryBackgroundPrefetch() {
+      if (typeof window === 'undefined' || !window.api || appLibraryManager._backgroundPrefetchScheduled) {
+        return;
+      }
+      appLibraryManager._backgroundPrefetchScheduled = true;
+
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const runChain = async () => {
+        try {
+          await appLibraryManager.fetchInstalledApps(false, { silent: true });
+          await pause(350);
+          await appLibraryManager.fetchSteamGames(false, { silent: true });
+          await pause(350);
+          await appLibraryManager.fetchEpicGames(false, { silent: true });
+          await pause(350);
+          await appLibraryManager.fetchUwpApps(false, { silent: true });
+        } catch (e) {
+          console.warn('[appLibraryManager] Background prefetch:', e);
+        }
+      };
+
+      const start = () => {
+        setTimeout(runChain, 700);
+      };
+
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(start, { timeout: 12000 });
+      } else {
+        setTimeout(start, 2000);
+      }
+    },
+    rescanInstalledApps: () => appLibraryManager.fetchInstalledApps(true),
+    rescanSteamGames: () => appLibraryManager.fetchSteamGames(true),
+    rescanEpicGames: () => appLibraryManager.fetchEpicGames(true),
+    rescanUwpApps: () => appLibraryManager.fetchUwpApps(true),
     async refreshAllApps() {
       appLibraryManager._clearCache();
       const results = await Promise.allSettled([
@@ -597,7 +699,11 @@ export const createStoreManagers = (getStore) => {
       const store = getStore();
       store.actions.setIconState({ loading: true, error: null });
       try {
-        const savedIcons = JSON.parse(localStorage.getItem('savedIcons') || '[]');
+        let savedIcons = [];
+        if (window.api?.icons?.list) {
+          const result = await window.api.icons.list();
+          savedIcons = Array.isArray(result?.icons) ? result.icons : [];
+        }
         store.actions.setIconState({ savedIcons, loading: false });
         return { success: true, icons: savedIcons };
       } catch (error) {
@@ -609,40 +715,24 @@ export const createStoreManagers = (getStore) => {
       const store = getStore();
       store.actions.setIconState({ uploading: true, uploadError: null });
       try {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
+        if (!window.api?.selectIconFile || !window.api?.icons?.add) {
+          throw new Error('Icon upload API not available');
+        }
 
-        const result = await new Promise((resolve) => {
-          input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) {
-              resolve({ success: false, error: 'No file selected' });
-              return;
-            }
+        const selected = await window.api.selectIconFile();
+        if (!selected?.success || !selected?.file) {
+          return { success: false, error: 'No file selected' };
+        }
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              const icon = {
-                id: Date.now().toString(),
-                name: file.name,
-                url: event.target.result,
-                size: file.size,
-                type: file.type,
-              };
-              resolve({ success: true, icon });
-            };
-            reader.onerror = () => resolve({ success: false, error: 'Failed to read file' });
-            reader.readAsDataURL(file);
-          };
-          input.click();
+        const result = await window.api.icons.add({
+          filePath: selected.file.path,
+          filename: selected.file.name,
         });
 
         if (result.success) {
-          const currentIcons = store.icons.savedIcons;
+          const currentIcons = Array.isArray(store.icons.savedIcons) ? store.icons.savedIcons : [];
           const newIcons = [...currentIcons, result.icon];
           store.actions.setIconState({ savedIcons: newIcons, uploading: false });
-          localStorage.setItem('savedIcons', JSON.stringify(newIcons));
         } else {
           store.actions.setIconState({ uploading: false, uploadError: result.error });
         }
@@ -655,10 +745,16 @@ export const createStoreManagers = (getStore) => {
     async deleteIcon(iconUrl) {
       const store = getStore();
       try {
+        if (window.api?.icons?.delete) {
+          const result = await window.api.icons.delete(iconUrl);
+          if (!result?.success) {
+            return { success: false, error: result?.error || 'Failed to delete icon' };
+          }
+        }
+
         const currentIcons = store.icons.savedIcons;
         const newIcons = currentIcons.filter((icon) => icon.url !== iconUrl);
         store.actions.setIconState({ savedIcons: newIcons });
-        localStorage.setItem('savedIcons', JSON.stringify(newIcons));
         return { success: true };
       } catch (error) {
         return { success: false, error: error.message };

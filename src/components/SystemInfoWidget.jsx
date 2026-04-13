@@ -18,13 +18,16 @@ const GLASS_TEST_BTN_STYLE = {
   transition: 'all 0.2s ease',
   backdropFilter: 'blur(10px)',
 };
-import { useAppActivity } from '../hooks/useAppActivity';
+import useAnimationActivity from '../hooks/useAnimationActivity';
 import { useFloatingWidgetFrame } from '../hooks/useFloatingWidgetFrame';
 import './SystemInfoWidget.css';
 
 const SystemInfoWidget = ({ isVisible, onClose }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
-  const { isAppActive } = useAppActivity();
+  const { isAppActive, isLowPowerMode, pollIntervalMultiplier } = useAnimationActivity({
+    activeFps: 30,
+    lowPowerFps: 15,
+  });
 
   const intervalRef = useRef(null);
 
@@ -93,28 +96,23 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
   // Fetch system info using store manager
   const fetchSystemInfo = useCallback(async () => {
     if (!isVisible || !isAppActive) return;
+    if (!window.api?.getSystemInfo) return;
     
-    console.log('[SystemInfoWidget] Fetching system info...');
     const store = useConsolidatedAppStore.getState();
     
     try {
       // Set loading state first
       store.actions.floatingWidgetManager.setSystemInfoLoading(true);
       
-      console.log('[SystemInfoWidget] Making direct API call...');
       const response = await window.api.getSystemInfo();
-      console.log('[SystemInfoWidget] Direct API response:', response);
       
       if (response && response.success && response.data) {
-        console.log('[SystemInfoWidget] API call successful, updating store...');
         store.actions.floatingWidgetManager.updateSystemInfoData(response.data);
       } else {
-        console.error('[SystemInfoWidget] API call failed:', response);
         const errorMessage = response?.error || 'API call failed';
         store.actions.floatingWidgetManager.setSystemInfoError(errorMessage);
       }
     } catch (error) {
-      console.error('[SystemInfoWidget] Failed to fetch system info:', error);
       store.actions.floatingWidgetManager.setSystemInfoError(`Failed to fetch: ${error.message}`);
     }
   }, [isVisible, isAppActive]);
@@ -122,7 +120,10 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
   // Set up interval for automatic updates
   useEffect(() => {
     if (updateInterval > 0 && isVisible && isAppActive) {
-      intervalRef.current = setInterval(fetchSystemInfo, updateInterval * 1000);
+      const baseIntervalMs = Math.max(5, updateInterval) * 1000;
+      const lowPowerFactor = isLowPowerMode ? 1.25 : 1;
+      const effectiveIntervalMs = Math.round(baseIntervalMs * pollIntervalMultiplier * lowPowerFactor);
+      intervalRef.current = setInterval(fetchSystemInfo, effectiveIntervalMs);
       return () => {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
@@ -133,7 +134,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
         clearInterval(intervalRef.current);
       }
     }
-  }, [updateInterval, isVisible, isAppActive, fetchSystemInfo]);
+  }, [updateInterval, isVisible, isAppActive, fetchSystemInfo, pollIntervalMultiplier, isLowPowerMode]);
 
   // Initial fetch when widget becomes visible
   useEffect(() => {
@@ -208,17 +209,6 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
       }
     };
   }, [systemInfoData]);
-
-  // Debug: Log system info data (moved after formattedSystemInfo definition)
-  useEffect(() => {
-    console.log('[SystemInfoWidget] System info data updated:', {
-      hasData: !!systemInfoData,
-      dataKeys: systemInfoData ? Object.keys(systemInfoData) : [],
-      isLoading,
-      error,
-      formattedInfo: formattedSystemInfo
-    });
-  }, [systemInfoData, isLoading, error, formattedSystemInfo]);
 
   // Format bytes to human readable
   const formatBytes = useCallback((bytes) => {

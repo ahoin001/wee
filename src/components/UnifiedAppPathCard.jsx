@@ -60,17 +60,20 @@ const UnifiedAppPathCard = React.memo(({
     }
   }, [value]);
 
-  // Sync with selected app from value prop or store - only when selectedApp changes
+  // Sync with selected app from value prop or store — never reuse global selectedApp when parent has no path
+  // (avoids leaking the previous channel's pick into an empty channel modal).
   useEffect(() => {
-    const currentSelectedApp = value.selectedApp || selectedApp;
+    const parentHasPath = Boolean(value.path && String(value.path).trim());
+    const currentSelectedApp = value.selectedApp || (parentHasPath ? selectedApp : null);
     if (import.meta.env.DEV) {
       console.log('[UnifiedAppPathCard] Selected app changed:', {
         valueSelectedApp: value.selectedApp,
         storeSelectedApp: selectedApp,
-        currentSelectedApp
+        currentSelectedApp,
+        parentHasPath,
       });
     }
-    
+
     if (currentSelectedApp) {
       try {
         setAppName(currentSelectedApp.name);
@@ -88,8 +91,8 @@ const UnifiedAppPathCard = React.memo(({
         setPath('');
       }
     } else if (!value.path) {
-      // Only clear the path if no app is selected AND no path was provided in value
       setPath('');
+      setAppName('');
     }
   }, [selectedApp, value.selectedApp, value.path]);
 

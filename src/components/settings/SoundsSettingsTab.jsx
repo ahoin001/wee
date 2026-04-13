@@ -57,7 +57,7 @@ const SoundsSettingsTab = React.memo(() => {
 
   
   // Get sounds state from consolidated store
-  const { sounds } = useConsolidatedAppStore();
+  const sounds = useConsolidatedAppStore((state) => state.sounds);
   const { setSoundsState } = useConsolidatedAppStore(state => state.actions);
   
 
@@ -273,22 +273,8 @@ const SoundsSettingsTab = React.memo(() => {
 
 
   // Handle setting changes - update consolidated store and save immediately
-  const handleSettingChange = useCallback(async (key, value) => {
+  const handleSettingChange = useCallback((key, value) => {
     setSoundsState({ [key]: value });
-    
-    // Save to backend immediately
-    try {
-      if (window.api?.settings?.get && window.api?.settings?.set) {
-        const currentSettings = await window.api.settings.get();
-        const updatedSettings = {
-          ...currentSettings,
-          [key]: value
-        };
-        await window.api.settings.set(updatedSettings);
-      }
-    } catch (error) {
-      console.error('[SoundsSettingsTab] Failed to save setting:', error);
-    }
   }, [setSoundsState]);
 
 

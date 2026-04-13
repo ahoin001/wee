@@ -6,11 +6,6 @@ contextBridge.exposeInMainWorld('api', {
     get: () => ipcRenderer.invoke('data:get'),
     set: (data) => ipcRenderer.invoke('data:set', data),
   },
-  // Legacy APIs (for migration)
-  settings: {
-    get: () => ipcRenderer.invoke('settings:get'),
-    set: (data) => ipcRenderer.invoke('settings:set', data),
-  },
   channels: {
     get: () => ipcRenderer.invoke('channels:get'),
     set: (data) => ipcRenderer.invoke('channels:set', data),

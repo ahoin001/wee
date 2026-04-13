@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import './ClassicWiiDock.css';
 import DockParticleSystem from './DockParticleSystem';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
@@ -397,7 +398,7 @@ const ClassicWiiDock = ({
   accessoryButtonConfig
 }) => {
   // Get dock settings from consolidated store
-  const { dock } = useConsolidatedAppStore();
+  const dock = useConsolidatedAppStore(useShallow((state) => state.dock));
   
   // Use dock settings from store with fallbacks
   const dockSettings = dock || {};

@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import WSelect from '../../ui/WSelect';
@@ -10,7 +11,7 @@ import '../settings-modal-forms.css';
 
 const TimeSettingsTab = React.memo(() => {
   // Use consolidated store for time settings
-  const { time } = useConsolidatedAppStore();
+  const time = useConsolidatedAppStore(useShallow((state) => state.time));
   const { setTimeState } = useConsolidatedAppStore(state => state.actions);
   
   // Memoize callback functions to prevent unnecessary re-renders

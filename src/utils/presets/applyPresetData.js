@@ -1,4 +1,4 @@
-import { saveUnifiedSoundSettings } from '../electronApi';
+import { saveUnifiedSettingsSnapshot, saveUnifiedSoundSettings } from '../electronApi';
 import { normalizePresetSoundsSnapshot } from '../presetSoundSettings';
 import useConsolidatedAppStore from '../useConsolidatedAppStore';
 
@@ -144,16 +144,15 @@ export async function applyPresetData(preset) {
   }
 
   try {
-    if (window.api?.settings?.get && window.api?.settings?.set) {
-      const currentSettings = await window.api.settings.get();
-      const updatedSettings = { ...currentSettings };
-      if (settingsToApply.ribbon) updatedSettings.ribbon = settingsToApply.ribbon;
-      if (settingsToApply.time) updatedSettings.time = settingsToApply.time;
-      if (settingsToApply.ui) updatedSettings.ui = { ...currentSettings.ui, ...settingsToApply.ui };
-      if (settingsToApply.channels) updatedSettings.channels = settingsToApply.channels;
-      if (normalizedSounds) updatedSettings.sounds = normalizedSounds;
-      await window.api.settings.set(updatedSettings);
-    }
+    await saveUnifiedSettingsSnapshot({
+      ...(settingsToApply.ui ? { ui: settingsToApply.ui } : {}),
+      ...(settingsToApply.ribbon ? { ribbon: settingsToApply.ribbon } : {}),
+      ...(settingsToApply.time ? { time: settingsToApply.time } : {}),
+      ...(settingsToApply.channels ? { channels: settingsToApply.channels } : {}),
+      ...(settingsToApply.wallpaper ? { wallpaper: settingsToApply.wallpaper } : {}),
+      ...(settingsToApply.overlay ? { overlay: settingsToApply.overlay } : {}),
+      ...(normalizedSounds ? { sounds: normalizedSounds } : {}),
+    });
 
     if (settingsToApply.wallpaper && window.api?.wallpapers?.get && window.api?.wallpapers?.set) {
       try {

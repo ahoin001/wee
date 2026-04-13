@@ -15,10 +15,10 @@ const variantSecondarySurface = [
   "text-text-primary border-2 border-border-secondary",
   "bg-surface-secondary",
   "shadow-sm backdrop-blur-[6px]",
-  "hover:bg-state-hover hover:border-wii-blue",
+  "hover:bg-state-hover hover:border-primary",
   "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
   "active:scale-[0.98]",
-  "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
+  "focus:ring-2 focus:ring-primary focus:ring-offset-2",
   "disabled:bg-state-disabled disabled:border-state-disabled disabled:opacity-60",
 ];
 
@@ -28,22 +28,28 @@ const buttonVariants = tv({
     "cursor-pointer outline-none relative",
     "transition-all duration-[0.22s] ease-[cubic-bezier(0.4,0,0.2,1)]",
     "font-medium",
-    "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
+    "focus:ring-2 focus:ring-primary focus:ring-offset-2",
     "disabled:cursor-not-allowed disabled:opacity-50",
     "border-[1.5px] border-solid rounded-[var(--radius-md)]",
   ],
   variants: {
     variant: {
       primary: [
-        /* Use --text-on-accent, not --text-inverse (inverse flips dark in .dark-mode and disappears on blue). */
+        /* Themeable via --primary (synced from ribbon accent); solid fill for reliable contrast. */
         "text-text-on-accent border-[hsl(var(--border-accent))]",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0.04)_100%),hsl(var(--wii-blue))]",
-        "shadow-[var(--shadow-soft)] [text-shadow:0_1px_0_rgba(0,0,0,0.18)]",
-        "hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.08)_100%),hsl(var(--wii-blue-hover))]",
+        "bg-primary",
+        "shadow-[var(--shadow-soft),inset_0_1px_0_rgba(255,255,255,0.22)] [text-shadow:0_1px_0_rgba(0,0,0,0.18)]",
+        "hover:bg-primary-hover",
         "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
         "active:scale-[0.98]",
-        "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
-        "disabled:bg-state-disabled disabled:border-state-disabled",
+        "focus:ring-2 focus:ring-primary focus:ring-offset-2",
+        /* Disabled: soft Wii-era “resting” chip — tinted surface, gentle inset gloss, muted label (not harsh grey slab). */
+        "disabled:!opacity-100 disabled:[text-shadow:none] disabled:font-medium",
+        "disabled:text-text-secondary disabled:bg-[hsl(var(--surface-wii-tint))]",
+        "disabled:border-[hsl(var(--border-primary)/0.42)] disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_2px_6px_rgba(15,36,61,0.05)]",
+        "disabled:rounded-[var(--radius-lg)] disabled:scale-100 disabled:hover:scale-100 disabled:hover:translate-y-0",
+        "disabled:hover:bg-[hsl(var(--surface-wii-tint))] disabled:hover:border-[hsl(var(--border-primary)/0.42)]",
+        "disabled:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_2px_6px_rgba(15,36,61,0.05)]",
       ],
       secondary: variantSecondarySurface,
       /** Same as `secondary` (alias for existing call sites). */
@@ -53,7 +59,7 @@ const buttonVariants = tv({
         "shadow-none",
         "hover:bg-state-hover hover:shadow-none",
         "hover:transform hover:-translate-y-[1px] active:scale-[0.98]",
-        "focus:ring-2 focus:ring-wii-blue focus:ring-offset-2",
+        "focus:ring-2 focus:ring-primary focus:ring-offset-2",
         "disabled:bg-transparent disabled:border-transparent",
       ],
       "danger-primary": [
@@ -62,7 +68,12 @@ const buttonVariants = tv({
         "hover:bg-state-error-hover hover:border-state-error-hover",
         "hover:transform hover:-translate-y-[1px] hover:scale-[1.03]",
         "focus:ring-2 focus:ring-state-error focus:ring-offset-2",
-        "disabled:bg-state-disabled disabled:border-state-disabled",
+        "disabled:!opacity-100 disabled:[text-shadow:none] disabled:font-medium",
+        "disabled:text-text-secondary disabled:bg-[hsl(var(--surface-wii-tint))]",
+        "disabled:border-[hsl(var(--border-primary)/0.42)] disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_2px_6px_rgba(15,36,61,0.05)]",
+        "disabled:rounded-[var(--radius-lg)] disabled:scale-100 disabled:hover:scale-100 disabled:hover:translate-y-0",
+        "disabled:hover:bg-[hsl(var(--surface-wii-tint))] disabled:hover:border-[hsl(var(--border-primary)/0.42)]",
+        "disabled:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_2px_6px_rgba(15,36,61,0.05)]",
       ],
       "danger-secondary": [
         "bg-surface-secondary border-2 border-state-error text-state-error",
@@ -71,7 +82,8 @@ const buttonVariants = tv({
         "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
         "active:scale-[0.98]",
         "focus:ring-2 focus:ring-state-error focus:ring-offset-2",
-        "disabled:bg-state-disabled disabled:border-state-disabled",
+        "disabled:!opacity-80 disabled:bg-[hsl(var(--surface-wii-tint))] disabled:border-[hsl(var(--border-primary)/0.42)] disabled:text-text-tertiary",
+        "disabled:shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_4px_rgba(15,36,61,0.04)] disabled:rounded-[var(--radius-lg)]",
       ],
     },
     size: {
@@ -142,7 +154,8 @@ const WButton = React.memo(({
     
     if (variant === "primary") {
       return {
-        boxShadow: "var(--shadow-soft-hover), 0 0 18px rgb(0 153 255 / 0.24)",
+        boxShadow:
+          "var(--shadow-soft-hover), 0 0 18px hsl(var(--primary) / 0.28)",
       };
     } else if (variant === "secondary" || variant === "secondary-strong") {
       return {

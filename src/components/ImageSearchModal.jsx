@@ -4,8 +4,14 @@ import WBaseModal from './WBaseModal';
 import Card from '../ui/Card';
 import Button from '../ui/WButton';
 import Text from '../ui/Text';
-import { searchMedia, uploadMedia, downloadMedia, getStoragePublicObjectUrl } from '../utils/supabase';
+import { uploadMedia, downloadMedia, getStoragePublicObjectUrl } from '../utils/supabase';
+import {
+  preloadMediaLibrary,
+  filterMediaLibraryCache,
+  clearMediaLibraryCache,
+} from '../utils/mediaLibraryCache';
 import './surfaceStyles.css';
+import './ImageSearchModal.css';
 
 const FILETYPE_OPTIONS = [
   { label: 'All', value: 'all' },
@@ -21,15 +27,15 @@ const SORT_OPTIONS = [
   { label: 'Most Downloaded', value: 'downloads' },
 ];
 
+const PAGE_SIZE = 48;
+
 function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
-  const [media, setMedia] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('created_at'); // Default to recently added
+  const [sortBy, setSortBy] = useState('created_at');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [mode, setMode] = useState('browse'); // 'browse' | 'upload'
-  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mode, setMode] = useState('browse');
   const [itemLoading, setItemLoading] = useState({});
   const [downloadSuccess, setDownloadSuccess] = useState({});
   const [uploading, setUploading] = useState(false);
@@ -37,87 +43,85 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
     title: '',
     description: '',
     tags: '',
-    file: null
+    file: null,
   });
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
-  const [hasMore, setHasMore] = useState(true);
 
-  // Fetch media from Supabase
-  const fetchMedia = useCallback(async (page = 1, forceRefresh = false) => {
+  const [viewMode, setViewMode] = useState('grid');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  /** Bumps when cache refreshes so useMemo re-runs against new in-memory data */
+  const [cacheEpoch, setCacheEpoch] = useState(0);
+
+  const filteredItems = useMemo(() => {
+    void cacheEpoch;
+    return filterMediaLibraryCache({
+      fileType: filter,
+      searchTerm: search,
+      sortBy,
+    });
+  }, [cacheEpoch, filter, search, sortBy]);
+
+  const visibleItems = useMemo(
+    () => filteredItems.slice(0, visibleCount),
+    [filteredItems, visibleCount]
+  );
+
+  const hasMoreLocal = visibleCount < filteredItems.length;
+
+  const refreshFromNetwork = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
-      const filters = {
-        fileType: filter === 'all' ? null : filter,
-        searchTerm: search.trim() || null,
-        sortBy,
-        page,
-        limit: itemsPerPage
-      };
-
-      const result = await searchMedia(filters);
-      
-      if (result.success) {
-        if (page === 1) {
-          setMedia(result.data);
-        } else {
-          setMedia(prev => [...prev, ...result.data]);
-        }
-        setHasMore(result.data.length === itemsPerPage);
-      } else {
-        setError(result.error || 'Failed to load media');
-      }
-    } catch (error) {
-      setError(`Error loading media: ${error.message}`);
+      clearMediaLibraryCache();
+      await preloadMediaLibrary(true);
+      setCacheEpoch((e) => e + 1);
+    } catch (err) {
+      setError(err?.message || 'Failed to refresh library');
     } finally {
       setLoading(false);
     }
-  }, [filter, search, sortBy, itemsPerPage]);
+  }, []);
 
-  // Load more media (infinite scroll)
-  const loadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      const nextPage = currentPage + 1;
-      setCurrentPage(nextPage);
-      fetchMedia(nextPage);
+  const ensureLibraryLoaded = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await preloadMediaLibrary(false);
+      setCacheEpoch((e) => e + 1);
+    } catch (err) {
+      setError(err?.message || 'Failed to load media library');
+    } finally {
+      setLoading(false);
     }
-  }, [loading, hasMore, currentPage, fetchMedia]);
+  }, []);
 
-  // Handle search, filter, and sort changes
   useEffect(() => {
-    setCurrentPage(1);
-    setMedia([]); // Clear existing media when filters change
-    fetchMedia(1, true);
-  }, [fetchMedia]);
+    if (!isOpen) return undefined;
+    setVisibleCount(PAGE_SIZE);
+    ensureLibraryLoaded();
+    return undefined;
+  }, [isOpen, ensureLibraryLoaded]);
 
-  // Initial load
   useEffect(() => {
-    fetchMedia(1);
-  }, [fetchMedia]);
+    if (!isOpen) return;
+    setVisibleCount(PAGE_SIZE);
+  }, [isOpen, filter, search, sortBy]);
 
-  // Handle media selection
-  const handleMediaSelect = useCallback((mediaItem) => {
-    console.log('ImageSearchModal: handleMediaSelect called with:', mediaItem);
-    console.log('ImageSearchModal: Calling onSelect with mediaItem');
-    onSelect(mediaItem);
-    onClose();
-  }, [onSelect, onClose]);
+  const handleMediaSelect = useCallback(
+    (mediaItem) => {
+      onSelect(mediaItem);
+      onClose();
+    },
+    [onSelect, onClose]
+  );
 
-  // Handle download
   const handleDownload = useCallback(async (mediaItem) => {
     try {
-      setItemLoading(prev => ({ ...prev, [mediaItem.id]: true }));
-      setDownloadSuccess(prev => ({ ...prev, [mediaItem.id]: false }));
+      setItemLoading((prev) => ({ ...prev, [mediaItem.id]: true }));
+      setDownloadSuccess((prev) => ({ ...prev, [mediaItem.id]: false }));
 
       const result = await downloadMedia(mediaItem.id);
-      
+
       if (result.success) {
-        // Create download link
         const blob = new Blob([result.data], { type: mediaItem.mime_type });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -128,36 +132,20 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        setDownloadSuccess(prev => ({ ...prev, [mediaItem.id]: true }));
+        setDownloadSuccess((prev) => ({ ...prev, [mediaItem.id]: true }));
         setTimeout(() => {
-          setDownloadSuccess(prev => ({ ...prev, [mediaItem.id]: false }));
+          setDownloadSuccess((prev) => ({ ...prev, [mediaItem.id]: false }));
         }, 2000);
       } else {
         setError(`Download failed: ${result.error}`);
       }
-    } catch (error) {
-      setError(`Download error: ${error.message}`);
+    } catch (err) {
+      setError(`Download error: ${err.message}`);
     } finally {
-      setItemLoading(prev => ({ ...prev, [mediaItem.id]: false }));
+      setItemLoading((prev) => ({ ...prev, [mediaItem.id]: false }));
     }
   }, []);
 
-  // Performance optimization: Memoize media items to prevent unnecessary re-renders
-  const memoizedMediaItems = useMemo(() => {
-    return media.map((item) => (
-      <MediaItem
-        key={item.id}
-        item={item}
-        onSelect={handleMediaSelect}
-        onDownload={handleDownload}
-        itemLoading={itemLoading}
-        downloadSuccess={downloadSuccess}
-        viewMode={viewMode}
-      />
-    ));
-  }, [media, itemLoading, downloadSuccess, viewMode, handleMediaSelect, handleDownload]);
-
-  // Handle upload
   const handleUpload = useCallback(async () => {
     if (!uploadForm.file || !uploadForm.title.trim()) {
       setError('Please select a file and enter a title');
@@ -171,44 +159,43 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
       const metadata = {
         title: uploadForm.title.trim(),
         description: uploadForm.description.trim(),
-        tags: uploadForm.tags ? uploadForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : []
+        tags: uploadForm.tags
+          ? uploadForm.tags
+              .split(',')
+              .map((tag) => tag.trim())
+              .filter((tag) => tag.length > 0)
+          : [],
       };
 
       const result = await uploadMedia(uploadForm.file, metadata);
-      
+
       if (result.success) {
-        // Reset form and switch back to browse mode
         setUploadForm({ title: '', description: '', tags: '', file: null });
         setMode('browse');
         setError(null);
-        
-        // Refresh the media list
-        fetchMedia(1, true);
+        await refreshFromNetwork();
       } else {
         setError(`Upload failed: ${result.error}`);
       }
-    } catch (error) {
-      setError(`Upload error: ${error.message}`);
+    } catch (err) {
+      setError(`Upload error: ${err.message}`);
     } finally {
       setUploading(false);
     }
-  }, [uploadForm, fetchMedia]);
+  }, [uploadForm, refreshFromNetwork]);
 
-  // Handle file selection
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
-      // Determine file type
-      let fileType = 'image';
-      if (file.type.includes('gif')) fileType = 'gif';
-      else if (file.type.includes('video')) fileType = 'video';
-      
-      setUploadForm(prev => ({
+      setUploadForm((prev) => ({
         ...prev,
         file,
-        fileType
       }));
     }
+  }, []);
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((c) => c + PAGE_SIZE);
   }, []);
 
   return (
@@ -221,12 +208,11 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
       footerContent={null}
     >
       {error && (
-        <div className="p-3 rounded-[6px] mb-4 bg-[hsl(var(--error-light))] text-[hsl(var(--error))] border border-[hsl(var(--error))]">
+        <div className="p-3 rounded-[6px] mb-4 bg-[hsl(var(--state-error-light))] text-[hsl(var(--state-error))] border border-[hsl(var(--state-error))]">
           {error}
         </div>
       )}
 
-      {/* Mode Toggle */}
       <div className="surface-actions mb-4">
         <Button
           variant={mode === 'browse' ? 'primary' : 'secondary'}
@@ -244,16 +230,15 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
 
       {mode === 'browse' ? (
         <>
-          {/* Search and Filter Controls */}
           <Card className="mb-4">
-            <div className="surface-actions flex-wrap">
+            <div className="image-search-modal__toolbar">
               <div className="flex-1 min-w-[200px]">
                 <input
                   type="text"
-                  placeholder="Search media..."
+                  placeholder="Search title, description, tags…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="surface-input"
+                  className="surface-input w-full"
                 />
               </div>
               <select
@@ -261,7 +246,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
                 onChange={(e) => setFilter(e.target.value)}
                 className="surface-select"
               >
-                {FILETYPE_OPTIONS.map(option => (
+                {FILETYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -272,7 +257,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="surface-select"
               >
-                {SORT_OPTIONS.map(option => (
+                {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -282,103 +267,122 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
                 variant="secondary"
                 onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
               >
-                {viewMode === 'grid' ? '📋' : '🔲'}
+                {viewMode === 'grid' ? 'List view' : 'Grid view'}
               </Button>
+              <Button
+                variant="secondary"
+                onClick={() => refreshFromNetwork()}
+                disabled={loading}
+              >
+                {loading ? 'Refreshing…' : 'Refresh from cloud'}
+              </Button>
+              <span className="image-search-modal__meta">
+                {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
+                {visibleItems.length < filteredItems.length
+                  ? ` · showing ${visibleItems.length}`
+                  : ''}
+              </span>
             </div>
           </Card>
 
-          {/* Media Grid/List */}
-          {loading && media.length === 0 ? (
-            <div className="text-center p-10">
-              <Text>Loading media...</Text>
+          {loading && filteredItems.length === 0 ? (
+            <div className="text-center p-10 rounded-[var(--radius-md)] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))]">
+              <Text>Loading media library…</Text>
             </div>
           ) : (
-            <div style={{ 
-              display: viewMode === 'grid' ? 'grid' : 'block',
-              gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(200px, 1fr))' : 'none',
-              gap: '12px',
-              maxHeight: '400px',
-              overflowY: 'auto'
-            }}>
-              {memoizedMediaItems}
+            <div
+              className={`image-search-modal__scroll scrollbar-soft scroll-region-inset ${
+                viewMode === 'list'
+                  ? 'image-search-modal__scroll--list'
+                  : 'image-search-modal__scroll--grid'
+              }`}
+            >
+              {visibleItems.map((item, index) => (
+                <MediaItem
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  onSelect={handleMediaSelect}
+                  onDownload={handleDownload}
+                  itemLoading={itemLoading}
+                  downloadSuccess={downloadSuccess}
+                  viewMode={viewMode}
+                />
+              ))}
             </div>
           )}
 
-          {/* Load More Button */}
-          {hasMore && !loading && (
+          {hasMoreLocal && !loading && (
             <div className="text-center mt-4">
               <Button variant="secondary" onClick={loadMore}>
-                Load More ({media.length} of {media.length + (hasMore ? '...' : '')} items)
+                Load more ({visibleItems.length} of {filteredItems.length})
               </Button>
             </div>
           )}
 
-          {/* Loading indicator for pagination */}
-          {loading && currentPage > 1 && (
-            <div className="text-center mt-4">
-              <Text>Loading more items...</Text>
-            </div>
-          )}
-
-          {!loading && media.length === 0 && (
-            <div className="text-center p-10">
-              <Text>No media found.</Text>
+          {!loading && filteredItems.length === 0 && (
+            <div className="text-center p-10 border border-dashed border-[hsl(var(--border-primary))] rounded-[var(--radius-md)]">
+              <Text>No media matches. Try another search or upload new files.</Text>
             </div>
           )}
         </>
       ) : (
-        /* Upload Mode */
         <Card>
           <div className="p-4">
-            <Text variant="label" className="mb-2">Title *</Text>
+            <Text variant="label" className="mb-2">
+              Title *
+            </Text>
             <input
               type="text"
               value={uploadForm.title}
-              onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+              onChange={(e) => setUploadForm((prev) => ({ ...prev, title: e.target.value }))}
               placeholder="Enter media title..."
-              className="surface-input mb-3"
+              className="surface-input mb-3 w-full"
             />
 
-            <Text variant="label" className="mb-2">Description</Text>
+            <Text variant="label" className="mb-2">
+              Description
+            </Text>
             <textarea
               value={uploadForm.description}
-              onChange={(e) => setUploadForm(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => setUploadForm((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Describe your media..."
               rows={3}
-              className="surface-textarea mb-3"
+              className="surface-textarea mb-3 w-full"
             />
 
-            <Text variant="label" className="mb-2">Tags</Text>
+            <Text variant="label" className="mb-2">
+              Tags
+            </Text>
             <input
               type="text"
               value={uploadForm.tags}
-              onChange={(e) => setUploadForm(prev => ({ ...prev, tags: e.target.value }))}
+              onChange={(e) => setUploadForm((prev) => ({ ...prev, tags: e.target.value }))}
               placeholder="gaming, dark theme, minimal, etc."
-              className="surface-input mb-3"
+              className="surface-input mb-3 w-full"
             />
 
-            <Text variant="label" className="mb-2">File *</Text>
+            <Text variant="label" className="mb-2">
+              File *
+            </Text>
             <input
               type="file"
               accept="image/*,video/*"
               onChange={handleFileSelect}
-              className="surface-input mb-4"
+              className="surface-input mb-4 w-full"
             />
 
             {uploadForm.file && (
               <div className="mb-4">
                 <Text variant="small" className="text-secondary">
-                  Selected: {uploadForm.file.name} ({(uploadForm.file.size / 1024 / 1024).toFixed(2)} MB)
+                  Selected: {uploadForm.file.name} ({(uploadForm.file.size / 1024 / 1024).toFixed(2)}{' '}
+                  MB)
                 </Text>
               </div>
             )}
 
             <div className="surface-actions justify-end">
-              <Button
-                variant="secondary"
-                onClick={() => setMode('browse')}
-                disabled={uploading}
-              >
+              <Button variant="secondary" onClick={() => setMode('browse')} disabled={uploading}>
                 Cancel
               </Button>
               <Button
@@ -396,74 +400,91 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
   );
 }
 
-// Media Item Component
-const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, viewMode }) => {
+const MediaItem = ({
+  item,
+  index,
+  onSelect,
+  onDownload,
+  itemLoading,
+  downloadSuccess,
+  viewMode,
+}) => {
   const isVideo = item.file_type === 'video';
   const isGif = item.file_type === 'gif';
-  
+
   const handleCardClick = () => {
-    console.log('MediaItem: Card clicked for item:', item.title);
     onSelect(item);
   };
-  
+
   return (
-    <Card className="p-3 cursor-pointer" onClick={handleCardClick}>
-      <div className="relative mb-2">
+    <div
+      className="image-search-modal__card"
+      style={{ '--stagger': Math.min(index, 60) }}
+    >
+    <Card
+      className={`!mt-0 p-3 cursor-pointer transition-shadow hover:shadow-[var(--shadow-md)] ${
+        viewMode === 'list' ? '!flex flex-row gap-4 items-center' : ''
+      }`}
+      onClick={handleCardClick}
+    >
+      <div className={`relative mb-2 shrink-0 ${viewMode === 'list' ? 'w-36' : ''}`}>
         {isVideo ? (
           <video
             src={getStoragePublicObjectUrl('media-library', item.file_url)}
-            className={`w-full object-cover rounded ${viewMode === 'grid' ? 'h-[120px]' : 'h-[80px]'}`}
+            className={`w-full object-cover rounded ${
+              viewMode === 'grid' ? 'h-[120px]' : 'h-[88px]'
+            }`}
             muted
             loop
-           autoPlay
+            autoPlay
+            playsInline
           />
         ) : (
           <img
             src={getStoragePublicObjectUrl('media-library', item.file_url)}
             alt={item.title}
-            className={`w-full object-cover rounded ${viewMode === 'grid' ? 'h-[120px]' : 'h-[80px]'}`}
+            className={`w-full object-cover rounded ${
+              viewMode === 'grid' ? 'h-[120px]' : 'h-[88px]'
+            }`}
+            loading="lazy"
           />
         )}
-        
-        {/* File type indicator */}
+
         <div className="absolute top-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-[10px] font-medium">
           {isVideo ? 'video' : isGif ? 'gif' : 'image'}
         </div>
       </div>
 
-      <div className="mb-2">
-        <Text variant="p" className="font-semibold mb-0.5 text-[14px]">
+      <div className={`mb-2 min-w-0 ${viewMode === 'list' ? 'flex-1' : ''}`}>
+        <Text variant="p" className="font-semibold mb-0.5 text-[14px] line-clamp-2">
           {item.title}
         </Text>
         {item.description && (
-          <Text variant="small" className="text-secondary text-[11px]">
+          <Text variant="small" className="text-secondary text-[11px] line-clamp-2">
             {item.description}
           </Text>
         )}
-        
-        {/* Tags */}
+
         {item.tags && item.tags.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-0.5">
-            {item.tags.slice(0, 3).map(tag => (
+            {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="bg-[hsl(var(--primary))] text-white px-1 py-[1px] rounded-[2px] text-[9px]"
+                className="bg-[hsl(var(--wii-blue))] text-text-on-accent px-1 py-[1px] rounded-[2px] text-[9px]"
               >
                 {tag}
               </span>
             ))}
             {item.tags.length > 3 && (
-              <span className="text-[9px] text-secondary">
-                +{item.tags.length - 3}
-              </span>
+              <span className="text-[9px] text-secondary">+{item.tags.length - 3}</span>
             )}
           </div>
         )}
       </div>
 
-      <div className="surface-row-between">
+      <div className="surface-row-between mt-auto">
         <Text variant="small" className="text-secondary text-[10px]">
-          ⬇️ {item.downloads || 0}
+          {item.downloads || 0} downloads
         </Text>
         <Button
           variant="secondary"
@@ -475,18 +496,29 @@ const MediaItem = ({ item, onSelect, onDownload, itemLoading, downloadSuccess, v
           disabled={itemLoading[item.id]}
           className="!px-2 !py-1 !text-[10px]"
         >
-          {downloadSuccess[item.id] ? '✅' : itemLoading[item.id] ? '⏳' : '⬇️'}
+          {downloadSuccess[item.id] ? 'Saved' : itemLoading[item.id] ? '…' : 'Download'}
         </Button>
       </div>
     </Card>
+    </div>
   );
+};
+
+MediaItem.propTypes = {
+  item: PropTypes.object.isRequired,
+  index: PropTypes.number.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  onDownload: PropTypes.func.isRequired,
+  itemLoading: PropTypes.object.isRequired,
+  downloadSuccess: PropTypes.object.isRequired,
+  viewMode: PropTypes.string.isRequired,
 };
 
 ImageSearchModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSelect: PropTypes.func.isRequired,
-  onUploadClick: PropTypes.func
+  onUploadClick: PropTypes.func,
 };
 
-export default ImageSearchModal; 
+export default ImageSearchModal;

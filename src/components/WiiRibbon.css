@@ -34,7 +34,7 @@
 
 
 
-.interactive-footer:hover {
+.interactive-footer.ribbon-hover-enabled:hover {
   height: 250px;
 }
 
@@ -43,7 +43,7 @@
   transform-origin: bottom center;
 }
 
-.interactive-footer:hover .svg-container-glow svg {
+.interactive-footer.ribbon-hover-enabled:hover .svg-container-glow svg {
   transform: scaleY(1.05);
 }
 
@@ -59,7 +59,7 @@
   -webkit-backdrop-filter: blur(10px) saturate(180%);
 }
 
-.interactive-footer:hover .svg-container-glow {
+.interactive-footer.ribbon-hover-enabled:hover .svg-container-glow {
   filter:
     drop-shadow(0 0 8px var(--ribbon-glow-medium))
     drop-shadow(0 0 16px var(--ribbon-glow-soft));

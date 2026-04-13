@@ -75,7 +75,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   // Use app library state from consolidated store
   const { appLibrary, appLibraryManager } = useAppLibraryState();
   const {
-    installedApps, appsLoading,
+    installedApps, appsLoading, appsError,
     steamGames, steamLoading, steamError,
     epicGames, epicLoading, epicError,
     uwpApps, uwpLoading,
@@ -83,7 +83,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   } = appLibrary || {};
   
   // Get channels data from consolidated store
-  const { channels, actions } = useConsolidatedAppStore();
+  const channels = useConsolidatedAppStore((state) => state.channels);
+  const actions = useConsolidatedAppStore((state) => state.actions);
   const channelConfigs = useMemo(
     () => channels?.data?.channelConfigs || {},
     [channels?.data?.channelConfigs]
@@ -92,7 +93,15 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     () => channels?.data?.configuredChannels || {},
     [channels?.data?.configuredChannels]
   );
-  
+
+  const setUnifiedAppsState = useConsolidatedAppStore((state) => state.actions.setUnifiedAppsState);
+
+  /** Clear global app picker selection so UnifiedAppPathCard does not show the previous channel's app */
+  useEffect(() => {
+    if (!isOpen) return;
+    setUnifiedAppsState({ selectedApp: null });
+  }, [isOpen, channelId, setUnifiedAppsState]);
+
   const {
     fetchInstalledApps, fetchSteamGames, fetchEpicGames, fetchUwpApps
   } = appLibraryManager || {};
@@ -107,9 +116,9 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     loadSoundLibrary
   } = useSoundLibrary();
   
-  // Alias functions for compatibility
-  const rescanSteamGames = fetchSteamGames;
-  const rescanEpicGames = fetchEpicGames;
+  const rescanSteamGames = () => fetchSteamGames?.(true);
+  const rescanEpicGames = () => fetchEpicGames?.(true);
+  const rescanInstalledApps = () => fetchInstalledApps?.(true);
 
   const {
     setHoverSound,
@@ -518,7 +527,13 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 </button>
               </div>
             ) : (
-              <WButton variant="primary" onClick={() => setShowImageSearch(true)}>
+              <WButton
+                variant="primary"
+                fullWidth
+                rounded
+                onClick={() => setShowImageSearch(true)}
+                className="text-text-on-accent"
+              >
                 Add Channel Image
               </WButton>
             )}
@@ -1064,12 +1079,16 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
                 setPath={setPath}
                 setType={setType}
                 setMedia={setMedia}
+                installedApps={installedApps}
+                appsLoading={appsLoading}
+                appsError={appsError}
                 steamGames={steamGames}
                 epicGames={epicGames}
                 steamLoading={steamLoading}
                 epicLoading={epicLoading}
                 steamError={steamError}
                 epicError={epicError}
+                rescanInstalledApps={rescanInstalledApps}
                 rescanSteamGames={rescanSteamGames}
                 rescanEpicGames={rescanEpicGames}
               />

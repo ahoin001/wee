@@ -1,29 +1,35 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useSpotifyState } from '../utils/useConsolidatedAppHooks';
+import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { registerSpotifyGradientSave } from '../utils/presets/spotifyLookRegistry';
 import { CANVAS_FILL_WHITE_80 } from '../design/runtimeColorStrings.js';
+import useAnimationActivity from '../hooks/useAnimationActivity';
 
 const SpotifyLiveGradientWallpaper = () => {
-  const { spotify } = useSpotifyState();
+  const { extractedColors, immersiveMode, isPlaying, progress, duration } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      extractedColors: state.spotify.extractedColors,
+      immersiveMode: state.spotify.immersiveMode,
+      isPlaying: state.spotify.isPlaying,
+      progress: state.spotify.progress,
+      duration: state.spotify.duration,
+    }))
+  );
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const lastWallpaperUrl = useRef(null);
+  const { shouldAnimate, isLowPowerMode } = useAnimationActivity({
+    activeFps: 20,
+    lowPowerFps: 10,
+  });
   
-  // Extract colors and settings
-  const extractedColors = spotify.extractedColors;
-  const immersiveMode = spotify.immersiveMode;
-  const isPlaying = spotify.isPlaying;
-  const progress = spotify.progress || 0;
-  const duration = spotify.duration || 1;
-
   // Helper function to extract RGB values from color strings
   const extractRgbValues = (colorStr) => {
     if (!colorStr) return { r: 0, g: 153, b: 255 }; // Default blue
     
     const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (match) {
-      return { r: parseInt(match[1]), g: parseInt(match[2]), b: parseInt(match[3]) };
+      return { r: parseInt(match[1], 10), g: parseInt(match[2], 10), b: parseInt(match[3], 10) };
     }
     
     if (colorStr.startsWith('#')) {
@@ -40,7 +46,7 @@ const SpotifyLiveGradientWallpaper = () => {
 
     // Create gradient overlay as a data URL
   const createGradientOverlay = useMemo(() => {
-    if (!immersiveMode.liveGradientWallpaper || !extractedColors) {
+    if (!immersiveMode.liveGradientWallpaper || !extractedColors || !shouldAnimate) {
       return null;
     }
 
@@ -150,7 +156,7 @@ const SpotifyLiveGradientWallpaper = () => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
-    if (animationLevel >= 3) {
+    if (animationLevel >= 3 && !isLowPowerMode) {
       // Add floating particles (reduced number for performance)
       ctx.globalCompositeOperation = 'lighter';
       for (let i = 0; i < 20; i++) {
@@ -179,18 +185,8 @@ const SpotifyLiveGradientWallpaper = () => {
     
     // Convert to data URL
     const dataUrl = canvas.toDataURL('image/png');
-    console.log('[LiveGradientWallpaper] Created optimized gradient wallpaper:', {
-      primary: `rgb(${enhancedPrimaryRgb.r}, ${enhancedPrimaryRgb.g}, ${enhancedPrimaryRgb.b})`,
-      secondary: `rgb(${enhancedSecondaryRgb.r}, ${enhancedSecondaryRgb.g}, ${enhancedSecondaryRgb.b})`,
-      accent: `rgb(${enhancedAccentRgb.r}, ${enhancedAccentRgb.g}, ${enhancedAccentRgb.b})`,
-      style: style,
-      intensity: intensity,
-      animationLevel: animationLevel,
-      dataUrlLength: dataUrl.length,
-      canvasSize: `${canvas.width}x${canvas.height}`
-    });
     return dataUrl;
-  }, [immersiveMode.liveGradientWallpaper, extractedColors, immersiveMode.intensity, immersiveMode.animationLevel, immersiveMode.style, immersiveMode.overlayMode, isPlaying]);
+  }, [immersiveMode.liveGradientWallpaper, extractedColors, immersiveMode.intensity, immersiveMode.animationLevel, immersiveMode.style, immersiveMode.overlayMode, isPlaying, shouldAnimate, isLowPowerMode]);
 
   // Track current gradient file for cleanup
   const currentGradientFile = useRef(null);

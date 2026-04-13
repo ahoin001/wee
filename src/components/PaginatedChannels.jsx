@@ -7,6 +7,8 @@ import useChannelOperations from '../utils/useChannelOperations';
 import useIdleChannelAnimations from '../utils/useIdleChannelAnimations';
 import './PaginatedChannels.css';
 
+const WII_RENDER_PAGE_BUFFER = 1;
+
 const PaginatedChannels = React.memo(({
   // Legacy props for backward compatibility
   allChannels,
@@ -48,13 +50,13 @@ const PaginatedChannels = React.memo(({
 
   // ✅ DATA LAYER: Use settings from consolidated store with fallbacks
   const effectiveSettings = useMemo(() => ({
-    animatedOnHover: channelSettings.animatedOnHover || animatedOnHover || false,
-    adaptiveEmptyChannels: channelSettings.adaptiveEmptyChannels || adaptiveEmptyChannels || true,
-    kenBurnsEnabled: channelSettings.kenBurnsEnabled || kenBurnsEnabled || false,
-    kenBurnsMode: channelSettings.kenBurnsMode || kenBurnsMode || 'hover',
-    idleAnimationEnabled: channelSettings.idleAnimationEnabled || idleAnimationEnabled || false,
-    idleAnimationTypes: channelSettings.idleAnimationTypes || idleAnimationTypes || ['pulse', 'bounce', 'glow'],
-    idleAnimationInterval: channelSettings.idleAnimationInterval || idleAnimationInterval || 8,
+    animatedOnHover: channelSettings.animatedOnHover ?? animatedOnHover ?? false,
+    adaptiveEmptyChannels: channelSettings.adaptiveEmptyChannels ?? adaptiveEmptyChannels ?? true,
+    kenBurnsEnabled: channelSettings.kenBurnsEnabled ?? kenBurnsEnabled ?? false,
+    kenBurnsMode: channelSettings.kenBurnsMode ?? kenBurnsMode ?? 'hover',
+    idleAnimationEnabled: channelSettings.idleAnimationEnabled ?? idleAnimationEnabled ?? false,
+    idleAnimationTypes: channelSettings.idleAnimationTypes ?? idleAnimationTypes ?? ['pulse', 'bounce', 'glow'],
+    idleAnimationInterval: channelSettings.idleAnimationInterval ?? idleAnimationInterval ?? 8,
     autoFadeTimeout: channelSettings.channelAutoFadeTimeout ?? 5
   }), [
     channelSettings,
@@ -247,13 +249,19 @@ const PaginatedChannels = React.memo(({
 
   // Render Wii Mode continuous grid
   const renderWiiModeGrid = useCallback(() => {
-    const { columns, rows } = gridConfig;
-    const { currentPage, isAnimating } = navigation;
+    const { columns, rows, channelsPerPage } = gridConfig;
+    const { currentPage, isAnimating, totalPages } = navigation;
     
     // Calculate the slide transform for Wii Mode
     // Each page should show a different section of the grid
     // Since the grid is 300% wide, we need to move by 100% for each page
     const slideTransform = `translateX(-${currentPage * 100}%)`;
+    const visiblePages = new Set();
+    for (let page = currentPage - WII_RENDER_PAGE_BUFFER; page <= currentPage + WII_RENDER_PAGE_BUFFER; page += 1) {
+      if (page >= 0 && page < totalPages) {
+        visiblePages.add(page);
+      }
+    }
 
     return (
       <div 
@@ -279,6 +287,11 @@ const PaginatedChannels = React.memo(({
         onMouseLeave={handleGridMouseLeave}
       >
         {Array.from({ length: gridConfig.totalChannels }, (_, index) => {
+          const pageIndex = Math.floor(index / channelsPerPage);
+          if (!visiblePages.has(pageIndex)) {
+            return <div key={`channel-placeholder-${index}`} className="channel-grid-placeholder" aria-hidden="true" />;
+          }
+
           const channelId = `channel-${index}`;
           const channelConfig = getChannelConfig(channelId);
           const isEmpty = isChannelEmpty(channelId);

@@ -1,18 +1,29 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { useSpotifyState } from '../utils/useConsolidatedAppHooks';
+import { useShallow } from 'zustand/react/shallow';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import useAnimationActivity from '../hooks/useAnimationActivity';
 
 const SpotifyImmersiveOverlay = () => {
-  const { spotify } = useSpotifyState();
+  const { extractedColors, immersiveMode, isPlaying, progress, duration } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      extractedColors: state.spotify.extractedColors,
+      immersiveMode: state.spotify.immersiveMode,
+      isPlaying: state.spotify.isPlaying,
+      progress: state.spotify.progress,
+      duration: state.spotify.duration,
+    }))
+  );
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
+  const { shouldAnimate, isLowPowerMode } = useAnimationActivity({
+    activeFps: 60,
+    lowPowerFps: 24,
+  });
   
   // Extract colors and settings
-  const extractedColors = spotify.extractedColors;
-  const immersiveMode = spotify.immersiveMode;
-  const isPlaying = spotify.isPlaying;
-  const progress = spotify.progress || 0;
-  const duration = spotify.duration || 1;
+  const safeProgress = progress || 0;
+  const safeDuration = duration || 1;
 
   // Helper function to extract RGB values from color strings
   const extractRgbValues = (colorStr) => {
@@ -20,7 +31,7 @@ const SpotifyImmersiveOverlay = () => {
     
     const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (match) {
-      return { r: parseInt(match[1]), g: parseInt(match[2]), b: parseInt(match[3]) };
+      return { r: parseInt(match[1], 10), g: parseInt(match[2], 10), b: parseInt(match[3], 10) };
     }
     
     if (colorStr.startsWith('#')) {
@@ -35,11 +46,11 @@ const SpotifyImmersiveOverlay = () => {
   
   // Calculate beat timing for pulse effects
   const beatProgress = useMemo(() => {
-    if (!isPlaying || !duration) return 0;
-    const trackProgress = progress / duration;
+    if (!isPlaying || !safeDuration) return 0;
+    const trackProgress = safeProgress / safeDuration;
     // Create pulsing effect based on track progress
     return Math.sin(trackProgress * Math.PI * 8) * 0.5 + 0.5;
-  }, [isPlaying, progress, duration]);
+  }, [isPlaying, safeProgress, safeDuration]);
 
   // Generate immersive overlay styles
   const overlayStyles = useMemo(() => {
@@ -92,7 +103,7 @@ const SpotifyImmersiveOverlay = () => {
 
   // Particle system for ambient effects
   useEffect(() => {
-    if (!immersiveMode.enabled || !extractedColors || !canvasRef.current) {
+    if (!immersiveMode.enabled || !extractedColors || !canvasRef.current || !shouldAnimate) {
       return;
     }
 
@@ -161,7 +172,8 @@ const SpotifyImmersiveOverlay = () => {
 
     // Initialize particles
     if (particlesRef.current.length === 0) {
-      for (let i = 0; i < 50; i++) {
+      const particleCount = isLowPowerMode ? 24 : 50;
+      for (let i = 0; i < particleCount; i++) {
         particlesRef.current.push(new AmbientParticle());
       }
     }
@@ -178,7 +190,8 @@ const SpotifyImmersiveOverlay = () => {
       
       // Remove dead particles and add new ones
       particlesRef.current = particlesRef.current.filter(p => p.life > 0);
-      while (particlesRef.current.length < 50) {
+      const targetParticleCount = isLowPowerMode ? 24 : 50;
+      while (particlesRef.current.length < targetParticleCount) {
         particlesRef.current.push(new AmbientParticle());
       }
       
@@ -193,29 +206,7 @@ const SpotifyImmersiveOverlay = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [immersiveMode.enabled, extractedColors, isPlaying]);
-
-  // Debug function to test immersive overlay
-  useEffect(() => {
-    window.testImmersiveOverlay = () => {
-      console.log('[ImmersiveOverlay] === TESTING IMMERSIVE OVERLAY ===');
-      console.log('[ImmersiveOverlay] Immersive mode enabled:', immersiveMode.enabled);
-      console.log('[ImmersiveOverlay] Extracted colors:', extractedColors);
-      console.log('[ImmersiveOverlay] Wallpaper overlay enabled:', immersiveMode.wallpaperOverlay);
-      console.log('[ImmersiveOverlay] Ambient lighting enabled:', immersiveMode.ambientLighting);
-      console.log('[ImmersiveOverlay] Pulse effects enabled:', immersiveMode.pulseEffects);
-      console.log('[ImmersiveOverlay] Overlay intensity:', immersiveMode.overlayIntensity);
-      console.log('[ImmersiveOverlay] Ambient intensity:', immersiveMode.ambientIntensity);
-      console.log('[ImmersiveOverlay] Pulse intensity:', immersiveMode.pulseIntensity);
-      console.log('[ImmersiveOverlay] Is playing:', isPlaying);
-      console.log('[ImmersiveOverlay] Beat progress:', beatProgress);
-      console.log('[ImmersiveOverlay] === END IMMERSIVE OVERLAY TEST ===');
-    };
-
-    return () => {
-      delete window.testImmersiveOverlay;
-    };
-  }, [immersiveMode, extractedColors, isPlaying, beatProgress]);
+  }, [immersiveMode.enabled, extractedColors, isPlaying, shouldAnimate, isLowPowerMode]);
 
   // Don't render if immersive mode is disabled
   if (!immersiveMode.enabled || !extractedColors) {

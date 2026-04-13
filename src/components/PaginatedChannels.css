@@ -148,6 +148,12 @@
   max-height: 100%;
 }
 
+.channel-grid-placeholder {
+  aspect-ratio: 2 / 1;
+  min-height: 110px;
+  min-width: 180px;
+}
+
 /* ===== ANIMATION STATES ===== */
 .pages-container.animating {
   pointer-events: none;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 // Lazy load modals
 const LazyPrimaryActionsModal = React.lazy(() => import('./PrimaryActionsModal'));
@@ -10,16 +11,17 @@ import DockParticleSystem from './DockParticleSystem';
 import './WiiRibbon.css';
 import reactIcon from '../assets/react.svg';
 import intervalManager from '../utils/IntervalManager';
-import { useUIState, useSpotifyState } from '../utils/useConsolidatedAppHooks';
+import { useUIState } from '../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import useSoundManager from '../utils/useSoundManager';
 import { useLaunchFeedback } from '../contexts/LaunchFeedbackContext';
 import { hexAlpha } from '../utils/colorHex';
 import { extractColorsFromAlbumArt } from '../utils/extractColorsFromAlbumArt';
+import { loadUnifiedSettingsSnapshot, saveUnifiedSettingsSnapshot } from '../utils/electronApi';
 import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../design/runtimeColorStrings.js';
 // import more icons as needed
 
-const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity, particleSettings = {} }) => {
+const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity, ribbonHoverAnimationEnabled = true, particleSettings = {} }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // Sound manager for dock button clicks
@@ -27,31 +29,14 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   const { showLaunchError } = useLaunchFeedback();
   
   // Spotify integration — single source of truth: store `ui.spotifyMatchEnabled`
-  const { spotify } = useSpotifyState();
+  const { spotifyExtractedColors, spotifyAlbumArtUrl } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      spotifyExtractedColors: state.spotify.extractedColors,
+      spotifyAlbumArtUrl: state.spotify.currentTrack?.album?.images?.[0]?.url || null,
+    }))
+  );
   const spotifyMatchEnabled = useConsolidatedAppStore((s) => s.ui.spotifyMatchEnabled);
   const [spotifyColors, setSpotifyColors] = useState(null);
-
-  useEffect(() => {
-    if (!spotifyColors && spotifyMatchEnabled) {
-      console.error('[WiiRibbon] Spotify Match enabled but no colors available');
-    }
-  }, [
-    propRibbonColor,
-    propRibbonGlowColor,
-    propRibbonGlowStrength,
-    propRibbonGlowStrengthHover,
-    glassWiiRibbon,
-    propGlassOpacity,
-    propGlassBlur,
-    propGlassBorderOpacity,
-    propGlassShineOpacity,
-    timeColor,
-    timeFont,
-    particleSettings,
-    spotifyColors,
-    spotifyMatchEnabled,
-    spotify.extractedColors,
-  ]);
   
   // Use consolidated store for modal states and UI settings
   const { 
@@ -64,14 +49,6 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDockEffectsModal, setShowDockEffectsModal] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [immersivePip, setImmersivePip] = useState(() => {
-    // Try to load from localStorage or default to false
-    try {
-      return JSON.parse(localStorage.getItem('immersivePip')) || false;
-    } catch {
-      return false;
-    }
-  });
   
 
   
@@ -89,22 +66,22 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
 
   // Mirror album-art colors into local paint state when Spotify Match is on
   useEffect(() => {
-    if (spotifyMatchEnabled && spotify.extractedColors) {
-      setSpotifyColors(spotify.extractedColors);
+    if (spotifyMatchEnabled && spotifyExtractedColors) {
+      setSpotifyColors(spotifyExtractedColors);
     } else if (!spotifyMatchEnabled) {
       setSpotifyColors(null);
     } else if (
       spotifyMatchEnabled &&
-      !spotify.extractedColors &&
-      spotify.currentTrack?.album?.images?.[0]?.url
+      !spotifyExtractedColors &&
+      spotifyAlbumArtUrl
     ) {
-      extractColorsFromAlbumArt(spotify.currentTrack.album.images[0].url).then((result) => {
+      extractColorsFromAlbumArt(spotifyAlbumArtUrl).then((result) => {
         if (result) setSpotifyColors(result.colors);
       });
     } else {
       setSpotifyColors(null);
     }
-  }, [spotify.currentTrack?.album?.images?.[0]?.url, spotify.extractedColors, spotifyMatchEnabled]);
+  }, [spotifyAlbumArtUrl, spotifyExtractedColors, spotifyMatchEnabled]);
 
   // Load configs from consolidated store on mount and subscribe to changes
   useEffect(() => {
@@ -126,15 +103,15 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       }));
       setButtonConfigs(configsWithAdaptiveColor);
     } else {
-      // Fallback to legacy settings API if no configs in store
+      // Fallback to unified settings snapshot if no configs in store
       async function loadButtonConfigs() {
         try {
-          if (window.api?.settings?.get) {
-            const settings = await window.api.settings.get();
-            if (settings && settings.ribbonButtonConfigs) {
+          const settings = await loadUnifiedSettingsSnapshot();
+          const persistedConfigs = settings?.ribbon?.ribbonButtonConfigs;
+          if (persistedConfigs) {
               
               // Ensure each button config has all required properties
-              const configsWithAdaptiveColor = settings.ribbonButtonConfigs.map(config => ({
+              const configsWithAdaptiveColor = persistedConfigs.map(config => ({
                 ...config,
                 useAdaptiveColor: config.useAdaptiveColor ?? false,
                 useGlowEffect: config.useGlowEffect ?? false,
@@ -151,7 +128,6 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
               useConsolidatedAppStore.getState().actions.setRibbonState({
                 ribbonButtonConfigs: configsWithAdaptiveColor
               });
-            }
           }
         } catch (error) {
           console.error('[WiiRibbon] Failed to load button configs:', error);
@@ -195,15 +171,9 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       ribbonButtonConfigs: configs
     });
     
-    // Also save to legacy API for backward compatibility
-    if (window.api?.settings?.get && window.api?.settings?.set) {
-      try {
-        const settings = await window.api.settings.get();
-        await window.api.settings.set({ ...settings, ribbonButtonConfigs: configs });
-      } catch (error) {
-        console.warn('[WiiRibbon] Failed to save to legacy API:', error);
-      }
-    }
+    await saveUnifiedSettingsSnapshot({
+      ribbon: { ribbonButtonConfigs: configs },
+    });
     
     // Notify parent component of the change
     if (onSettingsChange) {
@@ -538,27 +508,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
     // Only expose error logging functions
     window.enableSpotifyMatch = async () => {
       try {
-        if (window.api?.settings?.get && window.api?.settings?.set) {
-          const settings = await window.api.settings.get();
-          const presets = settings.presets || [];
-          const updatedPresets = presets.map(preset => {
-            if (preset.name === 'Spotify Match') {
-              return {
-                ...preset,
-                data: {
-                  ...preset.data,
-                  ui: {
-                    ...preset.data.ui,
-                    spotifyMatchEnabled: true
-                  }
-                }
-              };
-            }
-            return preset;
-          });
-          
-          await window.api.settings.set({ ...settings, presets: updatedPresets });
-        }
+        setUIState({ spotifyMatchEnabled: true });
       } catch (error) {
         console.error('[WiiRibbon] Failed to enable Spotify Match:', error);
       }
@@ -566,27 +516,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
 
     window.disableSpotifyMatch = async () => {
       try {
-        if (window.api?.settings?.get && window.api?.settings?.set) {
-          const settings = await window.api.settings.get();
-          const presets = settings.presets || [];
-          const updatedPresets = presets.map(preset => {
-            if (preset.name === 'Spotify Match') {
-              return {
-                ...preset,
-                data: {
-                  ...preset.data,
-                  ui: {
-                    ...preset.data.ui,
-                    spotifyMatchEnabled: false
-                  }
-                }
-              };
-            }
-            return preset;
-          });
-          
-          await window.api.settings.set({ ...settings, presets: updatedPresets });
-        }
+        setUIState({ spotifyMatchEnabled: false });
       } catch (error) {
         console.error('[WiiRibbon] Failed to disable Spotify Match:', error);
       }
@@ -596,7 +526,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       delete window.enableSpotifyMatch;
       delete window.disableSpotifyMatch;
     };
-  }, [spotifyMatchEnabled, spotify.currentTrack, spotifyColors]);
+  }, [spotifyMatchEnabled, spotifyAlbumArtUrl, spotifyColors]);
 
   useEffect(() => {
     if (api.onFullscreenState) {
@@ -667,7 +597,9 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   };
 
   const ribbonGlowHex = spotifyColors?.accent || propRibbonGlowColor || CSS_WII_BLUE;
-  const glowPx = isRibbonHovered ? (propRibbonGlowStrengthHover ?? 28) : (propRibbonGlowStrength ?? 20);
+  const glowPx = ribbonHoverAnimationEnabled && isRibbonHovered
+    ? (propRibbonGlowStrengthHover ?? 28)
+    : (propRibbonGlowStrength ?? 20);
   const ribbonGlowFilter = `drop-shadow(0 0 ${glowPx}px ${ribbonGlowHex}) drop-shadow(0 0 12px ${ribbonGlowHex})`;
 
   const pillBackdropBackground = (() => {
@@ -725,7 +657,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
 
   return (
     <>
-      <footer className="interactive-footer" onContextMenu={handleRibbonContextMenu}>
+      <footer className={`interactive-footer ${ribbonHoverAnimationEnabled ? 'ribbon-hover-enabled' : ''}`} onContextMenu={handleRibbonContextMenu}>
         {/* Particle System */}
         <DockParticleSystem
           enabled={particleSettings.particleSystemEnabled || false}
@@ -752,14 +684,14 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
           <div
             className="absolute inset-0 z-0 svg-container-glow ribbon-svg-glow-dynamic"
             style={{ ['--ribbon-glow-filter']: ribbonGlowFilter }}
-            onMouseEnter={() => setIsRibbonHovered(true)}
+            onMouseEnter={() => ribbonHoverAnimationEnabled && setIsRibbonHovered(true)}
             onMouseLeave={() => setIsRibbonHovered(false)}
           >
               <svg width="100%" height="100%" viewBox="0 0 1440 240" preserveAspectRatio="none">
                 {glassWiiRibbon && (
                   <defs>
                     <filter id="glass-blur" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation={propGlassBlur || 2.5} result="blur" />
+                      <feGaussianBlur stdDeviation={propGlassBlur ?? 2.5} result="blur" />
                       <feComponentTransfer>
                         <feFuncA type="linear" slope="1.2" />
                       </feComponentTransfer>
@@ -769,7 +701,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                       </feMerge>
                     </filter>
                     <linearGradient id="glass-shine" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color={`rgba(255,255,255,${propGlassShineOpacity || 0.7})`} />
+                      <stop offset="0%" stop-color={`rgba(255,255,255,${propGlassShineOpacity ?? 0.7})`} />
                       <stop offset="60%" stop-color="rgba(255,255,255,0.05)" />
                       <stop offset="100%" stop-color="rgba(255,255,255,0.0)" />
                     </linearGradient>
@@ -784,8 +716,8 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                      L 1440 40 
                      L 1440 240 
                      L 0 240 Z"
-                  fill={glassWiiRibbon ? `rgba(255,255,255,${propGlassOpacity || 0.18})` : (spotifyMatchEnabled && spotifyColors?.primary ? spotifyColors.primary : propRibbonColor) + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
-                  stroke={`rgba(255,255,255,${propGlassBorderOpacity || 0.5})`}
+                  fill={glassWiiRibbon ? `rgba(255,255,255,${propGlassOpacity ?? 0.18})` : (spotifyMatchEnabled && spotifyColors?.primary ? spotifyColors.primary : propRibbonColor) + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
+                  stroke={`rgba(255,255,255,${propGlassBorderOpacity ?? 0.5})`}
                   strokeWidth="2"
                   filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
                   className="transition-[fill] duration-300"
@@ -1232,6 +1164,7 @@ const arePropsEqual = (prevProps, nextProps) => {
     prevProps.glassBlur === nextProps.glassBlur &&
     prevProps.glassBorderOpacity === nextProps.glassBorderOpacity &&
     prevProps.glassShineOpacity === nextProps.glassShineOpacity &&
+    prevProps.ribbonHoverAnimationEnabled === nextProps.ribbonHoverAnimationEnabled &&
     JSON.stringify(prevProps.presetsButtonConfig) === JSON.stringify(nextProps.presetsButtonConfig) &&
     JSON.stringify(prevProps.particleSettings) === JSON.stringify(nextProps.particleSettings)
   );

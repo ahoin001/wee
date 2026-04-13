@@ -8,10 +8,38 @@ import { getAllMatchingMedia } from '../utils/mediaLibraryCache';
 import { getStoragePublicObjectUrl } from '../utils/supabase';
 import {
   EPIC_SUGGESTED_BADGE_BG,
+  PC_APP_SUGGESTED_BADGE_BG,
   STEAM_SUGGESTED_BADGE_BG,
 } from '../design/suggestedGameBadgeColors.js';
 
 const GAMES_PER_PAGE = 6;
+
+/** Carousel + media-library row id */
+function getSuggestedCarouselKey(game) {
+  if (game.source === 'steam') return `steam-${game.appId}`;
+  if (game.source === 'epic') return `epic-${String(game.appName || game.id)}`;
+  return `exe-${String(game.id || game.path || game.name)}`;
+}
+
+/** Avoid duplicate tiles when the same title exists on Steam/Epic and Start Menu */
+function dedupeInstalledAgainstStores(installed, steamList, epicList) {
+  const steamNames = new Set(
+    (steamList || []).map((g) => g.name?.toLowerCase().trim()).filter(Boolean)
+  );
+  const epicNames = new Set(
+    (epicList || []).map((g) => g.name?.toLowerCase().trim()).filter(Boolean)
+  );
+  const seenPath = new Set();
+  return (installed || []).filter((app) => {
+    if (!app?.name || !app?.path) return false;
+    const n = app.name.toLowerCase().trim();
+    if (steamNames.has(n) || epicNames.has(n)) return false;
+    const p = String(app.path).toLowerCase();
+    if (seenPath.has(p)) return false;
+    seenPath.add(p);
+    return true;
+  });
+}
 
 function filterGames(games, searchTerm) {
   if (!searchTerm.trim()) return games;
@@ -41,12 +69,16 @@ export default function ChannelModalSuggestedGames({
   setPath,
   setType,
   setMedia,
+  installedApps,
+  appsLoading,
+  appsError,
   steamGames,
   epicGames,
   steamLoading,
   epicLoading,
   steamError,
   epicError,
+  rescanInstalledApps,
   rescanSteamGames,
   rescanEpicGames,
 }) {
@@ -54,7 +86,8 @@ export default function ChannelModalSuggestedGames({
   const [gamesPage, setGamesPage] = useState(0);
   const [sortOrder, setSortOrder] = useState('asc');
   const [gamesSectionExpanded, setGamesSectionExpanded] = useState(true);
-  const [epicMediaIndexes, setEpicMediaIndexes] = useState({});
+  /** Index into getAllMatchingMedia() per suggested row (Steam, Epic, PC) */
+  const [libraryMediaIndexes, setLibraryMediaIndexes] = useState({});
   const [selectedGameFeedback, setSelectedGameFeedback] = useState(null);
 
   const showSelectionFeedback = useCallback((gameName, launcher) => {
@@ -72,6 +105,7 @@ export default function ChannelModalSuggestedGames({
 
   const realSteamGames = steamGames || [];
   const realEpicGames = epicGames || [];
+  const realInstalledApps = installedApps || [];
 
   useEffect(() => {
     if (!import.meta.env.DEV || !isOpen) return;
@@ -93,6 +127,7 @@ export default function ChannelModalSuggestedGames({
     );
     const installedSteamGames = uniqueSteamGames.filter((game) => game.installed !== false);
     const installedEpicGames = realEpicGames.filter((game) => game.installed !== false);
+    const pcApps = dedupeInstalledAgainstStores(realInstalledApps, installedSteamGames, installedEpicGames);
     const combined = [
       ...installedSteamGames.map((game) => ({
         ...game,
@@ -108,6 +143,13 @@ export default function ChannelModalSuggestedGames({
         badgeColor: EPIC_SUGGESTED_BADGE_BG,
         badgeText: 'E',
       })),
+      ...pcApps.map((app) => ({
+        ...app,
+        source: 'exe',
+        sourceName: 'PC App',
+        badgeColor: PC_APP_SUGGESTED_BADGE_BG,
+        badgeText: 'PC',
+      })),
     ];
     const filteredGames = filterGames(combined, gamesSearchTerm);
     const sorted = sortGames(filteredGames, sortOrder);
@@ -119,7 +161,7 @@ export default function ChannelModalSuggestedGames({
       paginatedGames: paginated,
       totalGamesPages: totalPages,
     };
-  }, [realSteamGames, realEpicGames, gamesSearchTerm, sortOrder, gamesPage]);
+  }, [realSteamGames, realEpicGames, realInstalledApps, gamesSearchTerm, sortOrder, gamesPage]);
 
   if (!isOpen) {
     return null;
@@ -134,12 +176,16 @@ export default function ChannelModalSuggestedGames({
 
 
     {/* Loading State */}
-    {(steamLoading || epicLoading) && (
+    {(steamLoading || epicLoading || appsLoading) && (
       <div className="text-center py-8">
         <div className="text-[hsl(var(--text-tertiary))] text-sm">
           <div className="mb-2">⏳</div>
           <div className="font-medium mb-1">
-            {steamLoading && epicLoading ? 'Scanning games...' :
+            {steamLoading && epicLoading && appsLoading
+              ? 'Scanning games and apps...'
+              : appsLoading && !steamLoading && !epicLoading
+                ? 'Scanning installed apps...'
+              : steamLoading && epicLoading ? 'Scanning games...' :
              steamLoading ? 'Scanning Steam games...' : 
              epicLoading ? 'Scanning Epic games...' : 'Scanning...'}
           </div>
@@ -151,22 +197,22 @@ export default function ChannelModalSuggestedGames({
     )}
 
     {/* Error State */}
-    {(steamError || epicError) && (
-      <div className="text-center py-8">
+    {(steamError || epicError || appsError) && (
+      <div className="text-center py-4">
         <div className="text-[hsl(var(--state-error))] text-sm">
           <div className="mb-2">⚠️</div>
-          <div className="font-medium mb-1">Content scan failed</div>
+          <div className="font-medium mb-1">Some sources could not be scanned</div>
           <div className="text-xs">
-            {steamError && `Steam: ${steamError}`}
-            {steamError && epicError && <br />}
-            {epicError && `Epic: ${epicError}`}
+            {steamError && <span className="block">Steam: {steamError}</span>}
+            {epicError && <span className="block">Epic: {epicError}</span>}
+            {appsError && <span className="block">Installed apps: {appsError}</span>}
           </div>
         </div>
       </div>
     )}
 
-    {/* Games Content */}
-    {!steamLoading && !steamError && !epicLoading && !epicError && allGames.length > 0 && (
+    {/* Games Content — show whenever any source produced rows; errors are non-blocking */}
+    {!steamLoading && !epicLoading && !appsLoading && allGames.length > 0 && (
       <>
         {/* Unified Games Section */}
         <div className="flex items-center gap-2 mb-3">
@@ -205,13 +251,13 @@ export default function ChannelModalSuggestedGames({
               variant="secondary"
               size="sm"
               onClick={() => {
-                // console.log('[ChannelModal] Manual games refresh triggered');
                 rescanSteamGames();
                 rescanEpicGames();
+                if (typeof rescanInstalledApps === 'function') rescanInstalledApps();
               }}
-              disabled={steamLoading || epicLoading}
+              disabled={steamLoading || epicLoading || appsLoading}
             >
-              {(steamLoading || epicLoading) ? 'Scanning...' : 'Refresh'}
+              {(steamLoading || epicLoading || appsLoading) ? 'Scanning...' : 'Refresh'}
             </WButton>
           </div>
         </div>
@@ -235,68 +281,52 @@ export default function ChannelModalSuggestedGames({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {paginatedGames.map((game, index) => (
                 <div
-                  key={game.appId || game.id || game.appName}
+                  key={getSuggestedCarouselKey(game)}
                   onClick={() => {
                     try {
                       if (game.source === 'steam') {
-                        // Handle Steam game
-                        const gameId = game.appId; // Steam games use appId (capital I)
-                        
+                        const gameId = game.appId;
                         if (!gameId) {
                           console.error('[ChannelModalSuggestedGames] No valid Steam app ID for game:', game.name);
                           return;
                         }
-                        
-                        // Create Steam app object
+                        const carouselKey = getSuggestedCarouselKey(game);
+                        const allMatchingMedia = getAllMatchingMedia(game.name);
+                        const currentIndex = libraryMediaIndexes[carouselKey] || 0;
+                        let selectedMedia = null;
+                        let coverUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${gameId}/header.jpg`;
+                        if (allMatchingMedia.length > 0) {
+                          selectedMedia = allMatchingMedia[currentIndex] || allMatchingMedia[0];
+                          coverUrl = getStoragePublicObjectUrl('media-library', selectedMedia.file_url);
+                        }
                         const steamApp = {
                           id: `steam-${gameId}`,
                           name: game.name,
                           type: 'steam',
                           appId: gameId,
                           path: `steam://rungameid/${gameId}`,
-                          icon: `https://cdn.cloudflare.steamstatic.com/steam/apps/${gameId}/header.jpg`,
+                          icon: coverUrl,
                           source: 'steam',
                           category: 'Steam Game',
                           installed: game.installed,
                           sizeOnDisk: game.sizeOnDisk
                         };
-                        
-                        // console.log('[ChannelModal] Created steamApp:', steamApp);
-                        
-                        // Set the selected app in the unified store
                         useConsolidatedAppStore.getState().unifiedAppManager.setSelectedApp(steamApp);
-
                         setType('steam');
                         setPath(`steam://rungameid/${gameId}`);
-
-                        // Set the game's cover art as the channel image
-                        const coverUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${gameId}/header.jpg`;
-                        // console.log(`[ChannelModal] Setting Steam media for ${game.name}:`, {
-                        //   coverUrl,
-                        //   gameId
-                        // });
-                        
                         setMedia({
                           url: coverUrl,
-                          type: 'image/jpeg',
+                          type: selectedMedia ? selectedMedia.file_type : 'image/jpeg',
                           name: `${game.name} Cover`,
                           isSteamGame: true,
                           steamAppId: gameId
                         });
-                        
-                        // Show selection feedback
                         showSelectionFeedback(game.name, 'Steam');
-                        
                       } else if (game.source === 'epic') {
-                        // Handle Epic game
-                        
-                        // Auto-fill the channel with Epic game data
                         setType('epic');
-                        
-                        // Get all matching media items for this game
                         const allMatchingMedia = getAllMatchingMedia(game.name);
-                        const gameId = game.appName || game.id;
-                        const currentIndex = epicMediaIndexes[gameId] || 0;
+                        const carouselKey = getSuggestedCarouselKey(game);
+                        const currentIndex = libraryMediaIndexes[carouselKey] || 0;
                         
                         // Determine which media to show (matching media or fallback)
                         let currentMedia = null;
@@ -353,8 +383,42 @@ export default function ChannelModalSuggestedGames({
                         
                         // Show selection feedback
                         showSelectionFeedback(game.name, 'Epic Games');
+                      } else if (game.source === 'exe') {
+                        const carouselKey = getSuggestedCarouselKey(game);
+                        const allMatchingMedia = getAllMatchingMedia(game.name);
+                        const currentIndex = libraryMediaIndexes[carouselKey] || 0;
+                        let selectedMedia = null;
+                        let coverUrl = '';
+                        let mediaType = 'image/png';
+                        if (allMatchingMedia.length > 0) {
+                          selectedMedia = allMatchingMedia[currentIndex] || allMatchingMedia[0];
+                          coverUrl = getStoragePublicObjectUrl('media-library', selectedMedia.file_url);
+                          mediaType = selectedMedia.file_type;
+                        } else if (game.icon) {
+                          coverUrl = game.icon;
+                        } else {
+                          coverUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjMzQzNDM0Ii8+PHBhdGggZD0iTTEyIDEySDI4VjI4SDEyVjEyWiIgZmlsbD0iIzY2NjY2NiIvPjwvc3ZnPg==';
+                        }
+                        const exeApp = {
+                          id: game.id || `exe-${game.path}`,
+                          name: game.name,
+                          type: 'exe',
+                          path: game.path,
+                          icon: coverUrl,
+                          source: 'exe',
+                          category: 'Installed App',
+                        };
+                        useConsolidatedAppStore.getState().unifiedAppManager.setSelectedApp(exeApp);
+                        setType('exe');
+                        setPath(game.path);
+                        setMedia({
+                          url: coverUrl,
+                          type: selectedMedia ? selectedMedia.file_type : mediaType,
+                          name: `${game.name}`,
+                          isInstalledApp: true,
+                        });
+                        showSelectionFeedback(game.name, 'This PC');
                       }
-                      
                     } catch (error) {
                       console.error('[ChannelModalSuggestedGames] Error in game click handler:', error);
                     }
@@ -365,23 +429,86 @@ export default function ChannelModalSuggestedGames({
                   {/* Game Cover */}
                   <div className="relative w-full aspect-video rounded overflow-hidden mb-2">
                     {game.source === 'steam' ? (
-                      <img
-                        src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appId}/header.jpg`}
-                        alt={`${game.name} cover`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        loading={index < 3 ? "eager" : "lazy"}
-                        onError={(e) => {
-                          // Fallback to a generic game icon if cover fails to load
-                          e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzM0MzQzNCIvPgo8cGF0aCBkPSJNMTIgMTJIMjhWMjhIMTJWMjJaIiBmaWxsPSIjNjY2NjY2Ii8+Cjwvc3ZnPgo=';
-                        }}
-                      />
+                      (() => {
+                        const allMatchingMedia = getAllMatchingMedia(game.name);
+                        const carouselKey = getSuggestedCarouselKey(game);
+                        const currentIndex = libraryMediaIndexes[carouselKey] || 0;
+                        let currentMedia = null;
+                        let coverUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appId}/header.jpg`;
+                        if (allMatchingMedia.length > 0) {
+                          currentMedia = allMatchingMedia[currentIndex];
+                          coverUrl = getStoragePublicObjectUrl('media-library', currentMedia.file_url);
+                        }
+                        return (
+                          <div className="relative w-full h-full">
+                            {currentMedia && (currentMedia.file_type === 'gif' || currentMedia.file_type === 'video') ? (
+                              <video
+                                src={coverUrl}
+                                alt={`${game.name} cover`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                muted
+                                loop
+                                autoPlay
+                              />
+                            ) : (
+                              <img
+                                src={coverUrl}
+                                alt={`${game.name} cover`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                loading={index < 3 ? 'eager' : 'lazy'}
+                                onError={(e) => {
+                                  e.target.src = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appId}/header.jpg`;
+                                }}
+                              />
+                            )}
+                            {currentMedia && (
+                              <div className="absolute top-1 left-1 bg-[hsl(var(--wii-blue))] text-white px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                📚
+                              </div>
+                            )}
+                            {allMatchingMedia.length > 1 && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const newIndex = currentIndex === 0 ? allMatchingMedia.length - 1 : currentIndex - 1;
+                                    setLibraryMediaIndexes((prev) => ({ ...prev, [carouselKey]: newIndex }));
+                                  }}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  className="absolute left-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-xs font-bold text-white opacity-0 transition-opacity duration-200 hover:bg-black/90 group-hover:opacity-100"
+                                >
+                                  ‹
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const newIndex = currentIndex === allMatchingMedia.length - 1 ? 0 : currentIndex + 1;
+                                    setLibraryMediaIndexes((prev) => ({ ...prev, [carouselKey]: newIndex }));
+                                  }}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  className="absolute right-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-xs font-bold text-white opacity-0 transition-opacity duration-200 hover:bg-black/90 group-hover:opacity-100"
+                                >
+                                  ›
+                                </button>
+                                <div className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                  {currentIndex + 1}/{allMatchingMedia.length}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()
                     ) : game.source === 'epic' ? (
                       // Epic game cover logic with media library integration
                       (() => {
                         // Get all matching media items for this game
                         const allMatchingMedia = getAllMatchingMedia(game.name);
-                        const gameId = game.appName || game.id;
-                        const currentIndex = epicMediaIndexes[gameId] || 0;
+                        const carouselKey = getSuggestedCarouselKey(game);
+                        const currentIndex = libraryMediaIndexes[carouselKey] || 0;
                         
                         // Determine which media to show (matching media or fallback)
                         let currentMedia = null;
@@ -445,9 +572,9 @@ export default function ChannelModalSuggestedGames({
                                     e.preventDefault();
                                     e.stopPropagation();
                                     const newIndex = currentIndex === 0 ? allMatchingMedia.length - 1 : currentIndex - 1;
-                                    setEpicMediaIndexes(prev => ({
+                                    setLibraryMediaIndexes(prev => ({
                                       ...prev,
-                                      [gameId]: newIndex
+                                      [carouselKey]: newIndex
                                     }));
                                   }}
                                   onMouseDown={(e) => e.stopPropagation()}
@@ -464,9 +591,9 @@ export default function ChannelModalSuggestedGames({
                                     e.preventDefault();
                                     e.stopPropagation();
                                     const newIndex = currentIndex === allMatchingMedia.length - 1 ? 0 : currentIndex + 1;
-                                    setEpicMediaIndexes(prev => ({
+                                    setLibraryMediaIndexes(prev => ({
                                       ...prev,
-                                      [gameId]: newIndex
+                                      [carouselKey]: newIndex
                                     }));
                                   }}
                                   onMouseDown={(e) => e.stopPropagation()}
@@ -479,6 +606,84 @@ export default function ChannelModalSuggestedGames({
                                 
                                 {/* Media Counter */}
                                 <div className="absolute bottom-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                  {currentIndex + 1}/{allMatchingMedia.length}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()
+                    ) : game.source === 'exe' ? (
+                      (() => {
+                        const allMatchingMedia = getAllMatchingMedia(game.name);
+                        const carouselKey = getSuggestedCarouselKey(game);
+                        const currentIndex = libraryMediaIndexes[carouselKey] || 0;
+                        let currentMedia = null;
+                        let coverUrl = '';
+                        if (allMatchingMedia.length > 0) {
+                          currentMedia = allMatchingMedia[currentIndex];
+                          coverUrl = getStoragePublicObjectUrl('media-library', currentMedia.file_url);
+                        } else {
+                          coverUrl = game.icon || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjMzQzNDM0Ii8+PHBhdGggZD0iTTEyIDEySDI4VjI4SDEyVjEyWiIgZmlsbD0iIzY2NjY2NiIvPjwvc3ZnPg==';
+                        }
+                        const iconOnly = !currentMedia && !!game.icon;
+                        return (
+                          <div className="relative h-full w-full">
+                            {currentMedia && (currentMedia.file_type === 'gif' || currentMedia.file_type === 'video') ? (
+                              <video
+                                src={coverUrl}
+                                alt={`${game.name}`}
+                                className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                muted
+                                loop
+                                autoPlay
+                              />
+                            ) : (
+                              <img
+                                src={coverUrl}
+                                alt={`${game.name}`}
+                                className={
+                                  iconOnly
+                                    ? 'h-full w-full object-contain bg-[hsl(var(--surface-secondary))] p-6 transition-transform duration-200 group-hover:scale-105'
+                                    : 'h-full w-full object-cover transition-transform duration-200 group-hover:scale-105'
+                                }
+                                loading={index < 3 ? 'eager' : 'lazy'}
+                              />
+                            )}
+                            {currentMedia && (
+                              <div className="absolute left-1 top-1 rounded bg-[hsl(var(--wii-blue))] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                📚
+                              </div>
+                            )}
+                            {allMatchingMedia.length > 1 && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const newIndex = currentIndex === 0 ? allMatchingMedia.length - 1 : currentIndex - 1;
+                                    setLibraryMediaIndexes((prev) => ({ ...prev, [carouselKey]: newIndex }));
+                                  }}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  className="absolute left-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-xs font-bold text-white opacity-0 transition-opacity duration-200 hover:bg-black/90 group-hover:opacity-100"
+                                >
+                                  ‹
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const newIndex = currentIndex === allMatchingMedia.length - 1 ? 0 : currentIndex + 1;
+                                    setLibraryMediaIndexes((prev) => ({ ...prev, [carouselKey]: newIndex }));
+                                  }}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  className="absolute right-1 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-xs font-bold text-white opacity-0 transition-opacity duration-200 hover:bg-black/90 group-hover:opacity-100"
+                                >
+                                  ›
+                                </button>
+                                <div className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                                   {currentIndex + 1}/{allMatchingMedia.length}
                                 </div>
                               </>
@@ -563,23 +768,23 @@ export default function ChannelModalSuggestedGames({
     )}
 
     {/* No Content Found Messages */}
-    {!steamLoading && !steamError && !epicLoading && !epicError && allGames.length === 0 && (
+    {!steamLoading && !epicLoading && !appsLoading && allGames.length === 0 && (
       <div className="text-center py-8">
         <div className="text-[hsl(var(--text-tertiary))] text-sm">
           <div className="mb-2">🎮</div>
-          <div className="font-medium mb-1">No games found</div>
+          <div className="font-medium mb-1">No suggested items yet</div>
           <div className="text-xs">
-            Make sure Steam and/or Epic Games are installed and you have games in your libraries.
+            Install games in Steam or Epic, or ensure Start Menu shortcuts were found by the PC app scan.
+            Use Refresh above after fixing launcher or shortcut issues.
           </div>
           <div className="text-xs mt-2 text-[hsl(var(--text-secondary))]">
-            Debug: Steam games loaded: {realSteamGames.length}, Installed: {realSteamGames.filter(g => g.installed).length} | Epic games loaded: {realEpicGames.length}, Installed: {realEpicGames.filter(g => g.installed !== false).length}
+            Debug: Steam {realSteamGames.length} (installed {realSteamGames.filter((g) => g.installed).length}) · Epic {realEpicGames.length} (installed {realEpicGames.filter((g) => g.installed !== false).length}) · PC scan {realInstalledApps.length}
           </div>
-          <div className="mt-4 flex gap-2 justify-center">
+          <div className="mt-4 flex flex-wrap gap-2 justify-center">
             <WButton
               variant="secondary"
               size="sm"
               onClick={() => {
-                // console.log('[ChannelModal] Force clearing Steam cache and rescanning...');
                 localStorage.removeItem('app_cache_steamGames');
                 localStorage.removeItem('app_cache_timestamp_steamGames');
                 rescanSteamGames();
@@ -592,7 +797,6 @@ export default function ChannelModalSuggestedGames({
               variant="secondary"
               size="sm"
               onClick={() => {
-                // console.log('[ChannelModal] Force clearing Epic cache and rescanning...');
                 localStorage.removeItem('app_cache_epicGames');
                 localStorage.removeItem('app_cache_timestamp_epicGames');
                 rescanEpicGames();
@@ -601,6 +805,16 @@ export default function ChannelModalSuggestedGames({
             >
               {epicLoading ? 'Scanning...' : 'Rescan Epic'}
             </WButton>
+            {typeof rescanInstalledApps === 'function' && (
+              <WButton
+                variant="secondary"
+                size="sm"
+                onClick={() => rescanInstalledApps()}
+                disabled={appsLoading}
+              >
+                {appsLoading ? 'Scanning...' : 'Rescan PC apps'}
+              </WButton>
+            )}
           </div>
         </div>
       </div>
@@ -617,12 +831,16 @@ ChannelModalSuggestedGames.propTypes = {
   setPath: PropTypes.func.isRequired,
   setType: PropTypes.func.isRequired,
   setMedia: PropTypes.func.isRequired,
+  installedApps: PropTypes.array,
+  appsLoading: PropTypes.bool,
+  appsError: PropTypes.string,
   steamGames: PropTypes.array,
   epicGames: PropTypes.array,
   steamLoading: PropTypes.bool,
   epicLoading: PropTypes.bool,
   steamError: PropTypes.string,
   epicError: PropTypes.string,
+  rescanInstalledApps: PropTypes.func,
   rescanSteamGames: PropTypes.func,
   rescanEpicGames: PropTypes.func,
 };

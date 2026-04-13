@@ -12,6 +12,10 @@ module.exports = {
         'wii-blue': 'hsl(var(--wii-blue))',
         'wii-blue-hover': 'hsl(var(--wii-blue-hover))',
         'wii-blue-active': 'hsl(var(--wii-blue-active))',
+        /** Themeable app primary (same source as --wii-blue; set from ribbon accent hex) */
+        primary: 'hsl(var(--primary))',
+        'primary-hover': 'hsl(var(--primary-hover))',
+        'primary-active': 'hsl(var(--primary-active))',
 
         // Background colors
         'bg-primary': 'hsl(var(--bg-primary))',

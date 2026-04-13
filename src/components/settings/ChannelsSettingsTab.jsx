@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
@@ -8,7 +9,12 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 const ChannelsSettingsTab = React.memo(() => {
   // Get channel settings from consolidated store
-  const { channels, actions } = useConsolidatedAppStore();
+  const channels = useConsolidatedAppStore((state) => state.channels);
+  const actions = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setChannelSettings: state.actions.setChannelSettings,
+    }))
+  );
   const settings = channels?.settings || {};
   
   // Memoize callback functions to prevent unnecessary re-renders

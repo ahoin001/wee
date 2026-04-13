@@ -69,7 +69,7 @@ function WBaseModal({
               </div>
 
               {/* Content */}
-              <div className="p-6 overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none] pb-10">
+              <div className="p-6 overflow-y-auto flex-1 min-h-0 scrollbar-soft scroll-region-inset pb-10">
                 {children}
               </div>
 

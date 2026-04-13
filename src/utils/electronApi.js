@@ -1,3 +1,8 @@
+import {
+  mergeCanonicalSettings,
+  normalizeUnifiedSettingsSnapshot,
+  withSettingsSchemaMeta,
+} from './store/settingsPersistenceContract';
 const getApi = () => (typeof window !== 'undefined' ? window.api : null);
 
 const safeCall = async (fn, fallback = null) => {
@@ -9,45 +14,49 @@ const safeCall = async (fn, fallback = null) => {
   }
 };
 
-/** Merge fields into `unified-data.json` → `settings.appearance` (e.g. spotifyMatchEnabled). */
-export async function saveUnifiedAppearancePatch(patch) {
+/**
+ * Read unified-data and return only canonical settings slices.
+ */
+export async function loadUnifiedSettingsSnapshot() {
+  const api = getApi();
+  if (!api?.data?.get) return null;
+  const unified = await safeCall(() => api.data.get(), null);
+  if (!unified?.settings) return null;
+  return normalizeUnifiedSettingsSnapshot(unified.settings);
+}
+
+/**
+ * Persist canonical settings slices into unified-data.json.
+ * This is the single source of truth writer for renderer settings.
+ */
+export async function saveUnifiedSettingsSnapshot(settingsSnapshot) {
   const api = getApi();
   if (!api?.data?.get || !api?.data?.set) return false;
+
   const current = await safeCall(() => api.data.get(), null);
-  if (!current?.settings) return false;
-  return safeCall(
-    () =>
-      api.data.set({
-        ...current,
-        settings: {
-          ...current.settings,
-          appearance: {
-            ...current.settings.appearance,
-            ...patch,
-          },
-        },
-      }),
-    false
-  );
+  if (!current) return false;
+
+  const nextSettings = mergeCanonicalSettings(current.settings, settingsSnapshot || {});
+  const payload = withSettingsSchemaMeta({
+    ...current,
+    settings: nextSettings,
+  });
+
+  return safeCall(() => api.data.set(payload), false);
+}
+
+/** Merge fields into `unified-data.json` → `settings.appearance` (e.g. spotifyMatchEnabled). */
+export async function saveUnifiedAppearancePatch(patch) {
+  return saveUnifiedSettingsSnapshot({
+    ui: { ...patch },
+  });
 }
 
 /** Persist the consolidated sounds slice into `unified-data.json` → `settings.sounds`. */
 export async function saveUnifiedSoundSettings(soundsState) {
-  const api = getApi();
-  if (!api?.data?.get || !api?.data?.set) return false;
-  const current = await safeCall(() => api.data.get(), null);
-  if (!current?.settings) return false;
-  return safeCall(
-    () =>
-      api.data.set({
-        ...current,
-        settings: {
-          ...current.settings,
-          sounds: soundsState,
-        },
-      }),
-    false
-  );
+  return saveUnifiedSettingsSnapshot({
+    sounds: soundsState,
+  });
 }
 
 export const electronApi = {
@@ -67,12 +76,6 @@ export const electronApi = {
     const api = getApi();
     if (!api?.channels?.get) return null;
     return safeCall(() => api.channels.get(), null);
-  },
-
-  async getSettings() {
-    const api = getApi();
-    if (!api?.settings?.get) return null;
-    return safeCall(() => api.settings.get(), null);
   },
 
   async setFullscreen(enabled) {

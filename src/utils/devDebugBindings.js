@@ -25,13 +25,13 @@ export const registerDevDebugBindings = ({
   };
 
   window.testWallpaperPersistence = async () => {
-    const [backendWallpaper, backendSettings] = await Promise.all([
+    const [backendWallpaper, backendUnifiedData] = await Promise.all([
       electronApi.getWallpapers(),
-      electronApi.getSettings(),
+      electronApi.getUnifiedData(),
     ]);
     console.log('[DEBUG] Current wallpaper state:', useConsolidatedAppStore.getState().wallpaper);
     console.log('[DEBUG] Backend wallpaper data:', backendWallpaper);
-    console.log('[DEBUG] Backend settings data:', backendSettings);
+    console.log('[DEBUG] Backend unified settings data:', backendUnifiedData?.settings);
   };
 
   window.debugWallpaperCycling = () => {

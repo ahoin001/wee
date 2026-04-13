@@ -98,21 +98,9 @@ export const useChannelModalInitialization = ({
 
   useEffect(() => {
     if (isOpen && window.api) {
-      if (installedAppsLength === 0 && window.api.apps?.getInstalled) {
-        window.api.apps.getInstalled();
-      }
-      if (uwpAppsLength === 0 && window.api.uwp?.listApps) {
-        window.api.uwp.listApps();
-      }
-      if (steamGamesLength === 0 && window.api.steam?.getInstalledGames) {
-        window.api.steam.getInstalledGames();
-      }
-      if (epicGamesLength === 0 && window.api.epic?.getInstalledGames) {
-        window.api.epic.getInstalledGames();
-      }
       preloadMediaLibrary();
     }
-  }, [isOpen, installedAppsLength, uwpAppsLength, steamGamesLength, epicGamesLength, preloadMediaLibrary]);
+  }, [isOpen, preloadMediaLibrary]);
 
   useEffect(() => {
     if (!isOpen) return;

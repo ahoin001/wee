@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import useChannelOperations from '../utils/useChannelOperations';
+import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import './WiiPageNavigation.css';
 
 const WiiPageNavigation = ({ 
@@ -19,58 +20,23 @@ const WiiPageNavigation = ({
   
   const { currentPage, totalPages, isAnimating, mode } = navigation;
 
-  // Icon state management
-  const [leftIcon, setLeftIcon] = useState(null);
-  const [rightIcon, setRightIcon] = useState(null);
-  
-  // Glass effect state management
-  const [leftGlassSettings, setLeftGlassSettings] = useState({
+  const navigationSettings = useConsolidatedAppStore((state) => state.navigation);
+  const leftIcon = navigationSettings.icons?.left || null;
+  const rightIcon = navigationSettings.icons?.right || null;
+  const leftGlassSettings = navigationSettings.glassEffect?.left || {
     enabled: glassEffect,
     opacity: 0.18,
     blur: 2.5,
     borderOpacity: 0.5,
-    shineOpacity: 0.7
-  });
-  const [rightGlassSettings, setRightGlassSettings] = useState({
+    shineOpacity: 0.7,
+  };
+  const rightGlassSettings = navigationSettings.glassEffect?.right || {
     enabled: glassEffect,
     opacity: 0.18,
     blur: 2.5,
     borderOpacity: 0.5,
-    shineOpacity: 0.7
-  });
-
-  // Load saved icons and glass settings on component mount
-  useEffect(() => {
-    const loadSavedSettings = async () => {
-      if (window.api?.settings?.get) {
-        try {
-          const settings = await window.api.settings.get();
-          
-          // Load icons
-          if (settings.navigationIcons) {
-            setLeftIcon(settings.navigationIcons.left || null);
-            setRightIcon(settings.navigationIcons.right || null);
-          }
-          
-          // Load glass settings
-          if (settings.navigationGlassEffect) {
-            const leftGlass = settings.navigationGlassEffect.left;
-            const rightGlass = settings.navigationGlassEffect.right;
-            
-            if (leftGlass) {
-              setLeftGlassSettings(leftGlass);
-            }
-            if (rightGlass) {
-              setRightGlassSettings(rightGlass);
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to load navigation settings:', error);
-        }
-      }
-    };
-    loadSavedSettings();
-  }, []);
+    shineOpacity: 0.7,
+  };
 
   // Generate glass effect styles
   const getGlassStyleVars = (glassSettings) => {
@@ -119,11 +85,7 @@ const WiiPageNavigation = ({
           className="wii-nav-icon-image"
           onError={(e) => {
             console.warn('Navigation icon failed to load, falling back to default:', customIcon);
-            if (customIcon === leftIcon) {
-              setLeftIcon(null);
-            } else if (customIcon === rightIcon) {
-              setRightIcon(null);
-            }
+            if (e?.currentTarget) e.currentTarget.style.display = 'none';
           }}
         />
       );

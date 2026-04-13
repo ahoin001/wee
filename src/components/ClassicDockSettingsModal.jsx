@@ -703,7 +703,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
               </div>
               <div className="mb-3">
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-sm text-gray-600">Border Opacity</span>
+                  <span className="text-sm text-gray-600">Glass Border Intensity</span>
                   <span className="text-sm text-gray-600">{Math.round(glassBorderOpacity * 100)}%</span>
                 </div>
                 <Slider
@@ -716,7 +716,7 @@ function ClassicDockSettingsModal({ isOpen, onClose, onSettingsChange, dockSetti
               </div>
               <div className="mb-3">
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-sm text-gray-600">Shine Opacity</span>
+                  <span className="text-sm text-gray-600">Glass Shine Intensity</span>
                   <span className="text-sm text-gray-600">{Math.round(glassShineOpacity * 100)}%</span>
                 </div>
                 <Slider

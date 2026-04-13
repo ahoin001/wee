@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useShallow } from 'zustand/react/shallow';
 import WBaseModal from './WBaseModal';
 import ResourceUsageIndicator from './ResourceUsageIndicator';
 import Text from '../ui/Text';
@@ -54,8 +55,18 @@ const selectFile = window.api?.selectWallpaperFile;
 
 function WallpaperModal({ isOpen, onClose, onSettingsChange }) {
   // New unified data layer hooks
-  const { wallpaper, overlay } = useConsolidatedAppStore();
-  const { setWallpaperState, setOverlayState } = useConsolidatedAppStore(state => state.actions);
+  const { wallpaper, overlay } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      wallpaper: state.wallpaper,
+      overlay: state.overlay,
+    }))
+  );
+  const { setWallpaperState, setOverlayState } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setWallpaperState: state.actions.setWallpaperState,
+      setOverlayState: state.actions.setOverlayState,
+    }))
+  );
   
   const wallpaperSettings = wallpaper;
   const updateWallpaperSetting = (key, value) => setWallpaperState({ [key]: value });

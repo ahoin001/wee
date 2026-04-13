@@ -1,24 +1,30 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { useSpotifyState } from '../utils/useConsolidatedAppHooks';
+import { useShallow } from 'zustand/react/shallow';
+import useAnimationActivity from '../hooks/useAnimationActivity';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 
 const SpotifyGradientOverlay = () => {
-  const { spotify } = useSpotifyState();
+  const { extractedColors, immersiveMode, isPlaying } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      extractedColors: state.spotify.extractedColors,
+      immersiveMode: state.spotify.immersiveMode,
+      isPlaying: state.spotify.isPlaying,
+    }))
+  );
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
+  const { shouldAnimate, frameIntervalMs } = useAnimationActivity({
+    activeFps: 30,
+    lowPowerFps: 15,
+  });
   
-  // Extract colors and settings
-  const extractedColors = spotify.extractedColors;
-  const immersiveMode = spotify.immersiveMode;
-  const isPlaying = spotify.isPlaying;
-
   // Helper function to extract RGB values from color strings
   const extractRgbValues = (colorStr) => {
     if (!colorStr) return { r: 0, g: 153, b: 255 }; // Default blue
     
     const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (match) {
-      return { r: parseInt(match[1]), g: parseInt(match[2]), b: parseInt(match[3]) };
+      return { r: parseInt(match[1], 10), g: parseInt(match[2], 10), b: parseInt(match[3], 10) };
     }
     
     if (colorStr.startsWith('#')) {
@@ -80,8 +86,6 @@ const SpotifyGradientOverlay = () => {
     };
 
     // Generate optimized gradient based on simplified settings
-    console.log('[SpotifyGradientOverlay] Creating overlay gradient:', { intensity, animationLevel, style });
-    
     // Start with transparent background for overlay
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -162,7 +166,7 @@ const SpotifyGradientOverlay = () => {
 
   // Animation loop for overlay
   useEffect(() => {
-    if (!immersiveMode.liveGradientWallpaper || !immersiveMode.overlayMode || !createGradientOverlay) {
+    if (!immersiveMode.liveGradientWallpaper || !immersiveMode.overlayMode || !createGradientOverlay || !shouldAnimate) {
       return;
     }
 
@@ -173,7 +177,13 @@ const SpotifyGradientOverlay = () => {
     canvas.width = window.screen.width;
     canvas.height = window.screen.height;
 
-    const animate = () => {
+    let lastFrameTs = 0;
+    const animate = (ts = performance.now()) => {
+      if (ts - lastFrameTs < frameIntervalMs) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameTs = ts;
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
@@ -181,7 +191,6 @@ const SpotifyGradientOverlay = () => {
       if (createGradientOverlay) {
         ctx.drawImage(createGradientOverlay, 0, 0);
       }
-      
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -192,7 +201,7 @@ const SpotifyGradientOverlay = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [createGradientOverlay, immersiveMode.liveGradientWallpaper, immersiveMode.overlayMode]);
+  }, [createGradientOverlay, immersiveMode.liveGradientWallpaper, immersiveMode.overlayMode, shouldAnimate, frameIntervalMs]);
 
   // Don't render if not enabled
   if (!immersiveMode.liveGradientWallpaper || !immersiveMode.overlayMode) {

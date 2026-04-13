@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { useShallow } from 'zustand/react/shallow';
 import WBaseModal from './WBaseModal';
 import Button from '../ui/WButton';
 import Card from '../ui/Card';
@@ -202,7 +203,7 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
   const tabContentRef = useRef(null);
   
   // Get initial tab from UI state if available
-  const { ui } = useConsolidatedAppStore();
+  const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
   const effectiveInitialTab = ui.settingsActiveTab || initialActiveTab;
   
   // Use legacy settings system for now since unified data layer isn't fully implemented
@@ -606,8 +607,8 @@ function SettingsModal({ isOpen, onClose, onSettingsChange, initialActiveTab = '
               } : activeTab === 'channels' ? {
                 settings: tabSettings,
                 onSettingChange: handleDirectSettingUpdate
-            } : activeTab === 'general' || activeTab === 'ribbon' || activeTab === 'wallpaper' || activeTab === 'time' || activeTab === 'layout' || activeTab === 'updates' || activeTab === 'dock' || activeTab === 'navigation' ? {
-              // GeneralSettingsTab, RibbonSettingsTab, WallpaperSettingsTab, TimeSettingsTab, LayoutSettingsTab, UpdatesSettingsTab, UnifiedDockSettingsTab, and NavigationSettingsTab use consolidated store directly - no props needed
+            } : activeTab === 'general' || activeTab === 'wallpaper' || activeTab === 'time' || activeTab === 'layout' || activeTab === 'updates' || activeTab === 'dock' || activeTab === 'navigation' ? {
+              // These tabs use consolidated store directly - no props needed
               } : {
                 localSettings: tabSettings,
                 updateLocalSetting: handleGeneralSettingUpdate

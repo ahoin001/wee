@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { WALLPAPER_OVERLAY_COLORS } from '../design/wallpaperAmbientPalettes.js';
+import useAnimationActivity from '../hooks/useAnimationActivity';
 
 const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, wind = 0.02, gravity = 0.1 }) => {
   const canvasRef = useRef(null);
@@ -7,6 +8,11 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
   const particlesRef = useRef([]);
   const lastTimeRef = useRef(0);
   const isActiveRef = useRef(false);
+  const canvasSizeRef = useRef({ width: 0, height: 0 });
+  const { shouldAnimate, isLowPowerMode } = useAnimationActivity({
+    activeFps: 60,
+    lowPowerFps: 24,
+  });
 
   // Memoize effect configurations to prevent recreation
   const effects = useMemo(() => ({
@@ -86,11 +92,15 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
     particlesRef.current.forEach(returnParticleToPool);
     particlesRef.current = [];
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = canvasSizeRef.current.width || canvas.clientWidth || 0;
+    const height = canvasSizeRef.current.height || canvas.clientHeight || 0;
+    if (!width || !height) return;
     const newParticles = [];
+    const targetParticleCount = isLowPowerMode
+      ? Math.max(8, Math.ceil(config.particleCount * 0.6))
+      : config.particleCount;
 
-    for (let i = 0; i < config.particleCount; i++) {
+    for (let i = 0; i < targetParticleCount; i++) {
       const particle = getParticleFromPool();
       
       // Reset particle properties
@@ -109,7 +119,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
     }
 
     particlesRef.current = newParticles;
-  }, [enabled, effect, effects, getParticleFromPool, returnParticleToPool]);
+  }, [enabled, effect, effects, getParticleFromPool, returnParticleToPool, isLowPowerMode]);
 
   // Optimized animation loop with delta time
   const animate = useCallback((currentTime) => {
@@ -123,8 +133,9 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
 
     const ctx = canvas.getContext('2d');
     const config = effects[effect];
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = canvasSizeRef.current.width || canvas.clientWidth || 0;
+    const height = canvasSizeRef.current.height || canvas.clientHeight || 0;
+    if (!width || !height) return;
 
     // Calculate delta time for consistent animation speed
     const deltaTime = currentTime - lastTimeRef.current;
@@ -214,7 +225,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
 
   // Start/stop animation with proper cleanup
   useEffect(() => {
-    if (enabled && effect && effects[effect]) {
+    if (enabled && shouldAnimate && effect && effects[effect]) {
       isActiveRef.current = true;
       lastTimeRef.current = performance.now();
       animationRef.current = requestAnimationFrame(animate);
@@ -233,7 +244,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
         animationRef.current = null;
       }
     };
-  }, [enabled, effect, animate]);
+  }, [enabled, shouldAnimate, effect, animate, effects]);
 
   // Initialize particles when effect changes
   useEffect(() => {
@@ -251,6 +262,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
       resizeTimeout = setTimeout(() => {
         const rect = canvas.getBoundingClientRect();
         const devicePixelRatio = window.devicePixelRatio || 1;
+        canvasSizeRef.current = { width: rect.width, height: rect.height };
         
         // Set canvas size accounting for device pixel ratio
         canvas.width = rect.width * devicePixelRatio;
@@ -258,7 +270,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
         
         // Scale context to match device pixel ratio
         const ctx = canvas.getContext('2d');
-        ctx.scale(devicePixelRatio, devicePixelRatio);
+        ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
         
         // Reinitialize particles after resize
         initializeParticles();

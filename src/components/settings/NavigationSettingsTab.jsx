@@ -8,7 +8,8 @@ import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 const NavigationSettingsTab = () => {
-  const { setNavigationState, navigation } = useConsolidatedAppStore();
+  const navigation = useConsolidatedAppStore((state) => state.navigation);
+  const setNavigationState = useConsolidatedAppStore((state) => state.actions.setNavigationState);
   
   // Local state for form inputs
   const [leftIcon, setLeftIcon] = useState('');
@@ -73,9 +74,9 @@ const NavigationSettingsTab = () => {
     setIconsError(null);
     
     try {
-      if (window.api?.data?.get) {
-        const iconsData = await window.api.data.get('savedIcons') || [];
-        // Ensure iconsData is always an array
+      if (window.api?.icons?.list) {
+        const result = await window.api.icons.list();
+        const iconsData = result?.icons || [];
         setSavedIcons(Array.isArray(iconsData) ? iconsData : []);
       } else {
         // If API is not available, set empty array
@@ -97,35 +98,23 @@ const NavigationSettingsTab = () => {
     setIconsUploadError(null);
     
     try {
-      if (window.api?.file?.selectFile) {
-        const result = await window.api.file.selectFile({
-          title: 'Select Icon',
-          filters: [
-            { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'svg'] }
-          ],
-          properties: ['openFile']
-        });
-        
-        if (result.canceled) {
+      if (window.api?.icons?.add && window.api?.selectIconFile) {
+        const fileResult = await window.api.selectIconFile();
+        if (!fileResult?.success || !fileResult?.file) {
           return { success: false };
         }
-        
-        const filePath = result.filePaths[0];
-        
-        // Save icon to data store
-        const newIcon = {
-          id: Date.now().toString(),
-          name: filePath.split('/').pop().split('\\').pop(),
-          url: `file://${filePath}`,
-          uploadedAt: new Date().toISOString()
-        };
-        
-        const currentIcons = Array.isArray(savedIcons) ? savedIcons : [];
-        const updatedIcons = [...currentIcons, newIcon];
-        await window.api.data.set('savedIcons', updatedIcons);
-        setSavedIcons(updatedIcons);
-        
-        return { success: true, icon: newIcon };
+
+        const addResult = await window.api.icons.add({
+          filePath: fileResult.file.path,
+          filename: fileResult.file.name,
+        });
+
+        if (!addResult?.success) {
+          return { success: false, error: addResult?.error || 'Failed to upload icon' };
+        }
+
+        await fetchIcons();
+        return { success: true, icon: addResult.icon };
       }
     } catch (error) {
       console.error('Failed to upload icon:', error);
@@ -141,9 +130,14 @@ const NavigationSettingsTab = () => {
   // Delete icon
   const deleteIcon = async (iconUrl) => {
     try {
-      const currentIcons = Array.isArray(savedIcons) ? savedIcons : [];
-      const updatedIcons = currentIcons.filter(icon => icon.url !== iconUrl);
-      await window.api.data.set('savedIcons', updatedIcons);
+      if (window.api?.icons?.delete) {
+        const result = await window.api.icons.delete(iconUrl);
+        if (!result?.success) {
+          return { success: false, error: result?.error || 'Failed to delete icon' };
+        }
+      }
+
+      const updatedIcons = (Array.isArray(savedIcons) ? savedIcons : []).filter(icon => icon.url !== iconUrl);
       setSavedIcons(updatedIcons);
       
       // Clear from navigation if it was being used
@@ -481,7 +475,7 @@ const NavigationSettingsTab = () => {
                 
                 <div>
                   <Text variant="caption" className="text-[hsl(var(--text-secondary))] mb-2 block">
-                    Border Opacity: {leftGlassBorderOpacity.toFixed(2)}
+                    Glass Border Intensity: {leftGlassBorderOpacity.toFixed(2)}
                   </Text>
                   <Slider
                     value={leftGlassBorderOpacity}
@@ -494,7 +488,7 @@ const NavigationSettingsTab = () => {
                 
                 <div>
                   <Text variant="caption" className="text-[hsl(var(--text-secondary))] mb-2 block">
-                    Shine Opacity: {leftGlassShineOpacity.toFixed(2)}
+                    Glass Shine Intensity: {leftGlassShineOpacity.toFixed(2)}
                   </Text>
                   <Slider
                     value={leftGlassShineOpacity}
@@ -548,7 +542,7 @@ const NavigationSettingsTab = () => {
                 
                 <div>
                   <Text variant="caption" className="text-[hsl(var(--text-secondary))] mb-2 block">
-                    Border Opacity: {rightGlassBorderOpacity.toFixed(2)}
+                    Glass Border Intensity: {rightGlassBorderOpacity.toFixed(2)}
                   </Text>
                   <Slider
                     value={rightGlassBorderOpacity}
@@ -561,7 +555,7 @@ const NavigationSettingsTab = () => {
                 
                 <div>
                   <Text variant="caption" className="text-[hsl(var(--text-secondary))] mb-2 block">
-                    Shine Opacity: {rightGlassShineOpacity.toFixed(2)}
+                    Glass Shine Intensity: {rightGlassShineOpacity.toFixed(2)}
                   </Text>
                   <Slider
                     value={rightGlassShineOpacity}

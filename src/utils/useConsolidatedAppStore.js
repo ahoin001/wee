@@ -1,9 +1,7 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { DEFAULT_SHORTCUTS } from './keyboardShortcuts';
 import { createStoreManagers } from './store/managers';
-import { CONSOLIDATED_STORE_PERSIST_NAME, partializeConsolidatedState } from './store/persistConfig';
 import { CLASSIC_DOCK_DEFAULT_COLORS } from '../design/classicDockThemeDefaults.js';
 import {
   DEFAULT_RIBBON_GLOW_HEX,
@@ -25,8 +23,7 @@ const {
 // Consolidated app store - single source of truth for all app state
 useConsolidatedAppStore = create(
   subscribeWithSelector(
-    persist(
-      (set, get) => ({
+    (set, get) => ({
         // Core app state
         app: {
           version: '2.9.4',
@@ -83,7 +80,6 @@ useConsolidatedAppStore = create(
           showUpdateModal: false,
           showPrimaryActionsModal: false,
           showImageSearchModal: false,
-          showNavigationCustomizationModal: false,
           showMonitorSelectionModal: false,
           settingsActiveTab: 'channels', // Default active tab for settings modal
           // Keyboard shortcuts
@@ -109,6 +105,7 @@ useConsolidatedAppStore = create(
           ribbonGlowStrength: 16,
           ribbonGlowStrengthHover: 20,
           ribbonDockOpacity: 1,
+          ribbonHoverAnimationEnabled: true,
           ribbonButtonConfigs: [],
           presetsButtonConfig: {
             type: 'icon',
@@ -839,6 +836,7 @@ useConsolidatedAppStore = create(
               ribbonGlowStrength: 16,
               ribbonGlowStrengthHover: 20,
               ribbonDockOpacity: 1,
+              ribbonHoverAnimationEnabled: true,
               ribbonButtonConfigs: [],
               presetsButtonConfig: {
                 type: 'icon',
@@ -1002,12 +1000,7 @@ useConsolidatedAppStore = create(
             presets: [],
           }),
         },
-      }),
-      {
-        name: CONSOLIDATED_STORE_PERSIST_NAME,
-        partialize: partializeConsolidatedState,
-      }
-    )
+      })
   )
 );
 

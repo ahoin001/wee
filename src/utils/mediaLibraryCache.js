@@ -91,13 +91,56 @@ const clearMatchCache = () => {
   console.log('[MediaLibraryCache] Match cache cleared');
 };
 
+/**
+ * Client-side filter/sort of cached rows (same semantics as searchMedia browse).
+ * Call after preloadMediaLibrary(); avoids network on every filter change.
+ */
+export const filterMediaLibraryCache = ({
+  fileType = 'all',
+  searchTerm = '',
+  sortBy = 'created_at',
+} = {}) => {
+  let list = Array.isArray(mediaLibraryCache) ? [...mediaLibraryCache] : [];
+  if (fileType && fileType !== 'all') {
+    list = list.filter((item) => item.file_type === fileType);
+  }
+  const q = String(searchTerm || '').trim().toLowerCase();
+  if (q) {
+    list = list.filter((item) => {
+      const title = (item.title || '').toLowerCase();
+      const desc = (item.description || '').toLowerCase();
+      const tags = Array.isArray(item.tags) ? item.tags.join(' ').toLowerCase() : '';
+      return title.includes(q) || desc.includes(q) || tags.includes(q);
+    });
+  }
+  const sort = sortBy || 'created_at';
+  list.sort((a, b) => {
+    switch (sort) {
+      case 'title_asc':
+        return (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
+      case 'title_desc':
+        return (b.title || '').localeCompare(a.title || '', undefined, { sensitivity: 'base' });
+      case 'downloads':
+        return (b.downloads || 0) - (a.downloads || 0);
+      case 'created_at':
+      default:
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    }
+  });
+  return list;
+};
+
 // Preload media library cache
-export const preloadMediaLibrary = async () => {
+export const preloadMediaLibrary = async (forceRefresh = false) => {
   try {
     console.log('[MediaLibraryCache] Preloading media library...');
     
     // Check if cache is still valid
-    if (cacheTimestamp && (Date.now() - cacheTimestamp) < CACHE_DURATION) {
+    if (
+      !forceRefresh &&
+      cacheTimestamp &&
+      (Date.now() - cacheTimestamp) < CACHE_DURATION
+    ) {
       console.log('[MediaLibraryCache] Using existing cache:', mediaLibraryCache.length, 'items');
       return mediaLibraryCache;
     }

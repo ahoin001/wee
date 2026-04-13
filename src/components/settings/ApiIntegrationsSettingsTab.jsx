@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import CollapsibleSection from '../../ui/CollapsibleSection';
@@ -34,7 +35,13 @@ const adminOrangeBtn =
 
 const ApiIntegrationsSettingsTab = () => {
   // Use consolidated store
-  const { spotify, floatingWidgets, actions } = useConsolidatedAppStore();
+  const { spotify, floatingWidgets } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      spotify: state.spotify,
+      floatingWidgets: state.floatingWidgets,
+    }))
+  );
+  const actions = useConsolidatedAppStore(useShallow((state) => state.actions));
   
   // Local state for admin panel modal
   const [showAdminPanel, setShowAdminPanel] = useState(false);

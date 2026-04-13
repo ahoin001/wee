@@ -33,6 +33,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
   const [ribbonGlowStrength, setRibbonGlowStrength] = useState(20);
   const [ribbonGlowStrengthHover, setRibbonGlowStrengthHover] = useState(28);
   const [ribbonDockOpacity, setRibbonDockOpacity] = useState(1);
+  const [ribbonHoverAnimationEnabled, setRibbonHoverAnimationEnabled] = useState(true);
 
   useEffect(() => {
     if (isOpen && ribbonSettings) {
@@ -48,6 +49,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
       setRibbonGlowStrength(ribbonSettings.ribbonGlowStrength ?? 20);
       setRibbonGlowStrengthHover(ribbonSettings.ribbonGlowStrengthHover ?? 28);
       setRibbonDockOpacity(ribbonSettings.ribbonDockOpacity ?? 1);
+      setRibbonHoverAnimationEnabled(ribbonSettings.ribbonHoverAnimationEnabled ?? true);
     }
   }, [isOpen, glassWiiRibbon, ribbonSettings]);
 
@@ -58,6 +60,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
     setRibbonGlowStrength(20);
     setRibbonGlowStrengthHover(28);
     setRibbonDockOpacity(1);
+    setRibbonHoverAnimationEnabled(true);
     setGlassEnabled(false);
     setGlassOpacity(0.18);
     setGlassBlur(2.5);
@@ -88,6 +91,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
       updateRibbonSetting('ribbonGlowStrength', ribbonGlowStrength);
       updateRibbonSetting('ribbonGlowStrengthHover', ribbonGlowStrengthHover);
       updateRibbonSetting('ribbonDockOpacity', ribbonDockOpacity);
+      updateRibbonSetting('ribbonHoverAnimationEnabled', ribbonHoverAnimationEnabled);
       
       if (onSettingsChange) {
         onSettingsChange({
@@ -103,6 +107,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
           ribbonGlowStrength,
           ribbonGlowStrengthHover,
           ribbonDockOpacity,
+          ribbonHoverAnimationEnabled,
         });
       }
       handleClose();
@@ -132,19 +137,39 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
         </div>
       )}
     >
-      <Card 
-        title="Ribbon Styles"
+      <Card
+        title="Ribbon Style"
         separator
-        desc="Customize the appearance of the Wii Ribbon including colors and glow effects."
+        desc="Switch between solid/glass rendering and tune surface/glow behavior."
         className="modal-card-tight"
       >
         <div className="modal-section-mt">
-          <div className="modal-color-row">
+          <div className="flex items-center justify-between mb-3">
+            <label className="modal-label-inline !mb-0">Ribbon Style</label>
+            <WToggle
+              checked={glassEnabled}
+              onChange={(checked) => setGlassEnabled(checked)}
+              label={glassEnabled ? 'Glass' : 'Solid'}
+            />
+          </div>
+          <div className="flex items-center justify-between mb-3">
+            <label className="modal-label-inline !mb-0">Ribbon Hover Animation</label>
+            <WToggle
+              checked={ribbonHoverAnimationEnabled}
+              onChange={(checked) => setRibbonHoverAnimationEnabled(checked)}
+            />
+          </div>
+          <p className="text-xs text-[hsl(var(--text-secondary))] mb-3">
+            Hover animation controls lift/stretch and hover glow boost.
+          </p>
+
+          <div className={`modal-color-row ${glassEnabled ? 'opacity-60' : ''}`}>
             <label className="modal-label-inline">Ribbon Color</label>
             <input
               type="color"
               value={ribbonColor}
               onChange={e => setRibbonColor(e.target.value)}
+              disabled={glassEnabled}
               className="modal-color-input"
             />
             <span className="modal-hex-muted">
@@ -167,7 +192,7 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
             </div>
           )}
           <div className="modal-color-row">
-            <label className="modal-label-inline">Ribbon Glow Color</label>
+            <label className="modal-label-inline">Glow Color</label>
             <input
               type="color"
               value={ribbonGlowColor}
@@ -202,73 +227,72 @@ function RibbonSettingsModal({ isOpen, onClose, onSettingsChange, glassWiiRibbon
             onChange={value => setRibbonGlowStrength(value)}
           />
           <Slider
-            label="Glow Strength on Hover"
+            label="Hover Glow Boost"
             value={ribbonGlowStrengthHover}
             min={0}
             max={96}
             step={1}
+            disabled={!ribbonHoverAnimationEnabled}
             onChange={value => setRibbonGlowStrengthHover(value)}
           />
-          {!glassEnabled && (
-            <Slider
-              label="Dock Transparency"
-              value={ribbonDockOpacity}
-              min={0.1}
-              max={1}
-              step={0.01}
-              onChange={value => setRibbonDockOpacity(value)}
-            />
-          )}
+          <Slider
+            label="Ribbon Opacity (Solid Mode)"
+            value={ribbonDockOpacity}
+            min={0.1}
+            max={1}
+            step={0.01}
+            disabled={glassEnabled}
+            onChange={value => setRibbonDockOpacity(value)}
+          />
         </div>
       </Card>
-      <Card 
-        title="Glass Effect"
+
+      <Card
+        title="Glass Surface"
         separator
-        desc="Add a frosted glass effect to the Wii Ribbon for a more modern look."
-        headerActions={
-          <WToggle
-            checked={glassEnabled}
-            onChange={(checked) => setGlassEnabled(checked)}
-          />
-        }
+        desc={glassEnabled
+          ? 'Glass mode is active. These settings affect the ribbon surface.'
+          : 'Enable Glass style above to apply these settings.'}
         className="modal-card-tight"
       >
-        {glassEnabled && (
-          <div className="modal-section-mt">
-            <Slider
-              label="Background Opacity"
-              value={glassOpacity}
-              min={0.05}
-              max={0.4}
-              step={0.01}
-              onChange={value => setGlassOpacity(value)}
-            />
-            <Slider
-              label="Backdrop Blur"
-              value={glassBlur}
-              min={0}
-              max={8}
-              step={0.1}
-              onChange={value => setGlassBlur(value)}
-            />
-            <Slider
-              label="Border Opacity"
-              value={glassBorderOpacity}
-              min={0}
-              max={1}
-              step={0.05}
-              onChange={value => setGlassBorderOpacity(value)}
-            />
-            <Slider
-              label="Shine Effect"
-              value={glassShineOpacity}
-              min={0}
-              max={1}
-              step={0.05}
-              onChange={value => setGlassShineOpacity(value)}
-            />
-          </div>
-        )}
+        <div className={`modal-section-mt ${glassEnabled ? '' : 'opacity-60'}`}>
+          <Slider
+            label="Glass Opacity"
+            value={glassOpacity}
+            min={0}
+            max={0.5}
+            step={0.01}
+            disabled={!glassEnabled}
+            onChange={value => setGlassOpacity(value)}
+          />
+          <Slider
+            label="Glass Blur"
+            value={glassBlur}
+            min={0}
+            max={10}
+            step={0.1}
+            disabled={!glassEnabled}
+            onChange={value => setGlassBlur(value)}
+          />
+          <Slider
+            label="Glass Border Intensity"
+            value={glassBorderOpacity}
+            min={0}
+            max={1}
+            step={0.05}
+            disabled={!glassEnabled}
+            onChange={value => setGlassBorderOpacity(value)}
+          />
+          <Slider
+            label="Glass Shine Intensity"
+            value={glassShineOpacity}
+            min={0}
+            max={1}
+            step={0.05}
+            disabled={!glassEnabled}
+            onChange={value => setGlassShineOpacity(value)}
+          />
+        </div>
       </Card>
     </WBaseModal>
   );

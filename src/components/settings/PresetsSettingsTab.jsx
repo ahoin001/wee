@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import AuthModal from '../AuthModal';
 import { getCommunityPresetUpdates, uploadPreset } from '../../utils/supabase';
 import {
@@ -7,7 +8,11 @@ import {
   resolveCustomImageFileForShare,
   resolveWallpaperFileForShare,
 } from '../../utils/presetSharing';
-import { saveUnifiedAppearancePatch } from '../../utils/electronApi';
+import {
+  loadUnifiedSettingsSnapshot,
+  saveUnifiedAppearancePatch,
+  saveUnifiedSettingsSnapshot,
+} from '../../utils/electronApi';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { buildPresetDataFromStore } from '../../utils/presets/buildPresetSnapshot';
 import { applyPresetData } from '../../utils/presets/applyPresetData';
@@ -23,9 +28,18 @@ import PresetsCommunityCard from './presets/PresetsCommunityCard';
 const MAX_CUSTOM_PRESETS = 5;
 
 const PresetsSettingsTab = React.memo(() => {
-  const { presets } = useConsolidatedAppStore();
-  const { setPresets, setUIState } = useConsolidatedAppStore((s) => s.actions);
-  const spotifyMatchEnabled = useConsolidatedAppStore((s) => s.ui.spotifyMatchEnabled);
+  const { presets, spotifyMatchEnabled } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      presets: state.presets,
+      spotifyMatchEnabled: state.ui.spotifyMatchEnabled,
+    }))
+  );
+  const { setPresets, setUIState } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setPresets: state.actions.setPresets,
+      setUIState: state.actions.setUIState,
+    }))
+  );
 
   const [newPresetName, setNewPresetName] = useState('');
   const [error, setError] = useState('');
@@ -54,13 +68,7 @@ const PresetsSettingsTab = React.memo(() => {
 
   const savePresetsToBackend = useCallback(async (updatedPresets) => {
     try {
-      if (window.api?.settings?.get && window.api?.settings?.set) {
-        const currentSettings = await window.api.settings.get();
-        await window.api.settings.set({
-          ...currentSettings,
-          presets: updatedPresets,
-        });
-      }
+      await saveUnifiedSettingsSnapshot({ presets: updatedPresets });
     } catch (e) {
       console.error('[PresetsSettingsTab] Failed to save presets:', e);
     }
@@ -69,9 +77,8 @@ const PresetsSettingsTab = React.memo(() => {
   useEffect(() => {
     const loadPresets = async () => {
       try {
-        if (!window.api?.settings?.get) return;
-        const settings = await window.api.settings.get();
-        let currentPresets = Array.isArray(settings.presets) ? settings.presets : [];
+        const unifiedSettings = await loadUnifiedSettingsSnapshot();
+        let currentPresets = Array.isArray(unifiedSettings?.presets) ? unifiedSettings.presets : [];
 
         const spotifyMatchExists = currentPresets.some((p) => p.name === SPOTIFY_MATCH_PRESET_NAME);
         if (!spotifyMatchExists) {

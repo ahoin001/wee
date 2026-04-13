@@ -1,4 +1,5 @@
 import React from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
@@ -7,7 +8,15 @@ import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 const LayoutSettingsTab = () => {
-  const { channels, actions } = useConsolidatedAppStore();
+  const channels = useConsolidatedAppStore((state) => state.channels);
+  const actions = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setChannelData: state.actions.setChannelData,
+      setChannelNavigation: state.actions.setChannelNavigation,
+      updateChannel: state.actions.updateChannel,
+      updateChannelConfig: state.actions.updateChannelConfig,
+    }))
+  );
   const { setChannelData, setChannelNavigation } = actions;
 
 

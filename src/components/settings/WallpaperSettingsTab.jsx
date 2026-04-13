@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
@@ -52,8 +53,18 @@ const selectFile = window.api?.selectWallpaperFile;
 
 const WallpaperSettingsTab = React.memo(() => {
   // Use consolidated store directly
-  const { wallpaper, overlay } = useConsolidatedAppStore();
-  const { setWallpaperState, setOverlayState } = useConsolidatedAppStore(state => state.actions);
+  const { wallpaper, overlay } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      wallpaper: state.wallpaper,
+      overlay: state.overlay,
+    }))
+  );
+  const { setWallpaperState, setOverlayState } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setWallpaperState: state.actions.setWallpaperState,
+      setOverlayState: state.actions.setOverlayState,
+    }))
+  );
   
   // Local state for wallpaper management
   const [wallpapers, setWallpapers] = useState([]);

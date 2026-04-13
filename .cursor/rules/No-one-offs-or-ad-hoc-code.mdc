@@ -1,5 +1,8 @@
 ---
+description: Prefer systematic, tokenized solutions over one-off hacks
 alwaysApply: true
 ---
 
-Add new features or make changes to features always considering systematic approaches. Design systems, component libraries, tokenized approaches etc should always be considered for high quality maintainable and scalable code. Avoid ad hoc code, drifting, and elements of unpredictability
+When adding or changing features, prefer systematic approaches: design tokens, shared components, and clear data flow. Avoid ad hoc code, API drift, and one-off styling that bypasses the design system.
+
+**Concrete UI and color rules:** see `.cursor/rules/design-system.mdc` and `AGENTS.md`.

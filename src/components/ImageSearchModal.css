@@ -1,0 +1,61 @@
+/* Media Library modal — grid, staggered entry, scroll region */
+
+@keyframes image-search-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.image-search-modal__scroll--grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  min-height: 0;
+}
+
+.image-search-modal__scroll--list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.image-search-modal__scroll {
+  max-height: min(52vh, 560px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 200px;
+  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-tertiary) / 0.45);
+  padding: 14px 12px 14px 14px;
+}
+
+.image-search-modal__card {
+  animation: image-search-card-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--stagger, 0) * 28ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-search-modal__card {
+    animation: none;
+  }
+}
+
+.image-search-modal__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.image-search-modal__meta {
+  margin-left: auto;
+  font-size: 13px;
+  color: hsl(var(--text-secondary));
+}

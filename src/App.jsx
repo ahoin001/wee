@@ -8,11 +8,13 @@ import { electronApi } from './utils/electronApi';
 import {
   useCursorEffect,
   useThemeEffect,
+  usePrimaryAccentThemeEffect,
   useBackgroundMusicEffects,
   useFullscreenEffect,
   useGlobalKeyHandlers,
 } from './hooks/useAppShellEffects';
 import { useAppInitialization } from './hooks/useAppInitialization';
+import { useUnifiedSettingsPersistence } from './hooks/useUnifiedSettingsPersistence';
 import { 
   useTimeColor, 
   useEnableTimePill, 
@@ -64,6 +66,7 @@ function App() {
     ribbonGlowStrength,
     ribbonGlowStrengthHover,
     ribbonDockOpacity,
+    ribbonHoverAnimationEnabled,
     glassWiiRibbon,
     glassOpacity,
     glassBlur,
@@ -99,6 +102,7 @@ function App() {
       ribbonGlowStrength: state.ribbon.ribbonGlowStrength,
       ribbonGlowStrengthHover: state.ribbon.ribbonGlowStrengthHover,
       ribbonDockOpacity: state.ribbon.ribbonDockOpacity,
+      ribbonHoverAnimationEnabled: state.ribbon.ribbonHoverAnimationEnabled,
       glassWiiRibbon: state.ribbon.glassWiiRibbon,
       glassOpacity: state.ribbon.glassOpacity,
       glassBlur: state.ribbon.glassBlur,
@@ -140,6 +144,7 @@ function App() {
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
+  useUnifiedSettingsPersistence();
 
   // Debug: Log floating widgets state
   useEffect(() => {
@@ -279,6 +284,7 @@ function App() {
 
   useCursorEffect(useCustomCursor, cursorStyle);
   useThemeEffect(isDarkMode);
+  usePrimaryAccentThemeEffect(ribbonGlowColor, isDarkMode);
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -319,6 +325,12 @@ function App() {
   });
 
   useFullscreenEffect({ appReady, startInFullscreen });
+
+  useEffect(() => {
+    if (!appReady) return;
+    const { appLibraryManager: mgr } = useConsolidatedAppStore.getState();
+    mgr?.scheduleAppLibraryBackgroundPrefetch?.();
+  }, [appReady]);
 
   // Optimized handlers using consolidated store with useCallback
   const openSettingsModal = useCallback(() => setUIState({ showSettingsModal: true }), [setUIState]);
@@ -440,6 +452,7 @@ function App() {
                 ribbonGlowStrength={ribbonGlowStrength}
                 ribbonGlowStrengthHover={ribbonGlowStrengthHover}
                 ribbonDockOpacity={ribbonDockOpacity}
+                ribbonHoverAnimationEnabled={ribbonHoverAnimationEnabled ?? true}
                 glassWiiRibbon={glassWiiRibbon}
                 glassOpacity={glassOpacity}
                 glassBlur={glassBlur}

@@ -47,41 +47,13 @@ const WiiSideNavigation = () => {
 
 
 
-  // Save icon settings
-  const saveIconSettings = async (side, iconUrl) => {
-    if (window.api?.settings?.set) {
-      try {
-        const currentSettings = await window.api.settings.get();
-        const navigationIcons = currentSettings.navigationIcons || {};
-        
-        if (side === 'left') {
-          navigationIcons.left = iconUrl;
-        } else if (side === 'right') {
-          navigationIcons.right = iconUrl;
-        }
-        
-        await window.api.settings.set({
-          ...currentSettings,
-          navigationIcons
-        });
-      } catch (error) {
-        console.warn('Failed to save navigation icon settings:', error);
-      }
-    }
-  };
-
   // Handle right-click to open modal
   const handleContextMenu = (event, side) => {
     event.preventDefault();
-    // Open the navigation settings tab in the main settings modal
-    if (window.api?.settings?.openSettingsModal) {
-      window.api.settings.openSettingsModal('navigation');
-    } else {
-      // Fallback: dispatch a custom event that the main app can listen to
-      window.dispatchEvent(new CustomEvent('openNavigationSettings', {
-        detail: { side }
-      }));
-    }
+    // Open navigation settings via unified app event flow.
+    window.dispatchEvent(new CustomEvent('openNavigationSettings', {
+      detail: { side }
+    }));
   };
 
   // Helper function to convert RGB to RGBA
@@ -162,11 +134,7 @@ const WiiSideNavigation = () => {
           className="wii-side-nav-icon"
           onError={(e) => {
             console.warn('Navigation icon failed to load, falling back to default:', customIcon);
-            if (customIcon === leftIcon) {
-              saveIconSettings('left', null);
-            } else if (customIcon === rightIcon) {
-              saveIconSettings('right', null);
-            }
+            if (e?.currentTarget) e.currentTarget.style.display = 'none';
           }}
         />
       );

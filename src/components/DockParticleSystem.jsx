@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
-import { useAppActivity } from '../hooks/useAppActivity';
+import useAnimationActivity from '../hooks/useAnimationActivity';
 import { PARTICLE_EFFECT_PALETTES as COLOR_PALETTES } from '../design/particleEffectPalettes.js';
 import { DEFAULT_RIBBON_GLOW_HEX } from '../design/runtimeColorStrings.js';
 
@@ -393,8 +392,10 @@ const DockParticleSystem = React.memo(({
   ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX,
   clipPathFollow = false // New prop for clip path following
 }) => {
-  const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
-  const { isAppActive } = useAppActivity();
+  const { shouldAnimate, isLowPowerMode, frameIntervalMs } = useAnimationActivity({
+    activeFps: 60,
+    lowPowerFps: 24,
+  });
 
   // Performance optimization: Memoize settings to prevent unnecessary re-renders
   const memoizedSettings = useMemo(() => ({
@@ -417,16 +418,12 @@ const DockParticleSystem = React.memo(({
   const lastFrameTimeRef = useRef(0);
   const particlePoolRef = useRef([]);
   const effectiveParticleCount = useMemo(
-    () => (lowPowerMode ? Math.max(1, Math.ceil(particleCount * 0.5)) : particleCount),
-    [lowPowerMode, particleCount]
+    () => (isLowPowerMode ? Math.max(1, Math.ceil(particleCount * 0.5)) : particleCount),
+    [isLowPowerMode, particleCount]
   );
   const effectiveSpawnRate = useMemo(
-    () => (lowPowerMode ? Math.max(8, Math.floor(spawnRate * 0.5)) : spawnRate),
-    [lowPowerMode, spawnRate]
-  );
-  const frameIntervalMs = useMemo(
-    () => (lowPowerMode ? 1000 / 24 : 1000 / 60),
-    [lowPowerMode]
+    () => (isLowPowerMode ? Math.max(8, Math.floor(spawnRate * 0.5)) : spawnRate),
+    [isLowPowerMode, spawnRate]
   );
 
 
@@ -688,7 +685,7 @@ const DockParticleSystem = React.memo(({
 
   // Animation loop
   const animate = useCallback((timestamp = 0) => {
-    if (!enabled || !isAppActive || !canvasRef.current) {
+    if (!enabled || !shouldAnimate || !canvasRef.current) {
       return;
     }
 
@@ -715,8 +712,6 @@ const DockParticleSystem = React.memo(({
 
     // Update and draw particles with performance optimization
     const particles = particlesRef.current;
-    let drawnParticles = 0;
-    
     for (let i = particles.length - 1; i >= 0; i--) {
       const particle = particles[i];
       particle.update();
@@ -726,7 +721,6 @@ const DockParticleSystem = React.memo(({
         particles.splice(i, 1);
       } else {
         particle.draw(ctx);
-        drawnParticles++;
       }
     }
     
@@ -734,13 +728,13 @@ const DockParticleSystem = React.memo(({
 
     // Limit particle count for performance based on device capabilities
     const baseMaxParticles = navigator.hardwareConcurrency ? Math.min(200, navigator.hardwareConcurrency * 10) : 150;
-    const maxParticles = lowPowerMode ? Math.min(baseMaxParticles, 80) : baseMaxParticles;
+    const maxParticles = isLowPowerMode ? Math.min(baseMaxParticles, 80) : baseMaxParticles;
     if (particles.length > maxParticles) {
       particles.splice(0, particles.length - maxParticles);
     }
 
     animationRef.current = requestAnimationFrame(animate);
-  }, [enabled, isAppActive, frameIntervalMs, lowPowerMode, createParticles, returnParticleToPool]);
+  }, [enabled, shouldAnimate, frameIntervalMs, isLowPowerMode, createParticles, returnParticleToPool]);
 
   // Handle canvas resize
   const resizeCanvas = useCallback(() => {
@@ -761,7 +755,7 @@ const DockParticleSystem = React.memo(({
   // Effect hooks
   useEffect(() => {
     
-    if (!enabled || !isAppActive) {
+    if (!enabled || !shouldAnimate) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
@@ -786,7 +780,7 @@ const DockParticleSystem = React.memo(({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [enabled, isAppActive, animate, resizeCanvas]);
+  }, [enabled, shouldAnimate, animate, resizeCanvas]);
 
   // Cleanup on unmount
   useEffect(() => {

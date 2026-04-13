@@ -1,14 +1,23 @@
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { Dialog, Transition } from '@headlessui/react';
+import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import WToggle from '../ui/WToggle';
 import Button from '../ui/WButton';
 import './SettingsActionMenu.css';
 
 const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 0 } }, ref) => {
-  const { ui, actions } = useConsolidatedAppStore();
-  const { isDarkMode, useCustomCursor, cursorStyle, showDock, classicMode } = ui;
+  const { isDarkMode, useCustomCursor, cursorStyle, showDock, classicMode } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      isDarkMode: state.ui.isDarkMode,
+      useCustomCursor: state.ui.useCustomCursor,
+      cursorStyle: state.ui.cursorStyle,
+      showDock: state.ui.showDock,
+      classicMode: state.ui.classicMode,
+    }))
+  );
+  const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
 
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -92,20 +101,20 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
 
   // Toggle functions
   const toggleDarkMode = useCallback(() => {
-    actions.setUIState({ isDarkMode: !isDarkMode });
-  }, [isDarkMode, actions]);
+    setUIState({ isDarkMode: !isDarkMode });
+  }, [isDarkMode, setUIState]);
 
   const toggleDock = useCallback(() => {
-    actions.setUIState({ showDock: !showDock });
-  }, [showDock, actions]);
+    setUIState({ showDock: !showDock });
+  }, [showDock, setUIState]);
 
   const toggleCustomCursor = useCallback(() => {
-    actions.setUIState({ useCustomCursor: !useCustomCursor });
-  }, [useCustomCursor, actions]);
+    setUIState({ useCustomCursor: !useCustomCursor });
+  }, [useCustomCursor, setUIState]);
 
   const toggleDockMode = useCallback(() => {
-    actions.setUIState({ classicMode: !classicMode });
-  }, [classicMode, actions]);
+    setUIState({ classicMode: !classicMode });
+  }, [classicMode, setUIState]);
 
   const toggleFullscreen = useCallback(() => {
     if (window.api?.toggleFullscreen) {
@@ -120,9 +129,9 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
   }, []);
 
   const openSettingsModal = useCallback(() => {
-    actions.setUIState({ showSettingsModal: true });
+    setUIState({ showSettingsModal: true });
     handleClose();
-  }, [actions, handleClose]);
+  }, [setUIState, handleClose]);
 
   const openDevTools = useCallback(() => {
     if (window.api?.openDevTools) {
@@ -132,14 +141,14 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose, position = { x: 0, y: 
   }, [handleClose]);
 
   const openUpdatesTab = useCallback(() => {
-    actions.setUIState({ showSettingsModal: true, settingsActiveTab: 'updates' });
+    setUIState({ showSettingsModal: true, settingsActiveTab: 'updates' });
     handleClose();
-  }, [actions, handleClose]);
+  }, [setUIState, handleClose]);
 
   const openSoundModal = useCallback(() => {
-    actions.setUIState({ showSettingsModal: true, settingsActiveTab: 'sounds' });
+    setUIState({ showSettingsModal: true, settingsActiveTab: 'sounds' });
     handleClose();
-  }, [actions, handleClose]);
+  }, [setUIState, handleClose]);
 
   const closeApp = useCallback(() => {
     if (window.api?.closeApp) {

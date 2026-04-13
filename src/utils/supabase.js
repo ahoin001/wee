@@ -39,7 +39,37 @@ export const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || ''
 const spokeClient = supabase.schema(APP_SCHEMA)
 export const supabaseSpoke = spokeClient
 
-console.log('[SUPABASE] Client created (anon key + schema:', APP_SCHEMA + ')')
+const supabaseReadCache = new Map()
+const supabaseInFlightReads = new Map()
+
+const getCachedReadResult = async (cacheKey, fetcher, { ttlMs = 15000, forceFresh = false } = {}) => {
+  if (!forceFresh) {
+    const cached = supabaseReadCache.get(cacheKey)
+    if (cached && Date.now() - cached.ts < ttlMs) {
+      return cached.value
+    }
+  }
+
+  if (supabaseInFlightReads.has(cacheKey)) {
+    return supabaseInFlightReads.get(cacheKey)
+  }
+
+  const request = (async () => {
+    const value = await fetcher()
+    supabaseReadCache.set(cacheKey, { ts: Date.now(), value })
+    return value
+  })().finally(() => {
+    supabaseInFlightReads.delete(cacheKey)
+  })
+
+  supabaseInFlightReads.set(cacheKey, request)
+  return request
+}
+
+export const clearSupabaseReadCache = () => {
+  supabaseReadCache.clear()
+  supabaseInFlightReads.clear()
+}
 
 // =====================================================
 // SESSION MANAGEMENT
@@ -606,110 +636,143 @@ export const downloadPreset = async (presetId) => {
   }
 }
 
-export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at') => {
-  try {
-    let query = spokeClient
-      .from('presets')
-      .select('*')
-      .eq('is_public', true)
-      .eq('is_approved', true)
-      .order(sortBy, { ascending: false })
-    
-    if (searchTerm) {
-      query = query.ilike('name', `%${searchTerm}%`)
-    }
-    
-    const { data, error } = await query
-    
-    if (error) {
-      throw error;
-    }
-    
-    return { success: true, data: data || [] }
-  } catch (error) {
-    console.error('[SUPABASE] Error fetching shared presets:', error)
-    return { success: false, error: error.message, data: [] }
-  }
-}
+export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at', options = {}) => {
+  const normalizedSearchTerm = String(searchTerm || '').trim()
+  const cacheKey = `shared-presets:${sortBy}:${normalizedSearchTerm.toLowerCase()}`
 
-export const getCommunityPresetUpdates = async (installedPresets = []) => {
-  try {
-    const refs = installedPresets
-      .map((preset) => ({
-        localKey: String(preset.localKey || ''),
-        rootPresetId: String(preset.rootPresetId || ''),
-        installedVersion: Number(preset.installedVersion) || 1
-      }))
-      .filter((preset) => preset.localKey && preset.rootPresetId)
-
-    if (refs.length === 0) return { success: true, data: {} }
-
-    const uniqueRootIds = [...new Set(refs.map((preset) => preset.rootPresetId))]
-    const [rootRows, childRows] = await Promise.all([
-      spokeClient
-        .from('presets')
-        .select('id, parent_preset_id, version, updated_at')
-        .in('id', uniqueRootIds)
-        .eq('is_public', true)
-        .eq('is_approved', true),
-      spokeClient
-        .from('presets')
-        .select('id, parent_preset_id, version, updated_at')
-        .in('parent_preset_id', uniqueRootIds)
-        .eq('is_public', true)
-        .eq('is_approved', true)
-    ])
-
-    if (rootRows.error) throw rootRows.error
-    if (childRows.error) throw childRows.error
-
-    const latestByRoot = {}
-    const rows = [...(rootRows.data || []), ...(childRows.data || [])]
-    for (const row of rows) {
-      const rootId = row.parent_preset_id || row.id
-      const current = latestByRoot[rootId]
-      if (!current || Number(row.version || 1) > Number(current.version || 1)) {
-        latestByRoot[rootId] = row
+  return getCachedReadResult(
+    cacheKey,
+    async () => {
+      try {
+        let query = spokeClient
+          .from('presets')
+          .select('*')
+          .eq('is_public', true)
+          .eq('is_approved', true)
+          .order(sortBy, { ascending: false })
+        
+        if (normalizedSearchTerm) {
+          query = query.ilike('name', `%${normalizedSearchTerm}%`)
+        }
+        
+        const { data, error } = await query
+        
+        if (error) {
+          throw error
+        }
+        
+        return { success: true, data: data || [] }
+      } catch (error) {
+        console.error('[SUPABASE] Error fetching shared presets:', error)
+        return { success: false, error: error.message, data: [] }
       }
-    }
+    },
+    { ttlMs: options.ttlMs ?? 15000, forceFresh: options.forceFresh === true }
+  )
+}
 
-    const result = {}
-    for (const ref of refs) {
-      const latest = latestByRoot[ref.rootPresetId]
-      const latestVersion = Number(latest?.version || ref.installedVersion || 1)
-      result[ref.localKey] = {
-        hasUpdate: latestVersion > ref.installedVersion,
-        latestVersion,
-        latestPresetId: latest?.id || ref.rootPresetId,
-        updatedAt: latest?.updated_at || null
+export const getCommunityPresetUpdates = async (installedPresets = [], options = {}) => {
+  const refs = installedPresets
+    .map((preset) => ({
+      localKey: String(preset.localKey || ''),
+      rootPresetId: String(preset.rootPresetId || ''),
+      installedVersion: Number(preset.installedVersion) || 1
+    }))
+    .filter((preset) => preset.localKey && preset.rootPresetId)
+
+  if (refs.length === 0) return { success: true, data: {} }
+
+  const cacheRefKey = refs
+    .map((preset) => `${preset.localKey}:${preset.rootPresetId}:${preset.installedVersion}`)
+    .sort()
+    .join('|')
+  const cacheKey = `community-updates:${cacheRefKey}`
+
+  return getCachedReadResult(
+    cacheKey,
+    async () => {
+      try {
+        const uniqueRootIds = [...new Set(refs.map((preset) => preset.rootPresetId))]
+        const [rootRows, childRows] = await Promise.all([
+          spokeClient
+            .from('presets')
+            .select('id, parent_preset_id, version, updated_at')
+            .in('id', uniqueRootIds)
+            .eq('is_public', true)
+            .eq('is_approved', true),
+          spokeClient
+            .from('presets')
+            .select('id, parent_preset_id, version, updated_at')
+            .in('parent_preset_id', uniqueRootIds)
+            .eq('is_public', true)
+            .eq('is_approved', true)
+        ])
+
+        if (rootRows.error) throw rootRows.error
+        if (childRows.error) throw childRows.error
+
+        const latestByRoot = {}
+        const rows = [...(rootRows.data || []), ...(childRows.data || [])]
+        for (const row of rows) {
+          const rootId = row.parent_preset_id || row.id
+          const current = latestByRoot[rootId]
+          if (!current || Number(row.version || 1) > Number(current.version || 1)) {
+            latestByRoot[rootId] = row
+          }
+        }
+
+        const result = {}
+        for (const ref of refs) {
+          const latest = latestByRoot[ref.rootPresetId]
+          const latestVersion = Number(latest?.version || ref.installedVersion || 1)
+          result[ref.localKey] = {
+            hasUpdate: latestVersion > ref.installedVersion,
+            latestVersion,
+            latestPresetId: latest?.id || ref.rootPresetId,
+            updatedAt: latest?.updated_at || null
+          }
+        }
+
+        return { success: true, data: result }
+      } catch (error) {
+        console.error('[SUPABASE] Error checking community preset updates:', error)
+        return { success: false, error: error.message, data: {} }
       }
-    }
-
-    return { success: true, data: result }
-  } catch (error) {
-    console.error('[SUPABASE] Error checking community preset updates:', error)
-    return { success: false, error: error.message, data: {} }
-  }
+    },
+    { ttlMs: options.ttlMs ?? 20000, forceFresh: options.forceFresh === true }
+  )
 }
 
-export const getFeaturedPresets = async () => {
-  const { data, error } = await spokeClient
-    .from('featured_presets')
-    .select('*')
-    .limit(20)
-  
-  if (error) throw error
-  return data
+export const getFeaturedPresets = async (options = {}) => {
+  return getCachedReadResult(
+    'featured-presets',
+    async () => {
+      const { data, error } = await spokeClient
+        .from('featured_presets')
+        .select('*')
+        .limit(20)
+      
+      if (error) throw error
+      return data
+    },
+    { ttlMs: options.ttlMs ?? 30000, forceFresh: options.forceFresh === true }
+  )
 }
 
-export const getPopularMedia = async () => {
-  const { data, error } = await spokeClient
-    .from('popular_media')
-    .select('*')
-    .limit(50)
-  
-  if (error) throw error
-  return data
+export const getPopularMedia = async (options = {}) => {
+  return getCachedReadResult(
+    'popular-media',
+    async () => {
+      const { data, error } = await spokeClient
+        .from('popular_media')
+        .select('*')
+        .limit(50)
+      
+      if (error) throw error
+      return data
+    },
+    { ttlMs: options.ttlMs ?? 30000, forceFresh: options.forceFresh === true }
+  )
 }
 
 // =====================================================

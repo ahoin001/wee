@@ -51,6 +51,7 @@ export const migrateToConsolidatedStore = (legacyState) => {
       ribbonGlowStrength: legacyState.ribbonGlowStrength || 16,
       ribbonGlowStrengthHover: legacyState.ribbonGlowStrengthHover || 20,
       ribbonDockOpacity: legacyState.ribbonDockOpacity || 1,
+      ribbonHoverAnimationEnabled: legacyState.ribbonHoverAnimationEnabled ?? true,
       ribbonButtonConfigs: legacyState.ribbonButtonConfigs || [],
       presetsButtonConfig: legacyState.presetsButtonConfig || {
         type: 'icon',
