@@ -11,8 +11,16 @@ import {
   PC_APP_SUGGESTED_BADGE_BG,
   STEAM_SUGGESTED_BADGE_BG,
 } from '../design/suggestedGameBadgeColors.js';
+import { buildLaunchPathFromSelectedApp } from '../utils/channelModalFindMatchingApp';
 
 const GAMES_PER_PAGE = 6;
+
+/** Suggested list source filter: store games (Steam+Epic) vs PC Start Menu apps */
+const SOURCE_FILTER = {
+  ALL: 'all',
+  GAMES: 'games',
+  APPS: 'apps',
+};
 
 /** Carousel + media-library row id */
 function getSuggestedCarouselKey(game) {
@@ -83,6 +91,7 @@ export default function ChannelModalSuggestedGames({
   rescanEpicGames,
 }) {
   const [gamesSearchTerm, setGamesSearchTerm] = useState('');
+  const [sourceFilter, setSourceFilter] = useState(SOURCE_FILTER.ALL);
   const [gamesPage, setGamesPage] = useState(0);
   const [sortOrder, setSortOrder] = useState('asc');
   const [gamesSectionExpanded, setGamesSectionExpanded] = useState(true);
@@ -100,8 +109,17 @@ export default function ChannelModalSuggestedGames({
   }, []);
 
   useEffect(() => {
-    if (!isOpen) setSelectedGameFeedback(null);
+    if (!isOpen) {
+      setSelectedGameFeedback(null);
+      setSourceFilter(SOURCE_FILTER.ALL);
+      setGamesSearchTerm('');
+      setGamesPage(0);
+    }
   }, [isOpen]);
+
+  useEffect(() => {
+    setGamesPage(0);
+  }, [sourceFilter]);
 
   const realSteamGames = steamGames || [];
   const realEpicGames = epicGames || [];
@@ -121,7 +139,7 @@ export default function ChannelModalSuggestedGames({
     }
   }, [isOpen, realSteamGames]);
 
-  const { allGames, sortedGames, paginatedGames, totalGamesPages } = useMemo(() => {
+  const { allGames, sortedGames, paginatedGames, totalGamesPages, filterCounts } = useMemo(() => {
     const uniqueSteamGames = realSteamGames.filter(
       (game, index, self) => index === self.findIndex((g) => g.appId === game.appId)
     );
@@ -151,17 +169,42 @@ export default function ChannelModalSuggestedGames({
         badgeText: 'PC',
       })),
     ];
-    const filteredGames = filterGames(combined, gamesSearchTerm);
+
+    const countGames = installedSteamGames.length + installedEpicGames.length;
+    const countApps = pcApps.length;
+    const filterCounts = {
+      all: combined.length,
+      games: countGames,
+      apps: countApps,
+    };
+
+    let bySource = combined;
+    if (sourceFilter === SOURCE_FILTER.GAMES) {
+      bySource = combined.filter((g) => g.source === 'steam' || g.source === 'epic');
+    } else if (sourceFilter === SOURCE_FILTER.APPS) {
+      bySource = combined.filter((g) => g.source === 'exe');
+    }
+
+    const filteredGames = filterGames(bySource, gamesSearchTerm);
     const sorted = sortGames(filteredGames, sortOrder);
     const paginated = paginateGames(sorted, gamesPage, GAMES_PER_PAGE);
     const totalPages = Math.ceil(sorted.length / GAMES_PER_PAGE);
     return {
       allGames: combined,
+      filterCounts,
       sortedGames: sorted,
       paginatedGames: paginated,
       totalGamesPages: totalPages,
     };
-  }, [realSteamGames, realEpicGames, realInstalledApps, gamesSearchTerm, sortOrder, gamesPage]);
+  }, [
+    realSteamGames,
+    realEpicGames,
+    realInstalledApps,
+    sourceFilter,
+    gamesSearchTerm,
+    sortOrder,
+    gamesPage,
+  ]);
 
   if (!isOpen) {
     return null;
@@ -220,11 +263,16 @@ export default function ChannelModalSuggestedGames({
             onClick={() => setGamesSectionExpanded(!gamesSectionExpanded)}
             className="flex items-center gap-2 hover:bg-[hsl(var(--surface-secondary))] px-2 py-1 rounded transition-colors"
           >
-            <div className="w-6 h-6 bg-[hsl(var(--wii-blue))] rounded flex items-center justify-center">
+            <div className="w-6 h-6 bg-[hsl(var(--primary))] rounded flex items-center justify-center">
               <span className="text-white text-xs font-bold">🎮</span>
             </div>
             <Text size="sm" weight={600} className="text-[hsl(var(--text-primary))]">
-              All Games ({sortedGames.length} of {allGames.length} installed)
+              Suggested
+              {sourceFilter === SOURCE_FILTER.GAMES && ' · Games only'}
+              {sourceFilter === SOURCE_FILTER.APPS && ' · PC apps only'}
+              {' '}
+              ({sortedGames.length}
+              {gamesSearchTerm.trim() ? ` match${sortedGames.length !== 1 ? 'es' : ''}` : ` of ${allGames.length}`})
             </Text>
             <span className={`text-[hsl(var(--text-tertiary))] transition-transform duration-200 ${gamesSectionExpanded ? 'rotate-90' : ''}`}>
               ›
@@ -265,19 +313,83 @@ export default function ChannelModalSuggestedGames({
         {/* Games Content */}
         {gamesSectionExpanded && (
           <>
+            {/* Source filter: games (stores) vs PC apps */}
+            <div
+              className="mb-3 flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filter suggested items by source"
+            >
+              {[
+                { key: SOURCE_FILTER.ALL, label: 'All', count: filterCounts.all },
+                { key: SOURCE_FILTER.GAMES, label: 'Games', sub: 'Steam & Epic', count: filterCounts.games },
+                { key: SOURCE_FILTER.APPS, label: 'PC apps', sub: 'Start Menu', count: filterCounts.apps },
+              ].map(({ key, label, sub, count }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSourceFilter(key)}
+                  title={sub ? `${label}: ${sub}` : label}
+                  className={`inline-flex flex-col items-start rounded-lg border px-3 py-2 text-left transition-colors ${
+                    sourceFilter === key
+                      ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-sm'
+                      : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-primary))] hover:border-[hsl(var(--primary))]'
+                  }`}
+                >
+                  <span className="text-xs font-semibold leading-tight">
+                    {label}{' '}
+                    <span className={sourceFilter === key ? 'opacity-95' : 'text-[hsl(var(--text-secondary))]'}>
+                      ({count})
+                    </span>
+                  </span>
+                  {sub && (
+                    <span
+                      className={`mt-0.5 text-[10px] leading-tight ${
+                        sourceFilter === key ? 'opacity-90' : 'text-[hsl(var(--text-tertiary))]'
+                      }`}
+                    >
+                      {sub}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
             {/* Games Search */}
             <div className="mb-3">
               <input
                 type="text"
-                placeholder="Search all games..."
+                placeholder={
+                  sourceFilter === SOURCE_FILTER.APPS
+                    ? 'Search PC apps…'
+                    : sourceFilter === SOURCE_FILTER.GAMES
+                      ? 'Search Steam & Epic games…'
+                      : 'Search games and apps…'
+                }
                 value={gamesSearchTerm}
                 onChange={(e) => {
                   setGamesSearchTerm(e.target.value);
                   setGamesPage(0); // Reset to first page when searching
                 }}
-                className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))] placeholder-[hsl(var(--text-tertiary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--wii-blue))] focus:border-transparent"
+                className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))] placeholder-[hsl(var(--text-tertiary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--primary))] focus:border-transparent"
               />
             </div>
+
+            {sortedGames.length === 0 && allGames.length > 0 && (
+              <div className="mb-4 rounded-lg border border-dashed border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-4 py-6 text-center">
+                <Text size="sm" className="text-[hsl(var(--text-secondary))]">
+                  No items match this filter or search. Try another tab, clear the search, or choose All.
+                </Text>
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  <WButton variant="secondary" size="sm" onClick={() => setGamesSearchTerm('')}>
+                    Clear search
+                  </WButton>
+                  <WButton variant="secondary" size="sm" onClick={() => setSourceFilter(SOURCE_FILTER.ALL)}>
+                    Show all
+                  </WButton>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {paginatedGames.map((game, index) => (
                 <div
@@ -399,18 +511,20 @@ export default function ChannelModalSuggestedGames({
                         } else {
                           coverUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjMzQzNDM0Ii8+PHBhdGggZD0iTTEyIDEySDI4VjI4SDEyVjEyWiIgZmlsbD0iIzY2NjY2NiIvPjwvc3ZnPg==';
                         }
+                        const exeArgs = typeof game.args === 'string' ? game.args.trim() : '';
                         const exeApp = {
                           id: game.id || `exe-${game.path}`,
                           name: game.name,
                           type: 'exe',
                           path: game.path,
+                          args: exeArgs,
                           icon: coverUrl,
                           source: 'exe',
                           category: 'Installed App',
                         };
                         useConsolidatedAppStore.getState().unifiedAppManager.setSelectedApp(exeApp);
                         setType('exe');
-                        setPath(game.path);
+                        setPath(buildLaunchPathFromSelectedApp(exeApp));
                         setMedia({
                           url: coverUrl,
                           type: selectedMedia ? selectedMedia.file_type : mediaType,

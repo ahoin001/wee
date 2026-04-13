@@ -189,42 +189,25 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   };
 
   const handleTimeContextMenu = (e) => {
-    console.log('[WiiRibbon] Time right-click detected!');
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('[WiiRibbon] About to call setUIState with:', {
-      showSettingsModal: true,
-      settingsActiveTab: 'time'
-    });
     
     // Open settings modal with time tab active
     setUIState({ 
       showSettingsModal: true, 
       settingsActiveTab: 'time'
     });
-    
-    console.log('[WiiRibbon] setUIState called successfully');
   };
 
   const handleRibbonContextMenu = (e) => {
-    console.log('[WiiRibbon] Right-click detected!');
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('[WiiRibbon] About to call setUIState with:', {
-      showSettingsModal: true,
-      settingsActiveTab: 'dock',
-      dockSubTab: 'wii-ribbon'
-    });
     
     setUIState({ 
       showSettingsModal: true, 
       settingsActiveTab: 'dock',
       dockSubTab: 'wii-ribbon' // Specify which sub-tab to open
     });
-    
-    console.log('[WiiRibbon] setUIState called successfully');
   };
 
   const handleDockEffectsContextMenu = (e) => {
@@ -280,9 +263,6 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   useEffect(() => {
     // Only run if we have button configs loaded
     if (!buttonConfigs || buttonConfigs.length === 0) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[WiiRibbon] Skipping tinted image generation - no button configs loaded yet');
-      }
       return;
     }
 
@@ -1046,7 +1026,6 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
         {/* Admin Menu */}
         {showAdminMenu && (
           <div className="admin-menu">
-            {process.env.NODE_ENV === 'development' && console.log('Rendering admin menu with actions:', buttonConfigs[0]?.powerActions?.length || 0, buttonConfigs[0]?.powerActions?.map(a => a.name) || [])}
             <div
               className="context-menu-content ribbon-admin-panel"
             >

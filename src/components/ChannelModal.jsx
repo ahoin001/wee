@@ -21,7 +21,7 @@ import Slider from '../ui/Slider';
 import { useChannelModalMedia } from '../hooks/useChannelModalMedia';
 import { useChannelModalHoverSound } from '../hooks/useChannelModalHoverSound';
 import { validateChannelPath, normalizeChannelPath } from '../utils/channelPathValidation';
-import { findMatchingAppForPath } from '../utils/channelModalFindMatchingApp';
+import { resolveAppForUnifiedPath } from '../utils/channelModalFindMatchingApp';
 import ChannelModalSuggestedGames from './ChannelModalSuggestedGames';
 import ChannelModalDevDebug from './ChannelModalDevDebug';
 import ChannelPathSmartSuggestions from './ChannelPathSmartSuggestions';
@@ -220,6 +220,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
 
   // Unified app path change handler
   const handleUnifiedAppPathChange = useCallback((config) => {
+    const buildPathFromSelectedApp = (app) => {
+      if (!app?.path) return '';
+      const args = typeof app.args === 'string' ? app.args.trim() : '';
+      return args ? `${app.path} ${args}` : app.path;
+    };
+
     if (config.launchType === 'url') {
       setType('url');
       setPath(config.path || '');
@@ -243,8 +249,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
             break;
         }
       }
+      const derivedPath = config.selectedApp
+        ? buildPathFromSelectedApp(config.selectedApp)
+        : (config.path || '');
       setType(newType);
-      setPath(config.path || '');
+      setPath(derivedPath);
     }
   }, [setType, setPath]);
 
@@ -623,7 +632,11 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     );
   };
 
-  const matchingApp = useMemo(() => findMatchingAppForPath(path, type), [path, type]);
+  const storeSelectedApp = useConsolidatedAppStore((s) => s.unifiedApps.selectedApp);
+  const matchingApp = useMemo(
+    () => resolveAppForUnifiedPath(path, type, storeSelectedApp),
+    [path, type, storeSelectedApp]
+  );
 
   const renderUnifiedAppPathSection = useCallback(() => {
     if (!isOpen) {

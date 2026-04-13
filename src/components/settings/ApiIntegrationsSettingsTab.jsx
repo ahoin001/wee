@@ -52,7 +52,6 @@ const ApiIntegrationsSettingsTab = () => {
   // Spotify connection handlers
   const handleSpotifyConnect = useCallback(async () => {
     try {
-      console.log('[ApiIntegrationsSettingsTab] Connecting to Spotify...');
       await actions.spotifyManager.connect();
     } catch (error) {
       console.error('[ApiIntegrationsSettingsTab] Spotify connection error:', error);
@@ -61,7 +60,6 @@ const ApiIntegrationsSettingsTab = () => {
 
   const handleSpotifyDisconnect = useCallback(async () => {
     try {
-      console.log('[ApiIntegrationsSettingsTab] Disconnecting from Spotify...');
       actions.spotifyManager.disconnect();
     } catch (error) {
       console.error('[ApiIntegrationsSettingsTab] Spotify disconnection error:', error);
@@ -70,12 +68,10 @@ const ApiIntegrationsSettingsTab = () => {
 
   // Widget toggle handlers
   const handleToggleSpotifyWidget = useCallback(() => {
-    console.log('[ApiIntegrationsSettingsTab] Toggling Spotify widget...');
     actions.toggleSpotifyWidget();
   }, [actions]);
 
   const handleToggleSystemInfoWidget = useCallback(() => {
-    console.log('[ApiIntegrationsSettingsTab] Toggling System Info widget...');
     const isVisible = floatingWidgets.systemInfo.visible;
     actions.setFloatingWidgetsState({
       systemInfo: { ...floatingWidgets.systemInfo, visible: !isVisible }
@@ -83,7 +79,6 @@ const ApiIntegrationsSettingsTab = () => {
   }, [actions, floatingWidgets.systemInfo]);
 
   const handleToggleAdminPanelWidget = useCallback(() => {
-    console.log('[ApiIntegrationsSettingsTab] Toggling Admin Panel widget...');
     const isVisible = floatingWidgets.adminPanel.visible;
     actions.setFloatingWidgetsState({
       adminPanel: { ...floatingWidgets.adminPanel, visible: !isVisible }
@@ -91,14 +86,12 @@ const ApiIntegrationsSettingsTab = () => {
   }, [actions, floatingWidgets.adminPanel]);
 
   const handleUpdateSystemInfoInterval = useCallback((interval) => {
-    console.log('[ApiIntegrationsSettingsTab] Updating system info interval:', interval);
     actions.setFloatingWidgetsState({
       systemInfo: { ...floatingWidgets.systemInfo, updateInterval: interval }
     });
   }, [actions, floatingWidgets.systemInfo]);
 
   const handleUpdateSpotifySettings = useCallback((settings) => {
-    console.log('[ApiIntegrationsSettingsTab] Updating Spotify settings:', settings);
     actions.setFloatingWidgetsState({
       spotify: { 
         ...floatingWidgets.spotify, 
@@ -109,8 +102,6 @@ const ApiIntegrationsSettingsTab = () => {
 
   // Handle admin panel save
   const handleAdminPanelSave = useCallback((config) => {
-    console.log('[ApiIntegrationsSettingsTab] Admin panel config saved:', config);
-    
     // Use the direct setFloatingWidgetsState action instead of floatingWidgetManager
     actions.setFloatingWidgetsState({
       adminPanel: { 
@@ -121,9 +112,7 @@ const ApiIntegrationsSettingsTab = () => {
   }, [actions, floatingWidgets.adminPanel]);
 
   // Save API & Widgets settings
-  const handleSaveSettings = useCallback(async () => {
-    console.log('[ApiIntegrationsSettingsTab] API & Widgets settings saved');
-  }, []);
+  const handleSaveSettings = useCallback(async () => {}, []);
 
   return (
     <div className="space-y-6">

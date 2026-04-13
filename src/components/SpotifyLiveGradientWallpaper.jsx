@@ -6,13 +6,11 @@ import { CANVAS_FILL_WHITE_80 } from '../design/runtimeColorStrings.js';
 import useAnimationActivity from '../hooks/useAnimationActivity';
 
 const SpotifyLiveGradientWallpaper = () => {
-  const { extractedColors, immersiveMode, isPlaying, progress, duration } = useConsolidatedAppStore(
+  const { extractedColors, immersiveMode, isPlaying } = useConsolidatedAppStore(
     useShallow((state) => ({
       extractedColors: state.spotify.extractedColors,
       immersiveMode: state.spotify.immersiveMode,
       isPlaying: state.spotify.isPlaying,
-      progress: state.spotify.progress,
-      duration: state.spotify.duration,
     }))
   );
   const canvasRef = useRef(null);
@@ -94,8 +92,6 @@ const SpotifyLiveGradientWallpaper = () => {
     };
 
     // Generate optimized gradient based on simplified settings
-    console.log('[LiveGradientWallpaper] Creating optimized gradient:', { intensity, animationLevel, style, overlayMode });
-    
     // Base setup
     if (overlayMode) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -201,14 +197,11 @@ const SpotifyLiveGradientWallpaper = () => {
 
     const setGradientWallpaper = async () => {
       try {
-        console.log('[LiveGradientWallpaper] Setting gradient as wallpaper');
-        
         // Store current wallpaper URL if we haven't already
         if (!lastWallpaperUrl.current && window.api?.wallpapers?.get) {
           try {
             const wallpaperData = await window.api.wallpapers.get();
             lastWallpaperUrl.current = wallpaperData?.wallpaper?.url || null;
-            console.log('[LiveGradientWallpaper] Stored original wallpaper:', lastWallpaperUrl.current);
           } catch (error) {
             console.warn('[LiveGradientWallpaper] Could not get current wallpaper:', error);
           }
@@ -228,9 +221,7 @@ const SpotifyLiveGradientWallpaper = () => {
         
         // Clean up previous gradient file
         await cleanupCurrentGradient();
-        
-        console.log('[LiveGradientWallpaper] Saving gradient as file...');
-        
+
         // Save the gradient as a temporary file
         const saveResult = await window.api.wallpapers.saveFile({
           filename: `temp-spotify-gradient-${Date.now()}.png`,
@@ -241,14 +232,10 @@ const SpotifyLiveGradientWallpaper = () => {
           console.error('[LiveGradientWallpaper] Failed to save gradient file:', saveResult.error);
           return;
         }
-        
-        console.log('[LiveGradientWallpaper] Gradient saved as:', saveResult.url);
         currentGradientFile.current = saveResult.url;
         
         if (immersiveMode.overlayMode) {
           // Overlay mode: Use the existing overlay system instead of modifying wallpaper
-          console.log('[LiveGradientWallpaper] Overlay mode: Using existing overlay system');
-          
           // Store the gradient URL for the overlay system to use
           currentGradientFile.current = saveResult.url;
           
@@ -264,11 +251,8 @@ const SpotifyLiveGradientWallpaper = () => {
               }
             });
           }
-          console.log('[LiveGradientWallpaper] ✅ Overlay mode: Original wallpaper preserved, gradient ready for overlay');
         } else {
           // Replace mode: Set gradient as the wallpaper
-          console.log('[LiveGradientWallpaper] Replace mode: Setting gradient as wallpaper');
-          
           // Add the saved gradient to wallpapers list temporarily
           const wallpaperData = await window.api.wallpapers.get();
           const newWallpaper = {
@@ -286,20 +270,16 @@ const SpotifyLiveGradientWallpaper = () => {
           };
           
           await window.api.wallpapers.set(updatedData);
-          console.log('[LiveGradientWallpaper] Added temporary gradient to wallpapers list');
-          
+
           // Set it as active
           const setResult = await window.api.wallpapers.setActive({ url: saveResult.url });
           
           if (setResult.success) {
-            console.log('[LiveGradientWallpaper] ✅ Gradient wallpaper set successfully!');
-            
             // Also update the consolidated store directly to ensure immediate visual update
             const { setWallpaperState } = useConsolidatedAppStore.getState().actions;
             setWallpaperState({
               current: newWallpaper
             });
-            console.log('[LiveGradientWallpaper] ✅ Updated consolidated store with gradient wallpaper');
           } else {
             console.error('[LiveGradientWallpaper] Failed to set gradient as active:', setResult.error);
           }
@@ -322,8 +302,6 @@ const SpotifyLiveGradientWallpaper = () => {
   const cleanupCurrentGradient = async () => {
     if (currentGradientFile.current) {
       try {
-        console.log('[LiveGradientWallpaper] Cleaning up temporary gradient:', currentGradientFile.current);
-        
         // Remove from wallpapers list
         const wallpaperData = await window.api.wallpapers.get();
         const updatedWallpapers = (wallpaperData.savedWallpapers || []).filter(
@@ -336,8 +314,7 @@ const SpotifyLiveGradientWallpaper = () => {
         };
         
         await window.api.wallpapers.set(updatedData);
-        console.log('[LiveGradientWallpaper] Removed temporary gradient from wallpapers list');
-        
+
         // If we're in overlay mode, restore original wallpaper
         if (immersiveMode.overlayMode && lastWallpaperUrl.current) {
           const { setWallpaperState } = useConsolidatedAppStore.getState().actions;
@@ -348,7 +325,6 @@ const SpotifyLiveGradientWallpaper = () => {
               type: 'user'
             }
           });
-          console.log('[LiveGradientWallpaper] Restored original wallpaper in overlay mode');
         }
         
         currentGradientFile.current = null;
@@ -408,256 +384,6 @@ const SpotifyLiveGradientWallpaper = () => {
   }, [extractedColors, immersiveMode]);
 
   useEffect(() => registerSpotifyGradientSave(saveCurrentLook), [saveCurrentLook]);
-
-  // Debug function to test live gradient wallpaper
-  useEffect(() => {
-    window.testLiveGradientWallpaper = () => {
-      console.log('[LiveGradientWallpaper] === TESTING LIVE GRADIENT WALLPAPER ===');
-      console.log('[LiveGradientWallpaper] Live gradient wallpaper enabled:', immersiveMode.liveGradientWallpaper);
-      console.log('[LiveGradientWallpaper] Extracted colors:', extractedColors);
-      console.log('[LiveGradientWallpaper] Is playing:', isPlaying);
-      console.log('[LiveGradientWallpaper] Progress:', progress);
-      console.log('[LiveGradientWallpaper] Duration:', duration);
-      console.log('[LiveGradientWallpaper] Gradient overlay created:', !!createGradientOverlay);
-      console.log('[LiveGradientWallpaper] Last wallpaper URL:', lastWallpaperUrl.current);
-      console.log('[LiveGradientWallpaper] === END LIVE GRADIENT WALLPAPER TEST ===');
-    };
-
-         window.enableLiveGradientWallpaper = () => {
-       console.log('[LiveGradientWallpaper] Enabling live gradient wallpaper...');
-       const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-       const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-       
-       setSpotifyState({
-         immersiveMode: {
-           ...currentImmersiveMode,
-           liveGradientWallpaper: true
-         }
-       });
-       console.log('[LiveGradientWallpaper] ✅ Live gradient wallpaper enabled!');
-     };
-
-           window.testGradientVisibility = () => {
-        console.log('[LiveGradientWallpaper] === TESTING GRADIENT VISIBILITY ===');
-        console.log('[LiveGradientWallpaper] Current gradient overlay:', createGradientOverlay ? 'Created' : 'Not created');
-        console.log('[LiveGradientWallpaper] Extracted colors:', extractedColors);
-        console.log('[LiveGradientWallpaper] Last wallpaper URL:', lastWallpaperUrl.current);
-        
-        // Test setting a bright standalone gradient
-        if (createGradientOverlay && window.api?.wallpapers?.setActive) {
-          console.log('[LiveGradientWallpaper] Testing standalone gradient visibility...');
-          window.api.wallpapers.setActive({ url: createGradientOverlay });
-          console.log('[LiveGradientWallpaper] ✅ Test gradient applied - check if visible');
-        } else {
-          console.log('[LiveGradientWallpaper] ❌ Cannot test - missing gradient or API');
-        }
-        console.log('[LiveGradientWallpaper] === END VISIBILITY TEST ===');
-      };
-
-      window.createTestGradient = () => {
-        console.log('[LiveGradientWallpaper] === CREATING SUPER BRIGHT TEST GRADIENT ===');
-        
-        // Test if wallpaper API is available
-        if (!window.api?.wallpapers?.setActive) {
-          console.error('[LiveGradientWallpaper] ❌ Wallpaper API not available!');
-          alert('Wallpaper API not available! Make sure you\'re running in Electron.');
-          return;
-        }
-        
-        // Create a test canvas with EXTREMELY bright, solid gradients
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.screen.width;
-        canvas.height = window.screen.height;
-        
-        console.log('[LiveGradientWallpaper] Canvas size:', canvas.width + 'x' + canvas.height);
-        
-        // Fill with solid bright color first - this should be VERY visible
-        ctx.fillStyle = 'rgb(255, 0, 0)'; // Pure red
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Add some text to verify it's working
-        ctx.fillStyle = 'white';
-        ctx.font = '100px Arial';
-        ctx.fillText('GRADIENT TEST - ' + new Date().toLocaleTimeString(), 100, 200);
-        
-        // Create a bright, visible test gradient with NO transparency
-        const gradient1 = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient1.addColorStop(0, 'rgb(255, 0, 100)'); // Bright pink
-        gradient1.addColorStop(0.5, 'rgb(0, 255, 200)'); // Bright cyan
-        gradient1.addColorStop(1, 'rgb(100, 0, 255)'); // Bright purple
-        
-        // Apply the main gradient
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.fillStyle = gradient1;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        const testGradientUrl = canvas.toDataURL('image/png');
-        console.log('[LiveGradientWallpaper] Generated test gradient data URL, length:', testGradientUrl.length);
-        
-        // Save and set the test gradient properly
-        const saveTestGradient = async () => {
-          try {
-            const base64Data = testGradientUrl.split(',')[1];
-            console.log('[LiveGradientWallpaper] Saving test gradient as file...');
-            
-            const saveResult = await window.api.wallpapers.saveFile({
-              filename: `test-gradient-${Date.now()}.png`,
-              data: base64Data
-            });
-            
-            if (!saveResult.success) {
-              console.error('[LiveGradientWallpaper] Failed to save test gradient:', saveResult.error);
-              alert('Failed to save test gradient: ' + saveResult.error);
-              return;
-            }
-            
-            console.log('[LiveGradientWallpaper] Test gradient saved as:', saveResult.url);
-            
-            // Add to wallpapers list
-            const wallpaperData = await window.api.wallpapers.get();
-            const newWallpaper = {
-              url: saveResult.url,
-              name: 'Test Gradient',
-              type: 'user',
-              timestamp: new Date().toISOString(),
-              isTestGradient: true
-            };
-            
-            const updatedData = {
-              ...wallpaperData,
-              savedWallpapers: [...(wallpaperData.savedWallpapers || []), newWallpaper]
-            };
-            
-            await window.api.wallpapers.set(updatedData);
-            
-            // Set as active
-            const setResult = await window.api.wallpapers.setActive({ url: saveResult.url });
-            
-            if (setResult.success) {
-              console.log('[LiveGradientWallpaper] ✅ SUPER BRIGHT Test gradient applied successfully!');
-              
-              // Also update the consolidated store directly to ensure immediate visual update
-              const { setWallpaperState } = useConsolidatedAppStore.getState().actions;
-              setWallpaperState({
-                current: newWallpaper
-              });
-              console.log('[LiveGradientWallpaper] ✅ Updated consolidated store with test gradient');
-              
-              alert('Test gradient applied! Check your wallpaper - it should be bright red with gradient overlay and text.');
-            } else {
-              console.error('[LiveGradientWallpaper] Failed to set test gradient as active:', setResult.error);
-              alert('Failed to set test gradient: ' + setResult.error);
-            }
-            
-          } catch (error) {
-            console.error('[LiveGradientWallpaper] ❌ Error in test gradient process:', error);
-            alert('Failed to set test gradient: ' + error.message);
-          }
-        };
-        
-        saveTestGradient();
-        
-        console.log('[LiveGradientWallpaper] === END SUPER BRIGHT TEST GRADIENT ===');
-      };
-
-             window.testWallpaperAPI = () => {
-         console.log('[LiveGradientWallpaper] === TESTING WALLPAPER API ===');
-         console.log('[LiveGradientWallpaper] window.api available:', !!window.api);
-         console.log('[LiveGradientWallpaper] window.api.wallpapers available:', !!window.api?.wallpapers);
-         console.log('[LiveGradientWallpaper] window.api.wallpapers.setActive available:', !!window.api?.wallpapers?.setActive);
-         console.log('[LiveGradientWallpaper] window.api.wallpapers.get available:', !!window.api?.wallpapers?.get);
-         console.log('[LiveGradientWallpaper] window.api.wallpapers.saveFile available:', !!window.api?.wallpapers?.saveFile);
-         console.log('[LiveGradientWallpaper] window.api.wallpapers.set available:', !!window.api?.wallpapers?.set);
-         
-         if (window.api?.wallpapers?.get) {
-           window.api.wallpapers.get().then((data) => {
-             console.log('[LiveGradientWallpaper] Current wallpaper data:', data);
-           }).catch((error) => {
-             console.error('[LiveGradientWallpaper] Failed to get wallpaper data:', error);
-           });
-         }
-         console.log('[LiveGradientWallpaper] === END WALLPAPER API TEST ===');
-       };
-
-      window.forceGradientWallpaper = async () => {
-        console.log('[LiveGradientWallpaper] === FORCING CURRENT GRADIENT ===');
-        if (!createGradientOverlay) {
-          console.log('[LiveGradientWallpaper] ❌ No gradient available to force');
-          alert('No gradient available! Make sure Spotify is playing and colors are extracted.');
-          return;
-        }
-        
-        try {
-          const base64Data = createGradientOverlay.split(',')[1];
-          console.log('[LiveGradientWallpaper] Saving forced gradient as file...');
-          
-          const saveResult = await window.api.wallpapers.saveFile({
-            filename: `forced-spotify-gradient-${Date.now()}.png`,
-            data: base64Data
-          });
-          
-          if (!saveResult.success) {
-            console.error('[LiveGradientWallpaper] Failed to save forced gradient:', saveResult.error);
-            alert('Failed to save gradient: ' + saveResult.error);
-            return;
-          }
-          
-          console.log('[LiveGradientWallpaper] Forced gradient saved as:', saveResult.url);
-          
-          // Add to wallpapers list
-          const wallpaperData = await window.api.wallpapers.get();
-          const newWallpaper = {
-            url: saveResult.url,
-            name: 'Forced Spotify Gradient',
-            type: 'user',
-            timestamp: new Date().toISOString(),
-            isSpotifyGradient: true
-          };
-          
-          const updatedData = {
-            ...wallpaperData,
-            savedWallpapers: [...(wallpaperData.savedWallpapers || []), newWallpaper]
-          };
-          
-          await window.api.wallpapers.set(updatedData);
-          
-          // Set as active
-          const setResult = await window.api.wallpapers.setActive({ url: saveResult.url });
-          
-          if (setResult.success) {
-            console.log('[LiveGradientWallpaper] ✅ Current gradient forced as wallpaper successfully!');
-            
-            // Also update the consolidated store directly to ensure immediate visual update
-            const { setWallpaperState } = useConsolidatedAppStore.getState().actions;
-            setWallpaperState({
-              current: newWallpaper
-            });
-            console.log('[LiveGradientWallpaper] ✅ Updated consolidated store with forced gradient');
-            
-            alert('Forced gradient applied! Check your wallpaper.');
-          } else {
-            console.error('[LiveGradientWallpaper] Failed to set forced gradient as active:', setResult.error);
-            alert('Failed to set gradient: ' + setResult.error);
-          }
-          
-        } catch (error) {
-          console.error('[LiveGradientWallpaper] ❌ Error forcing gradient:', error);
-          alert('Failed to force gradient: ' + error.message);
-        }
-        
-        console.log('[LiveGradientWallpaper] === END FORCE ===');
-      };
-
-                                       return () => {
-         delete window.testLiveGradientWallpaper;
-         delete window.enableLiveGradientWallpaper;
-         delete window.testGradientVisibility;
-         delete window.createTestGradient;
-         delete window.forceGradientWallpaper;
-         delete window.testWallpaperAPI;
-       };
-  }, [immersiveMode.liveGradientWallpaper, extractedColors, isPlaying, progress, duration, createGradientOverlay]);
 
   // Don't render anything - this component only manages wallpaper
   return null;

@@ -181,8 +181,6 @@ const NavigationSettingsTab = () => {
         },
         spotifyIntegration: spotifyIntegration
       });
-      
-      console.log('Navigation settings saved successfully');
     } catch (error) {
       console.error('Failed to save navigation settings:', error);
     }

@@ -65,14 +65,6 @@ const UnifiedAppPathCard = React.memo(({
   useEffect(() => {
     const parentHasPath = Boolean(value.path && String(value.path).trim());
     const currentSelectedApp = value.selectedApp || (parentHasPath ? selectedApp : null);
-    if (import.meta.env.DEV) {
-      console.log('[UnifiedAppPathCard] Selected app changed:', {
-        valueSelectedApp: value.selectedApp,
-        storeSelectedApp: selectedApp,
-        currentSelectedApp,
-        parentHasPath,
-      });
-    }
 
     if (currentSelectedApp) {
       try {
@@ -81,9 +73,6 @@ const UnifiedAppPathCard = React.memo(({
         let generatedPath = currentSelectedApp?.path || '';
         if (currentSelectedApp?.args && currentSelectedApp.args.trim()) {
           generatedPath += ' ' + currentSelectedApp.args.trim();
-        }
-        if (import.meta.env.DEV) {
-          console.log('[UnifiedAppPathCard] Generated path:', generatedPath);
         }
         setPath(generatedPath);
       } catch (error) {
@@ -131,11 +120,6 @@ const UnifiedAppPathCard = React.memo(({
   }, [clearSelection]);
 
   const handleAppNameChange = useCallback((name) => {
-    if (import.meta.env.DEV) {
-      console.log('[UnifiedAppPathCard] handleAppNameChange called with:', name);
-      console.log('[UnifiedAppPathCard] Current selectedApp:', selectedApp);
-    }
-    
     setAppName(name);
     setPathError('');
     

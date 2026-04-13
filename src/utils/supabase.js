@@ -271,8 +271,6 @@ export const downloadMedia = async (mediaId) => {
 
 export const generatePresetThumbnail = async (presetData) => {
   try {
-    console.log('[SUPABASE] Generating preset thumbnail...');
-    
     // Create a canvas to generate thumbnail
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -329,45 +327,23 @@ export const generatePresetThumbnail = async (presetData) => {
 // =====================================================
 
 export const uploadPreset = async (presetData, formData) => {
-  console.log('[SUPABASE] Starting uploadPreset...');
-  console.log('[SUPABASE] Preset data:', { 
-    hasSettings: !!presetData.settings, 
-    hasWallpaper: !!presetData.wallpaper,
-    hasCustomImage: !!presetData.customImage
-  });
-  console.log('[SUPABASE] Form data:', formData);
-  
   const sessionId = await ensureSession()
-  console.log('[SUPABASE] Session ID:', sessionId);
   
   // Upload wallpaper if provided
   let wallpaperUrl = null
   let wallpaperFile = null
   
   if (presetData.wallpaper) {
-    console.log('[SUPABASE] Uploading wallpaper...');
     wallpaperFile = presetData.wallpaper
     const wallpaperFileName = `${Date.now()}-wallpaper-${wallpaperFile.name}`
-    console.log('[SUPABASE] Wallpaper filename:', wallpaperFileName);
-    console.log('[SUPABASE] Wallpaper size:', wallpaperFile.size);
-    console.log('[SUPABASE] Wallpaper type:', wallpaperFile.type);
-    console.log('[SUPABASE] Wallpaper instanceof File:', wallpaperFile instanceof File);
-    console.log('[SUPABASE] Wallpaper instanceof Blob:', wallpaperFile instanceof Blob);
     
     try {
-      console.log('[SUPABASE] Attempting wallpaper upload...');
       const { data: wallpaperData, error: wallpaperError } = await supabase.storage
         .from('preset-wallpapers')
         .upload(wallpaperFileName, wallpaperFile, {
           cacheControl: '3600',
           upsert: false
         })
-      
-      console.log('[SUPABASE] Wallpaper upload result:', { 
-        data: wallpaperData, 
-        error: wallpaperError,
-        errorMessage: wallpaperError?.message 
-      });
       
       if (wallpaperError) {
         console.error('[SUPABASE] Wallpaper upload error:', wallpaperError);
@@ -380,14 +356,11 @@ export const uploadPreset = async (presetData, formData) => {
       }
       
       wallpaperUrl = wallpaperData.path
-      console.log('[SUPABASE] Wallpaper URL set to:', wallpaperUrl);
     } catch (error) {
       console.error('[SUPABASE] Error uploading wallpaper:', error);
       console.error('[SUPABASE] Error stack:', error.stack);
       throw error;
     }
-  } else {
-    console.log('[SUPABASE] No wallpaper to upload');
   }
   
   // Upload custom image if provided
@@ -395,27 +368,16 @@ export const uploadPreset = async (presetData, formData) => {
   let customImageFile = null
   
   if (presetData.customImage) {
-    console.log('[SUPABASE] Uploading custom image...');
     customImageFile = presetData.customImage
     const customImageFileName = `${Date.now()}-display-${customImageFile.name}`
-    console.log('[SUPABASE] Custom image filename:', customImageFileName);
-    console.log('[SUPABASE] Custom image size:', customImageFile.size);
-    console.log('[SUPABASE] Custom image type:', customImageFile.type);
     
     try {
-      console.log('[SUPABASE] Attempting custom image upload...');
       const { data: customImageData, error: customImageError } = await supabase.storage
         .from('preset-displays')
         .upload(customImageFileName, customImageFile, {
           cacheControl: '3600',
           upsert: false
         })
-      
-      console.log('[SUPABASE] Custom image upload result:', { 
-        data: customImageData, 
-        error: customImageError,
-        errorMessage: customImageError?.message 
-      });
       
       if (customImageError) {
         console.error('[SUPABASE] Custom image upload error:', customImageError);
@@ -428,15 +390,12 @@ export const uploadPreset = async (presetData, formData) => {
       }
       
       customImageUrl = customImageData.path
-      console.log('[SUPABASE] Custom image URL set to:', customImageUrl);
     } catch (error) {
       console.error('[SUPABASE] Error uploading custom image:', error);
       console.error('[SUPABASE] Error stack:', error.stack);
       throw error;
     }
   } else {
-    console.log('[SUPABASE] No custom image provided, generating thumbnail...');
-    
     // Generate thumbnail from preset data
     const thumbnailBlob = await generatePresetThumbnail({
       name: formData.name,
@@ -449,7 +408,6 @@ export const uploadPreset = async (presetData, formData) => {
       const thumbnailFileName = `${Date.now()}-thumbnail.png`;
       
       try {
-        console.log('[SUPABASE] Uploading generated thumbnail...');
         const { data: thumbnailData, error: thumbnailError } = await supabase.storage
           .from('preset-displays')
           .upload(thumbnailFileName, customImageFile, {
@@ -461,7 +419,6 @@ export const uploadPreset = async (presetData, formData) => {
           console.error('[SUPABASE] Thumbnail upload error:', thumbnailError);
         } else {
           customImageUrl = thumbnailData.path;
-          console.log('[SUPABASE] Generated thumbnail uploaded:', customImageUrl);
         }
       } catch (error) {
         console.error('[SUPABASE] Error uploading thumbnail:', error);
@@ -499,7 +456,6 @@ export const uploadPreset = async (presetData, formData) => {
   }
 
   // Create preset record
-  console.log('[SUPABASE] Creating preset record...');
   const presetRecord = {
     name: formData.name,
     description: formData.description,
@@ -516,22 +472,16 @@ export const uploadPreset = async (presetData, formData) => {
     version: nextVersion
   };
   
-  console.log('[SUPABASE] Preset record to insert:', presetRecord);
-  
   const { data, error } = await spokeClient
     .from('presets')
     .insert(presetRecord)
     .select()
     .single()
-  
-  console.log('[SUPABASE] Insert result:', { data, error });
-  
   if (error) {
     console.error('[SUPABASE] Error inserting preset:', error);
     throw error;
   }
-  
-  console.log('[SUPABASE] Upload successful:', data);
+
   const warnings = []
   if (!wallpaperFile && presetData?.settings?.wallpaper?.url) {
     warnings.push('Wallpaper could not be included with this shared preset.')
@@ -574,7 +524,6 @@ export const downloadPreset = async (presetId) => {
     if (downloadError) {
       // 409 Conflict means this session already downloaded this preset
       if (downloadError.code === '23505' || downloadError.message.includes('duplicate')) {
-        console.log('[SUPABASE] Download already tracked for this session');
       } else {
         console.warn('[SUPABASE] Error tracking download:', downloadError);
       }
@@ -828,7 +777,6 @@ export const downloadPresetLegacy = async (preset) => {
     const presetData = JSON.parse(presetText);
 
     // Increment download count
-    console.log('Incrementing download count for preset:', preset.id);
     const currentDownloads = preset.downloads || 0;
     const { error: updateError } = await spokeClient
       .from('presets')
@@ -843,8 +791,6 @@ export const downloadPresetLegacy = async (preset) => {
         newDownloads: currentDownloads + 1 
       });
       // Don't fail the download if the count update fails
-    } else {
-      console.log('Download count updated successfully:', currentDownloads + 1);
     }
 
     return { success: true, data: presetData };
