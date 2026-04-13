@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { sanitizePresetSettingsForCommunity } from './presetSharing'
+import { logError, logWarn } from './logger'
 import {
   CANVAS_AVATAR_FALLBACK_BG,
   CANVAS_AVATAR_FALLBACK_FG,
@@ -30,9 +31,7 @@ export function getStoragePublicObjectUrl(bucket, objectPath) {
 }
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.warn(
-    '[SUPABASE] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Copy .env.example to .env and set values.'
-  )
+  logWarn('SUPABASE', 'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Copy .env.example to .env and set values.')
 }
 
 export const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '')
@@ -317,7 +316,7 @@ export const generatePresetThumbnail = async (presetData) => {
       canvas.toBlob(resolve, 'image/png', 0.9);
     });
   } catch (error) {
-    console.error('[SUPABASE] Error generating thumbnail:', error);
+    logError('SUPABASE', 'Error generating thumbnail', error);
     return null;
   }
 };
@@ -346,8 +345,7 @@ export const uploadPreset = async (presetData, formData) => {
         })
       
       if (wallpaperError) {
-        console.error('[SUPABASE] Wallpaper upload error:', wallpaperError);
-        console.error('[SUPABASE] Error details:', {
+        logError('SUPABASE', 'Wallpaper upload error', wallpaperError, {
           message: wallpaperError.message,
           statusCode: wallpaperError.statusCode,
           details: wallpaperError.details
@@ -357,8 +355,7 @@ export const uploadPreset = async (presetData, formData) => {
       
       wallpaperUrl = wallpaperData.path
     } catch (error) {
-      console.error('[SUPABASE] Error uploading wallpaper:', error);
-      console.error('[SUPABASE] Error stack:', error.stack);
+      logError('SUPABASE', 'Error uploading wallpaper', error, { stack: error?.stack });
       throw error;
     }
   }
@@ -380,8 +377,7 @@ export const uploadPreset = async (presetData, formData) => {
         })
       
       if (customImageError) {
-        console.error('[SUPABASE] Custom image upload error:', customImageError);
-        console.error('[SUPABASE] Error details:', {
+        logError('SUPABASE', 'Custom image upload error', customImageError, {
           message: customImageError.message,
           statusCode: customImageError.statusCode,
           details: customImageError.details
@@ -391,8 +387,7 @@ export const uploadPreset = async (presetData, formData) => {
       
       customImageUrl = customImageData.path
     } catch (error) {
-      console.error('[SUPABASE] Error uploading custom image:', error);
-      console.error('[SUPABASE] Error stack:', error.stack);
+      logError('SUPABASE', 'Error uploading custom image', error, { stack: error?.stack });
       throw error;
     }
   } else {
@@ -416,12 +411,12 @@ export const uploadPreset = async (presetData, formData) => {
           })
         
         if (thumbnailError) {
-          console.error('[SUPABASE] Thumbnail upload error:', thumbnailError);
+          logError('SUPABASE', 'Thumbnail upload error', thumbnailError);
         } else {
           customImageUrl = thumbnailData.path;
         }
       } catch (error) {
-        console.error('[SUPABASE] Error uploading thumbnail:', error);
+        logError('SUPABASE', 'Error uploading thumbnail', error);
       }
     }
   }
@@ -478,7 +473,7 @@ export const uploadPreset = async (presetData, formData) => {
     .select()
     .single()
   if (error) {
-    console.error('[SUPABASE] Error inserting preset:', error);
+    logError('SUPABASE', 'Error inserting preset', error);
     throw error;
   }
 
@@ -505,7 +500,7 @@ export const downloadPreset = async (presetId) => {
       .single()
     
     if (presetError) {
-      console.error('[SUPABASE] Error fetching preset:', presetError);
+      logError('SUPABASE', 'Error fetching preset', presetError);
       return { success: false, error: presetError.message };
     }
     
@@ -525,7 +520,7 @@ export const downloadPreset = async (presetId) => {
       // 409 Conflict means this session already downloaded this preset
       if (downloadError.code === '23505' || downloadError.message.includes('duplicate')) {
       } else {
-        console.warn('[SUPABASE] Error tracking download:', downloadError);
+        logWarn('SUPABASE', 'Error tracking download', downloadError);
       }
       // Don't fail the download if tracking fails
     }
@@ -540,7 +535,7 @@ export const downloadPreset = async (presetId) => {
       if (!wallpaperError) {
         wallpaperData = await wallpaper.arrayBuffer()
       } else {
-        console.warn('[SUPABASE] Error downloading wallpaper:', wallpaperError);
+        logWarn('SUPABASE', 'Error downloading wallpaper', wallpaperError);
         // Don't fail the download if wallpaper fails
       }
     }
@@ -553,7 +548,7 @@ export const downloadPreset = async (presetId) => {
       try {
         presetData = JSON.parse(presetData);
       } catch (parseError) {
-        console.error('[SUPABASE] Error parsing preset settings:', parseError);
+        logError('SUPABASE', 'Error parsing preset settings', parseError);
         return { success: false, error: 'Invalid preset data format' };
       }
     }
@@ -580,7 +575,7 @@ export const downloadPreset = async (presetId) => {
       }
     }
   } catch (error) {
-    console.error('[SUPABASE] Error downloading preset:', error);
+    logError('SUPABASE', 'Error downloading preset', error);
     return { success: false, error: error.message };
   }
 }
@@ -612,7 +607,7 @@ export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at', o
         
         return { success: true, data: data || [] }
       } catch (error) {
-        console.error('[SUPABASE] Error fetching shared presets:', error)
+        logError('SUPABASE', 'Error fetching shared presets', error)
         return { success: false, error: error.message, data: [] }
       }
     },
@@ -684,7 +679,7 @@ export const getCommunityPresetUpdates = async (installedPresets = [], options =
 
         return { success: true, data: result }
       } catch (error) {
-        console.error('[SUPABASE] Error checking community preset updates:', error)
+        logError('SUPABASE', 'Error checking community preset updates', error)
         return { success: false, error: error.message, data: {} }
       }
     },
@@ -768,7 +763,7 @@ export const downloadPresetLegacy = async (preset) => {
       .download(preset.preset_file_url)
 
     if (fileError) {
-      console.error('Error downloading preset file:', fileError);
+      logError('SUPABASE', 'Error downloading preset file', fileError);
       return { success: false, error: fileError.message };
     }
 
@@ -784,8 +779,7 @@ export const downloadPresetLegacy = async (preset) => {
       .eq('id', preset.id);
 
     if (updateError) {
-      console.error('Error updating download count:', updateError);
-      console.error('Update details:', { 
+      logError('SUPABASE', 'Error updating download count', updateError, { 
         presetId: preset.id, 
         currentDownloads, 
         newDownloads: currentDownloads + 1 
@@ -795,7 +789,7 @@ export const downloadPresetLegacy = async (preset) => {
 
     return { success: true, data: presetData };
   } catch (error) {
-    console.error('Error downloading preset:', error);
+    logError('SUPABASE', 'Error downloading preset', error);
     return { success: false, error: error.message };
   }
 } 

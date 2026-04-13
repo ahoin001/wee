@@ -58,7 +58,7 @@ function normalizeSettingsShape(settingsToApply) {
 }
 
 /**
- * Apply a preset's `data` to the consolidated store and persist legacy + wallpaper backends.
+ * Apply a preset's `data` to the consolidated store and unified persistence backends.
  */
 export async function applyPresetData(preset) {
   if (!preset?.data) {

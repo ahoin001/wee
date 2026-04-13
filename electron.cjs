@@ -17,6 +17,8 @@ const { nativeImage } = require('electron');
 const { exec } = require('child_process');
 const { globalShortcut } = require('electron');
 const { Menu } = require('electron');
+const Database = require('better-sqlite3');
+const sharp = require('sharp');
 
 // Import the Spotify backend
 // Spotify backend removed - using direct client-side API calls
@@ -29,10 +31,221 @@ const dataDir = path.join(app.getPath('userData'), 'data');
 const savedSoundsPath = path.join(dataDir, 'savedSounds.json');
 const wallpapersFile = path.join(dataDir, 'wallpapers.json');
 const channelsFile = path.join(dataDir, 'channels.json');
+const legacySettingsFile = path.join(dataDir, 'settings.json');
 const userWallpapersPath = path.join(dataDir, 'wallpapers');
 const userSoundsPath = path.join(dataDir, 'sounds');
 const userChannelHoverSoundsPath = path.join(dataDir, 'channel-hover-sounds');
 const userIconsPath = path.join(dataDir, 'icons');
+const userWallpaperThumbnailsPath = path.join(dataDir, 'wallpaper-thumbs');
+const mediaIndexDbFile = path.join(dataDir, 'media-index.sqlite');
+
+let mediaIndexDb = null;
+
+function getMediaIndexDb() {
+  if (mediaIndexDb) return mediaIndexDb;
+
+  fs.mkdirSync(dataDir, { recursive: true });
+  mediaIndexDb = new Database(mediaIndexDbFile);
+  mediaIndexDb.pragma('journal_mode = WAL');
+  mediaIndexDb.exec(`
+    CREATE TABLE IF NOT EXISTS wallpaper_assets (
+      url TEXT PRIMARY KEY,
+      name TEXT,
+      type TEXT,
+      source_path TEXT,
+      size_bytes INTEGER,
+      width INTEGER,
+      height INTEGER,
+      thumbnail_url TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    );
+  `);
+
+  return mediaIndexDb;
+}
+
+function getWallpaperAssetFromIndex(url) {
+  try {
+    const db = getMediaIndexDb();
+    return db
+      .prepare('SELECT url, thumbnail_url AS thumbnailUrl, width, height, size_bytes AS sizeBytes FROM wallpaper_assets WHERE url = ?')
+      .get(url);
+  } catch (error) {
+    console.warn('[MEDIA-INDEX] Failed to read wallpaper index entry:', error.message);
+    return null;
+  }
+}
+
+function upsertWallpaperAssetInIndex(asset) {
+  try {
+    const db = getMediaIndexDb();
+    db.prepare(`
+      INSERT INTO wallpaper_assets (
+        url, name, type, source_path, size_bytes, width, height, thumbnail_url, created_at, updated_at
+      ) VALUES (
+        @url, @name, @type, @sourcePath, @sizeBytes, @width, @height, @thumbnailUrl, @createdAt, @updatedAt
+      )
+      ON CONFLICT(url) DO UPDATE SET
+        name=excluded.name,
+        type=excluded.type,
+        source_path=excluded.source_path,
+        size_bytes=excluded.size_bytes,
+        width=excluded.width,
+        height=excluded.height,
+        thumbnail_url=excluded.thumbnail_url,
+        updated_at=excluded.updated_at
+    `).run({
+      ...asset,
+      updatedAt: Date.now(),
+    });
+  } catch (error) {
+    console.warn('[MEDIA-INDEX] Failed to upsert wallpaper entry:', error.message);
+  }
+}
+
+async function removeWallpaperAssetFromIndex(url) {
+  try {
+    const existing = getWallpaperAssetFromIndex(url);
+    const db = getMediaIndexDb();
+    db.prepare('DELETE FROM wallpaper_assets WHERE url = ?').run(url);
+
+    if (existing?.thumbnailUrl?.startsWith('userdata://wallpaper-thumbs/')) {
+      const thumbnailName = existing.thumbnailUrl.replace('userdata://wallpaper-thumbs/', '');
+      await fsPromises.rm(path.join(userWallpaperThumbnailsPath, thumbnailName), { force: true });
+    }
+  } catch (error) {
+    console.warn('[MEDIA-INDEX] Failed to remove wallpaper entry:', error.message);
+  }
+}
+
+async function createWallpaperThumbnail(sourcePath, stem) {
+  try {
+    await fsPromises.mkdir(userWallpaperThumbnailsPath, { recursive: true });
+    const thumbnailFilename = `${stem}-${Date.now()}.webp`;
+    const thumbnailPath = path.join(userWallpaperThumbnailsPath, thumbnailFilename);
+
+    await sharp(sourcePath)
+      .resize(640, 360, { fit: 'cover', position: 'attention', withoutEnlargement: true })
+      .webp({ quality: 72 })
+      .toFile(thumbnailPath);
+
+    return `userdata://wallpaper-thumbs/${thumbnailFilename}`;
+  } catch (error) {
+    console.warn('[WALLPAPER] Thumbnail generation skipped:', error.message);
+    return null;
+  }
+}
+
+async function getWallpaperMetadata(sourcePath) {
+  try {
+    const [stats, metadata] = await Promise.all([
+      fsPromises.stat(sourcePath),
+      sharp(sourcePath).metadata(),
+    ]);
+
+    return {
+      sizeBytes: stats?.size || null,
+      width: metadata?.width || null,
+      height: metadata?.height || null,
+    };
+  } catch {
+    try {
+      const stats = await fsPromises.stat(sourcePath);
+      return {
+        sizeBytes: stats?.size || null,
+        width: null,
+        height: null,
+      };
+    } catch {
+      return {
+        sizeBytes: null,
+        width: null,
+        height: null,
+      };
+    }
+  }
+}
+
+function hydrateWallpapersFromIndex(savedWallpapers) {
+  if (!Array.isArray(savedWallpapers) || savedWallpapers.length === 0) {
+    return [];
+  }
+
+  return savedWallpapers.map((wallpaper) => {
+    if (!wallpaper?.url) return wallpaper;
+    const indexed = getWallpaperAssetFromIndex(wallpaper.url);
+    if (!indexed) return wallpaper;
+
+    return {
+      ...wallpaper,
+      thumbnailUrl: indexed.thumbnailUrl || wallpaper.thumbnailUrl || null,
+      width: indexed.width ?? wallpaper.width ?? null,
+      height: indexed.height ?? wallpaper.height ?? null,
+      sizeBytes: indexed.sizeBytes ?? wallpaper.sizeBytes ?? null,
+    };
+  });
+}
+
+async function backfillWallpaperIndex(savedWallpapers) {
+  if (!Array.isArray(savedWallpapers) || savedWallpapers.length === 0) {
+    return savedWallpapers;
+  }
+
+  const nextWallpapers = [];
+  for (const wallpaper of savedWallpapers) {
+    if (!wallpaper?.url || !wallpaper.url.startsWith('userdata://wallpapers/')) {
+      nextWallpapers.push(wallpaper);
+      continue;
+    }
+
+    const indexed = getWallpaperAssetFromIndex(wallpaper.url);
+    if (indexed?.thumbnailUrl) {
+      nextWallpapers.push({
+        ...wallpaper,
+        thumbnailUrl: indexed.thumbnailUrl,
+        width: indexed.width ?? wallpaper.width ?? null,
+        height: indexed.height ?? wallpaper.height ?? null,
+        sizeBytes: indexed.sizeBytes ?? wallpaper.sizeBytes ?? null,
+      });
+      continue;
+    }
+
+    const filename = wallpaper.url.replace('userdata://wallpapers/', '');
+    const sourcePath = path.join(userWallpapersPath, filename);
+    const sourceExists = fs.existsSync(sourcePath);
+    if (!sourceExists) {
+      nextWallpapers.push(wallpaper);
+      continue;
+    }
+
+    const stem = path.basename(filename, path.extname(filename));
+    const thumbnailUrl = await createWallpaperThumbnail(sourcePath, stem);
+    const metadata = await getWallpaperMetadata(sourcePath);
+    upsertWallpaperAssetInIndex({
+      url: wallpaper.url,
+      name: wallpaper.name || filename,
+      type: wallpaper.type || path.extname(filename).replace('.', ''),
+      sourcePath,
+      sizeBytes: metadata.sizeBytes,
+      width: metadata.width,
+      height: metadata.height,
+      thumbnailUrl,
+      createdAt: wallpaper.added || Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    nextWallpapers.push({
+      ...wallpaper,
+      thumbnailUrl: thumbnailUrl || wallpaper.thumbnailUrl || null,
+      width: metadata.width ?? wallpaper.width ?? null,
+      height: metadata.height ?? wallpaper.height ?? null,
+      sizeBytes: metadata.sizeBytes ?? wallpaper.sizeBytes ?? null,
+    });
+  }
+
+  return nextWallpapers;
+}
 
 async function ensureDataDir() {
   await fsPromises.mkdir(dataDir, { recursive: true });
@@ -40,6 +253,8 @@ async function ensureDataDir() {
   await fsPromises.mkdir(userSoundsPath, { recursive: true });
   await fsPromises.mkdir(userChannelHoverSoundsPath, { recursive: true });
   await fsPromises.mkdir(userIconsPath, { recursive: true });
+  await fsPromises.mkdir(userWallpaperThumbnailsPath, { recursive: true });
+  getMediaIndexDb();
 }
 
 // --- Wallpapers Data Module ---
@@ -48,6 +263,13 @@ const wallpapersData = {
     await ensureDataDir();
     try { 
       const data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8'));
+      const originalSavedWallpapers = Array.isArray(data.savedWallpapers) ? data.savedWallpapers : [];
+      const hydratedWallpapers = hydrateWallpapersFromIndex(originalSavedWallpapers);
+      const backfilledWallpapers = await backfillWallpaperIndex(hydratedWallpapers);
+      data.savedWallpapers = backfilledWallpapers;
+      if (JSON.stringify(originalSavedWallpapers) !== JSON.stringify(backfilledWallpapers)) {
+        await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+      }
       console.log('[WALLPAPERS] Successfully loaded wallpaper data:', Object.keys(data));
       return data;
     } catch (error) { 
@@ -208,6 +430,58 @@ const normalizeUnifiedDataShape = (data) => {
   return normalized;
 };
 
+const importLegacySettingsIconsIfNeeded = async (normalizedData) => {
+  const meta = asObjectRecord(normalizedData.meta);
+  if (meta.legacySettingsIconsImported) {
+    return normalizedData;
+  }
+
+  const currentContent = asObjectRecord(normalizedData.content);
+  const currentIcons = Array.isArray(currentContent.icons) ? currentContent.icons : [];
+
+  let legacyIcons = [];
+  try {
+    const raw = await fsPromises.readFile(legacySettingsFile, 'utf-8');
+    const legacySettings = JSON.parse(raw);
+    legacyIcons = Array.isArray(legacySettings?.savedIcons) ? legacySettings.savedIcons : [];
+  } catch {
+    legacyIcons = [];
+  }
+
+  const iconMap = new Map();
+  currentIcons.forEach((icon) => {
+    if (icon?.url) iconMap.set(icon.url, icon);
+  });
+  legacyIcons.forEach((icon) => {
+    if (icon?.url && !iconMap.has(icon.url)) iconMap.set(icon.url, icon);
+  });
+
+  const mergedIcons = Array.from(iconMap.values());
+  const nextData = {
+    ...normalizedData,
+    content: {
+      ...currentContent,
+      icons: mergedIcons,
+    },
+    meta: {
+      ...meta,
+      settingsSchemaVersion: SETTINGS_SCHEMA_VERSION,
+      legacySettingsIconsImported: true,
+    },
+  };
+
+  try {
+    await fsPromises.unlink(legacySettingsFile);
+    console.log('[UNIFIED-DATA] Removed legacy settings.json after icon migration');
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      console.warn('[UNIFIED-DATA] Failed to remove legacy settings.json:', error.message);
+    }
+  }
+
+  return nextData;
+};
+
 const unifiedData = {
   async get() {
     await ensureDataDir();
@@ -215,14 +489,15 @@ const unifiedData = {
       const data = JSON.parse(await fsPromises.readFile(unifiedDataFile, 'utf-8'));
       console.log('[UNIFIED-DATA] Successfully loaded unified data');
       const normalizedData = normalizeUnifiedDataShape(data);
-      if (JSON.stringify(normalizedData) !== JSON.stringify(data)) {
-        await fsPromises.writeFile(unifiedDataFile, JSON.stringify(normalizedData, null, 2), 'utf-8');
+      const migratedData = await importLegacySettingsIconsIfNeeded(normalizedData);
+      if (JSON.stringify(migratedData) !== JSON.stringify(data)) {
+        await fsPromises.writeFile(unifiedDataFile, JSON.stringify(migratedData, null, 2), 'utf-8');
         console.log('[UNIFIED-DATA] Migrated settings data to schema version', SETTINGS_SCHEMA_VERSION);
       }
-      return normalizedData;
+      return migratedData;
     } catch (error) { 
       console.warn('[UNIFIED-DATA] Failed to load unified data, using defaults:', error.message);
-      return normalizeUnifiedDataShape({
+      const normalizedDefaults = normalizeUnifiedDataShape({
         settings: {
           appearance: {
             theme: 'light',
@@ -374,6 +649,7 @@ const unifiedData = {
           icons: [],
         },
       });
+      return importLegacySettingsIconsIfNeeded(normalizedDefaults);
     }
   },
   async set(data) {
@@ -1591,17 +1867,41 @@ ipcMain.handle('wallpapers:add', async (event, { filePath, filename }) => {
     }
     const destPath = path.join(userWallpapersPath, uniqueName);
     await fsExtra.copy(filePath, destPath);
+    const stem = path.basename(uniqueName, path.extname(uniqueName));
+    const thumbnailUrl = await createWallpaperThumbnail(destPath, stem);
+    const metadata = await getWallpaperMetadata(destPath);
     // Update wallpapers.json
     let data;
     try { data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }
     if (!data.savedWallpapers) data.savedWallpapers = [];
     const url = `userdata://wallpapers/${uniqueName}`;
-    const newWallpaper = { url, name: filename, type: ext.replace('.', ''), added: Date.now() };
+    const newWallpaper = {
+      url,
+      name: filename,
+      type: ext.replace('.', ''),
+      added: Date.now(),
+      thumbnailUrl,
+      width: metadata.width,
+      height: metadata.height,
+      sizeBytes: metadata.sizeBytes,
+    };
     data.savedWallpapers.push(newWallpaper);
     data.wallpaper = newWallpaper;
     await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    upsertWallpaperAssetInIndex({
+      url,
+      name: filename,
+      type: ext.replace('.', ''),
+      sourcePath: destPath,
+      sizeBytes: metadata.sizeBytes,
+      width: metadata.width,
+      height: metadata.height,
+      thumbnailUrl,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
     emitWallpapersUpdated();
-    return { success: true, url };
+    return { success: true, url, wallpaper: newWallpaper };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1621,6 +1921,7 @@ ipcMain.handle('wallpapers:delete', async (event, { url }) => {
     data.likedWallpapers = (data.likedWallpapers || []).filter(u => u !== url);
     if (data.wallpaper && data.wallpaper.url === url) data.wallpaper = null;
     await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+    await removeWallpaperAssetFromIndex(url);
     emitWallpapersUpdated();
     return { success: true };
   } catch (error) {
@@ -1879,23 +2180,7 @@ async function createWindow(opts = {}) {
       const data = await unifiedData.get();
       const settings = data?.settings || {};
       
-      // Check both old and new settings structure for backward compatibility
-      let fullscreenSetting = false;
-      if (settings.ui && settings.ui.startInFullscreen !== undefined) {
-        // Canonical architecture: unified-data settings.ui.startInFullscreen
-        fullscreenSetting = settings.ui.startInFullscreen;
-        console.log('[DEBUG] 📋 Found startInFullscreen in ui settings:', fullscreenSetting);
-      } else if (settings.startInFullscreen !== undefined) {
-        // Legacy architecture: settings.startInFullscreen
-        fullscreenSetting = settings.startInFullscreen;
-        console.log('[DEBUG] 📋 Found startInFullscreen in legacy settings:', fullscreenSetting);
-      } else {
-        // Default to false if not set
-        fullscreenSetting = false;
-        console.log('[DEBUG] 📋 No startInFullscreen setting found, defaulting to false');
-      }
-      
-      shouldStartFullscreen = fullscreenSetting;
+      shouldStartFullscreen = settings.ui?.startInFullscreen ?? false;
       console.log('[DEBUG] 📋 Final fullscreen preference:', shouldStartFullscreen);
     } catch (error) {
       console.log('[DEBUG] ⚠️ Could not load settings for fullscreen preference, defaulting to false');
@@ -2521,6 +2806,8 @@ if (app.isPackaged) {
       let filePath;
       if (url.startsWith('wallpapers/')) {
         filePath = path.join(userWallpapersPath, url.replace(/^wallpapers[\\\/]/, ''));
+      } else if (url.startsWith('wallpaper-thumbs/')) {
+        filePath = path.join(userWallpaperThumbnailsPath, url.replace(/^wallpaper-thumbs[\\\/]/, ''));
       } else if (url.startsWith('sounds/')) {
         filePath = path.join(userSoundsPath, url.replace(/^sounds[\\\/]/, ''));
       } else if (url.startsWith('channel-hover-sounds/')) {
@@ -3901,7 +4188,25 @@ ipcMain.handle('wallpapers:save-file', async (event, { filename, data }) => {
     }
     const filePath = path.join(userWallpapersPath, uniqueName);
     await fsPromises.writeFile(filePath, Buffer.from(data, 'base64'));
-    return { success: true, url: `userdata://wallpapers/${uniqueName}` };
+    const stem = path.basename(uniqueName, path.extname(uniqueName));
+    const url = `userdata://wallpapers/${uniqueName}`;
+    const thumbnailUrl = await createWallpaperThumbnail(filePath, stem);
+    const metadata = await getWallpaperMetadata(filePath);
+
+    upsertWallpaperAssetInIndex({
+      url,
+      name: uniqueName,
+      type: path.extname(uniqueName).replace('.', ''),
+      sourcePath: filePath,
+      sizeBytes: metadata.sizeBytes,
+      width: metadata.width,
+      height: metadata.height,
+      thumbnailUrl,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { success: true, url, thumbnailUrl };
   } catch (e) {
     return { success: false, error: e.message };
   }

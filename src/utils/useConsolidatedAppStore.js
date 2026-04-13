@@ -8,6 +8,8 @@ import {
   DEFAULT_RIBBON_SURFACE_HEX,
   INPUT_COLOR_DEFAULT_HEX,
 } from '../design/runtimeColorStrings.js';
+import { resolveGridConfig, resolveNavigation } from './channelLayoutSystem';
+import { applyChannelSlotReorder } from './channelReorder';
 
 let useConsolidatedAppStore;
 const {
@@ -68,19 +70,8 @@ useConsolidatedAppStore = create(
           channelOpacity: 1,
           lastChannelHoverTime: Date.now(),
           // Modal states
-          showPresetsModal: false,
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
-          showWallpaperModal: false,
-          showSoundModal: false,
-          showChannelSettingsModal: false,
-          showAppShortcutsModal: false,
-          showTimeSettingsModal: false,
-          showRibbonSettingsModal: false,
-          showUpdateModal: false,
-          showPrimaryActionsModal: false,
-          showImageSearchModal: false,
-          showMonitorSelectionModal: false,
           settingsActiveTab: 'channels', // Default active tab for settings modal
           // Keyboard shortcuts
           keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
@@ -200,14 +191,8 @@ useConsolidatedAppStore = create(
             
             // Channel configurations by ID
             configuredChannels: {},
-            
-            // Media mappings
-            mediaMap: {},
-            
-            // App path mappings
-            appPathMap: {},
-            
-            // Channel configurations
+
+            // Per-tile UI / Ken Burns (keyed by channel id)
             channelConfigs: {},
             
             // Navigation state
@@ -563,8 +548,6 @@ useConsolidatedAppStore = create(
             // Backward compatibility for legacy flat channel settings payloads.
             const {
               configuredChannels,
-              mediaMap,
-              appPathMap,
               channelConfigs,
               navigation,
               ...channelSettingsUpdates
@@ -577,8 +560,6 @@ useConsolidatedAppStore = create(
                 data: {
                   ...state.channels.data,
                   ...(configuredChannels !== undefined ? { configuredChannels } : {}),
-                  ...(mediaMap !== undefined ? { mediaMap } : {}),
-                  ...(appPathMap !== undefined ? { appPathMap } : {}),
                   ...(channelConfigs !== undefined ? { channelConfigs } : {}),
                   ...(navigation !== undefined ? { navigation } : {}),
                 }
@@ -659,6 +640,40 @@ useConsolidatedAppStore = create(
               }
             };
           }),
+
+          /**
+           * Move slot `fromIndex` → `toIndex` (insert semantics). Updates
+           * `configuredChannels` and `channelConfigs` in one atomic write.
+           */
+          reorderChannelSlots: (fromIndex, toIndex) => set((state) => {
+            const channelsData = state.channels?.data || {};
+            const navigation = resolveNavigation(channelsData.navigation);
+            const grid = resolveGridConfig(channelsData, navigation);
+            const n = grid.totalChannels;
+            if (fromIndex === toIndex || n <= 0) {
+              return state;
+            }
+            if (fromIndex < 0 || toIndex < 0 || fromIndex >= n || toIndex >= n) {
+              return state;
+            }
+            const { configuredChannels, channelConfigs } = applyChannelSlotReorder({
+              fromIndex,
+              toIndex,
+              totalChannels: n,
+              configuredChannels: channelsData.configuredChannels || {},
+              channelConfigs: channelsData.channelConfigs || {},
+            });
+            return {
+              channels: {
+                ...state.channels,
+                data: {
+                  ...channelsData,
+                  configuredChannels,
+                  channelConfigs,
+                },
+              },
+            };
+          }),
           
           // Navigation actions
           setChannelNavigation: (updates) => set((state) => ({
@@ -685,10 +700,6 @@ useConsolidatedAppStore = create(
 
           // Sounds actions
           setSoundsState: (updates) => set((state) => ({
-            sounds: { ...state.sounds, ...updates }
-          })),
-          // Backward compatibility alias for legacy callers
-          setSoundState: (updates) => set((state) => ({
             sounds: { ...state.sounds, ...updates }
           })),
 
@@ -918,8 +929,6 @@ useConsolidatedAppStore = create(
                 gridRows: 3,
                 totalChannels: 36,
                 configuredChannels: {},
-                mediaMap: {},
-                appPathMap: {},
                 channelConfigs: {},
                 navigation: {
                   currentPage: 0,

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import isEqual from 'fast-deep-equal';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { saveUnifiedSettingsSnapshot } from '../utils/electronApi';
 import { buildSettingsSnapshotFromStore } from '../utils/store/settingsPersistenceContract';
@@ -7,18 +8,16 @@ const PERSIST_DEBOUNCE_MS = 250;
 
 export const useUnifiedSettingsPersistence = () => {
   const timerRef = useRef(null);
-  const lastSerializedRef = useRef('');
+  const lastSnapshotRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = useConsolidatedAppStore.subscribe((state) => {
       const snapshot = buildSettingsSnapshotFromStore(state);
-      const serialized = JSON.stringify(snapshot);
-
-      if (serialized === lastSerializedRef.current) {
+      if (isEqual(snapshot, lastSnapshotRef.current)) {
         return;
       }
 
-      lastSerializedRef.current = serialized;
+      lastSnapshotRef.current = snapshot;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }

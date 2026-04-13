@@ -6,9 +6,9 @@ import WToggle from '../../ui/WToggle';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
-import ResourceUsageIndicator from '../ResourceUsageIndicator';
+import { ResourceUsageIndicator } from '../widgets';
 import Slider from '../../ui/Slider';
-import '../sound-management.css';
+import '../audio/sound-management.css';
 
 /**
  * Sound Settings Tab - Complete sound management interface

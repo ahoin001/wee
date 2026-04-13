@@ -28,6 +28,48 @@
   box-shadow: var(--shadow-md);
 }
 
+.channel.wii-mode-tile {
+  width: 100%;
+  height: 100%;
+  min-width: clamp(150px, 16vw, 280px);
+  min-height: clamp(84px, 10vh, 156px);
+  border-radius: 18px;
+  border: 1px solid hsl(var(--border-primary) / 0.9);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--surface-primary) / 0.96) 0%,
+    hsl(var(--surface-secondary) / 0.9) 100%
+  );
+  box-shadow: 0 4px 10px hsl(var(--color-pure-black) / 0.14);
+  transition: transform 0.19s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.19s cubic-bezier(0.22, 0.61, 0.36, 1);
+  aspect-ratio: 2.02 / 1;
+}
+
+.channel.wii-mode-tile:hover,
+.channel.wii-mode-tile:focus {
+  transform: scale(1.035);
+  box-shadow: 0 10px 20px hsl(var(--color-pure-black) / 0.2), 0 0 0 2px hsl(var(--border-accent) / 0.22);
+}
+
+.channel.wii-mode-tile .channel-media {
+  border-radius: 18px;
+}
+
+.channel.empty.wii-mode-tile {
+  border: 1px solid hsl(var(--border-primary) / 0.88) !important;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--surface-secondary) / 0.9) 0%,
+    hsl(var(--surface-secondary) / 0.82) 100%
+  ) !important;
+  box-shadow: 0 5px 12px hsl(var(--color-pure-black) / 0.16) !important;
+}
+
+.channel.empty.wii-mode-tile:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 16px hsl(var(--color-pure-black) / 0.16), 0 0 0 2px hsl(var(--border-accent) / 0.16) !important;
+}
+
 .channel.empty {
   background: hsl(var(--surface-secondary) / 0.5) !important;
   border: 2px dashed hsl(var(--border-secondary)) !important;

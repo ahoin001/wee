@@ -7,7 +7,7 @@ import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings.js';
-import '../settings-modal-forms.css';
+import './settings-modal-forms.css';
 
 const TimeSettingsTab = React.memo(() => {
   // Use consolidated store for time settings
@@ -154,3 +154,4 @@ const TimeSettingsTab = React.memo(() => {
 TimeSettingsTab.displayName = 'TimeSettingsTab';
 
 export default TimeSettingsTab;
+

@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import LaunchErrorToast from '../components/LaunchErrorToast';
+import { LaunchErrorToast } from '../components/core';
 import { buildLaunchErrorReport, getLaunchErrorPresentation } from '../utils/launchErrorMessages';
 import { openSettingsToTab } from '../utils/settingsNavigation';
 

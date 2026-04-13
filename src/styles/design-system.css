@@ -186,7 +186,8 @@
   --nav-standard-hit-size-xs: 16px;
 
   /* Side navigation (legacy Wii side controls) */
-  --side-nav-z-index: 100;
+  /* Above main-content chrome so arrows stay clickable over the strip */
+  --side-nav-z-index: 250;
   --side-nav-width: 80px;
   --side-nav-height: 60px;
   --side-nav-peek-offset: 50px;
@@ -221,6 +222,12 @@
   --side-nav-ripple-size: 80px;
   --side-nav-text-color: hsl(215 16% 35%);
   --side-nav-text-color-hover: hsl(215 19% 27%);
+
+  /* Wii channel strip: viewport shows one page minus this peek (next page visible) */
+  --wii-strip-peek: 8%;
+  --wii-strip-board-max: min(1680px, 100%);
+  /* Same gap between grid columns/rows and between carousel pages (Wii “always more” strip) */
+  --wii-strip-channel-gap: clamp(10px, 1.15vw, 18px);
 
   /* Form controls */
   --control-radius: var(--radius-md);

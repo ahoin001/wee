@@ -1,5 +1,13 @@
 import { useCallback, useMemo, useEffect } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
+import {
+  clampPageIndex,
+  getPageBounds,
+  getWiiNormalization,
+  resolveGridConfig,
+  resolveNavigation,
+  WII_LAYOUT_PRESET,
+} from './channelLayoutSystem';
 
 /**
  * Hook for channel operations using the consolidated app store
@@ -10,12 +18,12 @@ export const useChannelOperations = () => {
   
   // Destructure actions
   const {
-    setChannelState,
     setChannelData,
     setChannelSettings,
     setChannelOperations,
     updateChannel,
-    setChannelNavigation
+    setChannelNavigation,
+    reorderChannelSlots,
   } = actions;
 
   // Channel data accessors
@@ -23,31 +31,62 @@ export const useChannelOperations = () => {
   const channelSettings = useMemo(() => channels?.settings || {}, [channels?.settings]);
   const channelOperations = useMemo(() => channels?.operations || {}, [channels?.operations]);
 
-  // Grid configuration
-  const gridConfig = useMemo(() => ({
-    columns: channelData.gridColumns || 4,
-    rows: channelData.gridRows || 3,
-    totalChannels: channelData.totalChannels || 36,
-    channelsPerPage: (channelData.gridColumns || 4) * (channelData.gridRows || 3) // 12 channels per page
-  }), [channelData.gridColumns, channelData.gridRows, channelData.totalChannels]);
+  const rawNavigation = useMemo(() => resolveNavigation(channelData.navigation), [channelData.navigation]);
+  const isWiiMode = rawNavigation.mode === 'wii';
 
   // Navigation state
-  const navigation = useMemo(() => channelData.navigation || {
-    currentPage: 0,
-    totalPages: 3,
-    mode: 'wii', // 'simple' or 'wii'
-    isAnimating: false,
-    animationDirection: 'none',
-    animationType: 'slide',
-    animationDuration: 500,
-    animationEasing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
-    enableSlideAnimation: true
-  }, [channelData.navigation]);
+  const navigation = useMemo(() => {
+    if (!isWiiMode) {
+      const safeTotalPages = Math.max(1, Number(rawNavigation.totalPages) || 1);
+      return {
+        ...rawNavigation,
+        totalPages: safeTotalPages,
+        currentPage: clampPageIndex(rawNavigation.currentPage || 0, safeTotalPages),
+      };
+    }
+
+    return {
+      ...rawNavigation,
+      currentPage: clampPageIndex(rawNavigation.currentPage || 0, WII_LAYOUT_PRESET.totalPages),
+      totalPages: WII_LAYOUT_PRESET.totalPages,
+      animationType: 'slide',
+      animationDuration: 500,
+      enableSlideAnimation: true,
+    };
+  }, [isWiiMode, rawNavigation]);
+
+  // Grid configuration
+  const gridConfig = useMemo(() => {
+    return resolveGridConfig(channelData, navigation);
+  }, [channelData, navigation]);
+
+  // Keep persisted channel layout aligned with fixed Wii baseline.
+  useEffect(() => {
+    if (!isWiiMode) return;
+
+    const { dataPatch, navigationPatch, needsNormalization } = getWiiNormalization(channelData);
+    if (!needsNormalization) {
+      return;
+    }
+
+    setChannelData(dataPatch);
+    setChannelNavigation(navigationPatch);
+  }, [
+    isWiiMode,
+    channelData.gridColumns,
+    channelData.gridRows,
+    channelData.totalChannels,
+    channelData.navigation?.currentPage,
+    channelData.navigation?.totalPages,
+    channelData.navigation?.animationType,
+    channelData.navigation?.animationDuration,
+    channelData.navigation?.enableSlideAnimation,
+    setChannelData,
+    setChannelNavigation,
+  ]);
 
   // Channel configurations
   const configuredChannels = useMemo(() => channelData.configuredChannels || {}, [channelData.configuredChannels]);
-  const mediaMap = useMemo(() => channelData.mediaMap || {}, [channelData.mediaMap]);
-  const appPathMap = useMemo(() => channelData.appPathMap || {}, [channelData.appPathMap]);
   const channelConfigs = useMemo(() => channelData.channelConfigs || {}, [channelData.channelConfigs]);
 
   // Channel operations
@@ -89,20 +128,18 @@ export const useChannelOperations = () => {
       const direction = validPage > navigation.currentPage ? 'right' : 'left';
       
       setChannelNavigation({
-        ...navigation,
         currentPage: validPage,
         isAnimating: true,
         animationDirection: direction
       });
       
-      // Auto-finish animation after delay
+      // Auto-finish animation after delay (match Wii strip CSS ~480ms)
       setTimeout(() => {
-        setChannelNavigation(prev => ({
-          ...prev,
+        setChannelNavigation({
           isAnimating: false,
           animationDirection: 'none'
-        }));
-      }, 300);
+        });
+      }, 500);
     }
   }, [navigation, setChannelNavigation]);
 
@@ -190,18 +227,6 @@ export const useChannelOperations = () => {
   }, [setChannelNavigation]);
 
   // Channel data operations
-  const updateMediaMap = useCallback((updates) => {
-    setChannelData({
-      mediaMap: { ...mediaMap, ...updates }
-    });
-  }, [mediaMap, setChannelData]);
-
-  const updateAppPathMap = useCallback((updates) => {
-    setChannelData({
-      appPathMap: { ...appPathMap, ...updates }
-    });
-  }, [appPathMap, setChannelData]);
-
   const updateChannelConfigs = useCallback((updates) => {
     setChannelData({
       channelConfigs: { ...channelConfigs, ...updates }
@@ -238,8 +263,7 @@ export const useChannelOperations = () => {
 
   const getChannelsForPage = useCallback((pageIndex) => {
     const channelsPerPage = gridConfig.channelsPerPage;
-    const startIndex = pageIndex * channelsPerPage;
-    const endIndex = Math.min(startIndex + channelsPerPage - 1, gridConfig.totalChannels - 1);
+    const { startIndex, endIndex } = getPageBounds(pageIndex, channelsPerPage, gridConfig.totalChannels);
     
     const channels = [];
     for (let i = startIndex; i <= endIndex; i++) {
@@ -259,6 +283,13 @@ export const useChannelOperations = () => {
     return getChannelsForPage(navigation.currentPage);
   }, [navigation.currentPage, getChannelsForPage]);
 
+  const reorderChannels = useCallback(
+    (fromIndex, toIndex) => {
+      reorderChannelSlots(fromIndex, toIndex);
+    },
+    [reorderChannelSlots]
+  );
+
   const result = {
     // State
     channelData,
@@ -267,8 +298,6 @@ export const useChannelOperations = () => {
     gridConfig,
     navigation,
     configuredChannels,
-    mediaMap,
-    appPathMap,
     channelConfigs,
     
     // Channel operations
@@ -278,6 +307,7 @@ export const useChannelOperations = () => {
     updateChannelIcon,
     updateChannelType,
     clearChannel,
+    reorderChannels,
     
     // Navigation operations
     goToPage,
@@ -286,8 +316,6 @@ export const useChannelOperations = () => {
     finishAnimation,
     
     // Data operations
-    updateMediaMap,
-    updateAppPathMap,
     updateChannelConfigs,
     
     // Settings operations

@@ -22,28 +22,34 @@ import {
   useTimePillOpacity, 
   useTimeFont 
 } from './utils/useConsolidatedAppHooks';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary, SplashScreen } from './components/core';
 import { LaunchFeedbackProvider } from './contexts/LaunchFeedbackContext';
-import SplashScreen from './components/SplashScreen';
-import WallpaperOverlay from './components/WallpaperOverlay';
-import IsolatedWallpaperBackground from './components/IsolatedWallpaperBackground';
-import SpotifyImmersiveOverlay from './components/SpotifyImmersiveOverlay';
-import SpotifyGradientOverlay from './components/SpotifyGradientOverlay';
-import SpotifyLiveGradientWallpaper from './components/SpotifyLiveGradientWallpaper';
+import {
+  WallpaperOverlay,
+  IsolatedWallpaperBackground,
+  SpotifyImmersiveOverlay,
+  SpotifyGradientOverlay,
+  SpotifyLiveGradientWallpaper,
+} from './components/overlays';
 import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 
 // Lazy load components to reduce initial bundle size
-const LazyPaginatedChannels = React.lazy(() => import('./components/PaginatedChannels'));
-const LazyPageNavigation = React.lazy(() => import('./components/PageNavigation'));
-const LazyWiiRibbon = React.lazy(() => import('./components/WiiRibbon'));
-const LazyClassicWiiDock = React.lazy(() => import('./components/ClassicWiiDock'));
-const LazyWiiSideNavigation = React.lazy(() => import('./components/WiiSideNavigation'));
-const LazySettingsModal = React.lazy(() => import('./components/SettingsModal'));
-const LazySettingsActionMenu = React.lazy(() => import('./components/SettingsActionMenu'));
-const LazyFloatingSpotifyWidget = React.lazy(() => import('./components/FloatingSpotifyWidget'));
-const LazySystemInfoWidget = React.lazy(() => import('./components/SystemInfoWidget'));
-const LazyAdminPanelWidget = React.lazy(() => import('./components/AdminPanelWidget'));
-const LazyPerformanceMonitor = React.lazy(() => import('./components/PerformanceMonitor'));
+const lazyNamedExport = (importer, exportName) =>
+  React.lazy(() =>
+    importer().then((module) => ({ default: module[exportName] }))
+  );
+
+const LazyPaginatedChannels = lazyNamedExport(() => import('./components/navigation'), 'PaginatedChannels');
+const LazyPageNavigation = lazyNamedExport(() => import('./components/navigation'), 'PageNavigation');
+const LazyWiiRibbon = lazyNamedExport(() => import('./components/dock'), 'WiiRibbon');
+const LazyClassicWiiDock = lazyNamedExport(() => import('./components/dock'), 'ClassicWiiDock');
+const LazyWiiSideNavigation = lazyNamedExport(() => import('./components/navigation'), 'WiiSideNavigation');
+const LazySettingsModal = lazyNamedExport(() => import('./components/settings'), 'SettingsModal');
+const LazySettingsActionMenu = lazyNamedExport(() => import('./components/settings'), 'SettingsActionMenu');
+const LazyFloatingSpotifyWidget = lazyNamedExport(() => import('./components/widgets'), 'FloatingSpotifyWidget');
+const LazySystemInfoWidget = lazyNamedExport(() => import('./components/widgets'), 'SystemInfoWidget');
+const LazyAdminPanelWidget = lazyNamedExport(() => import('./components/admin'), 'AdminPanelWidget');
+const LazyPerformanceMonitor = lazyNamedExport(() => import('./components/widgets'), 'PerformanceMonitor');
 
 
 
@@ -203,20 +209,6 @@ function App() {
     stopBackgroundMusic,
     updateBackgroundMusic,
   });
-
-  // Handle settings changes from SettingsModal
-  const handleSettingsChange = useCallback((settings) => {
-    console.log('[App] Settings changed:', settings);
-    
-    // Update sound settings if they changed
-    if (settings.sounds) {
-      console.log('[App] Sound settings updated - triggering background music update...');
-      updateBackgroundMusic();
-    }
-    
-    // Update other settings as needed
-    // (The consolidated store will handle most updates automatically)
-  }, [updateBackgroundMusic]);
 
   // Actions from consolidated store
   const {
@@ -551,7 +543,6 @@ function App() {
           <LazySettingsModal
               isOpen={showSettingsModal}
             onClose={closeSettingsModal}
-              onSettingsChange={handleSettingsChange}
               initialActiveTab={settingsActiveTab}
             />
           )}

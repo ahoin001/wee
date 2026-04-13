@@ -6,6 +6,7 @@ import WToggle from '../../ui/WToggle';
 import WSelect from '../../ui/WSelect';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { getTotalChannels, WII_LAYOUT_PRESET } from '../../utils/channelLayoutSystem';
 
 const LayoutSettingsTab = () => {
   const channels = useConsolidatedAppStore((state) => state.channels);
@@ -27,19 +28,41 @@ const LayoutSettingsTab = () => {
   
   // Current settings values
   const navigationMode = currentNavigation.mode || 'wii';
+  const isWiiMode = navigationMode === 'wii';
   const gridColumns = currentData.gridColumns || 4;
   const gridRows = currentData.gridRows || 3;
-  const channelsPerPage = (currentData.gridColumns || 4) * (currentData.gridRows || 3);
   const totalPages = currentNavigation.totalPages || 3;
-  const totalChannels = currentData.totalChannels || 36;
   const animationType = currentNavigation.animationType || 'slide';
   const animationDuration = currentNavigation.animationDuration || 500;
-  const animationEasing = currentNavigation.animationEasing || 'cubic-bezier(0.4, 0.0, 0.2, 1)';
   const enableSlideAnimation = currentNavigation.enableSlideAnimation !== false;
 
   // Update functions that directly modify the consolidated store
   const updateNavigationMode = (mode) => {
-    setChannelNavigation({ ...currentNavigation, mode });
+    if (mode === 'wii') {
+      const wiiTotalChannels = getTotalChannels(
+        WII_LAYOUT_PRESET.columns,
+        WII_LAYOUT_PRESET.rows,
+        WII_LAYOUT_PRESET.totalPages
+      );
+      const nextPage = Math.min(currentNavigation.currentPage || 0, WII_LAYOUT_PRESET.totalPages - 1);
+
+      setChannelData({
+        gridColumns: WII_LAYOUT_PRESET.columns,
+        gridRows: WII_LAYOUT_PRESET.rows,
+        totalChannels: wiiTotalChannels,
+      });
+      setChannelNavigation({
+        mode: 'wii',
+        currentPage: nextPage,
+        totalPages: WII_LAYOUT_PRESET.totalPages,
+        animationType: 'slide',
+        animationDuration: 500,
+        enableSlideAnimation: true,
+      });
+      return;
+    }
+
+    setChannelNavigation({ mode });
   };
 
   // Helper function to handle channel count changes
@@ -98,7 +121,6 @@ const LayoutSettingsTab = () => {
     // Handle channel count changes
     if (handleChannelCountChange(newTotalChannels)) {
       setChannelData({ 
-        ...currentData, 
         gridColumns: columns,
         totalChannels: newTotalChannels
       });
@@ -112,7 +134,6 @@ const LayoutSettingsTab = () => {
     // Handle channel count changes
     if (handleChannelCountChange(newTotalChannels)) {
       setChannelData({ 
-        ...currentData, 
         gridRows: rows,
         totalChannels: newTotalChannels
       });
@@ -129,24 +150,23 @@ const LayoutSettingsTab = () => {
       const adjustedCurrentPage = Math.min(currentPage, pages - 1);
       
       setChannelNavigation({ 
-        ...currentNavigation, 
         totalPages: pages,
         currentPage: adjustedCurrentPage
       });
-      setChannelData({ ...currentData, totalChannels: newTotalChannels });
+      setChannelData({ totalChannels: newTotalChannels });
     }
   };
 
   const updateAnimationType = (type) => {
-    setChannelNavigation({ ...currentNavigation, animationType: type });
+    setChannelNavigation({ animationType: type });
   };
 
   const updateAnimationDuration = (duration) => {
-    setChannelNavigation({ ...currentNavigation, animationDuration: duration });
+    setChannelNavigation({ animationDuration: duration });
   };
 
   const updateEnableSlideAnimation = (enabled) => {
-    setChannelNavigation({ ...currentNavigation, enableSlideAnimation: enabled });
+    setChannelNavigation({ enableSlideAnimation: enabled });
   };
 
   // Calculate derived values
@@ -206,118 +226,133 @@ const LayoutSettingsTab = () => {
           <Text variant="h3" className="text-lg font-semibold">
             Grid Configuration
           </Text>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Text variant="body" className="font-medium mb-2">Grid Columns</Text>
-              <WSelect
-                value={gridColumns.toString()}
-                onChange={(value) => updateGridColumns(parseInt(value))}
-                options={[
-                  { value: '3', label: '3 Columns' },
-                  { value: '4', label: '4 Columns' },
-                  { value: '5', label: '5 Columns' },
-                  { value: '6', label: '6 Columns' }
-                ]}
-              />
+
+          {isWiiMode ? (
+            <div className="p-3 bg-[hsl(var(--surface-secondary))] rounded-lg border border-[hsl(var(--border-primary))]">
+              <Text variant="body" className="font-medium">
+                Wii layout is locked for faithful recreation
+              </Text>
+              <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
+                Fixed to {WII_LAYOUT_PRESET.columns} columns x {WII_LAYOUT_PRESET.rows} rows, {WII_LAYOUT_PRESET.totalPages} pages ({WII_LAYOUT_PRESET.columns * WII_LAYOUT_PRESET.rows * WII_LAYOUT_PRESET.totalPages} channels total).
+              </Text>
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Text variant="body" className="font-medium mb-2">Grid Columns</Text>
+                  <WSelect
+                    value={gridColumns.toString()}
+                    onChange={(value) => updateGridColumns(parseInt(value))}
+                    options={[
+                      { value: '3', label: '3 Columns' },
+                      { value: '4', label: '4 Columns' },
+                      { value: '5', label: '5 Columns' },
+                      { value: '6', label: '6 Columns' }
+                    ]}
+                  />
+                </div>
+                
+                <div>
+                  <Text variant="body" className="font-medium mb-2">Grid Rows</Text>
+                  <WSelect
+                    value={gridRows.toString()}
+                    onChange={(value) => updateGridRows(parseInt(value))}
+                    options={[
+                      { value: '2', label: '2 Rows' },
+                      { value: '3', label: '3 Rows' },
+                      { value: '4', label: '4 Rows' },
+                      { value: '5', label: '5 Rows' }
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-[hsl(var(--surface-secondary))] rounded-lg">
+                <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
+                  Channels per page: {calculatedChannelsPerPage} | Total channels: {calculatedTotalChannels}
+                </Text>
+                {calculatedTotalChannels !== (currentData.totalChannels || 36) && (
+                  <div className="mt-2 p-2 rounded text-xs border border-[hsl(var(--state-warning)/0.35)] bg-[hsl(var(--state-warning)/0.12)]">
+                    <Text variant="caption" className="text-[hsl(var(--text-primary))]">
+                      This change will {calculatedTotalChannels > (currentData.totalChannels || 36) ? 'add' : 'remove'} {Math.abs(calculatedTotalChannels - (currentData.totalChannels || 36))} channel(s)
+                    </Text>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+
+      {!isWiiMode && (
+        <Card>
+          <div className="space-y-4">
+            <Text variant="h3" className="text-lg font-semibold">
+              Page Configuration
+            </Text>
             
             <div>
-              <Text variant="body" className="font-medium mb-2">Grid Rows</Text>
+              <Text variant="body" className="font-medium mb-2">Number of Pages</Text>
               <WSelect
-                value={gridRows.toString()}
-                onChange={(value) => updateGridRows(parseInt(value))}
+                value={totalPages.toString()}
+                onChange={(value) => updateTotalPages(parseInt(value))}
                 options={[
-                  { value: '2', label: '2 Rows' },
-                  { value: '3', label: '3 Rows' },
-                  { value: '4', label: '4 Rows' },
-                  { value: '5', label: '5 Rows' }
+                  { value: '1', label: '1 Page' },
+                  { value: '2', label: '2 Pages' },
+                  { value: '3', label: '3 Pages' },
+                  { value: '4', label: '4 Pages' },
+                  { value: '5', label: '5 Pages' }
                 ]}
               />
             </div>
           </div>
+        </Card>
+      )}
 
-          <div className="p-3 bg-[hsl(var(--surface-secondary))] rounded-lg">
-            <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
-              Channels per page: {calculatedChannelsPerPage} | Total channels: {calculatedTotalChannels}
-            </Text>
-            {calculatedTotalChannels !== (currentData.totalChannels || 36) && (
-              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                <Text variant="caption" className="text-yellow-800">
-                  ⚠️ This change will {calculatedTotalChannels > (currentData.totalChannels || 36) ? 'add' : 'remove'} {Math.abs(calculatedTotalChannels - (currentData.totalChannels || 36))} channel(s)
-                </Text>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      {/* Page Configuration */}
-      <Card>
-        <div className="space-y-4">
-          <Text variant="h3" className="text-lg font-semibold">
-            Page Configuration
-          </Text>
-          
-          <div>
-            <Text variant="body" className="font-medium mb-2">Number of Pages</Text>
-            <WSelect
-              value={totalPages.toString()}
-              onChange={(value) => updateTotalPages(parseInt(value))}
-              options={[
-                { value: '1', label: '1 Page' },
-                { value: '2', label: '2 Pages' },
-                { value: '3', label: '3 Pages' },
-                { value: '4', label: '4 Pages' },
-                { value: '5', label: '5 Pages' }
-              ]}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Animation Settings */}
-      <Card>
-        <div className="space-y-4">
-          <Text variant="h3" className="text-lg font-semibold">
-            Animation Settings
-          </Text>
-          
+      {!isWiiMode && (
+        <Card>
           <div className="space-y-4">
-            <div>
-              <Text variant="body" className="font-medium mb-2">Animation Type</Text>
-              <WSelect
-                value={animationType}
-                onChange={(value) => updateAnimationType(value)}
-                options={[
-                  { value: 'slide', label: 'Slide' },
-                  { value: 'fade', label: 'Fade' },
-                  { value: 'none', label: 'None' }
-                ]}
+            <Text variant="h3" className="text-lg font-semibold">
+              Animation Settings
+            </Text>
+            
+            <div className="space-y-4">
+              <div>
+                <Text variant="body" className="font-medium mb-2">Animation Type</Text>
+                <WSelect
+                  value={animationType}
+                  onChange={(value) => updateAnimationType(value)}
+                  options={[
+                    { value: 'slide', label: 'Slide' },
+                    { value: 'fade', label: 'Fade' },
+                    { value: 'none', label: 'None' }
+                  ]}
+                />
+              </div>
+
+              <div>
+                <Text variant="body" className="font-medium mb-2">
+                  Animation Duration: {animationDuration}ms
+                </Text>
+                <Slider
+                  value={animationDuration}
+                  onChange={(value) => updateAnimationDuration(value)}
+                  min={100}
+                  max={1000}
+                  step={50}
+                />
+              </div>
+
+              <WToggle
+                label="Enable Slide Animation"
+                checked={enableSlideAnimation}
+                onChange={(checked) => updateEnableSlideAnimation(checked)}
               />
             </div>
-
-            <div>
-              <Text variant="body" className="font-medium mb-2">
-                Animation Duration: {animationDuration}ms
-              </Text>
-              <Slider
-                value={animationDuration}
-                onChange={(value) => updateAnimationDuration(value)}
-                min={100}
-                max={1000}
-                step={50}
-              />
-            </div>
-
-            <WToggle
-              label="Enable Slide Animation"
-              checked={enableSlideAnimation}
-              onChange={(checked) => updateEnableSlideAnimation(checked)}
-            />
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Mode Information */}
       <Card>
@@ -327,16 +362,15 @@ const LayoutSettingsTab = () => {
           </Text>
           
           {navigationMode === 'wii' ? (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <Text variant="body" className="font-medium text-blue-800 mb-2">
-                Wii Mode - Nintendo Wii Style Navigation
+            <div className="p-4 bg-[hsl(var(--surface-secondary))] border border-[hsl(var(--border-primary))] rounded-lg">
+              <Text variant="body" className="font-medium text-[hsl(var(--text-primary))] mb-2">
+                Wii Mode - faithful baseline
               </Text>
-              <Text variant="caption" className="text-blue-700">
-                • Single continuous grid spanning all pages<br/>
-                • Horizontal sliding animation between sections<br/>
-                • Navigation buttons appear on sides when available<br/>
-                • Smooth, continuous pan transitions<br/>
-                • No infinite scrolling or vertical scrollbars
+              <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
+                • Locked 4x3 channel grid and 3 pages for consistency<br/>
+                • Continuous horizontal section sliding<br/>
+                • Layout controls hidden while Wii mode is active<br/>
+                • Built to match a straightforward Wii homescreen flow
               </Text>
             </div>
           ) : (

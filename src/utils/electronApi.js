@@ -3,7 +3,11 @@ import {
   normalizeUnifiedSettingsSnapshot,
   withSettingsSchemaMeta,
 } from './store/settingsPersistenceContract';
+import isEqual from 'fast-deep-equal';
+import PQueue from 'p-queue';
+
 const getApi = () => (typeof window !== 'undefined' ? window.api : null);
+const settingsWriteQueue = new PQueue({ concurrency: 1 });
 
 const safeCall = async (fn, fallback = null) => {
   try {
@@ -33,16 +37,22 @@ export async function saveUnifiedSettingsSnapshot(settingsSnapshot) {
   const api = getApi();
   if (!api?.data?.get || !api?.data?.set) return false;
 
-  const current = await safeCall(() => api.data.get(), null);
-  if (!current) return false;
+  return settingsWriteQueue.add(async () => {
+    const current = await safeCall(() => api.data.get(), null);
+    if (!current) return false;
 
-  const nextSettings = mergeCanonicalSettings(current.settings, settingsSnapshot || {});
-  const payload = withSettingsSchemaMeta({
-    ...current,
-    settings: nextSettings,
+    const nextSettings = mergeCanonicalSettings(current.settings, settingsSnapshot || {});
+    if (isEqual(current.settings, nextSettings)) {
+      return true;
+    }
+
+    const payload = withSettingsSchemaMeta({
+      ...current,
+      settings: nextSettings,
+    });
+
+    return safeCall(() => api.data.set(payload), false);
   });
-
-  return safeCall(() => api.data.set(payload), false);
 }
 
 /** Merge fields into `unified-data.json` → `settings.appearance` (e.g. spotifyMatchEnabled). */

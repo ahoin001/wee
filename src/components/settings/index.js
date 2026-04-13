@@ -1,0 +1,16 @@
+export { default as ChannelsSettingsTab } from './ChannelsSettingsTab';
+export { default as UnifiedDockSettingsTab } from './UnifiedDockSettingsTab';
+export { default as WallpaperSettingsTab } from './WallpaperSettingsTab';
+export { default as TimeSettingsTab } from './TimeSettingsTab';
+export { default as SoundsSettingsTab } from './SoundsSettingsTab';
+export { default as GeneralSettingsTab } from './GeneralSettingsTab';
+export { default as PresetsSettingsTab } from './PresetsSettingsTab';
+export { default as MonitorSettingsTab } from './MonitorSettingsTab';
+export { default as ApiIntegrationsSettingsTab } from './ApiIntegrationsSettingsTab';
+export { default as AdvancedSettingsTab } from './AdvancedSettingsTab';
+export { default as LayoutSettingsTab } from './LayoutSettingsTab';
+export { default as ShortcutsSettingsTab } from './ShortcutsSettingsTab';
+export { default as UpdatesSettingsTab } from './UpdatesSettingsTab';
+export { default as NavigationSettingsTab } from './NavigationSettingsTab';
+export { default as SettingsModal } from './SettingsModal';
+export { default as SettingsActionMenu } from './SettingsActionMenu';

@@ -6,6 +6,7 @@ import WInput from '../../ui/WInput';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { logError } from '../../utils/logger';
 
 const NavigationSettingsTab = () => {
   const navigation = useConsolidatedAppStore((state) => state.navigation);
@@ -83,7 +84,7 @@ const NavigationSettingsTab = () => {
         setSavedIcons([]);
       }
     } catch (error) {
-      console.error('Failed to fetch icons:', error);
+      logError('NavigationSettingsTab', 'Failed to fetch icons', error);
       setIconsError('Failed to load saved icons');
       // Set empty array on error
       setSavedIcons([]);
@@ -117,7 +118,7 @@ const NavigationSettingsTab = () => {
         return { success: true, icon: addResult.icon };
       }
     } catch (error) {
-      console.error('Failed to upload icon:', error);
+      logError('NavigationSettingsTab', 'Failed to upload icon', error);
       setIconsUploadError('Failed to upload icon');
       return { success: false, error: error.message };
     } finally {
@@ -150,7 +151,7 @@ const NavigationSettingsTab = () => {
       
       return { success: true };
     } catch (error) {
-      console.error('Failed to delete icon:', error);
+      logError('NavigationSettingsTab', 'Failed to delete icon', error);
       return { success: false, error: error.message };
     }
   };
@@ -182,7 +183,7 @@ const NavigationSettingsTab = () => {
         spotifyIntegration: spotifyIntegration
       });
     } catch (error) {
-      console.error('Failed to save navigation settings:', error);
+      logError('NavigationSettingsTab', 'Failed to save navigation settings', error);
     }
   };
 

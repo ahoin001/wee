@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import AuthModal from '../AuthModal';
+import { AuthModal } from '../modals';
 import { getCommunityPresetUpdates, uploadPreset } from '../../utils/supabase';
 import {
   capturePresetThumbnailDataUrl,
@@ -18,7 +18,7 @@ import { buildPresetDataFromStore } from '../../utils/presets/buildPresetSnapsho
 import { applyPresetData } from '../../utils/presets/applyPresetData';
 import { createDefaultSpotifyMatchPreset, SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
-import '../surfaceStyles.css';
+import './surfaceStyles.css';
 
 import PresetsSaveCurrentCard from './presets/PresetsSaveCurrentCard';
 import PresetsSpotifyMatchSection from './presets/PresetsSpotifyMatchSection';
@@ -605,3 +605,4 @@ const PresetsSettingsTab = React.memo(() => {
 PresetsSettingsTab.displayName = 'PresetsSettingsTab';
 
 export default PresetsSettingsTab;
+

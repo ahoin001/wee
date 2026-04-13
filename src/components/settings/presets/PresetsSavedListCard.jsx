@@ -1,6 +1,6 @@
 import React from 'react';
 import Card from '../../../ui/Card';
-import PresetListItem from '../../PresetListItem';
+import { PresetListItem } from '../../app-library';
 
 const PresetsSavedListCard = React.memo(
   ({

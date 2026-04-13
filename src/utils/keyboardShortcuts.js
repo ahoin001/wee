@@ -1,3 +1,5 @@
+import { logWarn } from './logger';
+
 // Default keyboard shortcuts configuration
 export const DEFAULT_SHORTCUTS = [
   {
@@ -281,7 +283,7 @@ export const getShortcutCategories = () => {
 export const getShortcutsByCategory = (shortcuts) => {
   // ✅ DATA LAYER: Add proper null/undefined checks
   if (!shortcuts || !Array.isArray(shortcuts)) {
-    console.warn('getShortcutsByCategory: shortcuts is not a valid array:', shortcuts);
+    logWarn('ShortcutHandler', 'Invalid shortcuts array for grouping', { shortcuts });
     return {};
   }
   
@@ -297,15 +299,13 @@ export const getShortcutsByCategory = (shortcuts) => {
 
 // Shortcut action handler
 export const executeShortcutAction = (action, actionParams = {}) => {
-  console.log('[ShortcutHandler] Executing action:', action, actionParams);
-  
   switch (action) {
     case 'openSettingsModal':
       // Open settings modal with optional tab parameter
       if (window.openSettingsModal) {
         window.openSettingsModal(actionParams.tab);
       } else {
-        console.warn('[ShortcutHandler] openSettingsModal function not available');
+        logWarn('ShortcutHandler', 'openSettingsModal function not available');
       }
       break;
       
@@ -314,7 +314,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.toggleSpotifyWidget) {
         window.toggleSpotifyWidget();
       } else {
-        console.warn('[ShortcutHandler] toggleSpotifyWidget function not available');
+        logWarn('ShortcutHandler', 'toggleSpotifyWidget function not available');
       }
       break;
       
@@ -323,7 +323,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.toggleSystemInfoWidget) {
         window.toggleSystemInfoWidget();
       } else {
-        console.warn('[ShortcutHandler] toggleSystemInfoWidget function not available');
+        logWarn('ShortcutHandler', 'toggleSystemInfoWidget function not available');
       }
       break;
       
@@ -332,7 +332,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.toggleAdminPanelWidget) {
         window.toggleAdminPanelWidget();
       } else {
-        console.warn('[ShortcutHandler] toggleAdminPanelWidget function not available');
+        logWarn('ShortcutHandler', 'toggleAdminPanelWidget function not available');
       }
       break;
       
@@ -341,7 +341,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.togglePerformanceMonitor) {
         window.togglePerformanceMonitor();
       } else {
-        console.warn('[ShortcutHandler] togglePerformanceMonitor function not available');
+        logWarn('ShortcutHandler', 'togglePerformanceMonitor function not available');
       }
       break;
       
@@ -350,7 +350,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.nextPage) {
         window.nextPage();
       } else {
-        console.warn('[ShortcutHandler] nextPage function not available');
+        logWarn('ShortcutHandler', 'nextPage function not available');
       }
       break;
       
@@ -359,7 +359,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.prevPage) {
         window.prevPage();
       } else {
-        console.warn('[ShortcutHandler] prevPage function not available');
+        logWarn('ShortcutHandler', 'prevPage function not available');
       }
       break;
       
@@ -368,7 +368,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.toggleDock) {
         window.toggleDock();
       } else {
-        console.warn('[ShortcutHandler] toggleDock function not available');
+        logWarn('ShortcutHandler', 'toggleDock function not available');
       }
       break;
       
@@ -377,7 +377,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.toggleDarkMode) {
         window.toggleDarkMode();
       } else {
-        console.warn('[ShortcutHandler] toggleDarkMode function not available');
+        logWarn('ShortcutHandler', 'toggleDarkMode function not available');
       }
       break;
       
@@ -386,7 +386,7 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.toggleCustomCursor) {
         window.toggleCustomCursor();
       } else {
-        console.warn('[ShortcutHandler] toggleCustomCursor function not available');
+        logWarn('ShortcutHandler', 'toggleCustomCursor function not available');
       }
       break;
       
@@ -395,24 +395,21 @@ export const executeShortcutAction = (action, actionParams = {}) => {
       if (window.toggleSettingsMenu) {
         window.toggleSettingsMenu();
       } else {
-        console.warn('[ShortcutHandler] toggleSettingsMenu function not available');
+        logWarn('ShortcutHandler', 'toggleSettingsMenu function not available');
       }
       break;
       
     default:
-      console.warn('[ShortcutHandler] Unknown action:', action);
+      logWarn('ShortcutHandler', 'Unknown shortcut action', { action });
   }
 };
 
 // Global shortcut handler that can be called from anywhere
 export const handleGlobalShortcut = (key, modifier, shortcuts) => {
   if (!shortcuts || !Array.isArray(shortcuts)) {
-    console.log('[ShortcutHandler] No shortcuts available');
     return false;
   }
-  
-  console.log('[ShortcutHandler] Looking for shortcut:', { key, modifier, totalShortcuts: shortcuts.length });
-  
+
   // Find the shortcut that matches the key combination
   const shortcut = shortcuts.find(s => 
     s.enabled && 
@@ -421,11 +418,9 @@ export const handleGlobalShortcut = (key, modifier, shortcuts) => {
   );
   
   if (shortcut) {
-    console.log('[ShortcutHandler] Triggered shortcut:', shortcut.name);
     executeShortcutAction(shortcut.action, shortcut.actionParams);
     return true;
   }
-  
-  console.log('[ShortcutHandler] No matching shortcut found');
+
   return false;
 };

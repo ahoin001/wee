@@ -24,6 +24,7 @@
   flex-grow: 1;
   flex-shrink: 0;
   box-sizing: border-box;
+  z-index: 20;
 }
 
 /* Dock container */

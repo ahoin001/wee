@@ -1,4 +1,4 @@
-const COMMUNITY_BLOCKED_KEYS = ['channels', 'mediaMap', 'appPathMap', 'channelData', 'soundLibrary']
+const COMMUNITY_BLOCKED_KEYS = ['channels', 'channelData', 'soundLibrary']
 
 const isPlainObject = (value) => value && typeof value === 'object' && !Array.isArray(value)
 

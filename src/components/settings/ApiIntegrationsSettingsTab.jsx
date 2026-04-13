@@ -6,8 +6,9 @@ import CollapsibleSection from '../../ui/CollapsibleSection';
 import SaveButton from './SaveButton';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
-import AdminPanel from '../AdminPanel';
+import { AdminPanel } from '../admin';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { logError } from '../../utils/logger';
 import {
   ADMIN_WIDGET_CARD_SHADOW,
   ADMIN_WIDGET_GRADIENT,
@@ -54,7 +55,7 @@ const ApiIntegrationsSettingsTab = () => {
     try {
       await actions.spotifyManager.connect();
     } catch (error) {
-      console.error('[ApiIntegrationsSettingsTab] Spotify connection error:', error);
+      logError('ApiIntegrationsSettingsTab', 'Spotify connection error', error);
     }
   }, [actions]);
 
@@ -62,7 +63,7 @@ const ApiIntegrationsSettingsTab = () => {
     try {
       actions.spotifyManager.disconnect();
     } catch (error) {
-      console.error('[ApiIntegrationsSettingsTab] Spotify disconnection error:', error);
+      logError('ApiIntegrationsSettingsTab', 'Spotify disconnection error', error);
     }
   }, [actions]);
 

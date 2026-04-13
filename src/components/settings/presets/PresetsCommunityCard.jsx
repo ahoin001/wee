@@ -2,7 +2,7 @@ import React from 'react';
 import Card from '../../../ui/Card';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
-import CommunityPresets from '../../CommunityPresets';
+import { CommunityPresets } from '../../app-library';
 
 const PresetsCommunityCard = React.memo(
   ({

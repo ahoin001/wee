@@ -14,7 +14,7 @@ import {
   DEFAULT_RIBBON_GLOW_HEX,
   DEFAULT_RIBBON_SURFACE_HEX,
 } from '../../design/runtimeColorStrings.js';
-import '../surfaceStyles.css';
+import './surfaceStyles.css';
 
 // Add CSS for pulse animation
 const pulseAnimation = `
@@ -1146,3 +1146,4 @@ const UnifiedDockSettingsTab = React.memo(() => {
 UnifiedDockSettingsTab.displayName = 'UnifiedDockSettingsTab';
 
 export default UnifiedDockSettingsTab;
+
