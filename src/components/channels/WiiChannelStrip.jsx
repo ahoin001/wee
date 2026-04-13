@@ -1,8 +1,12 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 
+/**
+ * Single continuous 4×N column grid (Option A): one uniform gap everywhere,
+ * including between “pages”. Pan with translateX(-page * 100% / totalPages) of the strip.
+ * Expects `--wii-strip-current-page` / `--wii-total-pages` on an ancestor (e.g. `.channels-content`).
+ */
 const WiiChannelStrip = ({
-  currentPage,
   totalPages,
   isAnimating,
   isGridFaded,
@@ -13,16 +17,18 @@ const WiiChannelStrip = ({
   renderChannelAtIndex,
 }) => {
   const safeTotalPages = Math.max(1, Number(totalPages) || 1);
-  const safeCurrentPage = Math.max(0, Math.min(Number(currentPage) || 0, safeTotalPages - 1));
   const safeColumns = Math.max(1, Number(columns) || 1);
   const safeRows = Math.max(1, Number(rows) || 1);
   const channelsPerPage = safeColumns * safeRows;
+  const totalChannelSlots = channelsPerPage * safeTotalPages;
+  const totalGridColumns = safeColumns * safeTotalPages;
 
-  const trackStyle = useMemo(
+  const boardStyle = useMemo(
     () => ({
-      '--wii-strip-current-page': safeCurrentPage,
+      gridTemplateColumns: `repeat(${totalGridColumns}, minmax(0, 1fr))`,
+      gridTemplateRows: `repeat(${safeRows}, minmax(clamp(86px, 11.8vh, 156px), auto))`,
     }),
-    [safeCurrentPage]
+    [totalGridColumns, safeRows]
   );
 
   return (
@@ -32,37 +38,34 @@ const WiiChannelStrip = ({
       onMouseLeave={onGridMouseLeave}
     >
       <div
-        className={`wii-strip-track${isAnimating ? ' wii-strip-track--animating' : ''}`}
-        style={trackStyle}
+        className={`wii-strip-continuous${isAnimating ? ' wii-strip-track--animating' : ''}`}
       >
-        {Array.from({ length: safeTotalPages }, (_, pageIndex) => {
-          const pageStart = pageIndex * channelsPerPage;
-          return (
-            <div
-              key={`wii-page-${pageIndex}`}
-              className="wii-strip-page"
-            >
+        <div
+          className="wii-strip-board wii-strip-board--continuous"
+          style={boardStyle}
+        >
+          {Array.from({ length: totalChannelSlots }, (_, i) => {
+            const page = Math.floor(i / channelsPerPage);
+            const idxInPage = i % channelsPerPage;
+            const row = Math.floor(idxInPage / safeColumns);
+            const col = (idxInPage % safeColumns) + page * safeColumns;
+            return (
               <div
-                className="wii-strip-board"
-                style={{
-                  gridTemplateColumns: `repeat(${safeColumns}, minmax(0, 1fr))`,
-                  gridTemplateRows: `repeat(${safeRows}, minmax(clamp(86px, 11.8vh, 156px), auto))`,
-                }}
+                key={`wii-cell-${i}`}
+                className="wii-strip-channel-cell"
+                style={{ gridColumn: col + 1, gridRow: row + 1 }}
               >
-                {Array.from({ length: channelsPerPage }, (_, offset) =>
-                  renderChannelAtIndex(pageStart + offset, true)
-                )}
+                {renderChannelAtIndex(i, true)}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 };
 
 WiiChannelStrip.propTypes = {
-  currentPage: PropTypes.number.isRequired,
   totalPages: PropTypes.number.isRequired,
   isAnimating: PropTypes.bool.isRequired,
   isGridFaded: PropTypes.bool.isRequired,
@@ -74,4 +77,3 @@ WiiChannelStrip.propTypes = {
 };
 
 export default React.memo(WiiChannelStrip);
-

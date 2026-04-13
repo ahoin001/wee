@@ -34,34 +34,20 @@ export type NormalizedChannelPayload = {
   data?: ChannelData;
 };
 
-/** Drop deprecated per-channel maps; channel content lives on `configuredChannels` only. */
-function stripLegacyChannelDataFields(raw: Record<string, unknown> | undefined): ChannelData {
+function normalizeChannelData(raw: Record<string, unknown> | undefined): ChannelData {
   if (!raw) return {};
-  const { mediaMap: _m, appPathMap: _a, ...rest } = raw;
-  return rest as ChannelData;
+  return {
+    configuredChannels: raw.configuredChannels as Record<string, unknown> | undefined,
+    channelConfigs: raw.channelConfigs as Record<string, unknown> | undefined,
+    navigation: raw.navigation as Record<string, unknown> | undefined,
+  };
 }
 
 export const normalizeChannelPayload = (
   payload: Record<string, unknown> | null | undefined
 ): NormalizedChannelPayload => {
-  if (!payload) return {};
-
-  const hasNestedShape = 'settings' in payload || 'data' in payload || 'operations' in payload;
-  if (hasNestedShape) {
-    return {
-      settings: (payload.settings as ChannelSettings) || {},
-      data: stripLegacyChannelDataFields(payload.data as Record<string, unknown> | undefined),
-    };
-  }
-
-  const { configuredChannels, channelConfigs, navigation, ...settings } = payload;
-
   return {
-    settings: settings as ChannelSettings,
-    data: stripLegacyChannelDataFields({
-      configuredChannels,
-      channelConfigs,
-      navigation,
-    } as Record<string, unknown>),
+    settings: (payload?.settings as ChannelSettings) || {},
+    data: normalizeChannelData(payload?.data as Record<string, unknown> | undefined),
   };
 };

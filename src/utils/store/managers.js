@@ -518,6 +518,7 @@ export const createStoreManagers = (getStore) => {
         spotifyService.logout();
         store.actions.setSpotifyState({
           isConnected: false,
+          currentUser: null,
           accessToken: null,
           refreshToken: null,
           loading: false,
@@ -598,8 +599,20 @@ export const createStoreManagers = (getStore) => {
         const playback = await spotifyService.getCurrentPlayback();
         const store = getStore();
 
+        if (playback && playback._playerWebApiForbidden) {
+          store.actions.setSpotifyState({
+            playerWebApiForbidden: true,
+            currentTrack: null,
+            isPlaying: false,
+            progress: 0,
+            duration: 0,
+          });
+          return null;
+        }
+
         if (playback && playback.item) {
           store.actions.setSpotifyState({
+            playerWebApiForbidden: false,
             currentTrack: playback.item,
             isPlaying: playback.is_playing,
             progress: playback.progress_ms,
@@ -612,6 +625,7 @@ export const createStoreManagers = (getStore) => {
         }
 
         store.actions.setSpotifyState({
+          playerWebApiForbidden: false,
           currentTrack: null,
           isPlaying: false,
           progress: 0,
@@ -649,6 +663,22 @@ export const createStoreManagers = (getStore) => {
         console.error('[SpotifyManager] Get user profile error:', error);
         return null;
       }
+    },
+    /** Refreshes `currentUser` (including `product` tier) in the consolidated store. */
+    async syncUserProfile() {
+      const store = getStore();
+      try {
+        const spotifyService = (await import('../spotifyService')).default;
+        const profile = await spotifyService.getUserProfile();
+        if (profile) {
+          spotifyService.currentUser = profile;
+          store.actions.setSpotifyState({ currentUser: profile });
+          return profile;
+        }
+      } catch (error) {
+        console.error('[SpotifyManager] Sync user profile error:', error);
+      }
+      return null;
     },
     async searchTracks(query, limit = 20) {
       try {

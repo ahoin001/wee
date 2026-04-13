@@ -15,6 +15,15 @@
   min-width: 0;
 }
 
+.channel-media-format-notice {
+  flex-shrink: 0;
+  margin-left: clamp(10px, 2vw, 20px);
+  margin-right: clamp(10px, 2vw, 20px);
+  color: hsl(var(--text-primary));
+  background: hsl(var(--state-warning-light));
+  border: 1px solid hsl(var(--state-warning));
+}
+
 /* Channels content area */
 .channels-content {
   flex: 1;
@@ -35,10 +44,10 @@
   position: relative;
 }
 
-/* Wii mode: let the strip peek bleed to the screen edge (no right crop) */
+/* Wii mode: right edge flush for next-page peek; left inset only on page 0 (first page has no “previous”) */
 .channels-content:has(.wii-mode-container) {
   padding-right: 0;
-  padding-left: clamp(10px, 2vw, 20px);
+  padding-left: calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(10px, 2vw, 20px));
   padding-top: clamp(10px, 2vw, 20px);
   padding-bottom: clamp(10px, 2vw, 20px);
 }
@@ -124,8 +133,9 @@
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
-  /* top right bottom left — no right padding so peek isn’t cropped */
-  padding: clamp(10px, 1.4vh, 20px) 0 clamp(112px, 15.5vh, 185px) clamp(12px, 1.8vw, 28px);
+  /* top right bottom left — right flush; left inset only when --wii-strip-current-page is 0 */
+  padding: clamp(10px, 1.4vh, 20px) 0 clamp(112px, 15.5vh, 185px)
+    calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(12px, 1.8vw, 28px));
   overflow: hidden;
   /* No edge mask — it hid the “next page” peek */
   
@@ -133,22 +143,24 @@
   transition: opacity 0.5s ease-out;
 }
 
-.wii-strip-track {
-  display: flex;
-  width: 100%;
+/* One continuous grid: 4×N columns × 3 rows; uniform gap everywhere (Wii-style strip) */
+.wii-strip-continuous {
+  display: block;
+  /* 100% = .wii-mode-grid content box; full strip width for translateX(…%) math */
+  width: calc(var(--wii-total-pages, 1) * (100% - var(--wii-strip-peek)));
+  max-width: none;
   height: 100%;
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
   position: relative;
-  /* Same spacing as between grid columns — separates page N from peek of page N+1 */
-  gap: var(--wii-strip-channel-gap);
   will-change: transform;
   transition: none;
+  /* One “page” = 1/N of strip width; middle pages get prev + next column peeks */
   transform: translateX(
     calc(
       -1 * var(--wii-strip-current-page, 0) *
-      ((100% - var(--wii-strip-peek)) + var(--wii-strip-channel-gap))
+      (100% / var(--wii-total-pages, 1))
     )
   );
 }
@@ -157,26 +169,28 @@
   transition: transform 0.48s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.wii-strip-page {
-  flex: 0 0 calc(100% - var(--wii-strip-peek));
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 0;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-.wii-strip-board {
-  width: 100%;
-  max-width: var(--wii-strip-board-max);
-  margin-inline: auto;
+.wii-strip-board--continuous {
   display: grid;
+  width: 100%;
+  height: 100%;
   gap: var(--wii-strip-channel-gap);
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
   align-content: start;
+}
+
+.wii-strip-channel-cell {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.wii-strip-channel-cell .channel {
+  width: 100%;
+  height: 100%;
 }
 
 .wii-mode-grid.auto-fade {
@@ -185,7 +199,7 @@
 
 .wii-mode-grid.auto-fade:hover {
   opacity: 1;
-  transition: opacity 0.2s ease-in, transform 0.48s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: opacity 0.2s ease-in;
 }
 
 /* Ensure channels maintain rectangular aspect ratio */
@@ -248,7 +262,7 @@
 
   .channels-content:has(.wii-mode-container) {
     padding-right: 0;
-    padding-left: clamp(8px, 1.5vw, 15px);
+    padding-left: calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(8px, 1.5vw, 15px));
     padding-top: clamp(8px, 1.5vw, 15px);
     padding-bottom: clamp(8px, 1.5vw, 15px);
   }
@@ -266,7 +280,7 @@
 
   .channels-content:has(.wii-mode-container) {
     padding-right: 0;
-    padding-left: clamp(5px, 1vw, 10px);
+    padding-left: calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(5px, 1vw, 10px));
     padding-top: clamp(5px, 1vw, 10px);
     padding-bottom: clamp(5px, 1vw, 10px);
   }
@@ -322,52 +336,26 @@
   }
 }
 
-/* ===== CHANNEL REORDER (drag handle) ===== */
-.channel-slot-dnd__handle {
-  position: absolute;
-  left: 4px;
-  top: 4px;
-  z-index: 25;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border-radius: 6px;
-  border: 1px solid hsl(var(--border-primary) / 0.6);
-  background: hsl(var(--surface-primary) / 0.92);
-  color: hsl(var(--text-secondary));
+/* ===== CHANNEL REORDER (whole-tile drag) ===== */
+.channel-slot-dnd {
   cursor: grab;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s ease;
   touch-action: none;
 }
 
-.channel-slot-dnd:hover .channel-slot-dnd__handle,
-.channel-slot-dnd:focus-within .channel-slot-dnd__handle {
-  opacity: 1;
-}
-
-.channel-slot-dnd__handle:active {
+.channel-slot-dnd--dragging {
   cursor: grabbing;
 }
 
-.channel-slot-dnd--over {
-  outline: 2px dashed hsl(var(--primary));
-  outline-offset: -2px;
-  border-radius: 8px;
-}
-
 .channel-slot-dnd--dragging .channel-slot-dnd__content {
-  opacity: 0.45;
+  opacity: 0.38;
+  filter: saturate(0.85);
+  transition: opacity 0.12s ease, filter 0.12s ease;
 }
 
 .channel-drag-overlay {
   pointer-events: none;
-  filter: drop-shadow(0 8px 16px rgb(0 0 0 / 0.35));
+}
+
+.channel-drag-overlay--reduced {
+  filter: drop-shadow(0 12px 28px rgb(0 0 0 / 0.4));
 }

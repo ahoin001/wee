@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ChannelDropTargetMotion } from './ChannelDragMotion';
+import { computeReorderShiftMotion } from '../../utils/channelReorderShift';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 const DRAG_PREFIX = 'channel-drag-';
 const SLOT_PREFIX = 'channel-slot-';
@@ -22,9 +26,12 @@ export function parseChannelDnDId(id) {
 }
 
 /**
- * Droppable cell + draggable handle so channel click-to-launch stays separate from reorder.
+ * Whole-tile drag + droppable cell. Click-to-launch uses pointer distance threshold on DndContext sensors.
  */
-function ChannelSlotDnd({ channelIndex, disabled, children }) {
+function ChannelSlotDnd({ channelIndex, disabled, celebrateDrop, reorderWave, children }) {
+  const osReduced = useReducedMotion();
+  const { channelReorderSlotMotion } = useMotionFeedback();
+  const reduceMotion = osReduced || !channelReorderSlotMotion;
   const slotId = channelSlotId(channelIndex);
   const dragId = channelDragId(channelIndex);
 
@@ -45,23 +52,49 @@ function ChannelSlotDnd({ channelIndex, disabled, children }) {
     data: { channelIndex },
   });
 
+  const setCombinedRef = useCallback(
+    (node) => {
+      setDragRef(node);
+      setDropRef(node);
+    },
+    [setDragRef, setDropRef]
+  );
+
+  const shiftMotion = computeReorderShiftMotion(channelIndex, reorderWave, reduceMotion);
+
   return (
     <div
-      ref={setDropRef}
-      className={`channel-slot-dnd relative h-full w-full min-h-0 min-w-0${isOver ? ' channel-slot-dnd--over' : ''}${isDragging ? ' channel-slot-dnd--dragging' : ''}`}
+      ref={setCombinedRef}
+      data-channel-slot={channelIndex}
+      className={`channel-slot-dnd relative h-full w-full min-h-0 min-w-0${isDragging ? ' channel-slot-dnd--dragging' : ''}`}
+      {...listeners}
+      {...attributes}
     >
-      <button
-        type="button"
-        ref={setDragRef}
-        className="channel-slot-dnd__handle"
-        aria-label="Drag to reorder channel"
-        title="Drag to reorder"
-        {...listeners}
-        {...attributes}
+      <motion.div
+        className="channel-slot-dnd__shift h-full w-full min-h-0 min-w-0"
+        initial={false}
+        animate={shiftMotion.animate}
+        transition={shiftMotion.transition}
+        style={{ transformOrigin: 'center center' }}
       >
-        ⋮⋮
-      </button>
-      <div className="channel-slot-dnd__content h-full w-full min-h-0 min-w-0">{children}</div>
+        <ChannelDropTargetMotion isActive={isOver} isSource={isDragging}>
+          <motion.div
+            className="channel-slot-dnd__content h-full w-full min-h-0 min-w-0"
+            animate={
+              celebrateDrop && !reduceMotion
+                ? { scale: [1, 1.14, 0.98, 1] }
+                : { scale: 1 }
+            }
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : { type: 'spring', stiffness: 580, damping: 22, mass: 0.65 }
+            }
+          >
+            {children}
+          </motion.div>
+        </ChannelDropTargetMotion>
+      </motion.div>
     </div>
   );
 }
@@ -69,11 +102,19 @@ function ChannelSlotDnd({ channelIndex, disabled, children }) {
 ChannelSlotDnd.propTypes = {
   channelIndex: PropTypes.number.isRequired,
   disabled: PropTypes.bool,
+  celebrateDrop: PropTypes.bool,
+  reorderWave: PropTypes.shape({
+    from: PropTypes.number.isRequired,
+    to: PropTypes.number.isRequired,
+    id: PropTypes.number.isRequired,
+  }),
   children: PropTypes.node.isRequired,
 };
 
 ChannelSlotDnd.defaultProps = {
   disabled: false,
+  celebrateDrop: false,
+  reorderWave: null,
 };
 
 export default React.memo(ChannelSlotDnd);

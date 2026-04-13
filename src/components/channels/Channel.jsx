@@ -13,7 +13,10 @@ import useSoundManager from '../../utils/useSoundManager';
 import './Channel.css';
 import { getStoragePublicObjectUrl } from '../../utils/supabase';
 import { isGifMediaType, isRasterImageMediaType, isVideoMediaType } from '../../utils/channelMediaType';
+import { ACCEPT_IMAGE_OR_MP4 } from '../../utils/supportedUploadMedia';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
+import { getRecentLaunchHintTtlMs } from '../../utils/channelOpenHint';
+import { PlayfulTapLayer } from '../navigation/PlayfulInteractionMotion';
 
 // Guard for window.api to prevent errors in browser
 const api = window.api || {
@@ -81,13 +84,48 @@ const Channel = React.memo(({
   const channelSettings = channels?.settings || {};
   
   // Floating widget store
-  const ui = useConsolidatedAppStore((state) => state.ui);
+  const openHint = useConsolidatedAppStore((state) => state.ui.channelOpenHints?.[id]);
+  const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
   const { showLaunchError } = useLaunchFeedback();
+
+  const recordRecentLaunchHint = useCallback(() => {
+    setUIState((prev) => ({
+      ...prev,
+      channelOpenHints: {
+        ...(prev.channelOpenHints || {}),
+        [id]: { at: Date.now() },
+      },
+    }));
+  }, [id, setUIState]);
+
+  useEffect(() => {
+    const h = openHint;
+    if (!h) return undefined;
+    const ttl = getRecentLaunchHintTtlMs();
+    const elapsed = Date.now() - h.at;
+    const prune = () => {
+      setUIState((prev) => {
+        const map = { ...(prev.channelOpenHints || {}) };
+        if (map[id]) delete map[id];
+        return { ...prev, channelOpenHints: map };
+      });
+    };
+    if (elapsed >= ttl) {
+      prune();
+      return undefined;
+    }
+    const t = setTimeout(prune, ttl - elapsed);
+    return () => clearTimeout(t);
+  }, [openHint, id, setUIState]);
   
   // Auto-fade is now handled at grid level in PaginatedChannels
   
   // Use sound manager for centralized sound handling
   const { playChannelHoverSound, playChannelClickSound, stopAllSounds } = useSoundManager();
+
+  useEffect(() => {
+    setUIState({ channelConfigureModalOpen: showChannelModal });
+  }, [showChannelModal, setUIState]);
   
   // Memoize effective values to prevent unnecessary recalculations
   const effectiveConfig = useMemo(() => storeChannelConfig || channelConfig, [storeChannelConfig, channelConfig]);
@@ -130,6 +168,31 @@ const Channel = React.memo(({
     () => effectiveAdaptiveEmptyChannels && !wiiMode,
     [effectiveAdaptiveEmptyChannels, wiiMode]
   );
+
+  const adaptiveEmptyStyle = useMemo(() => {
+    if (!(effectiveIsEmpty && !effectiveMedia && useAdaptiveEmptyChannels)) {
+      return undefined;
+    }
+
+    // Keep adaptive empty tiles in the same accent system as the rest of the app.
+    const accentColor =
+      ribbonSettings?.ribbonGlowColor ||
+      ribbonSettings?.ribbonColor ||
+      'hsl(var(--primary))';
+
+    return {
+      '--adaptive-bg-color': `color-mix(in srgb, hsl(var(--surface-secondary)) 76%, ${accentColor} 24%)`,
+      '--adaptive-bg-color-hover': `color-mix(in srgb, hsl(var(--surface-secondary)) 68%, ${accentColor} 32%)`,
+      '--adaptive-border-color': `color-mix(in srgb, hsl(var(--border-primary)) 58%, ${accentColor} 42%)`,
+      '--adaptive-glow-color': `color-mix(in srgb, transparent 72%, ${accentColor} 28%)`,
+    };
+  }, [
+    effectiveIsEmpty,
+    effectiveMedia,
+    useAdaptiveEmptyChannels,
+    ribbonSettings?.ribbonGlowColor,
+    ribbonSettings?.ribbonColor,
+  ]);
 
   // Handle image loading errors
   const handleImageError = useCallback((e) => {
@@ -232,6 +295,7 @@ const Channel = React.memo(({
   }, [animationStyle, id]);
   const animClass = (animationStyle === 'random' || animationStyle === 'fullrandom') ? randomAnim : animationStyle;
 
+  const showRecentLaunchHint = Boolean(openHint);
 
   const handleClick = async () => {
     // Stop hover sound immediately
@@ -260,6 +324,7 @@ const Channel = React.memo(({
             spotify: { visible: true }
           });
         }
+        recordRecentLaunchHint();
       } else {
         // Future API integrations can be added here
       }
@@ -278,6 +343,7 @@ const Channel = React.memo(({
         const immersivePip = useConsolidatedAppStore.getState().ui?.immersivePip ?? false;
         if (immersivePip && api.openPipWindow) {
           api.openPipWindow(effectivePath);
+          recordRecentLaunchHint();
         } else {
           const result = await api.launchApp({ type: 'url', path: effectivePath, asAdmin: false });
           if (result && result.ok === false) {
@@ -288,6 +354,8 @@ const Channel = React.memo(({
               path: effectivePath,
               source: 'channel',
             });
+          } else {
+            recordRecentLaunchHint();
           }
         }
       } else {
@@ -300,6 +368,8 @@ const Channel = React.memo(({
             path: effectivePath,
             source: 'channel',
           });
+        } else {
+          recordRecentLaunchHint();
         }
       }
     }
@@ -635,7 +705,7 @@ const Channel = React.memo(({
       className={
         effectiveIsEmpty && !effectiveMedia 
           ? `channel empty${useAdaptiveEmptyChannels && ribbonSettings?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}`
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}`
       }
       data-channel-id={id}
       onClick={handleClick}
@@ -644,40 +714,45 @@ const Channel = React.memo(({
       tabIndex={0}
       role="button"
       onContextMenu={handleRightClick}
-      style={{
-        ...(effectiveIsEmpty && !effectiveMedia && useAdaptiveEmptyChannels && ribbonSettings?.ribbonColor && {
-          '--adaptive-bg-color': ribbonSettings.ribbonColor,
-        })
-      }}
+      title={showRecentLaunchHint ? 'Recently used — tap again to open or focus.' : undefined}
+      style={adaptiveEmptyStyle}
     >
-      {/* Show media preview if available and no error */}
-      {!imageError && mediaPreview}
-      
-      {/* Show fallback icon if main media failed */}
-      {imageError && fallbackIcon && (
-        <img 
-          src={fallbackIcon} 
-          alt="Channel fallback" 
-          className="channel-media" 
-          onError={(e) => {
-            console.warn('Fallback icon also failed to load:', fallbackIcon);
-            e.target.style.display = 'none';
-          }}
-        />
-      )}
-      
-      {/* Show original icon if no media or as final fallback */}
-      {!mediaPreview && !imageError && icon && icon.trim() && (
-        <img 
-          src={icon} 
-          alt="" 
-          className="channel-media"
-          onError={(e) => {
-            console.warn('Channel icon failed to load:', icon);
-            e.target.style.display = 'none';
-          }}
-        />
-      )}
+      <PlayfulTapLayer className="channel-tap-layer h-full w-full min-h-0 min-w-0">
+        {/* Show media preview if available and no error */}
+        {!imageError && mediaPreview}
+
+        {/* Show fallback icon if main media failed */}
+        {imageError && fallbackIcon && (
+          <img
+            src={fallbackIcon}
+            alt="Channel fallback"
+            className="channel-media"
+            onError={(e) => {
+              console.warn('Fallback icon also failed to load:', fallbackIcon);
+              e.target.style.display = 'none';
+            }}
+          />
+        )}
+
+        {/* Show original icon if no media or as final fallback */}
+        {!mediaPreview && !imageError && icon && icon.trim() && (
+          <img
+            src={icon}
+            alt=""
+            className="channel-media"
+            onError={(e) => {
+              console.warn('Channel icon failed to load:', icon);
+              e.target.style.display = 'none';
+            }}
+          />
+        )}
+      </PlayfulTapLayer>
+      {showRecentLaunchHint ? (
+        <>
+          <span className="channel-recent-hint-ring" aria-hidden />
+          <span className="channel-recent-hint-pill">Recent</span>
+        </>
+      ) : null}
     </div>
   );
 
@@ -686,7 +761,7 @@ const Channel = React.memo(({
           {channelContent}
         <input
           type="file"
-          accept="image/*,video/mp4"
+          accept={ACCEPT_IMAGE_OR_MP4}
           style={{ display: 'none' }}
           ref={fileInputRef}
           onChange={(e) => {

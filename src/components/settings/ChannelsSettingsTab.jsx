@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import WToggle from '../../ui/WToggle';
@@ -10,12 +10,27 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 const ChannelsSettingsTab = React.memo(() => {
   // Get channel settings from consolidated store
   const channels = useConsolidatedAppStore((state) => state.channels);
+  const ribbon = useConsolidatedAppStore((state) => state.ribbon);
   const actions = useConsolidatedAppStore(
     useShallow((state) => ({
       setChannelSettings: state.actions.setChannelSettings,
     }))
   );
   const settings = channels?.settings || {};
+  const ribbonSettings = ribbon || {};
+
+  const adaptivePreviewStyle = useMemo(() => {
+    const accentColor =
+      ribbonSettings?.ribbonGlowColor ||
+      ribbonSettings?.ribbonColor ||
+      'hsl(var(--primary))';
+
+    return {
+      background: `color-mix(in srgb, hsl(var(--surface-secondary)) 76%, ${accentColor} 24%)`,
+      borderColor: `color-mix(in srgb, hsl(var(--border-primary)) 58%, ${accentColor} 42%)`,
+      boxShadow: `0 0 0 2px color-mix(in srgb, transparent 72%, ${accentColor} 28%) inset`,
+    };
+  }, [ribbonSettings?.ribbonColor, ribbonSettings?.ribbonGlowColor]);
   
   // Memoize callback functions to prevent unnecessary re-renders
   const handleAnimatedOnHoverChange = useCallback((checked) => {
@@ -36,10 +51,6 @@ const ChannelsSettingsTab = React.memo(() => {
 
   const handleAdaptiveEmptyChannelsChange = useCallback((checked) => {
     actions.setChannelSettings({ adaptiveEmptyChannels: checked });
-  }, [actions]);
-
-  const handleChannelAnimationChange = useCallback((value) => {
-    actions.setChannelSettings({ animation: value });
   }, [actions]);
 
   const handleIdleAnimationIntervalChange = useCallback((value) => {
@@ -103,7 +114,18 @@ const ChannelsSettingsTab = React.memo(() => {
             onChange={handleAdaptiveEmptyChannelsChange}
           />
         }
-      />
+      >
+        <div className="mt-3">
+          <div className="mb-2 text-xs text-[hsl(var(--text-secondary))]">
+            Live adaptive preview
+          </div>
+          <div
+            className="h-12 w-full rounded-[var(--radius-md)] border transition-colors duration-200"
+            style={adaptivePreviewStyle}
+            aria-hidden="true"
+          />
+        </div>
+      </Card>
 
       {/* Hover-Only Animations */}
       <Card

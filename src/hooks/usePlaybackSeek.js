@@ -2,8 +2,9 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
  * Horizontal seek scrubber: pointer drag + click-to-seek without stale React state on commit.
+ * @param {boolean} [options.disabled] — when true, no pointer handling (e.g. Spotify Free tier).
  */
-export function usePlaybackSeek({ durationMs, onCommitSeek }) {
+export function usePlaybackSeek({ durationMs, onCommitSeek, disabled = false }) {
   const progressBarRef = useRef(null);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekPosition, setSeekPosition] = useState(0);
@@ -37,11 +38,14 @@ export function usePlaybackSeek({ durationMs, onCommitSeek }) {
     if (!isSeekingRef.current) return;
     isSeekingRef.current = false;
     setIsSeeking(false);
-    onCommitSeek(seekPositionRef.current);
-  }, [onCommitSeek]);
+    if (!disabled) {
+      onCommitSeek(seekPositionRef.current);
+    }
+  }, [disabled, onCommitSeek]);
 
   const handleSeekHandlePointerDown = useCallback(
     (e) => {
+      if (disabled) return;
       if (!durationMs) return;
       e.preventDefault();
       e.stopPropagation();
@@ -53,7 +57,7 @@ export function usePlaybackSeek({ durationMs, onCommitSeek }) {
         setSeekPosition(pos);
       }
     },
-    [durationMs, positionFromClientX]
+    [disabled, durationMs, positionFromClientX]
   );
 
   useEffect(() => {
@@ -70,13 +74,14 @@ export function usePlaybackSeek({ durationMs, onCommitSeek }) {
 
   const handleProgressBarPointerDown = useCallback(
     (e) => {
+      if (disabled) return;
       if (!durationMs || isSeekingRef.current) return;
       if (e.target.closest('.progress-handle-modern')) return;
       e.preventDefault();
       const pos = positionFromClientX(e.clientX);
       if (pos != null) onCommitSeek(pos);
     },
-    [durationMs, positionFromClientX, onCommitSeek]
+    [disabled, durationMs, positionFromClientX, onCommitSeek]
   );
 
   return {

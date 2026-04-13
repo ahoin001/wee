@@ -3,17 +3,14 @@ import isEqual from 'fast-deep-equal';
 import PropTypes from 'prop-types';
 import { WBaseModal } from '../core';
 import { ImageSearchModal } from '../modals';
-import { ResourceUsageIndicator } from '../widgets';
-import { UnifiedAppPathCard } from '../app-library';
 import ChannelModalSuggestedGames from './ChannelModalSuggestedGames';
 import ChannelModalDevDebug from './ChannelModalDevDebug';
-import ChannelPathSmartSuggestions from './ChannelPathSmartSuggestions';
-import Card from '../../ui/Card';
-import Slider from '../../ui/Slider';
-import Text from '../../ui/Text';
+import ChannelModalImageSection from './channelModal/ChannelModalImageSection';
+import ChannelModalUnifiedPathBlock from './channelModal/ChannelModalUnifiedPathBlock';
+import ChannelModalSetupTab from './channelModal/ChannelModalSetupTab';
+import ChannelModalBehaviorTab from './channelModal/ChannelModalBehaviorTab';
+import ChannelModalTabNav from './channelModal/ChannelModalTabNav';
 import WButton from '../../ui/WButton';
-import WRadioGroup from '../../ui/WRadioGroup';
-import WToggle from '../../ui/WToggle';
 import { useChannelModalHoverSound } from '../../hooks/useChannelModalHoverSound';
 import { useChannelModalInitialization } from '../../hooks/useChannelModalInitialization';
 import { useChannelModalMedia } from '../../hooks/useChannelModalMedia';
@@ -22,7 +19,7 @@ import { useChannelModalMedia } from '../../hooks/useChannelModalMedia';
 import { resolveAppForUnifiedPath } from '../../utils/channelModalFindMatchingApp';
 import { validateChannelPath, normalizeChannelPath } from '../../utils/channelPathValidation';
 import { useAppLibraryState } from '../../utils/useConsolidatedAppHooks';
-import { preloadMediaLibrary, getAllMatchingMedia } from '../../utils/mediaLibraryCache';
+import { preloadMediaLibrary } from '../../utils/mediaLibraryCache';
 import useSoundLibrary from '../../utils/useSoundLibrary';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import './ChannelModal.css';
@@ -47,6 +44,8 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     handleImageSelect,
     handleUploadClick,
     handleRemoveImage,
+    mediaUploadHint,
+    clearMediaUploadHint,
   } = useChannelModalMedia({ currentMedia });
 
   const [path, setPath] = useState(currentPath || '');
@@ -102,6 +101,10 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     if (!isOpen) return;
     setUnifiedAppsState({ selectedApp: null });
   }, [isOpen, channelId, setUnifiedAppsState]);
+
+  useEffect(() => {
+    if (isOpen) clearMediaUploadHint();
+  }, [isOpen, channelId, clearMediaUploadHint]);
 
   const {
     fetchInstalledApps, fetchSteamGames, fetchEpicGames, fetchUwpApps
@@ -465,595 +468,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     </>
   );
 
-  const renderImageSection = () => {
-    // Determine if we should show gallery mode option
-    // FEATURE NOT READY: Gallery mode is temporarily disabled
-    const showGalleryOption = false;
-    
-    return (
-      <div className="image-section">
-        {/* Gallery Mode Toggle - only show when Ken Burns is enabled */}
-        {showGalleryOption && (
-          <div className="mb-4">
-            <Text as="label" size="md" weight={600} className="block mb-2">
-              Image Mode
-            </Text>
-            <WRadioGroup
-              options={[
-                { value: 'single', label: 'Single Image' },
-                { value: 'gallery', label: 'Image Gallery (slideshow)' }
-              ]}
-              value={galleryMode ? 'gallery' : 'single'}
-              onChange={(value) => setGalleryMode(value === 'gallery')}
-            />
-            <Text variant="help" className="mt-2">
-              {galleryMode 
-                ? 'Upload multiple images for Ken Burns slideshow effect. Make sure Ken Burns mode is set to "Always Active" for best results.'
-                : 'Use a single image with Ken Burns animation.'}
-            </Text>
-          </div>
-        )}
-
-        {/* Gallery Feature Notice */}
-        {!showGalleryOption && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-            <Text size="sm" color="hsl(var(--state-warning))">
-              🚧 <strong>Multi-image gallery feature is not ready yet.</strong> Currently focusing on perfecting the single image experience with Ken Burns effects.
-            </Text>
-          </div>
-        )}
-
-        {/* Single Image Mode */}
-        {!galleryMode && (
-          <>
-            {media ? (
-              <div className="image-preview">
-                {media.loading ? (
-                  <div className="flex items-center justify-center min-h-[120px] bg-gray-100 rounded-lg text-gray-600 text-sm">
-                    <span>⏳ Processing image...</span>
-                  </div>
-                ) : media.temporary ? (
-                  <div className="relative">
-                    {media && typeof media.type === 'string' && (media.type.startsWith('image/') || media.type === 'image') ? (
-                      <img src={media.url} alt="Channel preview" />
-                    ) : media && typeof media.type === 'string' && (media.type.startsWith('video/') || media.type === 'video' || media.type === 'gif') ? (
-                      <video src={media.url} autoPlay loop muted className="max-w-full max-h-[120px]" />
-                    ) : null}
-                    <div className="channel-temp-badge">
-                      ⚠️ Temporary
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {media && typeof media.type === 'string' && (media.type.startsWith('image/') || media.type === 'image') ? (
-                      <img src={media.url} alt="Channel preview" />
-                    ) : media && typeof media.type === 'string' && (media.type.startsWith('video/') || media.type === 'video' || media.type === 'gif') ? (
-                      <video src={media.url} autoPlay loop muted className="max-w-full max-h-[120px]" />
-                    ) : null}
-                  </>
-                )}
-                <button className="remove-image-button" onClick={handleRemoveImage}>
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <WButton
-                variant="primary"
-                fullWidth
-                rounded
-                onClick={() => setShowImageSearch(true)}
-                className="text-text-on-accent"
-              >
-                Add Channel Image
-              </WButton>
-            )}
-          </>
-        )}
-
-        {/* Gallery Mode - FEATURE NOT READY: Disabled */}
-        {galleryMode && (
-          <div className="channel-stack-16">
-            {/* Gallery Grid */}
-            {imageGallery.length > 0 && (
-              <div className="channel-gallery-grid">
-                {imageGallery.map((image, index) => (
-                  <div key={image.id} className="relative">
-                    <div className="w-full h-20 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-100">
-                      {image.loading ? (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-600 text-xs">
-                          Saving...
-                        </div>
-                      ) : image.error ? (
-                        <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-600 text-xs text-center p-1">
-                          {image.error}
-                        </div>
-                      ) : image.type.startsWith('image/') ? (
-                        <img 
-                          src={image.url} 
-                          alt={`Gallery ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : image.type.startsWith('video/') ? (
-                        <video 
-                          src={image.url} 
-                          className="w-full h-full object-cover"
-                          muted
-                        />
-                      ) : null}
-                    </div>
-                    <button 
-                      onClick={() => handleRemoveGalleryImage(image.id)}
-                      className="absolute top-1 right-1 bg-red-600/90 text-white border-none rounded w-5 h-5 text-xs cursor-pointer flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                    <div className="absolute bottom-1 left-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-xs font-medium">
-                      {index + 1}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add Images Button */}
-            <button 
-              className="file-button" 
-              id="channel-gallery-add-button"
-              onClick={() => galleryFileInputRef.current?.click()}
-            >
-              {imageGallery.length === 0 ? 'Add Images for Gallery' : 'Add More Images'}
-            </button>
-
-            {/* Gallery Help Text */}
-            <Text variant="help">
-              {imageGallery.length === 0 
-                ? 'Select multiple images to create a Ken Burns slideshow. Images will cycle automatically with smooth transitions.'
-                : `${imageGallery.length} image${imageGallery.length !== 1 ? 's' : ''} in gallery. Images will display in order with Ken Burns effects.`}
-            </Text>
-          </div>
-        )}
-
-        {/* File Inputs */}
-        <input
-          type="file"
-          accept="image/*,video/mp4"
-          ref={fileInputRef}
-          onChange={(e) => handleFileSelect(e.target.files[0])}
-          className="hidden"
-        />
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          ref={galleryFileInputRef}
-          onChange={(e) => handleGalleryFilesSelect(e.target.files)}
-          className="hidden"
-        />
-      </div>
-    );
-  };
+  const showGalleryOption = false;
 
   const storeSelectedApp = useConsolidatedAppStore((s) => s.unifiedApps.selectedApp);
   const matchingApp = useMemo(
     () => resolveAppForUnifiedPath(path, type, storeSelectedApp),
     [path, type, storeSelectedApp]
-  );
-
-  const renderUnifiedAppPathSection = useCallback(() => {
-    if (!isOpen) {
-      return null;
-    }
-
-    return (
-      <>
-        <UnifiedAppPathCard
-          key={`unified-app-path-${channelId}-${isOpen}`}
-          value={{
-            launchType: type === 'url' ? 'url' : 'application',
-            appName: matchingApp ? matchingApp.name : '',
-            path,
-            selectedApp: matchingApp,
-          }}
-          onChange={handleUnifiedAppPathChange}
-          externalValidationError={pathError}
-        />
-        <ChannelPathSmartSuggestions path={path} type={type} onApply={handleApplySmartSuggestion} />
-      </>
-    );
-  }, [isOpen, matchingApp, channelId, type, path, pathError, handleUnifiedAppPathChange, handleApplySmartSuggestion]);
-
-  // Channel Behavior Tab
-  const renderChannelBehaviorTab = () => (
-    <div className="space-y-6">
-      {/* Launch Options */}
-      <Card title="Launch Options" separator desc="Choose how this application should be launched when the channel is clicked.">
-        {renderDisplayOptionsSection()}
-      </Card>
-
-      {/* Hover Sound */}
-      <Card
-        title="Custom Hover Sound"
-        separator
-        desc="Set a custom sound to play when hovering over this channel."
-        headerActions={
-          <WToggle
-            checked={hoverSoundEnabled}
-            onChange={(checked) => setHoverSoundEnabled(checked)}
-          />
-        }
-      >
-        {hoverSoundEnabled && (
-          <div>{renderHoverSoundSection()}</div>
-        )}
-        {!hoverSoundEnabled && <span className="channel-inline-help">Set a custom sound to play when hovering over this channel.</span>}
-      </Card>
-
-      {/* Animation Toggle */}
-      <Card title="Animation on Hover" separator desc="Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.">
-        {renderAnimationToggleSection()}
-      </Card>
-
-      {/* Ken Burns Effect */}
-      <Card title="Ken Burns Effect" separator desc="Override the global Ken Burns setting for this channel. Adds cinematic zoom and pan to images.">
-        {renderKenBurnsSection()}
-      </Card>
-    </div>
-  );
-
-  const renderDisplayOptionsSection = () => (
-    <div className="channel-row-radio">
-      <label className="channel-radio-label channel-radio-label-compact">
-        <input
-          type="radio"
-          name={`admin-mode-${channelId}`}
-          checked={!asAdmin}
-          onChange={() => setAsAdmin(false)}
-        />
-        Normal Launch
-      </label>
-      <label className="channel-radio-label channel-radio-label-compact">
-        <input
-          type="radio"
-          name={`admin-mode-${channelId}`}
-          checked={asAdmin}
-          onChange={() => setAsAdmin(true)}
-        />
-        Run as Administrator
-      </label>
-    </div>
-  );
-
-  const renderHoverSoundSection = () => {
-    const channelHoverSounds = getSoundsByCategory('channelHover') || [];
-    
-    return (
-      <div className="channel-stack-16">
-        {/* Current Selection */}
-        {hoverSoundEnabled && hoverSoundUrl && (
-          <div className="channel-surface-block">
-            <div className="channel-header-row">
-              <Text variant="p" className="!font-semibold !m-0">
-                Selected Sound: {hoverSoundName}
-              </Text>
-              <WButton
-                variant="tertiary"
-                size="sm"
-                onClick={clearHoverSoundSelection}
-              >
-                Clear
-              </WButton>
-            </div>
-            
-            <div className="channel-row-gap-12">
-              <WButton
-                variant="secondary"
-                size="sm"
-                onClick={handleTestHoverSound}
-                disabled={!hoverSoundUrl}
-              >
-                {hoverSoundAudio ? 'Stop' : 'Test'}
-              </WButton>
-              
-              <div className="channel-row-gap-8 channel-fill">
-                <span className="channel-volume-label">Volume:</span>
-                <Slider
-                  value={hoverSoundVolume}
-                  onChange={(value) => handleHoverSoundVolumeChange(value)}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  className="channel-fill"
-                />
-                <span className="channel-volume-value">
-                  {Math.round(hoverSoundVolume * 100)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Sound Library Selection */}
-        <div>
-          <div className="channel-row-gap-12 channel-row-between channel-mb-12">
-            <Text variant="p" className="!font-semibold !m-0">
-              Choose from Sound Library
-            </Text>
-            <WButton
-              variant="primary"
-              size="sm"
-              onClick={handleHoverSoundUpload}
-              disabled={uploadingHoverSound}
-            >
-              {uploadingHoverSound ? 'Uploading...' : 'Upload New Sound'}
-            </WButton>
-          </div>
-          
-          {soundLibraryLoading ? (
-            <div className="channel-surface-block channel-surface-centered channel-surface-p20 channel-text-tertiary">
-              Loading sound library...
-            </div>
-          ) : channelHoverSounds.length === 0 ? (
-            <div className="channel-surface-block channel-surface-centered channel-surface-p20 channel-text-tertiary">
-              No hover sounds available. Upload your first sound above.
-            </div>
-          ) : (
-            <div className="channel-sound-grid">
-              {channelHoverSounds.map(sound => (
-                <div
-                  key={sound.id}
-                  onClick={() => handleHoverSoundSelect(sound.id)}
-                  className={`channel-sound-card ${selectedHoverSoundId === sound.id ? 'channel-sound-card-selected' : ''}`}
-                >
-                  <div className="channel-header-row">
-                    <Text variant="p" className="!font-medium !m-0 !text-[14px]">
-                      {sound.name}
-                    </Text>
-                    {selectedHoverSoundId === sound.id && (
-                      <span className="channel-checkmark">✓</span>
-                    )}
-                  </div>
-                  
-                  <div className="channel-row-gap-8">
-                    <WButton
-                      variant="tertiary"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Test this specific sound
-                        const testAudio = new Audio(sound.url);
-                        testAudio.volume = sound.volume ?? 0.5;
-                        testAudio.play();
-                        testAudio.onended = () => {
-                          testAudio.src = '';
-                          testAudio.load();
-                        };
-                      }}
-                      className="channel-min-w-60"
-                    >
-                      Test
-                    </WButton>
-                    
-                    <div className="channel-row-gap-4 channel-fill">
-                      <span className="channel-tiny-label">Vol:</span>
-                      <span className="channel-tiny-label">
-                        {Math.round((sound.volume ?? 0.5) * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Legacy File Upload (Fallback) */}
-        <div className="channel-surface-block channel-surface-subtle">
-          <Text variant="p" className="!font-semibold !m-0 !mb-2 !text-[14px]">
-            Legacy File Upload
-          </Text>
-          <div className="channel-row-gap-10">
-            <button
-              className="file-button"
-              id="channel-legacy-upload-button"
-              onClick={async () => {
-                if (window.api && window.api.sounds && window.api.sounds.selectFile) {
-                  const result = await window.api.sounds.selectFile();
-                  if (result && result.success && result.file) {
-                    await handleHoverSoundFile(result.file);
-                  } else if (result && result.error) {
-                    alert('Failed to select sound file: ' + result.error);
-                  }
-                } else {
-                  hoverSoundInputRef.current?.click();
-                }
-              }}
-            >
-              {hoverSoundName || 'Select Audio File'}
-            </button>
-            <input
-              type="file"
-              accept="audio/*"
-              ref={hoverSoundInputRef}
-              onChange={e => handleHoverSoundFile(e.target.files[0])}
-              className="hidden"
-            />
-            <span className="channel-legacy-upload-note">
-              Direct file upload (not saved to library)
-            </span>
-          </div>
-        </div>
-
-        <Text variant="help" className="channel-help-sm">
-          Sound will fade in on hover, and fade out on leave or click. 
-          Sounds uploaded to the library are saved permanently and can be reused across channels.
-        </Text>
-      </div>
-    );
-  };
-
-  const renderAnimationToggleSection = () => (
-    <div className="channel-stack-8">
-      <label className="channel-radio-label">
-        <input
-          type="radio"
-          name="animatedOnHover"
-          value="global"
-          checked={animatedOnHover === undefined || animatedOnHover === 'global'}
-          onChange={() => setAnimatedOnHover('global')}
-        />
-        Use global setting
-      </label>
-      <label className="channel-radio-label">
-        <input
-          type="radio"
-          name="animatedOnHover"
-          value="true"
-          checked={animatedOnHover === true}
-          onChange={() => setAnimatedOnHover(true)}
-        />
-        Only play animation on hover (override)
-      </label>
-      <label className="channel-radio-label">
-        <input
-          type="radio"
-          name="animatedOnHover"
-          value="false"
-          checked={animatedOnHover === false}
-          onChange={() => setAnimatedOnHover(false)}
-        />
-        Always play animation (override)
-      </label>
-    </div>
-  );
-
-  const renderKenBurnsSection = () => (
-    <div className="channel-stack-16">
-      {/* Ken Burns Enabled Setting */}
-      <div>
-        <Text as="label" size="md" weight={600} className="block mb-2">
-          Ken Burns Effect
-        </Text>
-        <div className="channel-stack-8">
-          <label className="channel-radio-label">
-            <input
-              type="radio"
-              name="kenBurnsEnabled"
-              value="global"
-              checked={kenBurnsEnabled === undefined || kenBurnsEnabled === 'global'}
-              onChange={() => setKenBurnsEnabled('global')}
-            />
-            Use global setting
-          </label>
-          <label className="channel-radio-label">
-            <input
-              type="radio"
-              name="kenBurnsEnabled"
-              value="true"
-              checked={kenBurnsEnabled === true}
-              onChange={() => setKenBurnsEnabled(true)}
-            />
-            Enable for this channel (override)
-          </label>
-          <label className="channel-radio-label">
-            <input
-              type="radio"
-              name="kenBurnsEnabled"
-              value="false"
-              checked={kenBurnsEnabled === false}
-              onChange={() => setKenBurnsEnabled(false)}
-            />
-            Disable for this channel (override)
-          </label>
-        </div>
-      </div>
-
-      {/* Ken Burns Mode Setting - only show when enabled */}
-      {kenBurnsEnabled === true && (
-        <div>
-          <Text as="label" size="md" weight={600} className="block mb-2">
-            Activation Mode
-          </Text>
-          <div className="channel-stack-8">
-            <label className="channel-radio-label">
-              <input
-                type="radio"
-                name="kenBurnsMode"
-                value="global"
-                checked={kenBurnsMode === undefined || kenBurnsMode === 'global'}
-                onChange={() => setKenBurnsMode('global')}
-              />
-              Use global setting
-            </label>
-            <label className="channel-radio-label">
-              <input
-                type="radio"
-                name="kenBurnsMode"
-                value="hover"
-                checked={kenBurnsMode === 'hover'}
-                onChange={() => setKenBurnsMode('hover')}
-              />
-              Hover to activate (override)
-            </label>
-            <label className="channel-radio-label">
-              <input
-                type="radio"
-                name="kenBurnsMode"
-                value="autoplay"
-                checked={kenBurnsMode === 'autoplay'}
-                onChange={() => setKenBurnsMode('autoplay')}
-              />
-              Always active (override)
-            </label>
-            <label className="channel-radio-label channel-radio-disabled">
-              <input
-                type="radio"
-                name="kenBurnsMode"
-                value="slideshow"
-                checked={kenBurnsMode === 'slideshow'}
-                onChange={() => setKenBurnsMode('slideshow')}
-                disabled
-              />
-              Slideshow mode (override) <span className="text-[hsl(var(--state-error))] text-[11px]">- Not Ready</span>
-            </label>
-          </div>
-        </div>
-      )}
-
-      {/* Helper text */}
-      <Text variant="help">
-        {kenBurnsEnabled === true 
-          ? 'Ken Burns adds cinematic zoom and pan effects to images. Perfect for creating dynamic single-image channels.'
-          : kenBurnsEnabled === false
-          ? 'Ken Burns effect is disabled for this channel, even if enabled globally.'
-          : 'This channel will follow the global Ken Burns setting.'}
-      </Text>
-    </div>
-  );
-
-  // Tab navigation component
-  const renderTabNavigation = () => (
-    <div className="flex">
-      <div
-        onClick={() => setActiveTab('setup')}
-        className={`px-4 py-2 font-medium text-sm transition-colors cursor-pointer ${
-          activeTab === 'setup'
-            ? 'text-[hsl(var(--wii-blue))] border-b-2 border-[hsl(var(--wii-blue))]'
-            : 'text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))]'
-        }`}
-      >
-        Channel Setup
-      </div>
-      <div
-        onClick={() => setActiveTab('behavior')}
-        className={`px-4 py-2 font-medium text-sm transition-colors cursor-pointer ${
-          activeTab === 'behavior'
-            ? 'text-[hsl(var(--wii-blue))] border-b-2 border-[hsl(var(--wii-blue))]'
-            : 'text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))]'
-        }`}
-      >
-        Channel Behavior
-      </div>
-    </div>
   );
 
   return (
@@ -1066,54 +486,104 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
         footerContent={footerContent}
         isOpen={isOpen}
       >
-        {/* Sticky Tab Navigation */}
         <div className="channel-sticky-tabs">
-          {renderTabNavigation()}
+          <ChannelModalTabNav activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
-        
-        {/* Scrollable Content */}
+
         <div className="channel-scroll-body">
-          {/* Tab Content */}
           {activeTab === 'setup' && (
-            <div className="space-y-6">
-              {/* Channel Image Selection/Upload Card */}
-              <Card title="Channel Image" separator desc="Choose or upload an image, GIF, or MP4 for this channel.">
-                {renderImageSection()}
-              </Card>
-              
-              {/* App Path/URL Card */}
-              <Card title="Unified App Path or URL" separator desc="Set the path to an app or a URL to launch when this channel is clicked.">
-                {renderUnifiedAppPathSection()}
-                <ChannelModalDevDebug path={path} type={type} pathError={pathError} />
-              </Card>
-              
-              <ChannelModalSuggestedGames
-                isOpen={isOpen}
-                path={path}
-                setPath={setPath}
-                setType={setType}
-                setMedia={setMedia}
-                installedApps={installedApps}
-                appsLoading={appsLoading}
-                appsError={appsError}
-                steamGames={steamGames}
-                epicGames={epicGames}
-                steamLoading={steamLoading}
-                epicLoading={epicLoading}
-                steamError={steamError}
-                epicError={epicError}
-                rescanInstalledApps={rescanInstalledApps}
-                rescanSteamGames={rescanSteamGames}
-                rescanEpicGames={rescanEpicGames}
-              />
-            </div>
+            <ChannelModalSetupTab
+              pathCardContent={
+                <>
+                  <ChannelModalUnifiedPathBlock
+                    channelId={channelId}
+                    isOpen={isOpen}
+                    path={path}
+                    type={type}
+                    pathError={pathError}
+                    matchingApp={matchingApp}
+                    onUnifiedAppPathChange={handleUnifiedAppPathChange}
+                    onApplySmartSuggestion={handleApplySmartSuggestion}
+                  />
+                  <ChannelModalDevDebug path={path} type={type} pathError={pathError} />
+                </>
+              }
+              imageSection={
+                <ChannelModalImageSection
+                  showGalleryOption={showGalleryOption}
+                  galleryMode={galleryMode}
+                  setGalleryMode={setGalleryMode}
+                  imageGallery={imageGallery}
+                  media={media}
+                  setShowImageSearch={setShowImageSearch}
+                  handleRemoveImage={handleRemoveImage}
+                  handleFileSelect={handleFileSelect}
+                  handleGalleryFilesSelect={handleGalleryFilesSelect}
+                  handleRemoveGalleryImage={handleRemoveGalleryImage}
+                  fileInputRef={fileInputRef}
+                  galleryFileInputRef={galleryFileInputRef}
+                  mediaUploadHint={mediaUploadHint}
+                />
+              }
+              suggestedGames={
+                <ChannelModalSuggestedGames
+                  isOpen={isOpen}
+                  path={path}
+                  setPath={setPath}
+                  setType={setType}
+                  setMedia={setMedia}
+                  installedApps={installedApps}
+                  appsLoading={appsLoading}
+                  appsError={appsError}
+                  steamGames={steamGames}
+                  epicGames={epicGames}
+                  steamLoading={steamLoading}
+                  epicLoading={epicLoading}
+                  steamError={steamError}
+                  epicError={epicError}
+                  rescanInstalledApps={rescanInstalledApps}
+                  rescanSteamGames={rescanSteamGames}
+                  rescanEpicGames={rescanEpicGames}
+                />
+              }
+            />
           )}
-          
-          {activeTab === 'behavior' && renderChannelBehaviorTab()}
+
+          {activeTab === 'behavior' && (
+            <ChannelModalBehaviorTab
+              channelId={channelId}
+              asAdmin={asAdmin}
+              setAsAdmin={setAsAdmin}
+              hoverSoundEnabled={hoverSoundEnabled}
+              setHoverSoundEnabled={setHoverSoundEnabled}
+              hoverSoundUrl={hoverSoundUrl}
+              hoverSoundName={hoverSoundName}
+              hoverSoundVolume={hoverSoundVolume}
+              hoverSoundAudio={hoverSoundAudio}
+              selectedHoverSoundId={selectedHoverSoundId}
+              uploadingHoverSound={uploadingHoverSound}
+              hoverSoundInputRef={hoverSoundInputRef}
+              soundLibraryLoading={soundLibraryLoading}
+              getSoundsByCategory={getSoundsByCategory}
+              clearHoverSoundSelection={clearHoverSoundSelection}
+              handleTestHoverSound={handleTestHoverSound}
+              handleHoverSoundVolumeChange={handleHoverSoundVolumeChange}
+              handleHoverSoundSelect={handleHoverSoundSelect}
+              handleHoverSoundUpload={handleHoverSoundUpload}
+              handleHoverSoundFile={handleHoverSoundFile}
+              animatedOnHover={animatedOnHover}
+              setAnimatedOnHover={setAnimatedOnHover}
+              kenBurnsEnabled={kenBurnsEnabled}
+              setKenBurnsEnabled={setKenBurnsEnabled}
+              kenBurnsMode={kenBurnsMode}
+              setKenBurnsMode={setKenBurnsMode}
+            />
+          )}
         </div>
       </WBaseModal>
       {showImageSearch && (
         <ImageSearchModal
+          isOpen={showImageSearch}
           onClose={() => setShowImageSearch(false)}
           onSelect={handleImageSelect}
           onUploadClick={handleUploadClick}

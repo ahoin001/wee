@@ -223,7 +223,7 @@
   --side-nav-text-color: hsl(215 16% 35%);
   --side-nav-text-color-hover: hsl(215 19% 27%);
 
-  /* Wii channel strip: viewport shows one page minus this peek (next page visible) */
+  /* Wii channel strip: one “page” width = 100% − peek (adjacent page visible on left/right when not on that edge) */
   --wii-strip-peek: 8%;
   --wii-strip-board-max: min(1680px, 100%);
   /* Same gap between grid columns/rows and between carousel pages (Wii “always more” strip) */
@@ -263,12 +263,14 @@
   --settings-tab-layout: 168 100% 36%;
   --settings-tab-navigation: 344 100% 72%;
   --settings-tab-monitor: 340 100% 71%;
+  --settings-tab-motion: 280 65% 62%;
   --settings-tab-shortcuts: 32 100% 63%;
   --settings-tab-sounds: 267 67% 66%;
   --settings-tab-themes: 312 100% 81%;
   --settings-tab-time: 193 58% 55%;
   --settings-tab-updates: 180 100% 41%;
   --settings-tab-wallpaper: 174 62% 55%;
+  --settings-tab-workspaces: 205 86% 58%;
 
   /* Card.jsx — accent families not covered by state/wii tokens */
   --palette-purple: 291 47% 51%;

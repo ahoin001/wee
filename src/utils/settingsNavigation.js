@@ -16,7 +16,9 @@ export const SETTINGS_TAB_ID = {
   LAYOUT: 'layout',
   SHORTCUTS: 'shortcuts',
   MONITOR: 'monitor',
+  MOTION: 'motion',
   NAVIGATION: 'navigation',
+  WORKSPACES: 'workspaces',
 };
 
 /**

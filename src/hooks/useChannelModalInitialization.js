@@ -97,12 +97,6 @@ export const useChannelModalInitialization = ({
   ]);
 
   useEffect(() => {
-    if (isOpen && window.api) {
-      preloadMediaLibrary();
-    }
-  }, [isOpen, preloadMediaLibrary]);
-
-  useEffect(() => {
     if (!isOpen) return;
 
     if (loadSoundLibrary) {

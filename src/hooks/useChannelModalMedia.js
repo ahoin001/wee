@@ -1,5 +1,11 @@
 import { useState, useRef, useCallback } from 'react';
 import { getStoragePublicObjectUrl } from '../utils/supabase';
+import {
+  isSupportedGalleryStillUpload,
+  isSupportedImageOrVideoUpload,
+  SUPPORTED_GALLERY_HINT,
+  SUPPORTED_IMAGE_VIDEO_HINT,
+} from '../utils/supportedUploadMedia';
 
 /**
  * Channel image / gallery state and handlers for ChannelModal.
@@ -11,9 +17,17 @@ export function useChannelModalMedia({ currentMedia }) {
   const fileInputRef = useRef();
   const galleryFileInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
+  const [mediaUploadHint, setMediaUploadHint] = useState('');
+
+  const clearMediaUploadHint = useCallback(() => setMediaUploadHint(''), []);
 
   const handleFileSelect = useCallback(async (file) => {
     if (!file) return;
+    setMediaUploadHint('');
+    if (!isSupportedImageOrVideoUpload(file)) {
+      setMediaUploadHint(SUPPORTED_IMAGE_VIDEO_HINT);
+      return;
+    }
     const tempUrl = URL.createObjectURL(file);
     setMedia({ url: tempUrl, type: file.type, name: file.name, loading: true });
 
@@ -48,8 +62,20 @@ export function useChannelModalMedia({ currentMedia }) {
 
   const handleGalleryFilesSelect = useCallback(async (files) => {
     if (!files || files.length === 0) return;
+    setMediaUploadHint('');
     try {
-      const fileArray = Array.from(files);
+      const allFiles = Array.from(files);
+      const fileArray = allFiles.filter(isSupportedGalleryStillUpload);
+      const skipped = allFiles.length - fileArray.length;
+      if (skipped > 0) {
+        setMediaUploadHint(
+          skipped === allFiles.length
+            ? SUPPORTED_GALLERY_HINT
+            : `${skipped} file(s) skipped — ${SUPPORTED_GALLERY_HINT}`
+        );
+      }
+      if (fileArray.length === 0) return;
+
       const tempImages = fileArray.map((file) => ({
         url: URL.createObjectURL(file),
         type: file.type,
@@ -186,5 +212,7 @@ export function useChannelModalMedia({ currentMedia }) {
     handleImageSelect,
     handleUploadClick,
     handleRemoveImage,
+    mediaUploadHint,
+    clearMediaUploadHint,
   };
 }

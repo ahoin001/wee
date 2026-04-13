@@ -10,6 +10,7 @@ import {
 } from '../design/runtimeColorStrings.js';
 import { resolveGridConfig, resolveNavigation } from './channelLayoutSystem';
 import { applyChannelSlotReorder } from './channelReorder';
+import { DEFAULT_MOTION_FEEDBACK } from './motionFeedbackDefaults';
 
 let useConsolidatedAppStore;
 const {
@@ -72,6 +73,17 @@ useConsolidatedAppStore = create(
           // Modal states
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
+          showWorkspaceSwitcher: false,
+          /** True while any Configure Channel modal is open — disables grid drag/drop. Not persisted. */
+          channelConfigureModalOpen: false,
+          /** Full-app scene transition for premium workspace/preset switching UX. Not persisted. */
+          sceneTransition: {
+            active: false,
+            label: '',
+            key: 0,
+          },
+          /** Transient: recent-launch hint per channel id (not persisted; no process tracking). */
+          channelOpenHints: {},
           settingsActiveTab: 'channels', // Default active tab for settings modal
           // Keyboard shortcuts
           keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
@@ -80,6 +92,12 @@ useConsolidatedAppStore = create(
             modifier: shortcut.defaultModifier,
             enabled: true
           })),
+          motionFeedback: {
+            master: DEFAULT_MOTION_FEEDBACK.master,
+            channels: { ...DEFAULT_MOTION_FEEDBACK.channels },
+            dock: { ...DEFAULT_MOTION_FEEDBACK.dock },
+            ribbon: { ...DEFAULT_MOTION_FEEDBACK.ribbon },
+          },
         },
 
         // Ribbon state
@@ -347,6 +365,8 @@ useConsolidatedAppStore = create(
           deviceId: null,
           error: null,
           loading: false,
+          /** GET /v1/me/player returned 403 — treat as no in-app playback; poll slowly */
+          playerWebApiForbidden: false,
           // Extracted colors from current track's album art
           extractedColors: null,
           // Immersive experience settings
@@ -440,6 +460,7 @@ useConsolidatedAppStore = create(
           spotify: {
             visible: false,
             position: { x: 20, y: 20 },
+            size: { width: 360, height: 440 },
             settings: {
               autoShowWidget: false,
               autoHideWidget: true,
@@ -478,6 +499,12 @@ useConsolidatedAppStore = create(
 
         // Presets
         presets: [],
+
+        // Workspaces
+        workspaces: {
+          items: [],
+          activeWorkspaceId: null,
+        },
 
         // Actions
         actions: {
@@ -523,45 +550,21 @@ useConsolidatedAppStore = create(
               ? updates(state.channels)
               : updates;
 
-            const hasNestedShape = resolvedUpdates?.settings || resolvedUpdates?.data || resolvedUpdates?.operations;
-            if (hasNestedShape) {
-              return {
-                channels: {
-                  ...state.channels,
-                  ...resolvedUpdates,
-                  settings: {
-                    ...state.channels.settings,
-                    ...(resolvedUpdates.settings || {}),
-                  },
-                  data: {
-                    ...state.channels.data,
-                    ...(resolvedUpdates.data || {}),
-                  },
-                  operations: {
-                    ...state.channels.operations,
-                    ...(resolvedUpdates.operations || {}),
-                  },
-                }
-              };
-            }
-
-            // Backward compatibility for legacy flat channel settings payloads.
-            const {
-              configuredChannels,
-              channelConfigs,
-              navigation,
-              ...channelSettingsUpdates
-            } = resolvedUpdates || {};
-
             return {
               channels: {
                 ...state.channels,
-                settings: { ...state.channels.settings, ...channelSettingsUpdates },
+                ...resolvedUpdates,
+                settings: {
+                  ...state.channels.settings,
+                  ...(resolvedUpdates?.settings || {}),
+                },
                 data: {
                   ...state.channels.data,
-                  ...(configuredChannels !== undefined ? { configuredChannels } : {}),
-                  ...(channelConfigs !== undefined ? { channelConfigs } : {}),
-                  ...(navigation !== undefined ? { navigation } : {}),
+                  ...(resolvedUpdates?.data || {}),
+                },
+                operations: {
+                  ...state.channels.operations,
+                  ...(resolvedUpdates?.operations || {}),
                 }
               }
             };
@@ -797,6 +800,14 @@ useConsolidatedAppStore = create(
           // Preset actions
           setPresets: (presets) => set({ presets }),
 
+          // Workspace actions
+          setWorkspacesState: (updates) => set((state) => ({
+            workspaces: {
+              ...state.workspaces,
+              ...updates,
+            }
+          })),
+
           // Bulk update
           updateState: (updates) => set((state) => ({
             ...state,
@@ -833,6 +844,19 @@ useConsolidatedAppStore = create(
               spotifyMatchEnabled: false,
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),
+              showWorkspaceSwitcher: false,
+              channelOpenHints: {},
+              sceneTransition: {
+                active: false,
+                label: '',
+                key: 0,
+              },
+              motionFeedback: {
+                master: DEFAULT_MOTION_FEEDBACK.master,
+                channels: { ...DEFAULT_MOTION_FEEDBACK.channels },
+                dock: { ...DEFAULT_MOTION_FEEDBACK.dock },
+                ribbon: { ...DEFAULT_MOTION_FEEDBACK.ribbon },
+              },
             },
             ribbon: {
               glassWiiRibbon: false,
@@ -1007,6 +1031,10 @@ useConsolidatedAppStore = create(
               channelHoverVolume: 0.5,
             },
             presets: [],
+            workspaces: {
+              items: [],
+              activeWorkspaceId: null,
+            },
           }),
         },
       })

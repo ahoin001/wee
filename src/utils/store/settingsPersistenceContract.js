@@ -1,3 +1,5 @@
+import { mergeMotionFeedback } from '../motionFeedbackDefaults.js';
+
 export const SETTINGS_SCHEMA_VERSION = 2;
 
 export const CANONICAL_SETTINGS_KEYS = [
@@ -14,9 +16,26 @@ export const CANONICAL_SETTINGS_KEYS = [
   'floatingWidgets',
   'navigation',
   'presets',
+  'workspaces',
 ];
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const omitKeys = (obj, keys) => {
+  if (!isPlainObject(obj)) return {};
+  const next = { ...obj };
+  keys.forEach((k) => {
+    delete next[k];
+  });
+  return next;
+};
+
+/**
+ * Channel slot maps (`channel-0` …) encode order: the key set *is* the layout.
+ * Deep-merge would keep stale slot keys when a reorder omits emptied slots, duplicating
+ * tiles after persist. When the patch owns these keys, replace the whole map.
+ */
+const CHANNEL_DATA_SLOT_KEYED_MAPS = ['configuredChannels', 'channelConfigs'];
 
 const deepMerge = (target, source) => {
   if (!isPlainObject(target) || !isPlainObject(source)) return source;
@@ -30,6 +49,54 @@ const deepMerge = (target, source) => {
   });
   return next;
 };
+
+function mergeChannelData(baseData, patchData) {
+  if (!isPlainObject(patchData)) return isPlainObject(baseData) ? baseData : {};
+  if (!isPlainObject(baseData)) return patchData;
+
+  const mergedRest = deepMerge(
+    omitKeys(baseData, CHANNEL_DATA_SLOT_KEYED_MAPS),
+    omitKeys(patchData, CHANNEL_DATA_SLOT_KEYED_MAPS)
+  );
+  const merged = { ...mergedRest };
+  CHANNEL_DATA_SLOT_KEYED_MAPS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(patchData, key)) {
+      merged[key] = patchData[key];
+    } else if (Object.prototype.hasOwnProperty.call(baseData, key)) {
+      merged[key] = baseData[key];
+    }
+  });
+  return merged;
+}
+
+function mergeChannelsSlice(baseChannels, patchChannels) {
+  if (!isPlainObject(patchChannels)) return isPlainObject(baseChannels) ? baseChannels : {};
+  if (!isPlainObject(baseChannels)) return patchChannels;
+
+  const merged = deepMerge(
+    omitKeys(baseChannels, ['data', 'settings', 'operations']),
+    omitKeys(patchChannels, ['data', 'settings', 'operations'])
+  );
+  merged.settings = deepMerge(baseChannels.settings || {}, patchChannels.settings || {});
+  merged.operations = deepMerge(baseChannels.operations || {}, patchChannels.operations || {});
+  merged.data = mergeChannelData(baseChannels.data, patchChannels.data);
+  return merged;
+}
+
+function mergeSettingsAtRoot(base, patch) {
+  if (!isPlainObject(base) && !isPlainObject(patch)) return patch ?? base;
+  const next = { ...(isPlainObject(base) ? base : {}) };
+  if (!isPlainObject(patch)) return next;
+
+  Object.entries(patch).forEach(([key, value]) => {
+    if (key === 'channels') {
+      next[key] = mergeChannelsSlice(base?.channels, value);
+    } else {
+      next[key] = deepMerge(base?.[key], value);
+    }
+  });
+  return next;
+}
 
 const selectPersistedUi = (ui = {}) => ({
   isDarkMode: ui.isDarkMode ?? false,
@@ -55,6 +122,7 @@ const selectPersistedUi = (ui = {}) => ({
   spotifyMatchEnabled: ui.spotifyMatchEnabled ?? false,
   channelOpacity: ui.channelOpacity ?? 1,
   keyboardShortcuts: Array.isArray(ui.keyboardShortcuts) ? ui.keyboardShortcuts : [],
+  motionFeedback: mergeMotionFeedback(ui.motionFeedback),
 });
 
 export const buildSettingsSnapshotFromStore = (state = {}) => ({
@@ -66,85 +134,21 @@ export const buildSettingsSnapshotFromStore = (state = {}) => ({
   channels: state.channels || {},
   dock: state.dock || {},
   monitors: state.monitors || {},
-  spotify: state.spotify || {},
+  spotify: omitKeys(state.spotify || {}, ['playerWebApiForbidden']),
   sounds: state.sounds || {},
   floatingWidgets: state.floatingWidgets || {},
   navigation: state.navigation || {},
   presets: Array.isArray(state.presets) ? state.presets : [],
+  workspaces: state.workspaces || {},
 });
-
-const mapLegacyUnifiedSettings = (settings = {}) => {
-  const appearance = settings.appearance || {};
-  const dock = settings.dock || {};
-  const channels = settings.channels || {};
-  const wallpaper = settings.wallpaper || {};
-  const wallpaperCycling = wallpaper.cycling || {};
-  const wallpaperOverlay = wallpaper.overlay || {};
-  const system = settings.system || {};
-
-  return {
-    ui: {
-      isDarkMode: appearance.theme === 'dark',
-      useCustomCursor: appearance.useCustomCursor,
-      cursorStyle: appearance.cursorStyle,
-      immersivePip: appearance.immersivePip,
-      startInFullscreen: appearance.startInFullscreen,
-      showPresetsButton: appearance.showPresetsButton,
-      startOnBoot: system.startOnBoot,
-      settingsShortcut: system.settingsShortcut,
-      lowPowerMode: system.lowPowerMode,
-      showDock: dock.showDock,
-      classicMode: dock.classicMode,
-      spotifyMatchEnabled: appearance.spotifyMatchEnabled,
-    },
-    channels,
-    ribbon: settings.ribbon,
-    time: settings.time,
-    dock,
-    sounds: settings.sounds,
-    wallpaper: {
-      opacity: wallpaper.opacity,
-      blur: wallpaper.blur,
-      cycleWallpapers: wallpaperCycling.enabled,
-      cycleInterval: wallpaperCycling.interval,
-      cycleAnimation: wallpaperCycling.animation,
-      slideDirection: wallpaperCycling.slideDirection,
-      crossfadeDuration: wallpaperCycling.crossfadeDuration,
-      crossfadeEasing: wallpaperCycling.crossfadeEasing,
-      slideRandomDirection: wallpaperCycling.slideRandomDirection,
-      slideDuration: wallpaperCycling.slideDuration,
-      slideEasing: wallpaperCycling.slideEasing,
-    },
-    overlay: {
-      enabled: wallpaperOverlay.enabled,
-      effect: wallpaperOverlay.effect,
-      intensity: wallpaperOverlay.intensity,
-      speed: wallpaperOverlay.speed,
-      wind: wallpaperOverlay.wind,
-      gravity: wallpaperOverlay.gravity,
-    },
-    presets: settings.presets,
-    floatingWidgets: settings.floatingWidgets,
-    navigation: settings.navigation,
-    monitors: settings.monitors,
-    spotify: settings.spotify,
-  };
-};
 
 export const normalizeUnifiedSettingsSnapshot = (settings = {}) => {
   if (!isPlainObject(settings)) return {};
 
-  const source =
-    settings.ui || settings.ribbon || settings.time
-      ? settings
-      : settings.appearance || settings.dock || settings.channels
-        ? mapLegacyUnifiedSettings(settings)
-        : settings;
-
   const canonical = {};
   CANONICAL_SETTINGS_KEYS.forEach((key) => {
-    if (source[key] !== undefined) {
-      canonical[key] = source[key];
+    if (settings[key] !== undefined) {
+      canonical[key] = settings[key];
     }
   });
 
@@ -156,7 +160,7 @@ export const normalizeUnifiedSettingsSnapshot = (settings = {}) => {
 };
 
 export const mergeCanonicalSettings = (baseSettings, nextPatch) => {
-  return deepMerge(
+  return mergeSettingsAtRoot(
     normalizeUnifiedSettingsSnapshot(baseSettings || {}),
     normalizeUnifiedSettingsSnapshot(nextPatch || {})
   );

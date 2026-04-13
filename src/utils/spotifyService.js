@@ -1,4 +1,5 @@
 import SpotifyWebApi from 'spotify-web-api-js';
+import { logWarn } from './logger';
 
 // Spotify API configuration
 const SPOTIFY_CLIENT_ID = '0597b1eb9b1e4925934e142c2d0243bb';
@@ -106,6 +107,12 @@ class SpotifyService {
         this.currentUser = user;
         this.isAuthenticated = true;
         console.log('[SPOTIFY] Authenticated as:', user.display_name);
+        if (typeof window !== 'undefined' && window.useConsolidatedAppStore) {
+          window.useConsolidatedAppStore.getState().actions.setSpotifyState({
+            currentUser: user,
+            isConnected: true,
+          });
+        }
         return true;
       }
       
@@ -264,91 +271,123 @@ class SpotifyService {
     }
   }
 
-  // Get current playback state
+  /**
+   * GET /v1/me/player — use fetch + text body so 403 plain-text errors do not throw JSON SyntaxError
+   * (spotify-web-api-js parses error bodies as JSON).
+   */
   async getCurrentPlayback() {
-    try {
-      const playback = await this.spotifyApi.getMyCurrentPlaybackState();
-      
-      if (playback && playback.item) {
-        // Return the full Spotify API response structure
-        // This matches the official Spotify Web API documentation
-        const currentTrack = {
-          id: playback.item.id,
-          name: playback.item.name,
-          artists: playback.item.artists, // Array of artist objects
-          album: {
-            name: playback.item.album.name,
-            images: playback.item.album.images, // Array of image objects
-            id: playback.item.album.id
-          },
-          duration_ms: playback.item.duration_ms,
-          uri: playback.item.uri,
-          type: playback.item.type,
-          popularity: playback.item.popularity,
-          explicit: playback.item.explicit,
-          external_urls: playback.item.external_urls,
-          href: playback.item.href
-        };
+    const PLAYER_URL = 'https://api.spotify.com/v1/me/player';
 
-        // Update internal state
-        this.currentTrack = currentTrack;
-        this.isPlaying = playback.is_playing;
-        this.deviceId = playback.device?.id;
-        
-        // Return the full playback object with current track
-        return {
-          item: currentTrack,
-          is_playing: playback.is_playing,
-          progress_ms: playback.progress_ms,
-          duration_ms: playback.item.duration_ms,
-          device: playback.device,
-          shuffle_state: playback.shuffle_state,
-          repeat_state: playback.repeat_state,
-          context: playback.context,
-          timestamp: playback.timestamp
-        };
-      } else {
-        // No active playback
+    const mapPlaybackToResult = (playback) => {
+      if (!playback?.item) {
         this.currentTrack = null;
         this.isPlaying = false;
         return null;
       }
-    } catch (error) {
-      console.error('[SPOTIFY] Get current playback error:', error);
-      
-      // Check if it's an auth error
-      if (error.status === 401) {
-        console.log('[SPOTIFY] Token expired, attempting refresh...');
+      const currentTrack = {
+        id: playback.item.id,
+        name: playback.item.name,
+        artists: playback.item.artists,
+        album: {
+          name: playback.item.album.name,
+          images: playback.item.album.images,
+          id: playback.item.album.id,
+        },
+        duration_ms: playback.item.duration_ms,
+        uri: playback.item.uri,
+        type: playback.item.type,
+        popularity: playback.item.popularity,
+        explicit: playback.item.explicit,
+        external_urls: playback.item.external_urls,
+        href: playback.item.href,
+      };
+      this.currentTrack = currentTrack;
+      this.isPlaying = playback.is_playing;
+      this.deviceId = playback.device?.id;
+      return {
+        item: currentTrack,
+        is_playing: playback.is_playing,
+        progress_ms: playback.progress_ms,
+        duration_ms: playback.item.duration_ms,
+        device: playback.device,
+        shuffle_state: playback.shuffle_state,
+        repeat_state: playback.repeat_state,
+        context: playback.context,
+        timestamp: playback.timestamp,
+      };
+    };
+
+    const parseJsonBody = (text) => {
+      if (!text?.trim()) return null;
+      try {
+        return JSON.parse(text);
+      } catch {
+        logWarn('SPOTIFY', 'Player response body was not valid JSON');
+        return null;
+      }
+    };
+
+    try {
+      const accessToken = localStorage.getItem('spotify_access_token');
+      if (!accessToken) return null;
+
+      const fetchPlayer = async (token) =>
+        fetch(PLAYER_URL, { headers: { Authorization: `Bearer ${token}` } });
+
+      let res = await fetchPlayer(accessToken);
+
+      if (res.status === 401) {
         const refreshToken = localStorage.getItem('spotify_refresh_token');
-        
         if (refreshToken) {
-          try {
-            const refreshResult = await this.refreshAccessToken(refreshToken);
-            if (refreshResult.success) {
-              console.log('[SPOTIFY] Token refreshed, retrying playback request...');
-              return this.getCurrentPlayback(); // Retry the request
-            }
-          } catch (refreshError) {
-            console.error('[SPOTIFY] Token refresh failed:', refreshError);
+          const refreshResult = await this.refreshAccessToken(refreshToken);
+          if (refreshResult.success) {
+            res = await fetchPlayer(localStorage.getItem('spotify_access_token'));
           }
         }
-        
-        // If we get here, refresh failed or no refresh token
-        console.log('[SPOTIFY] Auth failed, clearing tokens...');
-        this.logout();
-        
-        // Update the consolidated store
-        if (window.useConsolidatedAppStore) {
-          const store = window.useConsolidatedAppStore.getState();
-          store.actions.setSpotifyState({
-            isConnected: false,
-            currentUser: null,
-            accessToken: null,
-            refreshToken: null
-          });
+        if (res.status === 401) {
+          await res.text().catch(() => '');
+          this.logout();
+          if (window.useConsolidatedAppStore) {
+            window.useConsolidatedAppStore.getState().actions.setSpotifyState({
+              isConnected: false,
+              currentUser: null,
+              accessToken: null,
+              refreshToken: null,
+            });
+          }
+          return null;
         }
       }
-      
+
+      if (res.status === 204) {
+        await res.text().catch(() => '');
+        this.currentTrack = null;
+        this.isPlaying = false;
+        return null;
+      }
+
+      if (res.status === 403) {
+        await res.text().catch(() => '');
+        return { _playerWebApiForbidden: true };
+      }
+
+      const text = await res.text();
+      if (!res.ok) {
+        if (res.status >= 500) {
+          logWarn('SPOTIFY', `Player request failed: HTTP ${res.status}`);
+        }
+        return null;
+      }
+
+      const playback = parseJsonBody(text);
+      if (!playback) {
+        this.currentTrack = null;
+        this.isPlaying = false;
+        return null;
+      }
+      return mapPlaybackToResult(playback);
+    } catch (error) {
+      logWarn('SPOTIFY', 'getCurrentPlayback network error', error?.message);
       return null;
     }
   }

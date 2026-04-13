@@ -160,65 +160,87 @@ export const uploadMedia = async (file, metadata) => {
   }
 }
 
-export const searchMedia = async (filters = {}) => {
+const applyMediaSearchFilters = (queryBuilder, filters = {}) => {
+  let nextQuery = queryBuilder
+  const searchTerm = String(filters.searchTerm || '').trim()
+
+  if (searchTerm) {
+    nextQuery = nextQuery.or(
+      `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,tags.cs.{${searchTerm}}`
+    )
+  }
+
+  if (filters.fileType && filters.fileType !== 'all') {
+    nextQuery = nextQuery.eq('file_type', filters.fileType)
+  }
+
+  if (filters.tags && filters.tags.length > 0) {
+    nextQuery = nextQuery.overlaps('tags', filters.tags)
+  }
+
+  const sortBy = filters.sortBy || 'created_at'
+  switch (sortBy) {
+    case 'title_asc':
+      nextQuery = nextQuery.order('title', { ascending: true })
+      break
+    case 'title_desc':
+      nextQuery = nextQuery.order('title', { ascending: false })
+      break
+    case 'downloads':
+      nextQuery = nextQuery.order('downloads', { ascending: false })
+      break
+    case 'created_at':
+    default:
+      nextQuery = nextQuery.order('created_at', { ascending: false })
+      break
+  }
+
+  return nextQuery
+}
+
+export const searchMediaPaginated = async (filters = {}) => {
   try {
+    const page = Math.max(1, Number(filters.page) || 1)
+    const limit = Math.max(1, Number(filters.limit) || 20)
+    const offset = (page - 1) * limit
+
     let queryBuilder = spokeClient
       .from('media_library')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('is_approved', true)
-    
-    // Search by title, description, or tags
-    if (filters.searchTerm) {
-      queryBuilder = queryBuilder.or(
-        `title.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%,tags.cs.{${filters.searchTerm}}`
-      )
-    }
-    
-    // Filter by file type
-    if (filters.fileType && filters.fileType !== 'all') {
-      queryBuilder = queryBuilder.eq('file_type', filters.fileType)
-    }
-    
-    // Filter by tags
-    if (filters.tags && filters.tags.length > 0) {
-      queryBuilder = queryBuilder.overlaps('tags', filters.tags)
-    }
-    
-    // Apply sorting
-    const sortBy = filters.sortBy || 'created_at'
-    switch (sortBy) {
-      case 'title_asc':
-        queryBuilder = queryBuilder.order('title', { ascending: true })
-        break
-      case 'title_desc':
-        queryBuilder = queryBuilder.order('title', { ascending: false })
-        break
-      case 'downloads':
-        queryBuilder = queryBuilder.order('downloads', { ascending: false })
-        break
-      case 'created_at':
-      default:
-        queryBuilder = queryBuilder.order('created_at', { ascending: false })
-        break
-    }
-    
-    // Pagination
-    const page = filters.page || 1
-    const limit = filters.limit || 12
-    const offset = (page - 1) * limit
-    
+
+    queryBuilder = applyMediaSearchFilters(queryBuilder, filters)
     queryBuilder = queryBuilder.range(offset, offset + limit - 1)
-    
-    const { data, error } = await queryBuilder
-    
+
+    const { data, error, count } = await queryBuilder
+
     if (error) {
-      return { success: false, error: error.message }
+      return { success: false, error: error.message, data: [], totalCount: 0, totalPages: 0, page, limit }
     }
-    
-    return { success: true, data }
+
+    const totalCount = Number(count) || 0
+    const totalPages = Math.max(1, Math.ceil(totalCount / limit))
+
+    return {
+      success: true,
+      data: data || [],
+      totalCount,
+      totalPages,
+      page,
+      limit,
+    }
   } catch (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: error.message, data: [], totalCount: 0, totalPages: 0 }
   }
+}
+
+export const searchMedia = async (filters = {}) => {
+  const result = await searchMediaPaginated(filters)
+  if (!result.success) {
+    return { success: false, error: result.error, data: [] }
+  }
+
+  return { success: true, data: result.data }
 }
 
 export const downloadMedia = async (mediaId) => {
@@ -519,6 +541,7 @@ export const downloadPreset = async (presetId) => {
     if (downloadError) {
       // 409 Conflict means this session already downloaded this preset
       if (downloadError.code === '23505' || downloadError.message.includes('duplicate')) {
+        // Intentionally ignored: download already tracked for this session.
       } else {
         logWarn('SUPABASE', 'Error tracking download', downloadError);
       }

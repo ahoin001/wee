@@ -16,8 +16,16 @@ import {
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { buildPresetDataFromStore } from '../../utils/presets/buildPresetSnapshot';
 import { applyPresetData } from '../../utils/presets/applyPresetData';
+import { sanitizePresetCollection, toThemeOnlyPreset } from '../../utils/presets/presetThemeData';
 import { createDefaultSpotifyMatchPreset, SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
+import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
+import { buildWorkspaceDataFromStore } from '../../utils/workspaces/buildWorkspaceSnapshot';
+import { normalizeWorkspacesState } from '../../utils/workspaces/workspaceState';
+import {
+  isSupportedPresetCoverImageUpload,
+  SUPPORTED_GALLERY_HINT,
+} from '../../utils/supportedUploadMedia';
 import './surfaceStyles.css';
 
 import PresetsSaveCurrentCard from './presets/PresetsSaveCurrentCard';
@@ -28,16 +36,18 @@ import PresetsCommunityCard from './presets/PresetsCommunityCard';
 const MAX_CUSTOM_PRESETS = 5;
 
 const PresetsSettingsTab = React.memo(() => {
-  const { presets, spotifyMatchEnabled } = useConsolidatedAppStore(
+  const { presets, spotifyMatchEnabled, workspaces } = useConsolidatedAppStore(
     useShallow((state) => ({
       presets: state.presets,
       spotifyMatchEnabled: state.ui.spotifyMatchEnabled,
+      workspaces: state.workspaces,
     }))
   );
-  const { setPresets, setUIState } = useConsolidatedAppStore(
+  const { setPresets, setUIState, setWorkspacesState } = useConsolidatedAppStore(
     useShallow((state) => ({
       setPresets: state.actions.setPresets,
       setUIState: state.actions.setUIState,
+      setWorkspacesState: state.actions.setWorkspacesState,
     }))
   );
 
@@ -60,9 +70,9 @@ const PresetsSettingsTab = React.memo(() => {
     creator_name: '',
     tags: '',
     custom_image: null,
+    custom_image_name: null,
     selectedPreset: null,
   });
-  const [includeChannels, setIncludeChannels] = useState(false);
   const [includeSounds, setIncludeSounds] = useState(false);
   const [immersiveModeState, setImmersiveModeState] = useState({});
 
@@ -83,6 +93,11 @@ const PresetsSettingsTab = React.memo(() => {
         const spotifyMatchExists = currentPresets.some((p) => p.name === SPOTIFY_MATCH_PRESET_NAME);
         if (!spotifyMatchExists) {
           currentPresets = [...currentPresets, createDefaultSpotifyMatchPreset()];
+        }
+
+        const { presets: sanitizedPresets, changed } = sanitizePresetCollection(currentPresets);
+        currentPresets = sanitizedPresets;
+        if (!spotifyMatchExists || changed) {
           await savePresetsToBackend(currentPresets);
         }
 
@@ -131,6 +146,8 @@ const PresetsSettingsTab = React.memo(() => {
   }, []);
 
   const customPresetCount = presets.filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
+  const normalizedWorkspaces = normalizeWorkspacesState(workspaces);
+  const hasActiveWorkspace = Boolean(normalizedWorkspaces.activeWorkspaceId);
 
   const handleDragStart = (e, presetName) => {
     setDraggingPreset(presetName);
@@ -192,7 +209,7 @@ const PresetsSettingsTab = React.memo(() => {
     }
     if (customPresetCount >= MAX_CUSTOM_PRESETS) return;
 
-    const presetData = buildPresetDataFromStore({ includeChannels, includeSounds });
+    const presetData = buildPresetDataFromStore({ includeSounds });
     const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
     if (thumbnailDataUrl) {
       setCaptureNotice({ type: 'success', text: 'Captured preset preview ✨' });
@@ -216,7 +233,7 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   const handleUpdate = async (name) => {
-    const presetData = buildPresetDataFromStore({ includeChannels, includeSounds });
+    const presetData = buildPresetDataFromStore({ includeSounds });
     const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
     if (thumbnailDataUrl) {
       setCaptureNotice({ type: 'success', text: 'Updated preset preview ✨' });
@@ -274,7 +291,34 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   const handleApplyPreset = async (preset) => {
-    await applyPresetData(preset);
+    const themeOnlyPreset = toThemeOnlyPreset(preset);
+    if (!themeOnlyPreset) return;
+    await runSceneTransition(`Applying preset: ${preset?.name || 'Theme'}`, async () => {
+      await applyPresetData(themeOnlyPreset);
+    });
+  };
+
+  const handleApplyPresetToActiveWorkspace = async (preset) => {
+    const themeOnlyPreset = toThemeOnlyPreset(preset);
+    if (!themeOnlyPreset || !normalizedWorkspaces.activeWorkspaceId) return;
+
+    await runSceneTransition(`Applying ${preset?.name || 'preset'} to active workspace`, async () => {
+      await applyPresetData(themeOnlyPreset);
+    });
+
+    const nextItems = normalizedWorkspaces.items.map((workspace) =>
+      workspace.id === normalizedWorkspaces.activeWorkspaceId
+        ? {
+            ...workspace,
+            data: buildWorkspaceDataFromStore(),
+            timestamp: new Date().toISOString(),
+          }
+        : workspace
+    );
+    setWorkspacesState({
+      items: nextItems,
+      activeWorkspaceId: normalizedWorkspaces.activeWorkspaceId,
+    });
   };
 
   const handleSpotifyMatchToggle = async (enabled) => {
@@ -323,7 +367,6 @@ const PresetsSettingsTab = React.memo(() => {
     }
 
     const presetData = buildPresetDataFromStore({
-      includeChannels: false,
       includeSounds: false,
       includeSpotifyPalette: true,
     });
@@ -465,6 +508,7 @@ const PresetsSettingsTab = React.memo(() => {
             creator_name: '',
             tags: '',
             custom_image: null,
+            custom_image_name: null,
             selectedPreset: null,
           });
           setUploadMessage({ type: '', text: '' });
@@ -492,11 +536,29 @@ const PresetsSettingsTab = React.memo(() => {
       return;
     }
     if (field === 'file' && value) {
+      if (!isSupportedPresetCoverImageUpload(value)) {
+        setUploadMessage({ type: 'error', text: SUPPORTED_GALLERY_HINT });
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
-        setUploadFormData((prev) => ({ ...prev, custom_image: reader.result }));
+        setUploadFormData((prev) => ({
+          ...prev,
+          custom_image: reader.result,
+          custom_image_name: value.name,
+        }));
       };
       reader.readAsDataURL(value);
+      if (uploadMessage.text) setUploadMessage({ type: '', text: '' });
+      return;
+    }
+    if (field === 'custom_image') {
+      setUploadFormData((prev) => ({
+        ...prev,
+        custom_image: value,
+        custom_image_name: value ? prev.custom_image_name : null,
+      }));
+      if (uploadMessage.text) setUploadMessage({ type: '', text: '' });
       return;
     }
     setUploadFormData((prev) => ({ ...prev, [field]: value }));
@@ -514,10 +576,9 @@ const PresetsSettingsTab = React.memo(() => {
         onSave={handleSave}
         error={error}
         captureNotice={captureNotice}
-        includeChannels={includeChannels}
-        onIncludeChannelsChange={setIncludeChannels}
         includeSounds={includeSounds}
         onIncludeSoundsChange={setIncludeSounds}
+        onOpenWorkspaces={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'workspaces' })}
         customPresetCount={customPresetCount}
         maxCustomPresets={MAX_CUSTOM_PRESETS}
       />
@@ -558,6 +619,8 @@ const PresetsSettingsTab = React.memo(() => {
         onCancelEdit={handleCancelEdit}
         onEditNameChange={(e) => setEditName(e.target.value)}
         onKeyPress={handleKeyPress}
+        onApplyToActiveWorkspace={handleApplyPresetToActiveWorkspace}
+        hasActiveWorkspace={hasActiveWorkspace}
       />
 
       <PresetsCommunityCard
@@ -575,6 +638,7 @@ const PresetsSettingsTab = React.memo(() => {
             creator_name: '',
             tags: '',
             custom_image: null,
+            custom_image_name: null,
             selectedPreset: null,
           });
           setShowUploadForm(true);
@@ -588,6 +652,7 @@ const PresetsSettingsTab = React.memo(() => {
             creator_name: '',
             tags: '',
             custom_image: null,
+            custom_image_name: null,
             selectedPreset: null,
           });
           setUploadMessage({ type: '', text: '' });

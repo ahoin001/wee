@@ -96,13 +96,12 @@
   box-shadow: var(--glass-shadow), inset 0 1px 0 hsl(var(--color-pure-white) / var(--dock-glass-shine-opacity));
 }
 
+/* Scale / tilt on press: Framer `PlayfulPressSurface` (dockAccessory) */
 .wii-sd-card:hover {
-  transform: scale(1.1);
   filter: brightness(1.2) drop-shadow(0 0 8px rgb(var(--accent-cyan-rgb) / 0.6));
 }
 
 .wii-sd-card:active {
-  transform: scale(0.95);
   filter: brightness(0.9);
 }
 
@@ -306,23 +305,6 @@
 .wii-highlight-svg {
   width: 100%;
   height: 100%;
-}
-
-/* Animation Classes */
-.group-hover\:scale-105:hover {
-  transform: scale(1.05);
-}
-
-.group-hover\:brightness-110:hover {
-  filter: brightness(1.1);
-}
-
-.group-active\:scale-95:active {
-  transform: scale(0.95);
-}
-
-.group-active\:brightness-90:active {
-  filter: brightness(0.9);
 }
 
 /* Responsive Design */

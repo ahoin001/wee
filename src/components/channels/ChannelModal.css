@@ -552,11 +552,12 @@ label {
 
 .channel-sticky-tabs {
   position: sticky;
-  top: 0;
+  top: -24px;
+  margin: 0 -24px 12px;
+  padding: 0 24px;
   background: hsl(var(--surface-primary));
-  z-index: 10;
+  z-index: 20;
   border-bottom: 1px solid hsl(var(--border-primary));
-  margin-bottom: 20px;
 }
 
 .channel-scroll-body {

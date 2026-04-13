@@ -13,10 +13,9 @@ const PresetsSaveCurrentCard = React.memo(
     onSave,
     error,
     captureNotice,
-    includeChannels,
-    onIncludeChannelsChange,
     includeSounds,
     onIncludeSoundsChange,
+    onOpenWorkspaces,
     customPresetCount,
     maxCustomPresets,
   }) => (
@@ -43,30 +42,20 @@ const PresetsSaveCurrentCard = React.memo(
         </div>
 
         <div className="mt-3 surface-actions">
-          <WToggle checked={includeChannels} onChange={onIncludeChannelsChange} label="Include Channel Data" />
-          <Text size="sm" color="hsl(var(--text-secondary))" className="ml-2">
-            Save channels, their media, and app paths for workspace switching
+          <Text size="sm" color="hsl(var(--text-secondary))">
+            Presets now save theme/look only. Use Workspaces for app/channel setups.
           </Text>
         </div>
 
         <div className="mt-2 surface-actions">
+          <Button variant="tertiary" size="sm" onClick={onOpenWorkspaces}>
+            Open Workspaces
+          </Button>
           <WToggle checked={includeSounds} onChange={onIncludeSoundsChange} label="Include Sound Settings" />
           <Text size="sm" color="hsl(var(--text-secondary))" className="ml-2">
             Save sound library and audio preferences
           </Text>
         </div>
-
-        {includeChannels && (
-          <div className="mt-2 p-2 bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] rounded text-[12px]">
-            <Text size="sm" color="hsl(var(--primary))" className="font-medium mb-1">
-              Workspace Mode Enabled
-            </Text>
-            <Text size="sm" color="hsl(var(--text-secondary))">
-              This preset will save your current channels, apps, and settings. Perfect for switching between workspaces.
-              <strong>Note:</strong> Channel data is never included when sharing presets.
-            </Text>
-          </div>
-        )}
 
         {error && (
           <Text size="sm" color="hsl(var(--state-error))" className="mt-1.5">

@@ -26,12 +26,14 @@ const PresetsSavedListCard = React.memo(
     onCancelEdit,
     onEditNameChange,
     onKeyPress,
+    onApplyToActiveWorkspace,
+    hasActiveWorkspace,
   }) => (
     <Card
       className="mb-[18px]"
       title="Saved Presets"
       separator
-      desc="Drag presets by the ⋮⋮ handle to reorder them. Apply presets to change your appearance settings."
+      desc="Drag presets by the ⋮⋮ handle to reorder them. Presets change appearance only; use Workspaces for channel/app layouts."
     >
       <ul className="list-none p-0 m-0 mb-0">
         {presets
@@ -66,6 +68,8 @@ const PresetsSavedListCard = React.memo(
                 onCancelEdit={onCancelEdit}
                 onEditNameChange={onEditNameChange}
                 onKeyPress={onKeyPress}
+                onApplyToActiveWorkspace={onApplyToActiveWorkspace}
+                hasActiveWorkspace={hasActiveWorkspace}
                 hasCommunityUpdate={Boolean(communityUpdateMap[preset.name]?.hasUpdate)}
               />
             );

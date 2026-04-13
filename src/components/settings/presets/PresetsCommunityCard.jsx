@@ -3,6 +3,7 @@ import Card from '../../../ui/Card';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
 import { CommunityPresets } from '../../app-library';
+import { ACCEPT_GALLERY_STILLS, SUPPORTED_GALLERY_HINT } from '../../../utils/supportedUploadMedia';
 
 const PresetsCommunityCard = React.memo(
   ({
@@ -94,13 +95,18 @@ const PresetsCommunityCard = React.memo(
               Custom Image (Optional)
             </Text>
             <Text size="sm" color="hsl(var(--text-secondary))" className="mb-2">
-              Upload a custom image to represent your preset. If not provided, a thumbnail will be auto-generated.
+              Upload a custom image to represent your preset ({SUPPORTED_GALLERY_HINT.trim()}). If not provided, a
+              thumbnail will be auto-generated.
             </Text>
             <div className="surface-actions">
               <input
                 type="file"
-                accept="image/*"
-                onChange={(e) => onUploadField('file', e.target.files?.[0])}
+                accept={ACCEPT_GALLERY_STILLS}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (e.target) e.target.value = '';
+                  if (f) onUploadField('file', f);
+                }}
                 className="hidden"
                 id="presets-custom-image-upload"
               />
@@ -118,11 +124,16 @@ const PresetsCommunityCard = React.memo(
               )}
             </div>
             {uploadFormData.custom_image && (
-              <div className="mt-2">
+              <div className="mt-2 space-y-1">
+                {uploadFormData.custom_image_name ? (
+                  <Text variant="small" className="block">
+                    {uploadFormData.custom_image_name}
+                  </Text>
+                ) : null}
                 <img
                   src={uploadFormData.custom_image}
                   alt="Custom preview"
-                  className="w-[100px] h-[60px] object-cover rounded border border-primary"
+                  className="w-full max-w-[200px] max-h-[120px] object-contain rounded border border-primary bg-[hsl(var(--surface-secondary))]"
                 />
               </div>
             )}

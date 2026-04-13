@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
+import { PlayfulPressSurface } from '../navigation/PlayfulInteractionMotion';
 import './WiiStyleButton.css';
 
 const WiiStyleButton = ({ 
@@ -84,7 +85,9 @@ const WiiStyleButton = ({
   };
 
   return (
-    <div
+    <PlayfulPressSurface
+      variant="ribbon"
+      enableHover={false}
       className={`wii-style-button ${className}`}
       style={{ ...baseStyle, '--wii-style-is-hovered': isHovered ? 1 : 0 }}
       onClick={onClick}
@@ -110,7 +113,7 @@ const WiiStyleButton = ({
       <div className="wii-style-button-content">
         {children}
       </div>
-    </div>
+    </PlayfulPressSurface>
   );
 };
 

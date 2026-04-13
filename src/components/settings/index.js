@@ -12,5 +12,7 @@ export { default as LayoutSettingsTab } from './LayoutSettingsTab';
 export { default as ShortcutsSettingsTab } from './ShortcutsSettingsTab';
 export { default as UpdatesSettingsTab } from './UpdatesSettingsTab';
 export { default as NavigationSettingsTab } from './NavigationSettingsTab';
+export { default as MotionFeedbackSettingsTab } from './MotionFeedbackSettingsTab';
+export { default as WorkspacesSettingsTab } from './WorkspacesSettingsTab';
 export { default as SettingsModal } from './SettingsModal';
 export { default as SettingsActionMenu } from './SettingsActionMenu';

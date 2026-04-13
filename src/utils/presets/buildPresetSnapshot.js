@@ -3,16 +3,14 @@ import useConsolidatedAppStore from '../useConsolidatedAppStore';
 /**
  * Build preset `data` payload from the consolidated store.
  * @param {object} opts
- * @param {boolean} [opts.includeChannels]
  * @param {boolean} [opts.includeSounds]
  * @param {boolean} [opts.includeSpotifyPalette] — freeze current `spotify.extractedColors` into the preset
  */
 export function buildPresetDataFromStore({
-  includeChannels = false,
   includeSounds = false,
   includeSpotifyPalette = false,
 } = {}) {
-  const { wallpaper, ribbon, time, overlay, ui, sounds, spotify, channels } =
+  const { wallpaper, ribbon, time, overlay, ui, sounds, spotify } =
     useConsolidatedAppStore.getState();
 
   const presetData = {
@@ -60,10 +58,6 @@ export function buildPresetDataFromStore({
       spotifyMatchEnabled: includeSpotifyPalette ? false : (ui.spotifyMatchEnabled ?? false),
     },
   };
-
-  if (includeChannels) {
-    presetData.channels = channels;
-  }
 
   if (includeSounds) {
     try {

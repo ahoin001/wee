@@ -21,6 +21,8 @@ import {
   ShortcutsSettingsTab,
   UpdatesSettingsTab,
   NavigationSettingsTab,
+  MotionFeedbackSettingsTab,
+  WorkspacesSettingsTab,
 } from './index';
 
 
@@ -147,6 +149,14 @@ const SETTINGS_TABS = [
     component: MonitorSettingsTab
   },
   { 
+    id: 'motion', 
+    label: 'Motion', 
+    icon: '✨', 
+    color: 'hsl(var(--settings-tab-motion))',
+    description: 'Press, drag & reorder feedback',
+    component: MotionFeedbackSettingsTab
+  },
+  { 
     id: 'shortcuts', 
     label: 'Shortcuts', 
     icon: '⌨️', 
@@ -193,6 +203,14 @@ const SETTINGS_TABS = [
     color: 'hsl(var(--settings-tab-wallpaper))',
     description: 'Background & cycling',
     component: WallpaperSettingsTab
+  },
+  {
+    id: 'workspaces',
+    label: 'Workspaces',
+    icon: '🧩',
+    color: 'hsl(var(--settings-tab-workspaces))',
+    description: 'Create and switch full app environments',
+    component: WorkspacesSettingsTab
   }
 ];
 

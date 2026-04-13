@@ -5,6 +5,7 @@ import { useFloatingWidgetFrame } from '../../hooks/useFloatingWidgetFrame';
 import { usePlaybackSeek } from '../../hooks/usePlaybackSeek';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
+import SpotifyScrollLabel from '../../ui/SpotifyScrollLabel';
 import './FloatingSpotifyWidget.css';
 import { extractColorsFromAlbumArt } from '../../utils/extractColorsFromAlbumArt';
 import {
@@ -23,6 +24,11 @@ import {
   CSS_SPOTIFY_SECONDARY,
   SPOTIFY_DEFAULT_GRADIENT,
 } from '../../design/runtimeColorStrings';
+import {
+  isSpotifyPremiumUser,
+  SPOTIFY_PREMIUM_URL,
+  SPOTIFY_WEB_API_PLAYER_DOCS_URL,
+} from '../../utils/spotifyTier';
 
 const FloatingSpotifyWidget = ({ isVisible }) => {
   const { spotify, spotifyManager, setSpotifyState } = useSpotifyState();
@@ -34,18 +40,29 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
   
   const {
     currentTrack,
+    currentUser,
     isPlaying,
     isConnected,
     loading: spotifyLoading,
     error: spotifyError,
+    playerWebApiForbidden,
   } = spotify;
+
+  const isPremium = isSpotifyPremiumUser(currentUser);
+  const isFreeTierConnected = Boolean(isConnected && currentUser && !isPremium);
 
   // Get spotify widget state from floating widgets
   const spotifyWidget = floatingWidgets.spotify;
   const spotifyPosition = spotifyWidget.position;
+  const spotifySize = spotifyWidget.size ?? { width: 360, height: 440 };
   const setSpotifyPosition = useCallback((position) => {
     setFloatingWidgetsState({
       spotify: { ...spotifyWidget, position }
+    });
+  }, [setFloatingWidgetsState, spotifyWidget]);
+  const setSpotifySize = useCallback((nextSize) => {
+    setFloatingWidgetsState({
+      spotify: { ...spotifyWidget, size: nextSize }
     });
   }, [setFloatingWidgetsState, spotifyWidget]);
 
@@ -63,20 +80,37 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
   const [dynamicColors, setDynamicColors] = useState(DEFAULT_DYNAMIC_COLORS);
   const lastVisualizerFrameRef = useRef(0);
   const visualizerLoopActiveRef = useRef(false);
+  const lastTierSyncRef = useRef(0);
   const {
     widgetRef,
     size,
     isDragging,
     isResizing,
-    handleHeaderPointerDown,
+    handleDragPointerDown,
     handleResizePointerDown,
-  } = useFloatingWidgetFrame({ setPosition: setSpotifyPosition, position: spotifyPosition });
+  } = useFloatingWidgetFrame({
+    setPosition: setSpotifyPosition,
+    position: spotifyPosition,
+    size: spotifySize,
+    setSize: setSpotifySize,
+    resizable: true,
+    minSize: { width: 260, height: 240 },
+  });
+
+  const openExternalUrl = useCallback((url) => {
+    if (url && window.api?.openExternal) {
+      window.api.openExternal(url);
+    } else if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }, []);
 
   const handleSeekCommit = useCallback(
     (ms) => {
+      if (!isPremium) return;
       spotifyManager?.seekToPosition(ms);
     },
-    [spotifyManager]
+    [isPremium, spotifyManager]
   );
 
   const {
@@ -88,11 +122,20 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
   } = usePlaybackSeek({
     durationMs: spotify.duration || 0,
     onCommitSeek: handleSeekCommit,
+    disabled: isFreeTierConnected,
   });
 
   const handleOpenSpotifyIntegrationSettings = useCallback(() => {
     openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);
   }, []);
+
+  useEffect(() => {
+    if (!isVisible || !isConnected || !spotifyManager?.syncUserProfile) return;
+    const now = Date.now();
+    if (now - lastTierSyncRef.current < 60000) return;
+    lastTierSyncRef.current = now;
+    spotifyManager.syncUserProfile();
+  }, [isVisible, isConnected, spotifyManager]);
 
   const allowEnhancedVisualizerEffects = isAppActive && !isLowPowerMode;
   const visualizerFrameThrottleMs = isLowPowerMode ? 120 : 48;
@@ -225,19 +268,30 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
     };
   }, [isVisible, isAppActive, currentPage, isPlaying, updateVisualizer, visualizerFrameThrottleMs]);
 
-  // Refresh playback state and load data periodically
+  // Refresh playback state periodically (slow when Web API player is forbidden — avoids 403 / parse noise)
   useEffect(() => {
     if (!isVisible || !isAppActive) return;
 
-    const basePlaybackPollIntervalMs = isLowPowerMode ? 6000 : 2000;
+    const basePlaybackPollIntervalMs = playerWebApiForbidden
+      ? 120000
+      : isLowPowerMode
+        ? 6000
+        : 2000;
     const playbackPollIntervalMs = Math.round(basePlaybackPollIntervalMs * pollIntervalMultiplier);
-    
+
     const interval = setInterval(() => {
       spotifyManager.refreshPlaybackState();
     }, playbackPollIntervalMs);
-    
+
     return () => clearInterval(interval);
-  }, [isVisible, isAppActive, isLowPowerMode, pollIntervalMultiplier, spotifyManager]);
+  }, [
+    isVisible,
+    isAppActive,
+    isLowPowerMode,
+    pollIntervalMultiplier,
+    playerWebApiForbidden,
+    spotifyManager,
+  ]);
 
   // Load playlists and saved tracks when browsing page is opened
   useEffect(() => {
@@ -301,25 +355,50 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
     }
   };
 
-  // Handle play track
-  const handlePlayTrack = async (trackId) => {
-    try {
-      await spotifyManager.playTrack(trackId);
-      setCurrentPage('player');
-    } catch (error) {
-      console.error('Failed to play track:', error);
-    }
-  };
+  // Handle play track (Free tier: open in Spotify app / web instead of API playback)
+  const handlePlayTrack = useCallback(
+    async (track) => {
+      const id = typeof track === 'string' ? track : track?.id;
+      if (!id) return;
+      if (!isPremium) {
+        const spotifyUrl =
+          typeof track === 'object' && track?.external_urls?.spotify
+            ? track.external_urls.spotify
+            : `https://open.spotify.com/track/${id}`;
+        openExternalUrl(spotifyUrl);
+        return;
+      }
+      try {
+        await spotifyManager.playTrack(id);
+        setCurrentPage('player');
+      } catch (error) {
+        console.error('Failed to play track:', error);
+      }
+    },
+    [isPremium, openExternalUrl, spotifyManager]
+  );
 
-  // Handle play playlist
-  const handlePlayPlaylist = async (playlistId) => {
-    try {
-      await spotifyManager.playPlaylist(playlistId);
-      setCurrentPage('player');
-    } catch (error) {
-      console.error('Failed to play playlist:', error);
-    }
-  };
+  const handlePlayPlaylist = useCallback(
+    async (playlist) => {
+      const playlistId = typeof playlist === 'string' ? playlist : playlist?.id;
+      if (!playlistId) return;
+      if (!isPremium) {
+        const url =
+          typeof playlist === 'object' && playlist?.external_urls?.spotify
+            ? playlist.external_urls.spotify
+            : `https://open.spotify.com/playlist/${playlistId}`;
+        openExternalUrl(url);
+        return;
+      }
+      try {
+        await spotifyManager.playPlaylist(playlistId);
+        setCurrentPage('player');
+      } catch (error) {
+        console.error('Failed to play playlist:', error);
+      }
+    },
+    [isPremium, openExternalUrl, spotifyManager]
+  );
 
   // Format time helper function
   const formatTime = (ms) => {
@@ -385,9 +464,11 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
   const getVisualizerOptionClass = (type) =>
     `visualizer-option-modern ${spotifySettings.visualizerType === type ? 'active visualizer-option-modern-active' : 'visualizer-option-modern-inactive'}`;
 
+  const artistLine = currentTrack?.artists?.map((a) => a.name).join(', ') ?? '';
+
   return (
     <div 
-      className={`floating-spotify-widget ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${size.width < 300 ? 'small-widget' : size.width < 450 ? 'medium-widget' : 'large-widget'} ${hasDynamicAlbumColors ? 'has-dynamic-colors' : ''}`}
+      className={`floating-spotify-widget ${currentPage === 'player' ? 'floating-spotify-widget--player' : ''} ${isFreeTierConnected ? 'floating-spotify-widget--free-tier' : ''} ${isPremium ? 'floating-spotify-widget--premium-tier' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${size.width < 300 ? 'small-widget' : size.width < 450 ? 'medium-widget' : 'large-widget'} ${hasDynamicAlbumColors ? 'has-dynamic-colors' : ''}`}
       ref={widgetRef}
       style={{
         left: `${spotifyPosition.x}px`,
@@ -417,11 +498,32 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
         />
       )}
 
-      {/* Enhanced Visualizer Header - draggable area */}
+      {/* Title bar: drag handle only (playback controls stay interactive) */}
+      <div className="floating-spotify-widget__chrome">
+        <button
+          type="button"
+          className="floating-spotify-widget__drag-handle"
+          onPointerDown={handleDragPointerDown}
+          aria-label="Move Spotify widget"
+        >
+          <span className="floating-spotify-widget__grip" aria-hidden />
+          <span className="floating-spotify-widget__brand">Spotify</span>
+          {isPremium ? (
+            <span className="floating-spotify-widget__tier-pill floating-spotify-widget__tier-pill--premium">
+              Premium
+            </span>
+          ) : isConnected && currentUser ? (
+            <span className="floating-spotify-widget__tier-pill floating-spotify-widget__tier-pill--free">
+              Free
+            </span>
+          ) : null}
+        </button>
+      </div>
+
+      {/* Visualizer (player page only) — not a drag surface */}
       {currentPage === 'player' && (
         <div 
           className={`visualizer-header visualizer-${spotifySettings.visualizerType || 'bars'}`}
-          onPointerDown={handleHeaderPointerDown}
         >
           {audioData.map((height, index) => {
             // Calculate responsive dimensions based on widget size
@@ -581,6 +683,47 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
           </div>
         )}
 
+        {isConnected && playerWebApiForbidden && (
+          <div className="floating-spotify-widget__player-api-banner" role="status">
+            <p className="floating-spotify-widget__player-api-banner__text">
+              Now playing in this widget requires Spotify Premium.
+            </p>
+            <button
+              type="button"
+              className="floating-spotify-widget__tier-cta floating-spotify-widget__tier-cta--ghost"
+              onClick={() => openExternalUrl(SPOTIFY_WEB_API_PLAYER_DOCS_URL)}
+            >
+              Web API docs
+            </button>
+          </div>
+        )}
+
+        {isFreeTierConnected && !playerWebApiForbidden && (
+          <div className="floating-spotify-widget__tier-banner" role="status">
+            <p className="floating-spotify-widget__tier-banner-title">Spotify Free</p>
+            <p className="floating-spotify-widget__tier-banner-copy">
+              Play music in the Spotify app on this device. This widget shows what&apos;s playing here; remote
+              playback control from Wee needs Spotify Premium.
+            </p>
+            <div className="floating-spotify-widget__tier-banner-actions">
+              <button
+                type="button"
+                className="floating-spotify-widget__tier-cta"
+                onClick={() => openExternalUrl(SPOTIFY_PREMIUM_URL)}
+              >
+                Premium &amp; remote control
+              </button>
+              <button
+                type="button"
+                className="floating-spotify-widget__tier-cta floating-spotify-widget__tier-cta--ghost"
+                onClick={openSpotifyWebApp}
+              >
+                Open Spotify
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Right Sidebar Navigation - Peek button style */}
         <div className="sidebar-navigation-right">
           <div className="sidebar-peek-button">
@@ -632,22 +775,19 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                   )}
                 </div>
                 <div className="track-details-modern">
-                  <div 
-                    className={`track-title-modern text-white ${size.width < 300 ? 'text-sm leading-tight' : 'text-base leading-relaxed'}`}
-                  >
-                    {currentTrack.name}
-                  </div>
-                  <div 
-                    className={`track-artist-modern text-white/80 ${size.width < 300 ? 'text-xs' : 'text-sm'}`}
-                  >
-                    {currentTrack.artists?.map(artist => artist.name).join(', ')}
-                  </div>
+                  <SpotifyScrollLabel
+                    text={currentTrack.name}
+                    className={`track-title-modern spotify-scroll-label--title ${size.width < 300 ? 'spotify-scroll-label--compact' : ''}`}
+                  />
+                  <SpotifyScrollLabel
+                    text={artistLine}
+                    className={`track-artist-modern spotify-scroll-label--artist ${size.width < 300 ? 'spotify-scroll-label--compact' : ''}`}
+                  />
                   {currentTrack.album && (
-                    <div 
-                      className={`track-album-modern text-white/60 ${size.width < 300 ? 'text-xs' : 'text-sm'}`}
-                    >
-                      {currentTrack.album.name}
-                    </div>
+                    <SpotifyScrollLabel
+                      text={currentTrack.album.name}
+                      className={`track-album-modern spotify-scroll-label--album ${size.width < 300 ? 'spotify-scroll-label--compact' : ''}`}
+                    />
                   )}
                 </div>
 
@@ -655,7 +795,9 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                 {size.width < 300 && currentTrack && (
                   <div className="w-full mt-4 space-y-3">
                     {/* Progress Bar */}
-                    <div className={`progress-container-modern ${isSeeking ? 'seeking' : ''}`}>
+                    <div
+                      className={`progress-container-modern ${isSeeking ? 'seeking' : ''} ${isFreeTierConnected ? 'progress-container-modern--free-readonly' : ''}`}
+                    >
                       <div 
                         ref={progressBarRef}
                         className="progress-bar-modern bg-white/20" 
@@ -683,23 +825,29 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                     {/* Playback Controls */}
                     <div className="playback-controls-modern justify-center gap-2">
                       <button 
+                        type="button"
                         className="control-btn-modern spotify-playback-btn w-9 h-9 text-sm"
+                        disabled={isFreeTierConnected}
                         onClick={spotifyManager.skipToPrevious}
-                        title="Previous Track"
+                        title={isFreeTierConnected ? 'Use Spotify app or upgrade to Premium for controls' : 'Previous track'}
                       >
                         ⏮
                       </button>
                       <button 
+                        type="button"
                         className="control-btn-modern play-pause-modern spotify-playback-btn spotify-playback-btn-play scale-110 w-12 h-12 text-lg"
+                        disabled={isFreeTierConnected}
                         onClick={spotifyManager.togglePlayback}
-                        title={isPlaying ? 'Pause' : 'Play'}
+                        title={isFreeTierConnected ? 'Use Spotify app or upgrade to Premium for controls' : (isPlaying ? 'Pause' : 'Play')}
                       >
                         {isPlaying ? '⏸' : '▶'}
                       </button>
                       <button 
+                        type="button"
                         className="control-btn-modern spotify-playback-btn w-9 h-9 text-sm"
+                        disabled={isFreeTierConnected}
                         onClick={spotifyManager.skipToNext}
-                        title="Next Track"
+                        title={isFreeTierConnected ? 'Use Spotify app or upgrade to Premium for controls' : 'Next track'}
                       >
                         ⏭
                       </button>
@@ -719,7 +867,9 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
             {size.width >= 300 && currentTrack && (
               <>
                 {/* Enhanced Progress Bar */}
-                <div className={`progress-container-modern ${isSeeking ? 'seeking' : ''} mt-4`}>
+                <div
+                  className={`progress-container-modern ${isSeeking ? 'seeking' : ''} mt-4 ${isFreeTierConnected ? 'progress-container-modern--free-readonly' : ''}`}
+                >
                   <div 
                     ref={progressBarRef}
                     className="progress-bar-modern bg-white/20" 
@@ -747,23 +897,29 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                 {/* Modern Playback Controls */}
                 <div className="playback-controls-modern justify-center gap-3">
                   <button 
+                    type="button"
                     className="control-btn-modern spotify-playback-btn w-11 h-11 text-base"
+                    disabled={isFreeTierConnected}
                     onClick={spotifyManager.skipToPrevious}
-                    title="Previous Track"
+                    title={isFreeTierConnected ? 'Use Spotify app or upgrade to Premium for controls' : 'Previous track'}
                   >
                     ⏮
                   </button>
                   <button 
+                    type="button"
                     className="control-btn-modern play-pause-modern spotify-playback-btn spotify-playback-btn-play scale-110 w-14 h-14 text-xl"
+                    disabled={isFreeTierConnected}
                     onClick={spotifyManager.togglePlayback}
-                    title={isPlaying ? 'Pause' : 'Play'}
+                    title={isFreeTierConnected ? 'Use Spotify app or upgrade to Premium for controls' : (isPlaying ? 'Pause' : 'Play')}
                   >
                     {isPlaying ? '⏸' : '▶'}
                   </button>
                   <button 
+                    type="button"
                     className="control-btn-modern spotify-playback-btn w-11 h-11 text-base"
+                    disabled={isFreeTierConnected}
                     onClick={spotifyManager.skipToNext}
-                    title="Next Track"
+                    title={isFreeTierConnected ? 'Use Spotify app or upgrade to Premium for controls' : 'Next track'}
                   >
                     ⏭
                   </button>
@@ -776,6 +932,9 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
         {/* Browse Page */}
         {currentPage === 'browse' && (
           <div className="browse-page">
+            {isFreeTierConnected ? (
+              <p className="floating-spotify-widget__browse-free-hint">Tap a row to open in Spotify. Premium unlocks playback from Wee.</p>
+            ) : null}
             {/* Modern Search Bar */}
             <div className="search-container-modern">
               <div className="search-bar-modern">
@@ -844,7 +1003,7 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                         <div 
                           key={playlist.id} 
                           className="playlist-card-modern bg-white/10"
-                          onClick={() => handlePlayPlaylist(playlist.id)}
+                          onClick={() => handlePlayPlaylist(playlist)}
                         >
                           <div className="playlist-image-modern">
                             {playlist.images?.[0]?.url ? (
@@ -874,7 +1033,7 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                         <div 
                           key={track.id} 
                           className="song-item-modern bg-white/10"
-                          onClick={() => handlePlayTrack(track.id)}
+                          onClick={() => handlePlayTrack(track)}
                         >
                           <div className="song-image-modern">
                             {track.album?.images?.[0]?.url ? (
@@ -904,7 +1063,7 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
                         <div 
                           key={track.id} 
                           className="song-item-modern bg-white/10"
-                          onClick={() => handlePlayTrack(track.id)}
+                          onClick={() => handlePlayTrack(track)}
                         >
                           <div className="song-image-modern">
                             {track.album?.images?.[0]?.url ? (
@@ -934,6 +1093,16 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
               <h2 className="settings-title-modern text-white">Widget Settings</h2>
               <p className="settings-subtitle text-white/70">Customize your Spotify widget experience</p>
             </div>
+
+            {isFreeTierConnected ? (
+              <div className="floating-spotify-widget__settings-tier-note" role="note">
+                <strong className="floating-spotify-widget__settings-tier-note-title">Spotify Free</strong>
+                <p>
+                  Appearance options below apply to this widget. Playback control from Wee requires Spotify
+                  Premium; on Free, use the Spotify app and keep this widget for now playing.
+                </p>
+              </div>
+            ) : null}
             
             <div className="settings-sections">
               {/* Appearance Section */}

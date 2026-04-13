@@ -1,4 +1,5 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { Dialog, Transition } from '@headlessui/react';
 import Button from '../../ui/WButton';
@@ -30,19 +31,21 @@ function WBaseModal({
     }, 300);
   }, [onClose]);
 
-  return (
+  const modalTree = (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-[99999]" onClose={handleClose}>
-        {/* Backdrop - synchronized with modal animation */}
-        <div 
-          className={`fixed inset-0 bg-[hsl(var(--bg-overlay))] backdrop-blur-[4px] transition-opacity duration-300 z-[99998] ${
-            isAnimating ? 'opacity-100' : 'opacity-0'
-          }`}
-          aria-hidden="true"
-        />
+        {/* Full-screen overlay: captures pointer events (not clipped by transformed ancestors) */}
+        <div className="fixed inset-0 z-[99998] pointer-events-auto">
+          <div
+            className={`fixed inset-0 bg-[hsl(var(--bg-overlay))] backdrop-blur-[4px] transition-opacity duration-300 ${
+              isAnimating ? 'opacity-100' : 'opacity-0'
+            }`}
+            aria-hidden="true"
+          />
+        </div>
 
         {/* Modal */}
-        <div className="fixed inset-0 overflow-y-auto z-[99999]">
+        <div className="fixed inset-0 z-[99999] overflow-y-auto pointer-events-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             <Dialog.Panel 
               className={`w-[95%] max-h-[85vh] min-w-[800px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[600px] md:w-[95%] md:min-w-[400px] sm:w-[98%] sm:min-w-[320px] relative z-[99999] ${className}`}
@@ -85,6 +88,12 @@ function WBaseModal({
       </Dialog>
     </Transition>
   );
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(modalTree, document.body);
 }
 
 WBaseModal.propTypes = {

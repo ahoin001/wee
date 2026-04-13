@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { electronApi } from '../utils/electronApi';
 import { normalizeChannelPayload } from '../utils/store/storeContracts';
 import { normalizeUnifiedSettingsSnapshot } from '../utils/store/settingsPersistenceContract';
+import { mergeMotionFeedback } from '../utils/motionFeedbackDefaults';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 
 export const useAppInitialization = ({
@@ -16,6 +17,7 @@ export const useAppInitialization = ({
   setDockState,
   setSoundsState,
   setPresets,
+  setWorkspacesState,
 }) => {
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +81,15 @@ export const useAppInitialization = ({
         }
 
         if (!cancelled && resolvedSettings) {
-          if (resolvedSettings.ui) setUIState(resolvedSettings.ui);
+          if (resolvedSettings.ui) {
+            setUIState((prev) => ({
+              ...prev,
+              ...resolvedSettings.ui,
+              motionFeedback: mergeMotionFeedback(
+                resolvedSettings.ui.motionFeedback ?? prev.motionFeedback
+              ),
+            }));
+          }
           if (resolvedSettings.ribbon) setRibbonState(resolvedSettings.ribbon);
           if (resolvedSettings.wallpaper) setWallpaperState(resolvedSettings.wallpaper);
           if (resolvedSettings.overlay) setOverlayState(resolvedSettings.overlay);
@@ -112,6 +122,7 @@ export const useAppInitialization = ({
             setSpotifyState(resolvedSettings.spotify);
           }
           if (resolvedSettings.presets) setPresets(resolvedSettings.presets);
+          if (resolvedSettings.workspaces) setWorkspacesState(resolvedSettings.workspaces);
         }
       } catch (error) {
         console.error('[AppInitialization] Failed to initialize app:', error);
@@ -142,5 +153,6 @@ export const useAppInitialization = ({
     setDockState,
     setSoundsState,
     setPresets,
+    setWorkspacesState,
   ]);
 };

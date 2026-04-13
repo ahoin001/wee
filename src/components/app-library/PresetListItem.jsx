@@ -28,6 +28,8 @@ const PresetListItem = ({
   onCancelEdit,
   onEditNameChange,
   onKeyPress,
+  onApplyToActiveWorkspace,
+  hasActiveWorkspace,
   hasCommunityUpdate
 }) => {
   return (
@@ -67,14 +69,6 @@ const PresetListItem = ({
           className="mb-0 text-left text-base font-medium text-[hsl(var(--text-primary))]"
         >
           {preset.name}
-          {(preset.data?.channels || preset.data?.channelData) && (
-            <span
-              className="ml-2 inline-block rounded px-1.5 py-0.5 align-middle text-[10px] font-medium text-white bg-[hsl(var(--wii-blue))]"
-              title="Includes channel data for workspace switching"
-            >
-              🎯
-            </span>
-          )}
           {hasCommunityUpdate && (
             <span
               className="ml-2 inline-block rounded px-1.5 py-0.5 align-middle text-[10px] font-semibold text-[hsl(var(--state-warning))] bg-[hsl(var(--state-warning)/0.18)]"
@@ -102,6 +96,15 @@ const PresetListItem = ({
         ) : (
           <>
             <Button className="min-w-[70px]" onClick={e => { e.stopPropagation(); onApply(preset); }}>Apply</Button>
+            <Button
+              className="min-w-[170px]"
+              variant="secondary"
+              disabled={!hasActiveWorkspace}
+              title={hasActiveWorkspace ? 'Apply preset look and save into active workspace' : 'No active workspace set'}
+              onClick={e => { e.stopPropagation(); onApplyToActiveWorkspace(preset); }}
+            >
+              Apply to Active Workspace
+            </Button>
             <Button className="min-w-[70px]" onClick={e => { e.stopPropagation(); onUpdate(preset.name); }}>
               {justUpdated === preset.name ? 'Updated!' : 'Update'}
             </Button>
@@ -148,6 +151,8 @@ PresetListItem.propTypes = {
   onCancelEdit: PropTypes.func.isRequired,
   onEditNameChange: PropTypes.func.isRequired,
   onKeyPress: PropTypes.func.isRequired,
+  onApplyToActiveWorkspace: PropTypes.func.isRequired,
+  hasActiveWorkspace: PropTypes.bool.isRequired,
   hasCommunityUpdate: PropTypes.bool,
 };
 
