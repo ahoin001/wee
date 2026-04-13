@@ -20,7 +20,7 @@
 
 .interactive-footer {
   transform-origin: bottom center;
-  transition: height 0.3s ease-in-out;
+  transition: transform 0.3s ease-in-out;
   height: 240px;
   position: fixed;
   bottom: 0;
@@ -35,7 +35,7 @@
 
 
 .interactive-footer.ribbon-hover-enabled:hover {
-  height: 250px;
+  transform: scaleY(1.04);
 }
 
 .svg-container-glow svg {
@@ -57,12 +57,6 @@
 .svg-container-glow.glass-effect {
   backdrop-filter: blur(10px) saturate(180%);
   -webkit-backdrop-filter: blur(10px) saturate(180%);
-}
-
-.interactive-footer.ribbon-hover-enabled:hover .svg-container-glow {
-  filter:
-    drop-shadow(0 0 8px var(--ribbon-glow-medium))
-    drop-shadow(0 0 16px var(--ribbon-glow-soft));
 }
 
 .button-container {
