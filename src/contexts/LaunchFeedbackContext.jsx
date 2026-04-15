@@ -16,6 +16,7 @@ const AUTO_DISMISS_MS = 12000;
 
 export function LaunchFeedbackProvider({ children }) {
   const [toast, setToast] = useState(null);
+  const [launching, setLaunching] = useState(null);
   const timerRef = useRef(null);
 
   const dismiss = useCallback(() => {
@@ -66,6 +67,23 @@ export function LaunchFeedbackProvider({ children }) {
     () => ({
       showLaunchError,
       dismissLaunchError: dismiss,
+      beginLaunchFeedback: ({ token, label, launchType, path, source = 'app' }) => {
+        setLaunching({
+          token,
+          label: label || 'Launching...',
+          launchType: launchType || 'app',
+          path: path || '',
+          source,
+          startedAt: Date.now(),
+        });
+      },
+      endLaunchFeedback: (token) => {
+        setLaunching((prev) => {
+          if (!prev) return null;
+          if (!token || prev.token === token) return null;
+          return prev;
+        });
+      },
     }),
     [showLaunchError, dismiss]
   );
@@ -88,6 +106,14 @@ export function LaunchFeedbackProvider({ children }) {
           onDismiss={dismiss}
         />
       ) : null}
+      {launching ? (
+        <div className="fixed left-1/2 top-6 z-[100000] -translate-x-1/2 rounded-full border border-[hsl(var(--wii-blue)/0.35)] bg-[hsl(var(--surface-elevated)/0.96)] px-4 py-2 text-xs font-semibold text-[hsl(var(--text-primary))] shadow-[var(--shadow-lg)] backdrop-blur-md">
+          <span className="inline-flex items-center gap-2">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[hsl(var(--wii-blue))]" />
+            {launching.label}
+          </span>
+        </div>
+      ) : null}
     </LaunchFeedbackContext.Provider>
   );
 }
@@ -98,6 +124,8 @@ export function useLaunchFeedback() {
     return {
       showLaunchError: () => {},
       dismissLaunchError: () => {},
+      beginLaunchFeedback: () => {},
+      endLaunchFeedback: () => {},
     };
   }
   return ctx;

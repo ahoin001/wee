@@ -23,7 +23,9 @@
       "dist/**/*",
       "public/sounds/**/*",
       "electron.cjs",
-      "preload.cjs"
+      "preload.cjs",
+      "main/**/*",
+      "shared/**/*"
     ],
     "extraResources": [
       {

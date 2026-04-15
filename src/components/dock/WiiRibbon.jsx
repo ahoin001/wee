@@ -21,6 +21,7 @@ import { loadUnifiedSettingsSnapshot, saveUnifiedSettingsSnapshot } from '../../
 import { logError } from '../../utils/logger';
 import isEqual from 'fast-deep-equal';
 import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
+import { launchWithFeedback } from '../../utils/launchWithFeedback';
 // import more icons as needed
 
 const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity, ribbonHoverAnimationEnabled = true, particleSettings = {} }) => {
@@ -28,7 +29,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   
   // Sound manager for dock button clicks
   const { playChannelClickSound } = useSoundManager();
-  const { showLaunchError } = useLaunchFeedback();
+  const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
   
   // Spotify integration — single source of truth: store `ui.spotifyMatchEnabled`
   const { spotifyExtractedColors, spotifyAlbumArtUrl } = useConsolidatedAppStore(
@@ -552,15 +553,18 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       };
       const payload = payloadByType[config.actionType];
       if (payload) {
-        const result = await window.api.launchApp(payload);
+        const result = await launchWithFeedback({
+          launch: () => window.api.launchApp(payload),
+          beginLaunchFeedback,
+          endLaunchFeedback,
+          showLaunchError,
+          label: `Launching ${config.text || config.actionType}`,
+          launchType: payload.type,
+          path: config.action,
+          source: 'ribbon',
+        });
         if (result && result.ok === false) {
           logError('WiiRibbon', 'Launch failed', result.error);
-          showLaunchError({
-            technicalError: result.error,
-            launchType: payload.type,
-            path: config.action,
-            source: 'ribbon',
-          });
         }
       }
     } else {

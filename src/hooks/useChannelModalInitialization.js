@@ -44,9 +44,9 @@ export const useChannelModalInitialization = ({
     setShowError(false);
     setMedia(null);
     setHoverSound(null);
-    setAnimatedOnHover('none');
-    setKenBurnsEnabled(false);
-    setKenBurnsMode('hover');
+    setAnimatedOnHover('global');
+    setKenBurnsEnabled('global');
+    setKenBurnsMode('global');
     setKenBurnsHoverScale(1.1);
     setKenBurnsAutoplayScale(1.15);
     setKenBurnsHoverDuration(8000);
@@ -61,14 +61,14 @@ export const useChannelModalInitialization = ({
     setPath(existingChannel.path || '');
     setMedia(existingChannel.media || null);
     setHoverSound(existingChannel.hoverSound || null);
-    setAnimatedOnHover(existingChannel.animation || 'none');
+    setAnimatedOnHover(existingChannel.animatedOnHover ?? 'global');
     setAsAdmin(existingChannel.asAdmin || false);
 
     const channelConfig = channelConfigs[channelId];
     if (!channelConfig) return;
 
-    setKenBurnsEnabled(channelConfig.kenBurnsEnabled ?? false);
-    setKenBurnsMode(channelConfig.kenBurnsMode ?? 'hover');
+    setKenBurnsEnabled(channelConfig.kenBurnsEnabled ?? 'global');
+    setKenBurnsMode(channelConfig.kenBurnsMode ?? 'global');
     setKenBurnsHoverScale(channelConfig.kenBurnsHoverScale ?? 1.1);
     setKenBurnsAutoplayScale(channelConfig.kenBurnsAutoplayScale ?? 1.15);
     setKenBurnsHoverDuration(channelConfig.kenBurnsHoverDuration ?? 8000);

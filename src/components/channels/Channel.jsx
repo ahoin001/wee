@@ -17,18 +17,9 @@ import { ACCEPT_IMAGE_OR_MP4 } from '../../utils/supportedUploadMedia';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { getRecentLaunchHintTtlMs } from '../../utils/channelOpenHint';
 import { PlayfulTapLayer } from '../navigation/PlayfulInteractionMotion';
+import { launchWithFeedback } from '../../utils/launchWithFeedback';
 
-// Guard for window.api to prevent errors in browser
-const api = window.api || {
-  launchApp: async () => ({ ok: true }),
-  openExternal: (url) => window.open(url, '_blank'), // fallback for browser
-  openPipWindow: (url) => {},
-};
-
-const soundsApi = window.api?.sounds || {
-  get: async () => ({}),
-  getLibrary: async () => ({}),
-};
+const api = window.api;
 
 const Channel = React.memo(({ 
   id, 
@@ -86,7 +77,7 @@ const Channel = React.memo(({
   // Floating widget store
   const openHint = useConsolidatedAppStore((state) => state.ui.channelOpenHints?.[id]);
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
-  const { showLaunchError } = useLaunchFeedback();
+  const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
 
   const recordRecentLaunchHint = useCallback(() => {
     setUIState((prev) => ({
@@ -298,6 +289,16 @@ const Channel = React.memo(({
   const showRecentLaunchHint = Boolean(openHint);
 
   const handleClick = async () => {
+    if (!api) {
+      showLaunchError?.({
+        technicalError: 'Electron API bridge unavailable',
+        launchType: effectiveType || 'app',
+        path: effectivePath || '',
+        source: 'channel',
+      });
+      return;
+    }
+
     // Stop hover sound immediately
     stopAllSounds();
     
@@ -345,30 +346,32 @@ const Channel = React.memo(({
           api.openPipWindow(effectivePath);
           recordRecentLaunchHint();
         } else {
-          const result = await api.launchApp({ type: 'url', path: effectivePath, asAdmin: false });
-          if (result && result.ok === false) {
-            console.error('[Channel] Failed to open URL:', result.error);
-            showLaunchError({
-              technicalError: result.error,
-              launchType: 'url',
-              path: effectivePath,
-              source: 'channel',
-            });
-          } else {
+          const result = await launchWithFeedback({
+            launch: () => api.launchApp({ type: 'url', path: effectivePath, asAdmin: false }),
+            beginLaunchFeedback,
+            endLaunchFeedback,
+            showLaunchError,
+            label: `Opening ${title || 'URL'}`,
+            launchType: 'url',
+            path: effectivePath,
+            source: 'channel',
+          });
+          if (!result || result.ok !== false) {
             recordRecentLaunchHint();
           }
         }
       } else {
-        const result = await api.launchApp({ type: effectiveType, path: effectivePath, asAdmin: effectiveAsAdmin });
-        if (result && result.ok === false) {
-          console.error('[Channel] Failed to launch:', result.error);
-          showLaunchError({
-            technicalError: result.error,
-            launchType: effectiveType,
-            path: effectivePath,
-            source: 'channel',
-          });
-        } else {
+        const result = await launchWithFeedback({
+          launch: () => api.launchApp({ type: effectiveType, path: effectivePath, asAdmin: effectiveAsAdmin }),
+          beginLaunchFeedback,
+          endLaunchFeedback,
+          showLaunchError,
+          label: `Launching ${title || 'app'}`,
+          launchType: effectiveType,
+          path: effectivePath,
+          source: 'channel',
+        });
+        if (!result || result.ok !== false) {
           recordRecentLaunchHint();
         }
       }

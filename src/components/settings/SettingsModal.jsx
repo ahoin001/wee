@@ -13,6 +13,7 @@ import {
   TimeSettingsTab,
   SoundsSettingsTab,
   GeneralSettingsTab,
+  GameHubSettingsTab,
   PresetsSettingsTab,
   MonitorSettingsTab,
   ApiIntegrationsSettingsTab,
@@ -123,6 +124,14 @@ const SETTINGS_TABS = [
     color: 'hsl(var(--settings-tab-general))',
     description: 'App behavior & startup',
     component: GeneralSettingsTab
+  },
+  {
+    id: 'gamehub',
+    label: 'Game Hub',
+    icon: '🎮',
+    color: 'hsl(var(--settings-tab-layout))',
+    description: 'SteamID64 and enrichment controls',
+    component: GameHubSettingsTab,
   },
   { 
     id: 'layout', 

@@ -17,6 +17,8 @@ export const CANONICAL_SETTINGS_KEYS = [
   'navigation',
   'presets',
   'workspaces',
+  'spaces',
+  'gameHub',
 ];
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -123,6 +125,9 @@ const selectPersistedUi = (ui = {}) => ({
   channelOpacity: ui.channelOpacity ?? 1,
   keyboardShortcuts: Array.isArray(ui.keyboardShortcuts) ? ui.keyboardShortcuts : [],
   motionFeedback: mergeMotionFeedback(ui.motionFeedback),
+  spaceRailAutoHide: ui.spaceRailAutoHide ?? true,
+  spaceRailPinned: ui.spaceRailPinned ?? false,
+  spaceRailRevealWidth: ui.spaceRailRevealWidth ?? 28,
 });
 
 export const buildSettingsSnapshotFromStore = (state = {}) => ({
@@ -140,6 +145,8 @@ export const buildSettingsSnapshotFromStore = (state = {}) => ({
   navigation: state.navigation || {},
   presets: Array.isArray(state.presets) ? state.presets : [],
   workspaces: state.workspaces || {},
+  spaces: state.spaces || {},
+  gameHub: state.gameHub || {},
 });
 
 export const normalizeUnifiedSettingsSnapshot = (settings = {}) => {

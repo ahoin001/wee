@@ -21,6 +21,9 @@ if (fs.existsSync(envPath)) {
     ) {
       val = val.slice(1, -1);
     }
-    if (process.env[key] === undefined) process.env[key] = val;
+    // Allow .env to fill keys that were injected as empty strings by shell/session.
+    if (process.env[key] === undefined || process.env[key] === null || process.env[key] === '') {
+      process.env[key] = val;
+    }
   }
 }

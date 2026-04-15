@@ -18,6 +18,8 @@ export const useAppInitialization = ({
   setSoundsState,
   setPresets,
   setWorkspacesState,
+  setSpacesState,
+  setGameHubState,
 }) => {
   useEffect(() => {
     let cancelled = false;
@@ -27,14 +29,13 @@ export const useAppInitialization = ({
         if (cancelled) return;
 
         const unifiedData = await electronApi.getUnifiedData();
-        const [wallpaperData, channelData] = await Promise.all([
+        const [wallpaperData] = await Promise.all([
           electronApi.getWallpapers(),
-          electronApi.getChannels(),
         ]);
 
         const resolvedSettings = normalizeUnifiedSettingsSnapshot(unifiedData?.settings || {});
         const resolvedWallpaperData = unifiedData?.wallpapers || wallpaperData;
-        const resolvedChannelData = unifiedData?.channels || channelData;
+        const resolvedChannelData = unifiedData?.channels;
 
         setAppState({
           appReady: true,
@@ -123,6 +124,8 @@ export const useAppInitialization = ({
           }
           if (resolvedSettings.presets) setPresets(resolvedSettings.presets);
           if (resolvedSettings.workspaces) setWorkspacesState(resolvedSettings.workspaces);
+          if (resolvedSettings.spaces) setSpacesState(resolvedSettings.spaces);
+          if (resolvedSettings.gameHub) setGameHubState(resolvedSettings.gameHub);
         }
       } catch (error) {
         console.error('[AppInitialization] Failed to initialize app:', error);
@@ -154,5 +157,7 @@ export const useAppInitialization = ({
     setSoundsState,
     setPresets,
     setWorkspacesState,
+    setSpacesState,
+    setGameHubState,
   ]);
 };

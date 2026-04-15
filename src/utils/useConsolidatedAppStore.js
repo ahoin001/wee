@@ -98,6 +98,9 @@ useConsolidatedAppStore = create(
             dock: { ...DEFAULT_MOTION_FEEDBACK.dock },
             ribbon: { ...DEFAULT_MOTION_FEEDBACK.ribbon },
           },
+          spaceRailAutoHide: true,
+          spaceRailPinned: false,
+          spaceRailRevealWidth: 28,
         },
 
         // Ribbon state
@@ -506,6 +509,44 @@ useConsolidatedAppStore = create(
           activeWorkspaceId: null,
         },
 
+        // Top-level shell spaces
+        spaces: {
+          activeSpaceId: 'home',
+          order: ['home', 'workspaces', 'gamehub'],
+          autoHideRail: true,
+          railPinned: false,
+          railVisible: false,
+        },
+
+        // Game Hub state domain
+        gameHub: {
+          profile: {
+            steamId: '',
+            useSteamWebApi: true,
+            onboardingDismissed: false,
+          },
+          ui: {
+            selectedGameId: null,
+            activeShelf: 'recentlyPlayed',
+            searchQuery: '',
+            showDetails: false,
+            launchingGameId: null,
+            favoriteGameIds: [],
+          },
+          library: {
+            enrichedGames: [],
+            shelves: {
+              recentlyPlayed: [],
+              mostPlayed: [],
+              installed: [],
+              readyToLaunch: [],
+            },
+            syncStatus: 'idle',
+            lastSyncedAt: null,
+            lastError: null,
+          },
+        },
+
         // Actions
         actions: {
           // App actions
@@ -808,6 +849,36 @@ useConsolidatedAppStore = create(
             }
           })),
 
+          setSpacesState: (updates) => set((state) => ({
+            spaces: {
+              ...state.spaces,
+              ...updates,
+            },
+          })),
+
+          setGameHubState: (updates) => set((state) => ({
+            gameHub: {
+              ...state.gameHub,
+              ...updates,
+              profile: {
+                ...state.gameHub.profile,
+                ...(updates?.profile || {}),
+              },
+              ui: {
+                ...state.gameHub.ui,
+                ...(updates?.ui || {}),
+              },
+              library: {
+                ...state.gameHub.library,
+                ...(updates?.library || {}),
+                shelves: {
+                  ...state.gameHub.library.shelves,
+                  ...(updates?.library?.shelves || {}),
+                },
+              },
+            },
+          })),
+
           // Bulk update
           updateState: (updates) => set((state) => ({
             ...state,
@@ -1034,6 +1105,40 @@ useConsolidatedAppStore = create(
             workspaces: {
               items: [],
               activeWorkspaceId: null,
+            },
+            spaces: {
+              activeSpaceId: 'home',
+              order: ['home', 'workspaces', 'gamehub'],
+              autoHideRail: true,
+              railPinned: false,
+              railVisible: false,
+            },
+            gameHub: {
+              profile: {
+                steamId: '',
+                useSteamWebApi: true,
+                onboardingDismissed: false,
+              },
+              ui: {
+                selectedGameId: null,
+                activeShelf: 'recentlyPlayed',
+                searchQuery: '',
+                showDetails: false,
+                launchingGameId: null,
+                favoriteGameIds: [],
+              },
+              library: {
+                enrichedGames: [],
+                shelves: {
+                  recentlyPlayed: [],
+                  mostPlayed: [],
+                  installed: [],
+                  readyToLaunch: [],
+                },
+                syncStatus: 'idle',
+                lastSyncedAt: null,
+                lastError: null,
+              },
             },
           }),
         },

@@ -50,6 +50,8 @@ const LazyFloatingSpotifyWidget = lazyNamedExport(() => import('./components/wid
 const LazySystemInfoWidget = lazyNamedExport(() => import('./components/widgets'), 'SystemInfoWidget');
 const LazyAdminPanelWidget = lazyNamedExport(() => import('./components/admin'), 'AdminPanelWidget');
 const LazyPerformanceMonitor = lazyNamedExport(() => import('./components/widgets'), 'PerformanceMonitor');
+const LazySpaceRail = lazyNamedExport(() => import('./components/spaces'), 'SpaceRail');
+const LazyGameHubSpace = lazyNamedExport(() => import('./components/game-hub'), 'GameHubSpace');
 
 
 
@@ -89,6 +91,7 @@ function App() {
     gravity,
     floatingWidgets,
     dock,
+    activeSpaceId,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       appReady: state.app.appReady,
@@ -125,6 +128,7 @@ function App() {
       gravity: state.overlay.gravity,
       floatingWidgets: state.floatingWidgets,
       dock: state.dock,
+      activeSpaceId: state.spaces.activeSpaceId,
     }))
   );
 
@@ -223,6 +227,9 @@ function App() {
     setDockState,
     setSoundsState,
     setPresets,
+    setWorkspacesState,
+    setSpacesState,
+    setGameHubState,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       setAppState: state.actions.setAppState,
@@ -236,11 +243,17 @@ function App() {
       setDockState: state.actions.setDockState,
       setSoundsState: state.actions.setSoundsState,
       setPresets: state.actions.setPresets,
+      setWorkspacesState: state.actions.setWorkspacesState,
+      setSpacesState: state.actions.setSpacesState,
+      setGameHubState: state.actions.setGameHubState,
     }))
   );
 
   // Settings action menu state and positioning
   const [settingsMenuPosition, setSettingsMenuPosition] = useState({ x: 0, y: 0 });
+  const [spaceTransitionStage, setSpaceTransitionStage] = useState('idle');
+  const [lastSpaceId, setLastSpaceId] = useState(activeSpaceId);
+  const transitionTimerRef = useRef(null);
   
   // Ref to access SettingsActionMenu's handleClose method
   const settingsActionMenuRef = useRef(null);
@@ -314,6 +327,9 @@ function App() {
     setDockState,
     setSoundsState,
     setPresets,
+    setWorkspacesState,
+    setSpacesState,
+    setGameHubState,
   });
 
   useFullscreenEffect({ appReady, startInFullscreen });
@@ -372,6 +388,30 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (activeSpaceId === lastSpaceId) return undefined;
+    const SWITCHING_STAGE_MS = 380;
+    const SETTLE_STAGE_MS = 260;
+
+    setSpaceTransitionStage('switching');
+    if (transitionTimerRef.current) {
+      window.clearTimeout(transitionTimerRef.current);
+    }
+    transitionTimerRef.current = window.setTimeout(() => {
+      setLastSpaceId(activeSpaceId);
+      setSpaceTransitionStage('settled');
+      transitionTimerRef.current = window.setTimeout(() => {
+        setSpaceTransitionStage('idle');
+      }, SETTLE_STAGE_MS);
+    }, SWITCHING_STAGE_MS);
+
+    return () => {
+      if (transitionTimerRef.current) {
+        window.clearTimeout(transitionTimerRef.current);
+      }
+    };
+  }, [activeSpaceId, lastSpaceId]);
+
   // Render splash screen only if not ready
   if (!appReady || isLoading) {
     return <SplashScreen fadingOut={splashFading} />;
@@ -403,18 +443,26 @@ function App() {
         />
 
         {/* Main Content */}
-        <div className="main-content">
-          <LazyPaginatedChannels />
+        <div className={`main-content space-scene space-scene--${activeSpaceId} space-scene--${spaceTransitionStage}`}>
+          {activeSpaceId === 'gamehub' ? <LazyGameHubSpace /> : <LazyPaginatedChannels />}
         </div>
 
-        {/* Page Navigation - Positioned independently */}
-        <LazyPageNavigation 
-          position="bottom"
-          showPageIndicator={true}
-        />
+        {activeSpaceId !== 'gamehub' ? (
+          <>
+            {/* Page Navigation - Positioned independently */}
+            <LazyPageNavigation 
+              position="bottom"
+              showPageIndicator={true}
+            />
 
-        {/* Wii Side Navigation - Available in both modes */}
-        <LazyWiiSideNavigation />
+            {/* Wii Side Navigation - Available in both modes */}
+            <LazyWiiSideNavigation />
+          </>
+        ) : null}
+
+        <Suspense fallback={null}>
+          <LazySpaceRail />
+        </Suspense>
 
         {/* Dock with proper props from consolidated store */}
         {showDock && (

@@ -1,14 +1,48 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const IPC_CHANNELS = {
+  data: {
+    get: 'data:get',
+    set: 'data:set',
+  },
+  wallpapers: {
+    get: 'wallpapers:get',
+    set: 'wallpapers:set',
+    reset: 'wallpapers:reset',
+    getMonitorWallpaper: 'wallpapers:getMonitorWallpaper',
+    setMonitorWallpaper: 'wallpapers:setMonitorWallpaper',
+    getMonitorSettings: 'wallpapers:getMonitorSettings',
+    setMonitorSettings: 'wallpapers:setMonitorSettings',
+  },
+  channels: {
+    get: 'channels:get',
+    set: 'channels:set',
+    reset: 'channels:reset',
+  },
+  updateNotification: {
+    dismiss: 'update-notification:dismiss',
+    installUpdate: 'update-notification:install-update',
+    dismissedEvent: 'update-notification-dismissed',
+    installEvent: 'update-notification-install',
+  },
+  updater: {
+    checkForUpdates: 'check-for-updates',
+    downloadUpdate: 'download-update',
+    installUpdate: 'install-update',
+    statusEvent: 'update-status',
+    updateAvailableEvent: 'update-notification-available',
+    updateNotAvailableEvent: 'update-notification-not-available',
+  },
+};
 
 contextBridge.exposeInMainWorld('api', {
   // Unified data API - single source of truth
   data: {
-    get: () => ipcRenderer.invoke('data:get'),
-    set: (data) => ipcRenderer.invoke('data:set', data),
+    get: () => ipcRenderer.invoke(IPC_CHANNELS.data.get),
+    set: (data) => ipcRenderer.invoke(IPC_CHANNELS.data.set, data),
   },
   channels: {
-    get: () => ipcRenderer.invoke('channels:get'),
-    set: (data) => ipcRenderer.invoke('channels:set', data),
+    get: () => ipcRenderer.invoke(IPC_CHANNELS.channels.get),
+    set: (data) => ipcRenderer.invoke(IPC_CHANNELS.channels.set, data),
   },
   sounds: {
     add: (args) => ipcRenderer.invoke('add-sound', args),
@@ -27,14 +61,15 @@ contextBridge.exposeInMainWorld('api', {
     detectInstallation: () => ipcRenderer.invoke('detectSteamInstallation'),
     getLibraries: (args) => ipcRenderer.invoke('getSteamLibraries', args),
     scanGames: (args) => ipcRenderer.invoke('scanSteamGames', args),
+    getEnrichedGames: (args) => ipcRenderer.invoke('steam:getEnrichedGames', args),
   },
   epic: {
     getInstalledGames: () => ipcRenderer.invoke('epic:getInstalledGames'),
   },
   wallpapers: {
-    get: () => ipcRenderer.invoke('wallpapers:get'),
-    set: (data) => ipcRenderer.invoke('wallpapers:set', data),
-    reset: () => ipcRenderer.invoke('wallpapers:reset'),
+    get: () => ipcRenderer.invoke(IPC_CHANNELS.wallpapers.get),
+    set: (data) => ipcRenderer.invoke(IPC_CHANNELS.wallpapers.set, data),
+    reset: () => ipcRenderer.invoke(IPC_CHANNELS.wallpapers.reset),
     add: (args) => ipcRenderer.invoke('wallpapers:add', args),
     delete: (args) => ipcRenderer.invoke('wallpapers:delete', args),
     setActive: (args) => ipcRenderer.invoke('wallpapers:setActive', args),
@@ -43,10 +78,10 @@ contextBridge.exposeInMainWorld('api', {
     getFile: (url) => ipcRenderer.invoke('wallpapers:get-file', url),
     saveFile: (args) => ipcRenderer.invoke('wallpapers:save-file', args),
     // Monitor-specific wallpaper APIs
-    getMonitorWallpaper: (monitorId) => ipcRenderer.invoke('wallpapers:getMonitorWallpaper', monitorId),
-    setMonitorWallpaper: (monitorId, wallpaperData) => ipcRenderer.invoke('wallpapers:setMonitorWallpaper', { monitorId, wallpaperData }),
-    getMonitorSettings: (monitorId) => ipcRenderer.invoke('wallpapers:getMonitorSettings', monitorId),
-    setMonitorSettings: (monitorId, settings) => ipcRenderer.invoke('wallpapers:setMonitorSettings', { monitorId, settings }),
+    getMonitorWallpaper: (monitorId) => ipcRenderer.invoke(IPC_CHANNELS.wallpapers.getMonitorWallpaper, monitorId),
+    setMonitorWallpaper: (monitorId, wallpaperData) => ipcRenderer.invoke(IPC_CHANNELS.wallpapers.setMonitorWallpaper, { monitorId, wallpaperData }),
+    getMonitorSettings: (monitorId) => ipcRenderer.invoke(IPC_CHANNELS.wallpapers.getMonitorSettings, monitorId),
+    setMonitorSettings: (monitorId, settings) => ipcRenderer.invoke(IPC_CHANNELS.wallpapers.setMonitorSettings, { monitorId, settings }),
   },
   icons: {
     add: ({ filePath, filename }) => ipcRenderer.invoke('icons:add', { filePath, filename }),
@@ -75,26 +110,26 @@ contextBridge.exposeInMainWorld('api', {
   setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
   // Auto-updater APIs
   updater: {
-    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-    dismissUpdateNotification: () => ipcRenderer.invoke('update-notification:dismiss'),
-    downloadUpdate: () => ipcRenderer.invoke('download-update'),
-    installUpdate: () => ipcRenderer.invoke('install-update'),
-    onUpdateStatus: (cb) => ipcRenderer.on('update-status', (e, data) => cb(data)),
-    offUpdateStatus: (cb) => ipcRenderer.removeListener('update-status', cb),
+    checkForUpdates: () => ipcRenderer.invoke(IPC_CHANNELS.updater.checkForUpdates),
+    dismissUpdateNotification: () => ipcRenderer.invoke(IPC_CHANNELS.updateNotification.dismiss),
+    downloadUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updater.downloadUpdate),
+    installUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updater.installUpdate),
+    onUpdateStatus: (cb) => ipcRenderer.on(IPC_CHANNELS.updater.statusEvent, (e, data) => cb(data)),
+    offUpdateStatus: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updater.statusEvent, cb),
   },
   // Top-level updater aliases for legacy settings tabs
-  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-  downloadUpdate: () => ipcRenderer.invoke('download-update'),
-  installUpdate: () => ipcRenderer.invoke('install-update'),
+  checkForUpdates: () => ipcRenderer.invoke(IPC_CHANNELS.updater.checkForUpdates),
+  downloadUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updater.downloadUpdate),
+  installUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updater.installUpdate),
   // Update notification event listeners
-  onUpdateNotificationAvailable: (cb) => ipcRenderer.on('update-notification-available', (e, data) => cb(data)),
-  offUpdateNotificationAvailable: (cb) => ipcRenderer.removeListener('update-notification-available', cb),
-  onUpdateNotificationNotAvailable: (cb) => ipcRenderer.on('update-notification-not-available', (e) => cb()),
-  offUpdateNotificationNotAvailable: (cb) => ipcRenderer.removeListener('update-notification-not-available', cb),
-  onUpdateNotificationDismissed: (cb) => ipcRenderer.on('update-notification-dismissed', (e) => cb()),
-  offUpdateNotificationDismissed: (cb) => ipcRenderer.removeListener('update-notification-dismissed', cb),
-  onUpdateNotificationInstall: (cb) => ipcRenderer.on('update-notification-install', (e) => cb()),
-  offUpdateNotificationInstall: (cb) => ipcRenderer.removeListener('update-notification-install', cb),
+  onUpdateNotificationAvailable: (cb) => ipcRenderer.on(IPC_CHANNELS.updater.updateAvailableEvent, (e, data) => cb(data)),
+  offUpdateNotificationAvailable: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updater.updateAvailableEvent, cb),
+  onUpdateNotificationNotAvailable: (cb) => ipcRenderer.on(IPC_CHANNELS.updater.updateNotAvailableEvent, (e) => cb()),
+  offUpdateNotificationNotAvailable: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updater.updateNotAvailableEvent, cb),
+  onUpdateNotificationDismissed: (cb) => ipcRenderer.on(IPC_CHANNELS.updateNotification.dismissedEvent, (e) => cb()),
+  offUpdateNotificationDismissed: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updateNotification.dismissedEvent, cb),
+  onUpdateNotificationInstall: (cb) => ipcRenderer.on(IPC_CHANNELS.updateNotification.installEvent, (e) => cb()),
+  offUpdateNotificationInstall: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updateNotification.installEvent, cb),
   getFullscreenState: () => ipcRenderer.invoke('get-fullscreen-state'),
   // Spotify OAuth APIs
   onSpotifyAuthSuccess: (cb) => ipcRenderer.on('spotify-auth-success', (e, data) => cb(data)),
