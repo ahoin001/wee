@@ -129,17 +129,10 @@
   filter: brightness(0.92) saturate(1.08);
 }
 
+/* Removed left-edge vignette — was darkening the main stage on the left */
 .aura-hub-backdrop::after {
   content: '';
-  position: absolute;
-  inset: 0;
-  /* Light edge vignette only — keep artwork vibrant */
-  background: linear-gradient(
-    90deg,
-    hsl(var(--color-pure-black) / 0.42) 0%,
-    hsl(var(--color-pure-black) / 0.08) 38%,
-    transparent 62%
-  );
+  display: none;
 }
 
 .aura-hub-scroll-anchors {
@@ -237,37 +230,18 @@
   transition: none;
 }
 
-/* Wallpaper-style dimming: darken the art (no frosted panel) so type can sit directly on the image */
+/* Bottom-only scrim for headline legibility — no left / corner darkening on the stage */
 .aura-hub-hero__media-stack::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background:
-    linear-gradient(
-      90deg,
-      hsl(0 0% 0% / 0.88) 0%,
-      hsl(0 0% 0% / 0.58) 22%,
-      hsl(0 0% 0% / 0.28) 40%,
-      hsl(0 0% 0% / 0.08) 52%,
-      transparent 68%
-    ),
-    linear-gradient(to top, hsl(0 0% 0% / 0.62) 0%, transparent 46%),
-    radial-gradient(ellipse 100% 85% at 6% 38%, hsl(0 0% 0% / 0.45) 0%, transparent 58%);
+  background: linear-gradient(to top, hsl(0 0% 0% / 0.5) 0%, transparent 42%);
 }
 
 .aura-hub-hero--floating .aura-hub-hero__media-stack::after {
-  background:
-    linear-gradient(
-      40deg,
-      hsl(0 0% 0% / 0.78) 0%,
-      hsl(0 0% 0% / 0.42) 24%,
-      hsl(0 0% 0% / 0.14) 44%,
-      transparent 62%
-    ),
-    /* linear-gradient(to top, hsl(0 0% 0% / 0.48) 0%, transparent 50%), */
-    radial-gradient(ellipse 95% 80% at 8% 40%, hsl(0 0% 0% / 0.35) 0%, transparent 55%);
+  background: linear-gradient(to top, hsl(0 0% 0% / 0.38) 0%, transparent 48%);
 }
 
 /* Typography block: no glass — spacing only; legibility comes from ::after dimming */
