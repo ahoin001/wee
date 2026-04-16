@@ -129,6 +129,17 @@ const Channel = React.memo(({
   const effectiveType = useMemo(() => storeChannelConfig?.type || type, [storeChannelConfig?.type, type]);
   const effectiveAsAdmin = useMemo(() => storeChannelConfig?.asAdmin || asAdmin, [storeChannelConfig?.asAdmin, asAdmin]);
   const effectiveHoverSound = useMemo(() => storeChannelConfig?.hoverSound || hoverSound, [storeChannelConfig?.hoverSound, hoverSound]);
+  const launchLabel = useMemo(() => {
+    const cfgTitle = String(effectiveConfig?.title || '').trim();
+    if (cfgTitle) return cfgTitle;
+    const mediaName = String(effectiveMedia?.name || '').trim();
+    if (mediaName) return mediaName;
+    const appPath = String(effectivePath || '').trim();
+    if (!appPath) return '';
+    const normalized = appPath.replace(/\\/g, '/');
+    const leaf = normalized.split('/').pop() || '';
+    return leaf || appPath;
+  }, [effectiveConfig?.title, effectiveMedia?.name, effectivePath]);
   
   // Memoize animation settings from consolidated store
   const effectiveAnimatedOnHover = useMemo(() => 
@@ -354,7 +365,7 @@ const Channel = React.memo(({
             beginLaunchFeedback,
             endLaunchFeedback,
             showLaunchError,
-            label: `Opening ${title || 'URL'}`,
+            label: `Opening ${launchLabel || 'URL'}`,
             launchType: 'url',
             path: effectivePath,
             source: 'channel',
@@ -369,7 +380,7 @@ const Channel = React.memo(({
           beginLaunchFeedback,
           endLaunchFeedback,
           showLaunchError,
-          label: `Launching ${title || 'app'}`,
+          label: `Launching ${launchLabel || 'app'}`,
           launchType: effectiveType,
           path: effectivePath,
           source: 'channel',

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { UnifiedAppPathCard } from '../../app-library';
 import ChannelPathSmartSuggestions from '../ChannelPathSmartSuggestions';
+import ChannelModalInlineMediaSuggestions from './ChannelModalInlineMediaSuggestions';
 
 /**
  * App / URL picker + validation helpers for Configure Channel → Setup tab.
@@ -15,6 +16,8 @@ function ChannelModalUnifiedPathBlock({
   matchingApp,
   onUnifiedAppPathChange,
   onApplySmartSuggestion,
+  onApplySuggestedMedia,
+  onOpenMediaSearch,
 }) {
   const value = useMemo(
     () => ({
@@ -38,6 +41,13 @@ function ChannelModalUnifiedPathBlock({
         onChange={onUnifiedAppPathChange}
         externalValidationError={pathError}
       />
+      <ChannelModalInlineMediaSuggestions
+        path={path}
+        type={type}
+        matchingApp={matchingApp}
+        onApplyMedia={onApplySuggestedMedia}
+        onOpenMediaSearch={onOpenMediaSearch}
+      />
       <ChannelPathSmartSuggestions path={path} type={type} onApply={onApplySmartSuggestion} />
     </>
   );
@@ -52,6 +62,8 @@ ChannelModalUnifiedPathBlock.propTypes = {
   matchingApp: PropTypes.object,
   onUnifiedAppPathChange: PropTypes.func.isRequired,
   onApplySmartSuggestion: PropTypes.func.isRequired,
+  onApplySuggestedMedia: PropTypes.func.isRequired,
+  onOpenMediaSearch: PropTypes.func.isRequired,
 };
 
 ChannelModalUnifiedPathBlock.defaultProps = {

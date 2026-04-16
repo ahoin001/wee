@@ -114,7 +114,7 @@ function ChannelModal({
   /** Clear global app picker selection so UnifiedAppPathCard does not show the previous channel's app */
   useEffect(() => {
     if (!isOpen) return;
-    setUnifiedAppsState({ selectedApp: null });
+    setUnifiedAppsState({ selectedApp: null, selectedAppType: 'all', searchQuery: '' });
   }, [isOpen, channelId, setUnifiedAppsState]);
 
   useEffect(() => {
@@ -519,6 +519,8 @@ function ChannelModal({
                     matchingApp={matchingApp}
                     onUnifiedAppPathChange={handleUnifiedAppPathChange}
                     onApplySmartSuggestion={handleApplySmartSuggestion}
+                    onApplySuggestedMedia={setMedia}
+                    onOpenMediaSearch={() => setShowImageSearch(true)}
                   />
                   <ChannelModalDevDebug path={path} type={type} pathError={pathError} />
                 </>

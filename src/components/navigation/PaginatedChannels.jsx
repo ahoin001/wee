@@ -11,7 +11,6 @@ import {
 import { Channel } from '../channels';
 import SlideNavigation from './SlideNavigation';
 import useChannelOperations from '../../utils/useChannelOperations';
-import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { ChannelSpaceProvider } from '../../contexts/ChannelSpaceContext';
 import useIdleChannelAnimations from '../../utils/useIdleChannelAnimations';
 import { WII_LAYOUT_PRESET } from '../../utils/channelLayoutSystem';
@@ -43,12 +42,11 @@ const PaginatedChannelsInner = React.memo(() => {
   } = useChannelOperations();
 
   const mf = useMotionFeedback();
-  const channelConfigureModalOpen = useConsolidatedAppStore((s) => s.ui.channelConfigureModalOpen);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       // Require a short pull so normal clicks still launch the channel.
-      activationConstraint: { distance: 14 },
+      activationConstraint: { distance: 6 },
     })
   );
 
@@ -322,7 +320,7 @@ const PaginatedChannelsInner = React.memo(() => {
       <ChannelSlotDnd
         key={`channel-slot-${channelIndex}`}
         channelIndex={channelIndex}
-        disabled={navigation.isAnimating || channelConfigureModalOpen}
+        disabled={navigation.isAnimating}
         celebrateDrop={celebrateIndex === channelIndex}
         reorderWave={reorderWave}
       >
@@ -331,7 +329,6 @@ const PaginatedChannelsInner = React.memo(() => {
     ),
     [
       navigation.isAnimating,
-      channelConfigureModalOpen,
       renderChannelInner,
       celebrateIndex,
       reorderWave,
