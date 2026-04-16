@@ -16,6 +16,44 @@ import {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const APP_SCHEMA = import.meta.env.VITE_SUPABASE_APP_SCHEMA || 'app_wee_v1'
+const SUPABASE_DISABLED_ERROR = 'Supabase is not configured for this build. Missing VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY.'
+
+function createDisabledSupabaseClient() {
+  const disabledError = { message: SUPABASE_DISABLED_ERROR }
+  const disabledAsync = async () => ({ data: null, error: disabledError })
+  const disabledPublicUrl = () => ({ data: { publicUrl: '' } })
+
+  const query = {
+    select: () => query,
+    insert: () => query,
+    update: () => query,
+    upsert: () => query,
+    delete: () => query,
+    eq: () => query,
+    or: () => query,
+    overlaps: () => query,
+    order: () => query,
+    range: () => query,
+    limit: () => query,
+    single: disabledAsync,
+    maybeSingle: disabledAsync,
+    then: (resolve) => Promise.resolve(resolve({ data: null, error: disabledError, count: 0 })),
+  }
+
+  return {
+    from: () => query,
+    schema: () => ({ from: () => query }),
+    storage: {
+      from: () => ({
+        upload: disabledAsync,
+        download: disabledAsync,
+        list: disabledAsync,
+        remove: disabledAsync,
+        getPublicUrl: disabledPublicUrl,
+      }),
+    },
+  }
+}
 
 /** Project base URL with no trailing slash (for storage public URLs). */
 export const supabaseProjectUrl = String(SUPABASE_URL || '').replace(/\/$/, '')
@@ -34,7 +72,10 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   logWarn('SUPABASE', 'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Copy .env.example to .env and set values.')
 }
 
-export const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '')
+const hasSupabaseEnv = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
+export const supabase = hasSupabaseEnv
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : createDisabledSupabaseClient()
 const spokeClient = supabase.schema(APP_SCHEMA)
 export const supabaseSpoke = spokeClient
 
