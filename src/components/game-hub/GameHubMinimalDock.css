@@ -1,0 +1,45 @@
+.gamehub-minimal-dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.42rem 1rem 0.48rem 1.15rem;
+  margin: 0 auto 0.45rem;
+  border-radius: 999px;
+  background: hsl(0 0% 6% / 0.78);
+  border: 1px solid hsl(0 0% 100% / 0.14);
+  backdrop-filter: blur(14px) saturate(1.15);
+  box-shadow: 0 10px 36px hsl(0 0% 0% / 0.42);
+  pointer-events: auto;
+}
+
+.gamehub-minimal-dock__time {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-shadow: 0 1px 8px hsl(0 0% 0% / 0.55);
+}
+
+.gamehub-minimal-dock__btn {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: hsl(0 0% 100% / 0.1);
+  color: hsl(0 0% 96%);
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.gamehub-minimal-dock__btn:hover {
+  background: hsl(0 0% 100% / 0.18);
+  transform: scale(1.05);
+}
+
+.gamehub-minimal-dock__btn:focus-visible {
+  outline: 2px solid hsl(var(--wii-blue) / 0.75);
+  outline-offset: 2px;
+}

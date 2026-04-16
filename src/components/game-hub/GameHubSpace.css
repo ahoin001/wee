@@ -1,598 +1,1240 @@
-.gamehub-space {
-  position: relative;
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-  padding: clamp(1rem, 2.2vw, 1.75rem) clamp(1rem, 3.2vw, 2.75rem) 6rem;
-  color: hsl(var(--text-primary));
-  isolation: isolate;
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--wii-blue) / 0.55) hsl(var(--surface-elevated) / 0.26);
+/* Native cursor: custom Wii cursor (body.custom-cursor) hides the OS cursor — restore it in Game Hub. */
+.custom-cursor .aura-hub-space,
+.custom-cursor .aura-hub-space * {
+  cursor: default !important;
 }
 
-.gamehub-space::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  background:
-    radial-gradient(circle at 14% 12%, hsl(var(--wii-blue) / 0.14), transparent 35%),
-    radial-gradient(circle at 88% 14%, hsl(var(--surface-elevated) / 0.38), transparent 44%),
-    linear-gradient(180deg, hsl(var(--bg-primary) / 0.2), hsl(var(--bg-primary) / 0.45));
-  backdrop-filter: blur(4px) saturate(1.04);
-}
-
-.gamehub-space *,
-.gamehub-space *::before,
-.gamehub-space *::after {
+.aura-hub-space {
+  /* Matches collection flyers (collectionFlyAnimations mountFlyer) for no shadow pop at handoff */
+  --aura-game-card-elev-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  width: 100%;
+  overflow: hidden;
+  padding: clamp(1.1rem, 2.8vw, 2rem) clamp(1.35rem, 3.4vw, 2.75rem);
+  color: hsl(var(--text-primary));
 }
 
-.gamehub-space button,
-.gamehub-space input {
+.aura-hub-stage {
+  /* Responsive content cap — hero + column share the same max width (prevents full-bleed hero over narrow column) */
+  --hub-column-max: min(100%, min(92vw, 1240px));
+  --hub-hero-expanded: clamp(200px, min(34vh, 44vw), 440px);
+  --hub-hero-collapsed: clamp(88px, 11vh, 120px);
+  --hub-hero-below-gap: clamp(1.35rem, 3vw, 2.5rem);
+  --hub-dock-inset: 0px;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: 100%;
+  border-radius: 1.8rem;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+@media (max-width: 1600px) {
+  .aura-hub-stage {
+    --hub-column-max: min(100%, min(90vw, 1080px));
+    --hub-hero-expanded: clamp(188px, min(32vh, 42vw), 400px);
+  }
+}
+
+@media (max-width: 1280px) {
+  .aura-hub-stage {
+    --hub-column-max: min(100%, min(90vw, 960px));
+    --hub-hero-expanded: clamp(180px, min(30vh, 46vw), 360px);
+  }
+}
+
+@media (max-width: 900px) {
+  .aura-hub-stage {
+    --hub-column-max: 100%;
+    --hub-hero-expanded: clamp(168px, min(28vh, 56vw), 320px);
+    --hub-hero-below-gap: clamp(1rem, 2.5vw, 1.75rem);
+  }
+}
+
+/* Column: hero overlays top; scroll lives in main with top padding (hub-design pattern) */
+.aura-hub-column {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--hub-column-max);
+  margin-inline: auto;
+}
+
+/* Backdrop off: no frosted panel — tiles float over the app wallpaper only */
+.aura-hub-space--floating {
+  padding: clamp(0.95rem, 2.5vw, 1.75rem) clamp(1.15rem, 3.1vw, 2.35rem);
+}
+
+.aura-hub-stage--floating {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Hero sits inside .aura-hub-column so it shares the same max-width as Collections/Library */
+.aura-hub-hero-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Hero overlays scroll root (not in flow); height transitions when stage gets --scrolled */
+.aura-hub-hero-shell {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  height: var(--hub-hero-expanded);
+  border-radius: 1.5rem 1.5rem 1.2rem 1.2rem;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aura-hub-hero-shell {
+    transition: height 0.58s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+.aura-hub-stage--scrolled .aura-hub-hero-shell {
+  height: var(--hub-hero-collapsed);
+  border-radius: 1rem;
+  box-shadow: 0 10px 36px hsl(var(--color-pure-black) / 0.22);
+}
+
+.aura-hub-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.92) saturate(1.08);
+}
+
+.aura-hub-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Light edge vignette only — keep artwork vibrant */
+  background: linear-gradient(
+    90deg,
+    hsl(var(--color-pure-black) / 0.42) 0%,
+    hsl(var(--color-pure-black) / 0.08) 38%,
+    transparent 62%
+  );
+}
+
+.aura-hub-scroll-anchors {
+  position: absolute;
+  top: clamp(0.85rem, 2.1vw, 1.35rem);
+  right: clamp(8.5rem, 26vw, 13rem);
+  z-index: 21;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: clamp(0.68rem, 0.58rem + 0.35vw, 0.8rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.aura-hub-scroll-anchors__link {
+  color: hsl(var(--color-pure-white) / 0.96);
+  text-decoration: none;
+  padding: 0.25rem 0.15rem;
+  border-radius: 0.35rem;
+  opacity: 0.92;
+  text-shadow:
+    0 1px 2px hsl(var(--color-pure-black) / 0.55),
+    0 1px 12px hsl(var(--color-pure-black) / 0.4);
+  transition: opacity 160ms ease, color 160ms ease;
+}
+
+.aura-hub-scroll-anchors__link:hover,
+.aura-hub-scroll-anchors__link:focus-visible {
   opacity: 1;
-  visibility: visible;
+  color: hsl(var(--wii-blue));
+  outline: none;
 }
 
-.gamehub-space__header {
+.aura-hub-scroll-anchors__sep {
+  opacity: 0.45;
+  color: hsl(var(--color-pure-white) / 0.55);
+}
+
+.aura-hub-mode-toggle {
+  position: absolute;
+  top: clamp(1rem, 2.5vw, 1.5rem);
+  right: clamp(1rem, 2.5vw, 1.5rem);
+  z-index: 20;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-elevated) / 0.88);
+  color: hsl(var(--text-primary));
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.75rem;
+}
+
+.aura-hub-hero {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aura-hub-hero__content,
+.aura-hub-rail {
+  pointer-events: auto;
+}
+
+.aura-hub-hero__media-stack {
+  position: absolute;
+  inset: 0;
+}
+
+.aura-hub-hero__media-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 24%;
+  filter: saturate(1.06);
+}
+
+.aura-hub-hero__media-layer--overlay {
+  z-index: 1;
+  will-change: opacity;
+}
+
+.aura-hub-space--effects .aura-hub-hero__media-layer--overlay {
+  transition: opacity 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aura-hub-space--static .aura-hub-hero__media-layer--overlay {
+  transition: none;
+}
+
+/* Wallpaper-style dimming: darken the art (no frosted panel) so type can sit directly on the image */
+.aura-hub-hero__media-stack::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      hsl(0 0% 0% / 0.88) 0%,
+      hsl(0 0% 0% / 0.58) 22%,
+      hsl(0 0% 0% / 0.28) 40%,
+      hsl(0 0% 0% / 0.08) 52%,
+      transparent 68%
+    ),
+    linear-gradient(to top, hsl(0 0% 0% / 0.62) 0%, transparent 46%),
+    radial-gradient(ellipse 100% 85% at 6% 38%, hsl(0 0% 0% / 0.45) 0%, transparent 58%);
+}
+
+.aura-hub-hero--floating .aura-hub-hero__media-stack::after {
+  background:
+    linear-gradient(
+      40deg,
+      hsl(0 0% 0% / 0.78) 0%,
+      hsl(0 0% 0% / 0.42) 24%,
+      hsl(0 0% 0% / 0.14) 44%,
+      transparent 62%
+    ),
+    /* linear-gradient(to top, hsl(0 0% 0% / 0.48) 0%, transparent 50%), */
+    radial-gradient(ellipse 95% 80% at 8% 40%, hsl(0 0% 0% / 0.35) 0%, transparent 55%);
+}
+
+/* Typography block: no glass — spacing only; legibility comes from ::after dimming */
+.aura-hub-hero__title-panel {
+  display: inline-block;
+  max-width: min(100%, 52rem);
+  padding: 0.5rem 0.15rem 0.65rem;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.aura-hub-hero__notice {
+  margin: 0 0 0.5rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: hsl(0 90% 82%);
+  background: hsl(0 55% 12% / 0.75);
+  border: 1px solid hsl(0 65% 42% / 0.5);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.aura-hub-hero__headline-wrap {
+  position: relative;
+  display: block;
+}
+
+.aura-hub-hero__headline-accent {
+  display: block;
+  height: 4px;
+  width: min(12rem, 42%);
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--wii-blue)) 0%,
+    hsl(190 95% 58%) 45%,
+    hsl(var(--color-pure-white) / 0.85) 100%
+  );
+  box-shadow: 0 0 24px hsl(var(--wii-blue) / 0.55);
+}
+
+.aura-hub-hero__headline {
+  margin: 0;
+  font-size: clamp(1.65rem, 5.2vw, 4rem);
+  font-weight: 900;
+  line-height: 0.94;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  color: hsl(var(--color-pure-white));
+  text-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.12),
+    0 3px 28px hsl(0 0% 0% / 0.75),
+    0 0 48px hsl(var(--wii-blue) / 0.22);
+}
+
+.aura-hub-hero--compact .aura-hub-hero__headline {
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: none;
+}
+
+.aura-hub-hero--compact .aura-hub-hero__headline-accent {
+  display: none;
+}
+
+.aura-hub-hero__subline {
+  margin: 0.55rem 0 0;
+  color: hsl(0 0% 100% / 0.88);
+  text-shadow: 0 1px 10px hsl(0 0% 0% / 0.55);
+  font-size: 0.88rem;
+}
+
+.aura-hub-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: min(100%, 44rem);
+}
+
+.aura-hub-hero__stat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  min-width: 5.5rem;
+  padding: 0.35rem 0.55rem 0.4rem;
+  border-radius: 0.55rem;
+  background: hsl(0 0% 0% / 0.22);
+  border: 1px solid hsl(0 0% 100% / 0.14);
+  box-shadow: none;
+}
+
+.aura-hub-hero__stat-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(0 0% 100% / 0.55);
+}
+
+.aura-hub-hero__stat-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: hsl(0 0% 100% / 0.96);
+  text-shadow: 0 1px 8px hsl(0 0% 0% / 0.45);
+  line-height: 1.2;
+}
+
+.aura-hub-hero .aura-hub-status {
+  background: hsl(0 0% 6% / 0.85);
+  border-color: hsl(0 0% 100% / 0.2);
+  color: hsl(var(--color-pure-white));
+}
+
+.aura-hub-hero .aura-hub-status--loading {
+  color: hsl(48 100% 70%);
+}
+
+.aura-hub-hero .aura-hub-status--ready {
+  color: hsl(142 76% 72%);
+}
+
+.aura-hub-hero .aura-hub-status--error {
+  color: hsl(0 90% 76%);
+}
+
+.aura-hub-hero .aura-hub-status--local {
+  color: hsl(0 0% 92%);
+}
+
+.aura-hub-hero__settings-btn {
+  margin-top: 0.65rem;
+  background: hsl(0 0% 100% / 0.12) !important;
+  border-color: hsl(0 0% 100% / 0.28) !important;
+  color: hsl(var(--color-pure-white)) !important;
+}
+
+.aura-hub-hero__settings-btn:hover {
+  background: hsl(0 0% 100% / 0.2) !important;
+}
+
+.aura-hub-hero__content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
-  padding: 0.45rem 0.1rem;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: linear-gradient(180deg, hsl(var(--bg-primary) / 0.78), hsl(var(--bg-primary) / 0));
-  backdrop-filter: blur(10px);
+  padding: 1.5rem clamp(1.15rem, 3.5vw, 2rem) 1.35rem clamp(1.15rem, 3.5vw, 2rem);
 }
 
-.gamehub-space__eyebrow {
-  margin: 0;
-  font-size: 0.75rem;
+.aura-hub-btn {
+  border-radius: 0.8rem;
+  border: 1px solid hsl(var(--border-primary));
+  padding: 0.58rem 0.95rem;
+  font-weight: 800;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: hsl(var(--text-secondary));
 }
 
-.gamehub-space__title {
-  margin: 0.35rem 0 0;
-  font-size: clamp(1.4rem, 1.2rem + 1vw, 2rem);
+.aura-hub-btn--primary {
+  background: hsl(var(--color-pure-white));
+  color: hsl(var(--color-pure-black));
+}
+
+.aura-hub-btn--ghost {
+  background: hsl(var(--surface-elevated) / 0.84);
   color: hsl(var(--text-primary));
 }
 
-.gamehub-space__subtitle {
-  margin: 0.35rem 0 0;
-  max-width: 56ch;
-  color: hsl(var(--text-secondary));
-  font-size: 0.82rem;
-}
-
-.gamehub-space__status-stack {
+.aura-hub-status {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.35rem;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border-primary));
+  padding: 0.22rem 0.58rem;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  background: hsl(var(--surface-secondary) / 0.86);
 }
 
-.gamehub-space__sync {
+.aura-hub-status--loading {
+  color: hsl(var(--state-warning));
+}
+
+.aura-hub-status--ready {
+  color: hsl(var(--state-success));
+}
+
+.aura-hub-status--error {
+  color: hsl(var(--state-error));
+}
+
+.aura-hub-status--local {
+  color: hsl(var(--text-secondary));
+}
+
+.aura-hub-rail {
+  position: absolute;
+  z-index: 11;
+  right: clamp(1.2rem, 3.5vw, 2.25rem);
+  bottom: clamp(1.1rem, 2.8vw, 1.75rem);
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-end;
+}
+
+.aura-hub-rail__tile {
+  position: relative;
+  width: 72px;
+  flex: 0 0 auto;
+}
+
+.aura-hub-rail__launch {
+  position: relative;
+  width: 100%;
+  height: 108px;
+  padding: 0;
+  border: none;
+  border-radius: 0.65rem;
+  background: hsl(var(--surface-elevated));
+  cursor: pointer;
+  overflow: hidden;
+  outline-offset: 3px;
+}
+
+.aura-hub-rail__art {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.aura-hub-rail__art--empty {
+  display: grid;
+  place-items: center;
+  padding: 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  color: hsl(var(--text-secondary));
+  background: hsl(var(--surface-secondary) / 0.9);
+}
+
+.aura-hub-rail__tile--selected .aura-hub-rail__launch {
+  box-shadow: 0 0 0 2px hsl(var(--wii-blue) / 0.55);
+}
+
+.aura-hub-rail__empty {
+  max-width: 260px;
+  border-radius: 0.75rem;
+  border: 1px dashed hsl(var(--border-primary));
+  background: hsl(var(--surface-elevated) / 0.82);
+  padding: 0.55rem 0.65rem;
   font-size: 0.72rem;
   color: hsl(var(--text-secondary));
 }
 
-.gamehub-status {
-  border-radius: 999px;
-  border: 1px solid hsl(var(--border-primary));
-  padding: 0.4rem 0.75rem;
-  font-size: 0.73rem;
-  font-weight: 700;
-  background: hsl(var(--surface-secondary) / 0.9);
-}
-.gamehub-status--loading { color: hsl(var(--state-warning)); }
-.gamehub-status--ready { color: hsl(var(--state-success)); }
-.gamehub-status--local { color: hsl(var(--text-secondary)); }
-.gamehub-status--error { color: hsl(var(--state-error)); }
-
-.gamehub-onboarding-card {
-  margin-bottom: 1rem;
-  border-radius: 1.25rem;
-  border: 1px solid hsl(var(--border-primary));
-  background:
-    radial-gradient(circle at top right, hsl(var(--wii-blue) / 0.18), transparent 45%),
-    hsl(var(--surface-elevated) / 0.88);
-  padding: 1.2rem;
-  color: hsl(var(--text-primary));
-}
-
-.gamehub-onboarding-card__header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.gamehub-onboarding-card__badge {
-  border-radius: 999px;
-  background: hsl(var(--wii-blue));
-  color: hsl(var(--text-on-accent));
-  padding: 0.2rem 0.65rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.gamehub-onboarding-card h2 {
-  margin: 0;
-  font-size: 1.15rem;
-}
-
-.gamehub-onboarding-card p {
-  margin: 0.65rem 0 0;
-}
-
-.gamehub-onboarding-card__input-row {
-  margin-top: 0.85rem;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.gamehub-onboarding-card__input {
-  flex: 1 1 260px;
-  min-width: 220px;
-  border-radius: 0.85rem;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-secondary));
-  color: hsl(var(--text-primary));
-  padding: 0.62rem 0.8rem;
-  outline: none;
-}
-
-.gamehub-onboarding-card__input:focus-visible {
-  border-color: hsl(var(--wii-blue));
-  box-shadow: 0 0 0 3px hsl(var(--wii-blue) / 0.25);
-}
-
-.gamehub-onboarding-card__error {
-  color: hsl(var(--state-error));
-  font-size: 0.83rem;
-}
-
-.gamehub-onboarding-card__steps ol {
-  margin: 0.45rem 0 0 1rem;
-  padding: 0;
-  color: hsl(var(--text-secondary));
-}
-
-.gamehub-onboarding-card__actions {
-  margin-top: 0.9rem;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.gamehub-hero {
+/* Scroll region: top padding reserves space under overlay hero (hub-design.html pattern) */
+.aura-hub-content {
+  box-sizing: border-box;
   position: relative;
-  overflow: hidden;
-  border-radius: 1.3rem;
-  border: 1px solid hsl(var(--border-primary));
-  margin-bottom: 1rem;
-  min-height: 220px;
-}
-
-.gamehub-hero__backdrop {
-  position: absolute;
-  inset: 0;
-}
-
-.gamehub-hero__backdrop img {
+  z-index: 6;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  overflow-y: auto;
+  overflow-anchor: none;
+  padding: calc(var(--hub-hero-expanded) + var(--hub-hero-below-gap)) clamp(1rem, 3.2vw, 2.25rem)
+    calc(clamp(4.5rem, 9vw, 7.5rem) + var(--hub-dock-inset, 0px));
+  scrollbar-width: none;
+  scroll-snap-type: y proximity;
+  background: transparent;
+  box-shadow: none;
+  scroll-padding-top: calc(var(--hub-hero-expanded) + 10px);
 }
 
-.gamehub-hero__backdrop::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(120deg, hsl(var(--color-pure-black) / 0.7), hsl(var(--color-pure-black) / 0.2)),
-    linear-gradient(to top, hsl(var(--color-pure-black) / 0.65), transparent 55%);
+.aura-hub-stage--scrolled .aura-hub-content {
+  scroll-padding-top: calc(var(--hub-hero-collapsed) + 10px);
 }
 
-.gamehub-hero__content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 220px;
-  padding: 1.2rem 1.35rem;
-  color: hsl(var(--text-on-accent));
+.aura-hub-content::-webkit-scrollbar {
+  display: none;
 }
 
-.gamehub-hero__badge {
-  display: inline-flex;
-  align-self: flex-start;
-  margin: 0;
-  border-radius: 999px;
-  background: hsl(var(--wii-blue) / 0.9);
-  color: hsl(var(--text-on-accent));
-  padding: 0.2rem 0.6rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
+.aura-hub-scroll-anchor {
+  height: 1px;
+  scroll-margin-top: calc(var(--hub-hero-expanded) + 8px);
 }
 
-.gamehub-hero__content h3 {
-  margin: 0.55rem 0 0;
-  font-size: clamp(1.4rem, 1.2rem + 1.2vw, 2.25rem);
+.aura-hub-stage--scrolled .aura-hub-scroll-anchor {
+  scroll-margin-top: calc(var(--hub-hero-collapsed) + 8px);
 }
 
-.gamehub-hero__content p {
-  margin: 0.5rem 0 0;
-  color: hsl(var(--text-on-accent) / 0.9);
-}
-
-.gamehub-hero__actions {
-  margin-top: 0.8rem;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.gamehub-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: clamp(0.75rem, 1.2vw, 1rem);
-  align-items: start;
-}
-
-.gamehub-layout__main {
-  display: grid;
-  gap: 1rem;
-}
-
-.gamehub-shelf {
-  border-radius: 1.05rem;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-secondary) / 0.42);
-  padding: 0.8rem;
-  backdrop-filter: blur(10px);
-}
-
-.gamehub-shelf__header h3 {
-  margin: 0 0 0.65rem;
-  font-size: 0.92rem;
-  color: hsl(var(--text-primary));
-}
-
-.gamehub-shelf__track {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(220px, 26%);
-  gap: 0.65rem;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--wii-blue) / 0.45) transparent;
-  padding-bottom: 0.32rem;
-}
-
-.gamehub-shelf__item {
-  min-width: 0;
+#game-hub-collections,
+#game-hub-library {
+  scroll-margin-top: calc(var(--hub-hero-expanded) + 12px);
   scroll-snap-align: start;
 }
 
-.gamehub-card {
-  border-radius: 0.95rem;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-elevated) / 0.92);
-  color: hsl(var(--text-primary));
-  overflow: hidden;
-  transform: translateZ(0);
-  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease;
+.aura-hub-stage--scrolled #game-hub-collections,
+.aura-hub-stage--scrolled #game-hub-library {
+  scroll-margin-top: calc(var(--hub-hero-collapsed) + 12px);
 }
 
-.gamehub-card:hover {
-  transform: translateY(-3px) scale(1.01);
-  border-color: hsl(var(--wii-blue) / 0.6);
-  box-shadow: 0 16px 34px -20px hsl(var(--color-pure-black) / 0.65);
+.aura-hub-section {
+  margin-bottom: clamp(2.35rem, 5vw, 3.5rem);
 }
 
-.gamehub-card__media {
-  display: block;
+.aura-hub-section--collections {
+  margin-top: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.aura-hub-section--library {
+  margin-top: clamp(1rem, 2.2vw, 1.75rem);
+  padding-top: clamp(0.35rem, 1vw, 0.65rem);
+  border-top: 1px solid hsl(var(--color-pure-white) / 0.08);
+}
+
+.aura-hub-section__header {
+  margin-bottom: clamp(1.15rem, 2.4vw, 1.65rem);
+  text-align: left;
   width: 100%;
-  position: relative;
-  border: 0;
-  background: hsl(var(--surface-tertiary));
-  padding: 0;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
+}
+
+.aura-hub-section__header--row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  text-align: left;
+}
+
+.aura-hub-section__manage {
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid hsl(var(--color-pure-white) / 0.22);
+  border-radius: 0.45rem;
+  background: hsl(var(--color-pure-black) / 0.25);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--color-pure-white) / 0.92);
   cursor: pointer;
 }
 
-.gamehub-card__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 260ms ease, filter 260ms ease;
+.aura-hub-section__manage:hover {
+  background: hsl(var(--color-pure-white) / 0.12);
 }
 
-.gamehub-card:hover .gamehub-card__media img {
-  transform: scale(1.06);
-  filter: saturate(1.07) brightness(1.05);
-}
-
-.gamehub-card__fallback {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  color: hsl(var(--text-secondary));
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.gamehub-card__source {
-  position: absolute;
-  left: 0.45rem;
-  top: 0.45rem;
-  border-radius: 999px;
-  padding: 0.15rem 0.42rem;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  background: hsl(var(--color-pure-black) / 0.56);
-  color: hsl(var(--color-pure-white));
-}
-
-.gamehub-card__shine {
-  position: absolute;
-  inset: -40% auto auto -60%;
-  width: 90%;
-  height: 200%;
-  background: linear-gradient(120deg, transparent, hsl(var(--color-pure-white) / 0.22), transparent);
-  transform: rotate(20deg);
-  opacity: 0;
-  transition: opacity 240ms ease, transform 340ms ease;
-}
-
-.gamehub-card:hover .gamehub-card__shine {
-  opacity: 1;
-  transform: rotate(20deg) translateX(50%);
-}
-
-.gamehub-card__meta {
-  padding: 0.55rem 0.65rem 0.2rem;
-}
-
-.gamehub-card__meta h4 {
+/* Section titles: float over dimmed wallpaper — high contrast, no panel behind them */
+.aura-hub-section__header h3 {
   margin: 0;
-  font-size: 0.84rem;
-  color: hsl(var(--text-primary));
-}
-
-.gamehub-card__meta p {
-  margin: 0.2rem 0 0;
-  font-size: 0.75rem;
-  color: hsl(var(--text-secondary));
-}
-
-.gamehub-card__actions {
-  display: flex;
-  gap: 0.35rem;
-  padding: 0.45rem 0.65rem 0.65rem;
-}
-
-.gamehub-panel {
-  border-radius: 1.05rem;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-secondary) / 0.5);
-  padding: 0.8rem;
-  backdrop-filter: blur(10px);
-}
-
-.gamehub-panel h4 {
-  margin: 0 0 0.55rem;
-  font-size: 0.86rem;
-}
-
-.gamehub-favorites {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.gamehub-favorite-tile {
-  border-radius: 0.85rem;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-elevated) / 0.9);
-  padding: 0.55rem;
   text-align: left;
-  transition: transform 180ms ease, border-color 180ms ease;
-  color: hsl(var(--text-primary));
+  font-size: clamp(0.92rem, 0.78rem + 0.55vw, 1.08rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: hsl(var(--color-pure-white) / 0.98);
+  text-transform: uppercase;
+  text-shadow:
+    0 1px 2px hsl(var(--color-pure-black) / 0.65),
+    0 2px 24px hsl(var(--color-pure-black) / 0.45);
 }
 
-.gamehub-favorite-tile:hover {
-  transform: translateX(2px);
-  border-color: hsl(var(--wii-blue) / 0.62);
+.aura-hub-section__subtle {
+  margin: 0;
+  font-size: clamp(0.8rem, 0.72rem + 0.35vw, 0.92rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: hsl(var(--color-pure-white) / 0.88);
+  text-shadow:
+    0 1px 2px hsl(var(--color-pure-black) / 0.55),
+    0 1px 16px hsl(var(--color-pure-black) / 0.35);
 }
 
-.gamehub-favorite-tile span {
+.aura-hub-collections {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  column-gap: clamp(1.5rem, 3.5vw, 2.75rem);
+  row-gap: clamp(1.25rem, 2.8vw, 2rem);
+  margin-top: 0.35rem;
+}
+
+.aura-hub-stack__label {
   display: block;
-  font-size: 0.83rem;
-  font-weight: 700;
+  margin-top: 0.85rem;
+  line-height: 1.25;
 }
 
-.gamehub-favorite-tile small {
-  color: hsl(var(--text-secondary));
+.aura-hub-stack {
+  border: none;
+  background: transparent;
+  color: hsl(var(--text-primary));
+  text-align: left;
+  width: 184px;
 }
 
-.gamehub-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
+.aura-hub-stack__cards {
+  position: relative;
+  height: 252px;
 }
 
-.gamehub-stats div {
+.aura-hub-stack__item {
+  position: absolute;
+  inset: 0;
   border-radius: 0.8rem;
   border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-elevated));
-  text-align: center;
-  padding: 0.5rem;
+  background-size: cover;
+  background-position: center;
+  background-color: hsl(var(--surface-elevated));
 }
 
-.gamehub-stats strong {
-  display: block;
-  font-size: 1rem;
+.aura-hub-stack__item--1 {
+  transform: translate(-8px, -4px) rotate(-4deg);
+  filter: brightness(0.46);
 }
 
-.gamehub-stats span {
-  font-size: 0.74rem;
-  color: hsl(var(--text-secondary));
+.aura-hub-stack__item--2 {
+  transform: translate(8px, -2px) rotate(4deg);
+  filter: brightness(0.64);
 }
 
-.gamehub-muted {
-  margin: 0;
-  color: hsl(var(--text-secondary));
+.aura-hub-stack__item--3 {
+  transform: translate(0, 0);
+  filter: brightness(0.88);
 }
 
-.gamehub-detail {
-  position: fixed;
-  inset: auto 1rem 1rem auto;
-  z-index: 3500;
+.aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--1,
+.aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--2 {
+  opacity: 0;
+  transform: translate(0, 12px) scale(0.88);
+  pointer-events: none;
 }
 
-.gamehub-detail__inner {
-  width: min(460px, calc(100vw - 2rem));
-  border-radius: 1rem;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-elevated) / 0.95);
-  padding: 0.9rem;
-  box-shadow: var(--shadow-xl);
-}
-
-.gamehub-detail__inner h4 {
-  margin: 0;
-  color: hsl(var(--text-primary));
-}
-
-.gamehub-detail__inner p {
-  margin: 0.25rem 0 0;
-  color: hsl(var(--text-secondary));
-  font-size: 0.82rem;
-}
-
-.gamehub-detail__actions {
-  margin-top: 0.75rem;
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.gamehub-btn {
-  appearance: none;
-  border-radius: 999px;
-  border: 1px solid hsl(var(--border-primary));
-  padding: 0.45rem 0.8rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
-}
-
-.gamehub-btn:hover {
-  transform: translateY(-1px);
-}
-
-.gamehub-btn--primary {
-  background: hsl(var(--wii-blue));
-  color: hsl(var(--text-on-accent));
-  border-color: hsl(var(--wii-blue) / 0.75);
-}
-
-.gamehub-btn--secondary {
-  background: hsl(var(--surface-secondary));
-  color: hsl(var(--text-primary));
-}
-
-.gamehub-btn--ghost {
-  background: hsl(var(--surface-elevated) / 0.6);
-  color: hsl(var(--text-primary));
-}
-
-.gamehub-btn--tiny {
-  font-size: 0.72rem;
-  padding: 0.28rem 0.52rem;
-}
-
-@media (max-width: 1200px) {
-  .gamehub-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .gamehub-layout__side {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.7rem;
-  }
-
-  .gamehub-shelf__track {
-    grid-auto-columns: minmax(220px, 35%);
+@media (prefers-reduced-motion: reduce) {
+  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--1,
+  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--2 {
+    opacity: 0;
+    transform: none;
   }
 }
 
-@media (max-width: 800px) {
-  .gamehub-space {
-    padding: 1.15rem 1rem 5rem;
-  }
-
-  .gamehub-space__header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .gamehub-space__status-stack {
-    align-items: flex-start;
-  }
-
-  .gamehub-layout__side {
-    grid-template-columns: 1fr;
-  }
-
-  .gamehub-shelf__track {
-    grid-auto-columns: minmax(200px, 68%);
-  }
+.aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--3 {
+  border-color: hsl(var(--wii-blue));
+  animation: aura-hub-stack-breathe 2.4s ease-in-out infinite;
 }
 
-@media (max-width: 560px) {
-  .gamehub-hero {
-    min-height: 200px;
+@keyframes aura-hub-stack-breathe {
+  0%,
+  100% {
+    transform: scale(1.04);
+    box-shadow: 0 0 38px hsl(var(--wii-blue) / 0.32);
   }
 
-  .gamehub-hero__content {
-    min-height: 200px;
-    padding: 0.85rem 0.95rem;
-  }
-
-  .gamehub-space__title {
-    font-size: 1.35rem;
-  }
-
-  .gamehub-shelf__track {
-    grid-auto-columns: minmax(190px, 84%);
+  50% {
+    transform: scale(1.07);
+    box-shadow: 0 0 52px hsl(var(--wii-blue) / 0.48);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gamehub-space *,
-  .gamehub-space *::before,
-  .gamehub-space *::after {
-    animation: none !important;
-    transition-duration: 0ms !important;
-    scroll-behavior: auto !important;
+  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--3 {
+    animation: none;
+    transform: none;
+    border-color: hsl(var(--wii-blue));
+    box-shadow: 0 0 40px hsl(var(--wii-blue) / 0.32);
   }
+}
+
+.aura-hub-stack span {
+  display: block;
+  margin-top: 0.65rem;
+  font-size: clamp(0.78rem, 0.68rem + 0.3vw, 0.88rem);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: hsl(var(--color-pure-white) / 0.92);
+  text-shadow:
+    0 1px 2px hsl(var(--color-pure-black) / 0.55),
+    0 1px 14px hsl(var(--color-pure-black) / 0.35);
+}
+
+/* hub-design.html: .expansion-wrapper { grid 0.7s var(--physics-ease) } — shelf reveals with the same springy ease. */
+.aura-hub-expansion {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  transition: grid-template-rows 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aura-hub-expansion--open {
+  grid-template-rows: 1fr;
+  margin-top: 1.15rem;
+}
+
+.aura-hub-expansion--shelf-closing .aura-hub-expansion__inner {
+  pointer-events: none;
+}
+
+.aura-hub-expansion__inner {
+  min-height: 0;
+}
+
+/* Close fly-out: hide real tiles; open fly-in: lock input only (flyers are fixed above). */
+.aura-hub-card-slot--hide-cards .aura-game-card {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.aura-hub-space--effects .aura-hub-card-slot--hide-cards .aura-game-card {
+  transition: opacity 120ms ease;
+}
+
+.aura-hub-card-slot--fly-lock .aura-game-card {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Fly-in: tiles hidden under fixed flyers; handoff crossfades like hub-design (opacity swap, no pop). */
+.aura-hub-grid--fly-active .aura-game-card {
+  opacity: 0;
+}
+
+/* Kill `transition: all` from .aura-hub-space--effects while flying — it fights opacity handoff and causes flicker */
+.aura-hub-space--effects .aura-hub-grid--fly-active:not(.aura-hub-grid--fly-handoff) .aura-game-card {
+  transition: none;
+}
+
+.aura-hub-grid--fly-active.aura-hub-grid--fly-handoff .aura-game-card {
+  opacity: 1;
+  transition: opacity var(--collection-handoff-crossfade-ms, 100ms) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aura-hub-space--effects .aura-hub-grid--fly-active .aura-game-card:hover {
+  transform: none;
+}
+
+.aura-hub-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: clamp(1rem, 2.4vw, 1.45rem);
+}
+
+.aura-game-card {
+  border-radius: 0.85rem;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-elevated) / 0.88);
+  overflow: hidden;
+  text-align: left;
+}
+
+.aura-game-card__launch {
+  width: 100%;
+  border: none;
+  padding: 0;
+  background: transparent;
+  display: block;
+  cursor: pointer;
+  color: inherit;
+}
+
+.aura-game-card img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.aura-game-card__fallback {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  color: hsl(var(--text-secondary));
+  font-size: 0.8rem;
+}
+
+.aura-hub-empty {
+  border-radius: 0.75rem;
+  border: 1px dashed hsl(var(--border-primary));
+  background: hsl(var(--surface-elevated) / 0.72);
+  padding: 0.9rem 1rem;
+  color: hsl(var(--text-secondary));
+  font-size: 0.84rem;
+}
+
+.aura-hub-space--effects .aura-hub-mode-toggle,
+.aura-hub-space--effects .aura-hub-stack__item {
+  transition: all 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Game cards: same motion + elevation as collection flyers (see --aura-game-card-elev-shadow) */
+.aura-hub-space--effects .aura-game-card {
+  box-shadow: var(--aura-game-card-elev-shadow);
+  transition:
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aura-hub-space--effects .aura-hub-rail__launch {
+  transition:
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 260ms ease,
+    box-shadow 260ms ease,
+    filter 260ms ease;
+  border: 1px solid hsl(var(--border-primary));
+}
+
+.aura-hub-space--effects .aura-hub-rail__launch:hover {
+  transform: translateY(-6px) scale(1.04);
+  border-color: hsl(var(--color-pure-white) / 0.45);
+  box-shadow:
+    0 16px 40px hsl(var(--color-pure-black) / 0.45),
+    0 0 0 1px hsl(var(--color-pure-white) / 0.1);
+  filter: saturate(1.08) brightness(1.05);
+  z-index: 1;
+}
+
+.aura-hub-space--effects .aura-hub-rail__launch:focus-visible {
+  transform: translateY(-3px) scale(1.03);
+  border-color: hsl(var(--wii-blue) / 0.85);
+  box-shadow: 0 0 0 2px hsl(var(--wii-blue) / 0.35);
+}
+
+.aura-hub-space--effects .aura-game-card:hover {
+  transform: translateY(-6px) scale(1.015);
+  border-color: hsl(var(--text-primary));
+}
+
+@keyframes auraLaunchBlast {
+  0% {
+    filter: blur(0) brightness(1);
+  }
+  40% {
+    filter: blur(10px) brightness(1.3);
+  }
+  100% {
+    filter: blur(0) brightness(1);
+  }
+}
+
+.aura-hub-space--effects.aura-hub-space--launching .aura-hub-stage {
+  animation: auraLaunchBlast 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aura-hub-space--floating .aura-hub-mode-toggle {
+  background: hsl(var(--color-pure-black) / 0.42);
+  border-color: hsl(var(--color-pure-white) / 0.2);
+  color: hsl(var(--color-pure-white));
+  backdrop-filter: blur(10px);
+}
+
+.aura-hub-space--floating .aura-hub-status {
+  background: hsl(var(--color-pure-black) / 0.4);
+  border-color: hsl(var(--color-pure-white) / 0.15);
+  color: hsl(var(--color-pure-white));
+  backdrop-filter: blur(8px);
+}
+
+.aura-hub-space--floating .aura-hub-rail__launch {
+  border: none;
+  box-shadow: 0 10px 28px hsl(var(--color-pure-black) / 0.5);
+}
+
+.aura-hub-space--floating .aura-hub-rail__launch:hover,
+.aura-hub-space--floating .aura-hub-rail__launch:focus-visible {
+  border: 1px solid hsl(var(--color-pure-white) / 0.2);
+}
+
+.aura-hub-space--floating .aura-hub-rail__tile--selected .aura-hub-rail__launch {
+  box-shadow:
+    0 0 0 2px hsl(var(--wii-blue) / 0.55),
+    0 10px 28px hsl(var(--color-pure-black) / 0.5);
+}
+
+.aura-hub-space--floating .aura-hub-rail__empty {
+  background: hsl(var(--color-pure-black) / 0.38);
+  border-color: hsl(var(--color-pure-white) / 0.2);
+  color: hsl(var(--color-pure-white) / 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.aura-hub-space--floating .aura-game-card {
+  position: relative;
+  border: none;
+  background: transparent;
+  /* Match flyer elevation so handoff does not lose depth in backdrop-off mode */
+  box-shadow: var(--aura-game-card-elev-shadow);
+}
+
+.aura-hub-space--floating .aura-game-card__launch {
+  border-radius: 0.85rem;
+  overflow: hidden;
+}
+
+.aura-hub-space--floating .aura-hub-stack__item {
+  border: 1px solid hsl(var(--color-pure-white) / 0.14);
+  box-shadow: none;
+}
+
+.aura-hub-space--floating .aura-hub-empty {
+  background: hsl(var(--color-pure-black) / 0.38);
+  border-color: hsl(var(--color-pure-white) / 0.18);
+  color: hsl(var(--color-pure-white) / 0.9);
+}
+
+/* Comfortable laptop / small window: denser padding (column max comes from --hub-column-max) */
+@media (max-width: 1100px) {
+  .aura-hub-content {
+    padding-inline: clamp(0.85rem, 3.5vw, 1.75rem);
+  }
+}
+
+@media (max-width: 860px) {
+  .aura-hub-hero__content {
+    padding-right: clamp(1rem, 4vw, 1.5rem);
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .aura-hub-rail {
+    position: static;
+    margin-top: 0.7rem;
+    flex-wrap: wrap;
+  }
+
+  .aura-hub-column {
+    max-width: 100%;
+  }
+
+  .aura-hub-content {
+    padding-inline: clamp(0.75rem, 4vw, 1.35rem);
+  }
+
+  .aura-hub-collections {
+    gap: 0.75rem;
+  }
+
+  .aura-hub-stack {
+    width: 152px;
+  }
+
+  .aura-hub-stack__cards {
+    height: 208px;
+  }
+
+  .aura-hub-grid {
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 0.95rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-hub-expansion {
+    transition-duration: 0.18s !important;
+    transition-timing-function: ease !important;
+  }
+
+  .aura-hub-hero-shell {
+    transition: none !important;
+  }
+
+  .aura-hub-space--effects .aura-hub-hero__media-layer--overlay {
+    transition: opacity 40ms linear !important;
+  }
+
+  .aura-hub-space--effects .aura-hub-mode-toggle,
+  .aura-hub-space--effects .aura-game-card,
+  .aura-hub-space--effects .aura-hub-stack__item,
+  .aura-hub-space--effects .aura-hub-rail__launch {
+    transition-duration: 90ms !important;
+    transition-timing-function: ease !important;
+  }
+
+  .aura-hub-space--effects.aura-hub-space--launching .aura-hub-stage {
+    animation: none !important;
+  }
+}
+
+/* —— Context menu (Radix) —— */
+.aura-hub-context-menu {
+  z-index: 12000;
+  min-width: 10rem;
+  max-height: min(70vh, 22rem);
+  overflow-y: auto;
+  padding: 0.35rem 0;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-primary));
+  box-shadow: var(--shadow-lg);
+}
+
+.aura-hub-context-menu--sub {
+  padding: 0.35rem 0;
+}
+
+.aura-hub-context-menu__item {
+  display: flex;
+  align-items: center;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  color: hsl(var(--text-primary));
+  cursor: default;
+  outline: none;
+  user-select: none;
+}
+
+.aura-hub-context-menu__item[data-highlighted] {
+  background: hsl(var(--state-hover));
+}
+
+.aura-hub-context-menu__item--accent {
+  color: hsl(var(--accent-primary, 210 90% 55%));
+}
+
+.aura-hub-context-menu__subtrigger {
+  justify-content: space-between;
+}
+
+.aura-hub-context-menu__subtrigger::after {
+  content: '›';
+  margin-left: 0.5rem;
+  opacity: 0.65;
+}
+
+/* —— Manage collections modal —— */
+.aura-hub-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.aura-hub-modal {
+  width: min(100%, 26rem);
+  max-height: min(90vh, 32rem);
+  overflow: auto;
+  padding: 1.25rem 1.35rem;
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-primary));
+  box-shadow: var(--shadow-lg);
+}
+
+.aura-hub-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.aura-hub-modal__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: hsl(var(--text-primary));
+}
+
+.aura-hub-modal__close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: hsl(var(--text-primary));
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aura-hub-modal__close:hover {
+  background: hsl(var(--state-hover));
+}
+
+.aura-hub-modal__hint {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: hsl(var(--text-secondary));
+}
+
+.aura-hub-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.aura-hub-modal__empty {
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  color: hsl(var(--text-secondary));
+}
+
+.aura-hub-modal__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid hsl(var(--border-primary) / 0.35);
+}
+
+.aura-hub-modal__row:last-child {
+  border-bottom: none;
+}
+
+.aura-hub-modal__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: hsl(var(--text-primary));
+}
+
+.aura-hub-modal__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.35rem;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-secondary, 0 0% 12%));
+  color: hsl(var(--text-primary));
+  font-size: 0.9rem;
+}
+
+.aura-hub-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.aura-hub-modal__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border-primary) / 0.35);
 }

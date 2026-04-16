@@ -9,7 +9,7 @@
   flex-direction: column;
 }
 
-/* Main content area for channels */
+/* Main content area — hosts vertical space world track */
 .main-content {
   flex: 1;
   width: 100%;
@@ -20,11 +20,12 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  /* Ensure it takes full available space */
   flex-grow: 1;
   flex-shrink: 0;
   box-sizing: border-box;
   z-index: 20;
+  /* #root uses text-align: center — reset so Game Hub / channels layout from the start edge */
+  text-align: start;
 }
 
 /* Dock container */
@@ -37,6 +38,18 @@
   height: auto;
   z-index: 1000;
   background: transparent;
+  pointer-events: auto;
+}
+
+/* Game Hub: thin pill so library grid / hero stay primary; clicks pass through empty margin */
+.dock-container--gamehub-minimal {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.dock-container--gamehub-minimal .gamehub-minimal-dock {
   pointer-events: auto;
 }
 
@@ -141,6 +154,10 @@
 .bg-white\/20 { background-color: rgba(255, 255, 255, 0.2); }
 .top-20 { top: 5rem; }
 
+html {
+  background-color: transparent;
+}
+
 body, #root {
   min-height: 100vh;
   margin: 0;
@@ -164,32 +181,77 @@ body, #root {
   box-sizing: border-box;
 }
 
-.space-scene {
-  transition:
-    transform 620ms cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 420ms cubic-bezier(0.25, 0.9, 0.35, 1),
-    filter 420ms cubic-bezier(0.25, 0.9, 0.35, 1);
-  transform-origin: 50% 50%;
-  will-change: transform, opacity, filter;
+/* --- Vertical space world (hub-space-switch.html model) --- */
+/* Must fill the flex main-content region and clip the tall track to one viewport. */
+.space-world {
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.space-scene--switching {
-  opacity: 0.58;
-  transform: scale(0.97) translateY(16px);
-  filter: saturate(0.82) blur(1.6px) brightness(0.95);
+.space-world__track {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+  will-change: transform;
+  transition: transform var(--space-world-duration, 780ms) cubic-bezier(0.16, 1, 0.3, 1);
+  backface-visibility: hidden;
 }
 
-.space-scene--settled {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-  filter: saturate(1) blur(0) brightness(1);
+.space-world__panel {
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.space-world__panel--active {
+  pointer-events: auto;
+}
+
+.space-world__panel-surface {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: 0;
+  box-shadow:
+    0 24px 56px hsl(var(--wii-blue) / 0.07),
+    inset 0 1px 0 hsl(var(--border-primary) / 0.12);
+}
+
+/* Game Hub: clip floating UI to this space only; keeps hero/cards from painting outside the rail */
+.space-world__panel[data-space-id='gamehub'] .space-world__panel-surface {
+  overflow: hidden;
+  contain: layout style;
+  isolation: isolate;
+}
+
+/* No inset top highlight — avoids a thin light line at the viewport edge on dark wallpapers */
+.space-world--gamehub .space-world__panel[data-space-id='gamehub'] .space-world__panel-surface {
+  box-shadow: 0 22px 52px hsl(var(--wii-blue) / 0.09);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .space-scene {
-    transition: opacity 120ms linear;
-    transform: none !important;
-    filter: none !important;
+  .space-world__track {
+    transition: none !important;
+  }
+
+  .wallpaper-space-parallax .wallpaper-bg,
+  .wallpaper-space-parallax .wallpaper-bg-next {
+    transition: opacity 120ms linear, filter 120ms linear, background-position 0ms linear !important;
   }
 }
 

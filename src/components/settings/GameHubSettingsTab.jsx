@@ -9,10 +9,11 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 const STEAM_ID_HELP_URL = 'https://steamcommunity.com/my/?xml=1';
 
 const GameHubSettingsTab = React.memo(() => {
-  const { profile, library } = useConsolidatedAppStore(
+  const { profile, library, ui } = useConsolidatedAppStore(
     useShallow((state) => ({
       profile: state.gameHub?.profile || {},
       library: state.gameHub?.library || {},
+      ui: state.gameHub?.ui || {},
     }))
   );
   const { setGameHubState } = useConsolidatedAppStore(useShallow((state) => state.actions));
@@ -95,7 +96,7 @@ const GameHubSettingsTab = React.memo(() => {
           Game Hub
         </Text>
         <Text variant="body" className="text-[hsl(var(--text-secondary))]">
-          Manage Steam enrichment profile settings and local-only behavior.
+          Manage Steam enrichment and Game Hub-only visual behavior.
         </Text>
       </div>
 
@@ -156,9 +157,43 @@ const GameHubSettingsTab = React.memo(() => {
       </Card>
 
       <Card
+        title="Hub Visuals"
+        separator
+        desc="These settings only affect the Game Hub space."
+        className="mb-4"
+      >
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-[hsl(var(--text-primary))]">Show Hub Backdrop</p>
+              <p className="text-xs text-[hsl(var(--text-secondary))]">
+                Adds the Game Hub local artwork backdrop over your existing app wallpaper.
+              </p>
+            </div>
+            <WToggle
+              checked={ui.showHubBackdrop ?? false}
+              onChange={(checked) => setGameHubState({ ui: { showHubBackdrop: checked } })}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-[hsl(var(--text-primary))]">Enhanced Effects & Animations</p>
+              <p className="text-xs text-[hsl(var(--text-secondary))]">
+                Enables hover lift, stack transitions, and launch burst effects. Turn off for lower resource use.
+              </p>
+            </div>
+            <WToggle
+              checked={ui.effectsEnabled ?? true}
+              onChange={(checked) => setGameHubState({ ui: { effectsEnabled: checked } })}
+            />
+          </div>
+        </div>
+      </Card>
+
+      <Card
         title="Onboarding"
         separator
-        desc="If onboarding was skipped, reset it to show the friendly Steam setup card in Game Hub again."
+        desc="Use this if you want the Game Hub Steam connection prompt available again."
       >
         <div className="mt-4">
           <WButton size="sm" variant="secondary" onClick={handleResetOnboarding}>

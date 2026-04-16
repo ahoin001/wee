@@ -100,6 +100,10 @@ function createAppDataStores({
           wallpaper: null,
           wallpaperOpacity: 1,
           wallpaperBlur: 0,
+          wallpaperWorkspaceBrightness: 1,
+          wallpaperWorkspaceSaturate: 1,
+          wallpaperGameHubBrightness: 0.78,
+          wallpaperGameHubSaturate: 1,
           cyclingSettings: {
             enabled: false,
             interval: 30,
@@ -133,6 +137,10 @@ function createAppDataStores({
         wallpaper: null,
         wallpaperOpacity: 1,
         wallpaperBlur: 0,
+        wallpaperWorkspaceBrightness: 1,
+        wallpaperWorkspaceSaturate: 1,
+        wallpaperGameHubBrightness: 0.78,
+        wallpaperGameHubSaturate: 1,
         cyclingSettings: {
           enabled: false,
           interval: 30,
@@ -240,6 +248,10 @@ function createAppDataStores({
             wallpaper: {
               opacity: 1,
               blur: 0,
+              workspaceBrightness: 1,
+              workspaceSaturate: 1,
+              gameHubBrightness: 0.78,
+              gameHubSaturate: 1,
               cycling: {
                 enabled: false,
                 interval: 30,

@@ -1,236 +1,95 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
+import { buildHubData } from './hubData';
+import AuraHero from './AuraHero';
+import AuraCollectionsSection from './AuraCollectionsSection';
+import AuraLibrarySection from './AuraLibrarySection';
+import { readHubDockInsetPx, scrollHubRegionIntoFocus } from './hubScrollUtils';
 import './GameHubSpace.css';
 
-const STEAM_ID_HELP_URL = 'https://steamcommunity.com/my/?xml=1';
-
-const formatPlaytime = (minutes = 0) => {
-  if (!minutes || minutes <= 0) return 'No tracked playtime yet';
-  const hours = Math.round(minutes / 60);
-  return `${hours.toLocaleString()}h played`;
-};
-
-const normalizeSteamGame = (game, enrichmentMap) => {
-  const appId = String(game.appId || game.appid || '');
-  const enrich = enrichmentMap?.[appId] || {};
-  return {
-    id: `steam-${appId || game.name}`,
-    source: 'steam',
-    appId,
-    name: game.name || 'Unknown Steam Game',
-    imageUrl: appId
-      ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`
-      : null,
-    headerUrl: appId
-      ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`
-      : null,
-    launchPath: appId ? `steam://rungameid/${appId}` : null,
-    playtimeForever: Number(enrich.playtimeForever || 0),
-    playtimeRecent: Number(enrich.playtimeRecent || 0),
-    lastPlayedAt: Number(enrich.lastPlayedAt || 0),
-  };
-};
-
-const normalizeEpicGame = (game) => ({
-  id: `epic-${game.appName || game.name}`,
-  source: 'epic',
-  appId: game.appName || game.name,
-  name: game.name || 'Unknown Epic Game',
-  imageUrl: game.image || null,
-  headerUrl: game.image || null,
-  launchPath: game.appName
-    ? `com.epicgames.launcher://apps/${game.appName}?action=launch&silent=true`
-    : null,
-  playtimeForever: 0,
-  playtimeRecent: 0,
-  lastPlayedAt: 0,
-});
-
-function buildShelves({ steamGames, epicGames, enrichmentMap, favorites }) {
-  const normalizedSteam = (steamGames || []).map((game) => normalizeSteamGame(game, enrichmentMap));
-  const normalizedEpic = (epicGames || []).map(normalizeEpicGame);
-  const installed = [...normalizedSteam, ...normalizedEpic];
-
-  const mostPlayed = [...normalizedSteam]
-    .sort((a, b) => b.playtimeForever - a.playtimeForever)
-    .slice(0, 12);
-
-  const recentlyPlayed = [...normalizedSteam]
-    .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt || b.playtimeRecent - a.playtimeRecent)
-    .slice(0, 12);
-
-  const readyToLaunch = installed.filter((item) => Boolean(item.launchPath)).slice(0, 16);
-
-  const favoriteSet = new Set(favorites || []);
-  const premiumFavorites = installed
-    .filter((item) => favoriteSet.has(item.id))
-    .sort((a, b) => b.playtimeForever - a.playtimeForever || a.name.localeCompare(b.name))
-    .slice(0, 8);
-
-  const bySource = {
-    steam: installed.filter((item) => item.source === 'steam').slice(0, 12),
-    epic: installed.filter((item) => item.source === 'epic').slice(0, 12),
-  };
-
-  return {
-    installed,
-    mostPlayed,
-    recentlyPlayed,
-    readyToLaunch,
-    premiumFavorites,
-    bySource,
-  };
-}
-
-function DataStatusBadge({ status, reason }) {
-  if (status === 'loading') {
-    return <span className="gamehub-status gamehub-status--loading">Syncing Steam enrichment...</span>;
-  }
-  if (status === 'ready') {
-    return <span className="gamehub-status gamehub-status--ready">Steam enrichment ready</span>;
-  }
-  if (status === 'local-only') {
-    return <span className="gamehub-status gamehub-status--local">Local library mode</span>;
-  }
-  if (status === 'error') {
-    return (
-      <span className="gamehub-status gamehub-status--error">
-        Steam enrichment unavailable{reason ? `: ${reason}` : ''}
-      </span>
-    );
-  }
-  return null;
-}
-
-function SteamOnboarding({ onSaveSteamId, onSkip }) {
-  const [steamIdInput, setSteamIdInput] = useState('');
-  const [validationError, setValidationError] = useState('');
-
-  const handleSave = () => {
-    const normalized = steamIdInput.trim();
-    if (!/^\d{17}$/.test(normalized)) {
-      setValidationError('SteamID64 should be 17 digits.');
-      return;
-    }
-    setValidationError('');
-    onSaveSteamId(normalized);
-  };
-
-  return (
-    <div className="gamehub-onboarding-card">
-      <div className="gamehub-onboarding-card__header">
-        <span className="gamehub-onboarding-card__badge">Power-Up</span>
-        <h2>Connect your Steam profile</h2>
-      </div>
-      <p>
-        Add your SteamID64 to unlock Recently Played and Most Played shelves from Steam Web API data.
-      </p>
-      <div className="gamehub-onboarding-card__input-row">
-        <input
-          type="text"
-          value={steamIdInput}
-          onChange={(event) => setSteamIdInput(event.target.value)}
-          placeholder="Enter SteamID64 (17 digits)"
-          className="gamehub-onboarding-card__input"
-        />
-        <button type="button" className="gamehub-btn gamehub-btn--primary" onClick={handleSave}>
-          Save SteamID64
-        </button>
-      </div>
-      {validationError ? <p className="gamehub-onboarding-card__error">{validationError}</p> : null}
-      <div className="gamehub-onboarding-card__steps">
-        <p><strong>Where to find SteamID64:</strong></p>
-        <ol>
-          <li>Open your Steam profile in browser.</li>
-          <li>Append <code>?xml=1</code> to the URL and load it.</li>
-          <li>Copy the value inside <code>&lt;steamID64&gt;</code>.</li>
-        </ol>
-      </div>
-      <div className="gamehub-onboarding-card__actions">
-        <a href={STEAM_ID_HELP_URL} target="_blank" rel="noreferrer" className="gamehub-btn gamehub-btn--ghost">
-          Open SteamID guide
-        </a>
-        <button type="button" className="gamehub-btn gamehub-btn--secondary" onClick={onSkip}>
-          Continue in local-only mode
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function GameCard({ game, isFavorite, onToggleFavorite, onSelect, onLaunch }) {
-  return (
-    <article className="gamehub-card">
-      <button type="button" className="gamehub-card__media" onClick={() => onSelect(game)}>
-        {game.headerUrl ? (
-          <img src={game.headerUrl} alt={game.name} loading="lazy" />
-        ) : (
-          <div className="gamehub-card__fallback">No artwork yet</div>
-        )}
-        <span className="gamehub-card__source">{game.source.toUpperCase()}</span>
-        <div className="gamehub-card__shine" />
-      </button>
-      <div className="gamehub-card__meta">
-        <h4>{game.name}</h4>
-        <p>{formatPlaytime(game.playtimeForever)}</p>
-      </div>
-      <div className="gamehub-card__actions">
-        <button type="button" className="gamehub-btn gamehub-btn--tiny" onClick={() => onLaunch(game)}>
-          Launch
-        </button>
-        <button type="button" className="gamehub-btn gamehub-btn--tiny gamehub-btn--ghost" onClick={() => onToggleFavorite(game.id)}>
-          {isFavorite ? '★ Favorite' : '☆ Favorite'}
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function Shelf({ title, games, favorites, onToggleFavorite, onSelect, onLaunch }) {
-  if (!games.length) return null;
-  return (
-    <section className="gamehub-shelf">
-      <div className="gamehub-shelf__header">
-        <h3>{title}</h3>
-      </div>
-      <div className="gamehub-shelf__track" role="list">
-        {games.map((game) => (
-          <div key={game.id} className="gamehub-shelf__item" role="listitem">
-            <GameCard
-              game={game}
-              isFavorite={favorites.has(game.id)}
-              onToggleFavorite={onToggleFavorite}
-              onSelect={onSelect}
-              onLaunch={onLaunch}
-            />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
+/** hub-design style: first ~80px of scroll commits hero from spotlight → compact bar */
+const HERO_SCROLL_COMPACT_THRESHOLD_PX = 80;
 
 export default function GameHubSpace() {
-  const { appLibrary, gameHub, setGameHubState, appLibraryManager } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      appLibrary: state.appLibrary,
-      gameHub: state.gameHub,
-      setGameHubState: state.actions.setGameHubState,
-      appLibraryManager: state.appLibraryManager,
-    }))
-  );
+  const { appLibrary, gameHub, setGameHubState, patchGameHubLastLaunch, appLibraryManager, showDock } =
+    useConsolidatedAppStore(
+      useShallow((state) => ({
+        appLibrary: state.appLibrary,
+        gameHub: state.gameHub,
+        setGameHubState: state.actions.setGameHubState,
+        patchGameHubLastLaunch: state.actions.patchGameHubLastLaunch,
+        appLibraryManager: state.appLibraryManager,
+        showDock: state.ui.showDock ?? true,
+      }))
+    );
   const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
 
-  const [selectedGame, setSelectedGame] = useState(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [isHeroCompact, setIsHeroCompact] = useState(false);
+  const [heroPreviewGameId, setHeroPreviewGameId] = useState(null);
+  const heroPreviewClearRef = useRef(null);
+  const contentScrollRef = useRef(null);
+  const stageRef = useRef(null);
+  const heroScrollRafRef = useRef(null);
+
+  const applyHeroScrollMode = useCallback(() => {
+    const main = contentScrollRef.current;
+    if (!main) return;
+    const scrolled = main.scrollTop > HERO_SCROLL_COMPACT_THRESHOLD_PX;
+    setIsHeroCompact((prev) => (prev !== scrolled ? scrolled : prev));
+  }, []);
+
+  const scheduleHeroScrollMode = useCallback(() => {
+    if (heroScrollRafRef.current != null) return;
+    heroScrollRafRef.current = window.requestAnimationFrame(() => {
+      heroScrollRafRef.current = null;
+      applyHeroScrollMode();
+    });
+  }, [applyHeroScrollMode]);
 
   useEffect(() => {
-    const shouldPrompt = !gameHub.profile?.steamId && !gameHub.profile?.onboardingDismissed;
-    setShowOnboarding(shouldPrompt);
-  }, [gameHub.profile?.onboardingDismissed, gameHub.profile?.steamId]);
+    applyHeroScrollMode();
+  }, [applyHeroScrollMode]);
+
+  /* Reserve space + scroll math for fixed dock so hub content doesn’t sit unreadably under it */
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return undefined;
+
+    const syncDockInset = () => {
+      const dock = document.querySelector('.dock-container');
+      let px = 0;
+      if (showDock && dock) {
+        px = Math.round(dock.getBoundingClientRect().height + 20);
+      }
+      stage.style.setProperty('--hub-dock-inset', `${px}px`);
+    };
+
+    syncDockInset();
+    const onResize = () => syncDockInset();
+    window.addEventListener('resize', onResize);
+    const ro = new ResizeObserver(() => syncDockInset());
+    const dock = document.querySelector('.dock-container');
+    if (dock) ro.observe(dock);
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      ro.disconnect();
+    };
+  }, [showDock]);
+
+  useEffect(
+    () => () => {
+      if (heroScrollRafRef.current != null) {
+        window.cancelAnimationFrame(heroScrollRafRef.current);
+        heroScrollRafRef.current = null;
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const hydrate = async () => {
@@ -263,26 +122,13 @@ export default function GameHubSpace() {
           return;
         }
 
-        if (!steamId) {
+        if (!steamId || !window.api?.steam?.getEnrichedGames) {
           setGameHubState({
             library: {
               enrichedGames: [],
               lastSyncedAt: Date.now(),
               syncStatus: 'local-only',
-              statusReason: 'Add SteamID64 to enrich with recent/most played.',
-              lastError: null,
-            },
-          });
-          return;
-        }
-
-        if (!window.api?.steam?.getEnrichedGames) {
-          setGameHubState({
-            library: {
-              enrichedGames: [],
-              lastSyncedAt: Date.now(),
-              syncStatus: 'local-only',
-              statusReason: 'Steam enrichment API bridge unavailable.',
+              statusReason: 'Add SteamID64 in Game Hub settings to enrich your library.',
               lastError: null,
             },
           });
@@ -315,42 +161,121 @@ export default function GameHubSpace() {
     hydrate();
   }, [appLibraryManager, gameHub.profile?.steamId, gameHub.profile?.useSteamWebApi, setGameHubState]);
 
+  useEffect(
+    () => () => {
+      if (heroPreviewClearRef.current) window.clearTimeout(heroPreviewClearRef.current);
+    },
+    []
+  );
+
   const enrichmentMap = useMemo(() => {
     const map = {};
     (gameHub.library?.enrichedGames || []).forEach((item) => {
-      if (item?.appId) {
-        map[String(item.appId)] = item;
-      }
+      if (item?.appId) map[String(item.appId)] = item;
     });
     return map;
   }, [gameHub.library?.enrichedGames]);
 
-  const favoriteGameIds = gameHub.ui?.favoriteGameIds || [];
-  const favoriteSet = useMemo(() => new Set(favoriteGameIds), [favoriteGameIds]);
-
-  const shelves = useMemo(
-    () => buildShelves({
-      steamGames: appLibrary.steamGames,
-      epicGames: appLibrary.epicGames,
-      enrichmentMap,
-      favorites: favoriteGameIds,
+  const weeMeta = useMemo(
+    () => ({
+      favoriteGameIds: gameHub.ui?.favoriteGameIds || [],
+      weeCollections: gameHub.library?.weeCollections || [],
+      lastLaunchedAt: gameHub.library?.lastLaunchedAt || {},
     }),
-    [appLibrary.epicGames, appLibrary.steamGames, enrichmentMap, favoriteGameIds]
+    [gameHub.ui?.favoriteGameIds, gameHub.library?.weeCollections, gameHub.library?.lastLaunchedAt]
+  );
+
+  const [clientLibrary, setClientLibrary] = useState({
+    ok: false,
+    favoritesAppIds: [],
+    appIdToTags: {},
+  });
+
+  useEffect(() => {
+    const steamId = gameHub.profile?.steamId;
+    if (!steamId || !window.api?.steam?.getClientLibraryMetadata) {
+      setClientLibrary({ ok: false, favoritesAppIds: [], appIdToTags: {} });
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await window.api.steam.getClientLibraryMetadata({ steamId });
+        if (!cancelled && res && typeof res === 'object') {
+          setClientLibrary({
+            ok: Boolean(res.ok),
+            favoritesAppIds: Array.isArray(res.favoritesAppIds) ? res.favoritesAppIds : [],
+            appIdToTags: res.appIdToTags && typeof res.appIdToTags === 'object' ? res.appIdToTags : {},
+          });
+        }
+      } catch {
+        if (!cancelled) setClientLibrary({ ok: false, favoritesAppIds: [], appIdToTags: {} });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [gameHub.profile?.steamId]);
+
+  const showHubBackdrop = gameHub.ui?.showHubBackdrop ?? false;
+  const effectsEnabled = gameHub.ui?.effectsEnabled ?? true;
+  const activeCollectionId = gameHub.ui?.activeCollectionId || null;
+  const selectedGameId = gameHub.ui?.selectedGameId || null;
+
+  const hubData = useMemo(
+    () =>
+      buildHubData({
+        steamGames: appLibrary.steamGames,
+        epicGames: appLibrary.epicGames,
+        enrichmentMap,
+        clientLibrary,
+        weeMeta,
+      }),
+    [appLibrary.epicGames, appLibrary.steamGames, enrichmentMap, clientLibrary, weeMeta]
+  );
+
+  const selectedGame = useMemo(
+    () => hubData.installed.find((game) => game.id === selectedGameId) || null,
+    [hubData.installed, selectedGameId]
+  );
+
+  const previewGame = useMemo(
+    () => (heroPreviewGameId ? hubData.installed.find((g) => g.id === heroPreviewGameId) : null),
+    [heroPreviewGameId, hubData.installed]
   );
 
   const heroGame =
-    shelves.premiumFavorites[0] ||
-    shelves.recentlyPlayed[0] ||
-    shelves.mostPlayed[0] ||
-    shelves.installed[0] ||
+    previewGame ||
+    selectedGame ||
+    hubData.favoritesOnly[0] ||
+    hubData.recentlyPlayed[0] ||
+    hubData.installed[0] ||
     null;
-  const lastSyncedLabel = gameHub.library?.lastSyncedAt
-    ? new Date(gameHub.library.lastSyncedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-    : null;
+
+  const setHeroPreview = useCallback((game) => {
+    if (heroPreviewClearRef.current) {
+      window.clearTimeout(heroPreviewClearRef.current);
+      heroPreviewClearRef.current = null;
+    }
+    if (game) {
+      setHeroPreviewGameId(game.id);
+      return;
+    }
+    heroPreviewClearRef.current = window.setTimeout(() => {
+      setHeroPreviewGameId(null);
+      heroPreviewClearRef.current = null;
+    }, 90);
+  }, []);
+  const activeCollection = hubData.collections.items.find((collection) => collection.id === activeCollectionId) || null;
+  const hasFavorites = hubData.railGames.length > 0;
 
   const handleLaunchGame = async (game) => {
     if (!game?.launchPath || !window.api?.launchApp) return;
-    await launchWithFeedback({
+    if (effectsEnabled) {
+      setIsLaunching(true);
+      window.setTimeout(() => setIsLaunching(false), 500);
+    }
+    const result = await launchWithFeedback({
       launch: () => window.api.launchApp({ type: 'url', path: game.launchPath, asAdmin: false }),
       beginLaunchFeedback,
       endLaunchFeedback,
@@ -360,167 +285,118 @@ export default function GameHubSpace() {
       path: game.launchPath,
       source: 'gamehub',
     });
+    if (result?.ok !== false) {
+      patchGameHubLastLaunch(game.id, Date.now());
+    }
   };
 
-  const toggleFavorite = (gameId) => {
-    const exists = favoriteSet.has(gameId);
-    const next = exists
-      ? favoriteGameIds.filter((id) => id !== gameId)
-      : [...favoriteGameIds, gameId];
-    setGameHubState({ ui: { favoriteGameIds: next } });
-  };
-
-  const saveSteamId = (steamId) => {
-    setGameHubState({
-      profile: {
-        steamId,
-        onboardingDismissed: false,
-      },
-    });
-    setShowOnboarding(false);
-  };
+  const floatingUi = !showHubBackdrop;
 
   return (
-    <section className="gamehub-space">
-      <header className="gamehub-space__header">
-        <div>
-          <p className="gamehub-space__eyebrow">Game Hub Space</p>
-          <h2 className="gamehub-space__title">Celebrate your library</h2>
-          <p className="gamehub-space__subtitle">
-            A focused collection view tuned for local launches and optional Steam enrichment.
-          </p>
-        </div>
-        <div className="gamehub-space__status-stack">
-          <DataStatusBadge status={gameHub.library?.syncStatus} reason={gameHub.library?.statusReason} />
-          {lastSyncedLabel ? <span className="gamehub-space__sync">Last sync {lastSyncedLabel}</span> : null}
-        </div>
-      </header>
+    <section
+      className={`aura-hub-space ${floatingUi ? 'aura-hub-space--floating' : ''} ${effectsEnabled ? 'aura-hub-space--effects' : 'aura-hub-space--static'} ${isLaunching ? 'aura-hub-space--launching' : ''}`}
+    >
+      <div
+        ref={stageRef}
+        className={`aura-hub-stage ${isHeroCompact ? 'aura-hub-stage--scrolled' : ''} ${floatingUi ? 'aura-hub-stage--floating' : ''}`}
+      >
+        {showHubBackdrop && (heroGame?.headerUrl || heroGame?.imageUrl) ? (
+          <div
+            className="aura-hub-backdrop"
+            style={{ backgroundImage: `url('${heroGame.headerUrl || heroGame.imageUrl}')` }}
+            aria-hidden
+          />
+        ) : null}
 
-      {showOnboarding ? (
-        <SteamOnboarding
-          onSaveSteamId={saveSteamId}
-          onSkip={() => {
-            setGameHubState({ profile: { onboardingDismissed: true } });
-            setShowOnboarding(false);
-          }}
-        />
-      ) : null}
+        <button
+          type="button"
+          className="aura-hub-mode-toggle"
+          onClick={() => setGameHubState({ ui: { showHubBackdrop: !showHubBackdrop } })}
+          title={showHubBackdrop ? 'Hide hub backdrop' : 'Show hub backdrop'}
+        >
+          {showHubBackdrop ? 'Backdrop On' : 'Backdrop Off'}
+        </button>
 
-      {heroGame ? (
-        <section className="gamehub-hero">
-          <div className="gamehub-hero__backdrop">
-            {heroGame.headerUrl ? <img src={heroGame.headerUrl} alt={heroGame.name} /> : null}
-          </div>
-          <div className="gamehub-hero__content">
-            <p className="gamehub-hero__badge">
-              {favoriteSet.has(heroGame.id) ? 'Featured Favorite' : 'Continue Adventure'}
-            </p>
-            <h3>{heroGame.name}</h3>
-            <p>{formatPlaytime(heroGame.playtimeForever)}</p>
-            <div className="gamehub-hero__actions">
-              <button type="button" className="gamehub-btn gamehub-btn--primary" onClick={() => handleLaunchGame(heroGame)}>
-                Play now
-              </button>
-              <button type="button" className="gamehub-btn gamehub-btn--ghost" onClick={() => toggleFavorite(heroGame.id)}>
-                {favoriteSet.has(heroGame.id) ? 'Unfavorite' : 'Favorite'}
-              </button>
+        <nav className="aura-hub-scroll-anchors" aria-label="Jump to hub section">
+          <a
+            href="#game-hub-collections"
+            className="aura-hub-scroll-anchors__link"
+            onClick={(e) => {
+              e.preventDefault();
+              const main = contentScrollRef.current;
+              const region = document.getElementById('game-hub-collections');
+              if (main && region) {
+                scrollHubRegionIntoFocus(main, region, { bottomInset: readHubDockInsetPx(region) });
+              }
+            }}
+          >
+            Collections
+          </a>
+          <span className="aura-hub-scroll-anchors__sep" aria-hidden>
+            ·
+          </span>
+          <a
+            href="#game-hub-library"
+            className="aura-hub-scroll-anchors__link"
+            onClick={(e) => {
+              e.preventDefault();
+              const main = contentScrollRef.current;
+              const region = document.getElementById('game-hub-library');
+              if (main && region) {
+                scrollHubRegionIntoFocus(main, region, { bottomInset: readHubDockInsetPx(region) });
+              }
+            }}
+          >
+            Library
+          </a>
+        </nav>
+
+        <div className="aura-hub-column">
+          <div className="aura-hub-hero-wrap">
+            <div className="aura-hub-hero-shell">
+            <AuraHero
+              floatingUi={floatingUi}
+              compact={isHeroCompact}
+              effectsEnabled={effectsEnabled}
+              selectedGameId={selectedGameId}
+              heroGame={heroGame}
+              heroNotice={
+                gameHub.library?.syncStatus === 'error'
+                  ? gameHub.library?.statusReason || 'Could not refresh Steam library stats.'
+                  : null
+              }
+              hasSteamId={Boolean(gameHub.profile?.steamId)}
+              hasFavorites={hasFavorites}
+              railGames={hubData.railGames}
+              onLaunchGame={handleLaunchGame}
+              onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
+              onHeroPreview={setHeroPreview}
+            />
             </div>
           </div>
-        </section>
-      ) : null}
 
-      <div className="gamehub-layout">
-        <div className="gamehub-layout__main">
-          <Shelf
-            title="Recently Played"
-            games={shelves.recentlyPlayed}
-            favorites={favoriteSet}
-            onToggleFavorite={toggleFavorite}
-            onSelect={setSelectedGame}
-            onLaunch={handleLaunchGame}
+          <main ref={contentScrollRef} className="aura-hub-content" onScroll={scheduleHeroScrollMode}>
+          <div id="game-hub-collections-anchor" className="aura-hub-scroll-anchor" aria-hidden />
+          <AuraCollectionsSection
+            scrollContainerRef={contentScrollRef}
+            collections={hubData.collections.items}
+            activeCollection={activeCollection}
+            activeCollectionId={activeCollectionId}
+            effectsEnabled={effectsEnabled}
+            onSetCollection={(collectionId) => setGameHubState({ ui: { activeCollectionId: collectionId } })}
+            onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
+            onLaunchGame={handleLaunchGame}
+            onHeroPreview={setHeroPreview}
           />
-          <Shelf
-            title="Most Played"
-            games={shelves.mostPlayed}
-            favorites={favoriteSet}
-            onToggleFavorite={toggleFavorite}
-            onSelect={setSelectedGame}
-            onLaunch={handleLaunchGame}
+          <AuraLibrarySection
+            games={hubData.installed}
+            onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
+            onLaunchGame={handleLaunchGame}
+            onHeroPreview={setHeroPreview}
           />
-          <Shelf
-            title="Installed Collection"
-            games={shelves.installed}
-            favorites={favoriteSet}
-            onToggleFavorite={toggleFavorite}
-            onSelect={setSelectedGame}
-            onLaunch={handleLaunchGame}
-          />
-          <Shelf
-            title="Ready To Launch"
-            games={shelves.readyToLaunch}
-            favorites={favoriteSet}
-            onToggleFavorite={toggleFavorite}
-            onSelect={setSelectedGame}
-            onLaunch={handleLaunchGame}
-          />
+          </main>
         </div>
-
-        <aside className="gamehub-layout__side">
-          <section className="gamehub-panel">
-            <h4>Favorites Showcase</h4>
-            {shelves.premiumFavorites.length ? (
-              <div className="gamehub-favorites">
-                {shelves.premiumFavorites.map((game) => (
-                  <button key={game.id} type="button" className="gamehub-favorite-tile" onClick={() => setSelectedGame(game)}>
-                    <span>{game.name}</span>
-                    <small>{formatPlaytime(game.playtimeForever)}</small>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="gamehub-muted">Favorite games to unlock your premium showcase.</p>
-            )}
-          </section>
-
-          <section className="gamehub-panel">
-            <h4>Collection Pulse</h4>
-            <div className="gamehub-stats">
-              <div>
-                <strong>{shelves.installed.length}</strong>
-                <span>Installed</span>
-              </div>
-              <div>
-                <strong>{shelves.bySource.steam.length}</strong>
-                <span>Steam</span>
-              </div>
-              <div>
-                <strong>{shelves.bySource.epic.length}</strong>
-                <span>Epic</span>
-              </div>
-            </div>
-          </section>
-        </aside>
       </div>
-
-      {selectedGame ? (
-        <div className="gamehub-detail">
-          <div className="gamehub-detail__inner">
-            <h4>{selectedGame.name}</h4>
-            <p>{selectedGame.source.toUpperCase()} • {formatPlaytime(selectedGame.playtimeForever)}</p>
-            <div className="gamehub-detail__actions">
-              <button type="button" className="gamehub-btn gamehub-btn--primary" onClick={() => handleLaunchGame(selectedGame)}>
-                Launch
-              </button>
-              <button type="button" className="gamehub-btn gamehub-btn--ghost" onClick={() => toggleFavorite(selectedGame.id)}>
-                {favoriteSet.has(selectedGame.id) ? 'Unfavorite' : 'Favorite'}
-              </button>
-              <button type="button" className="gamehub-btn gamehub-btn--secondary" onClick={() => setSelectedGame(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }

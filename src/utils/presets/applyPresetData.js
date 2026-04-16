@@ -167,6 +167,18 @@ export async function applyPresetData(preset) {
         if (settingsToApply.wallpaper.blur !== undefined) {
           updatedWallpaperData.wallpaperBlur = settingsToApply.wallpaper.blur;
         }
+        if (settingsToApply.wallpaper.workspaceBrightness !== undefined) {
+          updatedWallpaperData.wallpaperWorkspaceBrightness = settingsToApply.wallpaper.workspaceBrightness;
+        }
+        if (settingsToApply.wallpaper.workspaceSaturate !== undefined) {
+          updatedWallpaperData.wallpaperWorkspaceSaturate = settingsToApply.wallpaper.workspaceSaturate;
+        }
+        if (settingsToApply.wallpaper.gameHubBrightness !== undefined) {
+          updatedWallpaperData.wallpaperGameHubBrightness = settingsToApply.wallpaper.gameHubBrightness;
+        }
+        if (settingsToApply.wallpaper.gameHubSaturate !== undefined) {
+          updatedWallpaperData.wallpaperGameHubSaturate = settingsToApply.wallpaper.gameHubSaturate;
+        }
         if (settingsToApply.wallpaper.savedWallpapers !== undefined) {
           updatedWallpaperData.savedWallpapers = settingsToApply.wallpaper.savedWallpapers;
         }

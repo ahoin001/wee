@@ -139,6 +139,13 @@ useConsolidatedAppStore = create(
           next: null,
           opacity: 1,
           blur: 0,
+          /** CSS filter brightness() for Home & Workspaces spaces (channels); 1 = unchanged */
+          workspaceBrightness: 1,
+          /** CSS filter saturate() for Home & Workspaces */
+          workspaceSaturate: 1,
+          /** Game Hub wallpaper dim (was hardcoded ~0.78) */
+          gameHubBrightness: 0.78,
+          gameHubSaturate: 1,
           savedWallpapers: [],
           likedWallpapers: [],
           isTransitioning: false,
@@ -531,6 +538,9 @@ useConsolidatedAppStore = create(
             searchQuery: '',
             showDetails: false,
             launchingGameId: null,
+            showHubBackdrop: false,
+            effectsEnabled: true,
+            activeCollectionId: null,
             favoriteGameIds: [],
           },
           library: {
@@ -544,6 +554,8 @@ useConsolidatedAppStore = create(
             syncStatus: 'idle',
             lastSyncedAt: null,
             lastError: null,
+            weeCollections: [],
+            lastLaunchedAt: {},
           },
         },
 
@@ -879,6 +891,102 @@ useConsolidatedAppStore = create(
             },
           })),
 
+          /** Merge-safe: avoids dropping other `lastLaunchedAt` entries when shallow-updating library. */
+          patchGameHubLastLaunch: (gameId, timestampMs) => set((state) => ({
+            gameHub: {
+              ...state.gameHub,
+              library: {
+                ...state.gameHub.library,
+                lastLaunchedAt: {
+                  ...(state.gameHub.library.lastLaunchedAt || {}),
+                  [gameId]: timestampMs,
+                },
+              },
+            },
+          })),
+
+          toggleGameHubFavorite: (gameId) => set((state) => {
+            const ids = [...(state.gameHub.ui.favoriteGameIds || [])];
+            const idx = ids.indexOf(gameId);
+            if (idx >= 0) ids.splice(idx, 1);
+            else ids.push(gameId);
+            return {
+              gameHub: {
+                ...state.gameHub,
+                ui: { ...state.gameHub.ui, favoriteGameIds: ids },
+              },
+            };
+          }),
+
+          createWeeCollection: (label) => set((state) => {
+            const id =
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? `wee-${crypto.randomUUID()}`
+                : `wee-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            const trimmed = String(label || '').trim() || 'New collection';
+            const next = [
+              ...(state.gameHub.library.weeCollections || []),
+              { id, label: trimmed, gameIds: [] },
+            ];
+            return {
+              gameHub: {
+                ...state.gameHub,
+                library: { ...state.gameHub.library, weeCollections: next },
+              },
+            };
+          }),
+
+          renameWeeCollection: (collectionId, label) => set((state) => {
+            const cols = [...(state.gameHub.library.weeCollections || [])];
+            const i = cols.findIndex((c) => c.id === collectionId);
+            if (i < 0) return state;
+            const nextLabel = String(label || '').trim() || cols[i].label;
+            cols[i] = { ...cols[i], label: nextLabel };
+            return {
+              gameHub: {
+                ...state.gameHub,
+                library: { ...state.gameHub.library, weeCollections: cols },
+              },
+            };
+          }),
+
+          deleteWeeCollection: (collectionId) => set((state) => ({
+            gameHub: {
+              ...state.gameHub,
+              library: {
+                ...state.gameHub.library,
+                weeCollections: (state.gameHub.library.weeCollections || []).filter((c) => c.id !== collectionId),
+              },
+            },
+          })),
+
+          addGameToWeeCollection: (collectionId, gameId) => set((state) => ({
+            gameHub: {
+              ...state.gameHub,
+              library: {
+                ...state.gameHub.library,
+                weeCollections: (state.gameHub.library.weeCollections || []).map((c) => {
+                  if (c.id !== collectionId) return c;
+                  const set = new Set([...(c.gameIds || []), gameId]);
+                  return { ...c, gameIds: [...set] };
+                }),
+              },
+            },
+          })),
+
+          removeGameFromWeeCollection: (collectionId, gameId) => set((state) => ({
+            gameHub: {
+              ...state.gameHub,
+              library: {
+                ...state.gameHub.library,
+                weeCollections: (state.gameHub.library.weeCollections || []).map((c) => {
+                  if (c.id !== collectionId) return c;
+                  return { ...c, gameIds: (c.gameIds || []).filter((g) => g !== gameId) };
+                }),
+              },
+            },
+          })),
+
           // Bulk update
           updateState: (updates) => set((state) => ({
             ...state,
@@ -1125,6 +1233,9 @@ useConsolidatedAppStore = create(
                 searchQuery: '',
                 showDetails: false,
                 launchingGameId: null,
+                showHubBackdrop: false,
+                effectsEnabled: true,
+                activeCollectionId: null,
                 favoriteGameIds: [],
               },
               library: {
@@ -1138,6 +1249,8 @@ useConsolidatedAppStore = create(
                 syncStatus: 'idle',
                 lastSyncedAt: null,
                 lastError: null,
+                weeCollections: [],
+                lastLaunchedAt: {},
               },
             },
           }),

@@ -23,6 +23,10 @@ function registerGameSourceHandlers({
     return await gameSourceService.getSteamEnrichedGames({ steamId, apiKey });
   });
 
+  ipcMain.handle('steam:getClientLibraryMetadata', async (_event, { steamId } = {}) => {
+    return await gameSourceService.getSteamClientLibraryMetadata({ steamId });
+  });
+
   ipcMain.handle('epic:getInstalledGames', async () => {
     return await gameSourceService.getInstalledEpicGames();
   });

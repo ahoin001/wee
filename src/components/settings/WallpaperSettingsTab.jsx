@@ -90,6 +90,10 @@ const WallpaperSettingsTab = React.memo(() => {
   // Use consolidated store values for wallpaper effects
   const wallpaperOpacity = wallpaper.opacity;
   const wallpaperBlur = wallpaper.blur;
+  const workspaceBrightness = wallpaper.workspaceBrightness ?? 1;
+  const workspaceSaturate = wallpaper.workspaceSaturate ?? 1;
+  const gameHubBrightness = wallpaper.gameHubBrightness ?? 0.78;
+  const gameHubSaturate = wallpaper.gameHubSaturate ?? 1;
 
   // Use consolidated store values for overlay effects
   const overlayEnabled = overlay.enabled;
@@ -106,6 +110,22 @@ const WallpaperSettingsTab = React.memo(() => {
 
   const handleWallpaperBlurChange = useCallback((value) => {
     setWallpaperState({ blur: value });
+  }, [setWallpaperState]);
+
+  const handleWorkspaceBrightnessChange = useCallback((value) => {
+    setWallpaperState({ workspaceBrightness: value });
+  }, [setWallpaperState]);
+
+  const handleWorkspaceSaturateChange = useCallback((value) => {
+    setWallpaperState({ workspaceSaturate: value });
+  }, [setWallpaperState]);
+
+  const handleGameHubBrightnessChange = useCallback((value) => {
+    setWallpaperState({ gameHubBrightness: value });
+  }, [setWallpaperState]);
+
+  const handleGameHubSaturateChange = useCallback((value) => {
+    setWallpaperState({ gameHubSaturate: value });
   }, [setWallpaperState]);
 
   // Handlers for overlay effects that update consolidated store
@@ -206,6 +226,10 @@ const WallpaperSettingsTab = React.memo(() => {
         likedWallpapers: data.likedWallpapers || [],
         opacity: data.wallpaperOpacity ?? 1,
         blur: data.wallpaperBlur ?? 0,
+        workspaceBrightness: data.wallpaperWorkspaceBrightness ?? 1,
+        workspaceSaturate: data.wallpaperWorkspaceSaturate ?? 1,
+        gameHubBrightness: data.wallpaperGameHubBrightness ?? 0.78,
+        gameHubSaturate: data.wallpaperGameHubSaturate ?? 1,
         cycleWallpapers: data.cyclingSettings?.enabled ?? false,
         cycleInterval: data.cyclingSettings?.interval ?? 30,
         cycleAnimation: data.cyclingSettings?.animation ?? 'fade',
@@ -548,39 +572,153 @@ const WallpaperSettingsTab = React.memo(() => {
       <Card
         title="Wallpaper Effects"
         separator
-        desc="Adjust the transparency and blur of the wallpaper background."
+        desc="Opacity and blur apply everywhere. Brightness and saturation are applied per space so you can darken Game Hub and tune Home & Workspaces independently."
         actions={
           <>
-            <div className="text-[14px] text-gray-600 mt-0">
-              <strong>Wallpaper Opacity:</strong> Adjust the transparency of the wallpaper background.
-            </div>
-            <div className="mt-2.5 flex items-center gap-4">
-              <div className="flex-1">
+            <p className="text-[13px] text-gray-500 mt-0 mb-3">
+              These settings affect the desktop wallpaper layer behind channels and Game Hub.
+            </p>
+
+            <h4 className="text-[12px] font-semibold uppercase tracking-wide text-gray-500 mb-2">Overall</h4>
+            <div className="flex items-center gap-4 mt-1">
+              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-opacity-range">
+                Wallpaper opacity
+              </label>
+              <div className="flex-1 min-w-0">
                 <Slider
+                  id="wallpaper-opacity-range"
+                  aria-label="Wallpaper opacity"
                   min={0}
                   max={1}
                   step={0.01}
                   value={wallpaperOpacity}
                   onChange={handleWallpaperOpacityChange}
+                  containerClassName="!mb-0"
+                  hideValue
                 />
               </div>
-              <span className="min-w-[38px] font-semibold text-gray-500">{Math.round(wallpaperOpacity * 100)}%</span>
+              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{Math.round(wallpaperOpacity * 100)}%</span>
             </div>
-            <div className="text-[13px] text-gray-400 mt-0.5">Higher transparency makes the wallpaper more see-through. 0% = fully visible, 100% = fully transparent.</div>
-            
-            <div className="mt-4.5 flex items-center gap-4">
-              <div className="flex-1">
+            <p className="text-[12px] text-gray-400 mt-1 mb-4 pl-[156px] max-md:pl-0">
+              100% = fully opaque image; lower values let more of the default background show through.
+            </p>
+
+            <div className="flex items-center gap-4 mt-1">
+              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-blur-range">
+                Background blur
+              </label>
+              <div className="flex-1 min-w-0">
                 <Slider
+                  id="wallpaper-blur-range"
+                  aria-label="Background blur"
                   min={0}
                   max={24}
                   step={0.5}
                   value={wallpaperBlur}
                   onChange={handleWallpaperBlurChange}
+                  containerClassName="!mb-0"
+                  hideValue
                 />
               </div>
-              <span className="min-w-[38px] font-semibold text-gray-500">{wallpaperBlur}px</span>
+              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{wallpaperBlur}px</span>
             </div>
-            <div className="text-[13px] text-gray-400 mt-0.5">Higher blur makes the wallpaper more blurry. 0px = no blur, 24px = very blurry.</div>
+            <p className="text-[12px] text-gray-400 mt-1 mb-5 pl-[156px] max-md:pl-0">
+              Gaussian blur on the wallpaper only (not UI). 0 = sharp, higher = softer.
+            </p>
+
+            <h4 className="text-[12px] font-semibold uppercase tracking-wide text-gray-500 mb-2">Home &amp; Workspaces</h4>
+            <div className="flex items-center gap-4 mt-1">
+              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-ws-brightness-range">
+                Brightness
+              </label>
+              <div className="flex-1 min-w-0">
+                <Slider
+                  id="wallpaper-ws-brightness-range"
+                  aria-label="Home and workspaces wallpaper brightness"
+                  min={0.45}
+                  max={1.2}
+                  step={0.01}
+                  value={workspaceBrightness}
+                  onChange={handleWorkspaceBrightnessChange}
+                  containerClassName="!mb-0"
+                  hideValue
+                />
+              </div>
+              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{workspaceBrightness.toFixed(2)}×</span>
+            </div>
+            <p className="text-[12px] text-gray-400 mt-1 mb-3 pl-[156px] max-md:pl-0">
+              Darken or brighten the wallpaper behind channel grids. 1.00 = unchanged.
+            </p>
+
+            <div className="flex items-center gap-4 mt-1">
+              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-ws-saturate-range">
+                Saturation
+              </label>
+              <div className="flex-1 min-w-0">
+                <Slider
+                  id="wallpaper-ws-saturate-range"
+                  aria-label="Home and workspaces wallpaper saturation"
+                  min={0}
+                  max={1.5}
+                  step={0.02}
+                  value={workspaceSaturate}
+                  onChange={handleWorkspaceSaturateChange}
+                  containerClassName="!mb-0"
+                  hideValue
+                />
+              </div>
+              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{workspaceSaturate.toFixed(2)}×</span>
+            </div>
+            <p className="text-[12px] text-gray-400 mt-1 mb-5 pl-[156px] max-md:pl-0">
+              1.00 = natural color; lower approaches grayscale; above 1 boosts vividness.
+            </p>
+
+            <h4 className="text-[12px] font-semibold uppercase tracking-wide text-gray-500 mb-2">Game Hub</h4>
+            <div className="flex items-center gap-4 mt-1">
+              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-gh-brightness-range">
+                Brightness
+              </label>
+              <div className="flex-1 min-w-0">
+                <Slider
+                  id="wallpaper-gh-brightness-range"
+                  aria-label="Game Hub wallpaper brightness"
+                  min={0.45}
+                  max={1.2}
+                  step={0.01}
+                  value={gameHubBrightness}
+                  onChange={handleGameHubBrightnessChange}
+                  containerClassName="!mb-0"
+                  hideValue
+                />
+              </div>
+              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{gameHubBrightness.toFixed(2)}×</span>
+            </div>
+            <p className="text-[12px] text-gray-400 mt-1 mb-3 pl-[156px] max-md:pl-0">
+              Default ~0.78 matched the previous Game Hub dim. Raise for a brighter hero backdrop.
+            </p>
+
+            <div className="flex items-center gap-4 mt-1">
+              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-gh-saturate-range">
+                Saturation
+              </label>
+              <div className="flex-1 min-w-0">
+                <Slider
+                  id="wallpaper-gh-saturate-range"
+                  aria-label="Game Hub wallpaper saturation"
+                  min={0}
+                  max={1.5}
+                  step={0.02}
+                  value={gameHubSaturate}
+                  onChange={handleGameHubSaturateChange}
+                  containerClassName="!mb-0"
+                  hideValue
+                />
+              </div>
+              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{gameHubSaturate.toFixed(2)}×</span>
+            </div>
+            <p className="text-[12px] text-gray-400 mt-1 pl-[156px] max-md:pl-0">
+              Pairs with brightness to keep artwork readable behind Game Hub cards.
+            </p>
           </>
         }
       />
@@ -781,9 +919,12 @@ const WallpaperSettingsTab = React.memo(() => {
           overlayEnabled && (
             <>
               <div className="flex items-center gap-4 mt-3.5">
-                <span className="font-medium min-w-[120px] text-gray-700">Effect Type</span>
-                <div className="flex-1">
+                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-effect">
+                  Effect type
+                </label>
+                <div className="flex-1 min-w-0">
                   <WSelect
+                    id="wallpaper-overlay-effect"
                     options={OVERLAY_EFFECT_OPTIONS}
                     value={overlayEffect}
                     onChange={handleOverlayEffectChange}
@@ -792,56 +933,80 @@ const WallpaperSettingsTab = React.memo(() => {
                 </div>
               </div>
               <div className="flex items-center gap-4 mt-3.5">
-                <span className="font-medium min-w-[120px] text-gray-700">Intensity</span>
-                <div className="flex-1">
+                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-intensity">
+                  Intensity
+                </label>
+                <div className="flex-1 min-w-0">
                   <Slider
-                  min={10}
-                  max={100}
-                  step={5}
+                    id="wallpaper-overlay-intensity"
+                    aria-label="Particle overlay intensity"
+                    min={10}
+                    max={100}
+                    step={5}
                     value={overlayIntensity}
                     onChange={handleOverlayIntensityChange}
-                />
-                </div>
-                <span className="min-w-[40px] font-semibold text-gray-500">{overlayIntensity}%</span>
-              </div>
-              <div className="flex items-center gap-4 mt-3.5">
-                <span className="font-medium min-w-[120px] text-gray-700">Speed</span>
-                <div className="flex-1">
-                  <Slider
-                  min={0.1}
-                  max={3}
-                  step={0.05}
-                    value={overlaySpeed}
-                    onChange={handleOverlaySpeedChange}
+                    containerClassName="!mb-0"
+                    hideValue
                   />
                 </div>
-                <span className="min-w-[40px] font-semibold text-gray-500">{overlaySpeed}x</span>
+                <span className="min-w-[44px] text-right font-semibold text-gray-500 tabular-nums">{overlayIntensity}%</span>
               </div>
               <div className="flex items-center gap-4 mt-3.5">
-                <span className="font-medium min-w-[120px] text-gray-700">Wind</span>
-                <div className="flex-1">
+                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-speed">
+                  Speed
+                </label>
+                <div className="flex-1 min-w-0">
                   <Slider
+                    id="wallpaper-overlay-speed"
+                    aria-label="Particle overlay speed"
+                    min={0.1}
+                    max={3}
+                    step={0.05}
+                    value={overlaySpeed}
+                    onChange={handleOverlaySpeedChange}
+                    containerClassName="!mb-0"
+                    hideValue
+                  />
+                </div>
+                <span className="min-w-[44px] text-right font-semibold text-gray-500 tabular-nums">{overlaySpeed}x</span>
+              </div>
+              <div className="flex items-center gap-4 mt-3.5">
+                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-wind">
+                  Wind
+                </label>
+                <div className="flex-1 min-w-0">
+                  <Slider
+                    id="wallpaper-overlay-wind"
+                    aria-label="Particle overlay wind"
                     min={-0.1}
                     max={0.1}
                     step={0.005}
                     value={overlayWind}
                     onChange={handleOverlayWindChange}
+                    containerClassName="!mb-0"
+                    hideValue
                   />
                 </div>
-                <span className="min-w-[40px] font-semibold text-gray-500">{overlayWind.toFixed(3)}</span>
+                <span className="min-w-[44px] text-right font-semibold text-gray-500 tabular-nums">{overlayWind.toFixed(3)}</span>
               </div>
               <div className="flex items-center gap-4 mt-3.5">
-                <span className="font-medium min-w-[120px] text-gray-700">Gravity</span>
-                <div className="flex-1">
+                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-gravity">
+                  Gravity
+                </label>
+                <div className="flex-1 min-w-0">
                   <Slider
+                    id="wallpaper-overlay-gravity"
+                    aria-label="Particle overlay gravity"
                     min={-0.2}
                     max={0.5}
                     step={0.01}
                     value={overlayGravity}
                     onChange={handleOverlayGravityChange}
+                    containerClassName="!mb-0"
+                    hideValue
                   />
                 </div>
-                <span className="min-w-[40px] font-semibold text-gray-500">{overlayGravity.toFixed(2)}</span>
+                <span className="min-w-[44px] text-right font-semibold text-gray-500 tabular-nums">{overlayGravity.toFixed(2)}</span>
               </div>
               <div className="text-[13px] text-gray-400 mt-2">
                 <strong>Effect Types:</strong> Snow (gentle falling snowflakes), Rain (falling raindrops),

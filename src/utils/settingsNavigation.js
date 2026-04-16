@@ -8,6 +8,7 @@ export const SETTINGS_TAB_ID = {
   CHANNELS: 'channels',
   DOCK: 'dock',
   GENERAL: 'general',
+  GAMEHUB: 'gamehub',
   SOUNDS: 'sounds',
   THEMES: 'themes',
   UPDATES: 'updates',

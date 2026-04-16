@@ -1,5 +1,6 @@
 import { createFloatingWidgetManager } from './floatingWidgetManager';
 import { createPerformanceManager } from './performanceManager';
+import { filterSteamToolEntries } from '../steamLibraryFilter.js';
 
 export const createStoreManagers = (getStore) => {
   const appLibraryManager = {
@@ -177,7 +178,7 @@ export const createStoreManagers = (getStore) => {
           }
 
           const result = await window.api.steam.scanGames({ libraryPaths });
-          const games = result?.games || [];
+          const games = filterSteamToolEntries(result?.games || []);
           appLibraryManager._setCache('steamGames', games);
           store.actions.setAppLibraryState({ steamGames: games, steamLoading: false });
           return { success: true, games };

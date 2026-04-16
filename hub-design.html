@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraHub - Living Collections</title>
+    <style>
+        :root {
+            --accent: #00d2ff;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --game-accent: #00d2ff; 
+            --game-accent-rgb: 0, 210, 255;
+            --stage-bg: rgba(8, 8, 12, 0.85);
+            --physics-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+            
+            --hero-full: clamp(350px, 50vh, 550px);
+            --hero-min: 100px;
+            --section-gap: 80px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--text-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #user-wallpaper {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -3;
+            background-size: cover;
+            background-position: center;
+            transition: transform 1.2s var(--physics-ease), background-image 0.8s ease;
+            filter: brightness(0.35);
+        }
+
+        .main-stage {
+            width: 96vw;
+            height: 94vh;
+            background: var(--stage-bg);
+            backdrop-filter: blur(50px) saturate(160%);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- HERO COMPONENT --- */
+        .hero-outer {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 100;
+            width: 100%;
+            height: var(--hero-full);
+            transition: height 0.7s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s;
+            overflow: hidden;
+            pointer-events: none; /* Let clicks through to scroll container */
+        }
+
+        .hero-viewport {
+            height: 100%;
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0 80px;
+            background-size: cover;
+            background-position: center 25%;
+            transition: background-image 0.8s ease;
+            pointer-events: auto; /* Re-enable for buttons */
+        }
+
+        .hero-viewport::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.9) 10%, transparent 80%),
+                        linear-gradient(to top, rgba(8, 8, 12, 1) 0%, transparent 50%);
+            transition: opacity 0.5s;
+        }
+
+        .hero-content { 
+            position: relative; 
+            z-index: 10; 
+            transition: transform 0.7s var(--physics-ease);
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            line-height: 0.85;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: -4px;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.6));
+        }
+
+        .hero-stats { 
+            display: flex; 
+            gap: 40px; 
+            margin-bottom: 30px;
+            transition: opacity 0.3s, transform 0.4s;
+        }
+
+        .play-btn {
+            background: #fff;
+            color: #000;
+            padding: 16px 45px;
+            border-radius: 14px;
+            font-weight: 900;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.1);
+        }
+        .play-btn:hover { transform: scale(1.05); background: var(--game-accent); color: #000; }
+
+        .rail-wrapper { 
+            position: absolute; 
+            bottom: 50px; 
+            right: 80px; 
+            z-index: 30;
+            transition: all 0.7s var(--physics-ease);
+        }
+        .rail-scroll { display: flex; gap: 14px; }
+        .rail-card {
+            width: 80px; height: 120px; 
+            border-radius: 10px;
+            background-size: cover; background-position: center;
+            border: 1px solid var(--glass-border); cursor: pointer;
+            transition: all 0.3s var(--physics-ease);
+        }
+        .rail-card:hover { transform: translateY(-15px) scale(1.1); border-color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+        /* SCROLLED STATE (Compact Mode) */
+        .main-stage.scrolled .hero-outer {
+            height: var(--hero-min);
+            background: rgba(12, 12, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .main-stage.scrolled .hero-viewport::before { opacity: 0.3; }
+        .main-stage.scrolled .hero-content { transform: translateY(0); display: flex; align-items: center; gap: 40px; }
+        .main-stage.scrolled .hero-title { font-size: 1.6rem; letter-spacing: 0px; margin-bottom: 0; }
+        .main-stage.scrolled .hero-stats { opacity: 0; pointer-events: none; width: 0; margin: 0; transform: scale(0.5); }
+        .main-stage.scrolled .play-btn { padding: 10px 30px; font-size: 0.75rem; }
+        .main-stage.scrolled .rail-wrapper { bottom: 15px; right: 50px; transform: scale(0.65); transform-origin: right bottom; }
+
+        /* --- CONTENT AREA --- */
+        .library-content {
+            height: 100%;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            
+            /* SNAP CONFIG */
+            scroll-snap-type: y proximity;
+            scroll-padding-top: var(--hero-min);
+            
+            /* Initial padding is the full hero height plus breathing room */
+            padding: calc(var(--hero-full) + 40px) 80px 100px;
+        }
+        .library-content::-webkit-scrollbar { display: none; }
+
+        .snap-point {
+            scroll-snap-align: start;
+            height: 1px;
+            width: 100%;
+            pointer-events: none;
+            margin-bottom: 40px; /* Added breathing room before title */
+        }
+
+        .shelf-group { margin-bottom: var(--section-gap); }
+
+        .shelf-header { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
+        .shelf-title { font-size: 0.7rem; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; color: var(--text-dim); }
+        .shelf-line { height: 1px; flex-grow: 1; background: var(--glass-border); }
+
+        /* COLLECTIONS */
+        .collection-shelf { display: flex; gap: 60px; padding: 10px 0; margin-bottom: 40px; }
+        .stack-container { width: 170px; height: 240px; position: relative; cursor: pointer; }
+        .stack-item {
+            position: absolute; width: 100%; height: 100%; border-radius: 14px;
+            background-size: cover; background-position: center; border: 1px solid var(--glass-border);
+            transition: 0.6s var(--physics-ease); background-color: #111;
+        }
+        .stack-item:nth-child(1) { transform: translate(-10px, -8px) rotate(-4deg); filter: brightness(0.3); }
+        .stack-item:nth-child(2) { transform: translate(10px, -5px) rotate(4deg); filter: brightness(0.5); }
+        .stack-item:nth-child(3) { transform: translate(0, 0); z-index: 10; }
+
+        .stack-container:hover .stack-item:nth-child(1) { transform: translate(-30px, -20px) rotate(-10deg); filter: brightness(0.4); }
+        .stack-container:hover .stack-item:nth-child(2) { transform: translate(30px, -15px) rotate(10deg); filter: brightness(0.6); }
+        .stack-container.active .stack-item:nth-child(3) { 
+            transform: scale(1.05); 
+            border-color: var(--game-accent); 
+            box-shadow: 0 0 50px rgba(var(--game-accent-rgb), 0.4); 
+        }
+
+        /* GRID SYSTEM */
+        .expansion-wrapper { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.7s var(--physics-ease); overflow: hidden; }
+        .expansion-wrapper.expanded { grid-template-rows: 1fr; }
+        .dynamic-grid { min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 30px; padding: 20px 0 60px; }
+
+        .game-card {
+            aspect-ratio: 2/3; border-radius: 12px;
+            background-size: cover; background-position: center;
+            border: 1px solid var(--glass-border); cursor: pointer;
+            transition: all 0.4s var(--physics-ease);
+            position: relative;
+        }
+        .game-card:hover { transform: translateY(-12px) scale(1.02); border-color: #fff; z-index: 50; }
+
+        /* UI ELEMENTS */
+        .mode-toggle {
+            position: fixed; top: 30px; right: 30px; z-index: 1001;
+            background: var(--glass); border: 1px solid var(--glass-border); color: #fff;
+            padding: 12px; border-radius: 50%; cursor: pointer; backdrop-filter: blur(10px);
+            transition: 0.3s; display: flex; align-items: center; justify-content: center;
+        }
+        .mode-toggle:hover { background: rgba(255,255,255,0.1); transform: rotate(15deg) scale(1.1); }
+
+        /* LAUNCHER BLUR */
+        @keyframes launchBlast {
+            0% { filter: blur(0px) brightness(1); }
+            40% { filter: blur(20px) brightness(2.5); }
+            100% { filter: blur(0px) brightness(1); }
+        }
+        .launching .main-stage { animation: launchBlast 0.5s var(--physics-ease); }
+    </style>
+</head>
+<body onclick="handleGlobalClick(event)">
+
+    <div id="user-wallpaper"></div>
+
+    <button class="mode-toggle" onclick="document.body.classList.toggle('minimal-mode')" title="Toggle Interface Mode">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+    </button>
+
+    <div class="main-stage" id="stage">
+        
+        <!-- FIXED TOP HERO -->
+        <div class="hero-outer" id="hero-area">
+            <header class="hero-viewport" id="hero-view" onclick="scrollToTop()">
+                <div class="hero-content" onclick="event.stopPropagation()">
+                    <div class="hero-title" id="h-title">Elden Ring</div>
+                    <div class="hero-stats">
+                        <div><span style="font-size: 0.55rem; color: var(--text-dim); letter-spacing: 2px;">HOURS</span><b style="display: block; font-size: 1.3rem;" id="h-time">124</b></div>
+                        <div><span style="font-size: 0.55rem; color: var(--text-dim); letter-spacing: 2px;">STATUS</span><b style="display: block; font-size: 1.3rem;" id="h-last">RECENT</b></div>
+                    </div>
+                    <button class="play-btn" onclick="launchApp()">Play Now</button>
+                </div>
+
+                <div class="rail-wrapper" onclick="event.stopPropagation()">
+                    <div class="rail-scroll" id="fav-rail"></div>
+                </div>
+            </header>
+        </div>
+
+        <!-- SCROLLABLE LIST -->
+        <main class="library-content" id="scroll-root" onscroll="handleScroll(this)">
+            
+            <!-- This anchor allows the hero to stay full-screen until user commits to scrolling -->
+            <div id="top-anchor" style="height: 1px; margin-bottom: -1px;"></div>
+            
+            <section class="shelf-group">
+                <!-- Anchor for Collections with enough margin to feel "fresh" -->
+                <div class="snap-point" id="collections-anchor"></div>
+                
+                <div class="shelf-header">
+                    <div class="shelf-title">Curated Collections</div>
+                    <div class="shelf-line"></div>
+                </div>
+                
+                <div class="collection-shelf">
+                    <div class="stack-container" id="stack-rpg" onclick="toggleCollection(event, 'rpg')">
+                        <div class="stack-item"></div><div class="stack-item"></div><div class="stack-item"></div>
+                        <div style="position: absolute; bottom: -35px; width: 100%; text-align: center; font-size: 0.65rem; font-weight: 900; letter-spacing: 2px; color: var(--text-dim);">RPG</div>
+                    </div>
+
+                    <div class="stack-container" id="stack-action" onclick="toggleCollection(event, 'action')">
+                        <div class="stack-item"></div><div class="stack-item"></div><div class="stack-item"></div>
+                        <div style="position: absolute; bottom: -35px; width: 100%; text-align: center; font-size: 0.65rem; font-weight: 900; letter-spacing: 2px; color: var(--text-dim);">ACTION</div>
+                    </div>
+                </div>
+
+                <div class="expansion-wrapper" id="expansion-node">
+                    <div class="dynamic-grid" id="living-grid"></div>
+                </div>
+            </section>
+
+            <section class="shelf-group">
+                <div class="snap-point" id="library-anchor"></div>
+                <div class="shelf-header">
+                    <div class="shelf-title">Complete Library</div>
+                    <div class="shelf-line"></div>
+                </div>
+                <div class="dynamic-grid" id="full-lib"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const games = [
+            { id: 1, title: "Elden Ring", time: "124h", last: "RECENT", color: "249, 209, 74", cat: "rpg", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1245620/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1245620/library_600x900.jpg" },
+            { id: 2, title: "Cyberpunk 2077", time: "210h", last: "YESTERDAY", color: "255, 0, 60", cat: "rpg", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1091500/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1091500/library_600x900.jpg" },
+            { id: 3, title: "Hades", time: "86h", last: "ACTIVE", color: "255, 78, 0", cat: "action", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1145360/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1145360/library_600x900.jpg" },
+            { id: 4, title: "Forza Horizon 5", time: "45h", last: "INSTALLED", color: "0, 255, 204", cat: "action", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1551360/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1551360/library_600x900.jpg" },
+            { id: 5, title: "Starfield", time: "12h", last: "INSTALLED", color: "100, 150, 255", cat: "rpg", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1716740/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1716740/library_600x900.jpg" },
+            { id: 6, title: "Witcher 3", time: "340h", last: "RECENT", color: "180, 0, 0", cat: "rpg", hero: "https://cdn.akamai.steamstatic.com/steam/apps/292030/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/292030/library_600x900.jpg" }
+        ];
+
+        let activeGame = games[0];
+        let activeCollection = null;
+
+        function handleScroll(el) {
+            const stage = document.getElementById('stage');
+            // Transition threshold
+            if (el.scrollTop > 80) {
+                stage.classList.add('scrolled');
+            } else {
+                stage.classList.remove('scrolled');
+            }
+        }
+
+        function scrollToTop() {
+            document.getElementById('scroll-root').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function launchApp() {
+            document.body.classList.add('launching');
+            setTimeout(() => document.body.classList.remove('launching'), 500);
+        }
+
+        function setHero(game) {
+            if (!game || activeGame.id === game.id) return;
+            activeGame = game;
+            
+            document.getElementById('h-title').innerText = game.title;
+            document.getElementById('h-time').innerText = game.time.replace('h', '');
+            document.getElementById('h-last').innerText = game.last;
+            
+            const view = document.getElementById('hero-view');
+            const wall = document.getElementById('user-wallpaper');
+            
+            view.style.backgroundImage = `url('${game.hero}')`;
+            wall.style.backgroundImage = `url('${game.hero}')`;
+            
+            document.documentElement.style.setProperty('--game-accent-rgb', game.color);
+            document.documentElement.style.setProperty('--game-accent', `rgb(${game.color})`);
+        }
+
+        async function toggleCollection(e, cat) {
+            e.stopPropagation();
+            const grid = document.getElementById('living-grid');
+            const expansion = document.getElementById('expansion-node');
+            const stack = document.getElementById(`stack-${cat}`);
+            const anchor = document.getElementById('collections-anchor');
+            
+            if (activeCollection === cat) {
+                await closeAllCollections();
+                return;
+            }
+
+            if (activeCollection) await closeAllCollections();
+
+            // Smoothly move view to collection
+            anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            activeCollection = cat;
+            stack.classList.add('active');
+            expansion.classList.add('expanded');
+
+            const filtered = games.filter(g => g.cat === cat);
+            const stackRect = stack.getBoundingClientRect();
+
+            filtered.forEach((g) => {
+                const slot = document.createElement('div');
+                slot.className = 'game-card';
+                slot.style.opacity = '0';
+                grid.appendChild(slot);
+                
+                requestAnimationFrame(() => {
+                    const slotRect = slot.getBoundingClientRect();
+                    const flyer = document.createElement('div');
+                    flyer.className = 'game-card flying';
+                    flyer.style.cssText = `
+                        position: fixed; z-index: 1000; pointer-events: none;
+                        background-image: url('${g.thumb}'); background-size: cover; border-radius: 14px;
+                        width: ${stackRect.width}px; height: ${stackRect.height}px;
+                        top: ${stackRect.top}px; left: ${stackRect.left}px;
+                        transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+                    `;
+                    document.body.appendChild(flyer);
+
+                    requestAnimationFrame(() => {
+                        flyer.style.top = slotRect.top + 'px';
+                        flyer.style.left = slotRect.left + 'px';
+                        flyer.style.width = slotRect.width + 'px';
+                        flyer.style.height = slotRect.height + 'px';
+                    });
+
+                    setTimeout(() => {
+                        slot.style.backgroundImage = `url('${g.thumb}')`;
+                        slot.style.opacity = '1';
+                        slot.onmouseenter = () => setHero(g);
+                        slot.onclick = (ev) => { ev.stopPropagation(); setHero(g); launchApp(); };
+                        flyer.remove();
+                    }, 600);
+                });
+            });
+        }
+
+        function closeAllCollections() {
+            return new Promise((resolve) => {
+                const grid = document.getElementById('living-grid');
+                const expansion = document.getElementById('expansion-node');
+                const stack = document.getElementById(`stack-${activeCollection}`);
+                
+                if (!stack) { resolve(); return; }
+                const stackRect = stack.getBoundingClientRect();
+                const cards = Array.from(grid.querySelectorAll('.game-card'));
+                
+                cards.forEach((card) => {
+                    const rect = card.getBoundingClientRect();
+                    const flyer = document.createElement('div');
+                    flyer.className = 'game-card flying';
+                    flyer.style.cssText = `
+                        position: fixed; z-index: 1000; pointer-events: none;
+                        background-image: ${card.style.backgroundImage}; background-size: cover; border-radius: 14px;
+                        width: ${rect.width}px; height: ${rect.height}px;
+                        top: ${rect.top}px; left: ${rect.left}px;
+                        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+                    `;
+                    document.body.appendChild(flyer);
+                    card.style.opacity = '0';
+                    
+                    requestAnimationFrame(() => {
+                        flyer.style.top = stackRect.top + 'px';
+                        flyer.style.left = stackRect.left + 'px';
+                        flyer.style.width = stackRect.width + 'px';
+                        flyer.style.height = stackRect.height + 'px';
+                        flyer.style.opacity = '0';
+                    });
+                    
+                    setTimeout(() => flyer.remove(), 500);
+                });
+
+                stack.classList.remove('active');
+                expansion.classList.remove('expanded');
+                activeCollection = null;
+                setTimeout(() => { grid.innerHTML = ''; resolve(); }, 600);
+            });
+        }
+
+        function handleGlobalClick(e) {
+            if (!e.target.closest('.stack-container') && !e.target.closest('.game-card') && !e.target.closest('.mode-toggle')) {
+                if (activeCollection) closeAllCollections();
+            }
+        }
+
+        function initUI() {
+            // Background init
+            document.getElementById('hero-view').style.backgroundImage = `url('${games[0].hero}')`;
+            document.getElementById('user-wallpaper').style.backgroundImage = `url('${games[0].hero}')`;
+            
+            // Rail init
+            const rail = document.getElementById('fav-rail');
+            games.slice(0, 5).forEach(g => {
+                const c = document.createElement('div');
+                c.className = 'rail-card';
+                c.style.backgroundImage = `url('${g.thumb}')`;
+                c.onmouseenter = () => setHero(g);
+                c.onclick = (e) => { e.stopPropagation(); setHero(g); launchApp(); };
+                rail.appendChild(c);
+            });
+
+            // Full lib init
+            const lib = document.getElementById('full-lib');
+            games.forEach(g => {
+                const c = document.createElement('div');
+                c.className = 'game-card';
+                c.style.backgroundImage = `url('${g.thumb}')`;
+                c.onmouseenter = () => setHero(g);
+                c.onclick = (e) => { e.stopPropagation(); setHero(g); launchApp(); };
+                lib.appendChild(c);
+            });
+
+            // Stack images
+            ['rpg', 'action'].forEach(cat => {
+                const filtered = games.filter(g => g.cat === cat);
+                const items = document.querySelectorAll(`#stack-${cat} .stack-item`);
+                if (filtered[0]) items[2].style.backgroundImage = `url('${filtered[0].thumb}')`;
+                if (filtered[1]) items[1].style.backgroundImage = `url('${filtered[1].thumb}')`;
+                if (filtered[2]) items[0].style.backgroundImage = `url('${filtered[2].thumb}')`;
+            });
+
+            setTimeout(() => scrollToTop(), 100);
+        }
+
+        window.onload = initUI;
+    </script>
+</body>
+</html>

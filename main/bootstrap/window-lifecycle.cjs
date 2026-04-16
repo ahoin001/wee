@@ -92,6 +92,7 @@ function createWindowLifecycle({
       minWidth: 900,
       minHeight: 600,
       show: true,
+      backgroundColor: '#000000',
       frame: opts.frame === undefined ? !isFrameless : opts.frame,
       fullscreen: shouldStartFullscreen,
       webPreferences: {

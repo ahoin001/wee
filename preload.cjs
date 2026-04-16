@@ -62,6 +62,7 @@ contextBridge.exposeInMainWorld('api', {
     getLibraries: (args) => ipcRenderer.invoke('getSteamLibraries', args),
     scanGames: (args) => ipcRenderer.invoke('scanSteamGames', args),
     getEnrichedGames: (args) => ipcRenderer.invoke('steam:getEnrichedGames', args),
+    getClientLibraryMetadata: (args) => ipcRenderer.invoke('steam:getClientLibraryMetadata', args),
   },
   epic: {
     getInstalledGames: () => ipcRenderer.invoke('epic:getInstalledGames'),

@@ -11,6 +11,8 @@ export default function Slider({
   containerClassName = "",
   disabled = false,
   hideValue = false,
+  id,
+  "aria-label": ariaLabel,
 }) {
   return (
     <div className={`mb-4 ${containerClassName}`.trim()}>
@@ -20,12 +22,14 @@ export default function Slider({
         </div>
       )}
       <input
+        id={id}
         type="range"
         value={value}
         min={min}
         max={max}
         step={step}
         disabled={disabled}
+        aria-label={ariaLabel}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className={`w-full accent-[hsl(var(--wii-blue))] ${className}`.trim()}
       />

@@ -1,9 +1,44 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useWallpaperCycling from '../../utils/useWallpaperCycling';
 
+const DEFAULT_SPACE_ORDER = ['home', 'workspaces', 'gamehub'];
+
+/**
+ * Space-switch depth cue via background-position (cover stays full viewport).
+ * translateY() on the layer shifted the painted image down and uncovered a strip at the top (worst on Game Hub = highest index).
+ */
+function spaceParallaxBackgroundYPercent(spaceIndex) {
+  const i = Math.min(Math.max(spaceIndex, 0), 8);
+  return 50 + i * 4;
+}
+
 const IsolatedWallpaperBackground = React.memo(() => {
   const wallpaper = useConsolidatedAppStore((state) => state.wallpaper);
+  const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
+  const spaceOrder = useConsolidatedAppStore((state) => state.spaces.order);
+
+  const {
+    workspaceBrightness,
+    workspaceSaturate,
+    gameHubBrightness,
+    gameHubSaturate,
+  } = wallpaper;
+
+  const applySpaceWallpaperTone = useMemo(() => {
+    const isGameHub = activeSpaceId === 'gamehub';
+    const b = isGameHub ? gameHubBrightness : workspaceBrightness;
+    const s = isGameHub ? gameHubSaturate : workspaceSaturate;
+    const bb = typeof b === 'number' && !Number.isNaN(b) ? b : isGameHub ? 0.78 : 1;
+    const ss = typeof s === 'number' && !Number.isNaN(s) ? s : 1;
+    return (filterCss) => `${filterCss} brightness(${bb}) saturate(${ss})`;
+  }, [
+    activeSpaceId,
+    workspaceBrightness,
+    workspaceSaturate,
+    gameHubBrightness,
+    gameHubSaturate,
+  ]);
   const {
     isTransitioning: cyclingTransitioning,
     currentWallpaper,
@@ -17,11 +52,12 @@ const IsolatedWallpaperBackground = React.memo(() => {
   const { opacity, blur, cycleAnimation } = wallpaper;
 
   const getCurrentWallpaperStyle = useCallback(() => {
+    const dim = applySpaceWallpaperTone;
     if (!cyclingTransitioning || !currentWallpaper?.url) {
       return {
         opacity,
         transform: 'none',
-        filter: `blur(${blur}px)`,
+        filter: dim(`blur(${blur}px)`),
       };
     }
 
@@ -32,7 +68,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * (1 - progress),
           transform: 'none',
-          filter: `blur(${blur}px)`,
+          filter: dim(`blur(${blur}px)`),
         };
       case 'slide': {
         const slideOffset = progress * 100;
@@ -58,7 +94,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity,
           transform: slideTransform,
-          filter: `blur(${blur}px)`,
+          filter: dim(`blur(${blur}px)`),
         };
       }
       case 'zoom': {
@@ -66,7 +102,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * (1 - progress * 0.5),
           transform: `scale(${zoomScale})`,
-          filter: `blur(${blur + (progress * 2)}px)`,
+          filter: dim(`blur(${blur + (progress * 2)}px)`),
         };
       }
       case 'ken-burns': {
@@ -76,7 +112,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * (1 - progress * 0.3),
           transform: `scale(${kenBurnsScale}) translateX(${kenBurnsX}%) translateY(${kenBurnsY}%)`,
-          filter: `blur(${blur}px)`,
+          filter: dim(`blur(${blur}px)`),
         };
       }
       case 'morph': {
@@ -86,7 +122,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * (1 - progress * 0.7),
           transform: `scale(${morphScale}) rotate(${morphRotate}deg) skew(${morphSkew}deg)`,
-          filter: `blur(${blur + progress}px)`,
+          filter: dim(`blur(${blur + progress}px)`),
         };
       }
       case 'blur': {
@@ -94,24 +130,34 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * (1 - progress * 0.8),
           transform: 'none',
-          filter: `blur(${blurIntensity}px)`,
+          filter: dim(`blur(${blurIntensity}px)`),
         };
       }
       default:
         return {
           opacity,
           transform: 'none',
-          filter: `blur(${blur}px)`,
+          filter: dim(`blur(${blur}px)`),
         };
     }
-  }, [cyclingTransitioning, currentWallpaper?.url, opacity, blur, cycleAnimation, cyclingProgress, cyclingSlideDirection]);
+  }, [
+    applySpaceWallpaperTone,
+    cyclingTransitioning,
+    currentWallpaper?.url,
+    opacity,
+    blur,
+    cycleAnimation,
+    cyclingProgress,
+    cyclingSlideDirection,
+  ]);
 
   const getNextWallpaperStyle = useCallback(() => {
+    const dim = applySpaceWallpaperTone;
     if (!cyclingTransitioning || !nextWallpaper?.url) {
       return {
         opacity: 0,
         transform: 'none',
-        filter: `blur(${blur}px)`,
+        filter: dim(`blur(${blur}px)`),
       };
     }
 
@@ -122,7 +168,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: `blur(${blur}px)`,
+          filter: dim(`blur(${blur}px)`),
         };
       case 'slide': {
         const slideOffset = (1 - progress) * 100;
@@ -148,7 +194,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity,
           transform: slideTransform,
-          filter: `blur(${blur}px)`,
+          filter: dim(`blur(${blur}px)`),
         };
       }
       case 'zoom': {
@@ -156,7 +202,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * progress,
           transform: `scale(${zoomScale})`,
-          filter: `blur(${blur + ((1 - progress) * 2)}px)`,
+          filter: dim(`blur(${blur + ((1 - progress) * 2)}px)`),
         };
       }
       case 'ken-burns': {
@@ -166,7 +212,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * progress,
           transform: `scale(${kenBurnsScale}) translateX(-${kenBurnsX}%) translateY(-${kenBurnsY}%)`,
-          filter: `blur(${blur}px)`,
+          filter: dim(`blur(${blur}px)`),
         };
       }
       case 'morph': {
@@ -176,7 +222,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * progress,
           transform: `scale(${morphScale}) rotate(-${morphRotate}deg) skew(-${morphSkew}deg)`,
-          filter: `blur(${blur + ((1 - progress) * 1)}px)`,
+          filter: dim(`blur(${blur + ((1 - progress) * 1)}px)`),
         };
       }
       case 'blur': {
@@ -184,21 +230,51 @@ const IsolatedWallpaperBackground = React.memo(() => {
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: `blur(${blurIntensity}px)`,
+          filter: dim(`blur(${blurIntensity}px)`),
         };
       }
       default:
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: `blur(${blur}px)`,
+          filter: dim(`blur(${blur}px)`),
         };
     }
-  }, [cyclingTransitioning, nextWallpaper?.url, opacity, blur, cycleAnimation, cyclingProgress, cyclingSlideDirection]);
+  }, [
+    applySpaceWallpaperTone,
+    cyclingTransitioning,
+    nextWallpaper?.url,
+    opacity,
+    blur,
+    cycleAnimation,
+    cyclingProgress,
+    cyclingSlideDirection,
+  ]);
 
   const transitionKey = `${cyclingTransitioning}-${cyclingProgress}-${cyclingSlideProgress}-${cyclingSlideDirection}-${forceUpdate}`;
 
+  const resolvedSpaceOrder = Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SPACE_ORDER;
+  const rawIndex = resolvedSpaceOrder.indexOf(activeSpaceId);
+  const spaceIndex = rawIndex >= 0 ? rawIndex : 0;
+  const parallaxBgY = spaceParallaxBackgroundYPercent(spaceIndex);
+
+  const currentLayerStyle = getCurrentWallpaperStyle();
+  const nextLayerStyle = getNextWallpaperStyle();
+
+  const idleWallpaperTransition = cyclingTransitioning
+    ? 'none'
+    : 'opacity 0.35s ease-out, transform 0.35s ease-out, filter 0.45s ease-out, background-position 0.78s cubic-bezier(0.16, 1, 0.3, 1)';
+
   return (
+    <div
+      className="wallpaper-space-parallax"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 0,
+        pointerEvents: 'none',
+      }}
+    >
     <div key={transitionKey}>
       {currentWallpaper && currentWallpaper.url && (
         <div
@@ -211,9 +287,12 @@ const IsolatedWallpaperBackground = React.memo(() => {
             height: '100vh',
             zIndex: 0,
             pointerEvents: 'none',
-            background: `url('${currentWallpaper.url}') center center / cover no-repeat`,
-            ...getCurrentWallpaperStyle(),
-            transition: cyclingTransitioning ? 'none' : 'opacity 0.3s ease-out, transform 0.3s ease-out, filter 0.3s ease-out',
+            backgroundImage: `url('${currentWallpaper.url}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: `center ${parallaxBgY}%`,
+            backgroundRepeat: 'no-repeat',
+            ...currentLayerStyle,
+            transition: idleWallpaperTransition,
           }}
         />
       )}
@@ -229,12 +308,16 @@ const IsolatedWallpaperBackground = React.memo(() => {
             height: '100vh',
             zIndex: 1,
             pointerEvents: 'none',
-            background: `url('${nextWallpaper.url}') center center / cover no-repeat`,
-            ...getNextWallpaperStyle(),
+            backgroundImage: `url('${nextWallpaper.url}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: `center ${parallaxBgY}%`,
+            backgroundRepeat: 'no-repeat',
+            ...nextLayerStyle,
             transition: 'none',
           }}
         />
       )}
+    </div>
     </div>
   );
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, useMemo } from 'react';
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 import { useShallow } from 'zustand/react/shallow';
 import useWallpaperCycling from './utils/useWallpaperCycling';
@@ -32,6 +32,9 @@ import {
   SpotifyLiveGradientWallpaper,
 } from './components/overlays';
 import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
+import GameHubMinimalDock from './components/game-hub/GameHubMinimalDock';
+
+const DEFAULT_SPACE_ORDER = ['home', 'workspaces', 'gamehub'];
 
 // Lazy load components to reduce initial bundle size
 const lazyNamedExport = (importer, exportName) =>
@@ -52,7 +55,6 @@ const LazyAdminPanelWidget = lazyNamedExport(() => import('./components/admin'),
 const LazyPerformanceMonitor = lazyNamedExport(() => import('./components/widgets'), 'PerformanceMonitor');
 const LazySpaceRail = lazyNamedExport(() => import('./components/spaces'), 'SpaceRail');
 const LazyGameHubSpace = lazyNamedExport(() => import('./components/game-hub'), 'GameHubSpace');
-
 
 
 function App() {
@@ -92,6 +94,7 @@ function App() {
     floatingWidgets,
     dock,
     activeSpaceId,
+    spaceOrder,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       appReady: state.app.appReady,
@@ -129,6 +132,7 @@ function App() {
       floatingWidgets: state.floatingWidgets,
       dock: state.dock,
       activeSpaceId: state.spaces.activeSpaceId,
+      spaceOrder: state.spaces.order,
     }))
   );
 
@@ -251,9 +255,37 @@ function App() {
 
   // Settings action menu state and positioning
   const [settingsMenuPosition, setSettingsMenuPosition] = useState({ x: 0, y: 0 });
-  const [spaceTransitionStage, setSpaceTransitionStage] = useState('idle');
-  const [lastSpaceId, setLastSpaceId] = useState(activeSpaceId);
-  const transitionTimerRef = useRef(null);
+  const resolvedSpaceOrder = useMemo(
+    () => (Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SPACE_ORDER),
+    [spaceOrder]
+  );
+  const activeSpaceIndex = useMemo(() => {
+    const i = resolvedSpaceOrder.indexOf(activeSpaceId);
+    return i >= 0 ? i : 0;
+  }, [resolvedSpaceOrder, activeSpaceId]);
+  const lastSpaceSwitchAtRef = useRef(Date.now());
+  const [spaceWorldDurationMs, setSpaceWorldDurationMs] = useState(780);
+  useEffect(() => {
+    const now = Date.now();
+    const elapsed = now - lastSpaceSwitchAtRef.current;
+    lastSpaceSwitchAtRef.current = now;
+    if (elapsed > 0 && elapsed < 420) {
+      setSpaceWorldDurationMs(540);
+    } else {
+      setSpaceWorldDurationMs(780);
+    }
+  }, [activeSpaceId]);
+  const spaceWorldTrackStyle = useMemo(() => {
+    const n = resolvedSpaceOrder.length || 1;
+    const panelPct = 100 / n;
+    const yPct = -(activeSpaceIndex * panelPct);
+    return {
+      transform: `translateY(${yPct}%)`,
+      height: `${n * 100}%`,
+      '--space-world-duration': `${spaceWorldDurationMs}ms`,
+      '--space-world-panel-pct': `${panelPct}%`,
+    };
+  }, [activeSpaceIndex, resolvedSpaceOrder.length, spaceWorldDurationMs]);
   
   // Ref to access SettingsActionMenu's handleClose method
   const settingsActionMenuRef = useRef(null);
@@ -378,6 +410,10 @@ function App() {
   const toggleDock = useCallback(() => setUIState(prev => ({ showDock: !prev.showDock })), [setUIState]);
   const toggleDarkMode = useCallback(() => setUIState(prev => ({ isDarkMode: !prev.isDarkMode })), [setUIState]);
   const toggleCustomCursor = useCallback(() => setUIState(prev => ({ useCustomCursor: !prev.useCustomCursor })), [setUIState]);
+  const renderSpaceContent = useCallback(
+    (spaceId) => (spaceId === 'gamehub' ? <LazyGameHubSpace /> : <LazyPaginatedChannels />),
+    []
+  );
 
   // Debug wallpaper cycling isolation
   useEffect(() => {
@@ -388,30 +424,6 @@ function App() {
     }
   }, []);
 
-  useEffect(() => {
-    if (activeSpaceId === lastSpaceId) return undefined;
-    const SWITCHING_STAGE_MS = 380;
-    const SETTLE_STAGE_MS = 260;
-
-    setSpaceTransitionStage('switching');
-    if (transitionTimerRef.current) {
-      window.clearTimeout(transitionTimerRef.current);
-    }
-    transitionTimerRef.current = window.setTimeout(() => {
-      setLastSpaceId(activeSpaceId);
-      setSpaceTransitionStage('settled');
-      transitionTimerRef.current = window.setTimeout(() => {
-        setSpaceTransitionStage('idle');
-      }, SETTLE_STAGE_MS);
-    }, SWITCHING_STAGE_MS);
-
-    return () => {
-      if (transitionTimerRef.current) {
-        window.clearTimeout(transitionTimerRef.current);
-      }
-    };
-  }, [activeSpaceId, lastSpaceId]);
-
   // Render splash screen only if not ready
   if (!appReady || isLoading) {
     return <SplashScreen fadingOut={splashFading} />;
@@ -421,6 +433,8 @@ function App() {
   if (!ribbonColor || !ribbonGlowColor) {
     console.warn('[App] Missing required ribbon configuration, using defaults');
   }
+
+  const mainContentClassName = `main-content space-world space-world--${activeSpaceId}`;
 
   return (
     <ErrorBoundary>
@@ -442,9 +456,33 @@ function App() {
           gravity={gravity}
         />
 
-        {/* Main Content */}
-        <div className={`main-content space-scene space-scene--${activeSpaceId} space-scene--${spaceTransitionStage}`}>
-          {activeSpaceId === 'gamehub' ? <LazyGameHubSpace /> : <LazyPaginatedChannels />}
+        {/* Main Content — vertical world track (see hub-space-switch.html) */}
+        <div className={mainContentClassName}>
+          <Suspense fallback={null}>
+            <div
+              className="space-world__track"
+              style={spaceWorldTrackStyle}
+            >
+              {resolvedSpaceOrder.map((spaceId) => {
+                const isActive = spaceId === activeSpaceId;
+                const n = resolvedSpaceOrder.length || 1;
+                const panelPct = 100 / n;
+                return (
+                  <section
+                    key={spaceId}
+                    className={`space-world__panel ${isActive ? 'space-world__panel--active' : ''}`}
+                    aria-hidden={!isActive}
+                    data-space-id={spaceId}
+                    style={{ flex: `0 0 ${panelPct}%`, minHeight: 0 }}
+                  >
+                    <div className="space-world__panel-surface">
+                      {renderSpaceContent(spaceId)}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </Suspense>
         </div>
 
         {activeSpaceId !== 'gamehub' ? (
@@ -464,8 +502,16 @@ function App() {
           <LazySpaceRail />
         </Suspense>
 
-        {/* Dock with proper props from consolidated store */}
-        {showDock && (
+        {/* Dock: full ribbon elsewhere; compact bar on Game Hub so the grid stays the focus */}
+        {showDock && activeSpaceId === 'gamehub' && (
+          <div className="dock-container dock-container--gamehub-minimal">
+            <GameHubMinimalDock
+              onSettingsClick={handleSettingsActionMenuOpen}
+              timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
+            />
+          </div>
+        )}
+        {showDock && activeSpaceId !== 'gamehub' && (
           <div className="dock-container">
             {classicMode ? (
               <LazyClassicWiiDock

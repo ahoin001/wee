@@ -1,3 +1,6 @@
+/** Steam tools/redistributables (not games). Sync with src/utils/steamLibraryFilter.js */
+const STEAM_TOOL_APP_IDS = new Set(['228980']);
+
 function createGameSourceService({ fs, path, vdf, os }) {
   function normalizeSteamEnrichment(recentlyPlayed, ownedGames) {
     const map = new Map();
@@ -6,6 +9,7 @@ function createGameSourceService({ fs, path, vdf, os }) {
       const appId = String(item.appid);
       map.set(appId, {
         appId,
+        name: typeof item.name === 'string' ? item.name : '',
         playtimeForever: Number(item.playtime_forever || 0),
         playtimeRecent: 0,
         lastPlayedAt: 0,
@@ -17,10 +21,14 @@ function createGameSourceService({ fs, path, vdf, os }) {
       const appId = String(item.appid);
       const existing = map.get(appId) || {
         appId,
+        name: '',
         playtimeForever: 0,
         playtimeRecent: 0,
         lastPlayedAt: 0,
       };
+      if (typeof item.name === 'string' && item.name && !existing.name) {
+        existing.name = item.name;
+      }
       existing.playtimeRecent = Number(item.playtime_2weeks || 0);
       existing.playtimeForever = Math.max(
         Number(existing.playtimeForever || 0),
@@ -60,7 +68,7 @@ function createGameSourceService({ fs, path, vdf, os }) {
       const recentlyPlayedUrl =
         `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key=${encodeURIComponent(resolvedApiKey)}&steamid=${encodeURIComponent(steamId)}&format=json`;
       const ownedGamesUrl =
-        `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${encodeURIComponent(resolvedApiKey)}&steamid=${encodeURIComponent(steamId)}&format=json&include_appinfo=0&include_played_free_games=1`;
+        `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${encodeURIComponent(resolvedApiKey)}&steamid=${encodeURIComponent(steamId)}&format=json&include_appinfo=1&include_played_free_games=1`;
 
       const [recentResponse, ownedResponse] = await Promise.all([
         fetch(recentlyPlayedUrl),
@@ -99,7 +107,7 @@ function createGameSourceService({ fs, path, vdf, os }) {
       const games = normalizeSteamEnrichment(
         recentPayload?.response?.games || [],
         ownedPayload?.response?.games || []
-      );
+      ).filter((g) => !STEAM_TOOL_APP_IDS.has(String(g.appId)));
 
       if (!games.length) {
         return {
@@ -188,6 +196,7 @@ function createGameSourceService({ fs, path, vdf, os }) {
             const appid = appState.appid;
             const name = appState.name;
             if (appid && name) {
+              if (STEAM_TOOL_APP_IDS.has(String(appid))) continue;
               console.log(`[SteamScan] Game: ${name} (${appid}), StateFlags: "${appState.StateFlags}", SizeOnDisk: ${appState.SizeOnDisk}`);
               const isInstalled = parseInt(appState.SizeOnDisk) > 0;
               if (isInstalled) {
@@ -253,6 +262,171 @@ function createGameSourceService({ fs, path, vdf, os }) {
     }
   }
 
+  /** Same discovery as getInstalledSteamGames — root folder containing steamapps/libraryfolders.vdf */
+  function resolveSteamRootPathSync() {
+    let steamPath = 'C:/Program Files (x86)/Steam';
+    const libraryVdfPath = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
+    if (!fs.existsSync(libraryVdfPath)) {
+      const home = os.homedir();
+      const altPaths = [
+        path.join(home, 'AppData', 'Local', 'Steam'),
+        path.join(home, 'AppData', 'Roaming', 'Steam'),
+        path.join('D:/Steam'),
+        path.join('E:/Steam'),
+      ];
+      for (const alt of altPaths) {
+        const altVdf = path.join(alt, 'steamapps', 'libraryfolders.vdf');
+        if (fs.existsSync(altVdf)) {
+          return alt.replace(/\\/g, '/');
+        }
+      }
+      return null;
+    }
+    return steamPath.replace(/\\/g, '/');
+  }
+
+  function findUserdataFolderForSteamUser(steamRoot, steamId64) {
+    const userdataRoot = path.join(steamRoot, 'userdata');
+    if (!fs.existsSync(userdataRoot)) return null;
+    const dirs = fs
+      .readdirSync(userdataRoot, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && /^\d+$/.test(d.name))
+      .map((d) => d.name);
+    const sid = String(steamId64);
+    for (const dir of dirs) {
+      const lc = path.join(userdataRoot, dir, 'config', 'localconfig.vdf');
+      if (fs.existsSync(lc)) {
+        try {
+          const head = fs.readFileSync(lc, 'utf8').slice(0, 500000);
+          if (head.includes(`"${sid}"`) || head.includes(sid)) {
+            return dir;
+          }
+        } catch (_) {}
+      }
+    }
+    try {
+      const fallback = String(BigInt(sid) & 0xffffffffn);
+      if (dirs.includes(fallback)) return fallback;
+    } catch (_) {}
+    return dirs[0] || null;
+  }
+
+  function deepFindAppsObject(obj, depth = 0) {
+    if (!obj || typeof obj !== 'object' || depth > 28) return null;
+    if (obj.apps && typeof obj.apps === 'object' && !Array.isArray(obj.apps)) {
+      const keys = Object.keys(obj.apps);
+      if (keys.some((k) => /^\d+$/.test(String(k)))) return obj.apps;
+    }
+    const values = Object.values(obj);
+    for (let i = 0; i < values.length; i += 1) {
+      const v = values[i];
+      if (v && typeof v === 'object') {
+        const found = deepFindAppsObject(v, depth + 1);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  function parseSteamClientTags(raw) {
+    if (raw === undefined || raw === null) return [];
+    const s = String(raw).trim();
+    if (!s || s === '0') return [];
+    if (/^\d+$/.test(s)) return [];
+    return s.split(/[,;|]/).map((t) => t.trim()).filter(Boolean);
+  }
+
+  function tagLooksFavorite(t) {
+    const x = String(t).toLowerCase();
+    return x === 'favorite' || x === 'favorites' || x.includes('favorite');
+  }
+
+  /**
+   * Reads userdata/sharedconfig (VDF) for per-app tags and Steam "favorite" markers.
+   * Best-effort — Steam changes on-disk layout between client versions.
+   */
+  async function getSteamClientLibraryMetadata({ steamId }) {
+    const sid = String(steamId || '').trim();
+    if (!sid) {
+      return { ok: false, error: 'missing-steam-id', favoritesAppIds: [], appIdToTags: {} };
+    }
+    const steamRoot = resolveSteamRootPathSync();
+    if (!steamRoot) {
+      return { ok: false, error: 'steam-not-found', favoritesAppIds: [], appIdToTags: {} };
+    }
+    const folder = findUserdataFolderForSteamUser(steamRoot, sid);
+    if (!folder) {
+      return { ok: false, error: 'userdata-not-found', favoritesAppIds: [], appIdToTags: {} };
+    }
+    const sharedPath = path.join(steamRoot, 'userdata', folder, '7', 'remote', 'sharedconfig.vdf');
+    if (!fs.existsSync(sharedPath)) {
+      return {
+        ok: false,
+        error: 'sharedconfig-missing',
+        favoritesAppIds: [],
+        appIdToTags: {},
+        userdataFolder: folder,
+      };
+    }
+    let parsed;
+    try {
+      parsed = vdf.parse(fs.readFileSync(sharedPath, 'utf8'));
+    } catch (e) {
+      console.warn('[SteamClient] sharedconfig parse failed:', e.message);
+      return {
+        ok: false,
+        error: 'sharedconfig-parse',
+        favoritesAppIds: [],
+        appIdToTags: {},
+        userdataFolder: folder,
+      };
+    }
+    const apps = deepFindAppsObject(parsed);
+    if (!apps) {
+      return {
+        ok: true,
+        favoritesAppIds: [],
+        appIdToTags: {},
+        userdataFolder: folder,
+        warning: 'no-apps-tree',
+      };
+    }
+    const favoritesAppIds = [];
+    const appIdToTags = {};
+    const favSeen = new Set();
+
+    Object.keys(apps).forEach((appKey) => {
+      if (!/^\d+$/.test(appKey)) return;
+      if (STEAM_TOOL_APP_IDS.has(appKey)) return;
+      const node = apps[appKey];
+      if (!node || typeof node !== 'object') return;
+      let tags = parseSteamClientTags(node.tags);
+      if (String(node.Favorite || node.favorite || '') === '1') {
+        if (!favSeen.has(appKey)) {
+          favSeen.add(appKey);
+          favoritesAppIds.push(appKey);
+        }
+      }
+      const favoriteViaTag = tags.some(tagLooksFavorite);
+      if (favoriteViaTag) {
+        if (!favSeen.has(appKey)) {
+          favSeen.add(appKey);
+          favoritesAppIds.push(appKey);
+        }
+        tags = tags.filter((t) => !tagLooksFavorite(t));
+      }
+      const rest = tags.filter((t) => !tagLooksFavorite(t));
+      if (rest.length) appIdToTags[appKey] = rest;
+    });
+
+    return {
+      ok: true,
+      favoritesAppIds,
+      appIdToTags,
+      userdataFolder: folder,
+    };
+  }
+
   async function getSteamLibraries({ steamPath }) {
     try {
       const libraryVdfPath = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
@@ -302,6 +476,9 @@ function createGameSourceService({ fs, path, vdf, os }) {
               const appState = manifestData.AppState;
               const isInstalled = parseInt(appState.SizeOnDisk) > 0;
               if (isInstalled) {
+                if (STEAM_TOOL_APP_IDS.has(String(appState.appid))) {
+                  continue;
+                }
                 games.push({
                   appId: appState.appid,
                   name: appState.name,
@@ -375,6 +552,7 @@ function createGameSourceService({ fs, path, vdf, os }) {
   return {
     getInstalledSteamGames,
     getSteamEnrichedGames,
+    getSteamClientLibraryMetadata,
     detectSteamInstallation,
     getSteamLibraries,
     scanSteamGames,

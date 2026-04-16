@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraHub - Multi-Space Engine</title>
+    <style>
+        :root {
+            --accent: #00d2ff;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --game-accent: #00d2ff; 
+            --game-accent-rgb: 0, 210, 255;
+            --physics-ease: cubic-bezier(0.16, 1, 0.3, 1);
+            
+            --hero-full: clamp(300px, 45vh, 500px);
+            --hero-min: 80px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: #050508;
+            color: var(--text-main);
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+        }
+
+        #user-wallpaper {
+            position: fixed; inset: 0; z-index: -3;
+            background-size: cover; background-position: center;
+            transition: transform 1.2s var(--physics-ease), filter 0.8s ease;
+            filter: brightness(0.2); transform: scale(1.1);
+        }
+
+        /* --- SPACE MANAGER (Vertical Slider) --- */
+        .world-container {
+            height: 100vh; width: 100vw;
+            transition: transform 0.8s var(--physics-ease);
+            display: flex; flex-direction: column;
+        }
+
+        .space {
+            height: 100vh; width: 100vw;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            padding: 3vh 2vw;
+            transition: opacity 0.5s ease;
+        }
+
+        /* --- SPACE 1: AURAHUB (Modern Glass) --- */
+        .main-stage {
+            width: 100%; height: 100%;
+            background: rgba(8, 8, 12, 0.85);
+            backdrop-filter: blur(60px) saturate(160%);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+        }
+
+        .hero-outer {
+            width: 100%; height: var(--hero-full);
+            transition: height 0.6s var(--physics-ease);
+            overflow: hidden;
+        }
+
+        .hero-viewport {
+            height: 100%; width: 100%; position: relative;
+            display: flex; align-items: center; padding: 0 80px;
+            background-size: cover; background-position: center 25%;
+        }
+
+        .hero-viewport::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.9) 10%, transparent 80%),
+                        linear-gradient(to top, rgba(8, 8, 12, 1) 0%, transparent 50%);
+        }
+
+        .hero-title { font-size: clamp(2rem, 6vw, 4rem); font-weight: 900; letter-spacing: -3px; text-transform: uppercase; margin-bottom: 10px; }
+        
+        .library-content {
+            flex-grow: 1; overflow-y: auto; scrollbar-width: none;
+            padding: 40px 80px;
+        }
+
+        /* --- SPACE 2: THE BLADES (Dashboard Style) --- */
+        .blades-stage {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center;
+            perspective: 1200px;
+        }
+
+        .blade-strip {
+            display: flex; gap: 20px;
+            padding-left: 10%;
+            transform: rotateY(-15deg) rotateX(5deg);
+            transform-style: preserve-3d;
+        }
+
+        .blade-card {
+            width: 280px; height: 400px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            flex-shrink: 0;
+            position: relative;
+            transition: all 0.5s var(--physics-ease);
+            overflow: hidden;
+            cursor: pointer;
+            backdrop-filter: blur(20px);
+        }
+
+        .blade-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: 0.5s; }
+
+        .blade-card:hover, .blade-card.active {
+            transform: translateZ(100px) scale(1.1);
+            border-color: #fff;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+        .blade-card:hover img, .blade-card.active img { opacity: 1; }
+
+        .blade-info {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 30px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+        }
+
+        /* --- UI OVERLAYS --- */
+        .nav-hint {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; font-size: 0.6rem; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--text-dim);
+            background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 20px;
+            pointer-events: none; opacity: 0.7;
+        }
+
+        /* --- FLYING CLONE (Zero Flicker Logic) --- */
+        .flying-clone {
+            position: fixed; z-index: 1000; pointer-events: none;
+            background-size: cover; border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.6s var(--physics-ease);
+        }
+
+        .dynamic-grid { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); 
+            gap: 30px; padding: 20px 0;
+        }
+
+        .game-card {
+            aspect-ratio: 2/3; border-radius: 12px; background-size: cover;
+            border: 1px solid var(--glass-border); cursor: pointer;
+            transition: 0.4s var(--physics-ease);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="user-wallpaper"></div>
+    <div class="nav-hint">Press Arrow Up / Down to switch Spaces</div>
+
+    <div class="world-container" id="world">
+        
+        <!-- SPACE 1: AURAHUB -->
+        <section class="space" id="space-0">
+            <div class="main-stage">
+                <div class="hero-outer">
+                    <header class="hero-viewport" id="hero-view">
+                        <div class="hero-content">
+                            <div class="hero-title" id="h-title">Elden Ring</div>
+                            <div style="font-size: 0.7rem; letter-spacing: 2px; opacity: 0.6;">CURRENTLY PLAYING</div>
+                        </div>
+                    </header>
+                </div>
+                <main class="library-content">
+                    <div style="margin-bottom: 20px; font-size: 0.7rem; letter-spacing: 4px; color: var(--text-dim); text-transform: uppercase;">Library</div>
+                    <div class="dynamic-grid" id="aura-grid"></div>
+                </main>
+            </div>
+        </section>
+
+        <!-- SPACE 2: THE BLADES -->
+        <section class="space" id="space-1">
+            <div class="blades-stage">
+                <div style="margin-left: 10%; margin-bottom: 40px;">
+                    <h2 style="font-size: 3rem; font-weight: 900; text-transform: uppercase; letter-spacing: -2px;">The Blades</h2>
+                    <p style="color: var(--text-dim); letter-spacing: 2px; font-size: 0.7rem;">LEGACY DASHBOARD VIEW</p>
+                </div>
+                <div class="blade-strip" id="blade-rail">
+                    <!-- Blade cards injected here -->
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const games = [
+            { id: 1, title: "Elden Ring", color: "249, 209, 74", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1245620/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1245620/library_600x900.jpg" },
+            { id: 2, title: "Cyberpunk 2077", color: "255, 0, 60", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1091500/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1091500/library_600x900.jpg" },
+            { id: 3, title: "Hades", color: "255, 78, 0", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1145360/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1145360/library_600x900.jpg" },
+            { id: 4, title: "Forza Horizon 5", color: "0, 255, 204", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1551360/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1551360/library_600x900.jpg" },
+            { id: 5, title: "Starfield", color: "100, 150, 255", hero: "https://cdn.akamai.steamstatic.com/steam/apps/1716740/library_hero.jpg", thumb: "https://cdn.akamai.steamstatic.com/steam/apps/1716740/library_600x900.jpg" }
+        ];
+
+        let currentSpace = 0;
+        const totalSpaces = 2;
+        let isTransitioning = false;
+
+        function setHero(game) {
+            document.getElementById('h-title').innerText = game.title;
+            document.getElementById('hero-view').style.backgroundImage = `url('${game.hero}')`;
+            document.getElementById('user-wallpaper').style.backgroundImage = `url('${game.hero}')`;
+            document.documentElement.style.setProperty('--game-accent', `rgb(${game.color})`);
+        }
+
+        function switchSpace(dir) {
+            if (isTransitioning) return;
+            const next = currentSpace + dir;
+            if (next < 0 || next >= totalSpaces) return;
+
+            isTransitioning = true;
+            currentSpace = next;
+
+            const world = document.getElementById('world');
+            const wallpaper = document.getElementById('user-wallpaper');
+            
+            // Slide the world
+            world.style.transform = `translateY(-${currentSpace * 100}vh)`;
+            
+            // Parallax the wallpaper
+            wallpaper.style.transform = `scale(1.1) translateY(${currentSpace * 5}%)`;
+
+            setTimeout(() => { isTransitioning = false; }, 800);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') switchSpace(1);
+            if (e.key === 'ArrowUp') switchSpace(-1);
+        });
+
+        function init() {
+            setHero(games[0]);
+
+            // Fill Aura Grid
+            const auraGrid = document.getElementById('aura-grid');
+            games.forEach(g => {
+                const card = document.createElement('div');
+                card.className = 'game-card';
+                card.style.backgroundImage = `url('${g.thumb}')`;
+                card.onmouseenter = () => setHero(g);
+                auraGrid.appendChild(card);
+            });
+
+            // Fill Blade Rail
+            const bladeRail = document.getElementById('blade-rail');
+            games.forEach((g, i) => {
+                const blade = document.createElement('div');
+                blade.className = 'blade-card';
+                if (i === 0) blade.classList.add('active');
+                
+                blade.innerHTML = `
+                    <img src="${g.thumb}">
+                    <div class="blade-info">
+                        <div style="font-weight: 900; font-size: 1.2rem;">${g.title}</div>
+                        <div style="font-size: 0.6rem; letter-spacing: 2px; color: var(--game-accent);">READY TO PLAY</div>
+                    </div>
+                `;
+                blade.onmouseenter = () => {
+                    document.querySelectorAll('.blade-card').forEach(b => b.classList.remove('active'));
+                    blade.classList.add('active');
+                    setHero(g);
+                };
+                bladeRail.appendChild(blade);
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
