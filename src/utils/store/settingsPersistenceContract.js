@@ -1,4 +1,8 @@
 import { mergeMotionFeedback } from '../motionFeedbackDefaults.js';
+import {
+  createDefaultChannelSpaceData,
+  migrateLegacyChannelsToDataBySpace,
+} from '../channelSpaces.js';
 
 export const SETTINGS_SCHEMA_VERSION = 2;
 
@@ -71,17 +75,31 @@ function mergeChannelData(baseData, patchData) {
   return merged;
 }
 
-function mergeChannelsSlice(baseChannels, patchChannels) {
+export function mergeChannelsSlice(baseChannels, patchChannels) {
   if (!isPlainObject(patchChannels)) return isPlainObject(baseChannels) ? baseChannels : {};
   if (!isPlainObject(baseChannels)) return patchChannels;
 
   const merged = deepMerge(
-    omitKeys(baseChannels, ['data', 'settings', 'operations']),
-    omitKeys(patchChannels, ['data', 'settings', 'operations'])
+    omitKeys(baseChannels, ['data', 'settings', 'operations', 'dataBySpace']),
+    omitKeys(patchChannels, ['data', 'settings', 'operations', 'dataBySpace'])
   );
   merged.settings = deepMerge(baseChannels.settings || {}, patchChannels.settings || {});
   merged.operations = deepMerge(baseChannels.operations || {}, patchChannels.operations || {});
-  merged.data = mergeChannelData(baseChannels.data, patchChannels.data);
+
+  const baseM = migrateLegacyChannelsToDataBySpace(baseChannels);
+  const patchM = migrateLegacyChannelsToDataBySpace(patchChannels);
+  const def = createDefaultChannelSpaceData();
+  merged.dataBySpace = {
+    home: mergeChannelData(
+      baseM.dataBySpace?.home || def,
+      patchM.dataBySpace?.home != null ? patchM.dataBySpace.home : patchChannels.data || {}
+    ),
+    workspaces: mergeChannelData(
+      baseM.dataBySpace?.workspaces || def,
+      patchM.dataBySpace?.workspaces != null ? patchM.dataBySpace.workspaces : patchChannels.data || {}
+    ),
+  };
+  delete merged.data;
   return merged;
 }
 

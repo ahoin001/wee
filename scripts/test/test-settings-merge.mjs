@@ -28,8 +28,9 @@ const patch = {
 };
 
 const m = mergeCanonicalSettings(base, patch);
-const cc = m.channels.data.configuredChannels;
-const cf = m.channels.data.channelConfigs;
+const slice = m.channels.dataBySpace.home;
+const cc = slice.configuredChannels;
+const cf = slice.channelConfigs;
 
 if (cc['channel-5'] !== undefined) {
   throw new Error('stale channel-5 in configuredChannels');
@@ -43,7 +44,7 @@ if (cf['channel-5'] !== undefined) {
 if (Object.keys(cf).length !== 0) {
   throw new Error('expected empty channelConfigs from patch');
 }
-if (m.channels.data.navigation.currentPage !== 1) {
+if (slice.navigation.currentPage !== 1) {
   throw new Error('navigation should deep-merge');
 }
 

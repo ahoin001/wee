@@ -10,7 +10,6 @@ export const useAppInitialization = ({
   setWallpaperState,
   setOverlayState,
   setChannelState,
-  setChannelData,
   setUIState,
   setRibbonState,
   setTimeState,
@@ -77,11 +76,18 @@ export const useAppInitialization = ({
 
         if (!cancelled && resolvedChannelData) {
           const normalizedChannelPayload = normalizeChannelPayload(resolvedChannelData);
-          if (normalizedChannelPayload.settings) {
+          if (normalizedChannelPayload.settings && Object.keys(normalizedChannelPayload.settings).length > 0) {
             setChannelState({ settings: normalizedChannelPayload.settings });
           }
-          if (normalizedChannelPayload.data) {
-            setChannelData(normalizedChannelPayload.data);
+          const channelPatch = {};
+          if (normalizedChannelPayload.data && Object.keys(normalizedChannelPayload.data).length > 0) {
+            channelPatch.data = normalizedChannelPayload.data;
+          }
+          if (normalizedChannelPayload.dataBySpace) {
+            channelPatch.dataBySpace = normalizedChannelPayload.dataBySpace;
+          }
+          if (Object.keys(channelPatch).length > 0) {
+            setChannelState(channelPatch);
           }
         }
 
@@ -100,11 +106,18 @@ export const useAppInitialization = ({
           if (resolvedSettings.overlay) setOverlayState(resolvedSettings.overlay);
           if (resolvedSettings.channels) {
             const normalizedSettingsChannels = normalizeChannelPayload(resolvedSettings.channels);
-            if (normalizedSettingsChannels.settings) {
+            if (normalizedSettingsChannels.settings && Object.keys(normalizedSettingsChannels.settings).length > 0) {
               setChannelState({ settings: normalizedSettingsChannels.settings });
             }
-            if (normalizedSettingsChannels.data) {
-              setChannelData(normalizedSettingsChannels.data);
+            const settingsChannelPatch = {};
+            if (normalizedSettingsChannels.data && Object.keys(normalizedSettingsChannels.data).length > 0) {
+              settingsChannelPatch.data = normalizedSettingsChannels.data;
+            }
+            if (normalizedSettingsChannels.dataBySpace) {
+              settingsChannelPatch.dataBySpace = normalizedSettingsChannels.dataBySpace;
+            }
+            if (Object.keys(settingsChannelPatch).length > 0) {
+              setChannelState(settingsChannelPatch);
             }
           }
           if (resolvedSettings.time) setTimeState(resolvedSettings.time);
@@ -130,6 +143,15 @@ export const useAppInitialization = ({
           if (resolvedSettings.workspaces) setWorkspacesState(resolvedSettings.workspaces);
           if (resolvedSettings.spaces) setSpacesState(resolvedSettings.spaces);
           if (resolvedSettings.gameHub) setGameHubState(resolvedSettings.gameHub);
+
+          /* Never cold-start on Game Hub: restore last home/work panel (persisted in lastChannelSpaceId). */
+          if (!cancelled) {
+            const snap = useConsolidatedAppStore.getState().spaces;
+            if (snap.activeSpaceId === 'gamehub') {
+              const fallback = snap.lastChannelSpaceId === 'workspaces' ? 'workspaces' : 'home';
+              setSpacesState({ activeSpaceId: fallback });
+            }
+          }
         }
       } catch (error) {
         console.error('[AppInitialization] Failed to initialize app:', error);
@@ -153,7 +175,6 @@ export const useAppInitialization = ({
     setWallpaperState,
     setOverlayState,
     setChannelState,
-    setChannelData,
     setUIState,
     setRibbonState,
     setTimeState,

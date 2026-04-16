@@ -59,6 +59,7 @@ const GameHubSettingsTab = React.memo(() => {
       },
       library: {
         enrichedGames: [],
+        lastEnrichedSteamId: '',
         syncStatus: 'local-only',
         statusReason: 'SteamID64 cleared. Running local-only mode.',
         lastError: null,

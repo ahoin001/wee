@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import useChannelOperations from '../../utils/useChannelOperations';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -6,11 +6,17 @@ import useSoundManager from '../../utils/useSoundManager';
 import './WiiSideNavigation.css';
 
 const WiiSideNavigation = () => {
+  const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
+  const channelSpaceKey = useMemo(
+    () => (activeSpaceId === 'workspaces' ? 'workspaces' : 'home'),
+    [activeSpaceId]
+  );
+
   const {
     navigation,
     nextPage,
     prevPage
-  } = useChannelOperations();
+  } = useChannelOperations(channelSpaceKey);
   
   const { currentPage, totalPages, isAnimating, mode } = navigation;
 

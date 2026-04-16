@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
@@ -7,23 +7,34 @@ import WSelect from '../../ui/WSelect';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { getTotalChannels, WII_LAYOUT_PRESET } from '../../utils/channelLayoutSystem';
+import { getChannelDataSlice } from '../../utils/channelSpaces';
 
 const LayoutSettingsTab = () => {
   const channels = useConsolidatedAppStore((state) => state.channels);
+  const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
+  const lastChannelSpaceId = useConsolidatedAppStore((state) => state.spaces.lastChannelSpaceId);
+
+  const layoutSpaceKey = useMemo(() => {
+    if (activeSpaceId === 'gamehub') {
+      return lastChannelSpaceId === 'workspaces' ? 'workspaces' : 'home';
+    }
+    return activeSpaceId === 'workspaces' ? 'workspaces' : 'home';
+  }, [activeSpaceId, lastChannelSpaceId]);
+
   const actions = useConsolidatedAppStore(
     useShallow((state) => ({
-      setChannelData: state.actions.setChannelData,
-      setChannelNavigation: state.actions.setChannelNavigation,
-      updateChannel: state.actions.updateChannel,
-      updateChannelConfig: state.actions.updateChannelConfig,
+      setChannelDataForSpace: state.actions.setChannelDataForSpace,
+      setChannelNavigationForSpace: state.actions.setChannelNavigationForSpace,
+      updateChannelForSpace: state.actions.updateChannelForSpace,
+      updateChannelConfigForSpace: state.actions.updateChannelConfigForSpace,
     }))
   );
-  const { setChannelData, setChannelNavigation } = actions;
+  const { setChannelDataForSpace, setChannelNavigationForSpace } = actions;
 
-
-
-  // Get current settings from consolidated store
-  const currentData = channels?.data || {};
+  const currentData = useMemo(
+    () => getChannelDataSlice(channels, layoutSpaceKey),
+    [channels, layoutSpaceKey]
+  );
   const currentNavigation = currentData.navigation || {};
   
   // Current settings values
@@ -46,12 +57,12 @@ const LayoutSettingsTab = () => {
       );
       const nextPage = Math.min(currentNavigation.currentPage || 0, WII_LAYOUT_PRESET.totalPages - 1);
 
-      setChannelData({
+      setChannelDataForSpace(layoutSpaceKey, {
         gridColumns: WII_LAYOUT_PRESET.columns,
         gridRows: WII_LAYOUT_PRESET.rows,
         totalChannels: wiiTotalChannels,
       });
-      setChannelNavigation({
+      setChannelNavigationForSpace(layoutSpaceKey, {
         mode: 'wii',
         currentPage: nextPage,
         totalPages: WII_LAYOUT_PRESET.totalPages,
@@ -62,7 +73,7 @@ const LayoutSettingsTab = () => {
       return;
     }
 
-    setChannelNavigation({ mode });
+    setChannelNavigationForSpace(layoutSpaceKey, { mode });
   };
 
   // Helper function to handle channel count changes
@@ -106,8 +117,8 @@ const LayoutSettingsTab = () => {
       
       // Update the store to remove these channels
       channelsToRemove.forEach(channelId => {
-        actions.updateChannel(channelId, null); // Remove channel
-        actions.updateChannelConfig(channelId, null); // Remove config
+        actions.updateChannelForSpace(layoutSpaceKey, channelId, null);
+        actions.updateChannelConfigForSpace(layoutSpaceKey, channelId, null);
       });
     }
     
@@ -120,9 +131,9 @@ const LayoutSettingsTab = () => {
     
     // Handle channel count changes
     if (handleChannelCountChange(newTotalChannels)) {
-      setChannelData({ 
+      setChannelDataForSpace(layoutSpaceKey, {
         gridColumns: columns,
-        totalChannels: newTotalChannels
+        totalChannels: newTotalChannels,
       });
     }
   };
@@ -133,9 +144,9 @@ const LayoutSettingsTab = () => {
     
     // Handle channel count changes
     if (handleChannelCountChange(newTotalChannels)) {
-      setChannelData({ 
+      setChannelDataForSpace(layoutSpaceKey, {
         gridRows: rows,
-        totalChannels: newTotalChannels
+        totalChannels: newTotalChannels,
       });
     }
   };
@@ -149,24 +160,24 @@ const LayoutSettingsTab = () => {
       const currentPage = currentNavigation.currentPage || 0;
       const adjustedCurrentPage = Math.min(currentPage, pages - 1);
       
-      setChannelNavigation({ 
+      setChannelNavigationForSpace(layoutSpaceKey, {
         totalPages: pages,
-        currentPage: adjustedCurrentPage
+        currentPage: adjustedCurrentPage,
       });
-      setChannelData({ totalChannels: newTotalChannels });
+      setChannelDataForSpace(layoutSpaceKey, { totalChannels: newTotalChannels });
     }
   };
 
   const updateAnimationType = (type) => {
-    setChannelNavigation({ animationType: type });
+    setChannelNavigationForSpace(layoutSpaceKey, { animationType: type });
   };
 
   const updateAnimationDuration = (duration) => {
-    setChannelNavigation({ animationDuration: duration });
+    setChannelNavigationForSpace(layoutSpaceKey, { animationDuration: duration });
   };
 
   const updateEnableSlideAnimation = (enabled) => {
-    setChannelNavigation({ enableSlideAnimation: enabled });
+    setChannelNavigationForSpace(layoutSpaceKey, { enableSlideAnimation: enabled });
   };
 
   // Calculate derived values

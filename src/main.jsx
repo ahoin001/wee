@@ -2,6 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './App.css'
+import './components/shell/appSpaceChrome.css'
+/* Wii cursor CSS must load at startup (it lived only in the lazy SettingsActionMenu chunk before). */
+import './components/settings/SettingsActionMenu.css'
 import App from './App.jsx'
 
 console.log('[DEBUG] 🚀 main.jsx: Starting React app initialization');

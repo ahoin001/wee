@@ -15,6 +15,7 @@ import { getStoragePublicObjectUrl } from '../../utils/supabase';
 import { isGifMediaType, isRasterImageMediaType, isVideoMediaType } from '../../utils/channelMediaType';
 import { ACCEPT_IMAGE_OR_MP4 } from '../../utils/supportedUploadMedia';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
+import { useChannelSpaceKey } from '../../contexts/ChannelSpaceContext';
 import { getRecentLaunchHintTtlMs } from '../../utils/channelOpenHint';
 import { PlayfulTapLayer } from '../navigation/PlayfulInteractionMotion';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
@@ -62,6 +63,8 @@ const Channel = React.memo(({
     updateChannelIcon,
     updateChannelType
   } = useChannelOperations();
+
+  const channelSpaceKey = useChannelSpaceKey();
   
   const storeChannelConfig = getChannelConfig(id);
   const storeIsEmpty = isChannelEmpty(id);
@@ -799,6 +802,7 @@ const Channel = React.memo(({
       {showChannelModal && (
         <ChannelModal
           channelId={id}
+          channelSpaceKey={channelSpaceKey}
           isOpen={showChannelModal}
           onClose={() => setShowChannelModal(false)}
           onSave={handleChannelModalSave}

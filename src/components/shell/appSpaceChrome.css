@@ -1,0 +1,86 @@
+/**
+ * Space chrome transitions: dock + channel nav crossfade with the vertical space-world slide.
+ * Uses --space-chrome-duration (set in App.jsx from the same ms as --space-world-duration).
+ */
+
+:root {
+  --space-chrome-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- Dock: two layers stacked in one grid cell (same footprint as the taller ribbon) --- */
+.dock-shell {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  display: grid;
+  grid-template-areas: 'dock-stack';
+  align-items: end;
+  justify-items: stretch;
+  pointer-events: none;
+  background: transparent;
+}
+
+.dock-space-layer {
+  grid-area: dock-stack;
+  align-self: end;
+  justify-self: stretch;
+  width: 100%;
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 1;
+  transition:
+    opacity var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
+    transform var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
+    visibility 0s linear var(--space-chrome-duration, 780ms);
+}
+
+.dock-space-layer--active {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 2;
+  transition:
+    opacity var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
+    transform var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
+    visibility 0s linear 0s;
+}
+
+/* Inner dock-container restores bottom chrome layout; shell does not add a second “dock” box */
+
+/* --- Channel UI (page dots + side nav): fades with space (vars on this node in App.jsx) --- */
+.channel-space-chrome__stack {
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+  visibility: hidden;
+  transition:
+    opacity var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
+    transform var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
+    visibility 0s linear var(--space-chrome-duration, 780ms);
+}
+
+.channel-space-chrome__stack--active {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  transition:
+    opacity var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
+    transform var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
+    visibility 0s linear 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-space-layer,
+  .channel-space-chrome__stack {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    transform: none !important;
+  }
+}

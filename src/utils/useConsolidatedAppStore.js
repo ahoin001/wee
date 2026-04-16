@@ -11,6 +11,8 @@ import {
 import { resolveGridConfig, resolveNavigation } from './channelLayoutSystem';
 import { applyChannelSlotReorder } from './channelReorder';
 import { DEFAULT_MOTION_FEEDBACK } from './motionFeedbackDefaults';
+import { createDefaultChannelSpaceData, normalizeChannelSpaceKey } from './channelSpaces';
+import { mergeChannelsSlice } from './store/settingsPersistenceContract';
 
 let useConsolidatedAppStore;
 const {
@@ -210,31 +212,10 @@ useConsolidatedAppStore = create(
             kenBurnsTransitionType: 'cross-dissolve',
           },
           
-          // Channel data - actual channel configurations
-          data: {
-            // Grid configuration - Wii-style 4x3 grid per page
-            gridColumns: 4,
-            gridRows: 3,
-            totalChannels: 36, // 3 pages × 12 channels per page
-            
-            // Channel configurations by ID
-            configuredChannels: {},
-
-            // Per-tile UI / Ken Burns (keyed by channel id)
-            channelConfigs: {},
-            
-            // Navigation state
-            navigation: {
-              currentPage: 0,
-              totalPages: 3, // 3 pages for 36 channels
-              mode: 'wii', // 'simple' or 'wii'
-              isAnimating: false,
-              animationDirection: 'none',
-              animationType: 'slide', // slide, fade, none
-              animationDuration: 500,
-              animationEasing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
-              enableSlideAnimation: true
-            }
+          /** Per shell space (`home` vs `workspaces`) — separate grids / apps */
+          dataBySpace: {
+            home: createDefaultChannelSpaceData(),
+            workspaces: createDefaultChannelSpaceData(),
           },
           
           // Channel operations state
@@ -519,6 +500,8 @@ useConsolidatedAppStore = create(
         // Top-level shell spaces
         spaces: {
           activeSpaceId: 'home',
+          /** Last non–Game Hub panel (home vs work) — used to restore on launch (never cold-start on gamehub). */
+          lastChannelSpaceId: 'home',
           order: ['home', 'workspaces', 'gamehub'],
           autoHideRail: true,
           railPinned: false,
@@ -542,6 +525,10 @@ useConsolidatedAppStore = create(
             effectsEnabled: true,
             activeCollectionId: null,
             favoriteGameIds: [],
+            hubShelfOrderMode: 'custom',
+            collectionShelfOrder: null,
+            hubLibrarySort: 'default',
+            hubCollectionGamesSort: 'default',
           },
           library: {
             enrichedGames: [],
@@ -554,6 +541,7 @@ useConsolidatedAppStore = create(
             syncStatus: 'idle',
             lastSyncedAt: null,
             lastError: null,
+            lastEnrichedSteamId: '',
             weeCollections: [],
             lastLaunchedAt: {},
           },
@@ -597,39 +585,30 @@ useConsolidatedAppStore = create(
             time: { ...state.time, ...updates }
           })),
 
-          // Channel actions
+          // Channel actions (merge; supports legacy `data` via mergeChannelsSlice)
           setChannelState: (updates) => set((state) => {
             const resolvedUpdates = typeof updates === 'function'
               ? updates(state.channels)
               : updates;
+            const patch = resolvedUpdates && typeof resolvedUpdates === 'object' ? resolvedUpdates : {};
+            return {
+              channels: mergeChannelsSlice(state.channels, patch),
+            };
+          }),
 
+          setChannelDataForSpace: (spaceKey, updates) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const prev = state.channels.dataBySpace?.[key] || createDefaultChannelSpaceData();
             return {
               channels: {
                 ...state.channels,
-                ...resolvedUpdates,
-                settings: {
-                  ...state.channels.settings,
-                  ...(resolvedUpdates?.settings || {}),
+                dataBySpace: {
+                  ...state.channels.dataBySpace,
+                  [key]: { ...prev, ...updates },
                 },
-                data: {
-                  ...state.channels.data,
-                  ...(resolvedUpdates?.data || {}),
-                },
-                operations: {
-                  ...state.channels.operations,
-                  ...(resolvedUpdates?.operations || {}),
-                }
-              }
+              },
             };
           }),
-          
-          // Channel data actions
-          setChannelData: (updates) => set((state) => ({
-            channels: {
-              ...state.channels,
-              data: { ...state.channels.data, ...updates }
-            }
-          })),
           
           // Channel settings actions
           setChannelSettings: (updates) => set((state) => ({
@@ -647,53 +626,57 @@ useConsolidatedAppStore = create(
             }
           })),
           
-          // Individual channel actions
-          updateChannel: (channelId, channelData) => set((state) => {
-            // Ensure the channels data structure exists
-            const channelsData = state.channels?.data || {};
+          updateChannelForSpace: (spaceKey, channelId, channelData) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
             const configuredChannels = channelsData.configuredChannels || {};
-            
+
             return {
               channels: {
                 ...state.channels,
-                data: {
-                  ...channelsData,
-                  configuredChannels: {
-                    ...configuredChannels,
-                    [channelId]: channelData === null 
-                      ? undefined // Remove channel if null is passed
-                      : {
-                          ...configuredChannels[channelId],
-                          ...channelData
-                        }
-                  }
-                }
-              }
+                dataBySpace: {
+                  ...state.channels.dataBySpace,
+                  [key]: {
+                    ...channelsData,
+                    configuredChannels: {
+                      ...configuredChannels,
+                      [channelId]: channelData === null
+                        ? undefined
+                        : {
+                            ...configuredChannels[channelId],
+                            ...channelData,
+                          },
+                    },
+                  },
+                },
+              },
             };
           }),
-          
-          // Channel config actions
-          updateChannelConfig: (channelId, configData) => set((state) => {
-            // Ensure the channels data structure exists
-            const channelsData = state.channels?.data || {};
+
+          updateChannelConfigForSpace: (spaceKey, channelId, configData) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
             const channelConfigs = channelsData.channelConfigs || {};
-            
+
             return {
               channels: {
                 ...state.channels,
-                data: {
-                  ...channelsData,
-                  channelConfigs: {
-                    ...channelConfigs,
-                    [channelId]: configData === null 
-                      ? undefined // Remove config if null is passed
-                      : {
-                          ...channelConfigs[channelId],
-                          ...configData
-                        }
-                  }
-                }
-              }
+                dataBySpace: {
+                  ...state.channels.dataBySpace,
+                  [key]: {
+                    ...channelsData,
+                    channelConfigs: {
+                      ...channelConfigs,
+                      [channelId]: configData === null
+                        ? undefined
+                        : {
+                            ...channelConfigs[channelId],
+                            ...configData,
+                          },
+                    },
+                  },
+                },
+              },
             };
           }),
 
@@ -701,8 +684,9 @@ useConsolidatedAppStore = create(
            * Move slot `fromIndex` → `toIndex` (insert semantics). Updates
            * `configuredChannels` and `channelConfigs` in one atomic write.
            */
-          reorderChannelSlots: (fromIndex, toIndex) => set((state) => {
-            const channelsData = state.channels?.data || {};
+          reorderChannelSlotsForSpace: (spaceKey, fromIndex, toIndex) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
             const navigation = resolveNavigation(channelsData.navigation);
             const grid = resolveGridConfig(channelsData, navigation);
             const n = grid.totalChannels;
@@ -722,25 +706,34 @@ useConsolidatedAppStore = create(
             return {
               channels: {
                 ...state.channels,
-                data: {
-                  ...channelsData,
-                  configuredChannels,
-                  channelConfigs,
+                dataBySpace: {
+                  ...state.channels.dataBySpace,
+                  [key]: {
+                    ...channelsData,
+                    configuredChannels,
+                    channelConfigs,
+                  },
                 },
               },
             };
           }),
-          
-          // Navigation actions
-          setChannelNavigation: (updates) => set((state) => ({
-            channels: {
-              ...state.channels,
-              data: {
-                ...state.channels.data,
-                navigation: { ...state.channels.data.navigation, ...updates }
-              }
-            }
-          })),
+
+          setChannelNavigationForSpace: (spaceKey, updates) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
+            return {
+              channels: {
+                ...state.channels,
+                dataBySpace: {
+                  ...state.channels.dataBySpace,
+                  [key]: {
+                    ...channelsData,
+                    navigation: { ...channelsData.navigation, ...updates },
+                  },
+                },
+              },
+            };
+          }),
 
           // Dock actions
           setDockState: (updates) => set((state) => ({
@@ -861,12 +854,13 @@ useConsolidatedAppStore = create(
             }
           })),
 
-          setSpacesState: (updates) => set((state) => ({
-            spaces: {
-              ...state.spaces,
-              ...updates,
-            },
-          })),
+          setSpacesState: (updates) => set((state) => {
+            const next = { ...state.spaces, ...updates };
+            if (next.activeSpaceId === 'home' || next.activeSpaceId === 'workspaces') {
+              next.lastChannelSpaceId = next.activeSpaceId;
+            }
+            return { spaces: next };
+          }),
 
           setGameHubState: (updates) => set((state) => ({
             gameHub: {
@@ -1127,23 +1121,9 @@ useConsolidatedAppStore = create(
                 kenBurnsCrossfadeReturn: true,
                 kenBurnsTransitionType: 'cross-dissolve',
               },
-              data: {
-                gridColumns: 4,
-                gridRows: 3,
-                totalChannels: 36,
-                configuredChannels: {},
-                channelConfigs: {},
-                navigation: {
-                  currentPage: 0,
-                  totalPages: 3,
-                  mode: 'wii',
-                  isAnimating: false,
-                  animationDirection: 'none',
-                  animationType: 'slide',
-                  animationDuration: 500,
-                  animationEasing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
-                  enableSlideAnimation: true
-                }
+              dataBySpace: {
+                home: createDefaultChannelSpaceData(),
+                workspaces: createDefaultChannelSpaceData(),
               },
               operations: {
                 isLoading: false,
@@ -1216,6 +1196,7 @@ useConsolidatedAppStore = create(
             },
             spaces: {
               activeSpaceId: 'home',
+              lastChannelSpaceId: 'home',
               order: ['home', 'workspaces', 'gamehub'],
               autoHideRail: true,
               railPinned: false,
@@ -1237,6 +1218,10 @@ useConsolidatedAppStore = create(
                 effectsEnabled: true,
                 activeCollectionId: null,
                 favoriteGameIds: [],
+                hubShelfOrderMode: 'custom',
+                collectionShelfOrder: null,
+                hubLibrarySort: 'default',
+                hubCollectionGamesSort: 'default',
               },
               library: {
                 enrichedGames: [],
@@ -1249,6 +1234,7 @@ useConsolidatedAppStore = create(
                 syncStatus: 'idle',
                 lastSyncedAt: null,
                 lastError: null,
+                lastEnrichedSteamId: '',
                 weeCollections: [],
                 lastLaunchedAt: {},
               },

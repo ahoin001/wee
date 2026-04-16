@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useEffect } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
+import { useChannelSpaceKey } from '../contexts/ChannelSpaceContext';
 import {
   clampPageIndex,
   getPageBounds,
@@ -8,33 +9,37 @@ import {
   resolveNavigation,
   WII_LAYOUT_PRESET,
 } from './channelLayoutSystem';
+import { getChannelDataSlice, normalizeChannelSpaceKey } from './channelSpaces';
 
 /**
- * Hook for channel operations using the consolidated app store
- * Provides a clean API for all channel-related operations
+ * Channel grid operations scoped to one shell space (`home` | `workspaces`).
+ * Pass `spaceKey` explicitly for components outside `ChannelSpaceProvider` (e.g. page chrome).
+ * Omit `spaceKey` when rendered under `ChannelSpaceProvider` (e.g. grid, slide nav).
  */
-export const useChannelOperations = () => {
-  const { channels, actions } = useConsolidatedAppStore();
-  
-  // Destructure actions
-  const {
-    setChannelData,
-    setChannelSettings,
-    setChannelOperations,
-    updateChannel,
-    setChannelNavigation,
-    reorderChannelSlots,
-  } = actions;
+export const useChannelOperations = (explicitSpaceKey) => {
+  const contextKey = useChannelSpaceKey();
+  const spaceKey = normalizeChannelSpaceKey(
+    explicitSpaceKey !== undefined && explicitSpaceKey !== null ? explicitSpaceKey : contextKey
+  );
 
-  // Channel data accessors
-  const channelData = useMemo(() => channels?.data || {}, [channels?.data]);
+  const channels = useConsolidatedAppStore((state) => state.channels);
+  const setChannelDataForSpace = useConsolidatedAppStore((state) => state.actions.setChannelDataForSpace);
+  const setChannelSettings = useConsolidatedAppStore((state) => state.actions.setChannelSettings);
+  const setChannelOperations = useConsolidatedAppStore((state) => state.actions.setChannelOperations);
+  const updateChannelForSpace = useConsolidatedAppStore((state) => state.actions.updateChannelForSpace);
+  const setChannelNavigationForSpace = useConsolidatedAppStore((state) => state.actions.setChannelNavigationForSpace);
+  const reorderChannelSlotsForSpace = useConsolidatedAppStore((state) => state.actions.reorderChannelSlotsForSpace);
+
+  const channelData = useMemo(
+    () => getChannelDataSlice(channels, spaceKey),
+    [channels, spaceKey]
+  );
   const channelSettings = useMemo(() => channels?.settings || {}, [channels?.settings]);
   const channelOperations = useMemo(() => channels?.operations || {}, [channels?.operations]);
 
   const rawNavigation = useMemo(() => resolveNavigation(channelData.navigation), [channelData.navigation]);
   const isWiiMode = rawNavigation.mode === 'wii';
 
-  // Navigation state
   const navigation = useMemo(() => {
     if (!isWiiMode) {
       const safeTotalPages = Math.max(1, Number(rawNavigation.totalPages) || 1);
@@ -55,12 +60,10 @@ export const useChannelOperations = () => {
     };
   }, [isWiiMode, rawNavigation]);
 
-  // Grid configuration
   const gridConfig = useMemo(() => {
     return resolveGridConfig(channelData, navigation);
   }, [channelData, navigation]);
 
-  // Keep persisted channel layout aligned with fixed Wii baseline.
   useEffect(() => {
     if (!isWiiMode) return;
 
@@ -69,10 +72,11 @@ export const useChannelOperations = () => {
       return;
     }
 
-    setChannelData(dataPatch);
-    setChannelNavigation(navigationPatch);
+    setChannelDataForSpace(spaceKey, dataPatch);
+    setChannelNavigationForSpace(spaceKey, navigationPatch);
   }, [
     isWiiMode,
+    spaceKey,
     channelData.gridColumns,
     channelData.gridRows,
     channelData.totalChannels,
@@ -81,67 +85,84 @@ export const useChannelOperations = () => {
     channelData.navigation?.animationType,
     channelData.navigation?.animationDuration,
     channelData.navigation?.enableSlideAnimation,
-    setChannelData,
-    setChannelNavigation,
+    setChannelDataForSpace,
+    setChannelNavigationForSpace,
   ]);
 
-  // Channel configurations
   const configuredChannels = useMemo(() => channelData.configuredChannels || {}, [channelData.configuredChannels]);
   const channelConfigs = useMemo(() => channelData.channelConfigs || {}, [channelData.channelConfigs]);
 
-  // Channel operations
-  const updateChannelConfig = useCallback((channelId, config) => {
-    updateChannel(channelId, config);
-  }, [updateChannel]);
+  const updateChannelConfig = useCallback(
+    (channelId, config) => {
+      updateChannelForSpace(spaceKey, channelId, config);
+    },
+    [updateChannelForSpace, spaceKey]
+  );
 
-  const updateChannelMedia = useCallback((channelId, media) => {
-    updateChannel(channelId, { media });
-  }, [updateChannel]);
+  const updateChannelMedia = useCallback(
+    (channelId, media) => {
+      updateChannelForSpace(spaceKey, channelId, { media });
+    },
+    [updateChannelForSpace, spaceKey]
+  );
 
-  const updateChannelPath = useCallback((channelId, path) => {
-    updateChannel(channelId, { path });
-  }, [updateChannel]);
+  const updateChannelPath = useCallback(
+    (channelId, path) => {
+      updateChannelForSpace(spaceKey, channelId, { path });
+    },
+    [updateChannelForSpace, spaceKey]
+  );
 
-  const updateChannelIcon = useCallback((channelId, icon) => {
-    updateChannel(channelId, { icon });
-  }, [updateChannel]);
+  const updateChannelIcon = useCallback(
+    (channelId, icon) => {
+      updateChannelForSpace(spaceKey, channelId, { icon });
+    },
+    [updateChannelForSpace, spaceKey]
+  );
 
-  const updateChannelType = useCallback((channelId, type) => {
-    updateChannel(channelId, { type });
-  }, [updateChannel]);
+  const updateChannelType = useCallback(
+    (channelId, type) => {
+      updateChannelForSpace(spaceKey, channelId, { type });
+    },
+    [updateChannelForSpace, spaceKey]
+  );
 
-  const clearChannel = useCallback((channelId) => {
-    updateChannel(channelId, {
-      media: null,
-      path: null,
-      icon: null,
-      type: null,
-      empty: true
-    });
-  }, [updateChannel]);
-
-  // Navigation operations
-  const goToPage = useCallback((pageIndex) => {
-    const validPage = Math.max(0, Math.min(pageIndex, navigation.totalPages - 1));
-    
-    if (validPage !== navigation.currentPage && !navigation.isAnimating) {
-      const direction = validPage > navigation.currentPage ? 'right' : 'left';
-      
-      setChannelNavigation({
-        currentPage: validPage,
-        isAnimating: true,
-        animationDirection: direction
+  const clearChannel = useCallback(
+    (channelId) => {
+      updateChannelForSpace(spaceKey, channelId, {
+        media: null,
+        path: null,
+        icon: null,
+        type: null,
+        empty: true,
       });
-      
-      // Auto-finish animation after delay (match Wii strip CSS ~480ms)
-      setTimeout(() => {
-        setChannelNavigation({
-          isAnimating: false,
-          animationDirection: 'none'
+    },
+    [updateChannelForSpace, spaceKey]
+  );
+
+  const goToPage = useCallback(
+    (pageIndex) => {
+      const validPage = Math.max(0, Math.min(pageIndex, navigation.totalPages - 1));
+
+      if (validPage !== navigation.currentPage && !navigation.isAnimating) {
+        const direction = validPage > navigation.currentPage ? 'right' : 'left';
+
+        setChannelNavigationForSpace(spaceKey, {
+          currentPage: validPage,
+          isAnimating: true,
+          animationDirection: direction,
         });
-      }, 500);
-    }
-  }, [navigation, setChannelNavigation]);
+
+        setTimeout(() => {
+          setChannelNavigationForSpace(spaceKey, {
+            isAnimating: false,
+            animationDirection: 'none',
+          });
+        }, 500);
+      }
+    },
+    [navigation, setChannelNavigationForSpace, spaceKey]
+  );
 
   const nextPage = useCallback(() => {
     goToPage(navigation.currentPage + 1);
@@ -151,15 +172,12 @@ export const useChannelOperations = () => {
     goToPage(navigation.currentPage - 1);
   }, [navigation.currentPage, goToPage]);
 
-  // Global keyboard and mouse navigation
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // Don't interfere with important system shortcuts
       if (event.ctrlKey || event.metaKey) {
         return;
       }
-      
-      // Only handle navigation when not in a modal or input field
+
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
         return;
       }
@@ -186,9 +204,8 @@ export const useChannelOperations = () => {
           goToPage(navigation.totalPages - 1);
           break;
         default:
-          // Handle number keys (1-9) to jump to specific pages
           if (event.key >= '1' && event.key <= '9') {
-            const pageIndex = parseInt(event.key) - 1;
+            const pageIndex = parseInt(event.key, 10) - 1;
             if (pageIndex < navigation.totalPages) {
               event.preventDefault();
               goToPage(pageIndex);
@@ -199,13 +216,12 @@ export const useChannelOperations = () => {
     };
 
     const handleMouseDown = (event) => {
-      // Handle mouse side buttons (browser back/forward)
-      if (event.button === 3) { // Browser back button
+      if (event.button === 3) {
         event.preventDefault();
         if (navigation.currentPage > 0) {
           prevPage();
         }
-      } else if (event.button === 4) { // Browser forward button
+      } else if (event.button === 4) {
         event.preventDefault();
         if (navigation.currentPage < navigation.totalPages - 1) {
           nextPage();
@@ -215,7 +231,7 @@ export const useChannelOperations = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('mousedown', handleMouseDown);
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('mousedown', handleMouseDown);
@@ -223,61 +239,81 @@ export const useChannelOperations = () => {
   }, [navigation.currentPage, navigation.totalPages, nextPage, prevPage, goToPage]);
 
   const finishAnimation = useCallback(() => {
-    setChannelNavigation({ isAnimating: false });
-  }, [setChannelNavigation]);
+    setChannelNavigationForSpace(spaceKey, { isAnimating: false });
+  }, [setChannelNavigationForSpace, spaceKey]);
 
-  // Channel data operations
-  const updateChannelConfigs = useCallback((updates) => {
-    setChannelData({
-      channelConfigs: { ...channelConfigs, ...updates }
-    });
-  }, [channelConfigs, setChannelData]);
-
-  // Settings operations
-  const updateChannelSettings = useCallback((updates) => {
-    setChannelSettings(updates);
-  }, [setChannelSettings]);
-
-  // Operations state
-  const setLoading = useCallback((isLoading) => {
-    setChannelOperations({ isLoading });
-  }, [setChannelOperations]);
-
-  const setSaving = useCallback((isSaving) => {
-    setChannelOperations({ isSaving });
-  }, [setChannelOperations]);
-
-  const setError = useCallback((error) => {
-    setChannelOperations({ error });
-  }, [setChannelOperations]);
-
-  // Utility functions
-  const getChannelConfig = useCallback((channelId) => {
-    return configuredChannels[channelId] || null;
-  }, [configuredChannels]);
-
-  const isChannelEmpty = useCallback((channelId) => {
-    const config = getChannelConfig(channelId);
-    return !config || (!config.media && !config.path);
-  }, [getChannelConfig]);
-
-  const getChannelsForPage = useCallback((pageIndex) => {
-    const channelsPerPage = gridConfig.channelsPerPage;
-    const { startIndex, endIndex } = getPageBounds(pageIndex, channelsPerPage, gridConfig.totalChannels);
-    
-    const channels = [];
-    for (let i = startIndex; i <= endIndex; i++) {
-      const channelId = `channel-${i}`;
-      const config = getChannelConfig(channelId);
-      channels.push({
-        id: channelId,
-        config: config || { empty: true },
-        isEmpty: isChannelEmpty(channelId)
+  const updateChannelConfigs = useCallback(
+    (updates) => {
+      setChannelDataForSpace(spaceKey, {
+        channelConfigs: { ...channelConfigs, ...updates },
       });
-    }
-    
-    return channels;
-  }, [gridConfig, getChannelConfig, isChannelEmpty]);
+    },
+    [channelConfigs, setChannelDataForSpace, spaceKey]
+  );
+
+  const updateChannelSettings = useCallback(
+    (updates) => {
+      setChannelSettings(updates);
+    },
+    [setChannelSettings]
+  );
+
+  const setLoading = useCallback(
+    (isLoading) => {
+      setChannelOperations({ isLoading });
+    },
+    [setChannelOperations]
+  );
+
+  const setSaving = useCallback(
+    (isSaving) => {
+      setChannelOperations({ isSaving });
+    },
+    [setChannelOperations]
+  );
+
+  const setError = useCallback(
+    (error) => {
+      setChannelOperations({ error });
+    },
+    [setChannelOperations]
+  );
+
+  const getChannelConfig = useCallback(
+    (channelId) => {
+      return configuredChannels[channelId] || null;
+    },
+    [configuredChannels]
+  );
+
+  const isChannelEmpty = useCallback(
+    (channelId) => {
+      const config = getChannelConfig(channelId);
+      return !config || (!config.media && !config.path);
+    },
+    [getChannelConfig]
+  );
+
+  const getChannelsForPage = useCallback(
+    (pageIndex) => {
+      const channelsPerPage = gridConfig.channelsPerPage;
+      const { startIndex, endIndex } = getPageBounds(pageIndex, channelsPerPage, gridConfig.totalChannels);
+
+      const list = [];
+      for (let i = startIndex; i <= endIndex; i++) {
+        const channelId = `channel-${i}`;
+        const config = getChannelConfig(channelId);
+        list.push({
+          id: channelId,
+          config: config || { empty: true },
+          isEmpty: isChannelEmpty(channelId),
+        });
+      }
+
+      return list;
+    },
+    [gridConfig, getChannelConfig, isChannelEmpty]
+  );
 
   const getCurrentPageChannels = useCallback(() => {
     return getChannelsForPage(navigation.currentPage);
@@ -285,13 +321,13 @@ export const useChannelOperations = () => {
 
   const reorderChannels = useCallback(
     (fromIndex, toIndex) => {
-      reorderChannelSlots(fromIndex, toIndex);
+      reorderChannelSlotsForSpace(spaceKey, fromIndex, toIndex);
     },
-    [reorderChannelSlots]
+    [reorderChannelSlotsForSpace, spaceKey]
   );
 
-  const result = {
-    // State
+  return {
+    channelSpaceKey: spaceKey,
     channelData,
     channelSettings,
     channelOperations,
@@ -299,8 +335,7 @@ export const useChannelOperations = () => {
     navigation,
     configuredChannels,
     channelConfigs,
-    
-    // Channel operations
+
     updateChannelConfig,
     updateChannelMedia,
     updateChannelPath,
@@ -308,32 +343,25 @@ export const useChannelOperations = () => {
     updateChannelType,
     clearChannel,
     reorderChannels,
-    
-    // Navigation operations
+
     goToPage,
     nextPage,
     prevPage,
     finishAnimation,
-    
-    // Data operations
+
     updateChannelConfigs,
-    
-    // Settings operations
+
     updateChannelSettings,
-    
-    // Operations state
+
     setLoading,
     setSaving,
     setError,
-    
-    // Utility functions
+
     getChannelConfig,
     isChannelEmpty,
     getChannelsForPage,
-    getCurrentPageChannels
+    getCurrentPageChannels,
   };
-  
-  return result;
 };
 
 export default useChannelOperations;

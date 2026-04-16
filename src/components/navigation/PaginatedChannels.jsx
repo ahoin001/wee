@@ -12,6 +12,7 @@ import { Channel } from '../channels';
 import SlideNavigation from './SlideNavigation';
 import useChannelOperations from '../../utils/useChannelOperations';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { ChannelSpaceProvider } from '../../contexts/ChannelSpaceContext';
 import useIdleChannelAnimations from '../../utils/useIdleChannelAnimations';
 import { WII_LAYOUT_PRESET } from '../../utils/channelLayoutSystem';
 import { ChannelGridPage, WiiChannelStrip } from '../channels';
@@ -25,7 +26,7 @@ import {
 } from '../../utils/supportedUploadMedia';
 import './PaginatedChannels.css';
 
-const PaginatedChannels = React.memo(() => {
+const PaginatedChannelsInner = React.memo(() => {
   // ✅ DATA LAYER: Use the new channel operations hook
   const {
     gridConfig,
@@ -433,7 +434,17 @@ const PaginatedChannels = React.memo(() => {
   );
 });
 
-PaginatedChannels.propTypes = {};
+function PaginatedChannels({ channelSpaceKey = 'home' }) {
+  return (
+    <ChannelSpaceProvider channelSpaceKey={channelSpaceKey}>
+      <PaginatedChannelsInner />
+    </ChannelSpaceProvider>
+  );
+}
+
+PaginatedChannels.propTypes = {
+  channelSpaceKey: PropTypes.oneOf(['home', 'workspaces']),
+};
 
 export default PaginatedChannels;
 

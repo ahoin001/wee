@@ -225,7 +225,6 @@ function App() {
     setRibbonState,
     setWallpaperState,
     setChannelState,
-    setChannelData,
     setOverlayState,
     setTimeState,
     setDockState,
@@ -241,7 +240,6 @@ function App() {
       setRibbonState: state.actions.setRibbonState,
       setWallpaperState: state.actions.setWallpaperState,
       setChannelState: state.actions.setChannelState,
-      setChannelData: state.actions.setChannelData,
       setOverlayState: state.actions.setOverlayState,
       setTimeState: state.actions.setTimeState,
       setDockState: state.actions.setDockState,
@@ -286,6 +284,14 @@ function App() {
       '--space-world-panel-pct': `${panelPct}%`,
     };
   }, [activeSpaceIndex, resolvedSpaceOrder.length, spaceWorldDurationMs]);
+
+  /** Dock + channel nav transitions stay in sync with the space-world slide (same duration ms). */
+  const spaceChromeVars = useMemo(
+    () => ({ '--space-chrome-duration': `${spaceWorldDurationMs}ms` }),
+    [spaceWorldDurationMs]
+  );
+
+  const isGameHubSpace = activeSpaceId === 'gamehub';
   
   // Ref to access SettingsActionMenu's handleClose method
   const settingsActionMenuRef = useRef(null);
@@ -352,7 +358,6 @@ function App() {
     setWallpaperState,
     setOverlayState,
     setChannelState,
-    setChannelData,
     setUIState,
     setRibbonState,
     setTimeState,
@@ -410,10 +415,13 @@ function App() {
   const toggleDock = useCallback(() => setUIState(prev => ({ showDock: !prev.showDock })), [setUIState]);
   const toggleDarkMode = useCallback(() => setUIState(prev => ({ isDarkMode: !prev.isDarkMode })), [setUIState]);
   const toggleCustomCursor = useCallback(() => setUIState(prev => ({ useCustomCursor: !prev.useCustomCursor })), [setUIState]);
-  const renderSpaceContent = useCallback(
-    (spaceId) => (spaceId === 'gamehub' ? <LazyGameHubSpace /> : <LazyPaginatedChannels />),
-    []
-  );
+  const renderSpaceContent = useCallback((spaceId) => {
+    if (spaceId === 'gamehub') {
+      return <LazyGameHubSpace />;
+    }
+    const channelSpaceKey = spaceId === 'workspaces' ? 'workspaces' : 'home';
+    return <LazyPaginatedChannels channelSpaceKey={channelSpaceKey} />;
+  }, []);
 
   // Debug wallpaper cycling isolation
   useEffect(() => {
@@ -485,85 +493,92 @@ function App() {
           </Suspense>
         </div>
 
-        {activeSpaceId !== 'gamehub' ? (
-          <>
-            {/* Page Navigation - Positioned independently */}
-            <LazyPageNavigation 
-              position="bottom"
-              showPageIndicator={true}
-            />
-
-            {/* Wii Side Navigation - Available in both modes */}
+        <Suspense fallback={null}>
+          <div
+            className={`channel-space-chrome__stack ${!isGameHubSpace ? 'channel-space-chrome__stack--active' : ''}`}
+            style={spaceChromeVars}
+            aria-hidden={isGameHubSpace}
+          >
+            <LazyPageNavigation position="bottom" showPageIndicator />
             <LazyWiiSideNavigation />
-          </>
-        ) : null}
+          </div>
+        </Suspense>
 
         <Suspense fallback={null}>
           <LazySpaceRail />
         </Suspense>
 
-        {/* Dock: full ribbon elsewhere; compact bar on Game Hub so the grid stays the focus */}
-        {showDock && activeSpaceId === 'gamehub' && (
-          <div className="dock-container dock-container--gamehub-minimal">
-            <GameHubMinimalDock
-              onSettingsClick={handleSettingsActionMenuOpen}
-              timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
-            />
+        {/* Dock: stacked layers crossfade — full ribbon vs Game Hub minimal (same duration as space-world). */}
+        {showDock ? (
+          <Suspense fallback={null}>
+          <div className="dock-shell" style={spaceChromeVars}>
+            <div
+              className={`dock-space-layer dock-space-layer--channels ${!isGameHubSpace ? 'dock-space-layer--active' : ''}`}
+              aria-hidden={isGameHubSpace}
+            >
+              <div className="dock-container">
+                {classicMode ? (
+                  <LazyClassicWiiDock
+                    buttonConfigs={ribbonButtonConfigs}
+                    presetsButtonConfig={presetsButtonConfig}
+                    onSettingsClick={openSettingsModal}
+                    onSettingsChange={(settings) => setRibbonState(settings)}
+                    onButtonClick={() => {}}
+                    onButtonContextMenu={() => {}}
+                    onAccessoryButtonClick={() => {}}
+                    onAccessoryButtonContextMenu={() => {}}
+                    onDockContextMenu={() => {}}
+                    showPresetsButton
+                    timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
+                    timeFont={timeFont ?? 'default'}
+                    ribbonGlowColor={ribbonGlowColor}
+                    accessoryButtonConfig={{}}
+                  />
+                ) : (
+                  <LazyWiiRibbon
+                    ribbonColor={ribbonColor}
+                    ribbonGlowColor={ribbonGlowColor}
+                    ribbonGlowStrength={ribbonGlowStrength}
+                    ribbonGlowStrengthHover={ribbonGlowStrengthHover}
+                    ribbonDockOpacity={ribbonDockOpacity}
+                    ribbonHoverAnimationEnabled={ribbonHoverAnimationEnabled ?? true}
+                    glassWiiRibbon={glassWiiRibbon}
+                    glassOpacity={glassOpacity}
+                    glassBlur={glassBlur}
+                    glassBorderOpacity={glassBorderOpacity}
+                    glassShineOpacity={glassShineOpacity}
+                    ribbonButtonConfigs={ribbonButtonConfigs}
+                    presetsButtonConfig={presetsButtonConfig}
+                    onSettingsClick={handleSettingsActionMenuOpen}
+                    onPresetsClick={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'themes' })}
+                    onSettingsChange={(settings) => setRibbonState(settings)}
+                    onToggleDarkMode={toggleDarkMode}
+                    onToggleCursor={toggleCustomCursor}
+                    useCustomCursor={useCustomCursor}
+                    enableTimePill={enableTimePill ?? true}
+                    timePillBlur={timePillBlur ?? 8}
+                    timePillOpacity={timePillOpacity ?? 0.05}
+                    timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
+                    timeFont={timeFont ?? 'default'}
+                    particleSettings={dock}
+                  />
+                )}
+              </div>
+            </div>
+            <div
+              className={`dock-space-layer dock-space-layer--gamehub ${isGameHubSpace ? 'dock-space-layer--active' : ''}`}
+              aria-hidden={!isGameHubSpace}
+            >
+              <div className="dock-container dock-container--gamehub-minimal">
+                <GameHubMinimalDock
+                  onSettingsClick={handleSettingsActionMenuOpen}
+                  timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
+                />
+              </div>
+            </div>
           </div>
-        )}
-        {showDock && activeSpaceId !== 'gamehub' && (
-          <div className="dock-container">
-            {classicMode ? (
-              <LazyClassicWiiDock
-                buttonConfigs={ribbonButtonConfigs}
-                presetsButtonConfig={presetsButtonConfig}
-                onSettingsClick={openSettingsModal}
-                onSettingsChange={(settings) => setRibbonState(settings)}
-                onButtonClick={() => {}}
-                onButtonContextMenu={() => {}}
-                onAccessoryButtonClick={() => {}}
-                onAccessoryButtonContextMenu={() => {}}
-                onDockContextMenu={() => {}}
-  
-                showPresetsButton={true}
-                timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
-                timeFont={timeFont ?? 'default'}
-                ribbonGlowColor={ribbonGlowColor}
-                accessoryButtonConfig={{}}
-              />
-            ) : (
-              <LazyWiiRibbon
-                ribbonColor={ribbonColor}
-                ribbonGlowColor={ribbonGlowColor}
-                ribbonGlowStrength={ribbonGlowStrength}
-                ribbonGlowStrengthHover={ribbonGlowStrengthHover}
-                ribbonDockOpacity={ribbonDockOpacity}
-                ribbonHoverAnimationEnabled={ribbonHoverAnimationEnabled ?? true}
-                glassWiiRibbon={glassWiiRibbon}
-                glassOpacity={glassOpacity}
-                glassBlur={glassBlur}
-                glassBorderOpacity={glassBorderOpacity}
-                glassShineOpacity={glassShineOpacity}
-                ribbonButtonConfigs={ribbonButtonConfigs}
-                presetsButtonConfig={presetsButtonConfig}
-                onSettingsClick={handleSettingsActionMenuOpen}
-                onPresetsClick={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'themes' })}
-                onSettingsChange={(settings) => setRibbonState(settings)}
-                onToggleDarkMode={toggleDarkMode}
-                onToggleCursor={toggleCustomCursor}
-                useCustomCursor={useCustomCursor}
-                // Time settings from consolidated store
-                enableTimePill={enableTimePill ?? true}
-                timePillBlur={timePillBlur ?? 8}
-                timePillOpacity={timePillOpacity ?? 0.05}
-                timeColor={timeColor ?? DEFAULT_TIME_COLOR_HEX}
-                timeFont={timeFont ?? 'default'}
-                // Particle settings from consolidated store
-                particleSettings={dock}
-              />
-            )}
-          </div>
-        )}
+          </Suspense>
+        ) : null}
 
         {/* Floating Quick Access Buttons */}
         {!showDock && (

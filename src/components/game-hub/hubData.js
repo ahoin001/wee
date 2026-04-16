@@ -126,9 +126,16 @@ function buildDynamicCollections(installed, normalizedSteam, clientLibrary, weeM
   const favIdSet = new Set(favoriteGameIds.map(String));
   const gameById = new Map(installed.map((g) => [g.id, g]));
 
+  /** Steam playtime can be 0 until enrichment syncs — still show a full shelf (playtime → recency → name). */
   const mostPlayed = [...installed]
-    .filter((g) => g.playtimeForever > 0)
-    .sort((a, b) => b.playtimeForever - a.playtimeForever)
+    .sort((a, b) => {
+      const pt = b.playtimeForever - a.playtimeForever;
+      if (pt !== 0) return pt;
+      const rec =
+        effectiveRecentSeconds(b, lastLaunchedAt) - effectiveRecentSeconds(a, lastLaunchedAt);
+      if (rec !== 0) return rec;
+      return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+    })
     .slice(0, MAX_COLLECTION_GAMES);
 
   const recentlyPlayed = sortInstalledByEffectiveRecent(installed, lastLaunchedAt);
@@ -197,6 +204,38 @@ function buildDynamicCollections(installed, normalizedSteam, clientLibrary, weeM
   const source = hasClient || hasCategories || hasWee ? 'steam-dynamic' : 'dynamic';
 
   return { source, items };
+}
+
+/**
+ * @param {{ id: string, label: string, games: unknown[] }[]} items
+ * @param {{ shelfOrderMode?: 'custom' | 'alphabetical', customShelfOrder?: string[] | null }} opts
+ */
+export function orderHubCollectionItems(items, opts = {}) {
+  const { shelfOrderMode = 'custom', customShelfOrder = null } = opts;
+  const list = Array.isArray(items) ? [...items] : [];
+  if (shelfOrderMode === 'alphabetical') {
+    return list.sort((a, b) =>
+      (a.label || '').localeCompare(b.label || '', undefined, { sensitivity: 'base' })
+    );
+  }
+  if (!Array.isArray(customShelfOrder) || customShelfOrder.length === 0) {
+    return list;
+  }
+  const idx = new Map(customShelfOrder.map((id, i) => [id, i]));
+  const max = customShelfOrder.length;
+  return list.sort((a, b) => {
+    const ia = idx.has(a.id) ? idx.get(a.id) : max + 1;
+    const ib = idx.has(b.id) ? idx.get(b.id) : max + 1;
+    if (ia !== ib) return ia - ib;
+    return (a.label || '').localeCompare(b.label || '', undefined, { sensitivity: 'base' });
+  });
+}
+
+export function sortHubGamesByName(games) {
+  if (!Array.isArray(games)) return [];
+  return [...games].sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+  );
 }
 
 export const formatPlaytime = (minutes = 0) => {

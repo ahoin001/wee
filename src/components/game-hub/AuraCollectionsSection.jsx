@@ -63,6 +63,11 @@ export default function AuraCollectionsSection({
   onLaunchGame,
   onHeroPreview,
   effectsEnabled = true,
+  shelfOrderMode = 'custom',
+  onShelfOrderModeChange,
+  hubCollectionGamesSort = 'default',
+  onHubCollectionGamesSortChange,
+  onReorderCollectionShelves,
 }) {
   const sectionRef = useRef(null);
   const stackButtonRefs = useRef({});
@@ -80,12 +85,15 @@ export default function AuraCollectionsSection({
   activeCollectionIdRef.current = activeCollectionId;
   /** Last collection id requested while stacks were busy — applied once in finally. */
   const pendingOpenCollectionIdRef = useRef(null);
+  /** After HTML5 drag-drop, the same element can receive an extra click — ignore one open/close. */
+  const shelfDragSuppressClickRef = useRef(false);
 
   const [cardsRevealed, setCardsRevealed] = useState(true);
   const [flyInProgress, setFlyInProgress] = useState(false);
   /** After hub-style handoff: real tiles crossfade in while flyers fade out — avoids settle flicker. */
   const [flyHandoff, setFlyHandoff] = useState(false);
   const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
+  const [shelvesReorderEnabled, setShelvesReorderEnabled] = useState(false);
   /** After fly-out (or when closing without fly): delay clearing collection so grid animates 1fr → 0fr. */
   const [shelfClosing, setShelfClosing] = useState(false);
   useEffect(() => {
@@ -96,6 +104,12 @@ export default function AuraCollectionsSection({
     () => (typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false),
     []
   );
+
+  useEffect(() => {
+    if (shelfOrderMode === 'alphabetical') {
+      setShelvesReorderEnabled(false);
+    }
+  }, [shelfOrderMode]);
 
   const flyAllowed = Boolean(effectsEnabled) && !reducedMotion;
 
@@ -326,6 +340,11 @@ export default function AuraCollectionsSection({
     async (e, collection) => {
       e.stopPropagation();
 
+      if (shelfDragSuppressClickRef.current) {
+        shelfDragSuppressClickRef.current = false;
+        return;
+      }
+
       if (uiLockedRef.current || shelfClosingRef.current) {
         if (collection.id !== activeCollectionId) {
           pendingOpenCollectionIdRef.current = collection.id;
@@ -354,6 +373,45 @@ export default function AuraCollectionsSection({
       }
     },
     [activeCollectionId, animateClose, flushPendingOpen, onSetCollection]
+  );
+
+  const handleShelfDragStart = useCallback(
+    (e, collectionId) => {
+      if (!shelvesReorderEnabled || shelfOrderMode !== 'custom') return;
+      e.dataTransfer.setData('text/plain', collectionId);
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    [shelvesReorderEnabled, shelfOrderMode]
+  );
+
+  const handleShelfDragOver = useCallback(
+    (e) => {
+      if (!shelvesReorderEnabled || shelfOrderMode !== 'custom') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    },
+    [shelvesReorderEnabled, shelfOrderMode]
+  );
+
+  const handleShelfDrop = useCallback(
+    (e, targetId) => {
+      e.preventDefault();
+      if (!shelvesReorderEnabled || shelfOrderMode !== 'custom') return;
+      const sourceId = e.dataTransfer.getData('text/plain');
+      if (!sourceId || sourceId === targetId) return;
+      const ids = collections.map((c) => c.id);
+      const from = ids.indexOf(sourceId);
+      const to = ids.indexOf(targetId);
+      if (from < 0 || to < 0) return;
+      const next = [...ids];
+      const [m] = next.splice(from, 1);
+      next.splice(to, 0, m);
+      if (from !== to) {
+        shelfDragSuppressClickRef.current = true;
+        onReorderCollectionShelves?.(next);
+      }
+    },
+    [shelvesReorderEnabled, shelfOrderMode, collections, onReorderCollectionShelves]
   );
 
   useEffect(() => {
@@ -400,15 +458,45 @@ export default function AuraCollectionsSection({
       className="aura-hub-section aura-hub-section--collections"
       id="game-hub-collections"
     >
-      <div className="aura-hub-section__header aura-hub-section__header--row">
+      <div className="aura-hub-section__header aura-hub-section__header--row aura-hub-section__header--collections">
         <h3>Curated Collections</h3>
-        <button
-          type="button"
-          className="aura-hub-section__manage"
-          onClick={() => setManageCollectionsOpen(true)}
-        >
-          Manage collections
-        </button>
+        <div className="aura-hub-section__header-actions">
+          <label className="aura-hub-sort">
+            <span className="sr-only">Shelf order</span>
+            <select
+              className="aura-hub-sort__select"
+              value={shelfOrderMode}
+              onChange={(e) => onShelfOrderModeChange?.(e.target.value)}
+            >
+              <option value="custom">Shelves: Custom</option>
+              <option value="alphabetical">Shelves: A–Z</option>
+            </select>
+          </label>
+          <label className="aura-hub-sort">
+            <span className="sr-only">Games in each shelf</span>
+            <select
+              className="aura-hub-sort__select"
+              value={hubCollectionGamesSort}
+              onChange={(e) => onHubCollectionGamesSortChange?.(e.target.value)}
+            >
+              <option value="default">Games: Default</option>
+              <option value="alphabetical">Games: A–Z</option>
+            </select>
+          </label>
+          {shelfOrderMode === 'custom' ? (
+            <button
+              type="button"
+              className="aura-hub-section__reorder"
+              aria-pressed={shelvesReorderEnabled}
+              onClick={() => setShelvesReorderEnabled((v) => !v)}
+            >
+              {shelvesReorderEnabled ? 'Done reordering' : 'Reorder shelves'}
+            </button>
+          ) : null}
+          <button type="button" className="aura-hub-section__manage" onClick={() => setManageCollectionsOpen(true)}>
+            Manage collections
+          </button>
+        </div>
       </div>
       <GameHubManageCollectionsDialog open={manageCollectionsOpen} onOpenChange={setManageCollectionsOpen} />
       {collections.length ? (
@@ -422,7 +510,11 @@ export default function AuraCollectionsSection({
                   key={collection.id}
                   ref={assignStackRef(collection.id)}
                   type="button"
-                  className={`aura-hub-stack ${isActive ? 'aura-hub-stack--active' : ''}`}
+                  className={`aura-hub-stack ${isActive ? 'aura-hub-stack--active' : ''} ${shelvesReorderEnabled && shelfOrderMode === 'custom' ? 'aura-hub-stack--reorder' : ''}`}
+                  draggable={Boolean(shelvesReorderEnabled && shelfOrderMode === 'custom')}
+                  onDragStart={(e) => handleShelfDragStart(e, collection.id)}
+                  onDragOver={handleShelfDragOver}
+                  onDrop={(e) => handleShelfDrop(e, collection.id)}
                   onClick={(e) => handleStackClick(e, collection)}
                 >
                   <div className="aura-hub-stack__cards">

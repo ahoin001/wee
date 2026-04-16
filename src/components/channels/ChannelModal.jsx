@@ -22,11 +22,26 @@ import { useAppLibraryState } from '../../utils/useConsolidatedAppHooks';
 import { preloadMediaLibrary } from '../../utils/mediaLibraryCache';
 import useSoundLibrary from '../../utils/useSoundLibrary';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { getChannelDataSlice } from '../../utils/channelSpaces';
 import './ChannelModal.css';
 
 const channelsApi = window.api?.channels;
 
-function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, currentType, currentHoverSound, currentAsAdmin, currentAnimatedOnHover, currentKenBurnsEnabled, currentKenBurnsMode, isOpen = true }) {
+function ChannelModal({
+  channelId,
+  channelSpaceKey = 'home',
+  onClose,
+  onSave,
+  currentMedia,
+  currentPath,
+  currentType,
+  currentHoverSound,
+  currentAsAdmin,
+  currentAnimatedOnHover,
+  currentKenBurnsEnabled,
+  currentKenBurnsMode,
+  isOpen = true,
+}) {
   const {
     media,
     setMedia,
@@ -86,12 +101,12 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
   const channels = useConsolidatedAppStore((state) => state.channels);
   const actions = useConsolidatedAppStore((state) => state.actions);
   const channelConfigs = useMemo(
-    () => channels?.data?.channelConfigs || {},
-    [channels?.data?.channelConfigs]
+    () => getChannelDataSlice(channels, channelSpaceKey).channelConfigs || {},
+    [channels, channelSpaceKey]
   );
   const configuredChannels = useMemo(
-    () => channels?.data?.configuredChannels || {},
-    [channels?.data?.configuredChannels]
+    () => getChannelDataSlice(channels, channelSpaceKey).configuredChannels || {},
+    [channels, channelSpaceKey]
   );
 
   const setUnifiedAppsState = useConsolidatedAppStore((state) => state.actions.setUnifiedAppsState);
@@ -302,7 +317,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     // Only save config if there are actual settings (not all undefined)
     const hasKenBurnsSettings = Object.values(kenBurnsConfig).some(value => value !== undefined);
     if (hasKenBurnsSettings) {
-      actions.updateChannelConfig(channelId, kenBurnsConfig);
+      actions.updateChannelConfigForSpace(channelSpaceKey, channelId, kenBurnsConfig);
     }
     
     // Also save to channels API for persistence
@@ -343,7 +358,7 @@ function ChannelModal({ channelId, onClose, onSave, currentMedia, currentPath, c
     }
     
     // Clear channel configs
-    actions.updateChannelConfig(channelId, null);
+    actions.updateChannelConfigForSpace(channelSpaceKey, channelId, null);
     
     // Also clear from channels API for persistence
     try {

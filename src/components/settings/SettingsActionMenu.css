@@ -11,17 +11,7 @@
   --settings-menu-button-border-hover: hsl(var(--text-primary) / 0.14);
   --settings-menu-accent-glow-1: hsl(var(--wii-blue) / 0.3);
   --settings-menu-accent-glow-2: hsl(var(--wii-blue) / 0.2);
-  --settings-cursor-white-30: hsl(var(--color-pure-white) / 0.3);
-  --settings-cursor-white-40: hsl(var(--color-pure-white) / 0.4);
-  --settings-cursor-white-50: hsl(var(--color-pure-white) / 0.5);
-  --settings-cursor-white-60: hsl(var(--color-pure-white) / 0.6);
-  --settings-cursor-white-70: hsl(var(--color-pure-white) / 0.7);
-  --settings-cursor-white-80: hsl(var(--color-pure-white) / 0.8);
-  --settings-cursor-white-90: hsl(var(--color-pure-white) / 0.9);
-  --settings-cursor-white-98: hsl(var(--color-pure-white) / 0.98);
-  --settings-cursor-white-95: hsl(var(--color-pure-white) / 0.95);
-  --settings-cursor-elev-soft: hsl(var(--text-primary) / 0.2);
-  --settings-cursor-elev-strong: hsl(var(--text-primary) / 0.5);
+  /* Cursor gradient tokens: defined on :root in design-system.css for #wii-custom-cursor */
   /* Remove old positioning styles since Dialog handles positioning */
   background: var(--settings-menu-surface);
   backdrop-filter: blur(12px);

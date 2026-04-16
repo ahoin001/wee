@@ -32,6 +32,8 @@ export type ChannelData = {
 export type NormalizedChannelPayload = {
   settings?: ChannelSettings;
   data?: ChannelData;
+  /** When present on disk, merged via `mergeChannelsSlice` (per-space grids). */
+  dataBySpace?: Record<string, unknown>;
 };
 
 function normalizeChannelData(raw: Record<string, unknown> | undefined): ChannelData {
@@ -49,5 +51,6 @@ export const normalizeChannelPayload = (
   return {
     settings: (payload?.settings as ChannelSettings) || {},
     data: normalizeChannelData(payload?.data as Record<string, unknown> | undefined),
+    dataBySpace: payload?.dataBySpace as Record<string, unknown> | undefined,
   };
 };

@@ -3,14 +3,14 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { handleGlobalShortcut } from './keyboardShortcuts';
 import { openSettingsToTab } from './settingsNavigation';
+import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
 
 const useKeyboardShortcuts = () => {
-  const { keyboardShortcuts, setUIState, setFloatingWidgetsState, setChannelState } = useConsolidatedAppStore(
+  const { keyboardShortcuts, setUIState, setFloatingWidgetsState } = useConsolidatedAppStore(
     useShallow((state) => ({
       keyboardShortcuts: state.ui?.keyboardShortcuts || [],
       setUIState: state.actions?.setUIState,
       setFloatingWidgetsState: state.actions?.setFloatingWidgetsState,
-      setChannelState: state.actions?.setChannelState,
     }))
   );
 
@@ -88,44 +88,27 @@ const useKeyboardShortcuts = () => {
 
     window.nextPage = () => {
       const state = getState();
-      const { channels } = state;
-      if (channels.data.navigation.currentPage >= channels.data.navigation.totalPages - 1) return;
+      const { channels, spaces } = state;
+      const key = resolveActiveChannelSpaceKey(spaces?.activeSpaceId);
+      const nav = getChannelDataSlice(channels, key).navigation || {};
+      const currentPage = Number(nav.currentPage) || 0;
+      const totalPages = Math.max(1, Number(nav.totalPages) || 1);
+      if (currentPage >= totalPages - 1) return;
 
-      if (channels.operations.nextPage) {
-        channels.operations.nextPage();
-        return;
-      }
-
-      setChannelState?.({
-        data: {
-          ...channels.data,
-          navigation: {
-            ...channels.data.navigation,
-            currentPage: channels.data.navigation.currentPage + 1,
-          },
-        },
-      });
+      const { setChannelNavigationForSpace } = getState().actions;
+      setChannelNavigationForSpace?.(key, { currentPage: currentPage + 1 });
     };
 
     window.prevPage = () => {
       const state = getState();
-      const { channels } = state;
-      if (channels.data.navigation.currentPage <= 0) return;
+      const { channels, spaces } = state;
+      const key = resolveActiveChannelSpaceKey(spaces?.activeSpaceId);
+      const nav = getChannelDataSlice(channels, key).navigation || {};
+      const currentPage = Number(nav.currentPage) || 0;
+      if (currentPage <= 0) return;
 
-      if (channels.operations.prevPage) {
-        channels.operations.prevPage();
-        return;
-      }
-
-      setChannelState?.({
-        data: {
-          ...channels.data,
-          navigation: {
-            ...channels.data.navigation,
-            currentPage: channels.data.navigation.currentPage - 1,
-          },
-        },
-      });
+      const { setChannelNavigationForSpace } = getState().actions;
+      setChannelNavigationForSpace?.(key, { currentPage: currentPage - 1 });
     };
 
     window.toggleDock = () => {
@@ -162,7 +145,7 @@ const useKeyboardShortcuts = () => {
       delete window.toggleCustomCursor;
       delete window.toggleSettingsMenu;
     };
-  }, [keyboardShortcuts, setChannelState, setFloatingWidgetsState, setUIState]);
+  }, [keyboardShortcuts, setFloatingWidgetsState, setUIState]);
 
   return {
     keyboardShortcuts,

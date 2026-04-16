@@ -39,6 +39,19 @@
   --color-pure-white: 0 0% 100%;
   --color-pure-black: 0 0% 0%;
 
+  /* Wii custom cursor (#wii-custom-cursor on body) — must live on :root so gradients resolve outside .settings-action-menu */
+  --settings-cursor-white-30: hsl(var(--color-pure-white) / 0.3);
+  --settings-cursor-white-40: hsl(var(--color-pure-white) / 0.4);
+  --settings-cursor-white-50: hsl(var(--color-pure-white) / 0.5);
+  --settings-cursor-white-60: hsl(var(--color-pure-white) / 0.6);
+  --settings-cursor-white-70: hsl(var(--color-pure-white) / 0.7);
+  --settings-cursor-white-80: hsl(var(--color-pure-white) / 0.8);
+  --settings-cursor-white-90: hsl(var(--color-pure-white) / 0.9);
+  --settings-cursor-white-95: hsl(var(--color-pure-white) / 0.95);
+  --settings-cursor-white-98: hsl(var(--color-pure-white) / 0.98);
+  --settings-cursor-elev-soft: hsl(var(--text-primary) / 0.2);
+  --settings-cursor-elev-strong: hsl(var(--text-primary) / 0.5);
+
   /* Classic Wii dock hardware chrome (stable across light/dark — physical plastic/metal) */
   --dock-chrome-face-start: 220 10% 88%;
   --dock-chrome-face-end: 220 8% 78%;

@@ -3,11 +3,13 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
-import { buildHubData } from './hubData';
+import { buildHubData, orderHubCollectionItems, sortHubGamesByName } from './hubData';
 import AuraHero from './AuraHero';
 import AuraCollectionsSection from './AuraCollectionsSection';
 import AuraLibrarySection from './AuraLibrarySection';
 import { readHubDockInsetPx, scrollHubRegionIntoFocus } from './hubScrollUtils';
+import { shouldUseWarmEnrichmentCache } from '../../utils/gameHub/gameHubEnrichmentCache';
+import { getCachedSteamClientLibrary, setCachedSteamClientLibrary } from '../../utils/gameHub/gameHubClientLibraryCache';
 import './GameHubSpace.css';
 
 /** hub-design style: first ~80px of scroll commits hero from spotlight → compact bar */
@@ -25,6 +27,11 @@ export default function GameHubSpace() {
         showDock: state.ui.showDock ?? true,
       }))
     );
+
+  const hubShelfOrderMode = gameHub.ui?.hubShelfOrderMode ?? 'custom';
+  const collectionShelfOrder = gameHub.ui?.collectionShelfOrder ?? null;
+  const hubLibrarySort = gameHub.ui?.hubLibrarySort ?? 'default';
+  const hubCollectionGamesSort = gameHub.ui?.hubCollectionGamesSort ?? 'default';
   const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
 
   const [isLaunching, setIsLaunching] = useState(false);
@@ -92,53 +99,54 @@ export default function GameHubSpace() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+
     const hydrate = async () => {
-      setGameHubState({
-        library: {
-          syncStatus: 'loading',
-          lastError: null,
-          statusReason: '',
-        },
-      });
+      const gh = useConsolidatedAppStore.getState().gameHub;
+      const library = gh.library || {};
+      const profile = gh.profile || {};
+      const steamId = profile.steamId;
+      const useSteamWebApi = profile.useSteamWebApi !== false;
 
       try {
         await Promise.all([
-          appLibraryManager?.fetchSteamGames?.(),
-          appLibraryManager?.fetchEpicGames?.(),
+          appLibraryManager?.fetchSteamGames?.(false, { silent: true }),
+          appLibraryManager?.fetchEpicGames?.(false, { silent: true }),
         ]);
+      } catch {
+        /* app library manager is best-effort; hub still uses persisted / API enrichment */
+      }
+      if (cancelled) return;
 
-        const steamId = gameHub.profile?.steamId;
-        const useSteamWebApi = gameHub.profile?.useSteamWebApi !== false;
-        if (!useSteamWebApi) {
-          setGameHubState({
-            library: {
-              enrichedGames: [],
-              lastSyncedAt: Date.now(),
-              syncStatus: 'local-only',
-              statusReason: 'Steam enrichment disabled in Game Hub settings.',
-              lastError: null,
-            },
-          });
-          return;
-        }
+      if (!useSteamWebApi) {
+        setGameHubState({
+          library: {
+            enrichedGames: [],
+            lastSyncedAt: library.lastSyncedAt ?? Date.now(),
+            syncStatus: 'local-only',
+            statusReason: 'Steam enrichment disabled in Game Hub settings.',
+            lastError: null,
+          },
+        });
+        return;
+      }
 
-        if (!steamId || !window.api?.steam?.getEnrichedGames) {
-          setGameHubState({
-            library: {
-              enrichedGames: [],
-              lastSyncedAt: Date.now(),
-              syncStatus: 'local-only',
-              statusReason: 'Add SteamID64 in Game Hub settings to enrich your library.',
-              lastError: null,
-            },
-          });
-          return;
-        }
+      if (!steamId || !window.api?.steam?.getEnrichedGames) {
+        setGameHubState({
+          library: {
+            enrichedGames: [],
+            lastSyncedAt: library.lastSyncedAt ?? Date.now(),
+            syncStatus: 'local-only',
+            statusReason: 'Add SteamID64 in Game Hub settings to enrich your library.',
+            lastError: null,
+          },
+        });
+        return;
+      }
 
-        const enriched = await window.api.steam.getEnrichedGames({ steamId });
+      const applyFromApiResponse = (enriched) => {
         const enrichedGames = Array.isArray(enriched?.games) ? enriched.games : [];
         const hasError = Boolean(enriched?.error);
-
         setGameHubState({
           library: {
             enrichedGames,
@@ -146,19 +154,76 @@ export default function GameHubSpace() {
             syncStatus: hasError ? 'error' : 'ready',
             statusReason: enriched?.statusReason || enriched?.error || '',
             lastError: hasError ? enriched.error : null,
+            lastEnrichedSteamId: steamId,
           },
         });
-      } catch (error) {
+      };
+
+      if (shouldUseWarmEnrichmentCache(library, profile)) {
         setGameHubState({
           library: {
-            syncStatus: 'error',
-            statusReason: 'Network or API request failed.',
-            lastError: error?.message || 'Failed to sync library',
+            syncStatus: 'ready',
+            lastError: null,
+          },
+        });
+        try {
+          const enriched = await window.api.steam.getEnrichedGames({ steamId });
+          if (cancelled) return;
+          applyFromApiResponse(enriched);
+        } catch (error) {
+          if (!cancelled) {
+            setGameHubState({
+              library: {
+                syncStatus: 'error',
+                statusReason: 'Network or API request failed.',
+                lastError: error?.message || 'Failed to sync library',
+              },
+            });
+          }
+        }
+        return;
+      }
+
+      const hasPersistedList = Array.isArray(library.enrichedGames) && library.enrichedGames.length > 0;
+      if (hasPersistedList) {
+        setGameHubState({
+          library: {
+            syncStatus: 'refreshing',
+            statusReason: 'Refreshing Steam library…',
+            lastError: null,
+          },
+        });
+      } else {
+        setGameHubState({
+          library: {
+            syncStatus: 'loading',
+            lastError: null,
+            statusReason: '',
           },
         });
       }
+
+      try {
+        const enriched = await window.api.steam.getEnrichedGames({ steamId });
+        if (cancelled) return;
+        applyFromApiResponse(enriched);
+      } catch (error) {
+        if (!cancelled) {
+          setGameHubState({
+            library: {
+              syncStatus: 'error',
+              statusReason: 'Network or API request failed.',
+              lastError: error?.message || 'Failed to sync library',
+            },
+          });
+        }
+      }
     };
+
     hydrate();
+    return () => {
+      cancelled = true;
+    };
   }, [appLibraryManager, gameHub.profile?.steamId, gameHub.profile?.useSteamWebApi, setGameHubState]);
 
   useEffect(
@@ -197,16 +262,23 @@ export default function GameHubSpace() {
       setClientLibrary({ ok: false, favoritesAppIds: [], appIdToTags: {} });
       return undefined;
     }
+    const cached = getCachedSteamClientLibrary(steamId);
+    if (cached) {
+      setClientLibrary(cached);
+      return undefined;
+    }
     let cancelled = false;
     (async () => {
       try {
         const res = await window.api.steam.getClientLibraryMetadata({ steamId });
         if (!cancelled && res && typeof res === 'object') {
-          setClientLibrary({
+          const payload = {
             ok: Boolean(res.ok),
             favoritesAppIds: Array.isArray(res.favoritesAppIds) ? res.favoritesAppIds : [],
             appIdToTags: res.appIdToTags && typeof res.appIdToTags === 'object' ? res.appIdToTags : {},
-          });
+          };
+          setCachedSteamClientLibrary(steamId, payload);
+          setClientLibrary(payload);
         }
       } catch {
         if (!cancelled) setClientLibrary({ ok: false, favoritesAppIds: [], appIdToTags: {} });
@@ -233,6 +305,26 @@ export default function GameHubSpace() {
       }),
     [appLibrary.epicGames, appLibrary.steamGames, enrichmentMap, clientLibrary, weeMeta]
   );
+
+  const displayCollections = useMemo(() => {
+    const raw = hubData.collections.items;
+    const ordered = orderHubCollectionItems(raw, {
+      shelfOrderMode: hubShelfOrderMode,
+      customShelfOrder: collectionShelfOrder,
+    });
+    if (hubCollectionGamesSort === 'alphabetical') {
+      return ordered.map((c) => ({ ...c, games: sortHubGamesByName(c.games) }));
+    }
+    return ordered;
+  }, [hubData.collections.items, hubShelfOrderMode, collectionShelfOrder, hubCollectionGamesSort]);
+
+  const libraryGames = useMemo(() => {
+    const installed = hubData.installed;
+    if (hubLibrarySort === 'alphabetical') {
+      return sortHubGamesByName(installed);
+    }
+    return installed;
+  }, [hubData.installed, hubLibrarySort]);
 
   const selectedGame = useMemo(
     () => hubData.installed.find((game) => game.id === selectedGameId) || null,
@@ -266,7 +358,8 @@ export default function GameHubSpace() {
       heroPreviewClearRef.current = null;
     }, 90);
   }, []);
-  const activeCollection = hubData.collections.items.find((collection) => collection.id === activeCollectionId) || null;
+  const activeCollection =
+    displayCollections.find((collection) => collection.id === activeCollectionId) || null;
   const hasFavorites = hubData.railGames.length > 0;
 
   const handleLaunchGame = async (game) => {
@@ -363,7 +456,9 @@ export default function GameHubSpace() {
               heroNotice={
                 gameHub.library?.syncStatus === 'error'
                   ? gameHub.library?.statusReason || 'Could not refresh Steam library stats.'
-                  : null
+                  : gameHub.library?.syncStatus === 'refreshing'
+                    ? gameHub.library?.statusReason || 'Refreshing library…'
+                    : null
               }
               hasSteamId={Boolean(gameHub.profile?.steamId)}
               hasFavorites={hasFavorites}
@@ -379,17 +474,30 @@ export default function GameHubSpace() {
           <div id="game-hub-collections-anchor" className="aura-hub-scroll-anchor" aria-hidden />
           <AuraCollectionsSection
             scrollContainerRef={contentScrollRef}
-            collections={hubData.collections.items}
+            collections={displayCollections}
             activeCollection={activeCollection}
             activeCollectionId={activeCollectionId}
             effectsEnabled={effectsEnabled}
+            shelfOrderMode={hubShelfOrderMode}
+            onShelfOrderModeChange={(mode) =>
+              setGameHubState({ ui: { hubShelfOrderMode: mode } })
+            }
+            hubCollectionGamesSort={hubCollectionGamesSort}
+            onHubCollectionGamesSortChange={(sort) =>
+              setGameHubState({ ui: { hubCollectionGamesSort: sort } })
+            }
+            onReorderCollectionShelves={(ids) =>
+              setGameHubState({ ui: { hubShelfOrderMode: 'custom', collectionShelfOrder: ids } })
+            }
             onSetCollection={(collectionId) => setGameHubState({ ui: { activeCollectionId: collectionId } })}
             onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
             onLaunchGame={handleLaunchGame}
             onHeroPreview={setHeroPreview}
           />
           <AuraLibrarySection
-            games={hubData.installed}
+            games={libraryGames}
+            librarySort={hubLibrarySort}
+            onLibrarySortChange={(sort) => setGameHubState({ ui: { hubLibrarySort: sort } })}
             onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
             onLaunchGame={handleLaunchGame}
             onHeroPreview={setHeroPreview}

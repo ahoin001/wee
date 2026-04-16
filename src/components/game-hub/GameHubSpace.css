@@ -636,6 +636,66 @@
   background: hsl(var(--color-pure-white) / 0.12);
 }
 
+.aura-hub-section__header--collections {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.aura-hub-section__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem 0.65rem;
+  max-width: min(100%, 52rem);
+}
+
+.aura-hub-sort__select {
+  min-width: 9.5rem;
+  max-width: 100%;
+  padding: 0.32rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid hsl(var(--color-pure-white) / 0.22);
+  background: hsl(var(--color-pure-black) / 0.35);
+  color: hsl(var(--color-pure-white) / 0.95);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.aura-hub-sort__select:focus-visible {
+  outline: 2px solid hsl(var(--wii-blue) / 0.85);
+  outline-offset: 2px;
+}
+
+.aura-hub-section__reorder {
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid hsl(var(--color-pure-white) / 0.28);
+  border-radius: 0.45rem;
+  background: hsl(var(--color-pure-black) / 0.2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--color-pure-white) / 0.92);
+  cursor: pointer;
+}
+
+.aura-hub-section__reorder[aria-pressed='true'] {
+  border-color: hsl(var(--wii-blue) / 0.65);
+  background: hsl(var(--wii-blue) / 0.22);
+}
+
+.aura-hub-stack--reorder {
+  cursor: grab;
+}
+
+.aura-hub-stack--reorder:active {
+  cursor: grabbing;
+}
+
 /* Section titles: float over dimmed wallpaper — high contrast, no panel behind them */
 .aura-hub-section__header h3 {
   margin: 0;
@@ -696,7 +756,7 @@
   border: 1px solid hsl(var(--border-primary));
   background-size: cover;
   background-position: center;
-  background-color: hsl(var(--surface-elevated));
+  background-color: transparent;
 }
 
 .aura-hub-stack__item--1 {
@@ -788,6 +848,26 @@
 
 .aura-hub-expansion__inner {
   min-height: 0;
+  background: transparent;
+}
+
+/* Shelves: tiles sit on wallpaper / backdrop — no frosted panel behind grids */
+.aura-hub-expansion .aura-hub-grid,
+.aura-hub-section--library .aura-hub-grid {
+  background: transparent;
+}
+
+.aura-hub-expansion .aura-game-card,
+.aura-hub-section--library .aura-game-card {
+  background: transparent;
+  border: none;
+  box-shadow: var(--aura-game-card-elev-shadow);
+}
+
+.aura-hub-expansion .aura-game-card__launch,
+.aura-hub-section--library .aura-game-card__launch {
+  border-radius: 0.85rem;
+  overflow: hidden;
 }
 
 /* Close fly-out: hide real tiles; open fly-in: lock input only (flyers are fixed above). */
@@ -829,6 +909,25 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: clamp(1rem, 2.4vw, 1.45rem);
+}
+
+/* Portaled fly tiles — must match `.aura-game-card` on shelves (transparent + --aura-game-card-elev-shadow) */
+.aura-hub-flyer {
+  position: fixed;
+  z-index: 10050;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: 0.85rem;
+  border: none;
+  overflow: hidden;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  box-shadow: var(--aura-game-card-elev-shadow);
+  backface-visibility: hidden;
+  contain: layout style paint;
+  isolation: isolate;
 }
 
 .aura-game-card {

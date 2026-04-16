@@ -38,6 +38,10 @@ export function stackBrightnessForFlyIndex(i) {
   return 1;
 }
 
+function flyLayerParent() {
+  return document.querySelector('.aura-hub-space') ?? document.body;
+}
+
 /**
  * @param {string | undefined} imageUrl
  * @param {'in' | 'out'} mode
@@ -60,17 +64,12 @@ function mountFlyer(imageUrl, mode = 'in', flyIndex = 0) {
     position: 'fixed',
     zIndex: '10050',
     pointerEvents: 'none',
-    borderRadius: '0.85rem',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    border: '1px solid rgba(255,255,255,0.14)',
-    boxShadow: '0 18px 48px rgba(0,0,0,0.42)',
     backgroundImage: imageUrl ? `url(${JSON.stringify(String(imageUrl))})` : 'none',
     opacity: '1',
     filter: `brightness(${b0})`,
     transition,
   });
-  document.body.appendChild(el);
+  flyLayerParent().appendChild(el);
   return el;
 }
 
