@@ -1,4 +1,10 @@
-require('./scripts/load-env.cjs');
+try {
+  require('./scripts/load-env.cjs');
+} catch (error) {
+  if (error?.code !== 'MODULE_NOT_FOUND') {
+    throw error;
+  }
+}
 
 const { app, BrowserWindow, ipcMain, shell, protocol, dialog, screen, nativeImage, globalShortcut, Menu } = require('electron');
 const { autoUpdater } = require('electron-updater');

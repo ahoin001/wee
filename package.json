@@ -24,6 +24,7 @@
       "public/sounds/**/*",
       "electron.cjs",
       "preload.cjs",
+      "scripts/load-env.cjs",
       "main/**/*",
       "shared/**/*"
     ],
