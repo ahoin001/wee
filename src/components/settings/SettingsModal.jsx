@@ -91,7 +91,7 @@ SettingsTabButton.propTypes = {
   onClick: PropTypes.func.isRequired,
 };
 
-// Tab configuration - Alphabetically ordered
+// Tab configuration — ordered A–Z by `label` (ids stable for shortcuts / deep links)
 const SETTINGS_TABS = [
   { 
     id: 'api-integrations', 
@@ -117,14 +117,6 @@ const SETTINGS_TABS = [
     description: 'Classic & Ribbon dock settings',
     component: UnifiedDockSettingsTab
   },
-  { 
-    id: 'general', 
-    label: 'General', 
-    icon: '⚙️', 
-    color: 'hsl(var(--settings-tab-general))',
-    description: 'App behavior & startup',
-    component: GeneralSettingsTab
-  },
   {
     id: 'gamehub',
     label: 'Game Hub',
@@ -134,20 +126,20 @@ const SETTINGS_TABS = [
     component: GameHubSettingsTab,
   },
   { 
+    id: 'general', 
+    label: 'General', 
+    icon: '⚙️', 
+    color: 'hsl(var(--settings-tab-general))',
+    description: 'App behavior & startup',
+    component: GeneralSettingsTab
+  },
+  { 
     id: 'layout', 
     label: 'Layout', 
     icon: '📐', 
     color: 'hsl(var(--settings-tab-layout))',
     description: 'Grid & navigation modes',
     component: LayoutSettingsTab
-  },
-  { 
-    id: 'navigation', 
-    label: 'Navigation', 
-    icon: '🧭', 
-    color: 'hsl(var(--settings-tab-navigation))',
-    description: 'Side navigation buttons',
-    component: NavigationSettingsTab
   },
   { 
     id: 'monitor', 
@@ -166,6 +158,22 @@ const SETTINGS_TABS = [
     component: MotionFeedbackSettingsTab
   },
   { 
+    id: 'navigation', 
+    label: 'Navigation', 
+    icon: '🧭', 
+    color: 'hsl(var(--settings-tab-navigation))',
+    description: 'Side navigation buttons',
+    component: NavigationSettingsTab
+  },
+  { 
+    id: 'themes', 
+    label: 'Presets', 
+    icon: '🎨', 
+    color: 'hsl(var(--settings-tab-themes))',
+    description: 'Preset themes & customization',
+    component: PresetsSettingsTab
+  },
+  { 
     id: 'shortcuts', 
     label: 'Shortcuts', 
     icon: '⌨️', 
@@ -180,14 +188,6 @@ const SETTINGS_TABS = [
     color: 'hsl(var(--settings-tab-sounds))',
     description: 'Audio feedback & music',
     component: SoundsSettingsTab
-  },
-  { 
-    id: 'themes', 
-    label: 'Presets', 
-    icon: '🎨', 
-    color: 'hsl(var(--settings-tab-themes))',
-    description: 'Preset themes & customization',
-    component: PresetsSettingsTab
   },
   { 
     id: 'time', 
