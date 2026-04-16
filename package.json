@@ -59,6 +59,8 @@
     "publish": "electron-builder publish",
     "make": "electron-builder make",
     "release": "node scripts/release.cjs",
+    "release:publish": "node scripts/release.cjs --publish",
+    "release:local": "node scripts/release.cjs",
     "test-installer": "node scripts/test-installer.cjs",
     "test-updates": "node scripts/test/test-update-check.js",
     "test:smoke": "node scripts/smoke-check.cjs",
