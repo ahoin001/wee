@@ -336,9 +336,15 @@ ChannelReorderVfxPortal.defaultProps = {
   drop: null,
 };
 
-export function measureChannelSlotCenter(index) {
+/**
+ * @param {'home' | 'workspaces'} spaceKey
+ * @param {number} index
+ */
+export function measureChannelSlotCenter(spaceKey, index) {
   if (typeof document === 'undefined') return null;
-  const el = document.querySelector(`[data-channel-slot="${index}"]`);
+  const root = document.querySelector(`[data-channel-space="${spaceKey}"]`);
+  if (!root) return null;
+  const el = root.querySelector(`[data-channel-slot="${index}"]`);
   if (!el) return null;
   const r = el.getBoundingClientRect();
   return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 };

@@ -56,22 +56,13 @@ function ChannelModalImageSection({
         </div>
       )}
 
-      {!showGalleryOption && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-          <Text size="sm" color="hsl(var(--state-warning))">
-            🚧 <strong>Multi-image gallery feature is not ready yet.</strong> Currently focusing on perfecting the single
-            image experience with Ken Burns effects.
-          </Text>
-        </div>
-      )}
-
       {!galleryMode && (
         <>
           {media ? (
             <div className="image-preview">
               {media.loading ? (
-                <div className="flex items-center justify-center min-h-[120px] bg-gray-100 rounded-lg text-gray-600 text-sm">
-                  <span>⏳ Processing image...</span>
+                <div className="flex min-h-[120px] items-center justify-center rounded-lg bg-[hsl(var(--surface-tertiary))] text-sm text-[hsl(var(--text-secondary))]">
+                  <span>Processing…</span>
                 </div>
               ) : media.temporary ? (
                 <div className="relative">
@@ -96,9 +87,14 @@ function ChannelModalImageSection({
               </button>
             </div>
           ) : (
-            <WButton variant="primary" fullWidth rounded onClick={() => setShowImageSearch(true)} className="text-text-on-accent">
-              Add Channel Image
-            </WButton>
+            <div className="channel-stack-8">
+              <WButton variant="primary" fullWidth rounded onClick={() => setShowImageSearch(true)} className="text-text-on-accent">
+                Browse media library
+              </WButton>
+              <WButton variant="secondary" fullWidth rounded onClick={() => fileInputRef.current?.click()}>
+                Upload image or MP4
+              </WButton>
+            </div>
           )}
         </>
       )}

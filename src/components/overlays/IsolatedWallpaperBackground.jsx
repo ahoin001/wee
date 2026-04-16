@@ -1,8 +1,8 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useWallpaperCycling from '../../utils/useWallpaperCycling';
-
-const DEFAULT_SPACE_ORDER = ['home', 'workspaces', 'gamehub'];
+import { useSpaceWallpaperCrossfade } from '../../hooks/useSpaceWallpaperCrossfade';
+import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from '../../utils/channelSpaces';
 
 /**
  * Space-switch depth cue via background-position (cover stays full viewport).
@@ -17,6 +17,16 @@ const IsolatedWallpaperBackground = React.memo(() => {
   const wallpaper = useConsolidatedAppStore((state) => state.wallpaper);
   const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
   const spaceOrder = useConsolidatedAppStore((state) => state.spaces.order);
+  const displayWallpaperUrl = wallpaper.current?.url || null;
+
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(mq.matches);
+    const fn = () => setReducedMotion(mq.matches);
+    mq.addEventListener('change', fn);
+    return () => mq.removeEventListener('change', fn);
+  }, []);
 
   const {
     workspaceBrightness,
@@ -48,6 +58,13 @@ const IsolatedWallpaperBackground = React.memo(() => {
     slideDirection: cyclingSlideDirection,
     forceUpdate,
   } = useWallpaperCycling();
+
+  const spaceFade = useSpaceWallpaperCrossfade({
+    displayUrl: displayWallpaperUrl,
+    activeSpaceId,
+    cyclingTransitioning,
+    transitionsEnabled: !reducedMotion,
+  });
 
   const { opacity, blur, cycleAnimation } = wallpaper;
 
@@ -253,7 +270,13 @@ const IsolatedWallpaperBackground = React.memo(() => {
 
   const transitionKey = `${cyclingTransitioning}-${cyclingProgress}-${cyclingSlideProgress}-${cyclingSlideDirection}-${forceUpdate}`;
 
-  const resolvedSpaceOrder = Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SPACE_ORDER;
+  const resolvedSpaceOrder = useMemo(
+    () =>
+      normalizeShellSpaceOrder(
+        Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SHELL_SPACE_ORDER
+      ),
+    [spaceOrder]
+  );
   const rawIndex = resolvedSpaceOrder.indexOf(activeSpaceId);
   const spaceIndex = rawIndex >= 0 ? rawIndex : 0;
   const parallaxBgY = spaceParallaxBackgroundYPercent(spaceIndex);
@@ -264,6 +287,17 @@ const IsolatedWallpaperBackground = React.memo(() => {
   const idleWallpaperTransition = cyclingTransitioning
     ? 'none'
     : 'opacity 0.35s ease-out, transform 0.35s ease-out, filter 0.45s ease-out, background-position 0.78s cubic-bezier(0.16, 1, 0.3, 1)';
+
+  const idleLayerStyle = useMemo(
+    () => ({
+      opacity,
+      transform: 'none',
+      filter: applySpaceWallpaperTone(`blur(${blur}px)`),
+    }),
+    [applySpaceWallpaperTone, opacity, blur]
+  );
+
+  const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
 
   return (
     <div
@@ -276,46 +310,93 @@ const IsolatedWallpaperBackground = React.memo(() => {
       }}
     >
     <div key={transitionKey}>
-      {currentWallpaper && currentWallpaper.url && (
-        <div
-          className="wallpaper-bg"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            zIndex: 0,
-            pointerEvents: 'none',
-            backgroundImage: `url('${currentWallpaper.url}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: `center ${parallaxBgY}%`,
-            backgroundRepeat: 'no-repeat',
-            ...currentLayerStyle,
-            transition: idleWallpaperTransition,
-          }}
-        />
-      )}
+      {spaceFade.spaceCrossfadeActive && spaceFade.baseUrl ? (
+        <>
+          <div
+            className="wallpaper-bg wallpaper-bg--space-base"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 0,
+              pointerEvents: 'none',
+              backgroundImage: `url('${spaceFade.baseUrl}')`,
+              backgroundSize: 'cover',
+              backgroundPosition: `center ${parallaxBgY}%`,
+              backgroundRepeat: 'no-repeat',
+              ...idleLayerStyle,
+              transition: idleWallpaperTransition,
+            }}
+          />
+          {spaceFade.overlayUrl ? (
+            <div
+              className="wallpaper-bg wallpaper-bg--space-overlay"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                zIndex: 2,
+                pointerEvents: 'none',
+                backgroundImage: `url('${spaceFade.overlayUrl}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: `center ${parallaxBgY}%`,
+                backgroundRepeat: 'no-repeat',
+                opacity: opacity * spaceFade.overlayOpacity,
+                filter: applySpaceWallpaperTone(`blur(${blur}px)`),
+                transition: spaceOverlayTransition,
+              }}
+              onTransitionEnd={spaceFade.onOverlayTransitionEnd}
+            />
+          ) : null}
+        </>
+      ) : (
+        <>
+          {currentWallpaper && currentWallpaper.url && (
+            <div
+              className="wallpaper-bg"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                zIndex: 0,
+                pointerEvents: 'none',
+                backgroundImage: `url('${currentWallpaper.url}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: `center ${parallaxBgY}%`,
+                backgroundRepeat: 'no-repeat',
+                ...currentLayerStyle,
+                transition: idleWallpaperTransition,
+              }}
+            />
+          )}
 
-      {cyclingTransitioning && nextWallpaper && nextWallpaper.url && (
-        <div
-          className="wallpaper-bg-next"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            zIndex: 1,
-            pointerEvents: 'none',
-            backgroundImage: `url('${nextWallpaper.url}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: `center ${parallaxBgY}%`,
-            backgroundRepeat: 'no-repeat',
-            ...nextLayerStyle,
-            transition: 'none',
-          }}
-        />
+          {cyclingTransitioning && nextWallpaper && nextWallpaper.url && (
+            <div
+              className="wallpaper-bg-next"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                zIndex: 1,
+                pointerEvents: 'none',
+                backgroundImage: `url('${nextWallpaper.url}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: `center ${parallaxBgY}%`,
+                backgroundRepeat: 'no-repeat',
+                ...nextLayerStyle,
+                transition: 'none',
+              }}
+            />
+          )}
+        </>
       )}
     </div>
     </div>

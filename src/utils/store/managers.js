@@ -360,6 +360,61 @@ export const createStoreManagers = (getStore) => {
     },
   };
 
+  const normalizeUnifiedAppName = (name) =>
+    String(name || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const isLikelyStoreAppId = (appId) => {
+    if (typeof appId !== 'string') return false;
+    const normalized = appId.trim();
+    if (!normalized.includes('!')) return false;
+    if (!/^[^\s!]+![^\s!]+$/.test(normalized)) return false;
+    if (/\.exe/i.test(normalized)) return false;
+    if (normalized.includes('\\') || normalized.includes('/')) return false;
+    return true;
+  };
+
+  /** Lower = better when the same display name exists from multiple sources. */
+  const UNIFIED_TYPE_PRIORITY = { exe: 0, steam: 1, epic: 2, microsoft: 3 };
+
+  const pickPreferredUnifiedApp = (a, b) => {
+    const pa = UNIFIED_TYPE_PRIORITY[a.type] ?? 99;
+    const pb = UNIFIED_TYPE_PRIORITY[b.type] ?? 99;
+    if (pa !== pb) return pa < pb ? a : b;
+    return a;
+  };
+
+  const dedupeUnifiedApps = (apps) => {
+    const byId = new Map();
+    apps.forEach((app) => {
+      const idKey = String(app.id || `${app.type}:${app.path || app.name || ''}`);
+      const existing = byId.get(idKey);
+      if (!existing) {
+        byId.set(idKey, app);
+        return;
+      }
+      if (existing.type === 'microsoft' && app.type === 'exe') {
+        byId.set(idKey, app);
+      }
+    });
+
+    const byName = new Map();
+    byId.forEach((app) => {
+      const normalizedName = normalizeUnifiedAppName(app.name);
+      const groupKey = normalizedName || `__id__:${String(app.id || app.path || '')}`;
+      const prev = byName.get(groupKey);
+      if (!prev) {
+        byName.set(groupKey, app);
+        return;
+      }
+      byName.set(groupKey, pickPreferredUnifiedApp(prev, app));
+    });
+
+    return [...byName.values()];
+  };
+
   const unifiedAppManager = {
     async fetchUnifiedApps() {
       const store = getStore();
@@ -413,7 +468,7 @@ export const createStoreManagers = (getStore) => {
         }
 
         if (uwpResult.status === 'fulfilled' && uwpResult.value?.success) {
-          const uwpApps = uwpResult.value.apps || [];
+          const uwpApps = (uwpResult.value.apps || []).filter((app) => isLikelyStoreAppId(app?.appId));
           allApps.push(...uwpApps.map((app) => ({
             ...app,
             type: 'microsoft',
@@ -425,8 +480,9 @@ export const createStoreManagers = (getStore) => {
           console.error('[UnifiedAppManager] UWP apps fetch failed:', uwpResult.reason);
         }
 
-        store.actions.setUnifiedAppsState({ apps: allApps, loading: false });
-        return { success: true, apps: allApps };
+        const dedupedApps = dedupeUnifiedApps(allApps);
+        store.actions.setUnifiedAppsState({ apps: dedupedApps, loading: false });
+        return { success: true, apps: dedupedApps };
       } catch (error) {
         store.actions.setUnifiedAppsState({
           loading: false,

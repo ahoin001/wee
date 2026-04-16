@@ -15,9 +15,9 @@ export default function ChannelPathSmartSuggestions({ path, type, onApply }) {
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))]/40 p-3">
-      <Text size="xs" weight={600} className="text-[hsl(var(--text-secondary))] mb-2 block">
-        Smart suggestions
+    <div className="mt-3 rounded-[var(--radius-md)] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] p-3 shadow-[var(--shadow-sm)]">
+      <Text size="xs" weight={600} className="mb-2 block text-[hsl(var(--text-secondary))]">
+        Try this instead
       </Text>
       <div className="flex flex-wrap gap-2">
         {suggestions.map((s) => (

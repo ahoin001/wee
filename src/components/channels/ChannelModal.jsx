@@ -2,10 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import isEqual from 'fast-deep-equal';
 import PropTypes from 'prop-types';
 import { WBaseModal } from '../core';
-import { ImageSearchModal } from '../modals';
 import ChannelModalSuggestedGames from './ChannelModalSuggestedGames';
-import ChannelModalDevDebug from './ChannelModalDevDebug';
-import ChannelModalImageSection from './channelModal/ChannelModalImageSection';
 import ChannelModalUnifiedPathBlock from './channelModal/ChannelModalUnifiedPathBlock';
 import ChannelModalSetupTab from './channelModal/ChannelModalSetupTab';
 import ChannelModalBehaviorTab from './channelModal/ChannelModalBehaviorTab';
@@ -51,16 +48,16 @@ function ChannelModal({
     setGalleryMode,
     fileInputRef,
     galleryFileInputRef,
-    showImageSearch,
-    setShowImageSearch,
     handleFileSelect,
     handleGalleryFilesSelect,
     handleRemoveGalleryImage,
     handleImageSelect,
-    handleUploadClick,
     handleRemoveImage,
     mediaUploadHint,
+    setMediaUploadHint,
     clearMediaUploadHint,
+    libraryUploading,
+    handleUploadToLibraryAndChannel,
   } = useChannelModalMedia({ currentMedia });
 
   const [path, setPath] = useState(currentPath || '');
@@ -497,7 +494,7 @@ function ChannelModal({
         key={`channel-modal-${channelId}`} // Force remount when channel changes
         title="Configure Channel"
         onClose={onClose}
-        maxWidth="1000px"
+        maxWidth="1160px"
         footerContent={footerContent}
         isOpen={isOpen}
       >
@@ -520,27 +517,15 @@ function ChannelModal({
                     onUnifiedAppPathChange={handleUnifiedAppPathChange}
                     onApplySmartSuggestion={handleApplySmartSuggestion}
                     onApplySuggestedMedia={setMedia}
-                    onOpenMediaSearch={() => setShowImageSearch(true)}
+                    onSelectFromLibrary={handleImageSelect}
+                    onUploadToLibraryAndChannel={handleUploadToLibraryAndChannel}
+                    libraryUploading={libraryUploading}
+                    onRemoveMedia={handleRemoveImage}
+                    media={media}
+                    mediaUploadHint={mediaUploadHint}
+                    setMediaUploadHint={setMediaUploadHint}
                   />
-                  <ChannelModalDevDebug path={path} type={type} pathError={pathError} />
                 </>
-              }
-              imageSection={
-                <ChannelModalImageSection
-                  showGalleryOption={showGalleryOption}
-                  galleryMode={galleryMode}
-                  setGalleryMode={setGalleryMode}
-                  imageGallery={imageGallery}
-                  media={media}
-                  setShowImageSearch={setShowImageSearch}
-                  handleRemoveImage={handleRemoveImage}
-                  handleFileSelect={handleFileSelect}
-                  handleGalleryFilesSelect={handleGalleryFilesSelect}
-                  handleRemoveGalleryImage={handleRemoveGalleryImage}
-                  fileInputRef={fileInputRef}
-                  galleryFileInputRef={galleryFileInputRef}
-                  mediaUploadHint={mediaUploadHint}
-                />
               }
               suggestedGames={
                 <ChannelModalSuggestedGames
@@ -598,14 +583,6 @@ function ChannelModal({
           )}
         </div>
       </WBaseModal>
-      {showImageSearch && (
-        <ImageSearchModal
-          isOpen={showImageSearch}
-          onClose={() => setShowImageSearch(false)}
-          onSelect={handleImageSelect}
-          onUploadClick={handleUploadClick}
-        />
-      )}
     </>
   );
 }

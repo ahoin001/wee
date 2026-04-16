@@ -5,13 +5,14 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import './unified-app-path-search.css';
 // import { useAppSearchPerformance } from '../../utils/performanceHooks';
 
-const UnifiedAppPathSearch = ({ 
-  value, 
-  onChange, 
-  onFocus, 
-  onBlur, 
+const UnifiedAppPathSearch = ({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
   disabled = false,
-  placeholder = 'Search all apps...'
+  placeholder = 'Search all apps...',
+  inputId,
 }) => {
   // Use unified apps state from consolidated store
   const { unifiedApps, setUnifiedAppsState } = useUnifiedAppsState();
@@ -76,10 +77,9 @@ const UnifiedAppPathSearch = ({
     }
   }, [apps.length]); // Remove fetchUnifiedApps from dependencies to prevent infinite loops
 
-  // Sync local search with store - only on mount
   useEffect(() => {
     setLocalSearchQuery(value || '');
-  }, []);
+  }, [value]);
 
   // Update store when debounced search changes
   useEffect(() => {
@@ -177,7 +177,7 @@ const UnifiedAppPathSearch = ({
       {/* Type Filter */}
       <div className="uaps__filter-row">
         <span className="uaps__filter-label" id="uaps-filter-label">
-          Filter:
+          Show
         </span>
         <div
           className="uaps__filter-pills"
@@ -206,6 +206,7 @@ const UnifiedAppPathSearch = ({
       {/* Search Input */}
       <div className="uaps__search-row">
         <input
+          id={inputId}
           type="text"
           className="uaps__input"
           placeholder={placeholder}
@@ -223,14 +224,14 @@ const UnifiedAppPathSearch = ({
           disabled={unifiedAppsLoading || disabled}
           className="uaps__rescan"
         >
-          {unifiedAppsLoading ? 'Scanning...' : 'Rescan'}
+          {unifiedAppsLoading ? 'Scanning…' : 'Refresh'}
         </Button>
       </div>
 
       {/* Loading State */}
       {unifiedAppsLoading && localSearchQuery && filteredApps.length === 0 && (
         <div className="uaps__loading">
-          <span>Scanning for apps...</span>
+          <span>Looking for apps…</span>
         </div>
       )}
 
@@ -245,9 +246,9 @@ const UnifiedAppPathSearch = ({
       {dropdownOpen && filteredApps.length > 0 && (
         <div className="uaps__dropdown">
           <div className="uaps__results">
-          {filteredApps.slice(0, 50).map((app) => (
+          {filteredApps.slice(0, 50).map((app, index) => (
             <div
-              key={app.id}
+              key={`${app.id || app.path || app.name}-${index}`}
               className="uaps__result-row"
               onMouseDown={() => handleAppSelect(app)}
             >
@@ -271,20 +272,18 @@ const UnifiedAppPathSearch = ({
                   {app.name}
                 </div>
                 <div className="uaps__subtitle">
-                  <span>{getAppTypeLabel(app.type)}</span>
-                  {app.path && (
+                  <span className="uaps__subtitle-type">{getAppTypeLabel(app.type)}</span>
+                  {app.path ? (
                     <>
-                      <span>•</span>
-                      <span className="uaps__path">
-                        {app.path.length > 40 ? app.path.substring(0, 40) + '...' : app.path}
+                      <span className="uaps__dot" aria-hidden>
+                        ·
+                      </span>
+                      <span className="uaps__path" title={app.path}>
+                        {app.path}
                       </span>
                     </>
-                  )}
+                  ) : null}
                 </div>
-              </div>
-
-              <div className="uaps__badge">
-                {getAppTypeLabel(app.type)}
               </div>
             </div>
           ))}
@@ -292,7 +291,7 @@ const UnifiedAppPathSearch = ({
           
           {filteredApps.length > 50 && (
             <div className="uaps__more-footer">
-              Showing first 50 results. Refine your search to see more.
+              Showing the first 50 matches—keep typing to narrow the list.
             </div>
           )}
         </div>
@@ -301,7 +300,7 @@ const UnifiedAppPathSearch = ({
       {/* No Results */}
       {dropdownOpen && !unifiedAppsLoading && filteredApps.length === 0 && localSearchQuery && (
         <div className="uaps__empty">
-          No apps found matching "{localSearchQuery}"
+          No apps match “{localSearchQuery}”. Try another filter or refresh the list.
         </div>
       )}
     </div>

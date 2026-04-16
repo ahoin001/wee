@@ -9,12 +9,12 @@ function ChannelModalSuggestedCollapsible({ children, defaultOpen = false }) {
   return (
     <Disclosure defaultOpen={defaultOpen}>
       {({ open }) => (
-        <div className="rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] overflow-hidden">
+        <div className="channel-suggested-disclosure rounded-[var(--radius-lg)] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] shadow-[var(--shadow-sm)] overflow-hidden">
           <Disclosure.Button
             type="button"
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-tertiary))] transition-colors"
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-tertiary))] transition-colors duration-200"
           >
-            <span>Suggested content & library picks</span>
+            <span>Suggested games & apps</span>
             <span className="text-[hsl(var(--text-secondary))] tabular-nums" aria-hidden>
               {open ? '▼' : '▶'}
             </span>

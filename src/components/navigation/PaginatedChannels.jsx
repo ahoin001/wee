@@ -23,11 +23,13 @@ import {
   isSupportedImageOrVideoUpload,
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../utils/supportedUploadMedia';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import './PaginatedChannels.css';
 
 const PaginatedChannelsInner = React.memo(() => {
   // ✅ DATA LAYER: Use the new channel operations hook
   const {
+    channelSpaceKey,
     gridConfig,
     navigation,
     channelSettings,
@@ -41,6 +43,7 @@ const PaginatedChannelsInner = React.memo(() => {
     reorderChannels,
   } = useChannelOperations();
 
+  const isSpaceTransitioning = useConsolidatedAppStore((s) => s.spaces.isTransitioning);
   const mf = useMotionFeedback();
 
   const sensors = useSensors(
@@ -195,7 +198,7 @@ const PaginatedChannelsInner = React.memo(() => {
       if (mf.channelReorderParticles) {
         requestAnimationFrame(() => {
           if (idx === null) return;
-          const c = measureChannelSlotCenter(idx);
+          const c = measureChannelSlotCenter(channelSpaceKey, idx);
           if (c) {
             burstKeyRef.current += 1;
             setLiftVfx({ cx: c.cx, cy: c.cy, key: burstKeyRef.current });
@@ -203,7 +206,7 @@ const PaginatedChannelsInner = React.memo(() => {
         });
       }
     },
-    [clearVfxTimers, mf.channelReorderParticles]
+    [channelSpaceKey, clearVfxTimers, mf.channelReorderParticles]
   );
 
   const handleDragEnd = useCallback(
@@ -211,7 +214,7 @@ const PaginatedChannelsInner = React.memo(() => {
       setActiveDragIndex(null);
       setLiftVfx(null);
       const { active, over } = event;
-      if (!over || navigation.isAnimating) return;
+      if (!over || navigation.isAnimating || isSpaceTransitioning) return;
       const from = parseChannelDnDId(active.id);
       const to = parseChannelDnDId(over.id);
       if (from === null || to === null || from === to) return;
@@ -222,7 +225,7 @@ const PaginatedChannelsInner = React.memo(() => {
 
       if (mf.channelReorderParticles) {
         requestAnimationFrame(() => {
-          const c = measureChannelSlotCenter(to);
+          const c = measureChannelSlotCenter(channelSpaceKey, to);
           if (c) {
             burstKeyRef.current += 1;
             setDropVfx({ cx: c.cx, cy: c.cy, key: burstKeyRef.current });
@@ -240,10 +243,12 @@ const PaginatedChannelsInner = React.memo(() => {
       }
     },
     [
+      channelSpaceKey,
       clearVfxTimers,
       mf.channelReorderParticles,
       mf.channelReorderSlotMotion,
       navigation.isAnimating,
+      isSpaceTransitioning,
       reorderChannels,
       scheduleVfx,
     ]
@@ -318,9 +323,10 @@ const PaginatedChannelsInner = React.memo(() => {
   const renderChannelAtIndex = useCallback(
     (channelIndex, wiiMode = false) => (
       <ChannelSlotDnd
-        key={`channel-slot-${channelIndex}`}
+        key={`channel-slot-${channelSpaceKey}-${channelIndex}`}
+        channelSpaceKey={channelSpaceKey}
         channelIndex={channelIndex}
-        disabled={navigation.isAnimating}
+        disabled={navigation.isAnimating || isSpaceTransitioning}
         celebrateDrop={celebrateIndex === channelIndex}
         reorderWave={reorderWave}
       >
@@ -328,7 +334,9 @@ const PaginatedChannelsInner = React.memo(() => {
       </ChannelSlotDnd>
     ),
     [
+      channelSpaceKey,
       navigation.isAnimating,
+      isSpaceTransitioning,
       renderChannelInner,
       celebrateIndex,
       reorderWave,
@@ -404,7 +412,11 @@ const PaginatedChannelsInner = React.memo(() => {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="channels-content" style={wiiStripCssVars}>
+        <div
+          className="channels-content"
+          style={wiiStripCssVars}
+          data-channel-space={channelSpaceKey}
+        >
           {renderContent}
         </div>
 

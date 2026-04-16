@@ -212,10 +212,10 @@ export default function ChannelModalSuggestedGames({
   }
 
   return (
-  <Card 
-    title="Suggested Content" 
-    separator 
-    desc="Quickly add your installed games and apps to this channel. Click any item to auto-fill the path and add its cover art."
+  <Card
+    title="From your PC & game libraries"
+    separator
+    desc="Tap a tile to fill this channel’s launch target and art."
   >
 
 

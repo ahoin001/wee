@@ -6,7 +6,9 @@ const useWallpaperCycling = () => {
   const { wallpaper } = useConsolidatedAppStore();
   const { setWallpaperState } = useConsolidatedAppStore(state => state.actions);
   const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
+  const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
   const { isAppActive } = useAppActivity();
+  const prevSpaceIdRef = useRef(activeSpaceId);
   const intervalRef = useRef(null);
   const isTransitioningRef = useRef(false);
   
@@ -29,6 +31,21 @@ const useWallpaperCycling = () => {
   useEffect(() => {
     currentWallpaperRef.current = wallpaper.current;
   }, [wallpaper.current]);
+
+  /** Space switch: abort in-flight cycle animation so merged wallpaper + space crossfade own the frame. */
+  useEffect(() => {
+    if (prevSpaceIdRef.current === activeSpaceId) return;
+    prevSpaceIdRef.current = activeSpaceId;
+    isTransitioningRef.current = false;
+    nextWallpaperRef.current = null;
+    setLocalTransitionState({
+      isTransitioning: false,
+      progress: 0,
+      slideDirection: 'right',
+      nextWallpaper: null,
+    });
+    setForceUpdate((n) => n + 1);
+  }, [activeSpaceId]);
 
   const {
     cycleWallpapers,

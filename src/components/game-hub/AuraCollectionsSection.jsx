@@ -1,8 +1,12 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { useShallow } from 'zustand/react/shallow';
 import AuraGameCard from './AuraGameCard';
 import GameCardContextMenu from './GameCardContextMenu';
+import CollectionShelfContextMenu from './CollectionShelfContextMenu';
 import GameHubManageCollectionsDialog from './GameHubManageCollectionsDialog';
+import GameHubRenameCollectionDialog from './GameHubRenameCollectionDialog';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   COLLECTION_EXPANSION_MS,
   COLLECTION_FLY_PHASE_MS,
@@ -93,6 +97,14 @@ export default function AuraCollectionsSection({
   /** After hub-style handoff: real tiles crossfade in while flyers fade out — avoids settle flicker. */
   const [flyHandoff, setFlyHandoff] = useState(false);
   const [manageCollectionsOpen, setManageCollectionsOpen] = useState(false);
+  const [renameCollectionOpen, setRenameCollectionOpen] = useState(false);
+  const [renameCollectionTarget, setRenameCollectionTarget] = useState(null);
+  const { deleteWeeCollection, renameWeeCollection } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      deleteWeeCollection: state.actions.deleteWeeCollection,
+      renameWeeCollection: state.actions.renameWeeCollection,
+    }))
+  );
   const [shelvesReorderEnabled, setShelvesReorderEnabled] = useState(false);
   /** After fly-out (or when closing without fly): delay clearing collection so grid animates 1fr → 0fr. */
   const [shelfClosing, setShelfClosing] = useState(false);
@@ -436,6 +448,38 @@ export default function AuraCollectionsSection({
     return () => window.removeEventListener('mousedown', onGlobalDown);
   }, [activeCollectionId, animateClose]);
 
+  const handleShelfOpenFromMenu = useCallback(
+    (col) => {
+      const ev = { stopPropagation: () => {} };
+      handleStackClick(ev, col);
+    },
+    [handleStackClick]
+  );
+
+  const handleShelfRenameRequest = useCallback((col) => {
+    setRenameCollectionTarget(col);
+    setRenameCollectionOpen(true);
+  }, []);
+
+  const handleShelfDeleteRequest = useCallback(
+    (col) => {
+      if (!col?.id || !String(col.id).startsWith('wee-')) return;
+      const ok = window.confirm(
+        `Delete collection "${col.label || 'Collection'}"? Games stay in your library; only this shelf is removed.`
+      );
+      if (ok) deleteWeeCollection(col.id);
+    },
+    [deleteWeeCollection]
+  );
+
+  const handleRenameSave = useCallback(
+    (label) => {
+      if (!renameCollectionTarget?.id) return;
+      renameWeeCollection(renameCollectionTarget.id, label);
+    },
+    [renameCollectionTarget, renameWeeCollection]
+  );
+
   const slotClassName = useMemo(() => {
     if (!flyAllowed) return 'aura-hub-card-slot';
     if (!cardsRevealed) return 'aura-hub-card-slot aura-hub-card-slot--hide-cards';
@@ -499,37 +543,64 @@ export default function AuraCollectionsSection({
         </div>
       </div>
       <GameHubManageCollectionsDialog open={manageCollectionsOpen} onOpenChange={setManageCollectionsOpen} />
+      <GameHubRenameCollectionDialog
+        open={renameCollectionOpen}
+        onOpenChange={setRenameCollectionOpen}
+        initialName={renameCollectionTarget?.label || ''}
+        onSave={handleRenameSave}
+      />
       {collections.length ? (
         <>
           <div className="aura-hub-collections">
             {collections.map((collection) => {
               const stack = collection.games.slice(0, 3);
               const isActive = activeCollectionId === collection.id;
+              const weeContextId = String(collection.id || '').startsWith('wee-') ? collection.id : null;
               return (
-                <button
+                <CollectionShelfContextMenu
                   key={collection.id}
-                  ref={assignStackRef(collection.id)}
-                  type="button"
-                  className={`aura-hub-stack ${isActive ? 'aura-hub-stack--active' : ''} ${shelvesReorderEnabled && shelfOrderMode === 'custom' ? 'aura-hub-stack--reorder' : ''}`}
-                  draggable={Boolean(shelvesReorderEnabled && shelfOrderMode === 'custom')}
-                  onDragStart={(e) => handleShelfDragStart(e, collection.id)}
-                  onDragOver={handleShelfDragOver}
-                  onDrop={(e) => handleShelfDrop(e, collection.id)}
-                  onClick={(e) => handleStackClick(e, collection)}
+                  collection={collection}
+                  onOpenShelf={handleShelfOpenFromMenu}
+                  onOpenManage={() => setManageCollectionsOpen(true)}
+                  onRenameShelf={handleShelfRenameRequest}
+                  onDeleteShelf={handleShelfDeleteRequest}
                 >
-                  <div className="aura-hub-stack__cards">
-                    {stack.map((game, index) => (
-                      <div
-                        key={`${collection.id}-${game.id}`}
-                        className={`aura-hub-stack__item aura-hub-stack__item--${index + 1}`}
-                        style={{ backgroundImage: game.imageUrl ? `url('${game.imageUrl}')` : 'none' }}
-                        onMouseEnter={() => onHeroPreview?.(game)}
-                        onMouseLeave={() => onHeroPreview?.(null)}
-                      />
-                    ))}
+                  <div
+                    ref={assignStackRef(collection.id)}
+                    role="button"
+                    tabIndex={0}
+                    className={`aura-hub-stack ${isActive ? 'aura-hub-stack--active' : ''} ${shelvesReorderEnabled && shelfOrderMode === 'custom' ? 'aura-hub-stack--reorder' : ''}`}
+                    draggable={Boolean(shelvesReorderEnabled && shelfOrderMode === 'custom')}
+                    onDragStart={(e) => handleShelfDragStart(e, collection.id)}
+                    onDragOver={handleShelfDragOver}
+                    onDrop={(e) => handleShelfDrop(e, collection.id)}
+                    onClick={(e) => handleStackClick(e, collection)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleStackClick(e, collection);
+                      }
+                    }}
+                  >
+                    <div className="aura-hub-stack__cards">
+                      {stack.map((game, index) => (
+                        <GameCardContextMenu
+                          key={`${collection.id}-${game.id}`}
+                          game={game}
+                          contextCollectionId={weeContextId}
+                        >
+                          <div
+                            className={`aura-hub-stack__item aura-hub-stack__item--${index + 1}`}
+                            style={{ backgroundImage: game.imageUrl ? `url('${game.imageUrl}')` : 'none' }}
+                            onMouseEnter={() => onHeroPreview?.(game)}
+                            onMouseLeave={() => onHeroPreview?.(null)}
+                          />
+                        </GameCardContextMenu>
+                      ))}
+                    </div>
+                    <span className="aura-hub-stack__label">{collection.label}</span>
                   </div>
-                  <span className="aura-hub-stack__label">{collection.label}</span>
-                </button>
+                </CollectionShelfContextMenu>
               );
             })}
           </div>

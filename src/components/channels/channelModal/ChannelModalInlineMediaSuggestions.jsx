@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import WButton from '../../../ui/WButton';
+import { useReducedMotion } from 'framer-motion';
 import { getAllMatchingMedia, getCachedMediaLibrary } from '../../../utils/mediaLibraryCache';
 import { getStoragePublicObjectUrl } from '../../../utils/supabase';
 import { resolveMimeTypeFromMediaLibraryRow } from '../../../utils/channelMediaType';
 
-function deriveSuggestionQuery({ path, type, matchingApp }) {
+/** Exported for channel art panel + library search seeding. */
+export function deriveChannelArtSearchQuery({ path, type, matchingApp }) {
   const appName = String(matchingApp?.name || '').trim();
   if (appName) return appName;
 
@@ -36,7 +37,7 @@ function normalizeText(value) {
 
 function buildCandidateTerms({ path, type, matchingApp }) {
   const terms = new Set();
-  const primary = deriveSuggestionQuery({ path, type, matchingApp });
+  const primary = deriveChannelArtSearchQuery({ path, type, matchingApp });
   if (primary) terms.add(primary);
 
   const appName = String(matchingApp?.name || '').trim();
@@ -103,14 +104,57 @@ function scoreFallbackMedia(row, terms, tokens) {
   return score;
 }
 
+function formatMediaKind(row) {
+  const ft = String(row?.file_type || '').toLowerCase();
+  if (ft === 'video') return 'Video';
+  if (ft === 'gif') return 'GIF';
+  if (ft === 'image') return 'Image';
+  return 'Media';
+}
+
+function rowKey(row) {
+  return row?.id || row?.file_url || '';
+}
+
+function rowPublicUrl(row) {
+  return getStoragePublicObjectUrl('media-library', row.file_url);
+}
+
+function SuggestionThumb({ row, thumbUrl }) {
+  const ft = String(row?.file_type || '').toLowerCase();
+  if (ft === 'video') {
+    return (
+      <span className="channel-inline-media-suggest__thumb channel-inline-media-suggest__thumb--media">
+        <video
+          className="channel-inline-media-suggest__thumb-video"
+          src={thumbUrl}
+          muted
+          loop
+          playsInline
+          autoPlay
+        />
+      </span>
+    );
+  }
+  return (
+    <span className="channel-inline-media-suggest__thumb channel-inline-media-suggest__thumb--media">
+      <img src={thumbUrl} alt="" className="channel-inline-media-suggest__thumb-img" loading="lazy" />
+    </span>
+  );
+}
+
 export default function ChannelModalInlineMediaSuggestions({
   path,
   type,
   matchingApp,
   onApplyMedia,
-  onOpenMediaSearch,
+  appliedMedia,
 }) {
-  const [selectedMediaId, setSelectedMediaId] = useState('');
+  const viewportRef = useRef(null);
+  const trackRef = useRef(null);
+  const [canScroll, setCanScroll] = useState({ left: false, right: false });
+  const reduceMotion = useReducedMotion();
+
   const terms = useMemo(() => buildCandidateTerms({ path, type, matchingApp }), [path, type, matchingApp]);
   const query = terms[0] || '';
   const tokens = useMemo(() => buildQueryTokens(terms), [terms]);
@@ -153,68 +197,152 @@ export default function ChannelModalInlineMediaSuggestions({
     return [...directMatches, ...fallback].slice(0, 8);
   }, [terms, tokens]);
 
+  const updateScrollAffordance = useCallback(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const max = 1;
+    setCanScroll({
+      left: scrollLeft > max,
+      right: scrollLeft + clientWidth < scrollWidth - max,
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    const track = trackRef.current;
+    if (!el) return undefined;
+    updateScrollAffordance();
+    requestAnimationFrame(updateScrollAffordance);
+    const ro =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            updateScrollAffordance();
+          })
+        : null;
+    ro?.observe(el);
+    if (track) ro?.observe(track);
+    el.addEventListener('scroll', updateScrollAffordance, { passive: true });
+    return () => {
+      ro?.disconnect();
+      el.removeEventListener('scroll', updateScrollAffordance);
+    };
+  }, [matches, updateScrollAffordance]);
+
+  const scrollCarousel = useCallback(
+    (dir) => {
+      const el = viewportRef.current;
+      if (!el) return;
+      const step = Math.max(140, Math.floor(el.clientWidth * 0.72));
+      el.scrollBy({
+        left: dir * step,
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      });
+    },
+    [reduceMotion]
+  );
+
+  const isRowApplied = useCallback(
+    (row) => {
+      if (!appliedMedia?.url || appliedMedia.loading) return false;
+      return appliedMedia.url === rowPublicUrl(row);
+    },
+    [appliedMedia]
+  );
+
+  const applyMedia = useCallback(
+    (row) => {
+      if (!row) return;
+      const mediaData = {
+        url: rowPublicUrl(row),
+        type: resolveMimeTypeFromMediaLibraryRow(row),
+        name: row.title || row.file_url,
+        isBuiltin: true,
+      };
+      onApplyMedia?.(mediaData);
+    },
+    [onApplyMedia]
+  );
+
   const hasMatches = matches.length > 0;
 
-  const applyMedia = (row) => {
-    if (!row) return;
-    const mediaData = {
-      url: getStoragePublicObjectUrl(row.file_url),
-      type: resolveMimeTypeFromMediaLibraryRow(row),
-      name: row.title || row.file_url,
-      isBuiltin: true,
-    };
-    onApplyMedia?.(mediaData);
-    setSelectedMediaId(row.id || row.file_url);
-  };
+  if (!hasMatches) {
+    return null;
+  }
 
   return (
-    <section className="channel-inline-media-suggest">
+    <section className="channel-inline-media-suggest" aria-labelledby="channel-inline-media-suggest-heading">
       <div className="channel-inline-media-suggest__header">
-        <h4 className="channel-inline-media-suggest__title">Suggested channel art</h4>
-        {query ? <span className="channel-inline-media-suggest__query">Matches for "{query}"</span> : null}
+        <h4 id="channel-inline-media-suggest-heading" className="channel-inline-media-suggest__title">
+          Suggested channel art
+        </h4>
+        {query ? (
+          <span className="channel-inline-media-suggest__query">Picked for “{query}”</span>
+        ) : null}
       </div>
 
-      {hasMatches ? (
-        <div className="channel-inline-media-suggest__rail" role="list" aria-label="Suggested channel media">
-          {matches.map((item, index) => {
-            const active = selectedMediaId
-              ? selectedMediaId === (item.id || item.file_url)
-              : index === 0;
-            const thumbUrl = getStoragePublicObjectUrl(item.file_url);
-            return (
-              <button
-                type="button"
-                key={item.id || item.file_url}
-                role="listitem"
-                className={`channel-inline-media-suggest__card ${active ? 'is-active' : ''}`}
-                onClick={() => applyMedia(item)}
-                title={`Use "${item.title || 'media'}"`}
-              >
-                <span
-                  className="channel-inline-media-suggest__thumb"
-                  style={{ backgroundImage: `url('${thumbUrl}')` }}
-                  aria-hidden
-                />
-                <span className="channel-inline-media-suggest__meta">
-                  <span className="channel-inline-media-suggest__name">{item.title || 'Untitled media'}</span>
-                  <span className="channel-inline-media-suggest__sub">
-                    {item.file_type || 'media'} · score {(item.score || 0).toFixed(2)}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="channel-inline-media-suggest__empty">
-          <span className="channel-inline-media-suggest__empty-text">
-            No direct matches found yet. Browse the media library for a better fit.
+      <div className="channel-inline-media-suggest__carousel">
+        <button
+          type="button"
+          className="channel-inline-media-suggest__carousel-btn"
+          aria-label="Scroll suggestions left"
+          disabled={!canScroll.left}
+          onClick={() => scrollCarousel(-1)}
+        >
+          <span aria-hidden className="channel-inline-media-suggest__carousel-btn-icon">
+            ‹
           </span>
-          <WButton variant="secondary" size="sm" onClick={onOpenMediaSearch}>
-            Find media for this channel
-          </WButton>
+        </button>
+
+        <div
+          ref={viewportRef}
+          className="channel-inline-media-suggest__viewport channel-inline-media-suggest__viewport--no-scrollbar"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Suggested channel art"
+        >
+          <div ref={trackRef} className="channel-inline-media-suggest__track" role="list">
+            {matches.map((item) => {
+              const thumbUrl = rowPublicUrl(item);
+              const applied = isRowApplied(item);
+              return (
+                <button
+                  type="button"
+                  key={rowKey(item)}
+                  role="listitem"
+                  className={`channel-inline-media-suggest__card ${applied ? 'is-applied' : ''}`}
+                  onClick={() => applyMedia(item)}
+                  title={`Use “${item.title || 'this media'}”`}
+                  aria-current={applied ? 'true' : undefined}
+                >
+                  <span className="channel-inline-media-suggest__thumb-wrap">
+                    <SuggestionThumb row={item} thumbUrl={thumbUrl} />
+                    {applied ? (
+                      <span className="channel-inline-media-suggest__applied-pill">On channel</span>
+                    ) : null}
+                    <span className="channel-inline-media-suggest__kind-badge">{formatMediaKind(item)}</span>
+                  </span>
+                  <span className="channel-inline-media-suggest__meta">
+                    <span className="channel-inline-media-suggest__name">{item.title || 'Untitled media'}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+
+        <button
+          type="button"
+          className="channel-inline-media-suggest__carousel-btn"
+          aria-label="Scroll suggestions right"
+          disabled={!canScroll.right}
+          onClick={() => scrollCarousel(1)}
+        >
+          <span aria-hidden className="channel-inline-media-suggest__carousel-btn-icon">
+            ›
+          </span>
+        </button>
+      </div>
     </section>
   );
 }
@@ -224,7 +352,10 @@ ChannelModalInlineMediaSuggestions.propTypes = {
   type: PropTypes.string,
   matchingApp: PropTypes.object,
   onApplyMedia: PropTypes.func,
-  onOpenMediaSearch: PropTypes.func,
+  appliedMedia: PropTypes.shape({
+    url: PropTypes.string,
+    loading: PropTypes.bool,
+  }),
 };
 
 ChannelModalInlineMediaSuggestions.defaultProps = {
@@ -232,5 +363,5 @@ ChannelModalInlineMediaSuggestions.defaultProps = {
   type: 'exe',
   matchingApp: null,
   onApplyMedia: undefined,
-  onOpenMediaSearch: undefined,
+  appliedMedia: null,
 };

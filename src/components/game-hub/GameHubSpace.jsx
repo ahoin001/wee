@@ -246,8 +246,14 @@ export default function GameHubSpace() {
       favoriteGameIds: gameHub.ui?.favoriteGameIds || [],
       weeCollections: gameHub.library?.weeCollections || [],
       lastLaunchedAt: gameHub.library?.lastLaunchedAt || {},
+      customArtByGameId: gameHub.ui?.customArtByGameId || {},
     }),
-    [gameHub.ui?.favoriteGameIds, gameHub.library?.weeCollections, gameHub.library?.lastLaunchedAt]
+    [
+      gameHub.ui?.favoriteGameIds,
+      gameHub.library?.weeCollections,
+      gameHub.library?.lastLaunchedAt,
+      gameHub.ui?.customArtByGameId,
+    ]
   );
 
   const [clientLibrary, setClientLibrary] = useState({

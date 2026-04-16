@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { electronApi } from '../utils/electronApi';
 import { normalizeChannelPayload } from '../utils/store/storeContracts';
 import { normalizeUnifiedSettingsSnapshot } from '../utils/store/settingsPersistenceContract';
+import { normalizeShellSpaceOrder } from '../utils/channelSpaces';
 import { mergeMotionFeedback } from '../utils/motionFeedbackDefaults';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 
@@ -86,6 +87,13 @@ export const useAppInitialization = ({
           if (normalizedChannelPayload.dataBySpace) {
             channelPatch.dataBySpace = normalizedChannelPayload.dataBySpace;
           }
+          if (normalizedChannelPayload.secondaryChannelProfiles) {
+            channelPatch.secondaryChannelProfiles = normalizedChannelPayload.secondaryChannelProfiles;
+          }
+          if (normalizedChannelPayload.activeSecondaryChannelProfileId != null) {
+            channelPatch.activeSecondaryChannelProfileId =
+              normalizedChannelPayload.activeSecondaryChannelProfileId;
+          }
           if (Object.keys(channelPatch).length > 0) {
             setChannelState(channelPatch);
           }
@@ -116,6 +124,13 @@ export const useAppInitialization = ({
             if (normalizedSettingsChannels.dataBySpace) {
               settingsChannelPatch.dataBySpace = normalizedSettingsChannels.dataBySpace;
             }
+            if (normalizedSettingsChannels.secondaryChannelProfiles) {
+              settingsChannelPatch.secondaryChannelProfiles = normalizedSettingsChannels.secondaryChannelProfiles;
+            }
+            if (normalizedSettingsChannels.activeSecondaryChannelProfileId != null) {
+              settingsChannelPatch.activeSecondaryChannelProfileId =
+                normalizedSettingsChannels.activeSecondaryChannelProfileId;
+            }
             if (Object.keys(settingsChannelPatch).length > 0) {
               setChannelState(settingsChannelPatch);
             }
@@ -141,7 +156,17 @@ export const useAppInitialization = ({
           }
           if (resolvedSettings.presets) setPresets(resolvedSettings.presets);
           if (resolvedSettings.workspaces) setWorkspacesState(resolvedSettings.workspaces);
-          if (resolvedSettings.spaces) setSpacesState(resolvedSettings.spaces);
+          if (resolvedSettings.spaces) {
+            setSpacesState({
+              ...resolvedSettings.spaces,
+              order: normalizeShellSpaceOrder(resolvedSettings.spaces.order),
+              isTransitioning: resolvedSettings.spaces.isTransitioning ?? false,
+            });
+          }
+          if (resolvedSettings.appearanceBySpace) {
+            const { setAppearanceBySpaceState } = useConsolidatedAppStore.getState().actions;
+            setAppearanceBySpaceState(resolvedSettings.appearanceBySpace);
+          }
           if (resolvedSettings.gameHub) setGameHubState(resolvedSettings.gameHub);
 
           /* Never cold-start on Game Hub: restore last home/work panel (persisted in lastChannelSpaceId). */

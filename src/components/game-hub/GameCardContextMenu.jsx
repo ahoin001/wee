@@ -1,23 +1,31 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
+import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import GameHubGameMediaDialog from './GameHubGameMediaDialog';
+import GameHubNewCollectionDialog from './GameHubNewCollectionDialog';
 
 /**
- * Radix context menu for hub tiles: favorites + Wee collections (portal content matches hub chrome).
+ * Radix context menu for hub tiles: favorites, art, Wee collections (portal content matches hub chrome).
  * @param {object} props
  * @param {React.ReactNode} props.children — single element (e.g. AuraGameCard root)
  * @param {object} props.game — normalized hub game
  * @param {string} [props.contextCollectionId] — when non-null and `wee-`, show "Remove from this collection"
  */
 export default function GameCardContextMenu({ children, game, contextCollectionId = null }) {
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const [newCollectionOpen, setNewCollectionOpen] = useState(false);
+
   const {
     favoriteGameIds,
     weeCollections,
     toggleGameHubFavorite,
     addGameToWeeCollection,
     removeGameFromWeeCollection,
-    createWeeCollection,
+    createWeeCollectionWithGame,
+    setGameHubCustomArt,
+    customArtByGameId,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       favoriteGameIds: state.gameHub?.ui?.favoriteGameIds || [],
@@ -25,74 +33,120 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
       toggleGameHubFavorite: state.actions.toggleGameHubFavorite,
       addGameToWeeCollection: state.actions.addGameToWeeCollection,
       removeGameFromWeeCollection: state.actions.removeGameFromWeeCollection,
-      createWeeCollection: state.actions.createWeeCollection,
+      createWeeCollectionWithGame: state.actions.createWeeCollectionWithGame,
+      setGameHubCustomArt: state.actions.setGameHubCustomArt,
+      customArtByGameId: state.gameHub?.ui?.customArtByGameId || {},
     }))
   );
 
   const isFavorite = favoriteGameIds.includes(game?.id);
   const showRemoveFromShelf =
     contextCollectionId && String(contextCollectionId).startsWith('wee-');
+  const hasCustomArt = Boolean(game?.id && customArtByGameId?.[game.id]?.url);
 
-  const handleCreateCollection = useCallback(() => {
-    const name = window.prompt('Name for the new collection');
-    if (name == null) return;
-    const trimmed = String(name).trim();
-    if (!trimmed) return;
-    createWeeCollection(trimmed);
-  }, [createWeeCollection]);
+  const handleApplyArt = useCallback(
+    (gameId, entry) => {
+      setGameHubCustomArt(gameId, entry);
+    },
+    [setGameHubCustomArt]
+  );
+
+  const handleClearArt = useCallback(() => {
+    if (!game?.id) return;
+    setGameHubCustomArt(game.id, null);
+  }, [game?.id, setGameHubCustomArt]);
+
+  const handleCreateCollection = useCallback(
+    (name) => {
+      if (!game?.id) return;
+      createWeeCollectionWithGame(name, game.id);
+    },
+    [createWeeCollectionWithGame, game?.id]
+  );
 
   return (
-    <ContextMenu.Root>
-      <ContextMenu.Trigger asChild>{children}</ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Content
-          className="aura-hub-context-menu"
-          collisionPadding={12}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
-          <ContextMenu.Item
-            className="aura-hub-context-menu__item"
-            onSelect={() => toggleGameHubFavorite(game.id)}
+    <>
+      <ContextMenu.Root>
+        <ContextMenu.Trigger asChild>{children}</ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Content
+            className="aura-hub-context-menu"
+            collisionPadding={12}
+            onCloseAutoFocus={(e) => e.preventDefault()}
           >
-            {isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          </ContextMenu.Item>
-          {showRemoveFromShelf ? (
             <ContextMenu.Item
               className="aura-hub-context-menu__item"
-              onSelect={() => removeGameFromWeeCollection(contextCollectionId, game.id)}
+              onSelect={() => toggleGameHubFavorite(game.id)}
             >
-              Remove from this collection
+              {isFavorite ? 'Remove from favorites' : 'Add to favorites'}
             </ContextMenu.Item>
-          ) : null}
-          <ContextMenu.Sub>
-            <ContextMenu.SubTrigger className="aura-hub-context-menu__item aura-hub-context-menu__subtrigger">
-              Add to collection
-            </ContextMenu.SubTrigger>
-            <ContextMenu.Portal>
-              <ContextMenu.SubContent
-                className="aura-hub-context-menu aura-hub-context-menu--sub"
-                collisionPadding={12}
+            <ContextMenu.Item
+              className="aura-hub-context-menu__item"
+              onSelect={() => setMediaOpen(true)}
+            >
+              Change art…
+            </ContextMenu.Item>
+            {hasCustomArt ? (
+              <ContextMenu.Item className="aura-hub-context-menu__item" onSelect={handleClearArt}>
+                Reset to default art
+              </ContextMenu.Item>
+            ) : null}
+            {showRemoveFromShelf ? (
+              <ContextMenu.Item
+                className="aura-hub-context-menu__item"
+                onSelect={() => removeGameFromWeeCollection(contextCollectionId, game.id)}
               >
-                {(weeCollections || []).map((c) => (
-                  <ContextMenu.Item
-                    key={c.id}
-                    className="aura-hub-context-menu__item"
-                    onSelect={() => addGameToWeeCollection(c.id, game.id)}
-                  >
-                    {c.label}
-                  </ContextMenu.Item>
-                ))}
-                <ContextMenu.Item
-                  className="aura-hub-context-menu__item aura-hub-context-menu__item--accent"
-                  onSelect={handleCreateCollection}
+                Remove from this collection
+              </ContextMenu.Item>
+            ) : null}
+            <ContextMenu.Sub>
+              <ContextMenu.SubTrigger className="aura-hub-context-menu__item aura-hub-context-menu__subtrigger">
+                Add to collection
+              </ContextMenu.SubTrigger>
+              <ContextMenu.Portal>
+                <ContextMenu.SubContent
+                  className="aura-hub-context-menu aura-hub-context-menu--sub"
+                  collisionPadding={12}
                 >
-                  New collection…
-                </ContextMenu.Item>
-              </ContextMenu.SubContent>
-            </ContextMenu.Portal>
-          </ContextMenu.Sub>
-        </ContextMenu.Content>
-      </ContextMenu.Portal>
-    </ContextMenu.Root>
+                  {(weeCollections || []).map((c) => (
+                    <ContextMenu.Item
+                      key={c.id}
+                      className="aura-hub-context-menu__item"
+                      onSelect={() => addGameToWeeCollection(c.id, game.id)}
+                    >
+                      {c.label}
+                    </ContextMenu.Item>
+                  ))}
+                  <ContextMenu.Item
+                    className="aura-hub-context-menu__item aura-hub-context-menu__item--accent"
+                    onSelect={() => setNewCollectionOpen(true)}
+                  >
+                    New collection…
+                  </ContextMenu.Item>
+                </ContextMenu.SubContent>
+              </ContextMenu.Portal>
+            </ContextMenu.Sub>
+          </ContextMenu.Content>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>
+
+      <GameHubGameMediaDialog
+        open={mediaOpen}
+        onOpenChange={setMediaOpen}
+        game={game}
+        onApplyArt={handleApplyArt}
+      />
+      <GameHubNewCollectionDialog
+        open={newCollectionOpen}
+        onOpenChange={setNewCollectionOpen}
+        onCreate={handleCreateCollection}
+      />
+    </>
   );
 }
+
+GameCardContextMenu.propTypes = {
+  children: PropTypes.node.isRequired,
+  game: PropTypes.object.isRequired,
+  contextCollectionId: PropTypes.string,
+};

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { getStoragePublicObjectUrl } from '../utils/supabase';
+import { uploadFileToMediaLibraryRow } from '../utils/mediaLibraryUploadApply';
 import {
   isSupportedGalleryStillUpload,
   isSupportedImageOrVideoUpload,
@@ -16,8 +17,8 @@ export function useChannelModalMedia({ currentMedia }) {
   const [galleryMode, setGalleryMode] = useState(false);
   const fileInputRef = useRef();
   const galleryFileInputRef = useRef();
-  const [showImageSearch, setShowImageSearch] = useState(false);
   const [mediaUploadHint, setMediaUploadHint] = useState('');
+  const [libraryUploading, setLibraryUploading] = useState(false);
 
   const clearMediaUploadHint = useCallback(() => setMediaUploadHint(''), []);
 
@@ -183,12 +184,67 @@ export function useChannelModalMedia({ currentMedia }) {
       name: mediaItem.title || mediaItem.file_url,
       isBuiltin: true,
     });
-    setShowImageSearch(false);
   }, []);
 
-  const handleUploadClick = useCallback(() => {
-    setShowImageSearch(false);
-    setTimeout(() => fileInputRef.current?.click(), 100);
+  /**
+   * Upload to Supabase media library, apply URL to channel, and refresh local library cache.
+   */
+  const handleUploadToLibraryAndChannel = useCallback(async (file, { title, description, tags } = {}) => {
+    if (!file) return;
+    setMediaUploadHint('');
+    if (!isSupportedImageOrVideoUpload(file)) {
+      setMediaUploadHint(SUPPORTED_IMAGE_VIDEO_HINT);
+      return;
+    }
+
+    const baseTitle =
+      String(title || '')
+        .trim()
+        .replace(/\.[^.]+$/, '') ||
+      file.name.replace(/\.[^.]+$/, '') ||
+      'Channel media';
+
+    const meta = {
+      title: baseTitle,
+      description: String(description || '').trim(),
+      tags: Array.isArray(tags)
+        ? tags.filter(Boolean)
+        : String(tags || '')
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean),
+    };
+
+    const tempUrl = URL.createObjectURL(file);
+    setMedia({ url: tempUrl, type: file.type, name: file.name, loading: true });
+    setLibraryUploading(true);
+
+    try {
+      const result = await uploadFileToMediaLibraryRow(file, meta);
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
+      }
+      const mediaUrl = result.url;
+      setMedia({
+        url: mediaUrl,
+        type: result.type,
+        name: result.row?.title || result.row?.file_url || file.name,
+        isBuiltin: true,
+      });
+      URL.revokeObjectURL(tempUrl);
+    } catch (error) {
+      console.error('[useChannelModalMedia] Library upload failed:', error);
+      setMediaUploadHint(error?.message || 'Upload failed');
+      setMedia({
+        url: tempUrl,
+        type: file.type,
+        name: file.name,
+        loading: false,
+        temporary: true,
+      });
+    } finally {
+      setLibraryUploading(false);
+    }
   }, []);
 
   const handleRemoveImage = useCallback(() => {
@@ -204,15 +260,15 @@ export function useChannelModalMedia({ currentMedia }) {
     setGalleryMode,
     fileInputRef,
     galleryFileInputRef,
-    showImageSearch,
-    setShowImageSearch,
     handleFileSelect,
     handleGalleryFilesSelect,
     handleRemoveGalleryImage,
     handleImageSelect,
-    handleUploadClick,
     handleRemoveImage,
     mediaUploadHint,
+    setMediaUploadHint,
     clearMediaUploadHint,
+    libraryUploading,
+    handleUploadToLibraryAndChannel,
   };
 }

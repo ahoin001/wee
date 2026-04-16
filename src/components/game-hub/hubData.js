@@ -111,12 +111,26 @@ const normalizeEpicGame = (game) => ({
 });
 
 /**
+ * Apply persisted Supabase (or other) art URLs over Steam/Epic defaults.
+ * @param {object} game
+ * @param {Record<string, { url?: string, headerUrl?: string, type?: string }>} [customArtByGameId]
+ */
+export function applyCustomArtOverrides(game, customArtByGameId) {
+  if (!game || !customArtByGameId) return game;
+  const o = customArtByGameId[game.id];
+  if (!o?.url) return game;
+  const header = o.headerUrl || o.url;
+  return { ...game, imageUrl: o.url, headerUrl: header };
+}
+
+/**
  * @param {object} opts
  * @param {object} [opts.clientLibrary] — Steam client metadata (tags only; favorites not used for hub shelves)
  * @param {object} [opts.weeMeta] — persisted Wee organization
  * @param {string[]} [opts.weeMeta.favoriteGameIds]
  * @param {{ id: string, label: string, gameIds: string[] }[]} [opts.weeMeta.weeCollections]
  * @param {Record<string, number>} [opts.weeMeta.lastLaunchedAt] — ms since epoch per `game.id`
+ * @param {Record<string, { url?: string, headerUrl?: string }>} [opts.weeMeta.customArtByGameId]
  */
 function buildDynamicCollections(installed, normalizedSteam, clientLibrary, weeMeta) {
   const favoriteGameIds = weeMeta?.favoriteGameIds || [];
@@ -282,7 +296,9 @@ export function buildHubData({ steamGames, epicGames, enrichmentMap, clientLibra
   const mergedSteam = mergeSteamGamesWithEnrichment(steamGames, enrichmentMap);
   const normalizedSteam = mergedSteam.map((game) => normalizeSteamGame(game, enrichmentMap));
   const normalizedEpic = (epicGames || []).map(normalizeEpicGame);
-  const installed = [...normalizedSteam, ...normalizedEpic];
+  const customArtByGameId = weeMeta?.customArtByGameId || {};
+  const installedRaw = [...normalizedSteam, ...normalizedEpic];
+  const installed = installedRaw.map((g) => applyCustomArtOverrides(g, customArtByGameId));
 
   const favoriteGameIds = weeMeta?.favoriteGameIds || [];
   const lastLaunchedAt = weeMeta?.lastLaunchedAt || {};

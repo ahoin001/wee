@@ -166,14 +166,15 @@ function createAppScanService({
               if (shortcut && shortcut.target && fs.existsSync(shortcut.target)) {
                 const appName = path.basename(entry.name, '.lnk');
                 const targetPath = shortcut.target.toLowerCase();
-                const isDiscordUpdate = targetPath.includes('discord') && targetPath.includes('update.exe');
+                const targetBase = path.basename(shortcut.target).toLowerCase();
+                const isDiscordUpdate = targetPath.includes('discord') && targetBase === 'update.exe';
                 const isUpdater = !isDiscordUpdate && (
-                  targetPath.includes('update.exe') ||
-                  targetPath.includes('updater.exe') ||
-                  targetPath.includes('installer.exe') ||
-                  targetPath.includes('uninstall.exe') ||
-                  targetPath.includes('launcher.exe') ||
-                  targetPath.includes('helper.exe')
+                  targetBase === 'update.exe' ||
+                  targetBase === 'updater.exe' ||
+                  targetBase === 'installer.exe' ||
+                  targetBase === 'uninstall.exe' ||
+                  targetBase === 'launcher.exe' ||
+                  targetBase === 'helper.exe'
                 );
 
                 if (!isUpdater) {

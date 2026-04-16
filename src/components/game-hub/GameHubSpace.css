@@ -718,6 +718,15 @@
   width: 184px;
 }
 
+.aura-hub-stack[role='button'] {
+  cursor: pointer;
+}
+
+.aura-hub-stack[role='button']:focus-visible {
+  outline: 2px solid hsl(var(--border-accent));
+  outline-offset: 3px;
+}
+
 .aura-hub-stack__cards {
   position: relative;
   height: 252px;
@@ -1179,6 +1188,10 @@
 
 .aura-hub-context-menu__item--accent {
   color: hsl(var(--accent-primary, 210 90% 55%));
+}
+
+.aura-hub-context-menu__item--danger {
+  color: hsl(var(--state-error));
 }
 
 .aura-hub-context-menu__subtrigger {

@@ -34,6 +34,9 @@ export type NormalizedChannelPayload = {
   data?: ChannelData;
   /** When present on disk, merged via `mergeChannelsSlice` (per-space grids). */
   dataBySpace?: Record<string, unknown>;
+  /** Swappable channel grids for the second shell space (`workspaces` rail id). */
+  secondaryChannelProfiles?: Record<string, unknown>;
+  activeSecondaryChannelProfileId?: string;
 };
 
 function normalizeChannelData(raw: Record<string, unknown> | undefined): ChannelData {
@@ -52,5 +55,7 @@ export const normalizeChannelPayload = (
     settings: (payload?.settings as ChannelSettings) || {},
     data: normalizeChannelData(payload?.data as Record<string, unknown> | undefined),
     dataBySpace: payload?.dataBySpace as Record<string, unknown> | undefined,
+    secondaryChannelProfiles: payload?.secondaryChannelProfiles as Record<string, unknown> | undefined,
+    activeSecondaryChannelProfileId: payload?.activeSecondaryChannelProfileId as string | undefined,
   };
 };

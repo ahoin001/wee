@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from '../../utils/channelSpaces';
 
 const SPACE_META = {
   home: { label: 'Home', glyph: '⌂' },
-  workspaces: { label: 'Work', glyph: '◫' },
+  workspaces: { label: 'Second', glyph: '◫' },
   gamehub: { label: 'Games', glyph: '🎮' },
 };
 
@@ -21,6 +22,8 @@ export default function SpaceRail() {
     railPinned,
     railVisible,
     order,
+    secondaryChannelProfiles,
+    activeSecondaryChannelProfileId,
     setSpacesState,
     setUIState,
   } = useConsolidatedAppStore(
@@ -29,6 +32,8 @@ export default function SpaceRail() {
       railPinned: state.spaces.railPinned,
       railVisible: state.spaces.railVisible,
       order: state.spaces.order,
+      secondaryChannelProfiles: state.channels.secondaryChannelProfiles,
+      activeSecondaryChannelProfileId: state.channels.activeSecondaryChannelProfileId,
       setSpacesState: state.actions.setSpacesState,
       setUIState: state.actions.setUIState,
     }))
@@ -36,9 +41,13 @@ export default function SpaceRail() {
 
   const [hovered, setHovered] = useState(false);
 
-  const spaceOrder = Array.isArray(order) && order.length > 0
-    ? order
-    : ['home', 'workspaces', 'gamehub'];
+  const spaceOrder = useMemo(
+    () =>
+      normalizeShellSpaceOrder(
+        Array.isArray(order) && order.length > 0 ? order : DEFAULT_SHELL_SPACE_ORDER
+      ),
+    [order]
+  );
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -67,10 +76,20 @@ export default function SpaceRail() {
   const isVisible = true;
   const railClassName = `space-rail ${isVisible ? 'space-rail--visible' : 'space-rail--hidden'}`;
 
-  const orderedSpaces = useMemo(
-    () => spaceOrder.map((id) => ({ id, ...(SPACE_META[id] || { label: id, glyph: '•' }) })),
-    [spaceOrder]
-  );
+  const orderedSpaces = useMemo(() => {
+    const secondaryName =
+      secondaryChannelProfiles?.[activeSecondaryChannelProfileId]?.name?.trim() ||
+      SPACE_META.workspaces.label;
+    return spaceOrder.map((id) => {
+      const base = SPACE_META[id] || { label: id, glyph: '•' };
+      if (id === 'workspaces') {
+        const label =
+          secondaryName.length > 14 ? `${secondaryName.slice(0, 13)}…` : secondaryName;
+        return { id, label, glyph: base.glyph };
+      }
+      return { id, label: base.label, glyph: base.glyph };
+    });
+  }, [spaceOrder, secondaryChannelProfiles, activeSecondaryChannelProfileId]);
 
   return (
     <aside

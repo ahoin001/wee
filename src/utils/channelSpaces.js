@@ -1,9 +1,31 @@
 /**
  * Channel grid data is scoped per shell space: `home` vs `workspaces` (not Game Hub).
- * Persisted under `channels.dataBySpace` in unified settings.
+ * Home lives in `dataBySpace.home`.
+ * The second shell space (`workspaces` rail id) uses **secondary channel profiles**:
+ * `secondaryChannelProfiles[id].channelSpace` — only one profile is active at a time
+ * (`activeSecondaryChannelProfileId`). `dataBySpace.workspaces` is kept in sync as a mirror
+ * of the active profile for persistence merges.
  */
 
 export const CHANNEL_SPACE_KEYS = ['home', 'workspaces'];
+
+/** Vertical shell rail order: second channel slot → Home → Game Hub (Home is middle). */
+export const DEFAULT_SHELL_SPACE_ORDER = ['workspaces', 'home', 'gamehub'];
+
+/** Migrate legacy `['home','workspaces','gamehub']` and any invalid order to the canonical rail. */
+export function normalizeShellSpaceOrder(order) {
+  const want = new Set(DEFAULT_SHELL_SPACE_ORDER);
+  if (!Array.isArray(order) || order.length !== 3) return [...DEFAULT_SHELL_SPACE_ORDER];
+  const got = new Set(order);
+  if (want.size !== got.size) return [...DEFAULT_SHELL_SPACE_ORDER];
+  for (const id of want) {
+    if (!got.has(id)) return [...DEFAULT_SHELL_SPACE_ORDER];
+  }
+  return [...DEFAULT_SHELL_SPACE_ORDER];
+}
+
+/** Default profile id for the second space’s channel grid (after migration). */
+export const DEFAULT_SECONDARY_CHANNEL_PROFILE_ID = 'sec-default';
 
 /** @returns {'home' | 'workspaces'} */
 export function normalizeChannelSpaceKey(spaceId) {
@@ -40,9 +62,78 @@ export function createDefaultChannelSpaceData() {
   };
 }
 
+/**
+ * Channel grid for the second shell space (rail id `workspaces`), from the active profile.
+ */
+export function getSecondaryChannelSpaceData(channels) {
+  if (!channels || typeof channels !== 'object') {
+    return createDefaultChannelSpaceData();
+  }
+  const id = channels.activeSecondaryChannelProfileId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
+  const profiles = channels.secondaryChannelProfiles || {};
+  const entry = profiles[id];
+  if (entry && typeof entry.channelSpace === 'object') {
+    return entry.channelSpace;
+  }
+  return channels.dataBySpace?.workspaces || createDefaultChannelSpaceData();
+}
+
 export function getChannelDataSlice(channels, spaceKey) {
   const key = normalizeChannelSpaceKey(spaceKey);
+  if (key === 'workspaces') {
+    return getSecondaryChannelSpaceData(channels);
+  }
   return channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
+}
+
+/**
+ * One-shot migration: legacy `dataBySpace.workspaces` only → secondary profile map.
+ * @returns {object} patched `channels` slice
+ */
+export function normalizeSecondaryChannelProfiles(channels) {
+  if (!channels || typeof channels !== 'object') return channels;
+  const empty = createDefaultChannelSpaceData();
+  const legacyWs = channels.dataBySpace?.workspaces;
+
+  let profiles = { ...(channels.secondaryChannelProfiles || {}) };
+  let activeId = channels.activeSecondaryChannelProfileId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
+
+  const hasProfiles = profiles && Object.keys(profiles).length > 0;
+  if (!hasProfiles) {
+    const source =
+      legacyWs && typeof legacyWs === 'object'
+        ? JSON.parse(JSON.stringify(legacyWs))
+        : JSON.parse(JSON.stringify(empty));
+    profiles = {
+      [DEFAULT_SECONDARY_CHANNEL_PROFILE_ID]: {
+        id: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
+        name: 'Second',
+        channelSpace: source,
+      },
+    };
+    activeId = DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
+  } else if (!profiles[activeId]) {
+    const firstId = Object.keys(profiles)[0];
+    activeId = firstId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
+  }
+
+  const activeEntry = profiles[activeId];
+  const activeSpace = activeEntry?.channelSpace
+    ? JSON.parse(JSON.stringify(activeEntry.channelSpace))
+    : legacyWs && typeof legacyWs === 'object'
+      ? JSON.parse(JSON.stringify(legacyWs))
+      : JSON.parse(JSON.stringify(empty));
+
+  return {
+    ...channels,
+    secondaryChannelProfiles: profiles,
+    activeSecondaryChannelProfileId: activeId,
+    dataBySpace: {
+      ...channels.dataBySpace,
+      home: channels.dataBySpace?.home || empty,
+      workspaces: activeSpace,
+    },
+  };
 }
 
 /**
@@ -54,25 +145,25 @@ export function migrateLegacyChannelsToDataBySpace(channels) {
   const hasBoth = channels.dataBySpace?.home && channels.dataBySpace?.workspaces;
   if (hasBoth) {
     const { data: _drop, ...rest } = channels;
-    return rest;
+    return normalizeSecondaryChannelProfiles(rest);
   }
   const legacy = channels.data;
   const partialHome = channels.dataBySpace?.home;
   const partialWs = channels.dataBySpace?.workspaces;
   if (partialHome || partialWs) {
-    return {
+    return normalizeSecondaryChannelProfiles({
       ...channels,
       dataBySpace: {
         home: partialHome ? JSON.parse(JSON.stringify(partialHome)) : legacy ? JSON.parse(JSON.stringify(legacy)) : empty,
         workspaces: partialWs ? JSON.parse(JSON.stringify(partialWs)) : legacy ? JSON.parse(JSON.stringify(legacy)) : empty,
       },
-    };
+    });
   }
-  return {
+  return normalizeSecondaryChannelProfiles({
     ...channels,
     dataBySpace: {
       home: legacy ? JSON.parse(JSON.stringify(legacy)) : empty,
       workspaces: legacy ? JSON.parse(JSON.stringify(legacy)) : empty,
     },
-  };
+  });
 }

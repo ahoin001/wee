@@ -136,3 +136,67 @@
     transform: translateX(100%);
   }
 }
+
+/* Channel modal: calmer toolbar + denser grid (see also ChannelModal.css for tile chrome) */
+.image-search-modal__toolbar--channel {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+  margin-bottom: 0;
+}
+
+.image-search-modal__toolbar-channel-search {
+  width: 100%;
+  min-width: 0;
+}
+
+.image-search-modal__toolbar-channel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+/* Inline pill selects — not full width (overrides .surface-select width: 100%) */
+.image-search-modal__toolbar-channel-controls .surface-select {
+  width: auto;
+  min-width: 6.75rem;
+  max-width: 11rem;
+  flex: 0 1 auto;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  background: hsl(var(--surface-tertiary) / 0.5);
+  border: 1px solid hsl(var(--border-primary) / 0.75);
+  color: hsl(var(--text-primary));
+}
+
+.image-search-modal__toolbar-channel-controls .surface-select:focus {
+  outline: none;
+  border-color: hsl(var(--border-accent));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.12);
+}
+
+.image-search-modal__toolbar-card--channel {
+  padding: 0.65rem 0.75rem;
+}
+
+.image-search-modal__meta--channel {
+  margin-left: auto;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: hsl(var(--text-tertiary));
+}
+
+.image-search-modal__scroll--channel-tiles {
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 1rem 1.1rem;
+  padding: 0.85rem 1rem;
+}
+
+.image-search-modal__pagination--channel {
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}

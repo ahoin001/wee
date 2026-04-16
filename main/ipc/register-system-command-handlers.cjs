@@ -2,6 +2,18 @@ function registerSystemCommandHandlers({
   ipcMain,
   exec,
 }) {
+  function isLikelyStoreAppId(appId) {
+    if (!appId || typeof appId !== 'string') return false;
+    const normalized = appId.trim();
+    if (!normalized.includes('!')) return false;
+    // Package-backed AUMID is usually "PackageFamily!AppId"; keep this broad to avoid false negatives.
+    if (!/^[^\s!]+![^\s!]+$/.test(normalized)) return false;
+    // Desktop aliases often leak here but are not store identifiers.
+    if (/\.exe/i.test(normalized)) return false;
+    if (normalized.includes('\\') || normalized.includes('/')) return false;
+    return true;
+  }
+
   ipcMain.handle('uwp:list-apps', async () => {
     return new Promise((resolve) => {
       exec(
@@ -12,7 +24,11 @@ function registerSystemCommandHandlers({
           try {
             const data = JSON.parse(stdout);
             const apps = Array.isArray(data) ? data : [data];
-            resolve(apps.map((app) => ({ name: app.Name, appId: app.AppID })).filter((app) => app.name && app.appId));
+            resolve(
+              apps
+                .map((app) => ({ name: app.Name, appId: app.AppID }))
+                .filter((app) => app.name && isLikelyStoreAppId(app.appId))
+            );
           } catch {
             resolve([]);
           }

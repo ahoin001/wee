@@ -1,0 +1,149 @@
+/**
+ * App / URL picker for Configure Channel — uses design-system tokens only.
+ */
+.unified-app-path-card {
+  font-family: var(--font-ui);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.unified-app-path-card__label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: hsl(var(--text-secondary));
+  letter-spacing: 0.01em;
+}
+
+.unified-app-path-card__input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  border-radius: var(--radius-md);
+  border: 1.5px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-primary));
+  color: hsl(var(--text-primary));
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.unified-app-path-card__input:focus {
+  outline: none;
+  border-color: hsl(var(--border-accent));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12);
+}
+
+.unified-app-path-card__input--error {
+  border-color: hsl(var(--state-error));
+}
+
+.unified-app-path-card__error {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: hsl(var(--state-error));
+}
+
+.unified-app-path-card__hint {
+  margin-top: 0.75rem;
+}
+
+.unified-app-path-card__hint p {
+  margin-bottom: 0.35rem;
+}
+
+.unified-app-path-card__disclosure {
+  margin-top: 0.15rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: hsl(var(--wii-blue));
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+.unified-app-path-card__disclosure:hover:not(:disabled) {
+  color: hsl(var(--primary));
+}
+
+.unified-app-path-card__disclosure:focus-visible {
+  outline: 2px solid hsl(var(--border-accent));
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.unified-app-path-card__disclosure:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.unified-app-path-card__selection {
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    165deg,
+    hsl(var(--surface-secondary) / 0.95) 0%,
+    hsl(var(--surface-tertiary) / 0.65) 100%
+  );
+  border: 1px solid hsl(var(--border-primary));
+  box-shadow: var(--shadow-sm);
+  animation: unifiedAppPathSelectionIn 220ms ease-out;
+}
+
+.unified-app-path-card__selection-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.unified-app-path-card__selection-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: hsl(var(--text-primary));
+}
+
+.unified-app-path-card__selection-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: hsl(var(--surface-tertiary));
+  color: hsl(var(--text-secondary));
+  border: 1px solid hsl(var(--border-primary) / 0.8);
+}
+
+.unified-app-path-card__selection-path {
+  margin-top: 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: hsl(var(--text-tertiary));
+  word-break: break-word;
+}
+
+@keyframes unifiedAppPathSelectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unified-app-path-card__selection {
+    animation: none;
+  }
+}

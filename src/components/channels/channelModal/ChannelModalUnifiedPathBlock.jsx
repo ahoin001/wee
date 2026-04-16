@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { UnifiedAppPathCard } from '../../app-library';
 import ChannelPathSmartSuggestions from '../ChannelPathSmartSuggestions';
-import ChannelModalInlineMediaSuggestions from './ChannelModalInlineMediaSuggestions';
+import ChannelModalChannelArtPanel from './ChannelModalChannelArtPanel';
 
 /**
  * App / URL picker + validation helpers for Configure Channel → Setup tab.
@@ -17,7 +17,13 @@ function ChannelModalUnifiedPathBlock({
   onUnifiedAppPathChange,
   onApplySmartSuggestion,
   onApplySuggestedMedia,
-  onOpenMediaSearch,
+  onSelectFromLibrary,
+  onUploadToLibraryAndChannel,
+  libraryUploading,
+  onRemoveMedia,
+  media,
+  mediaUploadHint,
+  setMediaUploadHint,
 }) {
   const value = useMemo(
     () => ({
@@ -28,6 +34,7 @@ function ChannelModalUnifiedPathBlock({
     }),
     [type, path, matchingApp]
   );
+  const hasLaunchTarget = Boolean(String(path || '').trim());
 
   if (!isOpen) {
     return null;
@@ -41,13 +48,27 @@ function ChannelModalUnifiedPathBlock({
         onChange={onUnifiedAppPathChange}
         externalValidationError={pathError}
       />
-      <ChannelModalInlineMediaSuggestions
-        path={path}
-        type={type}
-        matchingApp={matchingApp}
-        onApplyMedia={onApplySuggestedMedia}
-        onOpenMediaSearch={onOpenMediaSearch}
-      />
+      {hasLaunchTarget ? (
+        <div className="mt-4 channel-art-panel-wrap">
+          <ChannelModalChannelArtPanel
+            path={path}
+            type={type}
+            matchingApp={matchingApp}
+            onApplySuggestedMedia={onApplySuggestedMedia}
+            media={media}
+            onSelectFromLibrary={onSelectFromLibrary}
+            onUploadToLibraryAndChannel={onUploadToLibraryAndChannel}
+            libraryUploading={libraryUploading}
+            onRemoveMedia={onRemoveMedia}
+            mediaUploadHint={mediaUploadHint}
+            setMediaUploadHint={setMediaUploadHint}
+          />
+        </div>
+      ) : (
+        <div className="channel-setup-lock">
+          Choose what this channel opens above—then you can pick art here.
+        </div>
+      )}
       <ChannelPathSmartSuggestions path={path} type={type} onApply={onApplySmartSuggestion} />
     </>
   );
@@ -63,7 +84,13 @@ ChannelModalUnifiedPathBlock.propTypes = {
   onUnifiedAppPathChange: PropTypes.func.isRequired,
   onApplySmartSuggestion: PropTypes.func.isRequired,
   onApplySuggestedMedia: PropTypes.func.isRequired,
-  onOpenMediaSearch: PropTypes.func.isRequired,
+  onSelectFromLibrary: PropTypes.func.isRequired,
+  onUploadToLibraryAndChannel: PropTypes.func.isRequired,
+  libraryUploading: PropTypes.bool,
+  onRemoveMedia: PropTypes.func.isRequired,
+  media: PropTypes.object,
+  mediaUploadHint: PropTypes.string,
+  setMediaUploadHint: PropTypes.func,
 };
 
 ChannelModalUnifiedPathBlock.defaultProps = {
@@ -72,6 +99,10 @@ ChannelModalUnifiedPathBlock.defaultProps = {
   type: 'exe',
   pathError: '',
   matchingApp: null,
+  libraryUploading: false,
+  media: null,
+  mediaUploadHint: '',
+  setMediaUploadHint: undefined,
 };
 
 export default React.memo(ChannelModalUnifiedPathBlock);

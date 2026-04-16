@@ -12,7 +12,9 @@ import {
 import { applyWorkspaceSnapshot } from '../../utils/workspaces/applyWorkspace';
 import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
 import { normalizeWorkspacesState, removeWorkspaceById } from '../../utils/workspaces/workspaceState';
+import { MAX_SAVED_WORKSPACES } from '../../utils/workspaces/workspaceConstants';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import SecondaryChannelProfilesCard from './SecondaryChannelProfilesCard';
 import './surfaceStyles.css';
 
 const WorkspacesSettingsTab = React.memo(() => {
@@ -52,6 +54,20 @@ const WorkspacesSettingsTab = React.memo(() => {
   }, [availablePresets, selectedPresetName]);
 
   const handleCreateWorkspace = () => {
+    if (normalized.items.length >= MAX_SAVED_WORKSPACES) {
+      setStatusText(`You can save up to ${MAX_SAVED_WORKSPACES} workspaces. Delete one to add another.`);
+      return;
+    }
+    const trimmed = newWorkspaceName.trim();
+    const nameToUse = trimmed || 'New Workspace';
+    if (
+      normalized.items.some(
+        (w) => w.name.trim().toLowerCase() === nameToUse.toLowerCase()
+      )
+    ) {
+      setStatusText('A workspace with this name already exists.');
+      return;
+    }
     const workspace = createWorkspaceFromCurrentState(newWorkspaceName);
     setWorkspacesState({
       items: [...normalized.items, workspace],
@@ -122,6 +138,16 @@ const WorkspacesSettingsTab = React.memo(() => {
     if (!editingWorkspaceId) return;
     const trimmed = editingName.trim();
     if (!trimmed) return;
+    if (
+      normalized.items.some(
+        (w) =>
+          w.id !== editingWorkspaceId &&
+          w.name.trim().toLowerCase() === trimmed.toLowerCase()
+      )
+    ) {
+      setStatusText('That name is already in use.');
+      return;
+    }
     const nextItems = normalized.items.map((item) =>
       item.id === editingWorkspaceId ? { ...item, name: trimmed } : item
     );
@@ -133,6 +159,8 @@ const WorkspacesSettingsTab = React.memo(() => {
 
   return (
     <div className="surface-stack">
+      <SecondaryChannelProfilesCard />
+
       <Card
         title="Workspace manager"
         desc="Save complete environments (wallpaper, colors, channels, and sounds) and swap instantly."
@@ -144,12 +172,16 @@ const WorkspacesSettingsTab = React.memo(() => {
               onChange={(e) => setNewWorkspaceName(e.target.value)}
               placeholder="Workspace name (e.g. Work, Gaming, Focus)"
             />
-            <WButton variant="primary" onClick={handleCreateWorkspace}>
+            <WButton
+              variant="primary"
+              onClick={handleCreateWorkspace}
+              disabled={normalized.items.length >= MAX_SAVED_WORKSPACES}
+            >
               Create from Current
             </WButton>
           </div>
           <p className="surface-help">
-            Tip: Create one workspace per mode, then use the workspace switcher for quick transitions.
+            Tip: Create one workspace per mode (up to {MAX_SAVED_WORKSPACES}). Changes sync automatically while a workspace is active.
           </p>
         </div>
       </Card>

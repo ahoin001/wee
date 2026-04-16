@@ -1,7 +1,9 @@
 import { mergeMotionFeedback } from '../motionFeedbackDefaults.js';
 import {
   createDefaultChannelSpaceData,
+  DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
   migrateLegacyChannelsToDataBySpace,
+  normalizeSecondaryChannelProfiles,
 } from '../channelSpaces.js';
 
 export const SETTINGS_SCHEMA_VERSION = 2;
@@ -22,6 +24,7 @@ export const CANONICAL_SETTINGS_KEYS = [
   'presets',
   'workspaces',
   'spaces',
+  'appearanceBySpace',
   'gameHub',
 ];
 
@@ -75,13 +78,48 @@ function mergeChannelData(baseData, patchData) {
   return merged;
 }
 
+function mergeSecondaryProfilesMap(baseProfiles, patchProfiles) {
+  const out = { ...(baseProfiles || {}) };
+  Object.entries(patchProfiles || {}).forEach(([id, entry]) => {
+    if (!isPlainObject(entry)) return;
+    const prev = out[id];
+    const def = createDefaultChannelSpaceData();
+    const prevSpace = prev?.channelSpace || def;
+    const patchSpace = entry.channelSpace;
+    const mergedSpace =
+      patchSpace != null && isPlainObject(patchSpace)
+        ? mergeChannelData(prevSpace, patchSpace)
+        : prevSpace;
+    out[id] = {
+      id,
+      name: typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : prev?.name || 'Second',
+      channelSpace: mergedSpace,
+    };
+  });
+  return out;
+}
+
 export function mergeChannelsSlice(baseChannels, patchChannels) {
   if (!isPlainObject(patchChannels)) return isPlainObject(baseChannels) ? baseChannels : {};
   if (!isPlainObject(baseChannels)) return patchChannels;
 
   const merged = deepMerge(
-    omitKeys(baseChannels, ['data', 'settings', 'operations', 'dataBySpace']),
-    omitKeys(patchChannels, ['data', 'settings', 'operations', 'dataBySpace'])
+    omitKeys(baseChannels, [
+      'data',
+      'settings',
+      'operations',
+      'dataBySpace',
+      'secondaryChannelProfiles',
+      'activeSecondaryChannelProfileId',
+    ]),
+    omitKeys(patchChannels, [
+      'data',
+      'settings',
+      'operations',
+      'dataBySpace',
+      'secondaryChannelProfiles',
+      'activeSecondaryChannelProfileId',
+    ])
   );
   merged.settings = deepMerge(baseChannels.settings || {}, patchChannels.settings || {});
   merged.operations = deepMerge(baseChannels.operations || {}, patchChannels.operations || {});
@@ -99,8 +137,16 @@ export function mergeChannelsSlice(baseChannels, patchChannels) {
       patchM.dataBySpace?.workspaces != null ? patchM.dataBySpace.workspaces : patchChannels.data || {}
     ),
   };
+  merged.secondaryChannelProfiles = mergeSecondaryProfilesMap(
+    baseM.secondaryChannelProfiles,
+    patchM.secondaryChannelProfiles
+  );
+  merged.activeSecondaryChannelProfileId =
+    patchM.activeSecondaryChannelProfileId !== undefined && patchM.activeSecondaryChannelProfileId !== null
+      ? patchM.activeSecondaryChannelProfileId
+      : baseM.activeSecondaryChannelProfileId ?? DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
   delete merged.data;
-  return merged;
+  return normalizeSecondaryChannelProfiles(merged);
 }
 
 function mergeSettingsAtRoot(base, patch) {
@@ -164,6 +210,11 @@ export const buildSettingsSnapshotFromStore = (state = {}) => ({
   presets: Array.isArray(state.presets) ? state.presets : [],
   workspaces: state.workspaces || {},
   spaces: state.spaces || {},
+  appearanceBySpace: state.appearanceBySpace || {
+    home: null,
+    workspaces: null,
+    gamehub: null,
+  },
   gameHub: state.gameHub || {},
 });
 

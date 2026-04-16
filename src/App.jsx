@@ -15,6 +15,7 @@ import {
 } from './hooks/useAppShellEffects';
 import { useAppInitialization } from './hooks/useAppInitialization';
 import { useUnifiedSettingsPersistence } from './hooks/useUnifiedSettingsPersistence';
+import { useActiveWorkspaceAutoSync } from './hooks/useActiveWorkspaceAutoSync';
 import { 
   useTimeColor, 
   useEnableTimePill, 
@@ -33,8 +34,7 @@ import {
 } from './components/overlays';
 import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 import GameHubMinimalDock from './components/game-hub/GameHubMinimalDock';
-
-const DEFAULT_SPACE_ORDER = ['home', 'workspaces', 'gamehub'];
+import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from './utils/channelSpaces';
 
 // Lazy load components to reduce initial bundle size
 const lazyNamedExport = (importer, exportName) =>
@@ -159,6 +159,7 @@ function App() {
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
   useUnifiedSettingsPersistence();
+  useActiveWorkspaceAutoSync();
 
   // Debug: Log floating widgets state
   useEffect(() => {
@@ -254,7 +255,10 @@ function App() {
   // Settings action menu state and positioning
   const [settingsMenuPosition, setSettingsMenuPosition] = useState({ x: 0, y: 0 });
   const resolvedSpaceOrder = useMemo(
-    () => (Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SPACE_ORDER),
+    () =>
+      normalizeShellSpaceOrder(
+        Array.isArray(spaceOrder) && spaceOrder.length > 0 ? spaceOrder : DEFAULT_SHELL_SPACE_ORDER
+      ),
     [spaceOrder]
   );
   const activeSpaceIndex = useMemo(() => {
@@ -273,6 +277,22 @@ function App() {
       setSpaceWorldDurationMs(780);
     }
   }, [activeSpaceId]);
+
+  const prevActiveSpaceIdRef = useRef(null);
+  useEffect(() => {
+    if (prevActiveSpaceIdRef.current === null) {
+      prevActiveSpaceIdRef.current = activeSpaceId;
+      return;
+    }
+    if (prevActiveSpaceIdRef.current === activeSpaceId) return;
+    prevActiveSpaceIdRef.current = activeSpaceId;
+    setSpacesState({ isTransitioning: true });
+    const t = setTimeout(() => {
+      setSpacesState({ isTransitioning: false });
+    }, spaceWorldDurationMs);
+    return () => clearTimeout(t);
+  }, [activeSpaceId, spaceWorldDurationMs, setSpacesState]);
+
   const spaceWorldTrackStyle = useMemo(() => {
     const n = resolvedSpaceOrder.length || 1;
     const panelPct = 100 / n;
@@ -386,12 +406,12 @@ function App() {
 
   // Global right-click handler for settings modal (wallpaper tab)
   const handleGlobalRightClick = useCallback((event) => {
-    // Check if the click target is within the ribbon or dock areas
     const target = event.target;
     const isInRibbon = target.closest('.interactive-footer') || target.closest('.wii-dock-wrapper');
     const isInDock = target.closest('.dock-container');
     const isInModal = target.closest('.modal-overlay') || target.closest('.modal-content');
-    
+    const isInGameHub = activeSpaceId === 'gamehub' || target.closest('.aura-hub-space');
+
     // Check if Ctrl key is held for DevTools
     if (event.ctrlKey) {
       event.preventDefault();
@@ -400,7 +420,12 @@ function App() {
       openDevTools();
       return;
     }
-    
+
+    // Game Hub uses Radix context menus; do not open wallpaper settings from empty hub chrome
+    if (isInGameHub) {
+      return;
+    }
+
     // Only open settings modal to wallpaper tab if not clicking on ribbon, dock, or existing modals
     if (!isInRibbon && !isInDock && !isInModal) {
       event.preventDefault();
@@ -411,7 +436,7 @@ function App() {
         settingsActiveTab: 'wallpaper' // This will be handled by SettingsModal
       });
     }
-  }, [setUIState, openDevTools]);
+  }, [setUIState, openDevTools, activeSpaceId]);
   const toggleDock = useCallback(() => setUIState(prev => ({ showDock: !prev.showDock })), [setUIState]);
   const toggleDarkMode = useCallback(() => setUIState(prev => ({ isDarkMode: !prev.isDarkMode })), [setUIState]);
   const toggleCustomCursor = useCallback(() => setUIState(prev => ({ useCustomCursor: !prev.useCustomCursor })), [setUIState]);

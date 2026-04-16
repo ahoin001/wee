@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
-import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+
+const RELEASES_URL = 'https://github.com/ahoin001/wee/releases';
 
 const UpdatesSettingsTab = () => {
   const [currentVersion, setCurrentVersion] = useState('');
@@ -21,8 +22,7 @@ const UpdatesSettingsTab = () => {
           const version = await window.api.getAppVersion();
           setCurrentVersion(version);
         } else {
-          // Fallback to package.json version
-          setCurrentVersion(process.env.npm_package_version || 'Unknown');
+          setCurrentVersion('Unknown');
         }
       } catch (error) {
         console.error('[UpdatesSettingsTab] Error getting current version:', error);
@@ -43,9 +43,18 @@ const UpdatesSettingsTab = () => {
         const result = await window.api.checkForUpdates();
         
         if (result.success) {
-          setLatestVersion(result.latestVersion || 'Unknown');
-          setUpdateAvailable(result.updateAvailable || false);
-          setUpdateInfo(result.updateInfo || null);
+          const isAvailable = result.status === 'available';
+          setLatestVersion(isAvailable ? result.version || 'Unknown' : currentVersion || 'Unknown');
+          setUpdateAvailable(isAvailable);
+          setUpdateInfo(
+            isAvailable
+              ? {
+                  releaseNotes: result.releaseNotes || '',
+                  releaseDate: result.releaseDate || null,
+                  status: result.status,
+                }
+              : null
+          );
           setLastChecked(new Date());
         } else {
           setError(result.error || 'Failed to check for updates');
@@ -60,7 +69,7 @@ const UpdatesSettingsTab = () => {
     } finally {
       setCheckingForUpdates(false);
     }
-  }, []);
+  }, [currentVersion]);
 
   // Download update
   const downloadUpdate = useCallback(async () => {
@@ -74,7 +83,7 @@ const UpdatesSettingsTab = () => {
         }
       } else {
         // Fallback: open GitHub releases page
-        window.open('https://github.com/your-repo/WiiDesktopLauncher/releases', '_blank');
+        window.open(RELEASES_URL, '_blank');
       }
     } catch (error) {
       console.error('[UpdatesSettingsTab] Error downloading update:', error);
@@ -103,7 +112,7 @@ const UpdatesSettingsTab = () => {
 
   // Open GitHub releases
   const openGitHubReleases = useCallback(() => {
-    window.open('https://github.com/your-repo/WiiDesktopLauncher/releases', '_blank');
+    window.open(RELEASES_URL, '_blank');
   }, []);
 
   return (

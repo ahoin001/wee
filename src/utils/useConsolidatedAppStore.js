@@ -11,8 +11,44 @@ import {
 import { resolveGridConfig, resolveNavigation } from './channelLayoutSystem';
 import { applyChannelSlotReorder } from './channelReorder';
 import { DEFAULT_MOTION_FEEDBACK } from './motionFeedbackDefaults';
-import { createDefaultChannelSpaceData, normalizeChannelSpaceKey } from './channelSpaces';
+import {
+  createDefaultChannelSpaceData,
+  DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
+  getSecondaryChannelSpaceData,
+  normalizeChannelSpaceKey,
+} from './channelSpaces';
+import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
+import {
+  captureSpaceAppearanceFromState,
+  mergeLiveStateFromSpaceAppearance,
+} from './appearance/spaceAppearance';
+
+/**
+ * Read/write the second shell space’s channel grid via `secondaryChannelProfiles[activeId].channelSpace`
+ * and mirror `dataBySpace.workspaces` for persistence merges.
+ */
+function patchSecondaryChannelSpace(state, updater) {
+  const id = state.channels.activeSecondaryChannelProfileId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
+  const profiles = { ...(state.channels.secondaryChannelProfiles || {}) };
+  const entry = profiles[id] || {
+    id,
+    name: 'Second',
+    channelSpace: createDefaultChannelSpaceData(),
+  };
+  const current = entry.channelSpace || createDefaultChannelSpaceData();
+  const nextChannelSpace = updater(current);
+  profiles[id] = { ...entry, channelSpace: nextChannelSpace };
+  return {
+    ...state.channels,
+    secondaryChannelProfiles: profiles,
+    activeSecondaryChannelProfileId: id,
+    dataBySpace: {
+      ...state.channels.dataBySpace,
+      workspaces: nextChannelSpace,
+    },
+  };
+}
 
 let useConsolidatedAppStore;
 const {
@@ -212,12 +248,21 @@ useConsolidatedAppStore = create(
             kenBurnsTransitionType: 'cross-dissolve',
           },
           
-          /** Per shell space (`home` vs `workspaces`) — separate grids / apps */
+          /** Per shell space: `home` + mirror of active secondary profile under `workspaces` */
           dataBySpace: {
             home: createDefaultChannelSpaceData(),
             workspaces: createDefaultChannelSpaceData(),
           },
-          
+          /** Second shell space: swappable channel grids (only one active via `activeSecondaryChannelProfileId`). */
+          secondaryChannelProfiles: {
+            [DEFAULT_SECONDARY_CHANNEL_PROFILE_ID]: {
+              id: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
+              name: 'Second',
+              channelSpace: createDefaultChannelSpaceData(),
+            },
+          },
+          activeSecondaryChannelProfileId: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
+
           // Channel operations state
           operations: {
             isLoading: false,
@@ -502,10 +547,22 @@ useConsolidatedAppStore = create(
           activeSpaceId: 'home',
           /** Last non–Game Hub panel (home vs work) — used to restore on launch (never cold-start on gamehub). */
           lastChannelSpaceId: 'home',
-          order: ['home', 'workspaces', 'gamehub'],
+          /** Vertical rail: secondary channel slot → Home → Game Hub (Home is middle). */
+          order: ['workspaces', 'home', 'gamehub'],
+          /** True while the space-world slide is animating — channel drag should be disabled. */
+          isTransitioning: false,
           autoHideRail: true,
           railPinned: false,
           railVisible: false,
+        },
+
+        /**
+         * Saved look per shell space (Home / Work / Games). `null` = not yet written (use live merge on switch).
+         */
+        appearanceBySpace: {
+          home: null,
+          workspaces: null,
+          gamehub: null,
         },
 
         // Game Hub state domain
@@ -529,6 +586,8 @@ useConsolidatedAppStore = create(
             collectionShelfOrder: null,
             hubLibrarySort: 'default',
             hubCollectionGamesSort: 'default',
+            /** @type {Record<string, { url: string, type?: string, headerUrl?: string }>} */
+            customArtByGameId: {},
           },
           library: {
             enrichedGames: [],
@@ -598,6 +657,11 @@ useConsolidatedAppStore = create(
 
           setChannelDataForSpace: (spaceKey, updates) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
+            if (key === 'workspaces') {
+              return {
+                channels: patchSecondaryChannelSpace(state, (prev) => ({ ...prev, ...updates })),
+              };
+            }
             const prev = state.channels.dataBySpace?.[key] || createDefaultChannelSpaceData();
             return {
               channels: {
@@ -628,6 +692,25 @@ useConsolidatedAppStore = create(
           
           updateChannelForSpace: (spaceKey, channelId, channelData) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
+            if (key === 'workspaces') {
+              return {
+                channels: patchSecondaryChannelSpace(state, (channelsData) => {
+                  const configuredChannels = channelsData.configuredChannels || {};
+                  return {
+                    ...channelsData,
+                    configuredChannels: {
+                      ...configuredChannels,
+                      [channelId]: channelData === null
+                        ? undefined
+                        : {
+                            ...configuredChannels[channelId],
+                            ...channelData,
+                          },
+                    },
+                  };
+                }),
+              };
+            }
             const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
             const configuredChannels = channelsData.configuredChannels || {};
 
@@ -655,6 +738,25 @@ useConsolidatedAppStore = create(
 
           updateChannelConfigForSpace: (spaceKey, channelId, configData) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
+            if (key === 'workspaces') {
+              return {
+                channels: patchSecondaryChannelSpace(state, (channelsData) => {
+                  const channelConfigs = channelsData.channelConfigs || {};
+                  return {
+                    ...channelsData,
+                    channelConfigs: {
+                      ...channelConfigs,
+                      [channelId]: configData === null
+                        ? undefined
+                        : {
+                            ...channelConfigs[channelId],
+                            ...configData,
+                          },
+                    },
+                  };
+                }),
+              };
+            }
             const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
             const channelConfigs = channelsData.channelConfigs || {};
 
@@ -686,7 +788,10 @@ useConsolidatedAppStore = create(
            */
           reorderChannelSlotsForSpace: (spaceKey, fromIndex, toIndex) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
-            const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
+            const channelsData =
+              key === 'workspaces'
+                ? getSecondaryChannelSpaceData(state.channels)
+                : state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
             const navigation = resolveNavigation(channelsData.navigation);
             const grid = resolveGridConfig(channelsData, navigation);
             const n = grid.totalChannels;
@@ -703,6 +808,15 @@ useConsolidatedAppStore = create(
               configuredChannels: channelsData.configuredChannels || {},
               channelConfigs: channelsData.channelConfigs || {},
             });
+            if (key === 'workspaces') {
+              return {
+                channels: patchSecondaryChannelSpace(state, (prev) => ({
+                  ...prev,
+                  configuredChannels,
+                  channelConfigs,
+                })),
+              };
+            }
             return {
               channels: {
                 ...state.channels,
@@ -720,6 +834,14 @@ useConsolidatedAppStore = create(
 
           setChannelNavigationForSpace: (spaceKey, updates) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
+            if (key === 'workspaces') {
+              return {
+                channels: patchSecondaryChannelSpace(state, (channelsData) => ({
+                  ...channelsData,
+                  navigation: { ...channelsData.navigation, ...updates },
+                })),
+              };
+            }
             const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
             return {
               channels: {
@@ -730,6 +852,91 @@ useConsolidatedAppStore = create(
                     ...channelsData,
                     navigation: { ...channelsData.navigation, ...updates },
                   },
+                },
+              },
+            };
+          }),
+
+          setActiveSecondaryChannelProfileId: (profileId) => set((state) => {
+            const profiles = state.channels.secondaryChannelProfiles || {};
+            if (!profiles[profileId]) return state;
+            const nextChannels = {
+              ...state.channels,
+              activeSecondaryChannelProfileId: profileId,
+            };
+            const mirrored = getSecondaryChannelSpaceData(nextChannels);
+            return {
+              channels: {
+                ...nextChannels,
+                dataBySpace: {
+                  ...nextChannels.dataBySpace,
+                  workspaces: mirrored,
+                },
+              },
+            };
+          }),
+
+          createSecondaryChannelProfile: (rawName) => set((state) => {
+            const profiles = state.channels.secondaryChannelProfiles || {};
+            const count = Object.keys(profiles).length;
+            if (count >= MAX_SAVED_WORKSPACES) return state;
+            const id = `sec-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+            const name =
+              typeof rawName === 'string' && rawName.trim()
+                ? rawName.trim()
+                : `Grid ${count + 1}`;
+            return {
+              channels: {
+                ...state.channels,
+                secondaryChannelProfiles: {
+                  ...profiles,
+                  [id]: {
+                    id,
+                    name,
+                    channelSpace: createDefaultChannelSpaceData(),
+                  },
+                },
+              },
+            };
+          }),
+
+          renameSecondaryChannelProfile: (profileId, rawName) => set((state) => {
+            const profiles = state.channels.secondaryChannelProfiles || {};
+            if (!profiles[profileId]) return state;
+            const name = typeof rawName === 'string' ? rawName.trim() : '';
+            if (!name) return state;
+            return {
+              channels: {
+                ...state.channels,
+                secondaryChannelProfiles: {
+                  ...profiles,
+                  [profileId]: { ...profiles[profileId], name },
+                },
+              },
+            };
+          }),
+
+          deleteSecondaryChannelProfile: (profileId) => set((state) => {
+            const profiles = { ...(state.channels.secondaryChannelProfiles || {}) };
+            const ids = Object.keys(profiles);
+            if (ids.length <= 1 || !profiles[profileId]) return state;
+            delete profiles[profileId];
+            let activeId = state.channels.activeSecondaryChannelProfileId || DEFAULT_SECONDARY_CHANNEL_PROFILE_ID;
+            if (activeId === profileId) {
+              activeId = Object.keys(profiles)[0];
+            }
+            const nextChannels = {
+              ...state.channels,
+              secondaryChannelProfiles: profiles,
+              activeSecondaryChannelProfileId: activeId,
+            };
+            const mirrored = getSecondaryChannelSpaceData(nextChannels);
+            return {
+              channels: {
+                ...nextChannels,
+                dataBySpace: {
+                  ...nextChannels.dataBySpace,
+                  workspaces: mirrored,
                 },
               },
             };
@@ -855,12 +1062,43 @@ useConsolidatedAppStore = create(
           })),
 
           setSpacesState: (updates) => set((state) => {
-            const next = { ...state.spaces, ...updates };
-            if (next.activeSpaceId === 'home' || next.activeSpaceId === 'workspaces') {
-              next.lastChannelSpaceId = next.activeSpaceId;
+            const nextSpaces = { ...state.spaces, ...updates };
+            if (nextSpaces.activeSpaceId === 'home' || nextSpaces.activeSpaceId === 'workspaces') {
+              nextSpaces.lastChannelSpaceId = nextSpaces.activeSpaceId;
             }
-            return { spaces: next };
+
+            const prevId = state.spaces.activeSpaceId;
+            const nextId = nextSpaces.activeSpaceId;
+
+            if (updates.activeSpaceId !== undefined && updates.activeSpaceId !== prevId) {
+              const captured = captureSpaceAppearanceFromState(state);
+              const appearanceBySpace = {
+                ...state.appearanceBySpace,
+                [prevId]: captured,
+              };
+              const incoming = appearanceBySpace[nextId];
+              const merged = mergeLiveStateFromSpaceAppearance(state, incoming);
+
+              return {
+                spaces: nextSpaces,
+                appearanceBySpace,
+                ...(merged.wallpaper ? { wallpaper: merged.wallpaper } : {}),
+                ...(merged.ribbon ? { ribbon: merged.ribbon } : {}),
+                ...(merged.time ? { time: merged.time } : {}),
+                ...(merged.overlay ? { overlay: merged.overlay } : {}),
+                ...(merged.ui ? { ui: merged.ui } : {}),
+              };
+            }
+
+            return { spaces: nextSpaces };
           }),
+
+          setAppearanceBySpaceState: (updates) => set((state) => ({
+            appearanceBySpace: {
+              ...state.appearanceBySpace,
+              ...updates,
+            },
+          })),
 
           setGameHubState: (updates) => set((state) => ({
             gameHub: {
@@ -899,6 +1137,25 @@ useConsolidatedAppStore = create(
             },
           })),
 
+          /** Persisted per-game art override (Supabase URL). Pass `null` entry to clear. */
+          setGameHubCustomArt: (gameId, entry) => set((state) => {
+            const id = String(gameId || '');
+            if (!id) return state;
+            const prev = state.gameHub.ui.customArtByGameId || {};
+            const next = { ...prev };
+            if (entry == null || entry === undefined) {
+              delete next[id];
+            } else {
+              next[id] = entry;
+            }
+            return {
+              gameHub: {
+                ...state.gameHub,
+                ui: { ...state.gameHub.ui, customArtByGameId: next },
+              },
+            };
+          }),
+
           toggleGameHubFavorite: (gameId) => set((state) => {
             const ids = [...(state.gameHub.ui.favoriteGameIds || [])];
             const idx = ids.indexOf(gameId);
@@ -921,6 +1178,26 @@ useConsolidatedAppStore = create(
             const next = [
               ...(state.gameHub.library.weeCollections || []),
               { id, label: trimmed, gameIds: [] },
+            ];
+            return {
+              gameHub: {
+                ...state.gameHub,
+                library: { ...state.gameHub.library, weeCollections: next },
+              },
+            };
+          }),
+
+          /** Create a Wee collection and add one game in one update (context menu flow). */
+          createWeeCollectionWithGame: (label, gameId) => set((state) => {
+            const id =
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? `wee-${crypto.randomUUID()}`
+                : `wee-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            const trimmed = String(label || '').trim() || 'New collection';
+            const gid = gameId != null ? String(gameId) : null;
+            const next = [
+              ...(state.gameHub.library.weeCollections || []),
+              { id, label: trimmed, gameIds: gid ? [gid] : [] },
             ];
             return {
               gameHub: {
@@ -1125,6 +1402,14 @@ useConsolidatedAppStore = create(
                 home: createDefaultChannelSpaceData(),
                 workspaces: createDefaultChannelSpaceData(),
               },
+              secondaryChannelProfiles: {
+                [DEFAULT_SECONDARY_CHANNEL_PROFILE_ID]: {
+                  id: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
+                  name: 'Second',
+                  channelSpace: createDefaultChannelSpaceData(),
+                },
+              },
+              activeSecondaryChannelProfileId: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
               operations: {
                 isLoading: false,
                 isSaving: false,
@@ -1197,10 +1482,16 @@ useConsolidatedAppStore = create(
             spaces: {
               activeSpaceId: 'home',
               lastChannelSpaceId: 'home',
-              order: ['home', 'workspaces', 'gamehub'],
+              order: ['workspaces', 'home', 'gamehub'],
+              isTransitioning: false,
               autoHideRail: true,
               railPinned: false,
               railVisible: false,
+            },
+            appearanceBySpace: {
+              home: null,
+              workspaces: null,
+              gamehub: null,
             },
             gameHub: {
               profile: {
@@ -1222,6 +1513,7 @@ useConsolidatedAppStore = create(
                 collectionShelfOrder: null,
                 hubLibrarySort: 'default',
                 hubCollectionGamesSort: 'default',
+                customArtByGameId: {},
               },
               library: {
                 enrichedGames: [],

@@ -8,19 +8,38 @@ import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 const DRAG_PREFIX = 'channel-drag-';
 const SLOT_PREFIX = 'channel-slot-';
+const SCOPED_DRAG = /^channel-drag-(home|workspaces)-(\d+)$/;
+const SCOPED_SLOT = /^channel-slot-(home|workspaces)-(\d+)$/;
 
-export const channelDragId = (index) => `${DRAG_PREFIX}${index}`;
-export const channelSlotId = (index) => `${SLOT_PREFIX}${index}`;
+/** Per shell space + index — avoids ambiguity when Home + Work grids mount together. */
+export const channelDragId = (spaceKey, index) => `${DRAG_PREFIX}${spaceKey}-${index}`;
+export const channelSlotId = (spaceKey, index) => `${SLOT_PREFIX}${spaceKey}-${index}`;
 
 export function parseChannelDnDId(id) {
   if (typeof id !== 'string') return null;
-  if (id.startsWith(DRAG_PREFIX)) {
-    const n = parseInt(id.slice(DRAG_PREFIX.length), 10);
+  let m = id.match(SCOPED_DRAG);
+  if (m) {
+    const n = parseInt(m[2], 10);
     return Number.isFinite(n) ? n : null;
   }
-  if (id.startsWith(SLOT_PREFIX)) {
-    const n = parseInt(id.slice(SLOT_PREFIX.length), 10);
+  m = id.match(SCOPED_SLOT);
+  if (m) {
+    const n = parseInt(m[2], 10);
     return Number.isFinite(n) ? n : null;
+  }
+  if (id.startsWith(DRAG_PREFIX)) {
+    const rest = id.slice(DRAG_PREFIX.length);
+    if (/^\d+$/.test(rest)) {
+      const n = parseInt(rest, 10);
+      return Number.isFinite(n) ? n : null;
+    }
+  }
+  if (id.startsWith(SLOT_PREFIX)) {
+    const rest = id.slice(SLOT_PREFIX.length);
+    if (/^\d+$/.test(rest)) {
+      const n = parseInt(rest, 10);
+      return Number.isFinite(n) ? n : null;
+    }
   }
   return null;
 }
@@ -28,12 +47,12 @@ export function parseChannelDnDId(id) {
 /**
  * Whole-tile drag + droppable cell. Click-to-launch uses pointer distance threshold on DndContext sensors.
  */
-function ChannelSlotDnd({ channelIndex, disabled, celebrateDrop, reorderWave, children }) {
+function ChannelSlotDnd({ channelSpaceKey, channelIndex, disabled, celebrateDrop, reorderWave, children }) {
   const osReduced = useReducedMotion();
   const { channelReorderSlotMotion } = useMotionFeedback();
   const reduceMotion = osReduced || !channelReorderSlotMotion;
-  const slotId = channelSlotId(channelIndex);
-  const dragId = channelDragId(channelIndex);
+  const slotId = channelSlotId(channelSpaceKey, channelIndex);
+  const dragId = channelDragId(channelSpaceKey, channelIndex);
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: slotId,
@@ -100,6 +119,7 @@ function ChannelSlotDnd({ channelIndex, disabled, celebrateDrop, reorderWave, ch
 }
 
 ChannelSlotDnd.propTypes = {
+  channelSpaceKey: PropTypes.oneOf(['home', 'workspaces']).isRequired,
   channelIndex: PropTypes.number.isRequired,
   disabled: PropTypes.bool,
   celebrateDrop: PropTypes.bool,
