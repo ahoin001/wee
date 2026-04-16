@@ -21,9 +21,8 @@ try {
   // Bump version and create tag
   execSync(`npm version ${bump}`, { stdio: 'inherit' });
 
-  // Push commit and tags
-  execSync('git push', { stdio: 'inherit' });
-  execSync('git push --tags', { stdio: 'inherit' });
+  // Push commit and the new version tag together (required for Build and Release workflow: on.push.tags v*)
+  execSync('git push --follow-tags', { stdio: 'inherit' });
 
   console.log('\nRelease triggered! Check your GitHub Actions for build and release status.');
 } catch (err) {

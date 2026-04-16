@@ -1,12 +1,31 @@
+# Release workflow — builds Windows installer and publishes to GitHub Releases.
+#
+# Triggers:
+# 1) Tag push: push a tag matching v* (e.g. v2.10.7). `npm version patch && git push --follow-tags`
+#    creates a v-prefixed tag by default.
+# 2) Manual: Actions → Build and Release → Run workflow (uses production env secrets).
+#
+# If runs stay "Waiting": check Repo → Settings → Environments → production (required reviewers).
 name: Build and Release
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to build (optional). Example: refs/tags/v2.10.7 or main'
+        required: false
+        default: ''
 
 permissions:
   contents: write
+
+# One release at a time; do not cancel a publish mid-flight.
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   build-and-release:
@@ -20,6 +39,10 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        # Tag pushes: github.ref is refs/tags/vX.Y.Z. Manual runs: optional ref, else default branch.
+        ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref != '' && github.event.inputs.ref || github.ref }}
+        fetch-depth: 0
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -36,4 +59,4 @@ jobs:
     - name: Build and Package (electron-builder)
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: npx electron-builder --win --x64 --publish always 
+      run: npx electron-builder --win --x64 --publish always
