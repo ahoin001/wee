@@ -23,6 +23,7 @@
       "dist/**/*",
       "public/sounds/**/*",
       "electron.cjs",
+      "launchApp.cjs",
       "preload.cjs",
       "scripts/load-env.cjs",
       "main/**/*",
