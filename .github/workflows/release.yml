@@ -3,7 +3,10 @@
 # Triggers:
 # 1) Tag push: push a tag matching v* (e.g. v2.10.7). `npm version patch && git push --follow-tags`
 #    creates a v-prefixed tag by default.
-# 2) Manual: Actions → Build and Release → Run workflow (uses production env secrets).
+# 2) Manual: Actions → Build and Release → Run workflow (uses production env).
+#
+# Env wiring: GitHub "Environment variables" use `vars.*`. "Environment secrets" use `secrets.*`.
+# The expressions below prefer `vars` then fall back to `secrets` so either setup works.
 #
 # If runs stay "Waiting": check Repo → Settings → Environments → production (required reviewers).
 name: Build and Release
@@ -32,9 +35,9 @@ jobs:
     runs-on: windows-latest
     environment: production
     env:
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      VITE_SUPABASE_APP_SCHEMA: ${{ secrets.VITE_SUPABASE_APP_SCHEMA }}
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_APP_SCHEMA: ${{ vars.VITE_SUPABASE_APP_SCHEMA || secrets.VITE_SUPABASE_APP_SCHEMA }}
 
     steps:
     - name: Checkout code

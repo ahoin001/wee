@@ -6,15 +6,15 @@ class AuthService {
     this.isAnonymous = true;
     this.listeners = [];
     
-    // Listen for auth state changes
-    if (supabase) {
+    // Listen for auth state changes (disabled client still exposes auth stubs)
+    if (supabase?.auth?.onAuthStateChange) {
       supabase.auth.onAuthStateChange((event, session) => {
         this.user = session?.user || null;
         this.isAnonymous = !this.user;
         this.notifyListeners();
       });
     } else {
-      console.log('[AUTH SERVICE] No Supabase client available');
+      console.log('[AUTH SERVICE] No Supabase auth available');
     }
   }
 

@@ -22,6 +22,25 @@ function createDisabledSupabaseClient() {
   const disabledError = { message: SUPABASE_DISABLED_ERROR }
   const disabledAsync = async () => ({ data: null, error: disabledError })
   const disabledPublicUrl = () => ({ data: { publicUrl: '' } })
+  const authUnsubscribe = { unsubscribe: () => {} }
+
+  /** Enough of GoTrue API for authService and any eager listeners (avoids crashes when env is missing). */
+  const disabledAuth = {
+    onAuthStateChange: (callback) => {
+      try {
+        queueMicrotask(() => {
+          callback('INITIAL_SESSION', null)
+        })
+      } catch {
+        // ignore
+      }
+      return { data: { subscription: authUnsubscribe } }
+    },
+    getUser: async () => ({ data: { user: null }, error: disabledError }),
+    signUp: async () => ({ data: { user: null, session: null }, error: disabledError }),
+    signInWithPassword: async () => ({ data: { user: null, session: null }, error: disabledError }),
+    signOut: async () => ({ error: disabledError }),
+  }
 
   const query = {
     select: () => query,
@@ -41,6 +60,7 @@ function createDisabledSupabaseClient() {
   }
 
   return {
+    auth: disabledAuth,
     from: () => query,
     schema: () => ({ from: () => query }),
     storage: {
