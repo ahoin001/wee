@@ -23,7 +23,7 @@ import {
   useTimePillOpacity, 
   useTimeFont 
 } from './utils/useConsolidatedAppHooks';
-import { ErrorBoundary, SplashScreen } from './components/core';
+import { ErrorBoundary, SplashScreen, SpaceBootLoader } from './components/core';
 import { LaunchFeedbackProvider } from './contexts/LaunchFeedbackContext';
 import {
   WallpaperOverlay,
@@ -290,7 +290,11 @@ function App() {
     const t = setTimeout(() => {
       setSpacesState({ isTransitioning: false });
     }, spaceWorldDurationMs);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      // If the timeout was cleared before it fired (e.g. rapid space switches), avoid leaving drag disabled forever.
+      setSpacesState({ isTransitioning: false });
+    };
   }, [activeSpaceId, spaceWorldDurationMs, setSpacesState]);
 
   const spaceWorldTrackStyle = useMemo(() => {
@@ -491,7 +495,7 @@ function App() {
 
         {/* Main Content — vertical world track (see hub-space-switch.html) */}
         <div className={mainContentClassName}>
-          <Suspense fallback={null}>
+          <Suspense fallback={<SpaceBootLoader />}>
             <div
               className="space-world__track"
               style={spaceWorldTrackStyle}

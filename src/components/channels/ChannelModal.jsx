@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import isEqual from 'fast-deep-equal';
 import PropTypes from 'prop-types';
-import { WBaseModal } from '../core';
 import ChannelModalSuggestedGames from './ChannelModalSuggestedGames';
 import ChannelModalUnifiedPathBlock from './channelModal/ChannelModalUnifiedPathBlock';
 import ChannelModalSetupTab from './channelModal/ChannelModalSetupTab';
+import ChannelModalSuggestedTab from './channelModal/ChannelModalSuggestedTab';
 import ChannelModalBehaviorTab from './channelModal/ChannelModalBehaviorTab';
-import ChannelModalTabNav from './channelModal/ChannelModalTabNav';
-import WButton from '../../ui/WButton';
+import WeeChannelModal from './WeeChannelModal';
+import WeeButton from '../../ui/wee/WeeButton';
 import { useChannelModalHoverSound } from '../../hooks/useChannelModalHoverSound';
 import { useChannelModalInitialization } from '../../hooks/useChannelModalInitialization';
 import { useChannelModalMedia } from '../../hooks/useChannelModalMedia';
@@ -42,15 +42,8 @@ function ChannelModal({
   const {
     media,
     setMedia,
-    imageGallery,
     setImageGallery,
-    galleryMode,
     setGalleryMode,
-    fileInputRef,
-    galleryFileInputRef,
-    handleFileSelect,
-    handleGalleryFilesSelect,
-    handleRemoveGalleryImage,
     handleImageSelect,
     handleRemoveImage,
     mediaUploadHint,
@@ -457,30 +450,32 @@ function ChannelModal({
 
   const footerContent = ({ handleClose }) => (
     <>
-      <div className="flex flex-row gap-2">
-        <WButton variant="secondary" onClick={handleClose}>Cancel</WButton>
-        <WButton 
-          variant="danger-secondary" 
+      <div className="flex flex-row flex-wrap justify-end gap-3 channel-modal-footer-row">
+        <WeeButton variant="secondary" onClick={handleClose}>Cancel</WeeButton>
+        <WeeButton
+          variant="danger"
           onClick={() => handleClearChannel(handleClose)}
         >
           Clear Channel
-        </WButton>
-        <WButton 
-          variant="primary" 
-          onClick={() => handleSave(handleClose)} 
+        </WeeButton>
+        <WeeButton
+          variant="primary"
+          onClick={() => handleSave(handleClose)}
           disabled={!canSave}
           title={saveTooltip}
         >
           Save Channel
-        </WButton>
+        </WeeButton>
       </div>
       {showError && saveTooltip && (
-        <div className="text-red-600 text-sm mt-2 font-medium">{saveTooltip}</div>
+        <div className="mt-2 text-sm font-medium text-[hsl(var(--state-error))]">{saveTooltip}</div>
       )}
     </>
   );
 
-  const showGalleryOption = false;
+  const headerTitle =
+    activeTab === 'setup' ? 'Channel Setup' : activeTab === 'behavior' ? 'Runtime Logic' : 'Suggested';
+  const statusReady = Boolean(media && (!path.trim() || !pathError));
 
   const storeSelectedApp = useConsolidatedAppStore((s) => s.unifiedApps.selectedApp);
   const matchingApp = useMemo(
@@ -490,43 +485,45 @@ function ChannelModal({
 
   return (
     <>
-      <WBaseModal
-        key={`channel-modal-${channelId}`} // Force remount when channel changes
-        title="Configure Channel"
-        onClose={onClose}
-        maxWidth="1160px"
-        footerContent={footerContent}
+      <WeeChannelModal
+        key={`channel-modal-${channelId}`}
         isOpen={isOpen}
+        onClose={onClose}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        headerTitle={headerTitle}
+        statusReady={statusReady}
+        footerContent={footerContent}
+        maxWidth="min(1400px, 96vw)"
       >
-        <div className="channel-sticky-tabs">
-          <ChannelModalTabNav activeTab={activeTab} onTabChange={setActiveTab} />
-        </div>
-
-        <div className="channel-scroll-body">
+        <div className="channel-modal-wee-inner min-w-0">
           {activeTab === 'setup' && (
             <ChannelModalSetupTab
               pathCardContent={
-                <>
-                  <ChannelModalUnifiedPathBlock
-                    channelId={channelId}
-                    isOpen={isOpen}
-                    path={path}
-                    type={type}
-                    pathError={pathError}
-                    matchingApp={matchingApp}
-                    onUnifiedAppPathChange={handleUnifiedAppPathChange}
-                    onApplySmartSuggestion={handleApplySmartSuggestion}
-                    onApplySuggestedMedia={setMedia}
-                    onSelectFromLibrary={handleImageSelect}
-                    onUploadToLibraryAndChannel={handleUploadToLibraryAndChannel}
-                    libraryUploading={libraryUploading}
-                    onRemoveMedia={handleRemoveImage}
-                    media={media}
-                    mediaUploadHint={mediaUploadHint}
-                    setMediaUploadHint={setMediaUploadHint}
-                  />
-                </>
+                <ChannelModalUnifiedPathBlock
+                  channelId={channelId}
+                  isOpen={isOpen}
+                  path={path}
+                  type={type}
+                  pathError={pathError}
+                  matchingApp={matchingApp}
+                  onUnifiedAppPathChange={handleUnifiedAppPathChange}
+                  onApplySmartSuggestion={handleApplySmartSuggestion}
+                  onApplySuggestedMedia={setMedia}
+                  onSelectFromLibrary={handleImageSelect}
+                  onUploadToLibraryAndChannel={handleUploadToLibraryAndChannel}
+                  libraryUploading={libraryUploading}
+                  onRemoveMedia={handleRemoveImage}
+                  media={media}
+                  mediaUploadHint={mediaUploadHint}
+                  setMediaUploadHint={setMediaUploadHint}
+                />
               }
+            />
+          )}
+
+          {activeTab === 'suggested' && (
+            <ChannelModalSuggestedTab
               suggestedGames={
                 <ChannelModalSuggestedGames
                   isOpen={isOpen}
@@ -582,7 +579,7 @@ function ChannelModal({
             />
           )}
         </div>
-      </WBaseModal>
+      </WeeChannelModal>
     </>
   );
 }

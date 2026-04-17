@@ -1,0 +1,214 @@
+.space-boot-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.space-boot-loader__halo {
+  position: absolute;
+  width: clamp(140px, 14vw, 220px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle,
+      hsl(var(--wii-blue) / 0.28) 0%,
+      hsl(var(--wii-blue) / 0.08) 40%,
+      hsl(var(--wii-blue) / 0) 72%
+    );
+  filter: blur(0.5px);
+  animation: spaceBootHaloPulse 1500ms ease-in-out infinite;
+}
+
+.space-boot-loader__ring {
+  position: absolute;
+  width: clamp(84px, 8.2vw, 124px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--wii-blue) / 0.24);
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--color-pure-white) / 0.22),
+    0 0 22px hsl(var(--wii-blue) / 0.18);
+  animation: spaceBootRingSpin 1900ms linear infinite;
+}
+
+.space-boot-loader__core {
+  position: relative;
+  width: clamp(64px, 8vw, 104px);
+  aspect-ratio: 1;
+}
+
+.space-boot-loader__dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(12px, 1.2vw, 18px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      180deg,
+      hsl(var(--color-pure-white) / 0.96),
+      hsl(var(--wii-blue) / 0.75)
+    );
+  box-shadow:
+    0 0 0 1px hsl(var(--border-primary) / 0.4),
+    0 6px 16px hsl(var(--wii-blue) / 0.28);
+  transform: translate(-50%, -50%);
+}
+
+.space-boot-loader__dot--a {
+  animation: spaceBootOrbitA 1020ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.space-boot-loader__dot--b {
+  animation: spaceBootOrbitB 1200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.space-boot-loader__dot--c {
+  animation: spaceBootOrbitC 1360ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.space-boot-loader__sparkles {
+  position: absolute;
+  width: clamp(148px, 14vw, 224px);
+  aspect-ratio: 1;
+}
+
+.space-boot-loader__sparkle {
+  position: absolute;
+  width: clamp(6px, 0.7vw, 10px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: hsl(var(--color-pure-white) / 0.92);
+  box-shadow: 0 0 10px hsl(var(--wii-blue) / 0.35);
+  opacity: 0;
+}
+
+.space-boot-loader__sparkle--a {
+  top: 12%;
+  left: 68%;
+  animation: spaceBootSparkleA 1200ms ease-in-out infinite;
+}
+
+.space-boot-loader__sparkle--b {
+  top: 64%;
+  left: 16%;
+  animation: spaceBootSparkleB 1460ms ease-in-out infinite;
+}
+
+.space-boot-loader__sparkle--c {
+  top: 78%;
+  left: 70%;
+  animation: spaceBootSparkleC 1320ms ease-in-out infinite;
+}
+
+@keyframes spaceBootHaloPulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.62;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+}
+
+@keyframes spaceBootRingSpin {
+  0% {
+    transform: rotate(0deg) scale(0.96);
+    opacity: 0.78;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.02);
+    opacity: 0.95;
+  }
+  100% {
+    transform: rotate(360deg) scale(0.96);
+    opacity: 0.78;
+  }
+}
+
+@keyframes spaceBootOrbitA {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate(0px, -26px) scale(0.95);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(22px, 12px) scale(1.12);
+  }
+}
+
+@keyframes spaceBootOrbitB {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate(-24px, 8px) scale(0.94);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(8px, -24px) scale(1.1);
+  }
+}
+
+@keyframes spaceBootOrbitC {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate(19px, 16px) scale(0.9);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(-18px, -14px) scale(1.08);
+  }
+}
+
+@keyframes spaceBootSparkleA {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.96;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes spaceBootSparkleB {
+  0%,
+  100% {
+    opacity: 0.24;
+    transform: scale(0.82);
+  }
+  45% {
+    opacity: 0.85;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes spaceBootSparkleC {
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: scale(0.78);
+  }
+  55% {
+    opacity: 0.92;
+    transform: scale(1.22);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .space-boot-loader__halo,
+  .space-boot-loader__ring,
+  .space-boot-loader__dot,
+  .space-boot-loader__sparkle {
+    animation: none !important;
+  }
+
+  .space-boot-loader__sparkle {
+    opacity: 0.6;
+  }
+}

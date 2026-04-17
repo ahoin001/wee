@@ -1,3 +1,5 @@
+import { clampPageIndex, DEFAULT_CHANNEL_NAVIGATION, WII_LAYOUT_PRESET } from './channelLayoutSystem';
+
 /**
  * Channel grid data is scoped per shell space: `home` vs `workspaces` (not Game Hub).
  * Home lives in `dataBySpace.home`.
@@ -62,6 +64,44 @@ export function createDefaultChannelSpaceData() {
   };
 }
 
+export function normalizeChannelSpaceData(raw) {
+  const base = createDefaultChannelSpaceData();
+  const incoming = raw && typeof raw === 'object' ? raw : {};
+  const incomingNav = incoming.navigation && typeof incoming.navigation === 'object' ? incoming.navigation : {};
+
+  const totalPages = WII_LAYOUT_PRESET.totalPages;
+  const currentPage = clampPageIndex(
+    incomingNav.currentPage ?? DEFAULT_CHANNEL_NAVIGATION.currentPage,
+    totalPages
+  );
+
+  return {
+    ...base,
+    ...incoming,
+    gridColumns: WII_LAYOUT_PRESET.columns,
+    gridRows: WII_LAYOUT_PRESET.rows,
+    totalChannels: WII_LAYOUT_PRESET.columns * WII_LAYOUT_PRESET.rows * WII_LAYOUT_PRESET.totalPages,
+    configuredChannels:
+      incoming.configuredChannels && typeof incoming.configuredChannels === 'object'
+        ? incoming.configuredChannels
+        : base.configuredChannels,
+    channelConfigs:
+      incoming.channelConfigs && typeof incoming.channelConfigs === 'object'
+        ? incoming.channelConfigs
+        : base.channelConfigs,
+    navigation: {
+      ...base.navigation,
+      ...incomingNav,
+      mode: 'wii',
+      totalPages,
+      currentPage,
+      animationType: 'slide',
+      animationDuration: 500,
+      enableSlideAnimation: true,
+    },
+  };
+}
+
 /**
  * Channel grid for the second shell space (rail id `workspaces`), from the active profile.
  */
@@ -73,9 +113,9 @@ export function getSecondaryChannelSpaceData(channels) {
   const profiles = channels.secondaryChannelProfiles || {};
   const entry = profiles[id];
   if (entry && typeof entry.channelSpace === 'object') {
-    return entry.channelSpace;
+    return normalizeChannelSpaceData(entry.channelSpace);
   }
-  return channels.dataBySpace?.workspaces || createDefaultChannelSpaceData();
+  return normalizeChannelSpaceData(channels.dataBySpace?.workspaces || createDefaultChannelSpaceData());
 }
 
 export function getChannelDataSlice(channels, spaceKey) {
@@ -83,7 +123,7 @@ export function getChannelDataSlice(channels, spaceKey) {
   if (key === 'workspaces') {
     return getSecondaryChannelSpaceData(channels);
   }
-  return channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
+  return normalizeChannelSpaceData(channels?.dataBySpace?.[key] || createDefaultChannelSpaceData());
 }
 
 /**
@@ -119,9 +159,9 @@ export function normalizeSecondaryChannelProfiles(channels) {
 
   const activeEntry = profiles[activeId];
   const activeSpace = activeEntry?.channelSpace
-    ? JSON.parse(JSON.stringify(activeEntry.channelSpace))
+    ? normalizeChannelSpaceData(JSON.parse(JSON.stringify(activeEntry.channelSpace)))
     : legacyWs && typeof legacyWs === 'object'
-      ? JSON.parse(JSON.stringify(legacyWs))
+      ? normalizeChannelSpaceData(JSON.parse(JSON.stringify(legacyWs)))
       : JSON.parse(JSON.stringify(empty));
 
   return {
@@ -130,7 +170,7 @@ export function normalizeSecondaryChannelProfiles(channels) {
     activeSecondaryChannelProfileId: activeId,
     dataBySpace: {
       ...channels.dataBySpace,
-      home: channels.dataBySpace?.home || empty,
+      home: normalizeChannelSpaceData(channels.dataBySpace?.home || empty),
       workspaces: activeSpace,
     },
   };

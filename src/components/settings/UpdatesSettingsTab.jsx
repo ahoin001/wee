@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
+import SettingsWeeSection from './SettingsWeeSection';
 
 const RELEASES_URL = 'https://github.com/ahoin001/wee/releases';
 
@@ -116,8 +117,8 @@ const UpdatesSettingsTab = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
-      {/* Version & Update Status */}
+    <div className="max-w-3xl space-y-8">
+      <SettingsWeeSection eyebrow="Version & updates">
       <Card>
         <div className="p-6">
           <Text variant="h3" className="mb-6">Version & Updates</Text>
@@ -157,8 +158,8 @@ const UpdatesSettingsTab = () => {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 dark:bg-red-900/20 dark:border-red-800">
-                <Text variant="body" className="text-red-600 dark:text-red-400">
+              <div className="rounded-lg border border-[hsl(var(--state-danger)/0.35)] bg-[hsl(var(--state-danger)/0.08)] p-3">
+                <Text variant="body" className="text-[hsl(var(--state-danger))]">
                   {error}
                 </Text>
               </div>
@@ -180,8 +181,8 @@ const UpdatesSettingsTab = () => {
                 {updateAvailable ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <Text variant="body" className="text-green-600 dark:text-green-400">
+                      <div className="h-2 w-2 rounded-full bg-[hsl(var(--state-success))]" />
+                      <Text variant="body" className="text-[hsl(var(--state-success))]">
                         Update available!
                       </Text>
                     </div>
@@ -213,9 +214,9 @@ const UpdatesSettingsTab = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <Text variant="body" className="text-green-600 dark:text-green-400">
-                      You're running the latest version!
+                    <div className="h-2 w-2 rounded-full bg-[hsl(var(--state-success))]" />
+                    <Text variant="body" className="text-[hsl(var(--state-success))]">
+                      You&apos;re running the latest version!
                     </Text>
                   </div>
                 )}
@@ -224,8 +225,9 @@ const UpdatesSettingsTab = () => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
 
-      {/* Manual Download & Settings */}
+      <SettingsWeeSection eyebrow="More options">
       <Card>
         <div className="p-6">
           <Text variant="h3" className="mb-6">Additional Options</Text>
@@ -255,6 +257,7 @@ const UpdatesSettingsTab = () => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
     </div>
   );
 };

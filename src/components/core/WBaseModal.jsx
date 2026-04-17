@@ -1,8 +1,11 @@
-import React, { Fragment, useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
-import { Dialog, Transition } from '@headlessui/react';
+import { Dialog } from '@headlessui/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../../ui/WButton';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import { PLAYFUL_SPRINGS, PLAYFUL_VARIANTS } from '../../design/playfulMotion';
 
 function WBaseModal({ 
   title, 
@@ -13,53 +16,50 @@ function WBaseModal({
   maxWidth = '1200px',
   isOpen = true
 }) {
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsAnimating(true);
-    } else {
-      setIsAnimating(false);
-    }
-  }, [isOpen]);
+  const sharedPlayfulSpring = PLAYFUL_SPRINGS.navLayout;
+  const { modalSpringTransitions, modalStaggeredEntrance } = useMotionFeedback();
 
   const handleClose = useCallback(() => {
-    setIsAnimating(false);
-    // Wait for close animation to complete
-    setTimeout(() => {
-      onClose();
-    }, 300);
+    onClose();
   }, [onClose]);
 
   const modalTree = (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-[99999]" onClose={handleClose}>
+    <AnimatePresence>
+      {isOpen && (
+      <Dialog as="div" className="relative z-[99999]" open={isOpen} onClose={handleClose}>
         {/* Full-screen overlay: captures pointer events (not clipped by transformed ancestors) */}
         <div className="fixed inset-0 z-[99998] pointer-events-auto">
-          <div
-            className={`fixed inset-0 bg-[hsl(var(--bg-overlay))] backdrop-blur-[4px] transition-opacity duration-300 ${
-              isAnimating ? 'opacity-100' : 'opacity-0'
-            }`}
+          <motion.div
+            className="fixed inset-0 bg-[hsl(var(--bg-overlay))] backdrop-blur-[8px]"
             aria-hidden="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={modalSpringTransitions ? sharedPlayfulSpring : { duration: 0.2 }}
           />
         </div>
 
         {/* Modal */}
         <div className="fixed inset-0 z-[99999] overflow-y-auto pointer-events-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <Dialog.Panel 
-              className={`w-[95%] max-h-[85vh] min-w-[800px] bg-[hsl(var(--surface-primary))] rounded-xl shadow-[var(--shadow-xl)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[600px] md:w-[95%] md:min-w-[400px] sm:w-[98%] sm:min-w-[320px] relative z-[99999] ${className}`}
-              style={{ 
-                maxWidth,
-                animation: isAnimating 
-                  ? 'modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-                  : 'modalSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-              }}
+            <Dialog.Panel
+              as={motion.div}
+              className={`w-[95%] max-h-[85vh] min-w-[800px] bg-[hsl(var(--surface-primary))] rounded-[2.2rem] border-[3px] border-[hsl(var(--color-pure-white)/0.85)] shadow-[var(--playful-shadow-elevated)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[600px] md:w-[95%] md:min-w-[400px] sm:w-[98%] sm:min-w-[320px] relative z-[99999] ${className}`}
+              style={{ maxWidth }}
+              initial={PLAYFUL_VARIANTS.modalPanelInitial}
+              animate={PLAYFUL_VARIANTS.modalPanelAnimate}
+              exit={PLAYFUL_VARIANTS.modalPanelExit}
+              transition={modalSpringTransitions ? sharedPlayfulSpring : { duration: 0.22 }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="flex justify-between items-center p-6 border-b border-[hsl(var(--border-primary))]">
-                <Dialog.Title as="h2" className="m-0 text-2xl font-semibold text-[hsl(var(--text-primary))]">
+              <motion.div
+                className="flex justify-between items-center p-7 border-b-[3px] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.72)]"
+                initial={modalStaggeredEntrance ? { opacity: 0, y: -8 } : false}
+                animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
+                transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.04 } : undefined}
+              >
+                <Dialog.Title as="h2" className="m-0 playful-hero-text text-[hsl(var(--text-primary))]">
                   {title}
                 </Dialog.Title>
                 <Button 
@@ -69,24 +69,35 @@ function WBaseModal({
                 >
                   ×
                 </Button>
-              </div>
+              </motion.div>
 
               {/* Content */}
-              <div className="p-6 overflow-y-auto flex-1 min-h-0 scrollbar-soft scroll-region-inset pb-10">
+              <motion.div
+                className="p-7 overflow-y-auto flex-1 min-h-0 scrollbar-soft scroll-region-inset pb-10"
+                initial={modalStaggeredEntrance ? { opacity: 0, y: 8 } : false}
+                animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
+                transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.08 } : undefined}
+              >
                 {children}
-              </div>
+              </motion.div>
 
               {/* Footer */}
               {footerContent && (
-                <div className="flex justify-end items-center px-8 py-4 gap-4 min-h-16 sticky bottom-0 left-0 right-0 z-10 bg-[hsl(var(--surface-secondary))] border-t border-[hsl(var(--border-primary))] shadow-[var(--shadow-sm)]">
+                <motion.div
+                  className="flex justify-end items-center px-8 py-5 gap-4 min-h-16 sticky bottom-0 left-0 right-0 z-10 bg-[hsl(var(--surface-secondary))] border-t-[3px] border-[hsl(var(--border-primary))] shadow-[var(--playful-inner-glow)]"
+                  initial={modalStaggeredEntrance ? { opacity: 0, y: 10 } : false}
+                  animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
+                  transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.14 } : undefined}
+                >
                   {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
-                </div>
+                </motion.div>
               )}
             </Dialog.Panel>
           </div>
         </div>
       </Dialog>
-    </Transition>
+      )}
+    </AnimatePresence>
   );
 
   if (typeof document === 'undefined') {

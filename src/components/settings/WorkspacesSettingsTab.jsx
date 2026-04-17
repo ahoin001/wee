@@ -15,6 +15,7 @@ import { normalizeWorkspacesState, removeWorkspaceById } from '../../utils/works
 import { MAX_SAVED_WORKSPACES } from '../../utils/workspaces/workspaceConstants';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import SecondaryChannelProfilesCard from './SecondaryChannelProfilesCard';
+import SettingsWeeSection from './SettingsWeeSection';
 import './surfaceStyles.css';
 
 const WorkspacesSettingsTab = React.memo(() => {
@@ -158,9 +159,10 @@ const WorkspacesSettingsTab = React.memo(() => {
   };
 
   return (
-    <div className="surface-stack">
+    <div className="surface-stack max-w-3xl space-y-8">
       <SecondaryChannelProfilesCard />
 
+      <SettingsWeeSection eyebrow="Create">
       <Card
         title="Workspace manager"
         desc="Save complete environments (wallpaper, colors, channels, and sounds) and swap instantly."
@@ -185,7 +187,9 @@ const WorkspacesSettingsTab = React.memo(() => {
           </p>
         </div>
       </Card>
+      </SettingsWeeSection>
 
+      <SettingsWeeSection eyebrow="Saved">
       <Card title="Saved workspaces" desc="Apply, update, rename, and delete your workspace modes.">
         <div className="grid gap-3 md:grid-cols-2">
           {normalized.items.map((workspace) => {
@@ -248,7 +252,9 @@ const WorkspacesSettingsTab = React.memo(() => {
           )}
         </div>
       </Card>
+      </SettingsWeeSection>
 
+      <SettingsWeeSection eyebrow="Presets">
       <Card
         title="Preset to workspace"
         desc="Apply a preset look and immediately save that look into your active workspace."
@@ -276,6 +282,7 @@ const WorkspacesSettingsTab = React.memo(() => {
           </p>
         </div>
       </Card>
+      </SettingsWeeSection>
 
       {statusText && <p className="text-sm text-[hsl(var(--text-secondary))]">{statusText}</p>}
     </div>

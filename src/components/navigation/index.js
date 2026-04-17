@@ -9,5 +9,4 @@ export { ChannelReorderVfxPortal, measureChannelSlotCenter } from './ChannelReor
 export {
   PlayfulPressSurface,
   PlayfulTapLayer,
-  playfulTapSpring,
 } from './PlayfulInteractionMotion';

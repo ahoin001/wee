@@ -26,6 +26,7 @@
   --hub-hero-collapsed: clamp(88px, 11vh, 120px);
   --hub-hero-below-gap: clamp(1.35rem, 3vw, 2.5rem);
   --hub-dock-inset: 0px;
+  --hub-morph-sticky-top: 96px;
 
   position: relative;
   display: flex;
@@ -63,6 +64,26 @@
   }
 }
 
+/* Wide dock-morph layout: allow hub column to use more horizontal space than legacy cap. */
+.aura-hub-stage--dock-morph {
+  --hub-column-max: min(100%, min(94vw, 1560px));
+  /* Tighter gap under overlay hero (padding already reserves hero height). */
+  --hub-hero-below-gap: clamp(0.45rem, 1vw, 0.75rem);
+  --hub-dock-lane-gap: 40px;
+}
+
+@media (max-width: 1600px) {
+  .aura-hub-stage--dock-morph {
+    --hub-column-max: min(100%, min(92vw, 1380px));
+  }
+}
+
+@media (max-width: 1280px) {
+  .aura-hub-stage--dock-morph {
+    --hub-column-max: min(100%, min(92vw, 1180px));
+  }
+}
+
 /* Column: hero overlays top; scroll lives in main with top padding (hub-design pattern) */
 .aura-hub-column {
   position: relative;
@@ -74,6 +95,133 @@
   width: 100%;
   max-width: var(--hub-column-max);
   margin-inline: auto;
+}
+
+/* Wide layout: scroll-morph hero docks into a right-hand lane (library max-width squeezes). */
+.aura-hub-column--dock-morph {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--hub-column-max);
+  margin-inline: auto;
+}
+
+/* Library left, dock lane right; dock card top-aligned (upper-right of library block). */
+.aura-hub-morph-stack {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: var(--hub-dock-lane-gap, 40px);
+  width: 100%;
+  min-height: 0;
+}
+
+.aura-hub-dock-rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-self: flex-start;
+  position: sticky;
+  top: var(--hub-morph-sticky-top, 96px);
+  flex: 0 0 auto;
+  overflow: hidden;
+  z-index: 14;
+  pointer-events: none;
+  max-width: min(100%, calc(var(--hub-dock-lane-gap, 40px) + 420px));
+}
+
+.aura-hub-dock-rail .aura-hub-hero-sticky-wrap {
+  pointer-events: auto;
+}
+
+.aura-hub-hero-sticky-wrap {
+  position: relative;
+  flex-shrink: 0;
+  transform-origin: right center;
+  pointer-events: none;
+}
+
+.aura-hub-hero-sticky-wrap .aura-hub-hero-shell--morph {
+  pointer-events: auto;
+}
+
+.aura-hub-hero-shell--morph {
+  position: relative;
+  height: 0;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 3px solid hsl(var(--border-primary) / 0.38);
+  box-shadow: var(--playful-shadow-elevated), var(--playful-inner-glow);
+  background: hsl(var(--surface-primary) / 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-hub-hero-shell--morph {
+    transition: none;
+  }
+}
+
+.aura-hub-hero-shell--morph .aura-hub-hero {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Dimmed “wallpaper” in dock card: stronger scrim + darker art so UI reads clearly. */
+.aura-hub-hero-shell--morph .aura-hub-hero__media-layer--base {
+  filter: saturate(1.05) brightness(0.48);
+}
+
+.aura-hub-hero-shell--morph .aura-hub-hero__media-layer--overlay {
+  filter: saturate(1.05) brightness(0.48);
+}
+
+.aura-hub-hero-shell--morph .aura-hub-hero__media-stack::after {
+  background: linear-gradient(
+    to top,
+    hsl(var(--color-pure-black) / 0.88) 0%,
+    hsl(var(--color-pure-black) / 0.42) 42%,
+    hsl(var(--color-pure-black) / 0.14) 100%
+  );
+  opacity: 1;
+}
+
+.aura-hub-content--dock-morph {
+  box-sizing: border-box;
+  position: relative;
+  z-index: 6;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-anchor: none;
+  /* Match legacy .aura-hub-content: reserve space under overlay hero + collections scroll. */
+  padding: calc(var(--hub-hero-expanded) + var(--hub-hero-below-gap)) clamp(1rem, 3.2vw, 2.25rem)
+    calc(clamp(4.5rem, 9vw, 7.5rem) + var(--hub-dock-inset, 0px));
+  scrollbar-width: none;
+  scroll-snap-type: y proximity;
+  background: transparent;
+  box-shadow: none;
+  scroll-padding-top: calc(var(--hub-hero-expanded) + 10px);
+}
+
+.aura-hub-content--dock-morph::-webkit-scrollbar {
+  display: none;
+}
+
+.aura-hub-morph-main {
+  flex: 1 1 auto;
+  margin-left: 0;
+  margin-right: 0;
+  min-width: 0;
+}
+
+.aura-hub-stage--dock-morph #game-hub-collections,
+.aura-hub-stage--dock-morph #game-hub-library {
+  scroll-margin-top: calc(var(--hub-hero-expanded) + 12px);
 }
 
 /* Backdrop off: no frosted panel — tiles float over the app wallpaper only */
@@ -95,6 +243,11 @@
   right: 0;
   z-index: 10;
   pointer-events: none;
+}
+
+/* Dock-morph overlay: Framer may set pointer-events inline for crossfade pass-through. */
+.aura-hub-hero-wrap--dock-overlay {
+  z-index: 11;
 }
 
 /* Hero overlays scroll root (not in flow); height transitions when stage gets --scrolled */
@@ -124,15 +277,36 @@
   position: absolute;
   inset: 0;
   z-index: 2;
+  pointer-events: none;
+}
+
+.aura-hub-backdrop__layer {
+  position: absolute;
+  inset: 0;
   background-size: cover;
   background-position: center;
   filter: brightness(0.92) saturate(1.08);
 }
 
-/* Removed left-edge vignette — was darkening the main stage on the left */
-.aura-hub-backdrop::after {
-  content: '';
-  display: none;
+.aura-hub-backdrop__layer--base {
+  opacity: 1;
+}
+
+.aura-hub-backdrop__layer--overlay {
+  opacity: 0;
+  transform-origin: center center;
+  will-change: opacity, transform;
+}
+
+/* Match shell space-switch feel / PS5-style calm fade when hero selection changes. */
+.aura-hub-space--effects .aura-hub-backdrop__layer--overlay {
+  transition:
+    opacity 720ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aura-hub-space--static .aura-hub-backdrop__layer--overlay {
+  transition: none;
 }
 
 .aura-hub-scroll-anchors {
@@ -404,6 +578,114 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.5rem clamp(1.15rem, 3.5vw, 2rem) 1.35rem clamp(1.15rem, 3.5vw, 2rem);
+}
+
+/* Dock morph: cross-fade banner vs docked info (scroll-linked opacity from Framer). */
+.aura-hub-hero--morph .aura-hub-hero__content {
+  display: block;
+  padding: 0;
+  min-height: 0;
+}
+
+.aura-hub-hero__banner-layer,
+.aura-hub-hero__dock-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: clamp(0.85rem, 2.2vw, 1.35rem) clamp(1rem, 3vw, 1.5rem) clamp(1rem, 2.5vw, 1.35rem);
+  pointer-events: none;
+}
+
+.aura-hub-hero__banner-layer .aura-hub-hero__meta-tilt,
+.aura-hub-hero__dock-layer .aura-hub-hero__dock-inner {
+  pointer-events: auto;
+}
+
+.aura-hub-hero__dock-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 0;
+  width: 100%;
+}
+
+.aura-hub-hero__dock-head {
+  margin-bottom: 0.15rem;
+}
+
+.aura-hub-hero__dock-eyebrow {
+  margin: 0 0 0.35rem;
+  opacity: 0.85;
+}
+
+.aura-hub-hero__dock-title {
+  margin: 0;
+  font-size: clamp(1rem, 2.8vw, 1.35rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: hsl(var(--text-primary));
+  text-shadow:
+    0 1px 0 hsl(var(--color-pure-black) / 0.25),
+    0 2px 14px hsl(var(--color-pure-black) / 0.55);
+}
+
+.aura-hub-hero__dock-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.aura-hub-hero__dock-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.85rem;
+  border: 2px solid hsl(var(--border-primary) / 0.55);
+  background: hsl(var(--surface-primary) / 0.82);
+  box-shadow: var(--playful-inner-glow);
+}
+
+.aura-hub-hero__dock-stat-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--text-secondary));
+}
+
+.aura-hub-hero__dock-stat-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-style: italic;
+  color: hsl(var(--text-primary));
+  text-align: right;
+}
+
+.aura-hub-hero__dock-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: hsl(var(--color-pure-white) / 0.82);
+}
+
+.aura-hub-hero__dock-launch {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.aura-hub-hero--morph .aura-hub-rail {
+  z-index: 15;
 }
 
 .aura-hub-btn {

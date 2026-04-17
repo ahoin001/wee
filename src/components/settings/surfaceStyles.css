@@ -112,7 +112,7 @@
   padding: 8px 12px;
   border: 1px solid hsl(var(--border-primary));
   border-radius: 6px;
-  background: hsl(var(--surface-primary));
+  background: hsl(var(--wee-surface-input));
   color: hsl(var(--text-primary));
 }
 

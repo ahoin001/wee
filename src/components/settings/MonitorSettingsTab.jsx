@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
-import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
+import Text from '../../ui/Text';
+import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
 
 const MonitorSettingsTab = React.memo(({ setShowMonitorModal }) => {
   const handleOpenMonitorSettings = useCallback(() => {
@@ -8,40 +9,28 @@ const MonitorSettingsTab = React.memo(({ setShowMonitorModal }) => {
   }, [setShowMonitorModal]);
 
   return (
-    <div>
-      <Card
-        title="Monitor Settings"
-        separator
-        desc="Configure which monitor the launcher appears on and manage multi-monitor preferences."
-        actions={
-          <div style={{ marginTop: 14 }}>
-            <Button
-              variant="secondary"
-              onClick={handleOpenMonitorSettings}
-              style={{ marginBottom: 8 }}
-            >
-              📺 Open Monitor Settings
-            </Button>
-            <div style={{ 
-              fontSize: '13px', 
-              color: 'hsl(var(--text-secondary))', 
-              marginTop: '8px',
-              padding: '12px',
-              background: 'hsl(var(--surface-secondary))',
-              borderRadius: '6px',
-              border: '1px solid hsl(var(--border-primary))'
-            }}>
-              <strong>💡 Tip:</strong> Use the monitor settings to choose which display the launcher appears on. 
-              You can set it to always use the primary monitor, secondary monitor, or remember your last choice.
-            </div>
+    <div className="mx-auto max-w-3xl">
+      <WeeModalFieldCard>
+        <Text variant="h3" className="m-0">
+          Monitor settings
+        </Text>
+        <Text variant="body" className="mt-2 text-[hsl(var(--text-secondary))]">
+          Configure which monitor the launcher appears on and manage multi-monitor preferences.
+        </Text>
+        <div className="mt-6 flex flex-col gap-3">
+          <Button variant="secondary" onClick={handleOpenMonitorSettings} className="w-full sm:w-auto">
+            Open monitor settings
+          </Button>
+          <div className="rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] p-3 text-[13px] text-[hsl(var(--text-secondary))]">
+            <strong className="text-[hsl(var(--text-primary))]">Tip:</strong> Choose which display the launcher uses
+            (primary, secondary, or remember last choice).
           </div>
-        }
-        style={{ marginBottom: '20px' }}
-      />
+        </div>
+      </WeeModalFieldCard>
     </div>
   );
 });
 
 MonitorSettingsTab.displayName = 'MonitorSettingsTab';
 
-export default MonitorSettingsTab; 
+export default MonitorSettingsTab;

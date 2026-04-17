@@ -26,6 +26,10 @@ export function useMotionFeedback() {
       channelReorderSlotMotion: !off && prefs.channels.reorderSlotMotion,
       dockPress: !off && prefs.dock.press,
       ribbonTap: !off && prefs.ribbon.tap,
+      modalSpringTransitions: !off && prefs.modals.springTransitions,
+      modalStaggeredEntrance: !off && prefs.modals.staggeredEntrance,
+      gooeyHighlights: !off && prefs.effects.gooeyHighlights,
+      iconTilt: !off && prefs.effects.iconTilt,
     };
   }, [osReduced, prefs]);
 }

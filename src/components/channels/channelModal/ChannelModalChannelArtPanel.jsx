@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useId } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { Upload } from 'lucide-react';
 import Text from '../../../ui/Text';
-import WButton from '../../../ui/WButton';
-import Card from '../../../ui/Card';
+import { WeeButton, WeeModalFieldCard, WeeSegmentedControl, WeeSectionEyebrow } from '../../../ui/wee';
+import { useWeeMotion } from '../../../design/weeMotion';
 import MediaLibraryBrowser from '../../media/MediaLibraryBrowser';
 import ChannelModalInlineMediaSuggestions, {
   deriveChannelArtSearchQuery,
@@ -34,7 +35,7 @@ function ChannelModalChannelArtPanel({
   onSelectFromLibrary,
   onUploadToLibraryAndChannel,
   libraryUploading,
-  onRemoveMedia,
+  onRemoveMedia: _onRemoveMedia,
   mediaUploadHint,
   setMediaUploadHint,
 }) {
@@ -62,6 +63,10 @@ function ChannelModalChannelArtPanel({
   /** Last resolved media URL — collapse Library/Upload when URL changes to a new pick (incl. picks with no loading state). */
   const prevResolvedMediaUrlRef = useRef(null);
   const reduceMotion = useReducedMotion();
+  const { tabTransition } = useWeeMotion();
+  const uploadFieldId = useId();
+  const uploadInputClass =
+    'w-full rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-4 py-3 font-[family-name:var(--font-ui)] text-sm font-bold italic text-[hsl(var(--text-primary))] outline-none shadow-[var(--wee-shadow-field)] transition-[border-color,box-shadow] placeholder:font-[family-name:var(--font-ui)] placeholder:font-normal placeholder:not-italic placeholder:text-[hsl(var(--text-tertiary))] focus:border-[hsl(var(--border-accent))] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.12)] hover:border-[hsl(var(--wee-border-field-hover))]';
 
   /** Library / Upload UI: hidden once art is chosen so the panel stays calm; user can reopen. */
   const [artToolsExpanded, setArtToolsExpanded] = useState(
@@ -96,10 +101,8 @@ function ChannelModalChannelArtPanel({
 
   useEffect(() => () => revokePreview(), [revokePreview]);
 
-  const handlePickFile = useCallback(
-    (e) => {
-      const file = e.target.files?.[0];
-      if (e.target) e.target.value = '';
+  const applyPickedFile = useCallback(
+    (file) => {
       revokePreview();
       setUploadFile(null);
       if (!file) return;
@@ -117,6 +120,25 @@ function ChannelModalChannelArtPanel({
     [revokePreview, setMediaUploadHint]
   );
 
+  const handlePickFile = useCallback(
+    (e) => {
+      const file = e.target.files?.[0];
+      if (e.target) e.target.value = '';
+      applyPickedFile(file);
+    },
+    [applyPickedFile]
+  );
+
+  const handleUploadDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const file = e.dataTransfer?.files?.[0];
+      applyPickedFile(file);
+    },
+    [applyPickedFile]
+  );
+
   const { handleRefresh, fetchPage: _omitFetch, ...browserForLibrary } = browser;
 
   const handleSubmitUpload = useCallback(async () => {
@@ -130,9 +152,6 @@ function ChannelModalChannelArtPanel({
     setArtSubTabPersist('library');
     await handleRefresh();
   }, [uploadFile, uploadTitle, onUploadToLibraryAndChannel, revokePreview, handleRefresh, setArtSubTabPersist]);
-
-  const tabTransition = reduceMotion ? { duration: 0 } : { duration: 0.24, ease: [0.22, 1, 0.36, 1] };
-  const previewTransition = reduceMotion ? { duration: 0 } : { duration: 0.28, ease: [0.16, 1, 0.3, 1] };
 
   const mediaLabel =
     media?.name || (typeof media?.type === 'string' && media.type.startsWith('video') ? 'Video' : 'Image');
@@ -149,110 +168,94 @@ function ChannelModalChannelArtPanel({
         <Text variant="desc" className="block text-[hsl(var(--text-secondary))]">
           Pick art from suggestions or your library—or upload once and we apply it here.
         </Text>
-      ) : (
-        <Text variant="desc" className="block text-[hsl(var(--text-secondary))]">
-          Here&apos;s what will show on your channel. Change it anytime.
-        </Text>
-      )}
+      ) : null}
 
       <AnimatePresence>
         {media && !media.loading ? (
           <motion.div
             key="channel-art-preview"
-            className="channel-art-panel__preview"
-            initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0, scale: 0.98 }}
-            transition={previewTransition}
+            className="rounded-2xl border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] p-3 shadow-[var(--shadow-card)] sm:p-5"
+            initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -8, scale: 0.98 }}
+            transition={tabTransition}
+            layout
           >
-            <div className="channel-art-panel__preview-inner">
-              <div className="channel-art-panel__preview-thumb">
+            <div className="flex min-w-0 flex-nowrap items-center gap-3 sm:gap-5">
+              <div className="relative h-[72px] w-[140px] max-h-[28vh] shrink-0 -rotate-2 overflow-hidden rounded-[16px] border-4 border-[hsl(var(--wee-border-outer))] shadow-[var(--shadow-card)] sm:h-[80px] sm:w-[156px]">
                 {media.type?.startsWith?.('image/') || media.type === 'image' ? (
-                  <img src={media.url} alt="" />
+                  <img src={media.url} alt="" className="h-full w-full object-cover" />
                 ) : media.type?.startsWith?.('video/') || media.type === 'video' || media.type === 'gif' ? (
-                  <video src={media.url} autoPlay loop muted playsInline />
+                  <video src={media.url} className="h-full w-full object-cover" autoPlay loop muted playsInline />
                 ) : null}
               </div>
-              <div className="channel-art-panel__preview-copy">
-                <div className="channel-art-panel__preview-kicker">
-                  Channel art
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <div className="mb-0.5 flex flex-nowrap items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[hsl(var(--primary))]">
+                    Active asset
+                  </span>
                   {media.temporary ? (
-                    <span className="ml-2 rounded bg-[hsl(var(--state-warning)/0.2)] px-1.5 py-0.5 text-[0.6rem] font-bold text-[hsl(var(--state-warning))]">
+                    <span className="shrink-0 rounded bg-[hsl(var(--state-warning)/0.2)] px-1.5 py-0.5 text-[0.6rem] font-bold text-[hsl(var(--state-warning))]">
                       Temp
                     </span>
                   ) : null}
                 </div>
-                <div className="channel-art-panel__preview-title">{mediaLabel}</div>
+                <div className="truncate text-lg font-black italic leading-tight text-[hsl(var(--text-primary))] sm:text-xl">
+                  {mediaLabel}
+                </div>
               </div>
-              <div className="channel-art-panel__preview-actions flex flex-wrap items-center gap-2">
-                <WButton
-                  variant="secondary"
-                  size="sm"
-                  type="button"
-                  onClick={() => setArtToolsExpanded(true)}
-                >
-                  Change channel art
-                </WButton>
-                <WButton variant="secondary" size="sm" type="button" onClick={onRemoveMedia}>
-                  Remove
-                </WButton>
-              </div>
+              <WeeButton
+                type="button"
+                variant="primary"
+                onClick={() => setArtToolsExpanded(true)}
+                className="shrink-0 !px-4 !py-2.5 sm:!px-5 sm:!py-3"
+              >
+                Change channel art
+              </WeeButton>
             </div>
           </motion.div>
         ) : media?.loading ? (
-          <div className="channel-art-panel__preview rounded-[var(--radius-lg)] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] px-4 py-3 text-sm text-[hsl(var(--text-secondary))]">
+          <div className="rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-4 py-3 text-sm text-[hsl(var(--text-secondary))] shadow-[var(--wee-shadow-field)]">
             Processing…
           </div>
         ) : null}
       </AnimatePresence>
 
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} mode="sync">
         {artToolsExpanded ? (
           <motion.div
             key="channel-art-tools"
-            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="channel-art-panel__tools"
+            initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -14, scale: 0.99 }}
+            transition={tabTransition}
+            layout
+            className="space-y-4 overflow-hidden"
           >
-            <div className="channel-art-panel__tabs" role="tablist" aria-label="Channel art source">
-              <button
-                type="button"
-                role="tab"
-                id="channel-art-tab-library"
-                aria-selected={artSubTab === 'library'}
-                aria-controls="channel-art-panel-library"
-                className="channel-art-panel__tab"
-                onClick={() => setArtSubTabPersist('library')}
-              >
-                Library
-              </button>
-              <button
-                type="button"
-                role="tab"
-                id="channel-art-tab-upload"
-                aria-selected={artSubTab === 'upload'}
-                aria-controls="channel-art-panel-upload"
-                className="channel-art-panel__tab"
-                onClick={() => setArtSubTabPersist('upload')}
-              >
-                Upload
-              </button>
-            </div>
+            <WeeSegmentedControl
+              ariaLabel="Channel art source"
+              value={artSubTab}
+              onChange={setArtSubTabPersist}
+              options={[
+                { value: 'library', label: 'Library' },
+                { value: 'upload', label: 'Upload' },
+              ]}
+              className="!flex w-full max-w-full [&>button]:min-w-0 [&>button]:flex-1"
+            />
 
-            <div className="channel-art-panel__tab-panels">
-              <AnimatePresence mode="wait">
+            <div className="relative min-h-0">
+              <AnimatePresence mode="wait" initial={false}>
                 {artSubTab === 'library' && (
                   <motion.div
                     key="library"
                     id="channel-art-panel-library"
                     role="tabpanel"
                     aria-labelledby="channel-art-tab-library"
-                    initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+                    exit={reduceMotion ? undefined : { opacity: 0, y: -10, scale: 0.995 }}
                     transition={tabTransition}
+                    layout
                     className="space-y-4"
                   >
                     <ChannelModalInlineMediaSuggestions
@@ -278,82 +281,106 @@ function ChannelModalChannelArtPanel({
                     id="channel-art-panel-upload"
                     role="tabpanel"
                     aria-labelledby="channel-art-tab-upload"
-                    initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+                    exit={reduceMotion ? undefined : { opacity: 0, y: -10, scale: 0.995 }}
                     transition={tabTransition}
+                    layout
                   >
-                    <Card className="!mt-0">
-                      <Text variant="h3" className="mb-2 mt-0 text-[0.95rem]">
-                        Upload & apply
-                      </Text>
-                      <Text variant="help" className="mb-3 block">
-                        {SUPPORTED_IMAGE_VIDEO_HINT} Saved to your media library and set as this channel&apos;s art.
+                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-6 md:p-10" className="!mt-0">
+                      <WeeSectionEyebrow className="mb-1">Upload & apply</WeeSectionEyebrow>
+                      <Text variant="help" className="mb-6 mt-2 block max-w-prose">
+                        Add a file to your library and set it as this channel&apos;s art in one step.
                       </Text>
                       {mediaUploadHint ? (
-                        <Text size="sm" className="mb-2 block" color="hsl(var(--state-warning))">
+                        <Text size="sm" className="mb-4 block" color="hsl(var(--state-warning))">
                           {mediaUploadHint}
                         </Text>
                       ) : null}
 
-                      <div className="channel-stack-8 mb-3">
+                      <div className="space-y-6">
                         <div>
-                          <Text variant="label" className="mb-1 block">
-                            Title
-                          </Text>
+                          <WeeSectionEyebrow className="mb-2">Library title</WeeSectionEyebrow>
                           <input
                             type="text"
                             value={uploadTitle}
                             onChange={(e) => setUploadTitle(e.target.value)}
                             placeholder="Name shown in your library"
-                            className="text-input w-full rounded-[var(--radius-md)] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] px-3 py-2 text-[hsl(var(--text-primary))]"
+                            className={uploadInputClass}
                           />
                         </div>
+
                         <div>
-                          <Text variant="label" className="mb-1 block">
-                            File
-                          </Text>
+                          <WeeSectionEyebrow className="mb-2">File</WeeSectionEyebrow>
                           <input
+                            id={uploadFieldId}
                             type="file"
                             accept={ACCEPT_IMAGE_OR_MP4}
                             onChange={handlePickFile}
-                            className="text-input w-full text-sm"
+                            className="sr-only"
                           />
+                          <label
+                            htmlFor={uploadFieldId}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onDrop={handleUploadDrop}
+                            className="flex min-h-[11rem] cursor-pointer flex-col items-center justify-center rounded-[var(--wee-radius-card)] border-4 border-dashed border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--wee-surface-input))] px-6 py-8 text-center transition-[border-color,background-color,box-shadow,transform] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--surface-tertiary)/0.35)] hover:shadow-[var(--shadow-sm)] motion-safe:active:scale-[0.99]"
+                          >
+                            <Upload
+                              className="mb-3 h-9 w-9 text-[hsl(var(--wee-text-rail-muted))]"
+                              strokeWidth={1.75}
+                              aria-hidden
+                            />
+                            <p className="m-0 text-[11px] font-black uppercase tracking-[0.14em] text-[hsl(var(--wee-text-header))]">
+                              Drop files or browse
+                            </p>
+                            <p className="mt-2 m-0 max-w-sm text-[10px] font-bold uppercase leading-relaxed tracking-wide text-[hsl(var(--text-tertiary))]">
+                              {SUPPORTED_IMAGE_VIDEO_HINT}
+                            </p>
+                          </label>
                         </div>
                       </div>
 
                       {uploadFile && uploadPreviewUrl ? (
-                        <div className="mb-3 overflow-hidden rounded-[var(--radius-md)] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))]">
-                          <Text variant="small" className="block border-b border-[hsl(var(--border-primary))] px-3 py-2">
+                        <motion.div
+                          layout
+                          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={tabTransition}
+                          className="mt-6 overflow-hidden rounded-2xl border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] shadow-[var(--shadow-card)]"
+                        >
+                          <Text variant="small" className="block border-b border-[hsl(var(--border-primary)/0.5)] px-4 py-2.5 font-bold uppercase tracking-wide text-[hsl(var(--text-secondary))]">
                             {uploadFile.name}
                           </Text>
-                          <div className="flex max-h-[200px] justify-center p-3">
+                          <div className="flex max-h-[220px] justify-center p-4">
                             {uploadFile.type.startsWith('video/') || /\.mp4$/i.test(uploadFile.name) ? (
                               <video
                                 src={uploadPreviewUrl}
-                                className="max-h-[180px] max-w-full rounded object-contain"
+                                className="max-h-[200px] max-w-full rounded-xl object-contain"
                                 controls
                                 muted
                                 playsInline
                               />
                             ) : (
-                              <img src={uploadPreviewUrl} alt="" className="max-h-[180px] max-w-full rounded object-contain" />
+                              <img src={uploadPreviewUrl} alt="" className="max-h-[200px] max-w-full rounded-xl object-contain" />
                             )}
                           </div>
-                        </div>
+                        </motion.div>
                       ) : null}
 
-                      <WButton
+                      <WeeButton
                         variant="primary"
-                        rounded
                         fullWidth
+                        rounded
                         disabled={libraryUploading || !uploadFile || !String(uploadTitle || '').trim()}
                         onClick={handleSubmitUpload}
-                        className="text-text-on-accent"
+                        className="mt-8 !py-4 text-[hsl(var(--text-on-accent))]"
                       >
                         {libraryUploading ? 'Uploading…' : 'Upload & apply to channel'}
-                      </WButton>
-                    </Card>
+                      </WeeButton>
+                    </WeeModalFieldCard>
                   </motion.div>
                 )}
               </AnimatePresence>

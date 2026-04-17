@@ -244,9 +244,14 @@
 
   /* Form controls */
   --control-radius: var(--radius-md);
+  --control-radius-playful: 1.65rem;
+  --control-radius-pill: 999px;
   --control-radius-sm: var(--radius-sm);
   --control-padding-x: 16px;
   --control-padding-y: 12px;
+  --control-padding-x-playful: 1.4rem;
+  --control-padding-y-playful: 0.95rem;
+  --control-border-width-playful: 3px;
   --control-font-size: 15px;
   --control-label-font-size: 14px;
   --control-helper-font-size: 14px;
@@ -258,6 +263,19 @@
   --toggle-thumb-size: 20px;
   --toggle-track-radius: 12px;
   --toggle-thumb-shadow: 0 1px 4px rgb(0 0 0 / 0.14);
+
+  /* Playful interaction styling (hub-wii-like inspired) */
+  --playful-hero-size: clamp(1.65rem, 2.6vw, 2.45rem);
+  --playful-hero-weight: 900;
+  --playful-hero-tracking: -0.03em;
+  --playful-label-size: 0.69rem;
+  --playful-label-tracking: 0.2em;
+  --playful-card-padding: clamp(1.2rem, 2.2vw, 2rem);
+  --playful-shadow-elevated: 0 20px 40px rgb(15 36 61 / 0.2);
+  --playful-shadow-active: 0 0 0 3px hsl(var(--color-pure-white) / 0.28), 0 0 24px hsl(var(--primary) / 0.38);
+  --playful-inner-glow: inset 0 1px 0 hsl(var(--color-pure-white) / 0.86), inset 0 -2px 8px hsl(var(--color-pure-black) / 0.06);
+  --playful-gooey-bg: hsl(var(--primary) / 0.13);
+  --playful-gooey-border: hsl(var(--primary) / 0.36);
 
   /* Accent RGB helpers for rgba usage */
   --accent-blue-rgb: 0 153 255;
@@ -304,6 +322,39 @@
   /* System info widget shell */
   --widget-system-info-start: 239 84% 67%;
   --widget-system-info-end: 262 52% 47%;
+
+  /* Wee — channel config modal & space pill (semantic surfaces; use hsl(var(--wee-*))) */
+  --wee-overlay-backdrop: 222 47% 11% / 0.55;
+  --wee-surface-shell: 0 0% 100%;
+  /* Sidebar + input wells — #F8FAFC */
+  --wee-surface-rail: 210 40% 98%;
+  --wee-surface-input: 210 40% 98%;
+  /* Modal scroll / form body — #FDFDFF */
+  --wee-surface-well: 240 100% 99.6%;
+  --wee-surface-card: 0 0% 100%;
+  --wee-border-outer: 0 0% 100%;
+  --wee-border-rail: 0 0% 100%;
+  --wee-border-card: 214 32% 91%;
+  /** Inset fields / search rows — softer than card border (reference: nearly flat) */
+  --wee-border-field: 220 14% 91%;
+  --wee-border-field-hover: 220 12% 86%;
+  /** Minimal lift for #F8FAFC wells (not shadow-card) */
+  --wee-shadow-field: 0 1px 2px rgb(15 23 42 / 0.04);
+  --wee-border-card-hover: 199 89% 48%;
+  --wee-accent-discovery: 38 92% 50%;
+  --wee-text-rail-muted: 215 16% 47%;
+  --wee-text-header: 222 47% 11%;
+  --wee-text-destructive: 0 72% 51%;
+  --wee-radius-shell: 4rem;
+  --wee-radius-card: 3rem;
+  --wee-radius-pill: 2rem;
+  --wee-radius-rail-item: 2rem;
+  --wee-shadow-modal: 0 25px 50px -12px rgb(15 23 42 / 0.12);
+  --wee-shadow-rail-active: 0 10px 24px -8px rgb(15 23 42 / 0.08);
+  --wee-pill-glass: 0 0% 100% / 0.82;
+  --wee-pill-border: 0 0% 100% / 0.5;
+  --wee-pill-shadow: 0 20px 50px rgb(0 0 0 / 0.15);
+  --wee-pill-floor: 0 0% 0% / 0.1;
 }
 
 /* Dark Mode Colors */
@@ -364,6 +415,31 @@
 
   --wallpaper-checker-tile: 220 15% 22%;
 
+  /* Wee — dark surfaces (modal + pill track shell theme) */
+  --wee-overlay-backdrop: 220 15% 4% / 0.72;
+  --wee-surface-shell: 220 15% 14%;
+  --wee-surface-rail: 220 15% 18%;
+  --wee-surface-input: 220 15% 20%;
+  --wee-surface-well: 220 18% 12%;
+  --wee-surface-card: 220 15% 16%;
+  --wee-border-outer: 220 15% 28%;
+  --wee-border-rail: 220 15% 22%;
+  --wee-border-card: 220 15% 28%;
+  --wee-border-field: 220 15% 30%;
+  --wee-border-field-hover: 220 15% 38%;
+  --wee-shadow-field: 0 1px 2px rgb(0 0 0 / 0.28);
+  --wee-border-card-hover: 195 75% 52%;
+  --wee-accent-discovery: 38 92% 55%;
+  --wee-text-rail-muted: 220 12% 58%;
+  --wee-text-header: 220 15% 96%;
+  --wee-text-destructive: 0 84% 62%;
+  --wee-shadow-modal: 0 25px 50px -12px rgb(0 0 0 / 0.45);
+  --wee-shadow-rail-active: 0 10px 24px -8px rgb(0 0 0 / 0.35);
+  --wee-pill-glass: 220 15% 12% / 0.88;
+  --wee-pill-border: 220 15% 35% / 0.45;
+  --wee-pill-shadow: 0 20px 50px rgb(0 0 0 / 0.4);
+  --wee-pill-floor: 0 0% 0% / 0.35;
+
   /* Scrollbar tokens */
   --scrollbar-track: 220 15% 18%;
   --scrollbar-thumb: 220 12% 42%;
@@ -375,6 +451,11 @@
   --glass-bg: 220 15% 12% / 0.8;
   --glass-border: 220 15% 30% / 0.3;
   --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.4);
+  --playful-shadow-elevated: 0 22px 46px rgb(0 0 0 / 0.42);
+  --playful-shadow-active: 0 0 0 3px hsl(var(--color-pure-white) / 0.16), 0 0 26px hsl(var(--primary) / 0.52);
+  --playful-inner-glow: inset 0 1px 0 hsl(var(--color-pure-white) / 0.3), inset 0 -3px 10px hsl(var(--color-pure-black) / 0.35);
+  --playful-gooey-bg: hsl(var(--primary) / 0.24);
+  --playful-gooey-border: hsl(var(--primary) / 0.56);
 
   /* Navigation token overrides */
   --nav-side-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
@@ -617,6 +698,28 @@
 .focus\:ring-accent:focus-visible {
   outline: 2px solid hsl(var(--border-accent));
   outline-offset: 2px;
+}
+
+.playful-hero-text {
+  font-size: var(--playful-hero-size);
+  font-style: italic;
+  font-weight: var(--playful-hero-weight);
+  letter-spacing: var(--playful-hero-tracking);
+  text-transform: uppercase;
+}
+
+.playful-system-label {
+  font-size: var(--playful-label-size);
+  font-weight: 800;
+  letter-spacing: var(--playful-label-tracking);
+  text-transform: uppercase;
+}
+
+.playful-gooey-highlight {
+  background: var(--playful-gooey-bg);
+  border: 2px solid var(--playful-gooey-border);
+  box-shadow: var(--playful-shadow-active);
+  border-radius: 999px;
 }
 
 /* Animation Utilities */

@@ -257,7 +257,7 @@ body, #root {
 
 .space-rail {
   position: fixed;
-  left: 0.85rem;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
   z-index: 2200;
@@ -282,27 +282,34 @@ body, #root {
 .space-rail__pill {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  border: 1px solid hsl(var(--border-primary) / 0.7);
-  background: hsl(var(--surface-elevated) / 0.7);
-  box-shadow: var(--shadow-lg);
+  gap: 0.4rem;
+  border: 2px solid hsl(var(--color-pure-white) / 0.85);
+  background: hsl(var(--surface-elevated) / 0.9);
+  box-shadow: var(--playful-shadow-elevated);
   border-radius: 999px;
-  padding: 0.5rem 0.35rem;
-  backdrop-filter: blur(15px);
+  padding: 0.55rem 0.45rem;
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+  position: relative;
+}
+
+.space-rail--compact .space-rail__item:not(.space-rail__item--active) {
+  display: none;
 }
 
 .space-rail__item {
-  width: 2.45rem;
-  height: 2.45rem;
+  width: 4rem;
+  height: 4rem;
   border-radius: 999px;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   background: transparent;
   color: hsl(var(--text-secondary));
   display: inline-flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: all 200ms ease;
+  z-index: 1;
+  transition: all 180ms ease;
 }
 
 .space-rail__item:hover {
@@ -311,21 +318,29 @@ body, #root {
 }
 
 .space-rail__item--active {
-  background: hsl(var(--wii-blue) / 0.2);
-  border-color: hsl(var(--wii-blue) / 0.55);
+  background: transparent;
+  border-color: hsl(var(--wii-blue) / 0.4);
   color: hsl(var(--text-primary));
-  box-shadow: 0 0 20px hsl(var(--wii-blue) / 0.35);
+  box-shadow: none;
+}
+
+.space-rail__glyph {
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .space-rail__label {
   position: absolute;
-  left: calc(100% + 8px);
-  padding: 0.2rem 0.45rem;
-  border-radius: 0.5rem;
-  border: 1px solid hsl(var(--border-primary) / 0.8);
-  background: hsl(var(--surface-elevated) / 0.95);
+  left: calc(100% + 10px);
+  padding: 0.34rem 0.56rem;
+  border-radius: 0.7rem;
+  border: 2px solid hsl(var(--border-primary) / 0.8);
+  background: hsl(var(--surface-elevated));
   color: hsl(var(--text-primary));
-  font-size: 0.68rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   opacity: 0;
   transform: translateX(-4px);
   transition: opacity 160ms ease, transform 160ms ease;
@@ -340,12 +355,15 @@ body, #root {
 }
 
 .space-rail__pin {
-  border: 1px solid hsl(var(--border-primary) / 0.8);
-  background: hsl(var(--surface-elevated) / 0.8);
+  border: 2px solid hsl(var(--border-primary) / 0.8);
+  background: hsl(var(--surface-elevated) / 0.92);
   color: hsl(var(--text-secondary));
   border-radius: 999px;
-  font-size: 0.65rem;
-  padding: 0.2rem 0.55rem;
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 0.28rem 0.65rem;
 }
 
 /* Legacy channels-grid - keeping for backward compatibility but not used by PaginatedChannels */

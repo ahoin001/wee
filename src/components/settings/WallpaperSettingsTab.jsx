@@ -9,6 +9,7 @@ import WInput from '../../ui/WInput';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { WALLPAPER_CHECKERBOARD_BG } from '../../design/runtimeColorStrings.js';
+import SettingsWeeSection from './SettingsWeeSection';
 
 const WALLPAPER_ANIMATIONS = [
   { value: 'fade', label: 'Crossfade - Smooth, elegant transition (Recommended)' },
@@ -408,18 +409,22 @@ const WallpaperSettingsTab = React.memo(() => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       {message.text && (
-        <div className={`message ${message.type} mb-4 font-medium p-3 rounded-lg ${
-          message.type === 'success' ? 'bg-green-100 text-green-800' : 
-          message.type === 'error' ? 'bg-red-100 text-red-800' : 
-          'bg-blue-100 text-blue-800'
-        }`}>
+        <div
+          className={`message mb-4 rounded-lg p-3 font-medium ${
+            message.type === 'success'
+              ? 'bg-[hsl(var(--state-success-light))] text-[hsl(var(--state-success))]'
+              : message.type === 'error'
+                ? 'bg-[hsl(var(--state-danger)/0.12)] text-[hsl(var(--state-danger))]'
+                : 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))]'
+          }`}
+        >
           {message.text}
         </div>
       )}
 
-      {/* Upload Wallpaper Card */}
+      <SettingsWeeSection eyebrow="Library">
       <Card
         title="Upload New Wallpaper"
         separator
@@ -722,6 +727,7 @@ const WallpaperSettingsTab = React.memo(() => {
           </>
         }
       />
+      </SettingsWeeSection>
 
       {/* Enable Cycling Card */}
       <Card

@@ -2,13 +2,11 @@ import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import { PLAYFUL_SPRINGS, PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
 
 /** Snappy spring for press / release — aligned with channel drag springs */
-export const playfulTapSpring = {
-  type: 'spring',
-  stiffness: 560,
-  damping: 28,
-  mass: 0.52,
+const playfulTapSpring = {
+  ...PLAYFUL_SPRINGS.press,
 };
 
 /** Inner tap under `.channel` — CSS keeps hover scale on the outer shell */
@@ -16,15 +14,15 @@ const CHANNEL_TAP = { scale: 0.97, rotate: -0.75 };
 
 const PRESS_VARIANT = {
   dockButton: {
-    tap: { scale: 0.93, rotate: -1.25 },
-    hover: { scale: 1.05, rotate: 0.35 },
+    tap: { scale: PLAYFUL_AMPLITUDE.pressScale, rotate: PLAYFUL_AMPLITUDE.pressRotate },
+    hover: { scale: PLAYFUL_AMPLITUDE.hoverScale, rotate: 0.35, y: PLAYFUL_AMPLITUDE.hoverLiftY },
   },
   dockAccessory: {
-    tap: { scale: 0.92, rotate: -2 },
-    hover: { scale: 1.1, rotate: 0 },
+    tap: { scale: PLAYFUL_AMPLITUDE.pressScale, rotate: -2 },
+    hover: { scale: PLAYFUL_AMPLITUDE.hoverScale, rotate: 0, y: PLAYFUL_AMPLITUDE.hoverLiftY },
   },
   ribbon: {
-    tap: { scale: 0.96, rotate: -0.65 },
+    tap: { scale: PLAYFUL_AMPLITUDE.pressScale, rotate: -0.65 },
   },
 };
 

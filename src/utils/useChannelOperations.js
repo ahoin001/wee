@@ -38,35 +38,24 @@ export const useChannelOperations = (explicitSpaceKey) => {
   const channelOperations = useMemo(() => channels?.operations || {}, [channels?.operations]);
 
   const rawNavigation = useMemo(() => resolveNavigation(channelData.navigation), [channelData.navigation]);
-  const isWiiMode = rawNavigation.mode === 'wii';
-
-  const navigation = useMemo(() => {
-    if (!isWiiMode) {
-      const safeTotalPages = Math.max(1, Number(rawNavigation.totalPages) || 1);
-      return {
-        ...rawNavigation,
-        totalPages: safeTotalPages,
-        currentPage: clampPageIndex(rawNavigation.currentPage || 0, safeTotalPages),
-      };
-    }
-
-    return {
+  const navigation = useMemo(
+    () => ({
       ...rawNavigation,
+      mode: 'wii',
       currentPage: clampPageIndex(rawNavigation.currentPage || 0, WII_LAYOUT_PRESET.totalPages),
       totalPages: WII_LAYOUT_PRESET.totalPages,
       animationType: 'slide',
       animationDuration: 500,
       enableSlideAnimation: true,
-    };
-  }, [isWiiMode, rawNavigation]);
+    }),
+    [rawNavigation]
+  );
 
   const gridConfig = useMemo(() => {
     return resolveGridConfig(channelData, navigation);
   }, [channelData, navigation]);
 
   useEffect(() => {
-    if (!isWiiMode) return;
-
     const { dataPatch, navigationPatch, needsNormalization } = getWiiNormalization(channelData);
     if (!needsNormalization) {
       return;
@@ -75,7 +64,6 @@ export const useChannelOperations = (explicitSpaceKey) => {
     setChannelDataForSpace(spaceKey, dataPatch);
     setChannelNavigationForSpace(spaceKey, navigationPatch);
   }, [
-    isWiiMode,
     spaceKey,
     channelData.gridColumns,
     channelData.gridRows,

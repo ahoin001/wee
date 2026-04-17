@@ -1,27 +1,21 @@
 import React, { useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import Card from '../../ui/Card';
-import WToggle from '../../ui/WToggle';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
+import SettingsToggleFieldCard from './SettingsToggleFieldCard';
+import SettingsWeeSection from './SettingsWeeSection';
 
 const GeneralSettingsTab = React.memo(() => {
-  // Use consolidated store
   const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
-  const { setUIState } = useConsolidatedAppStore(state => state.actions);
+  const { setUIState } = useConsolidatedAppStore((state) => state.actions);
 
-  console.log('[GeneralSettingsTab] UI state:', ui);
-
-  // Load auto-launch state and settings shortcut on component mount
   useEffect(() => {
     const loadInitialState = async () => {
       try {
-        // Load auto-launch state
         if (window.api?.getAutoLaunch) {
           const isAutoLaunchEnabled = await window.api.getAutoLaunch();
-          console.log('[GeneralSettingsTab] Current auto-launch state:', isAutoLaunchEnabled);
-          // Update the UI state to reflect the actual system setting
           setUIState({ startOnBoot: isAutoLaunchEnabled });
         }
       } catch (error) {
@@ -32,93 +26,75 @@ const GeneralSettingsTab = React.memo(() => {
     loadInitialState();
   }, [setUIState]);
 
-  // Memoize callback functions to prevent unnecessary re-renders
-  const handleImmersivePipChange = useCallback((checked) => {
-    console.log('[GeneralSettingsTab] Immersive PiP changed:', checked);
-    setUIState({ immersivePip: checked });
-  }, [setUIState]);
+  const handleImmersivePipChange = useCallback(
+    (checked) => {
+      setUIState({ immersivePip: checked });
+    },
+    [setUIState]
+  );
 
-  const handleStartInFullscreenChange = useCallback(async (checked) => {
-    console.log('[GeneralSettingsTab] Start in Fullscreen changed:', checked);
-    setUIState({ startInFullscreen: checked });
-  }, [setUIState]);
+  const handleStartInFullscreenChange = useCallback(
+    async (checked) => {
+      setUIState({ startInFullscreen: checked });
+    },
+    [setUIState]
+  );
 
-  const handleShowPresetsButtonChange = useCallback((checked) => {
-    console.log('[GeneralSettingsTab] Show Presets Button changed:', checked);
-    setUIState({ showPresetsButton: checked });
-  }, [setUIState]);
+  const handleShowPresetsButtonChange = useCallback(
+    (checked) => {
+      setUIState({ showPresetsButton: checked });
+    },
+    [setUIState]
+  );
 
-  const handleClassicModeChange = useCallback((checked) => {
-    console.log('[GeneralSettingsTab] Classic Mode changed:', checked);
-    setUIState({ classicMode: checked });
-  }, [setUIState]);
+  const handleShowDockChange = useCallback(
+    (checked) => {
+      setUIState({ showDock: checked });
+    },
+    [setUIState]
+  );
 
-  const handleShowDockChange = useCallback((checked) => {
-    console.log('[GeneralSettingsTab] Show Dock changed:', checked);
-    setUIState({ showDock: checked });
-  }, [setUIState]);
-
-  const handleStartOnBootChange = useCallback(async (checked) => {
-    console.log('[GeneralSettingsTab] Start on Boot changed:', checked);
-    try {
-      // Use the dedicated auto-launch API
-      if (window.api?.setAutoLaunch) {
-        await window.api.setAutoLaunch(checked);
-        console.log('[GeneralSettingsTab] Auto-launch setting updated:', checked);
+  const handleStartOnBootChange = useCallback(
+    async (checked) => {
+      try {
+        if (window.api?.setAutoLaunch) {
+          await window.api.setAutoLaunch(checked);
+        }
+        setUIState({ startOnBoot: checked });
+      } catch (error) {
+        console.error('[GeneralSettingsTab] Failed to update auto-launch setting:', error);
       }
-      // Also update the UI state for consistency
-      setUIState({ startOnBoot: checked });
-    } catch (error) {
-      console.error('[GeneralSettingsTab] Failed to update auto-launch setting:', error);
-    }
-  }, [setUIState]);
+    },
+    [setUIState]
+  );
 
-  const handleSettingsShortcutChange = useCallback(async (shortcut) => {
-    console.log('[GeneralSettingsTab] Settings Shortcut changed:', shortcut);
-    setUIState({ settingsShortcut: shortcut });
-  }, [setUIState]);
-
-  const handleClearShortcut = useCallback(async () => {
-    console.log('[GeneralSettingsTab] Clearing settings shortcut');
-    setUIState({ settingsShortcut: '' });
-  }, [setUIState]);
-
-  const handleCustomCursorChange = useCallback((checked) => {
-    console.log('[GeneralSettingsTab] Custom Cursor changed:', checked);
-    setUIState({ useCustomCursor: checked });
-  }, [setUIState]);
-
-  const handleCursorStyleChange = useCallback((style) => {
-    console.log('[GeneralSettingsTab] Cursor Style changed:', style);
-    setUIState({ cursorStyle: style });
-  }, [setUIState]);
-
-  const handleLowPowerModeChange = useCallback((checked) => {
-    console.log('[GeneralSettingsTab] Low Power Mode changed:', checked);
-    setUIState({ lowPowerMode: checked });
-  }, [setUIState]);
+  const handleLowPowerModeChange = useCallback(
+    (checked) => {
+      setUIState({ lowPowerMode: checked });
+    },
+    [setUIState]
+  );
 
   const handleFreshInstall = useCallback(async () => {
-    if (window.confirm('Are you sure you want to restore to a fresh install? This will backup your current data and give you a clean start. Your old data will be preserved in a backup folder.')) {
+    if (
+      window.confirm(
+        'Are you sure you want to restore to a fresh install? This will backup your current data and give you a clean start. Your old data will be preserved in a backup folder.'
+      )
+    ) {
       try {
-        // Trigger fresh install through the backend
         if (window.api && window.api.getFreshInstallInfo) {
-          // First, get current info to show backup location
           const currentInfo = await window.api.getFreshInstallInfo();
-          
-          // Show confirmation with backup location
           const backupLocation = currentInfo.backupLocation;
-          const confirmMessage = backupLocation 
+          const confirmMessage = backupLocation
             ? `Your current data will be backed up to:\n${backupLocation}\n\nProceed with fresh install?`
             : 'Proceed with fresh install?';
-          
+
           if (window.confirm(confirmMessage)) {
-            // Trigger the fresh install by calling the backend
-            // We'll use a special IPC call to trigger the fresh install
             if (window.api && window.api.triggerFreshInstall) {
               await window.api.triggerFreshInstall();
-              alert('Fresh install completed! The app will restart with a clean state. Your old data has been backed up.');
-              // Reload the app to apply the fresh install
+              alert(
+                'Fresh install completed! The app will restart with a clean state. Your old data has been backed up.'
+              );
               window.location.reload();
             } else {
               alert('Fresh install feature not available. Please restart the app manually.');
@@ -128,208 +104,81 @@ const GeneralSettingsTab = React.memo(() => {
           alert('Fresh install feature not available. Please restart the app manually.');
         }
       } catch (error) {
-        alert('Error during fresh install: ' + error.message);
+        alert(`Error during fresh install: ${error.message}`);
       }
     }
   }, []);
 
   return (
-    <div>
-      {/* Immersive PiP */}
-      <Card
-        title="Immersive Picture in Picture mode"
-        separator
-        desc="When enabled, video overlays will use immersive PiP mode for a more cinematic experience."
-        headerActions={
-          <WToggle
-            checked={ui.immersivePip ?? false}
-            onChange={handleImmersivePipChange}
-          />
-        }
-        className="mb-5"
-      />
+    <div className="flex max-w-3xl flex-col gap-10">
+      <SettingsWeeSection eyebrow="Display & behavior">
+        <SettingsToggleFieldCard
+          title="Immersive Picture in Picture mode"
+          desc="When enabled, video overlays will use immersive PiP mode for a more cinematic experience."
+          checked={ui.immersivePip ?? false}
+          onChange={handleImmersivePipChange}
+        />
+        <SettingsToggleFieldCard
+          title="Start in fullscreen"
+          desc="When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode."
+          checked={ui.startInFullscreen ?? false}
+          onChange={handleStartInFullscreenChange}
+        />
+        <SettingsToggleFieldCard
+          title="Show presets button"
+          desc="When enabled, shows a presets button near the time display that allows quick access to saved appearance presets. Right-click the button to customize its icon."
+          checked={ui.showPresetsButton ?? true}
+          onChange={handleShowPresetsButtonChange}
+        />
+        <SettingsToggleFieldCard
+          title="Show dock"
+          desc="When enabled, shows the dock at the bottom of the screen. When disabled, the dock will be hidden."
+          checked={ui.showDock ?? true}
+          onChange={handleShowDockChange}
+        />
+        <SettingsToggleFieldCard
+          title="Low power mode"
+          desc="Reduces background polling and animation cadence to keep CPU/GPU usage lower while the app is idle or running in the background."
+          checked={ui.lowPowerMode ?? false}
+          onChange={handleLowPowerModeChange}
+        />
+      </SettingsWeeSection>
 
-      {/* Start in Fullscreen */}
-      <Card
-        title="Start in Fullscreen"
-        separator
-        desc="When enabled, the app will start in fullscreen mode. When disabled, it will start in windowed mode."
-        headerActions={
-          <WToggle
-            checked={ui.startInFullscreen ?? false}
-            onChange={handleStartInFullscreenChange}
-          />
-        }
-        className="mb-5"
-      />
+      <SettingsWeeSection eyebrow="Startup">
+        <SettingsToggleFieldCard
+          title="Launch app when my computer starts"
+          desc="When enabled, the app will launch automatically when your computer starts."
+          checked={ui.startOnBoot ?? false}
+          onChange={handleStartOnBootChange}
+        />
+      </SettingsWeeSection>
 
-      {/* Show Presets Button */}
-      <Card
-        title="Show Presets Button"
-        separator
-        desc="When enabled, shows a presets button near the time display that allows quick access to saved appearance presets. Right-click the button to customize its icon."
-        headerActions={
-          <WToggle
-            checked={ui.showPresetsButton ?? true}
-            onChange={handleShowPresetsButtonChange}
-          />
-        }
-        className="mb-5"
-      />
-
-      {/* Show Dock */}
-      <Card
-        title="Show Dock"
-        separator
-        desc="When enabled, shows the dock at the bottom of the screen. When disabled, the dock will be hidden."
-        headerActions={
-          <WToggle
-            checked={ui.showDock ?? true}
-            onChange={handleShowDockChange}
-          />
-        }
-        className="mb-5"
-      />
-
-      {/* Low Power Mode */}
-      <Card
-        title="Low Power Mode"
-        separator
-        desc="Reduces background polling and animation cadence to keep CPU/GPU usage lower while the app is idle or running in the background."
-        headerActions={
-          <WToggle
-            checked={ui.lowPowerMode ?? false}
-            onChange={handleLowPowerModeChange}
-          />
-        }
-        className="mb-5"
-      />
-
-      {/* Custom Cursor Settings */}
-      {/* <Card
-        title="Custom Wii Cursor"
-        separator
-        desc="Enable a custom Wii-inspired cursor and choose from different styles."
-        headerActions={
-          <WToggle
-            checked={ui.useCustomCursor ?? true}
-            onChange={handleCustomCursorChange}
-          />
-        }
-        actions={
-          ui.useCustomCursor && (
-            <div className="mt-4">
-              <div className="flex items-center gap-3 mb-4">
-                <Text variant="body" className="font-medium min-w-20">Style</Text>
-                <div className="flex items-center gap-2">
-                  {[
-                    { value: 'classic', label: 'Classic', desc: 'Authentic Wii style with pulsing glow' },
-                    { value: 'minimal', label: 'Minimal', desc: 'Simple and clean design' },
-                    { value: 'glowing', label: 'Glowing', desc: 'Bright glowing effect' },
-                    { value: 'retro', label: 'Retro', desc: 'Vintage gaming aesthetic' }
-                  ].map((style) => (
-                    <button
-                      key={style.value}
-                      onClick={() => handleCursorStyleChange(style.value)}
-                      className={`
-                        px-3 py-2 rounded-md border transition-all duration-200 text-sm font-medium
-                        ${ui.cursorStyle === style.value
-                          ? 'bg-[hsl(var(--wii-blue))] text-white border-[hsl(var(--wii-blue))] shadow-[0_0_8px_hsl(var(--wii-blue)/0.3)]'
-                          : 'bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))] border-[hsl(var(--border-primary))] hover:bg-[hsl(var(--surface-secondary))] hover:border-[hsl(var(--wii-blue))]'
-                        }
-                      `}
-                      title={style.desc}
-                    >
-                      {style.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Text variant="caption" className="p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
-                <strong>🎯 Cursor Styles:</strong> Choose from different Wii-inspired cursor designs. 
-                The cursor will automatically adapt to light and dark modes.
+      <SettingsWeeSection eyebrow="Danger zone">
+        <WeeModalFieldCard hoverAccent="discovery" className="p-0 overflow-hidden" paddingClassName="p-0">
+          <div className="p-6 md:p-8">
+            <Text variant="h3" className="m-0 text-[hsl(var(--text-primary))]">
+              Restore fresh install
+            </Text>
+            <Text variant="desc" className="mt-1 block">
+              If you are experiencing issues, you can restore to a fresh state. This backs up your current data and
+              gives you a clean start.
+            </Text>
+            <div className="mt-6">
+              <Button variant="danger-primary" onClick={handleFreshInstall} className="w-full sm:w-auto">
+                Restore fresh install
+              </Button>
+              <Text variant="caption" className="mt-3 block rounded-[var(--wee-radius-rail-item)] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] p-3">
+                Warning: this resets settings, wallpapers, sounds, and channel configuration to defaults. Your previous
+                data is preserved in a backup folder when possible.
               </Text>
             </div>
-          )
-        }
-        className="mb-5"
-      /> */}
-
-      {/* Launch on Startup */}
-      <Card
-        title="Launch app when my computer starts"
-        separator
-        desc="When enabled, the app will launch automatically when your computer starts."
-        headerActions={
-          <WToggle
-            checked={ui.startOnBoot ?? false}
-            onChange={handleStartOnBootChange}
-          />
-        }
-        className="mb-5"
-      />
-
-      {/* Settings Shortcut */}
-      {/* <Card
-        title="Settings Keyboard Shortcut"
-        separator
-        desc="Set a custom keyboard shortcut to quickly open the settings menu. Leave empty to disable."
-        actions={
-          <div className="mt-4">
-            <div className="flex items-center gap-3 mb-4">
-              <Text variant="body" className="font-medium min-w-20">Shortcut</Text>
-              <input
-                type="text"
-                value={ui.settingsShortcut || ''}
-                onChange={(e) => handleSettingsShortcutChange(e.target.value)}
-                placeholder="e.g., Ctrl+Shift+S"
-                className="flex-1 px-3 py-2 bg-[hsl(var(--surface-primary))] border border-[hsl(var(--border-primary))] rounded-md text-[hsl(var(--text-primary))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--wii-blue))] focus:border-transparent"
-              />
-              <Button
-                variant="secondary"
-                onClick={handleClearShortcut}
-                className="px-3 py-2"
-              >
-                Clear
-              </Button>
-            </div>
-            <Text variant="caption" className="p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
-              <strong>⌨️ Keyboard Shortcuts:</strong> Set a custom shortcut to quickly access settings. 
-              Use standard key combinations like Ctrl+Shift+S, Alt+S, or F12. 
-              The shortcut will work globally when the app is running.
-            </Text>
           </div>
-        }
-        className="mb-5"
-      /> */}
-
-      {/* Fresh Install Restore */}
-      <Card
-        title="Restore Fresh Install"
-        separator
-        desc="If you're experiencing issues with the app, you can restore it to a fresh state. This will backup your current data and give you a clean start. Your old data will be preserved in a backup folder."
-        actions={
-          <div className="mt-4">
-            <Button 
-              variant="primary" 
-              onClick={handleFreshInstall}
-              className="bg-red-600 border-red-600 text-white hover:bg-red-700 hover:border-red-700"
-            >
-              🔄 Restore Fresh Install
-            </Button>
-            <Text variant="caption" className="mt-2 p-3 bg-[hsl(var(--surface-secondary))] rounded-md border border-[hsl(var(--border-primary))]">
-              <strong>⚠️ Warning:</strong> This will backup your current data and give you a completely fresh start. 
-              All your current settings, wallpapers, sounds, and channel configurations will be reset to defaults. 
-              Your old data will be preserved in a backup folder that you can access later if needed.
-            </Text>
-          </div>
-        }
-        className="mb-5"
-      />
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
     </div>
   );
 });
 
 GeneralSettingsTab.displayName = 'GeneralSettingsTab';
 
-export default GeneralSettingsTab; 
+export default GeneralSettingsTab;

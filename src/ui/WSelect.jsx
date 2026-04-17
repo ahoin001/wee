@@ -19,12 +19,13 @@ const WSelect = ({
 
   const baseClasses = `
     relative w-full
-    bg-[hsl(var(--surface-secondary))] 
-    border border-[hsl(var(--border-primary))]
+    bg-[hsl(var(--surface-primary))]
+    border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))]
     text-[hsl(var(--text-primary))]
-    rounded-[var(--control-radius)]
+    rounded-[var(--control-radius-playful)]
+    shadow-[var(--playful-inner-glow)]
     transition-all duration-[var(--control-transition-duration)] ease-[var(--control-ease)]
-    hover:border-[hsl(var(--border-secondary))]
+    hover:border-[hsl(var(--border-secondary))] hover:-translate-y-[1px]
     disabled:opacity-50 disabled:cursor-not-allowed
   `;
 
@@ -35,7 +36,7 @@ const WSelect = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-semibold text-[hsl(var(--text-primary))] mb-2">
+        <label className="playful-system-label mb-2 block text-[hsl(var(--text-secondary))]">
           {label}
           {required && <span className="text-[hsl(var(--state-error))] ml-1">*</span>}
         </label>
@@ -46,7 +47,7 @@ const WSelect = ({
           <Listbox.Button 
             className={`
               ${baseClasses} ${errorClasses} ${className}
-              px-[var(--control-padding-x)] py-[var(--control-padding-y)] text-left text-[length:var(--control-font-size)] font-medium
+              px-[var(--control-padding-x-playful)] py-[var(--control-padding-y-playful)] text-left text-[length:var(--control-font-size)] font-black
               focus:outline-none focus:ring-2 focus:ring-[hsl(var(--wii-blue))] focus:ring-offset-2 focus:ring-offset-[hsl(var(--surface-primary))]
               focus:border-[hsl(var(--wii-blue))]
             `}
@@ -75,17 +76,17 @@ const WSelect = ({
             onEnter={() => setIsOpen(true)}
             onLeave={() => setIsOpen(false)}
           >
-            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-[var(--control-radius)] bg-[hsl(var(--surface-secondary))] py-1 shadow-[var(--shadow-lg)] border border-[hsl(var(--border-primary))] focus:outline-none">
-              {options.map((option, index) => (
+            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-[var(--control-radius-playful)] bg-[hsl(var(--surface-primary))] py-1 shadow-[var(--playful-shadow-elevated)] border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))] focus:outline-none">
+              {options.map((option) => (
                 <Listbox.Option
                   key={option.value}
                   className={({ active, selected }) => `
-                    relative cursor-pointer select-none py-3 px-4 text-base
+                    relative cursor-pointer select-none py-3 px-4 text-base font-bold
                     ${active 
-                      ? 'bg-[hsl(var(--wii-blue))] text-[hsl(var(--text-on-accent))]' 
+                      ? 'playful-gooey-highlight text-[hsl(var(--text-primary))]' 
                       : 'text-[hsl(var(--text-primary))]'
                     }
-                    ${selected ? 'bg-[hsl(var(--wii-blue))] text-[hsl(var(--text-on-accent))]' : ''}
+                    ${selected ? 'playful-gooey-highlight text-[hsl(var(--text-primary))]' : ''}
                   `}
                   value={option.value}
                 >

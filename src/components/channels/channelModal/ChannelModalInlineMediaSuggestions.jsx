@@ -156,7 +156,6 @@ export default function ChannelModalInlineMediaSuggestions({
   const reduceMotion = useReducedMotion();
 
   const terms = useMemo(() => buildCandidateTerms({ path, type, matchingApp }), [path, type, matchingApp]);
-  const query = terms[0] || '';
   const tokens = useMemo(() => buildQueryTokens(terms), [terms]);
   const matches = useMemo(() => {
     if (!terms.length) return [];
@@ -276,9 +275,6 @@ export default function ChannelModalInlineMediaSuggestions({
         <h4 id="channel-inline-media-suggest-heading" className="channel-inline-media-suggest__title">
           Suggested channel art
         </h4>
-        {query ? (
-          <span className="channel-inline-media-suggest__query">Picked for “{query}”</span>
-        ) : null}
       </div>
 
       <div className="channel-inline-media-suggest__carousel">
@@ -321,9 +317,6 @@ export default function ChannelModalInlineMediaSuggestions({
                       <span className="channel-inline-media-suggest__applied-pill">On channel</span>
                     ) : null}
                     <span className="channel-inline-media-suggest__kind-badge">{formatMediaKind(item)}</span>
-                  </span>
-                  <span className="channel-inline-media-suggest__meta">
-                    <span className="channel-inline-media-suggest__name">{item.title || 'Untitled media'}</span>
                   </span>
                 </button>
               );

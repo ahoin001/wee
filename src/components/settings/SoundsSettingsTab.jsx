@@ -9,6 +9,7 @@ import Button from '../../ui/WButton';
 import { ResourceUsageIndicator } from '../widgets';
 import Slider from '../../ui/Slider';
 import '../audio/sound-management.css';
+import SettingsWeeSection from './SettingsWeeSection';
 
 /**
  * Sound Settings Tab - Complete sound management interface
@@ -685,7 +686,7 @@ const SoundsSettingsTab = React.memo(() => {
           : 'sound-msg--hint';
 
   return (
-    <div className="sound-mgmt">
+    <div className="sound-mgmt mx-auto max-w-3xl">
       {/* Enhanced Header */}
       <div className="sound-mgmt-header">
         <div className="sound-mgmt-title-row">
@@ -697,7 +698,7 @@ const SoundsSettingsTab = React.memo(() => {
               Sound Management
             </h3>
             <p className="sound-mgmt-subtitle">
-              Manage background music, channel click sounds, and hover effects
+              Manage global background music and channel SFX. Per-channel hover overrides are set in Configure Channel.
             </p>
           </div>
         </div>
@@ -743,10 +744,11 @@ const SoundsSettingsTab = React.memo(() => {
         </div>
       )}
 
-      {/* Sound Sections */}
+      <SettingsWeeSection eyebrow="Sound categories">
       <div>
         {SOUND_CATEGORIES.map(cat => renderSoundSection(cat))}
       </div>
+      </SettingsWeeSection>
 
       {/* Debug Info */}
       {process.env.NODE_ENV === 'development' && (

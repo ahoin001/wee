@@ -14,8 +14,8 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'open-settings-channels-tab',
-    name: 'Open Channels Settings',
-    description: 'Open settings modal to channels tab',
+    name: 'Open Channels & layout settings',
+    description: 'Open settings modal to Channels & layout tab',
     defaultKey: 'c',
     defaultModifier: 'ctrl',
     action: 'openSettingsModal',

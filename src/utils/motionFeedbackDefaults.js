@@ -26,6 +26,18 @@ export const DEFAULT_MOTION_FEEDBACK = {
     /** Top ribbon bar pill buttons (Settings, etc.) */
     tap: true,
   },
+  modals: {
+    /** Modal panel spring open/close choreography */
+    springTransitions: true,
+    /** Staggered enter for modal sections / controls */
+    staggeredEntrance: true,
+  },
+  effects: {
+    /** Gooey / liquid selection highlights */
+    gooeyHighlights: true,
+    /** Subtle icon tilt on hover + press */
+    iconTilt: true,
+  },
 };
 
 /**
@@ -46,6 +58,14 @@ export function mergeMotionFeedback(patch) {
     ribbon: {
       ...DEFAULT_MOTION_FEEDBACK.ribbon,
       ...(p.ribbon || {}),
+    },
+    modals: {
+      ...DEFAULT_MOTION_FEEDBACK.modals,
+      ...(p.modals || {}),
+    },
+    effects: {
+      ...DEFAULT_MOTION_FEEDBACK.effects,
+      ...(p.effects || {}),
     },
   };
 }

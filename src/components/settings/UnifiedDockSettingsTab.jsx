@@ -1110,7 +1110,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
   return (
     <>
       <style>{pulseAnimation}</style>
-      <div className="surface-stack">
+      <div className="surface-stack max-w-3xl">
         <Text variant="h2" className="surface-title">
           Dock Settings
         </Text>

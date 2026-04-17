@@ -1,13 +1,21 @@
 import React from 'react';
+import Text from '../../ui/Text';
+import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
 
 const AdvancedSettingsTab = React.memo(() => {
   return (
-    <div>
-      <div style={{ textAlign: 'center', padding: '40px 20px', color: 'hsl(var(--text-secondary))' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚙️</div>
-        <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>Advanced Settings</div>
-        <div style={{ fontSize: '14px' }}>Coming soon - performance tuning, debug options, and expert configurations</div>
-      </div>
+    <div className="mx-auto max-w-3xl">
+      <WeeModalFieldCard className="text-center">
+        <div className="text-5xl" aria-hidden>
+          ⚙️
+        </div>
+        <Text variant="h3" className="mt-4">
+          Advanced settings
+        </Text>
+        <Text variant="body" className="mt-2 text-[hsl(var(--text-secondary))]">
+          Coming soon: performance tuning, debug options, and expert configurations.
+        </Text>
+      </WeeModalFieldCard>
     </div>
   );
 });

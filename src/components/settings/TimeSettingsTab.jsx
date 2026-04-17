@@ -7,6 +7,7 @@ import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings.js';
+import SettingsWeeSection from './SettingsWeeSection';
 import './settings-modal-forms.css';
 
 const TimeSettingsTab = React.memo(() => {
@@ -36,16 +37,17 @@ const TimeSettingsTab = React.memo(() => {
   }, [setTimeState]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <Text variant="h2" className="mb-2 text-[hsl(var(--text-primary))]">
-        Time Display Settings
-      </Text>
-      
-      <Text variant="body" className="mb-4 text-[hsl(var(--text-secondary))]">
-        Customize the appearance and behavior of the time and date display.
-      </Text>
+    <div className="flex max-w-3xl flex-col gap-8">
+      <div>
+        <Text variant="h2" className="mb-2 text-[hsl(var(--text-primary))]">
+          Time display
+        </Text>
+        <Text variant="body" className="text-[hsl(var(--text-secondary))]">
+          Customize the appearance and behavior of the time and date display.
+        </Text>
+      </div>
 
-      {/* Time Display Color */}
+      <SettingsWeeSection eyebrow="Color & font">
       <Card
         title="Time Display Color"
         separator
@@ -96,8 +98,9 @@ const TimeSettingsTab = React.memo(() => {
           </>
         }
       />
+      </SettingsWeeSection>
 
-      {/* Time Pill Display */}
+      <SettingsWeeSection eyebrow="Time pill">
       <Card
         title="Time Pill Display"
         separator
@@ -147,6 +150,7 @@ const TimeSettingsTab = React.memo(() => {
           )
         }
       />
+      </SettingsWeeSection>
     </div>
   );
 });

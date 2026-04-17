@@ -9,6 +9,9 @@
 
 import React, { useCallback, useState } from "react";
 import { tv } from "tailwind-variants";
+import { motion } from 'framer-motion';
+import { useMotionFeedback } from "../hooks/useMotionFeedback";
+import { PLAYFUL_SPRINGS, PLAYFUL_AMPLITUDE } from "../design/playfulMotion";
 
 /** Outlined / neutral actions — shared by `secondary` and `secondary-strong` (high label + border contrast). */
 const variantSecondarySurface = [
@@ -30,7 +33,8 @@ const buttonVariants = tv({
     "font-medium",
     "focus:ring-2 focus:ring-primary focus:ring-offset-2",
     "disabled:cursor-not-allowed disabled:opacity-50",
-    "border-[1.5px] border-solid rounded-[var(--radius-md)]",
+    "border-[var(--control-border-width-playful)] border-solid rounded-[var(--control-radius-playful)]",
+    "uppercase italic tracking-[0.12em]",
   ],
   variants: {
     variant: {
@@ -38,7 +42,7 @@ const buttonVariants = tv({
         /* Themeable via --primary (synced from ribbon accent); solid fill for reliable contrast. */
         "text-text-on-accent border-[hsl(var(--border-accent))]",
         "bg-primary",
-        "shadow-[var(--shadow-soft),inset_0_1px_0_rgba(255,255,255,0.22)] [text-shadow:0_1px_0_rgba(0,0,0,0.18)]",
+        "shadow-[var(--playful-shadow-elevated)] [text-shadow:0_1px_0_rgba(0,0,0,0.18)]",
         "hover:bg-primary-hover",
         "hover:transform hover:-translate-y-[1px] hover:scale-[1.02]",
         "active:scale-[0.98]",
@@ -129,6 +133,8 @@ const WButton = React.memo(({
   disabled = false,
   ...props
 }) => {
+  const MotionButton = motion.button;
+  const { iconTilt } = useMotionFeedback();
   const [hovered, setHovered] = useState(false);
   
   const handleMouseEnter = useCallback(() => {
@@ -178,7 +184,7 @@ const WButton = React.memo(({
   };
 
   return (
-    <button
+    <MotionButton
       className={buttonVariants({
         variant,
         size,
@@ -193,10 +199,13 @@ const WButton = React.memo(({
       onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
+      whileTap={disabled ? undefined : { scale: PLAYFUL_AMPLITUDE.pressScale, rotate: iconTilt ? PLAYFUL_AMPLITUDE.pressRotate : 0 }}
+      whileHover={disabled ? undefined : { scale: PLAYFUL_AMPLITUDE.hoverScale, rotate: iconTilt ? 0.35 : 0, y: PLAYFUL_AMPLITUDE.hoverLiftY }}
+      transition={PLAYFUL_SPRINGS.press}
       {...props}
     >
       {children}
-    </button>
+    </MotionButton>
   );
 });
 

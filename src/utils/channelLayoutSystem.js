@@ -37,24 +37,11 @@ export const resolveNavigation = (rawNavigation = {}) => ({
 });
 
 export const resolveGridConfig = (channelData, navigation) => {
-  if (navigation.mode === 'wii') {
-    const channelsPerPage = getChannelsPerPage(WII_LAYOUT_PRESET.columns, WII_LAYOUT_PRESET.rows);
-    return {
-      columns: WII_LAYOUT_PRESET.columns,
-      rows: WII_LAYOUT_PRESET.rows,
-      totalChannels: channelsPerPage * WII_LAYOUT_PRESET.totalPages,
-      channelsPerPage,
-    };
-  }
-
-  const columns = channelData.gridColumns || 4;
-  const rows = channelData.gridRows || 3;
-  const channelsPerPage = getChannelsPerPage(columns, rows);
-  const fallbackTotalChannels = channelsPerPage * Math.max(1, navigation.totalPages || 1);
+  const channelsPerPage = getChannelsPerPage(WII_LAYOUT_PRESET.columns, WII_LAYOUT_PRESET.rows);
   return {
-    columns,
-    rows,
-    totalChannels: channelData.totalChannels || fallbackTotalChannels,
+    columns: WII_LAYOUT_PRESET.columns,
+    rows: WII_LAYOUT_PRESET.rows,
+    totalChannels: channelsPerPage * WII_LAYOUT_PRESET.totalPages,
     channelsPerPage,
   };
 };

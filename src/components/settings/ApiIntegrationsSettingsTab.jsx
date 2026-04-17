@@ -116,7 +116,7 @@ const ApiIntegrationsSettingsTab = () => {
   const handleSaveSettings = useCallback(async () => {}, []);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div className="mb-6">
         <Text variant="h2" className="text-[hsl(var(--text-primary))] mb-2">
           API & Widgets

@@ -3,6 +3,11 @@ import PropTypes from 'prop-types';
 import { UnifiedAppPathCard } from '../../app-library';
 import ChannelPathSmartSuggestions from '../ChannelPathSmartSuggestions';
 import ChannelModalChannelArtPanel from './ChannelModalChannelArtPanel';
+import {
+  WeeModalFieldCard,
+  WeeSectionEyebrow,
+} from '../../../ui/wee';
+import { validateChannelPath } from '../../../utils/channelPathValidation';
 
 /**
  * App / URL picker + validation helpers for Configure Channel → Setup tab.
@@ -34,43 +39,59 @@ function ChannelModalUnifiedPathBlock({
     }),
     [type, path, matchingApp]
   );
-  const hasLaunchTarget = Boolean(String(path || '').trim());
+
+  /** Reveal art only after a picked app / valid launch path, or a valid website URL (not while typing an incomplete URL). */
+  const canShowChannelArt = useMemo(() => {
+    const trimmed = String(path || '').trim();
+    if (!trimmed) return false;
+    if (type === 'url') {
+      return validateChannelPath(trimmed, 'url').valid;
+    }
+    if (matchingApp) return true;
+    return validateChannelPath(trimmed, type).valid;
+  }, [path, type, matchingApp]);
 
   if (!isOpen) {
     return null;
   }
 
   return (
-    <>
-      <UnifiedAppPathCard
-        key={`unified-app-path-${channelId}-${isOpen}`}
-        value={value}
-        onChange={onUnifiedAppPathChange}
-        externalValidationError={pathError}
-      />
-      {hasLaunchTarget ? (
-        <div className="mt-4 channel-art-panel-wrap">
-          <ChannelModalChannelArtPanel
-            path={path}
-            type={type}
-            matchingApp={matchingApp}
-            onApplySuggestedMedia={onApplySuggestedMedia}
-            media={media}
-            onSelectFromLibrary={onSelectFromLibrary}
-            onUploadToLibraryAndChannel={onUploadToLibraryAndChannel}
-            libraryUploading={libraryUploading}
-            onRemoveMedia={onRemoveMedia}
-            mediaUploadHint={mediaUploadHint}
-            setMediaUploadHint={setMediaUploadHint}
+    <div className="flex min-w-0 flex-col gap-12 md:gap-16">
+      <section className="space-y-4">
+        <WeeModalFieldCard hoverAccent="primary">
+          <UnifiedAppPathCard
+            key={`unified-app-path-${channelId}-${isOpen}`}
+            value={value}
+            onChange={onUnifiedAppPathChange}
+            externalValidationError={pathError}
           />
-        </div>
-      ) : (
-        <div className="channel-setup-lock">
-          Choose what this channel opens above—then you can pick art here.
-        </div>
-      )}
-      <ChannelPathSmartSuggestions path={path} type={type} onApply={onApplySmartSuggestion} />
-    </>
+          <ChannelPathSmartSuggestions path={path} type={type} onApply={onApplySmartSuggestion} />
+        </WeeModalFieldCard>
+      </section>
+
+      {canShowChannelArt ? (
+        <section className="space-y-4">
+          <WeeSectionEyebrow>Channel art</WeeSectionEyebrow>
+          <WeeModalFieldCard hoverAccent="discovery">
+            <div className="channel-art-panel-wrap">
+              <ChannelModalChannelArtPanel
+                path={path}
+                type={type}
+                matchingApp={matchingApp}
+                onApplySuggestedMedia={onApplySuggestedMedia}
+                media={media}
+                onSelectFromLibrary={onSelectFromLibrary}
+                onUploadToLibraryAndChannel={onUploadToLibraryAndChannel}
+                libraryUploading={libraryUploading}
+                onRemoveMedia={onRemoveMedia}
+                mediaUploadHint={mediaUploadHint}
+                setMediaUploadHint={setMediaUploadHint}
+              />
+            </div>
+          </WeeModalFieldCard>
+        </section>
+      ) : null}
+    </div>
   );
 }
 
@@ -90,7 +111,7 @@ ChannelModalUnifiedPathBlock.propTypes = {
   onRemoveMedia: PropTypes.func.isRequired,
   media: PropTypes.object,
   mediaUploadHint: PropTypes.string,
-  setMediaUploadHint: PropTypes.func,
+  setMediaUploadHint: PropTypes.func.isRequired,
 };
 
 ChannelModalUnifiedPathBlock.defaultProps = {
@@ -102,7 +123,6 @@ ChannelModalUnifiedPathBlock.defaultProps = {
   libraryUploading: false,
   media: null,
   mediaUploadHint: '',
-  setMediaUploadHint: undefined,
 };
 
 export default React.memo(ChannelModalUnifiedPathBlock);

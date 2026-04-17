@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { motion } from 'framer-motion';
 import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
+import { WeeSegmentedControl } from '../../ui/wee';
 import { downloadMedia, getStoragePublicObjectUrl } from '../../utils/supabase';
 import {
   MEDIA_LIBRARY_FILETYPE_OPTIONS,
-  MEDIA_LIBRARY_SORT_OPTIONS,
   MEDIA_LIBRARY_PAGE_SIZE_OPTIONS,
   MEDIA_LIBRARY_DEFAULT_PAGE_SIZE,
 } from '../../hooks/useMediaLibraryBrowser';
@@ -21,8 +22,8 @@ function MediaLibraryBrowser({
   setFilter,
   searchInput,
   setSearchInput,
-  sortBy,
-  setSortBy,
+  sortBy: _sortBy,
+  setSortBy: _setSortBy,
   pageSize,
   setPageSize,
   viewMode,
@@ -95,41 +96,32 @@ function MediaLibraryBrowser({
         viewMode === 'list' ? 'image-search-modal__scroll--list' : 'image-search-modal__scroll--grid'
       }`;
 
+  const fileTypeSegmentOptions = MEDIA_LIBRARY_FILETYPE_OPTIONS.map((o) => ({
+    value: o.value,
+    label: o.label,
+  }));
+
   const toolbarInner = channelPicker ? (
-    <>
+    <div className="image-search-modal__toolbar image-search-modal__toolbar--channel">
       <div className="image-search-modal__toolbar-channel-search">
         <input
           type="text"
           placeholder="Search titles…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="surface-input w-full"
+          className="w-full rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-4 py-3 font-[family-name:var(--font-ui)] text-left text-sm font-bold italic text-[hsl(var(--text-primary))] outline-none shadow-[var(--wee-shadow-field)] transition-[border-color,box-shadow] placeholder:font-[family-name:var(--font-ui)] placeholder:font-normal placeholder:not-italic placeholder:text-[hsl(var(--text-tertiary))] focus:border-[hsl(var(--border-accent))] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.12)] hover:border-[hsl(var(--wee-border-field-hover))]"
           aria-label="Search media library"
         />
       </div>
-      <div className="image-search-modal__toolbar-channel-controls">
-        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="surface-select" aria-label="File type">
-          {MEDIA_LIBRARY_FILETYPE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="surface-select" aria-label="Sort order">
-          {MEDIA_LIBRARY_SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <Button variant="secondary" size="sm" onClick={handleRefresh} disabled={loading || refreshing}>
-          {refreshing ? '…' : 'Refresh'}
-        </Button>
-        <span className="image-search-modal__meta image-search-modal__meta--channel">
-          {totalCount} · {page}/{totalPages}
-        </span>
-      </div>
-    </>
+      <WeeSegmentedControl
+        ariaLabel="Media file type"
+        value={filter}
+        onChange={setFilter}
+        options={fileTypeSegmentOptions}
+        size="sm"
+        className="!flex w-full max-w-full flex-wrap justify-stretch [&>button]:min-w-0 [&>button]:flex-1"
+      />
+    </div>
   ) : (
     <>
       <div className="min-w-[160px] flex-1">
@@ -143,13 +135,6 @@ function MediaLibraryBrowser({
       </div>
       <select value={filter} onChange={(e) => setFilter(e.target.value)} className="surface-select">
         {MEDIA_LIBRARY_FILETYPE_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="surface-select">
-        {MEDIA_LIBRARY_SORT_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
@@ -193,19 +178,20 @@ function MediaLibraryBrowser({
         </div>
       ) : null}
 
-      <Card
-        className={`mb-3 image-search-modal__toolbar-card ${compact ? '!mt-0' : 'mb-4'} ${
-          channelPicker ? 'image-search-modal__toolbar-card--channel' : ''
-        }`}
-      >
-        <div
-          className={`image-search-modal__toolbar ${compact && !channelPicker ? '!mb-2' : ''} ${
-            channelPicker ? 'image-search-modal__toolbar--channel' : ''
-          }`}
+      {channelPicker ? (
+        <motion.div
+          layout
+          className="image-search-modal__toolbar-card image-search-modal__toolbar-card--channel mb-3 rounded-[var(--wee-radius-card)] border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] p-4 shadow-[var(--shadow-card)]"
         >
           {toolbarInner}
-        </div>
-      </Card>
+        </motion.div>
+      ) : (
+        <Card
+          className={`mb-3 image-search-modal__toolbar-card ${compact ? '!mt-0' : 'mb-4'}`}
+        >
+          <div className={`image-search-modal__toolbar ${compact ? '!mb-2' : ''}`}>{toolbarInner}</div>
+        </Card>
+      )}
 
       {isInitialLoad ? (
         <div className="rounded-[var(--radius-md)] border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] p-8 text-center">
@@ -315,7 +301,7 @@ function MediaItem({
   return (
     <div className="image-search-modal__card" style={{ '--stagger': Math.min(index, 60) }}>
       <Card
-        className={`!mt-0 cursor-pointer p-3 transition-shadow hover:shadow-[var(--shadow-md)] ${
+        className={`!mt-0 cursor-pointer p-3 transition-all duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:shadow-[var(--playful-shadow-elevated)] hover:-translate-y-[2px] hover:scale-[1.012] ${
           viewMode === 'list' ? '!flex flex-row items-center gap-4' : ''
         }`}
         onClick={() => onSelect(item)}
@@ -339,13 +325,13 @@ function MediaItem({
             />
           )}
 
-          <div className="absolute right-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
+          <div className="absolute right-1 top-1 rounded-[999px] bg-black/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white">
             {isVideo ? 'video' : isGif ? 'gif' : 'image'}
           </div>
         </div>
 
         <div className={`mb-2 min-w-0 ${viewMode === 'list' ? 'flex-1' : ''}`}>
-          <Text variant="p" className="mb-0.5 line-clamp-2 text-[14px] font-semibold">
+          <Text variant="p" className="mb-0.5 line-clamp-2 text-[14px] font-black uppercase italic tracking-[0.04em]">
             {item.title}
           </Text>
           {item.description ? (

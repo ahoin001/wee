@@ -1,0 +1,269 @@
+/**
+ * NINTENDO ADVENTURE DASHBOARD - CINEMATIC MORPH LOGIC
+ * * THE "PLAIN ENGLISH" STRATEGY FOR THE ANIMATION:
+ * * 1. THE ANCHOR (Sticky Positioning): 
+ * We don't "fly" the card with absolute coordinates (which is jittery). 
+ * Instead, we use 'sticky'. The card stays in the middle of the page 
+ * until you scroll past it, then it "sticks" to the top like a magnet.
+ * * 2. THE SLIDE (Margin Magic): 
+ * As the card gets smaller, we set its left margin to 'auto'. 
+ * Imagine a balloon deflating while being pushed against a right-side wall; 
+ * it naturally "slides" to the right as it loses volume.
+ * * 3. THE LANDING PAD (Grid Squeeze): 
+ * The library of games below the hero isn't static. As you scroll, 
+ * we "squeeze" its maximum width. This creates an empty vertical 
+ * lane on the right side for our docked Hero to sit in.
+ */
+
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { 
+  LayoutGrid, Home, Gamepad2, Pin, Play, Info, Settings, X, 
+  Users, RefreshCw, Image as ImageIcon, Search
+} from 'lucide-react';
+
+// --- CONFIGURATION ---
+const SPACES = [
+  { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard' },
+  { id: 'home', icon: Home, label: 'Home' },
+  { id: 'games', icon: Gamepad2, label: 'Games' },
+];
+
+const GAMES_LIBRARY = [
+  { id: 1, title: 'Arc Raiders', art: 'https://images.unsplash.com/photo-1614732414444-096e5f1122d5?q=80&w=400&h=600&fit=crop' },
+  { id: 2, title: 'Destiny 2', art: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&h=600&fit=crop' },
+  { id: 3, title: 'Liar\'s Bar', art: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400&h=600&fit=crop' },
+  { id: 4, title: 'Marathon', art: 'https://images.unsplash.com/photo-1614732414444-096e5f1122d5?q=80&w=400&h=600&fit=crop' },
+  { id: 5, title: 'Marvel Rivals', art: 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?q=80&w=400&h=600&fit=crop' },
+  { id: 6, title: 'No Rest for the Wicked', art: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=400&h=600&fit=crop' },
+  { id: 7, title: 'Overwatch 2', art: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=400&h=600&fit=crop' },
+  { id: 8, title: 'Palworld', art: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=400&h=600&fit=crop' },
+  { id: 9, title: 'Sonic Racing', art: 'https://images.unsplash.com/photo-1531525645387-7f14be1bdbbd?q=80&w=400&h=600&fit=crop' },
+  { id: 10, title: 'Halo Infinite', art: 'https://images.unsplash.com/photo-1614730321146-b6fa6a46bc46?q=80&w=400&h=600&fit=crop' },
+];
+
+const DOCK_WIDTH = 400;           // Final width of the card when docked
+const DOCK_GAP = 40;             // Space between the docked card and the library
+const SCROLL_THRESHOLD = 400;    // Pixels of scroll needed to finish the morph
+const LIBRARY_TOP_OFFSET = 120;  // Gap from the top of the screen when docked
+
+const App = () => {
+  const [activeSpaceIdx, setActiveSpaceIdx] = useState(1);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isNavHovered, setIsNavHovered] = useState(false);
+  const [hoveredNavIdx, setHoveredNavIdx] = useState(null);
+  
+  const scrollRef = useRef(null);
+  const { scrollY } = useScroll({ container: scrollRef });
+
+  /**
+   * PLAIN ENGLISH LOGIC CHECKPOINT:
+   * We convert the raw scroll pixels into a simple "0 to 1" percentage.
+   * 0 = Top of page (Full Hero)
+   * 1 = Scrolled 400px (Docked Sidebar)
+   */
+  const scrollProgress = useTransform(scrollY, [0, SCROLL_THRESHOLD], [0, 1]);
+
+  // ANIMATION: Morphing the physical container
+  const heroWidth = useTransform(scrollProgress, [0, 1], ["100%", `${DOCK_WIDTH}px`]);
+  const heroPaddingBottom = useTransform(scrollProgress, [0, 1], ["35%", "135%"]); 
+  
+  // ANIMATION: Clearing a path for the card to land
+  const gridMaxWidth = useTransform(scrollProgress, [0, 1], ["100%", `calc(100% - ${DOCK_WIDTH + DOCK_GAP}px)`]);
+  
+  // ANIMATION: Cross-fading the inner text/buttons
+  const bannerOpacity = useTransform(scrollProgress, [0, 0.3], [1, 0]);
+  const sidebarContentOpacity = useTransform(scrollProgress, [0.7, 1], [0, 1]);
+
+  // --- KEYBOARD NAVIGATION ---
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (activeSpaceIdx !== 1) return;
+      const cols = window.innerWidth > 1400 ? 5 : window.innerWidth > 1024 ? 4 : 2;
+      if (e.key === 'ArrowRight') setSelectedIndex(p => Math.min(p + 1, GAMES_LIBRARY.length - 1));
+      if (e.key === 'ArrowLeft') setSelectedIndex(p => Math.max(p - 1, 0));
+      if (e.key === 'ArrowDown') setSelectedIndex(p => Math.min(p + cols, GAMES_LIBRARY.length - 1));
+      if (e.key === 'ArrowUp') setSelectedIndex(p => Math.max(p - cols, 0));
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeSpaceIdx]);
+
+  return (
+    <div className="fixed inset-0 bg-[#050508] text-white font-sans overflow-hidden select-none">
+      
+      {/* 1. ATMOSPHERE LAYER (Visual flair) */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,#1e293b_0%,#050508_70%)] opacity-60" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 blur-[160px] rounded-full translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+      </div>
+
+      {/* 2. SCROLLABLE VIEWPORT */}
+      <div ref={scrollRef} className="absolute inset-0 overflow-y-auto custom-scrollbar z-10 px-8 md:px-12 lg:px-20 pt-20 pb-40">
+        <div className="max-w-[1800px] mx-auto pl-24 relative min-h-[200vh]">
+          
+          {/* THE MORPHING HERO CARD
+              'sticky' keeps it pinned to top:120px after we scroll.
+              'marginLeft: auto' ensures it stays pinned to the right edge as it shrinks.
+          */}
+          <motion.div 
+            className="z-[100] sticky mb-16"
+            style={{ 
+              top: LIBRARY_TOP_OFFSET,
+              width: heroWidth,
+              marginLeft: "auto" 
+            }}
+          >
+            <motion.div 
+              style={{ paddingBottom: heroPaddingBottom }}
+              className="relative h-0 w-full rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.7)] border-4 border-white/5 bg-slate-900"
+            >
+              <img 
+                src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1600&fit=crop" 
+                className="absolute inset-0 w-full h-full object-cover" 
+                alt="Destiny 2" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
+              
+              {/* STATE A: Full Cinematic Banner */}
+              <motion.div style={{ opacity: bannerOpacity }} className="absolute inset-0 p-16 flex flex-col justify-end items-start pointer-events-none">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-6">World Event: The Final Shape</div>
+                <h1 className="text-[10vw] max-text-9xl font-black italic uppercase tracking-tighter leading-none mb-8">Destiny 2</h1>
+                <div className="flex gap-4 pointer-events-auto">
+                  <button className="bg-white text-black px-12 py-6 rounded-[2rem] font-black uppercase italic tracking-widest shadow-2xl flex items-center gap-3 hover:scale-105 active:scale-95 transition-all">
+                    <Play fill="black" size={24} /> Connect Steam
+                  </button>
+                  <button className="bg-white/5 backdrop-blur-md px-8 py-6 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-all"><Settings size={24}/></button>
+                </div>
+              </motion.div>
+
+              {/* STATE B: Docked Information Sidebar */}
+              <motion.div style={{ opacity: sidebarContentOpacity }} className="absolute inset-0 p-10 flex flex-col justify-end">
+                 <div className="mb-auto mt-4">
+                    <p className="text-blue-400 font-black uppercase italic text-xs tracking-widest mb-2">Syncing Data...</p>
+                    <h2 className="text-5xl font-black italic uppercase tracking-tighter leading-none">Destiny 2</h2>
+                 </div>
+                 
+                 <div className="space-y-4 mb-10">
+                    <div className="flex justify-between items-center p-5 bg-white/5 rounded-3xl border border-white/5">
+                      <span className="text-[11px] font-black text-white/30 uppercase tracking-widest">Performance</span>
+                      <span className="text-green-400 font-bold italic text-sm">EXCELLENT</span>
+                    </div>
+                    <div className="flex justify-between items-center p-5 bg-white/5 rounded-3xl border border-white/5">
+                      <span className="text-[11px] font-black text-white/30 uppercase tracking-widest">Time Played</span>
+                      <span className="font-bold italic text-sm">1,240H</span>
+                    </div>
+                 </div>
+
+                 <button className="w-full bg-white text-black py-6 rounded-[2rem] font-black uppercase italic tracking-widest text-lg hover:bg-blue-400 transition-colors mb-3">Resume Game</button>
+                 <div className="flex gap-3">
+                    <button className="flex-1 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10"><Info size={20}/></button>
+                    <button className="flex-1 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10 text-red-500"><X size={20}/></button>
+                 </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+
+          {/* THE GAME LIBRARY 
+              The 'maxWidth' is animated so that it shrinks and makes room 
+              for the Hero card to dock on the right.
+          */}
+          <motion.div style={{ maxWidth: gridMaxWidth }} className="transition-all duration-500">
+            {activeSpaceIdx === 1 ? (
+              <div className="space-y-16">
+                <div className="flex justify-between items-end border-l-[6px] border-blue-500 pl-8 mb-12">
+                   <div>
+                      <h2 className="text-5xl font-black italic uppercase tracking-tighter">My Library</h2>
+                      <p className="text-white/20 font-bold uppercase text-[11px] tracking-[0.3em] mt-2">Recently Installed on this station</p>
+                   </div>
+                   <div className="flex gap-3">
+                      <button className="h-14 w-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all"><Search size={20}/></button>
+                      <button className="px-8 h-14 bg-white/5 rounded-2xl border border-white/10 text-[11px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">Filter</button>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+                  {GAMES_LIBRARY.map((game, idx) => (
+                    <motion.div
+                      key={game.id}
+                      whileHover={{ y: -12, scale: 1.03 }}
+                      onClick={() => setSelectedIndex(idx)}
+                      className={`group relative aspect-[2/3] bg-slate-900 rounded-[3.5rem] overflow-hidden cursor-pointer shadow-xl border-4 transition-all duration-300 ${selectedIndex === idx ? 'border-blue-400 ring-[12px] ring-blue-500/10 scale-105 z-20 shadow-blue-500/10' : 'border-white/5 hover:border-white'}`}
+                    >
+                      <img src={game.art} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" alt={game.title} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-transparent p-8 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                         <h3 className="text-white font-black italic uppercase tracking-tighter text-sm leading-none">{game.title}</h3>
+                      </div>
+                    </motion.div>
+                  ))}
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="aspect-[2/3] bg-white/[0.02] rounded-[3.5rem] border-4 border-dashed border-white/5 flex flex-col items-center justify-center text-white/10">
+                      <ImageIcon size={48} strokeWidth={1} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </motion.div>
+        </div>
+      </div>
+
+      {/* 3. NAVIGATION PILL (Left Sidebar) */}
+      <div className="fixed left-10 top-1/2 -translate-y-1/2 z-[200]">
+        <motion.div
+          onMouseEnter={() => setIsNavHovered(true)}
+          onMouseLeave={() => { setIsNavHovered(false); setHoveredNavIdx(null); }}
+          className="bg-white/95 backdrop-blur-3xl p-3 flex flex-col gap-4 shadow-[0_25px_60px_rgba(0,0,0,0.6)] relative overflow-hidden"
+          style={{ borderRadius: isNavHovered ? "45px" : "100px" }}
+        >
+          <AnimatePresence>
+            {isNavHovered && (
+              <motion.div
+                layoutId="nav-bg"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute left-2.5 right-2.5 bg-slate-200 rounded-[2.2rem] z-0"
+                style={{ top: (hoveredNavIdx !== null ? hoveredNavIdx : activeSpaceIdx) * 72 + 12, height: 56 }}
+              />
+            )}
+          </AnimatePresence>
+
+          {SPACES.map((space, idx) => (
+            <motion.button
+              key={space.id}
+              onClick={() => setActiveSpaceIdx(idx)}
+              onMouseEnter={() => setHoveredNavIdx(idx)}
+              whileTap={{ scale: 0.9 }}
+              className={`relative w-14 h-14 rounded-full flex items-center justify-center z-10 transition-colors ${activeSpaceIdx === idx ? 'text-slate-900' : 'text-slate-400'}`}
+            >
+              <space.icon size={24} strokeWidth={activeSpaceIdx === idx ? 2.5 : 2} />
+              {activeSpaceIdx === idx && !isNavHovered && (
+                <motion.div layoutId="active-ring" className="absolute inset-0 border-[5px] border-blue-500 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.4)]" />
+              )}
+            </motion.button>
+          ))}
+        </motion.div>
+      </div>
+
+      {/* 4. STATUS BAR (Bottom) */}
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200]">
+        <div className="bg-slate-900/90 backdrop-blur-3xl px-12 py-5 rounded-[2.5rem] border border-white/5 flex items-center gap-12 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+           <div className="flex items-center gap-4">
+              <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse shadow-[0_0_15px_#3b82f6]" />
+              <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white/50">STATION_ONLINE // 11:37 AM</span>
+           </div>
+        </div>
+      </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 20px; }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;

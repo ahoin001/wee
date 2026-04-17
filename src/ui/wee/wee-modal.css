@@ -1,0 +1,24 @@
+/* Wee modal — scroll region uses design-system scrollbar tokens */
+.wee-modal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
+}
+
+.wee-modal-scroll::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+}
+
+.wee-modal-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--scrollbar-track));
+  border-radius: var(--scrollbar-radius);
+}
+
+.wee-modal-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--scrollbar-thumb));
+  border-radius: var(--scrollbar-radius);
+  border: 3px solid hsl(var(--scrollbar-border));
+}
+
+.wee-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--scrollbar-thumb-hover));
+}

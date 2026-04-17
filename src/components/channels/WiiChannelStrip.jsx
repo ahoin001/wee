@@ -52,8 +52,12 @@ const WiiChannelStrip = ({
             return (
               <div
                 key={`wii-cell-${i}`}
-                className="wii-strip-channel-cell"
-                style={{ gridColumn: col + 1, gridRow: row + 1 }}
+                className="wii-strip-channel-cell wii-strip-channel-cell--enter"
+                style={{
+                  gridColumn: col + 1,
+                  gridRow: row + 1,
+                  '--wii-enter-delay': `${Math.min(idxInPage * 24, 260)}ms`,
+                }}
               >
                 {renderChannelAtIndex(i, true)}
               </div>

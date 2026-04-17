@@ -40,7 +40,8 @@ const Card = React.memo(({
   features = [],
   stats = [],
   decorative = true,
-  noHover = true
+  noHover = true,
+  ...rest
 }) => {
   const palette = WII_PALETTES.has(color) ? color : 'blue';
 
@@ -48,14 +49,15 @@ const Card = React.memo(({
   if (variant === 'default') {
     return (
       <div
-        className={`mt-[18px] mb-0 px-7 py-6 rounded-[var(--radius-lg)] bg-[linear-gradient(180deg,hsl(var(--color-pure-white)/0.55)_0%,hsl(var(--color-pure-white)/0.22)_100%),hsl(var(--surface-secondary))] backdrop-blur-[8px] shadow-[var(--shadow-soft)] border border-[hsl(var(--border-primary))] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:shadow-[var(--shadow-soft-hover)] hover:border-[hsl(var(--border-secondary))] ${className}`}
+        className={`mt-[18px] mb-0 px-[var(--playful-card-padding)] py-[var(--playful-card-padding)] rounded-[2rem] bg-[linear-gradient(180deg,hsl(var(--color-pure-white)/0.6)_0%,hsl(var(--color-pure-white)/0.24)_100%),hsl(var(--surface-secondary))] backdrop-blur-[10px] shadow-[var(--playful-shadow-elevated)] border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-[1px] hover:shadow-[var(--playful-shadow-elevated)] hover:border-[hsl(var(--border-secondary))] ${className}`}
         style={style}
         onClick={onClick}
+        {...rest}
       >
         {(title || headerActions) && (
           <div className="mb-1.5 flex items-center justify-between">
             {title && (
-              <Text variant="h3" className="m-0">{title}</Text>
+              <Text variant="h3" className="m-0 playful-hero-text">{title}</Text>
             )}
             {headerActions}
           </div>
@@ -214,14 +216,14 @@ const Card = React.memo(({
 
   return (
     <div
-      className={`mt-[18px] mb-0 px-7 py-6 rounded-[var(--radius-lg)] bg-[linear-gradient(180deg,hsl(var(--color-pure-white)/0.55)_0%,hsl(var(--color-pure-white)/0.22)_100%),hsl(var(--surface-secondary))] backdrop-blur-[8px] shadow-[var(--shadow-soft)] border border-[hsl(var(--border-primary))] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:shadow-[var(--shadow-soft-hover)] hover:border-[hsl(var(--border-secondary))] ${className}`}
+      className={`mt-[18px] mb-0 px-[var(--playful-card-padding)] py-[var(--playful-card-padding)] rounded-[2rem] bg-[linear-gradient(180deg,hsl(var(--color-pure-white)/0.6)_0%,hsl(var(--color-pure-white)/0.24)_100%),hsl(var(--surface-secondary))] backdrop-blur-[10px] shadow-[var(--playful-shadow-elevated)] border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-[1px] hover:border-[hsl(var(--border-secondary))] ${className}`}
       style={style}
       onClick={onClick}
     >
       {(title || headerActions) && (
         <div className="mb-1.5 flex items-center justify-between">
           {title && (
-            <Text variant="h3" className="m-0">{title}</Text>
+            <Text variant="h3" className="m-0 playful-hero-text">{title}</Text>
           )}
           {headerActions}
         </div>

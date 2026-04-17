@@ -6,15 +6,15 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  rectIntersection,
+  pointerWithin,
+  closestCorners,
 } from '@dnd-kit/core';
 import { Channel } from '../channels';
-import SlideNavigation from './SlideNavigation';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { ChannelSpaceProvider } from '../../contexts/ChannelSpaceContext';
 import useIdleChannelAnimations from '../../utils/useIdleChannelAnimations';
 import { WII_LAYOUT_PRESET } from '../../utils/channelLayoutSystem';
-import { ChannelGridPage, WiiChannelStrip } from '../channels';
+import { WiiChannelStrip } from '../channels';
 import ChannelSlotDnd, { parseChannelDnDId } from './ChannelSlotDnd';
 import { ChannelDragOverlayFrame } from './ChannelDragMotion';
 import { ChannelReorderVfxPortal, measureChannelSlotCenter } from './ChannelReorderVfx';
@@ -30,7 +30,6 @@ const PaginatedChannelsInner = React.memo(() => {
   // ✅ DATA LAYER: Use the new channel operations hook
   const {
     channelSpaceKey,
-    gridConfig,
     navigation,
     channelSettings,
     getCurrentPageChannels,
@@ -44,7 +43,24 @@ const PaginatedChannelsInner = React.memo(() => {
   } = useChannelOperations();
 
   const isSpaceTransitioning = useConsolidatedAppStore((s) => s.spaces.isTransitioning);
+  const channelConfigureModalOpen = useConsolidatedAppStore((s) => s.ui.channelConfigureModalOpen);
   const mf = useMotionFeedback();
+
+  /** Prefer pointer-occupied cell, then nearest corner — more reliable than rectIntersection on transformed grids. */
+  const channelGridCollisionDetection = useCallback((args) => {
+    const inPointer = pointerWithin(args);
+    if (inPointer.length) return inPointer;
+    return closestCorners(args);
+  }, []);
+
+  /** Persisted or interrupted page animation can leave isAnimating stuck true and block drag forever. */
+  useEffect(() => {
+    if (!navigation.isAnimating) return undefined;
+    const t = window.setTimeout(() => {
+      finishAnimation();
+    }, 650);
+    return () => window.clearTimeout(t);
+  }, [navigation.isAnimating, finishAnimation]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -91,14 +107,13 @@ const PaginatedChannelsInner = React.memo(() => {
     idleAnimationEnabled: channelSettings.idleAnimationEnabled ?? false,
     idleAnimationTypes: channelSettings.idleAnimationTypes ?? ['pulse', 'bounce', 'glow'],
     idleAnimationInterval: channelSettings.idleAnimationInterval ?? 8,
-    autoFadeTimeout: channelSettings.channelAutoFadeTimeout ?? 5
+    autoFadeTimeout: channelSettings.autoFadeTimeout ?? 5
   }), [channelSettings]);
 
   // Grid-level auto-fade functionality
   const [isGridFaded, setIsGridFaded] = useState(false);
   const gridFadeTimeoutRef = useRef(null);
   const autoFadeTimeout = effectiveSettings.autoFadeTimeout;
-  const isWiiMode = navigation.mode === 'wii';
 
   // Handle grid hover events
   const handleGridMouseEnter = useCallback(() => {
@@ -142,7 +157,6 @@ const PaginatedChannelsInner = React.memo(() => {
 
   /** Wii strip: drive peek + layout math via inherited custom properties */
   const wiiStripCssVars = useMemo(() => {
-    if (!isWiiMode) return undefined;
     const safeTotalPages = Math.max(1, Number(navigation.totalPages) || 1);
     const safeCurrentPage = Math.max(
       0,
@@ -152,7 +166,7 @@ const PaginatedChannelsInner = React.memo(() => {
       '--wii-strip-current-page': safeCurrentPage,
       '--wii-total-pages': safeTotalPages,
     };
-  }, [isWiiMode, navigation.currentPage, navigation.totalPages]);
+  }, [navigation.currentPage, navigation.totalPages]);
 
   // Channel event handlers
   const handleChannelMediaChange = useCallback(
@@ -214,7 +228,7 @@ const PaginatedChannelsInner = React.memo(() => {
       setActiveDragIndex(null);
       setLiftVfx(null);
       const { active, over } = event;
-      if (!over || navigation.isAnimating || isSpaceTransitioning) return;
+      if (!over || navigation.isAnimating || isSpaceTransitioning || channelConfigureModalOpen) return;
       const from = parseChannelDnDId(active.id);
       const to = parseChannelDnDId(over.id);
       if (from === null || to === null || from === to) return;
@@ -249,6 +263,7 @@ const PaginatedChannelsInner = React.memo(() => {
       mf.channelReorderSlotMotion,
       navigation.isAnimating,
       isSpaceTransitioning,
+      channelConfigureModalOpen,
       reorderChannels,
       scheduleVfx,
     ]
@@ -321,53 +336,33 @@ const PaginatedChannelsInner = React.memo(() => {
   );
 
   const renderChannelAtIndex = useCallback(
-    (channelIndex, wiiMode = false) => (
+    (channelIndex) => (
       <ChannelSlotDnd
         key={`channel-slot-${channelSpaceKey}-${channelIndex}`}
         channelSpaceKey={channelSpaceKey}
         channelIndex={channelIndex}
-        disabled={navigation.isAnimating || isSpaceTransitioning}
+        disabled={
+          navigation.isAnimating || isSpaceTransitioning || channelConfigureModalOpen
+        }
         celebrateDrop={celebrateIndex === channelIndex}
         reorderWave={reorderWave}
       >
-        {renderChannelInner(channelIndex, wiiMode)}
+        {renderChannelInner(channelIndex, true)}
       </ChannelSlotDnd>
     ),
     [
       channelSpaceKey,
       navigation.isAnimating,
       isSpaceTransitioning,
+      channelConfigureModalOpen,
       renderChannelInner,
       celebrateIndex,
       reorderWave,
     ]
   );
 
-  // Render content based on mode
   const renderContent = useMemo(() => {
-    const { mode } = navigation;
     const safeTotalPages = Math.max(1, Number(navigation.totalPages) || 1);
-    
-    if (mode === 'simple') {
-      return (
-        <SlideNavigation>
-          {Array.from({ length: safeTotalPages }, (_, pageIndex) => (
-            <ChannelGridPage
-              key={`page-${pageIndex}`}
-              pageIndex={pageIndex}
-              columns={gridConfig.columns}
-              rows={gridConfig.rows}
-              channelsPerPage={gridConfig.channelsPerPage}
-              totalChannels={gridConfig.totalChannels}
-              isGridFaded={isGridFaded}
-              onGridMouseEnter={handleGridMouseEnter}
-              onGridMouseLeave={handleGridMouseLeave}
-              renderChannelAtIndex={renderChannelAtIndex}
-            />
-          ))}
-        </SlideNavigation>
-      );
-    }
 
     return (
       <div className="wii-mode-container">
@@ -385,10 +380,6 @@ const PaginatedChannelsInner = React.memo(() => {
     );
   }, [
     navigation,
-    gridConfig.columns,
-    gridConfig.rows,
-    gridConfig.channelsPerPage,
-    gridConfig.totalChannels,
     isGridFaded,
     handleGridMouseEnter,
     handleGridMouseLeave,
@@ -407,7 +398,7 @@ const PaginatedChannelsInner = React.memo(() => {
       ) : null}
       <DndContext
         sensors={sensors}
-        collisionDetection={rectIntersection}
+        collisionDetection={channelGridCollisionDetection}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
@@ -423,7 +414,7 @@ const PaginatedChannelsInner = React.memo(() => {
         <DragOverlay dropAnimation={null}>
           {activeDragIndex !== null ? (
             <ChannelDragOverlayFrame>
-              {renderChannelInner(activeDragIndex, isWiiMode)}
+              {renderChannelInner(activeDragIndex, true)}
             </ChannelDragOverlayFrame>
           ) : null}
         </DragOverlay>

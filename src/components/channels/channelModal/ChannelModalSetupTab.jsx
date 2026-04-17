@@ -1,30 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Card from '../../../ui/Card';
-import ChannelModalSuggestedCollapsible from './ChannelModalSuggestedCollapsible';
 
 /**
- * Configure Channel → Setup: guided target-first flow with optional suggestions.
+ * Configure Channel → Setup: path, launch target, and channel art (suggested games live on Discovery → Suggested).
  */
-function ChannelModalSetupTab({ pathCardContent, suggestedGames }) {
-  return (
-    <div className="space-y-6">
-      <Card
-        title="What should this channel open?"
-        separator
-        desc="Choose an app or a website, then pick channel art below."
-      >
-        {pathCardContent}
-      </Card>
-
-      <ChannelModalSuggestedCollapsible defaultOpen={false}>{suggestedGames}</ChannelModalSuggestedCollapsible>
-    </div>
-  );
+function ChannelModalSetupTab({ pathCardContent }) {
+  return <div className="flex min-w-0 flex-col gap-12 md:gap-16">{pathCardContent}</div>;
 }
 
 ChannelModalSetupTab.propTypes = {
   pathCardContent: PropTypes.node.isRequired,
-  suggestedGames: PropTypes.node.isRequired,
 };
 
 export default React.memo(ChannelModalSetupTab);

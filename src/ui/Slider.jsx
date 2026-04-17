@@ -17,24 +17,26 @@ export default function Slider({
   return (
     <div className={`mb-4 ${containerClassName}`.trim()}>
       {label && (
-        <div className="mb-1 text-[hsl(var(--text-secondary))] text-[length:var(--control-label-font-size)]">
+        <div className="playful-system-label mb-2 text-[hsl(var(--text-secondary))]">
           {label}
         </div>
       )}
-      <input
-        id={id}
-        type="range"
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        disabled={disabled}
-        aria-label={ariaLabel}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className={`w-full accent-[hsl(var(--wii-blue))] ${className}`.trim()}
-      />
+      <div className="rounded-[var(--control-radius-playful)] border-[var(--control-border-width-playful)] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] px-4 py-3 shadow-[var(--playful-inner-glow)]">
+        <input
+          id={id}
+          type="range"
+          value={value}
+          min={min}
+          max={max}
+          step={step}
+          disabled={disabled}
+          aria-label={ariaLabel}
+          onChange={(e) => onChange(parseFloat(e.target.value))}
+          className={`w-full accent-[hsl(var(--primary))] ${className}`.trim()}
+        />
+      </div>
       {!hideValue && (
-        <span className="ml-2 text-[hsl(var(--text-secondary))] text-[length:var(--control-helper-font-size)]">
+        <span className="mt-2 inline-block text-[hsl(var(--text-secondary))] text-[length:var(--control-helper-font-size)] font-bold">
           {value}
         </span>
       )}

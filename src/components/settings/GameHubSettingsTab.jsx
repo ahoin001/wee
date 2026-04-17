@@ -5,6 +5,7 @@ import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import SettingsWeeSection from './SettingsWeeSection';
 
 const STEAM_ID_HELP_URL = 'https://steamcommunity.com/my/?xml=1';
 
@@ -91,9 +92,9 @@ const GameHubSettingsTab = React.memo(() => {
   }, [setGameHubState]);
 
   return (
-    <div className="space-y-5">
-      <div className="mb-2">
-        <Text variant="h2" className="text-[hsl(var(--text-primary))] mb-2">
+    <div className="max-w-3xl space-y-8">
+      <div>
+        <Text variant="h2" className="mb-2 text-[hsl(var(--text-primary))]">
           Game Hub
         </Text>
         <Text variant="body" className="text-[hsl(var(--text-secondary))]">
@@ -101,6 +102,7 @@ const GameHubSettingsTab = React.memo(() => {
         </Text>
       </div>
 
+      <SettingsWeeSection eyebrow="Steam profile">
       <Card
         title="Steam Profile"
         separator
@@ -135,7 +137,9 @@ const GameHubSettingsTab = React.memo(() => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
 
+      <SettingsWeeSection eyebrow="Enrichment">
       <Card
         title="Enrichment Controls"
         separator
@@ -156,7 +160,9 @@ const GameHubSettingsTab = React.memo(() => {
           ) : null}
         </div>
       </Card>
+      </SettingsWeeSection>
 
+      <SettingsWeeSection eyebrow="Hub visuals">
       <Card
         title="Hub Visuals"
         separator
@@ -190,7 +196,9 @@ const GameHubSettingsTab = React.memo(() => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
 
+      <SettingsWeeSection eyebrow="Onboarding">
       <Card
         title="Onboarding"
         separator
@@ -202,6 +210,7 @@ const GameHubSettingsTab = React.memo(() => {
           </WButton>
         </div>
       </Card>
+      </SettingsWeeSection>
     </div>
   );
 });

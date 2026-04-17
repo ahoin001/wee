@@ -68,8 +68,8 @@ const ConfirmationModal = () => {
       title={confirmationModalData.title}
       onClose={handleCancel}
       maxWidth="600px"
-      footerContent={({ handleClose }) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+      footerContent={() => (
+        <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={handleCancel}>
             {confirmationModalData.cancelText}
           </Button>
@@ -82,14 +82,10 @@ const ConfirmationModal = () => {
         </div>
       )}
     >
-      <div style={{ padding: '20px 0' }}>
+      <div className="py-5">
         <div 
           dangerouslySetInnerHTML={{ __html: confirmationModalData.message }}
-          style={{ 
-            marginBottom: 16,
-            lineHeight: '1.5',
-            color: 'hsl(var(--text-primary))'
-          }}
+          className="mb-4 leading-relaxed text-[hsl(var(--text-primary))]"
         />
       </div>
     </WBaseModal>

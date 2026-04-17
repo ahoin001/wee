@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { Film, Maximize2, PlayCircle, Shield, Volume2 } from 'lucide-react';
 import Card from '../../../ui/Card';
 import Slider from '../../../ui/Slider';
 import Text from '../../../ui/Text';
 import WButton from '../../../ui/WButton';
 import WToggle from '../../../ui/WToggle';
+import {
+  WeeChoiceTileGrid,
+  WeeDescriptionToggleRow,
+  WeeIconHeadingRow,
+  WeeModalFieldCard,
+  WeeSectionEyebrow,
+  WeeSegmentedControl,
+} from '../../../ui/wee';
 
 function ChannelModalBehaviorTab({
   channelId,
@@ -36,8 +45,32 @@ function ChannelModalBehaviorTab({
 }) {
   const channelHoverSounds = getSoundsByCategory('channelHover') || [];
 
+  const motionGridValue = useMemo(() => {
+    if (animatedOnHover === undefined || animatedOnHover === 'global') return 'global';
+    if (animatedOnHover === true) return 'hover';
+    return 'always';
+  }, [animatedOnHover]);
+
+  const handleMotionGridChange = (key) => {
+    if (key === 'global') setAnimatedOnHover('global');
+    else if (key === 'hover') setAnimatedOnHover(true);
+    else setAnimatedOnHover(false);
+  };
+
+  const kenBurnsSegValue = useMemo(() => {
+    if (kenBurnsEnabled === undefined || kenBurnsEnabled === 'global') return 'global';
+    if (kenBurnsEnabled === true) return 'on';
+    return 'off';
+  }, [kenBurnsEnabled]);
+
+  const handleKenBurnsSeg = (v) => {
+    if (v === 'global') setKenBurnsEnabled('global');
+    else if (v === 'on') setKenBurnsEnabled(true);
+    else setKenBurnsEnabled(false);
+  };
+
   const renderDisplayOptionsSection = () => (
-    <div className="channel-row-radio">
+    <div className="flex flex-col gap-3">
       <label className="channel-radio-label channel-radio-label-compact">
         <input
           type="radio"
@@ -198,176 +231,181 @@ function ChannelModalBehaviorTab({
     </div>
   );
 
-  const renderAnimationToggleSection = () => (
-    <div className="channel-stack-8">
+  const renderKenBurnsModeRadios = () => (
+    <div className="channel-stack-8 border-t-2 border-[hsl(var(--border-primary)/0.25)] pt-6">
+      <Text as="label" size="sm" weight={600} className="mb-2 block text-[hsl(var(--wee-text-header))]">
+        Activation Mode
+      </Text>
       <label className="channel-radio-label">
         <input
           type="radio"
-          name="animatedOnHover"
+          name="kenBurnsMode"
           value="global"
-          checked={animatedOnHover === undefined || animatedOnHover === 'global'}
-          onChange={() => setAnimatedOnHover('global')}
+          checked={kenBurnsMode === undefined || kenBurnsMode === 'global'}
+          onChange={() => setKenBurnsMode('global')}
         />
         Use global setting
       </label>
       <label className="channel-radio-label">
         <input
           type="radio"
-          name="animatedOnHover"
-          value="true"
-          checked={animatedOnHover === true}
-          onChange={() => setAnimatedOnHover(true)}
+          name="kenBurnsMode"
+          value="hover"
+          checked={kenBurnsMode === 'hover'}
+          onChange={() => setKenBurnsMode('hover')}
         />
-        Only play animation on hover (override)
+        Hover to activate (override)
       </label>
       <label className="channel-radio-label">
         <input
           type="radio"
-          name="animatedOnHover"
-          value="false"
-          checked={animatedOnHover === false}
-          onChange={() => setAnimatedOnHover(false)}
+          name="kenBurnsMode"
+          value="autoplay"
+          checked={kenBurnsMode === 'autoplay'}
+          onChange={() => setKenBurnsMode('autoplay')}
         />
-        Always play animation (override)
+        Always active (override)
+      </label>
+      <label className="channel-radio-label channel-radio-disabled">
+        <input
+          type="radio"
+          name="kenBurnsMode"
+          value="slideshow"
+          checked={kenBurnsMode === 'slideshow'}
+          onChange={() => setKenBurnsMode('slideshow')}
+          disabled
+        />
+        Slideshow mode (override){' '}
+        <span className="text-[11px] text-[hsl(var(--state-error))]">- Not Ready</span>
       </label>
     </div>
   );
 
-  const renderKenBurnsSection = () => (
-    <div className="channel-stack-16">
-      <div>
-        <Text as="label" size="md" weight={600} className="block mb-2">
-          Ken Burns Effect
-        </Text>
-        <div className="channel-stack-8">
-          <label className="channel-radio-label">
-            <input
-              type="radio"
-              name="kenBurnsEnabled"
-              value="global"
-              checked={kenBurnsEnabled === undefined || kenBurnsEnabled === 'global'}
-              onChange={() => setKenBurnsEnabled('global')}
-            />
-            Use global setting
-          </label>
-          <label className="channel-radio-label">
-            <input
-              type="radio"
-              name="kenBurnsEnabled"
-              value="true"
-              checked={kenBurnsEnabled === true}
-              onChange={() => setKenBurnsEnabled(true)}
-            />
-            Enable for this channel (override)
-          </label>
-          <label className="channel-radio-label">
-            <input
-              type="radio"
-              name="kenBurnsEnabled"
-              value="false"
-              checked={kenBurnsEnabled === false}
-              onChange={() => setKenBurnsEnabled(false)}
-            />
-            Disable for this channel (override)
-          </label>
-        </div>
-      </div>
-
-      {kenBurnsEnabled === true && (
-        <div>
-          <Text as="label" size="md" weight={600} className="block mb-2">
-            Activation Mode
-          </Text>
-          <div className="channel-stack-8">
-            <label className="channel-radio-label">
-              <input
-                type="radio"
-                name="kenBurnsMode"
-                value="global"
-                checked={kenBurnsMode === undefined || kenBurnsMode === 'global'}
-                onChange={() => setKenBurnsMode('global')}
-              />
-              Use global setting
-            </label>
-            <label className="channel-radio-label">
-              <input
-                type="radio"
-                name="kenBurnsMode"
-                value="hover"
-                checked={kenBurnsMode === 'hover'}
-                onChange={() => setKenBurnsMode('hover')}
-              />
-              Hover to activate (override)
-            </label>
-            <label className="channel-radio-label">
-              <input
-                type="radio"
-                name="kenBurnsMode"
-                value="autoplay"
-                checked={kenBurnsMode === 'autoplay'}
-                onChange={() => setKenBurnsMode('autoplay')}
-              />
-              Always active (override)
-            </label>
-            <label className="channel-radio-label channel-radio-disabled">
-              <input
-                type="radio"
-                name="kenBurnsMode"
-                value="slideshow"
-                checked={kenBurnsMode === 'slideshow'}
-                onChange={() => setKenBurnsMode('slideshow')}
-                disabled
-              />
-              Slideshow mode (override){' '}
-              <span className="text-[hsl(var(--state-error))] text-[11px]">- Not Ready</span>
-            </label>
-          </div>
-        </div>
-      )}
-
-      <Text variant="help">
-        {kenBurnsEnabled === true
-          ? 'Ken Burns adds cinematic zoom and pan effects to images. Perfect for creating dynamic single-image channels.'
-          : kenBurnsEnabled === false
-            ? 'Ken Burns effect is disabled for this channel, even if enabled globally.'
-            : 'This channel will follow the global Ken Burns setting.'}
-      </Text>
-    </div>
-  );
-
   return (
-    <div className="space-y-6">
-      <Card title="Launch Options" separator desc="Choose how this application should be launched when the channel is clicked.">
-        {renderDisplayOptionsSection()}
-      </Card>
+    <div className="flex max-w-4xl flex-col gap-12 md:gap-16">
+      <section className="space-y-6">
+        <WeeSectionEyebrow trackingClassName="tracking-[0.35em]">Privileges & audio</WeeSectionEyebrow>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <WeeModalFieldCard hoverAccent="primary">
+            <WeeIconHeadingRow icon={Shield} title="Privileges" />
+            <p className="mb-4 text-[11px] font-bold uppercase leading-relaxed text-[hsl(var(--text-tertiary))]">
+              Choose how this application launches when the channel is clicked.
+            </p>
+            {renderDisplayOptionsSection()}
+          </WeeModalFieldCard>
 
-      <Card
-        title="Custom Hover Sound"
-        separator
-        desc="Set a custom sound to play when hovering over this channel."
-        headerActions={<WToggle checked={hoverSoundEnabled} onChange={(checked) => setHoverSoundEnabled(checked)} />}
-      >
-        {hoverSoundEnabled && <div>{renderHoverSoundSection()}</div>}
-        {!hoverSoundEnabled && (
-          <span className="channel-inline-help">Set a custom sound to play when hovering over this channel.</span>
-        )}
-      </Card>
+          <WeeModalFieldCard hoverAccent="discovery">
+            <WeeIconHeadingRow
+              icon={Volume2}
+              title="Audio focus"
+              iconClassName="text-[hsl(var(--wee-accent-discovery))]"
+            />
+            <WeeDescriptionToggleRow description="Play a custom sound when hovering over this channel.">
+              <div
+                data-wee-card-toggle-guard
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <WToggle checked={hoverSoundEnabled} onChange={(checked) => setHoverSoundEnabled(checked)} />
+              </div>
+            </WeeDescriptionToggleRow>
+          </WeeModalFieldCard>
+        </div>
 
-      <Card
-        title="Animation on Hover"
-        separator
-        desc="Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled."
-      >
-        {renderAnimationToggleSection()}
-      </Card>
+        <Card
+          className="!mt-0 !rounded-[var(--wee-radius-card)] !border-2 !border-[hsl(var(--wee-border-card))] !bg-[hsl(var(--wee-surface-card))] !shadow-[var(--shadow-card)]"
+          title="Custom Hover Sound"
+          separator
+          desc="Set a custom sound to play when hovering over this channel."
+          onClick={(e) => {
+            if (
+              e.target.closest(
+                'button, input, textarea, select, a, [role="slider"], [data-wee-card-toggle-guard], .channel-sound-card, label'
+              )
+            ) {
+              return;
+            }
+            setHoverSoundEnabled(!hoverSoundEnabled);
+          }}
+        >
+          {hoverSoundEnabled && (
+            <div className="rounded-[2rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.65)] p-5 md:p-6">
+              {renderHoverSoundSection()}
+            </div>
+          )}
+          {!hoverSoundEnabled && (
+            <span className="channel-inline-help">Set a custom sound to play when hovering over this channel.</span>
+          )}
+        </Card>
+      </section>
 
-      <Card
-        title="Ken Burns Effect"
-        separator
-        desc="Override the global Ken Burns setting for this channel. Adds cinematic zoom and pan to images."
-      >
-        {renderKenBurnsSection()}
-      </Card>
+      <section className="space-y-6">
+        <WeeSectionEyebrow trackingClassName="tracking-[0.35em]">Animation strategy</WeeSectionEyebrow>
+        <WeeModalFieldCard>
+          <WeeIconHeadingRow icon={Film} title="Motion architecture" iconClassName="text-[hsl(var(--palette-purple))]" />
+          <p className="mb-6 text-[11px] font-bold uppercase leading-relaxed text-[hsl(var(--text-tertiary))]">
+            Override the global setting for this channel. Only play GIFs/MP4s when hovered if enabled.
+          </p>
+          <WeeChoiceTileGrid
+            value={motionGridValue}
+            onChange={handleMotionGridChange}
+            icon={PlayCircle}
+            items={[
+              { value: 'global', title: 'Global', subtitle: 'Follow app settings' },
+              { value: 'hover', title: 'Hover play', subtitle: 'Only when hovered' },
+              { value: 'always', title: 'Always play', subtitle: 'GIF/MP4 always on' },
+            ]}
+          />
+        </WeeModalFieldCard>
+      </section>
+
+      <section className="space-y-6">
+        <WeeSectionEyebrow trackingClassName="tracking-[0.35em]">Post-processing</WeeSectionEyebrow>
+        <WeeModalFieldCard>
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-6">
+              <div
+                className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl transition-all ${
+                  kenBurnsEnabled === true
+                    ? 'bg-[hsl(var(--palette-purple))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-md)]'
+                    : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-tertiary))]'
+                }`}
+              >
+                <Maximize2 size={32} strokeWidth={1.6} aria-hidden />
+              </div>
+              <div>
+                <p className="mb-1 font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--wee-text-header))]">
+                  Ken Burns movement
+                </p>
+                <p className="max-w-md text-[10px] font-bold uppercase leading-relaxed text-[hsl(var(--text-tertiary))]">
+                  Adds cinematic slow-zoom and pan movement to static channel backgrounds.
+                </p>
+              </div>
+            </div>
+            <WeeSegmentedControl
+              ariaLabel="Ken Burns mode"
+              size="sm"
+              value={kenBurnsSegValue}
+              onChange={handleKenBurnsSeg}
+              options={[
+                { value: 'global', label: 'Global' },
+                { value: 'on', label: 'On' },
+                { value: 'off', label: 'Off' },
+              ]}
+            />
+          </div>
+
+          {kenBurnsEnabled === true && renderKenBurnsModeRadios()}
+
+          <Text variant="help" className="mt-6">
+            {kenBurnsEnabled === true
+              ? 'Ken Burns adds cinematic zoom and pan effects to images. Perfect for creating dynamic single-image channels.'
+              : kenBurnsEnabled === false
+                ? 'Ken Burns effect is disabled for this channel, even if enabled globally.'
+                : 'This channel will follow the global Ken Burns setting.'}
+          </Text>
+        </WeeModalFieldCard>
+      </section>
     </div>
   );
 }

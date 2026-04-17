@@ -6,6 +6,7 @@ import WButton from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { formatShortcut, validateShortcut, checkShortcutConflict, getShortcutsByCategory, DEFAULT_SHORTCUTS } from '../../utils/keyboardShortcuts';
+import SettingsWeeSection from './SettingsWeeSection';
 
 const ShortcutsSettingsTab = React.memo(() => {
   const ui = useConsolidatedAppStore((state) => state.ui);
@@ -161,9 +162,9 @@ const ShortcutsSettingsTab = React.memo(() => {
   const groupedShortcuts = getShortcutsByCategory(keyboardShortcuts);
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center mb-8">
+    <div className="mx-auto max-w-3xl space-y-8">
+      <SettingsWeeSection eyebrow="Overview">
+      <div className="mb-8 text-center">
         <Text variant="h2" className="text-[hsl(var(--text-primary))] mb-3">
           🎹 Keyboard Shortcuts
         </Text>
@@ -184,8 +185,8 @@ const ShortcutsSettingsTab = React.memo(() => {
           🔄 Reset to Default
         </WButton>
       </div>
+      </SettingsWeeSection>
 
-      {/* Error Display */}
       {shortcutError && (
         <Card className="border-[hsl(var(--destructive))] bg-[hsl(var(--destructive))]/10">
           <div className="p-4">
@@ -196,7 +197,7 @@ const ShortcutsSettingsTab = React.memo(() => {
         </Card>
       )}
 
-      {/* Configurable Shortcuts by Category */}
+      <SettingsWeeSection eyebrow="Your shortcuts">
       {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
         <Card key={category} className="overflow-hidden">
           <div className="bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(var(--accent))]/80 p-4">
@@ -281,8 +282,9 @@ const ShortcutsSettingsTab = React.memo(() => {
           </div>
         </Card>
       ))}
+      </SettingsWeeSection>
 
-      {/* Reserved Shortcuts */}
+      <SettingsWeeSection eyebrow="Reserved">
       <Card className="overflow-hidden">
         <div className="bg-gradient-to-r from-[hsl(var(--destructive))] to-[hsl(var(--destructive))]/80 p-4">
           <Text variant="h3" className="text-[hsl(var(--destructive-foreground))] font-semibold">
@@ -328,9 +330,10 @@ const ShortcutsSettingsTab = React.memo(() => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
 
-      {/* Help Section */}
-      <Card className="bg-gradient-to-r from-[hsl(var(--accent))]/10 to-[hsl(var(--accent))]/5 border-[hsl(var(--accent))]/20">
+      <SettingsWeeSection eyebrow="Tips">
+      <Card className="border-[hsl(var(--accent))]/20 bg-gradient-to-r from-[hsl(var(--accent))]/10 to-[hsl(var(--accent))]/5">
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div className="text-2xl">💡</div>
@@ -349,6 +352,7 @@ const ShortcutsSettingsTab = React.memo(() => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
     </div>
   );
 });

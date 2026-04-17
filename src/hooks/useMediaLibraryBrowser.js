@@ -37,7 +37,7 @@ export function useMediaLibraryBrowser({
   const [filter, setFilter] = useState('all');
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('created_at');
+  const [sortBy, setSortBy] = useState('title_asc');
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [viewMode, setViewMode] = useState('grid');
 

@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
-import WInput from '../../ui/WInput';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { logError } from '../../utils/logger';
+import SettingsWeeSection from './SettingsWeeSection';
 
 const NavigationSettingsTab = () => {
   const navigation = useConsolidatedAppStore((state) => state.navigation);
@@ -204,29 +204,34 @@ const NavigationSettingsTab = () => {
     setSpotifyIntegration(false);
   };
 
+  const selectedTileClass =
+    'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.08)]';
+  const idleTileClass =
+    'border-[hsl(var(--border-primary))] hover:border-[hsl(var(--border-secondary))]';
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Text variant="h3" className="text-[hsl(var(--text-primary))]">
-            Navigation Settings
+            Side navigation buttons
           </Text>
-          <Text variant="body" className="text-[hsl(var(--text-secondary))] mt-1">
-            Customize the side navigation buttons appearance and behavior
+          <Text variant="body" className="mt-1 text-[hsl(var(--text-secondary))]">
+            Customize the left/right side-arrow button visuals. Channel layout and paging are in Channels & layout
+            settings.
           </Text>
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           <WButton variant="secondary" onClick={resetToDefaults}>
-            Reset to Defaults
+            Reset to defaults
           </WButton>
           <WButton variant="primary" onClick={saveSettings}>
-            Save Settings
+            Save settings
           </WButton>
         </div>
       </div>
 
-      {/* Spotify Integration */}
+      <SettingsWeeSection eyebrow="Spotify">
       <Card variant="wii-feature" color="green" icon="🎵" title="Spotify Integration" subtitle="Dynamic color matching" noHover={true}>
         <div className="space-y-4">
           <WToggle
@@ -245,8 +250,9 @@ const NavigationSettingsTab = () => {
           )}
         </div>
       </Card>
+      </SettingsWeeSection>
 
-      {/* Icon Management */}
+      <SettingsWeeSection eyebrow="Icons">
       <Card variant="wii-feature" color="blue" icon="🎨" title="Icon Management" subtitle="Upload and manage custom icons" noHover={true}>
         <div className="space-y-6">
           {/* Upload Section */}
@@ -271,7 +277,7 @@ const NavigationSettingsTab = () => {
             </WButton>
             
             {iconsUploadError && (
-              <div className="text-red-500 text-sm">
+              <div className="text-sm text-[hsl(var(--state-danger))]">
                 {iconsUploadError}
               </div>
             )}
@@ -301,10 +307,10 @@ const NavigationSettingsTab = () => {
                     className="relative group cursor-pointer"
                   >
                     <div
-                      className={`p-2 rounded-lg border-2 transition-all ${
-                        (leftIcon === iconData.url || rightIcon === iconData.url) 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-gray-300'
+                      className={`rounded-lg border-2 p-2 transition-all ${
+                        leftIcon === iconData.url || rightIcon === iconData.url
+                          ? selectedTileClass
+                          : idleTileClass
                       }`}
                     >
                       <img
@@ -314,11 +320,12 @@ const NavigationSettingsTab = () => {
                       />
                     </div>
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteIcon(iconData.url);
                       }}
-                      className="absolute -top-1 -left-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      className="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[hsl(var(--state-danger))] text-[hsl(var(--text-on-accent))] text-xs opacity-0 transition-opacity group-hover:opacity-100"
                     >
                       ×
                     </button>
@@ -329,8 +336,9 @@ const NavigationSettingsTab = () => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
 
-      {/* Icon Selection */}
+      <SettingsWeeSection eyebrow="Selection">
       <Card variant="wii-feature" color="purple" icon="🎯" title="Icon Selection" subtitle="Choose icons for each button" noHover={true}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left Button Icon */}
@@ -339,13 +347,21 @@ const NavigationSettingsTab = () => {
             
             {/* Default Option */}
             <div
-              className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                !leftIcon ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              className={`cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                !leftIcon ? selectedTileClass : idleTileClass
               }`}
               onClick={() => setLeftIcon('')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setLeftIcon('');
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-[hsl(var(--surface-secondary))]">
                   <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
                     <path d="M12 6 L8 10 L12 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -361,10 +377,18 @@ const NavigationSettingsTab = () => {
             {Array.isArray(savedIcons) && savedIcons.map((iconData) => (
               <div
                 key={`left-${iconData.id}`}
-                className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                  leftIcon === iconData.url ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                className={`cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                  leftIcon === iconData.url ? selectedTileClass : idleTileClass
                 }`}
                 onClick={() => setLeftIcon(iconData.url)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setLeftIcon(iconData.url);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <div className="flex items-center gap-3">
                   <img
@@ -387,13 +411,21 @@ const NavigationSettingsTab = () => {
             
             {/* Default Option */}
             <div
-              className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                !rightIcon ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              className={`cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                !rightIcon ? selectedTileClass : idleTileClass
               }`}
               onClick={() => setRightIcon('')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setRightIcon('');
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-[hsl(var(--surface-secondary))]">
                   <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
                     <path d="M8 6 L12 10 L8 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -409,10 +441,18 @@ const NavigationSettingsTab = () => {
             {Array.isArray(savedIcons) && savedIcons.map((iconData) => (
               <div
                 key={`right-${iconData.id}`}
-                className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                  rightIcon === iconData.url ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                className={`cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                  rightIcon === iconData.url ? selectedTileClass : idleTileClass
                 }`}
                 onClick={() => setRightIcon(iconData.url)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setRightIcon(iconData.url);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <div className="flex items-center gap-3">
                   <img
@@ -430,8 +470,9 @@ const NavigationSettingsTab = () => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
 
-      {/* Glass Effect Settings */}
+      <SettingsWeeSection eyebrow="Glass">
       <Card variant="wii-feature" color="purple" icon="✨" title="Glass Effect" subtitle="Customize the glass morphism effect" noHover={true}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Button Glass Settings */}
@@ -569,8 +610,9 @@ const NavigationSettingsTab = () => {
           </div>
         </div>
       </Card>
+      </SettingsWeeSection>
 
-      {/* Preview Section */}
+      <SettingsWeeSection eyebrow="Preview">
       <Card variant="wii-stats" color="gray" icon="👁️" title="Preview" subtitle="See how your navigation will look" noHover={true}>
         <div className="flex justify-center items-center gap-8 p-6 bg-[hsl(var(--surface-secondary))] rounded-lg">
           <div className="text-center">
@@ -586,10 +628,11 @@ const NavigationSettingsTab = () => {
             <Text variant="caption" className="text-[hsl(var(--text-secondary))]">Right Button</Text>
           </div>
         </div>
-        <Text variant="caption" className="text-[hsl(var(--text-secondary))] mt-4 text-center">
+        <Text variant="caption" className="mt-4 text-center text-[hsl(var(--text-secondary))]">
           Note: The actual appearance will depend on your current wallpaper and Spotify track (if enabled)
         </Text>
       </Card>
+      </SettingsWeeSection>
     </div>
   );
 };

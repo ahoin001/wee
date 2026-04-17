@@ -566,7 +566,7 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   return (
-    <div className="surface-stack">
+    <div className="surface-stack max-w-3xl space-y-8">
       <PresetsSaveCurrentCard
         newPresetName={newPresetName}
         onNewPresetNameChange={(v) => {

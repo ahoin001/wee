@@ -2,8 +2,16 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import UnifiedAppPathSearch from './UnifiedAppPathSearch';
 import { useUnifiedAppsState } from '../../utils/useConsolidatedAppHooks';
 import { logError } from '../../utils/logger';
-import Button from '../../ui/WButton';
-import './unified-app-path-card.css';
+import {
+  WeeButton,
+  WeeSectionEyebrow,
+  WeeSegmentedControl,
+  WeeHelpParagraph,
+  WeeHelpLinkButton,
+} from '../../ui/wee';
+
+const inputWeeClass =
+  'w-full rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-5 py-4 font-[family-name:var(--font-ui)] text-left text-base font-bold italic text-[hsl(var(--text-primary))] outline-none shadow-[var(--wee-shadow-field)] transition-[border-color,box-shadow] placeholder:font-[family-name:var(--font-ui)] placeholder:font-normal placeholder:not-italic placeholder:text-[hsl(var(--text-tertiary))] focus:border-[hsl(var(--border-accent))] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.12)] hover:border-[hsl(var(--wee-border-field-hover))] disabled:cursor-not-allowed disabled:opacity-60';
 
 const UnifiedAppPathCard = React.memo(({
   value = {},
@@ -167,140 +175,126 @@ const UnifiedAppPathCard = React.memo(({
   }, []);
 
   return (
-    <div className="unified-app-path-card">
-      <div className="mb-4">
-        <span className="unified-app-path-card__label">Opens as</span>
-        <div className="flex flex-wrap gap-4">
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="radio"
-              name="launchType"
-              value="application"
-              checked={launchType === 'application'}
-              onChange={(e) => handleLaunchTypeChange(e.target.value)}
-              disabled={disabled}
-              className="m-0"
-            />
-            <span className="text-[hsl(var(--text-primary))] text-[0.9375rem]">App</span>
-          </label>
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="radio"
-              name="launchType"
-              value="url"
-              checked={launchType === 'url'}
-              onChange={(e) => handleLaunchTypeChange(e.target.value)}
-              disabled={disabled}
-              className="m-0"
-            />
-            <span className="text-[hsl(var(--text-primary))] text-[0.9375rem]">Website</span>
-          </label>
-        </div>
+    <div className="flex flex-col gap-6 font-[family-name:var(--font-ui)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <WeeSectionEyebrow>Launch target</WeeSectionEyebrow>
+        <WeeSegmentedControl
+          ariaLabel="Launch as application or website"
+          value={launchType}
+          onChange={handleLaunchTypeChange}
+          options={[
+            { value: 'application', label: 'App' },
+            { value: 'url', label: 'Website' },
+          ]}
+        />
       </div>
 
       {launchType === 'application' && (
         <>
-          <div className="mt-1">
-            <label className="unified-app-path-card__label" htmlFor="channel-app-search">
-              Find an app
-            </label>
-            <UnifiedAppPathSearch
-              inputId="channel-app-search"
-              value={appName}
-              onChange={handleAppNameChange}
-              disabled={disabled}
-              placeholder="Search installed apps…"
-            />
+          <div className="space-y-4">
+            <div className="flex min-w-0 flex-col gap-2 text-left">
+              <WeeSectionEyebrow className="text-left">Display name</WeeSectionEyebrow>
+              <div className="min-w-0 w-full text-left">
+                <UnifiedAppPathSearch
+                  inputId="channel-app-search"
+                  value={appName}
+                  onChange={handleAppNameChange}
+                  disabled={disabled}
+                  placeholder="Search installed apps…"
+                />
+              </div>
+            </div>
           </div>
 
           {launchType === 'application' && selectedApp && (
-            <div className="unified-app-path-card__selection mt-3">
-              <div className="unified-app-path-card__selection-row">
+            <div className="rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-4 py-3 shadow-[var(--wee-shadow-field)]">
+              <div className="flex flex-wrap items-center gap-3">
                 {selectedApp.icon ? (
                   <img
                     src={selectedApp.icon}
                     alt=""
-                    className="h-7 w-7 rounded object-cover"
+                    className="h-9 w-9 shrink-0 rounded-lg object-cover"
                     onError={(e) => {
                       e.target.style.display = 'none';
                     }}
                   />
                 ) : (
-                  <div className="flex h-7 w-7 items-center justify-center rounded bg-[hsl(var(--surface-tertiary))] text-xs">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--surface-tertiary))] text-sm">
                     {selectedApp.type === 'steam' || selectedApp.type === 'epic' ? '🎮' : '💻'}
                   </div>
                 )}
-                <span className="unified-app-path-card__selection-name">{selectedApp.name}</span>
+                <span className="text-[0.95rem] font-bold text-[hsl(var(--text-primary))]">
+                  {selectedApp.name}
+                </span>
                 {selectedApp.category ? (
-                  <span className="unified-app-path-card__selection-badge">{selectedApp.category}</span>
+                  <span className="rounded-md border border-[hsl(var(--border-primary)/0.8)] bg-[hsl(var(--surface-tertiary))] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[hsl(var(--text-secondary))]">
+                    {selectedApp.category}
+                  </span>
                 ) : null}
               </div>
               {selectedApp.path ? (
-                <div className="unified-app-path-card__selection-path">{selectedApp.path}</div>
+                <div className="mt-2 break-words text-[0.75rem] leading-snug text-[hsl(var(--text-tertiary))]">
+                  {selectedApp.path}
+                </div>
               ) : null}
             </div>
           )}
 
           {!showLaunchPathBlock ? (
-            <div className="unified-app-path-card__hint">
-              <p className="mb-0 text-[0.8125rem] leading-snug text-[hsl(var(--text-secondary))]">
+            <div className="mt-3 space-y-0.5 text-left">
+              <WeeHelpParagraph>
                 Search picks the launch target for you. Need something else?
-              </p>
-              <button
-                type="button"
-                className="unified-app-path-card__disclosure"
-                onClick={() => setShowManualLaunchPath(true)}
-                disabled={disabled}
-              >
+              </WeeHelpParagraph>
+              <WeeHelpLinkButton onClick={() => setShowManualLaunchPath(true)} disabled={disabled}>
                 Add a launch path manually
-              </button>
+              </WeeHelpLinkButton>
             </div>
           ) : (
-            <div className="mt-4">
-              <label className="unified-app-path-card__label" htmlFor="channel-launch-path">
-                Launch path
-              </label>
-              <div className="flex gap-2">
+            <div className="space-y-6">
+              <WeeSectionEyebrow>Target path</WeeSectionEyebrow>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
                 <input
                   id="channel-launch-path"
                   type="text"
-                  className={`unified-app-path-card__input flex-1 ${displayPathError ? 'unified-app-path-card__input--error' : ''}`}
+                  className={`${inputWeeClass} flex-1 truncate text-sm font-bold not-italic sm:min-w-0 ${displayPathError ? 'border-[hsl(var(--state-error))]' : ''}`}
                   placeholder="Browse or paste a path"
                   value={path}
                   onChange={(e) => handlePathChange(e.target.value)}
                   disabled={disabled}
                 />
-                <Button
-                  variant="secondary"
-                  size="sm"
+                <WeeButton
+                  type="button"
+                  variant="primary"
                   onClick={handleBrowseFile}
                   disabled={disabled}
-                  className="shrink-0 whitespace-nowrap"
+                  className="shrink-0 whitespace-nowrap px-8 !py-4"
                 >
                   Browse
-                </Button>
+                </WeeButton>
               </div>
-              {displayPathError ? <div className="unified-app-path-card__error">{displayPathError}</div> : null}
+              {displayPathError ? (
+                <div className="text-[0.75rem] text-[hsl(var(--state-error))]">{displayPathError}</div>
+              ) : null}
             </div>
           )}
         </>
       )}
 
       {launchType === 'url' && (
-        <div className="mt-1">
-          <label className="unified-app-path-card__label" htmlFor="channel-website-url">
-            Website address
-          </label>
+        <div className="space-y-4">
+          <WeeSectionEyebrow>Website address</WeeSectionEyebrow>
           <input
             id="channel-website-url"
             type="text"
-            className={`unified-app-path-card__input w-full ${displayPathError ? 'unified-app-path-card__input--error' : ''}`}
+            className={`${inputWeeClass} ${displayPathError ? 'border-[hsl(var(--state-error))]' : ''}`}
             placeholder="https://…"
             value={path}
             onChange={(e) => handlePathChange(e.target.value)}
             disabled={disabled}
           />
-          {displayPathError ? <div className="unified-app-path-card__error">{displayPathError}</div> : null}
+          {displayPathError ? (
+            <div className="text-[0.75rem] text-[hsl(var(--state-error))]">{displayPathError}</div>
+          ) : null}
         </div>
       )}
     </div>

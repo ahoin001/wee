@@ -229,7 +229,7 @@ function createAppDataStores({
               kenBurnsAnimationType: 'both',
               kenBurnsCrossfadeReturn: true,
               kenBurnsTransitionType: 'cross-dissolve',
-              channelAutoFadeTimeout: 5,
+              autoFadeTimeout: 5,
             },
             ribbon: {
               glassWiiRibbon: false,

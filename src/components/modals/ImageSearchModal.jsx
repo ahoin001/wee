@@ -5,7 +5,7 @@ import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import MediaLibraryBrowser from '../media/MediaLibraryBrowser';
-import { uploadMedia, getStoragePublicObjectUrl } from '../../utils/supabase';
+import { uploadMedia } from '../../utils/supabase';
 import { clearMediaLibraryCache } from '../../utils/mediaLibraryCache';
 import {
   useMediaLibraryBrowser,
@@ -195,9 +195,9 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
           compact={false}
         />
       ) : (
-        <Card>
+        <Card className="image-search-modal__upload-card">
           <div className="p-4">
-            <Text variant="label" className="mb-2">
+            <Text variant="label" className="mb-2 playful-system-label">
               Title *
             </Text>
             <input
@@ -208,7 +208,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
               className="surface-input mb-3 w-full"
             />
 
-            <Text variant="label" className="mb-2">
+            <Text variant="label" className="mb-2 playful-system-label">
               Description
             </Text>
             <textarea
@@ -219,7 +219,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
               className="surface-textarea mb-3 w-full"
             />
 
-            <Text variant="label" className="mb-2">
+            <Text variant="label" className="mb-2 playful-system-label">
               Tags
             </Text>
             <input
@@ -230,7 +230,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
               className="surface-input mb-3 w-full"
             />
 
-            <Text variant="label" className="mb-2">
+            <Text variant="label" className="mb-2 playful-system-label">
               File *
             </Text>
             <Text variant="help" className="mb-2 block">

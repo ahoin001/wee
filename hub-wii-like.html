@@ -1,0 +1,485 @@
+/*
+Nintendo Adventure Form: Design System & UX Logic
+
+This document outlines the architectural and aesthetic reasoning behind the "Nintendo Adventure Form" interface. The design philosophy focuses on Playful Utility, blending the high-end feel of modern SaaS with the tactile, "toy-like" responsiveness of a Nintendo Switch.
+
+1. The Vertical "Pill" Navigation
+
+The vertical navigation is the centerpiece of the interface. It was designed to solve the problem of "information density vs. minimal aesthetics."
+
+The Interaction Logic
+
+The "Expand on Intent" Pattern: By default, the pill shows only the active icon. This reduces cognitive load. When the user hovers, the pill expands. This is a "Just-in-Time" UI pattern—giving the user tools only when they show intent to use them.
+
+Physicality & Depth: The pill uses a backdrop-blur-xl (glassmorphism). This makes it feel like a physical piece of frosted acrylic floating over the screen, ensuring it is legible regardless of the background color.
+
+The Magnetic Hover: Each button uses useMotionValue to track the mouse position. The icon "leans" toward the cursor. In Plain English: this makes the UI feel "aware" of the user, creating a tactile bond between the hand and the screen.
+
+Layout Switching: When shifting from single-icon (collapsed) to multi-icon (expanded), we use Framer Motion's layout prop. This handles the complex math of moving elements smoothly so the eye can follow the change without getting lost.
+
+2. Typography & Brand Voice
+
+The text choices are designed to be "loud" but organized.
+
+Font Family: We utilize a clean Sans-Serif stack, but the styling is where the character lives.
+
+The "Hero" Header: We use font-black, uppercase, italic, and tracking-tighter.
+
+Reasoning: Italicized heavy caps suggest speed and excitement (common in racing and adventure games). The tight tracking (letter spacing) makes the words feel like solid "blocks" rather than just text.
+
+The "System" Label: Smaller labels use tracking-widest and text-xs.
+
+Reasoning: This creates a "Pro" contrast. It looks like the technical specifications on the back of a vintage console.
+
+3. The Multi-Step "Setup Quest" (Form Logic)
+
+Instead of a "User Profile Form," we call it a "Setup Quest." This framing changes the user's psychological approach from "work" to "play."
+
+Input Elements
+
+Text Inputs: The inputs have massive rounded-3xl corners and border-4 (thick strokes).
+
+Reasoning: Thin lines feel fragile and professional; thick lines feel sturdy and friendly. It mimics the chunky plastic of a handheld console.
+
+The Volume Slider: We added a large numeric indicator that updates in real-time.
+
+Reasoning: High visibility ensures the user doesn't have to squint. The accent-[#33D9B2] ensures the "brand color" is present even in standard browser elements.
+
+Choice Cards (CO-OP / TURBO): These are large tap targets.
+
+Reasoning: Fitts's Law states that the time to acquire a target is a function of the distance to and size of the target. Large cards make selection effortless on both mouse and touch.
+
+4. Animation Look & Feel
+
+We avoid "linear" animations because nothing in the real world moves at a constant speed.
+
+Spring Physics: Most transitions use stiffness: 400 and damping: 28.
+
+Plain English: This makes the elements "snap" into place with a tiny bit of bounce, like a mechanical button being pressed.
+
+Staggered Entrances: In the Channel Modal, elements don't appear all at once. They slide up with a slight delay.
+
+Reasoning: This guides the user's eye from the top (header) to the bottom (action buttons) in the order we want them to read.
+
+5. Layout, Spacing, & Color
+
+The "Squircle" Geometry: We use rounded-[3rem] and rounded-full almost everywhere. Sharp corners represent "danger" or "seriousness" in nature; rounded shapes represent "safety" and "comfort."
+
+White Space: We use "Ample Padding" (p-10). By giving the elements room to breathe, the vibrant Nintendo colors (Red, Blue, Teal) don't feel overwhelming; they feel like accents in a clean, modern gallery.
+
+Color as Navigation: * Red (#FF4D4D): Dashboard (Emergency/Alert/Critical).
+
+Blue (#34ACE0): Home (Calm/Stable/Primary).
+
+Teal (#33D9B2): Games (Energy/Action/Growth).
+
+6. Image & Asset Presentation
+
+Channel Art Previews: Images are housed in aspect-square containers with heavy rounding.
+
+The Video Fallback: If an image isn't available, we show a high-contrast icon. This prevents "Layout Shift"—the annoying jump that happens when an image loads late and pushes other elements down.
+*/
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { 
+  LayoutGrid, Home, Gamepad2, Pin, Sparkles, X, Plus, Gamepad, 
+  Users, ChevronRight, ChevronLeft, Palette, Shield, Zap, Search,
+  Globe, Smartphone, RefreshCw, Image as ImageIcon, Film
+} from 'lucide-react';
+
+const SPACES = [
+  { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard', color: '#FF4D4D' },
+  { id: 'home', icon: Home, label: 'Home', color: '#34ACE0' },
+  { id: 'games', icon: Gamepad2, label: 'Games', color: '#33D9B2' },
+];
+
+const TEAM_COLORS = ['#FF4D4D', '#34ACE0', '#33D9B2', '#FFB142', '#706fd3', '#474787'];
+
+const MOCK_SUGGESTIONS = [
+  { id: 1, type: 'image', name: 'File Explorer', url: 'https://fjukhlkuwwvmxnoqohkt.supabase.co/storage/v1/object/public/media-library/File_Explorer.png' },
+  { id: 2, type: 'image', name: 'Explorer Alt', url: 'https://fjukhlkuwwvmxnoqohkt.supabase.co/storage/v1/object/public/media-library/fileexplorer.png' },
+  { id: 3, type: 'video', name: 'Loop', url: 'https://fjukhlkuwwvmxnoqohkt.supabase.co/storage/v1/object/public/media-library/file_explorer_loop.mp4' },
+];
+
+// --- Sub-Components ---
+
+const NavButton = ({ space, isActive, isHovered, isBeingHovered, onHover, onClick, index }) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const springX = useSpring(x, { stiffness: 150, damping: 15 });
+  const springY = useSpring(y, { stiffness: 150, damping: 15 });
+
+  return (
+    <motion.button
+      layout
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        x.set((e.clientX - (rect.left + rect.width / 2)) * 0.4);
+        y.set((e.clientY - (rect.top + rect.height / 2)) * 0.4);
+      }}
+      onMouseEnter={() => onHover(index)}
+      onMouseLeave={() => { x.set(0); y.set(0); onHover(null); }}
+      onClick={onClick}
+      whileTap={{ scale: 0.85 }}
+      className="relative w-16 h-16 rounded-full flex items-center justify-center z-10"
+    >
+      <motion.div style={{ x: springX, y: springY }} className={`relative z-20 ${isActive ? "text-slate-900" : "text-slate-400"}`}>
+        <space.icon size={isActive ? 28 : 24} strokeWidth={isActive ? 2.5 : 2} />
+      </motion.div>
+      {isActive && !isHovered && (
+        <motion.div layoutId="active-ring" className="absolute inset-1 rounded-full border-[3px] border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
+      )}
+    </motion.button>
+  );
+};
+
+// --- Multi-Step Long Form ---
+const LongAdventureForm = ({ isOpen, onClose }) => {
+  const [step, setStep] = useState(0);
+  const [formData, setFormData] = useState({
+    name: '',
+    difficulty: 'Medium',
+    isMultiplayer: false,
+    teamColor: TEAM_COLORS[2],
+    volume: 80,
+    ghostMode: true
+  });
+
+  const nextStep = () => setStep(s => Math.min(s + 1, 2));
+  const prevStep = () => setStep(s => Math.max(s - 1, 0));
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-6" />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 100 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 100 }}
+            className="fixed inset-0 m-auto w-full max-w-xl h-fit bg-white rounded-[3rem] shadow-2xl z-[101] overflow-hidden border-4 border-white"
+          >
+            <div className="bg-[#33D9B2] p-8 text-white relative">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-3xl font-black uppercase italic tracking-tighter">Setup Quest</h2>
+                  <p className="text-white/80 text-[10px] font-bold uppercase tracking-[0.2em]">Step {step + 1} of 3</p>
+                </div>
+                <button onClick={onClose} className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-all"><X /></button>
+              </div>
+              <div className="h-4 bg-black/10 rounded-full flex p-1 overflow-hidden">
+                <motion.div 
+                  className="h-full bg-white rounded-full shadow-lg"
+                  animate={{ width: `${((step + 1) / 3) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="p-10 min-h-[400px] flex flex-col">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={step}
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -20, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  className="flex-1"
+                >
+                  {step === 0 && (
+                    <div className="space-y-8">
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Hero Profile</label>
+                        <input 
+                          type="text" 
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          placeholder="My Secret Realm"
+                          className="w-full bg-slate-50 border-4 border-slate-100 rounded-3xl px-6 py-5 text-xl font-bold text-slate-800 focus:border-[#33D9B2] transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Team Color</label>
+                        <div className="flex gap-3 justify-between">
+                          {TEAM_COLORS.map(color => (
+                            <motion.button
+                              key={color}
+                              whileHover={{ scale: 1.2, rotate: 10 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => setFormData({...formData, teamColor: color})}
+                              className={`w-12 h-12 rounded-2xl border-4 ${formData.teamColor === color ? 'border-slate-800' : 'border-transparent'}`}
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 1 && (
+                    <div className="space-y-8">
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Handheld Audio</label>
+                        <div className="flex items-center gap-6 bg-slate-50 p-6 rounded-[2.5rem] border-4 border-slate-100">
+                          <span className="font-black text-2xl text-slate-300 italic">{formData.volume}</span>
+                          <input 
+                            type="range"
+                            value={formData.volume}
+                            onChange={(e) => setFormData({...formData, volume: e.target.value})}
+                            className="flex-1 h-3 bg-slate-200 rounded-full appearance-none cursor-pointer accent-[#33D9B2]"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button 
+                          onClick={() => setFormData({...formData, isMultiplayer: !formData.isMultiplayer})}
+                          className={`p-6 rounded-[2rem] border-4 transition-all text-left ${formData.isMultiplayer ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-100'}`}
+                        >
+                          <Users className={formData.isMultiplayer ? 'text-indigo-500' : 'text-slate-300'} />
+                          <h4 className={`mt-4 font-black ${formData.isMultiplayer ? 'text-indigo-900' : 'text-slate-400'}`}>CO-OP</h4>
+                        </button>
+                        <button 
+                          onClick={() => setFormData({...formData, ghostMode: !formData.ghostMode})}
+                          className={`p-6 rounded-[2rem] border-4 transition-all text-left ${formData.ghostMode ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-100'}`}
+                        >
+                          <Zap className={formData.ghostMode ? 'text-yellow-600' : 'text-slate-300'} />
+                          <h4 className={`mt-4 font-black ${formData.ghostMode ? 'text-yellow-900' : 'text-slate-400'}`}>TURBO</h4>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 2 && (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="w-24 h-24 bg-[#E5FFF9] text-[#33D9B2] rounded-full flex items-center justify-center mb-6">
+                        <Shield size={48} />
+                      </div>
+                      <h3 className="text-2xl font-black italic uppercase text-slate-800">Ready to Go?</h3>
+                      <p className="text-slate-400 font-bold max-w-xs mt-2">Quest parameters are locked and ready for launch.</p>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="mt-12 flex gap-4">
+                {step > 0 && (
+                  <button onClick={prevStep} className="flex-1 bg-slate-100 text-slate-400 py-5 rounded-[1.5rem] font-black uppercase italic tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
+                    <ChevronLeft /> Back
+                  </button>
+                )}
+                <button 
+                  onClick={step === 2 ? onClose : nextStep}
+                  className="flex-[2] bg-slate-900 text-white py-5 rounded-[1.5rem] font-black uppercase italic tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2"
+                >
+                  {step === 2 ? 'Launch World' : 'Next Quest'} <ChevronRight />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// --- Channel Configurator Modal ---
+const ChannelModal = ({ isOpen, onClose }) => {
+  const [launchType, setLaunchType] = useState('app');
+  const [tab, setTab] = useState('library');
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100]" />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 50 }}
+            className="fixed inset-0 m-auto w-full max-w-2xl h-[85vh] bg-white rounded-[3.5rem] shadow-2xl z-[101] flex flex-col overflow-hidden border-4 border-white"
+          >
+            <div className="bg-[#34ACE0] p-8 text-white flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Channel Setup</h2>
+                <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-2">Targeting & Visuals</p>
+              </div>
+              <button onClick={onClose} className="w-12 h-12 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center"><X /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-6 bg-[#34ACE0] rounded-full" />
+                  <h3 className="text-lg font-black uppercase italic text-slate-800">1. Launch Target</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { id: 'app', label: 'Application', icon: Smartphone },
+                    { id: 'web', label: 'Website', icon: Globe }
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setLaunchType(t.id)}
+                      className={`p-6 rounded-3xl border-4 transition-all flex items-center gap-4 ${launchType === t.id ? 'bg-sky-50 border-[#34ACE0] text-[#34ACE0]' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                    >
+                      <t.icon size={24} strokeWidth={3} />
+                      <span className="font-black uppercase italic tracking-wide">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="bg-slate-50 border-4 border-slate-100 rounded-[2.5rem] p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Search className="text-slate-400" size={20} />
+                    <span className="font-black uppercase text-xs text-slate-400 tracking-widest">Search</span>
+                  </div>
+                  <button className="text-[10px] font-black uppercase tracking-widest text-[#34ACE0]"><RefreshCw size={14} /></button>
+                </div>
+                <input 
+                  type="text" 
+                  className="w-full bg-white border-4 border-slate-200 rounded-2xl px-6 py-4 font-bold text-slate-800 outline-none"
+                  defaultValue="File Explorer"
+                />
+              </section>
+
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-6 bg-[#34ACE0] rounded-full" />
+                  <h3 className="text-lg font-black uppercase italic text-slate-800">2. Channel Art</h3>
+                </div>
+                <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                  {MOCK_SUGGESTIONS.map((item) => (
+                    <div key={item.id} className="min-w-[160px] aspect-square bg-slate-100 rounded-[2rem] relative overflow-hidden group cursor-pointer border-4 border-transparent hover:border-[#34ACE0] transition-all">
+                      {item.type === 'image' ? (
+                         <img src={item.url} className="w-full h-full object-cover" />
+                      ) : (
+                         <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white/20"><Film size={40} /></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="p-8 border-t-4 border-slate-50 flex gap-4 bg-slate-50/50">
+               <button onClick={onClose} className="flex-1 py-5 rounded-3xl font-black uppercase italic tracking-widest text-slate-400">Discard</button>
+               <button className="flex-[2] py-5 rounded-3xl bg-slate-900 text-white font-black uppercase italic tracking-widest">Save Channel</button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// --- Main App ---
+const App = () => {
+  const [activeSpaceIdx, setActiveSpaceIdx] = useState(2);
+  const [isHovered, setIsHovered] = useState(false);
+  const [hoveredItemIdx, setHoveredItemIdx] = useState(null);
+  const [isAdventureOpen, setIsAdventureOpen] = useState(false);
+  const [isChannelOpen, setIsChannelOpen] = useState(false);
+
+  const activeSpace = SPACES[activeSpaceIdx];
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center overflow-hidden font-sans">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeSpace.id}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.05 }}
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+        >
+          <div className="w-48 h-48 rounded-[3.5rem] mb-10 flex items-center justify-center shadow-2xl relative overflow-hidden" style={{ backgroundColor: activeSpace.color }}>
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }} className="absolute inset-0 opacity-10">
+               <Sparkles size={200} />
+            </motion.div>
+            <activeSpace.icon size={100} color="white" className="relative z-10" />
+          </div>
+          <h1 className="text-7xl font-black text-slate-900 uppercase italic tracking-tighter">{activeSpace.label}</h1>
+          
+          {activeSpace.id === 'games' && (
+            <div className="flex flex-col gap-4 mt-10">
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsAdventureOpen(true)}
+                className="pointer-events-auto bg-[#33D9B2] text-white px-10 py-5 rounded-[2rem] font-black uppercase italic tracking-widest shadow-[0_20px_0_#28ad8e] border-2 border-white/20"
+              >
+                Start Adventure
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsChannelOpen(true)}
+                className="pointer-events-auto bg-white text-slate-400 px-10 py-4 rounded-[1.5rem] font-black uppercase italic tracking-widest border-4 border-slate-100 shadow-sm hover:text-sky-500 hover:border-sky-100 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={20} /> Configure Channel
+              </motion.button>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      <LongAdventureForm isOpen={isAdventureOpen} onClose={() => setIsAdventureOpen(false)} />
+      <ChannelModal isOpen={isChannelOpen} onClose={() => setIsChannelOpen(false)} />
+
+      {/* Pill Navigation */}
+      <div className="fixed left-16 top-1/2 -translate-y-1/2 z-50">
+        <motion.div
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => { setIsHovered(false); setHoveredItemIdx(null); }}
+          layout
+          transition={{ type: "spring", stiffness: 400, damping: 28 }}
+          className="bg-white/90 backdrop-blur-xl p-3 flex flex-col gap-2 shadow-2xl border border-white relative overflow-hidden"
+          style={{
+            borderRadius: isHovered ? "40px" : "100px",
+          }}
+        >
+          <AnimatePresence>
+            {isHovered && (
+              <motion.div
+                layoutId="nav-bg"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute left-3 right-3 bg-slate-100 rounded-[2rem] z-0"
+                style={{ top: (hoveredItemIdx !== null ? hoveredItemIdx : activeSpaceIdx) * 72 + 12, height: 64 }}
+              />
+            )}
+          </AnimatePresence>
+
+          {SPACES.map((space, idx) => (
+            <React.Fragment key={space.id}>
+              {(isHovered || activeSpaceIdx === idx) && (
+                <NavButton 
+                  index={idx} space={space} 
+                  isActive={activeSpaceIdx === idx} 
+                  isHovered={isHovered} 
+                  isBeingHovered={hoveredItemIdx === idx} 
+                  onHover={setHoveredItemIdx} 
+                  onClick={() => setActiveSpaceIdx(idx)} 
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </motion.div>
+      </div>
+      
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 20px; border: 4px solid white; }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
