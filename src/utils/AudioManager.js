@@ -1,3 +1,22 @@
+/** Wait until the element can play through (same idea as playSound). */
+function waitForAudioReady(audio) {
+  if (audio.readyState >= 2) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    const onOk = () => {
+      audio.removeEventListener('error', onErr);
+      resolve();
+    };
+    const onErr = () => {
+      audio.removeEventListener('canplaythrough', onOk);
+      reject(new Error('Audio load error'));
+    };
+    audio.addEventListener('canplaythrough', onOk, { once: true });
+    audio.addEventListener('error', onErr, { once: true });
+  });
+}
+
 class AudioManager {
   constructor() {
     this.audioInstances = new Map(); // Store reusable audio instances
@@ -103,7 +122,7 @@ class AudioManager {
 
   // Clear audio cache to force fresh instances (useful when settings change)
   clearCache() {
-    this.audioInstances.forEach((audio, url) => {
+    this.audioInstances.forEach((audio, _url) => {
       audio.pause();
       audio.currentTime = 0;
       audio.src = '';
@@ -205,13 +224,15 @@ class AudioManager {
       this.playNextPlaylistTrack();
     };
     this.backgroundAudio.addEventListener('ended', onEnded);
-    
-    this.backgroundAudio.play().catch(error => {
+
+    try {
+      await waitForAudioReady(this.backgroundAudio);
+      await this.backgroundAudio.play();
+    } catch (error) {
       console.error('Failed to play playlist track:', error);
-      // Try next track on error
       this.currentPlaylistIndex++;
-      this.playNextPlaylistTrack();
-    });
+      await this.playNextPlaylistTrack();
+    }
   }
 
   // Set background music (single track)
@@ -252,10 +273,13 @@ class AudioManager {
         };
         this.backgroundAudio.addEventListener('ended', onEnded);
       }
-      
-      this.backgroundAudio.play().catch(error => {
+
+      try {
+        await waitForAudioReady(this.backgroundAudio);
+        await this.backgroundAudio.play();
+      } catch (error) {
         console.error('[AudioManager] Failed to play background music:', error);
-      });
+      }
     } else {
       this.backgroundAudio = null;
     }
@@ -290,8 +314,13 @@ class AudioManager {
       }
       
       audio.volume = 0;
-      audio.play().catch(() => {});
-      
+      try {
+        await waitForAudioReady(audio);
+        await audio.play();
+      } catch {
+        return;
+      }
+
       // Fade in over 1.5 seconds
       let v = 0;
       const fade = setInterval(() => {
@@ -327,10 +356,13 @@ class AudioManager {
       const library = await soundsApi.getLibrary();
       if (library?.backgroundMusic) {
         if (playlistMode) {
-          // In playlist mode, get all enabled and liked sounds
-          const enabledMusic = library.backgroundMusic.filter(s => s.enabled && s.liked);
-          if (enabledMusic.length > 0) {
-            await this.setBackgroundMusicPlaylist(enabledMusic, looping);
+          const enabledAll = library.backgroundMusic.filter(s => s.enabled);
+          const likedOnly = enabledAll.filter(s => s.liked);
+          if (likedOnly.length > 0) {
+            await this.setBackgroundMusicPlaylist(likedOnly, looping);
+          } else if (enabledAll.length > 0) {
+            const first = enabledAll[0];
+            await this.setBackgroundMusic(first.url, first.volume, looping);
           } else {
             this.pauseBackgroundMusic();
           }
@@ -373,7 +405,7 @@ class AudioManager {
     this.playlistLooping = false;
     
     // Properly cleanup all audio instances
-    this.audioInstances.forEach((audio, url) => {
+    this.audioInstances.forEach((audio, _url) => {
       audio.pause();
       audio.currentTime = 0;
       audio.src = '';

@@ -80,7 +80,6 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
   const [powerActions, setPowerActions] = useState(config?.powerActions || []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [showQuickAccess, setShowQuickAccess] = useState(true);
   const [recentlyAdded, setRecentlyAdded] = useState(null);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
@@ -259,13 +258,6 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
       maxWidth="1400px"
       footerContent={({ handleClose }) => (
         <div className="flex justify-between items-center">
-          {/* <div className="flex items-center gap-3">
-            <WToggle
-              checked={showQuickAccess}
-              onChange={setShowQuickAccess}
-              label="Show Quick Access"
-            />
-          </div> */}
           <div className="flex gap-2.5">
             <Button variant="secondary" onClick={handleClose}>Cancel</Button>
             <Button variant="primary" onClick={handleSave}>Save</Button>

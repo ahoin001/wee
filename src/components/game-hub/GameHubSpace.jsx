@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { m, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -16,6 +16,7 @@ import { HUB_MORPH } from '../../design/playfulMotion';
 import { weeMarkGameHubLibrary } from '../../utils/weePerformanceMarks';
 import WToggle from '../../ui/WToggle';
 import './GameHubSpace.css';
+import GameHubTileDialogsProvider from './GameHubTileDialogsProvider';
 
 const MotionDiv = m.div;
 
@@ -48,9 +49,11 @@ const URL_CHURN_WINDOW_MS = 450;
 const URL_CHURN_THRESHOLD = 8;
 const HEAVY_DEBOUNCE_MS = 280;
 const HEAVY_MIN_HOLD_MS = 380;
+/** While collection shelf/fly chrome is busy, slow hero backdrop churn and freeze dock-morph scroll phase. */
+const COLLECTION_CHROME_BUSY_MIN_HOLD_MS = 520;
 
 export default function GameHubSpace() {
-  const { appLibrary, gameHub, setGameHubState, patchGameHubLastLaunch, appLibraryManager, showDock } =
+  const { appLibrary, gameHub, setGameHubState, patchGameHubLastLaunch, appLibraryManager, showDock, isSpaceTransitioning } =
     useConsolidatedAppStore(
       useShallow((state) => ({
         appLibrary: state.appLibrary,
@@ -59,6 +62,7 @@ export default function GameHubSpace() {
         patchGameHubLastLaunch: state.actions.patchGameHubLastLaunch,
         appLibraryManager: state.appLibraryManager,
         showDock: state.ui.showDock ?? true,
+        isSpaceTransitioning: state.spaces.isTransitioning,
       }))
     );
 
@@ -83,6 +87,8 @@ export default function GameHubSpace() {
   /** `undefined` = not yet synced; then follows debounced raw art URL. */
   const [debouncedMediaUrl, setDebouncedMediaUrl] = useState(undefined);
   const [scrollNode, setScrollNode] = useState(null);
+  const [collectionChromeBusy, setCollectionChromeBusy] = useState(false);
+  const collectionChromeBusyRef = useRef(false);
   const stageRef = useRef(null);
   const heroScrollRafRef = useRef(null);
 
@@ -90,6 +96,8 @@ export default function GameHubSpace() {
   const reducedMotion = useReducedMotion();
 
   const scrollY = useMotionValue(0);
+  /** Drives dock-morph transforms; frozen while collection shelf animates (scrollY still tracks DOM). */
+  const morphScrollY = useMotionValue(0);
 
   const setScrollRef = useCallback((node) => {
     contentScrollRef.current = node;
@@ -97,12 +105,35 @@ export default function GameHubSpace() {
   }, []);
 
   useEffect(() => {
+    collectionChromeBusyRef.current = collectionChromeBusy;
+  }, [collectionChromeBusy]);
+
+  useEffect(() => {
     if (!scrollNode) return undefined;
-    const update = () => scrollY.set(scrollNode.scrollTop);
+    const update = () => {
+      const st = scrollNode.scrollTop;
+      scrollY.set(st);
+      if (!collectionChromeBusyRef.current) {
+        morphScrollY.set(st);
+      }
+    };
     scrollNode.addEventListener('scroll', update, { passive: true });
     update();
     return () => scrollNode.removeEventListener('scroll', update);
-  }, [scrollY, scrollNode]);
+  }, [scrollY, morphScrollY, scrollNode]);
+
+  const handleCollectionChromeBusyChange = useCallback((busy) => {
+    setCollectionChromeBusy(Boolean(busy));
+  }, []);
+
+  /** Freeze morph phase while collection chrome is busy; resync morphScrollY when idle. */
+  useLayoutEffect(() => {
+    const main = contentScrollRef.current;
+    if (!main) return;
+    const st = main.scrollTop;
+    scrollY.set(st);
+    morphScrollY.set(st);
+  }, [collectionChromeBusy, scrollY, morphScrollY]);
 
   /** Freeze debounced hero/backdrop media while scrolling so hover+scroll doesn’t thrash layers. */
   useEffect(() => {
@@ -125,7 +156,7 @@ export default function GameHubSpace() {
   const handoffPx = HUB_MORPH.scrollHandoffPx;
   const morphRangePx = HUB_MORPH.scrollRangePx;
 
-  const morphProgress = useTransform(scrollY, (v) => {
+  const morphProgress = useTransform(morphScrollY, (v) => {
     if (reducedMotion) {
       return v > handoffPx + morphRangePx * 0.5 ? 1 : 0;
     }
@@ -133,7 +164,7 @@ export default function GameHubSpace() {
     return Math.min(1, Math.max(0, (v - handoffPx) / morphRangePx));
   });
 
-  const overlayOpacity = useTransform(scrollY, (v) => {
+  const overlayOpacity = useTransform(morphScrollY, (v) => {
     if (reducedMotion) return v < handoffPx ? 1 : 0;
     const fadeStart = handoffPx - 72;
     const fadeEnd = handoffPx + 96;
@@ -142,7 +173,7 @@ export default function GameHubSpace() {
     return 1 - smoothstep01((v - fadeStart) / (fadeEnd - fadeStart));
   });
 
-  const dockHeroOpacity = useTransform(scrollY, (v) => {
+  const dockHeroOpacity = useTransform(morphScrollY, (v) => {
     if (reducedMotion) return v < handoffPx ? 0 : 1;
     const fadeStart = handoffPx - 40;
     const fadeEnd = handoffPx + 100;
@@ -160,8 +191,8 @@ export default function GameHubSpace() {
   const gridMaxWidth = useTransform(morphProgress, (p) => `calc(100% - ${p * dockLanePx}px)`);
 
   /** Collapse dock rail in layout until scroll nears handoff (removes double gap vs overlay padding). */
-  const dockRailMaxHeight = useTransform(scrollY, [handoffPx - 80, handoffPx + 56], [0, 4800], { clamp: true });
-  const dockRailMaxWidth = useTransform(scrollY, [handoffPx - 80, handoffPx + 56], [0, HUB_MORPH.dockWidthPx + HUB_MORPH.dockGapPx + 8], {
+  const dockRailMaxHeight = useTransform(morphScrollY, [handoffPx - 80, handoffPx + 56], [0, 4800], { clamp: true });
+  const dockRailMaxWidth = useTransform(morphScrollY, [handoffPx - 80, handoffPx + 56], [0, HUB_MORPH.dockWidthPx + HUB_MORPH.dockGapPx + 8], {
     clamp: true,
   });
 
@@ -228,6 +259,8 @@ export default function GameHubSpace() {
   );
 
   useEffect(() => {
+    if (isSpaceTransitioning) return undefined;
+
     let cancelled = false;
 
     const hydrate = async () => {
@@ -353,7 +386,13 @@ export default function GameHubSpace() {
     return () => {
       cancelled = true;
     };
-  }, [appLibraryManager, gameHub.profile?.steamId, gameHub.profile?.useSteamWebApi, setGameHubState]);
+  }, [
+    appLibraryManager,
+    gameHub.profile?.steamId,
+    gameHub.profile?.useSteamWebApi,
+    isSpaceTransitioning,
+    setGameHubState,
+  ]);
 
   useEffect(
     () => () => {
@@ -392,6 +431,8 @@ export default function GameHubSpace() {
   });
 
   useEffect(() => {
+    if (isSpaceTransitioning) return undefined;
+
     const steamId = gameHub.profile?.steamId;
     if (!steamId || !window.api?.steam?.getClientLibraryMetadata) {
       setClientLibrary({ ok: false, favoritesAppIds: [], appIdToTags: {} });
@@ -422,7 +463,7 @@ export default function GameHubSpace() {
     return () => {
       cancelled = true;
     };
-  }, [gameHub.profile?.steamId]);
+  }, [gameHub.profile?.steamId, isSpaceTransitioning]);
 
   const showHubBackdrop = gameHub.ui?.showHubBackdrop ?? false;
   const hubSteamOnlyGames = gameHub.ui?.hubSteamOnlyGames ?? true;
@@ -516,6 +557,14 @@ export default function GameHubSpace() {
     const heavy = urlChurnTimestampsRef.current.length >= URL_CHURN_THRESHOLD;
     setMediaMinHoldMs(heavy ? HEAVY_MIN_HOLD_MS : BACKDROP_MIN_HOLD_MS);
 
+    if (collectionChromeBusy) {
+      if (mediaDebounceTimerRef.current) {
+        window.clearTimeout(mediaDebounceTimerRef.current);
+        mediaDebounceTimerRef.current = null;
+      }
+      return undefined;
+    }
+
     if (scrollHot) {
       if (mediaDebounceTimerRef.current) {
         window.clearTimeout(mediaDebounceTimerRef.current);
@@ -547,7 +596,16 @@ export default function GameHubSpace() {
         mediaDebounceTimerRef.current = null;
       }
     };
-  }, [rawArtUrl, scrollHot]);
+  }, [rawArtUrl, scrollHot, collectionChromeBusy]);
+
+  const prevCollectionChromeBusyRef = useRef(false);
+  useEffect(() => {
+    const prev = prevCollectionChromeBusyRef.current;
+    prevCollectionChromeBusyRef.current = collectionChromeBusy;
+    if (prev && !collectionChromeBusy) {
+      setDebouncedMediaUrl(rawArtUrl ?? null);
+    }
+  }, [collectionChromeBusy, rawArtUrl]);
 
   const {
     baseUrl: heroMediaBaseUrl,
@@ -555,7 +613,9 @@ export default function GameHubSpace() {
     overlayOpacity: heroMediaOverlayOpacity,
     onOverlayTransitionEnd: onHeroMediaOverlayTransitionEnd,
   } = useHeroMediaCrossfade(mediaInputUrl, effectsEnabled, {
-    minHoldMs: mediaMinHoldMs,
+    minHoldMs: collectionChromeBusy
+      ? Math.max(mediaMinHoldMs, COLLECTION_CHROME_BUSY_MIN_HOLD_MS)
+      : mediaMinHoldMs,
     stallRecoveryMs: 1000,
   });
 
@@ -568,11 +628,12 @@ export default function GameHubSpace() {
       setHeroPreviewGameId(game.id);
       return;
     }
+    const clearDelay = collectionChromeBusy ? 240 : 90;
     heroPreviewClearRef.current = window.setTimeout(() => {
       setHeroPreviewGameId(null);
       heroPreviewClearRef.current = null;
-    }, 90);
-  }, []);
+    }, clearDelay);
+  }, [collectionChromeBusy]);
   const activeCollection =
     displayCollections.find((collection) => collection.id === activeCollectionId) || null;
   const hasFavorites = hubDataView.railGames.length > 0;
@@ -658,6 +719,7 @@ export default function GameHubSpace() {
       onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
       onLaunchGame={handleLaunchGame}
       onHeroPreview={setHeroPreview}
+      onCollectionChromeBusyChange={handleCollectionChromeBusyChange}
     />
   );
 
@@ -681,6 +743,7 @@ export default function GameHubSpace() {
   );
 
   return (
+    <GameHubTileDialogsProvider>
     <section
       className={`aura-hub-space ${floatingUi ? 'aura-hub-space--floating' : ''} ${effectsEnabled ? 'aura-hub-space--effects' : 'aura-hub-space--static'} ${isLaunching ? 'aura-hub-space--launching' : ''}`}
     >
@@ -832,5 +895,6 @@ export default function GameHubSpace() {
         )}
       </div>
     </section>
+    </GameHubTileDialogsProvider>
   );
 }

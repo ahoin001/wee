@@ -60,7 +60,7 @@ export default function AuraHero({
   compact = false,
   /** Scroll-linked 0–1 when Game Hub uses dock morph; null for legacy compact bar layout. */
   morphProgress = null,
-  effectsEnabled = true,
+  effectsEnabled: _effectsEnabled = true,
   selectedGameId = null,
   heroGame,
   /** Shown only when sync fails — no “Steam synced” marketing badge */

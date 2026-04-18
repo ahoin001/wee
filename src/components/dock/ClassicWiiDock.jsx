@@ -377,18 +377,18 @@ const WiiDock = ({
 
 const ClassicWiiDock = ({
   onSettingsClick,
-  onSettingsChange,
+  onSettingsChange: _onSettingsChange,
   buttonConfigs,
   onButtonContextMenu,
   onButtonClick,
   onAccessoryButtonClick,
   onAccessoryButtonContextMenu,
-  timeColor,
-  timeFormat24hr,
-  timeFont,
-  ribbonGlowColor,
-  showPresetsButton,
-  presetsButtonConfig,
+  timeColor: _timeColor,
+  timeFormat24hr: _timeFormat24hr,
+  timeFont: _timeFont,
+  ribbonGlowColor: _ribbonGlowColor,
+  showPresetsButton: _showPresetsButton,
+  presetsButtonConfig: _presetsButtonConfig,
   onDockContextMenu,
   accessoryButtonConfig
 }) => {

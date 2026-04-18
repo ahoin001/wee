@@ -46,6 +46,12 @@ const omitKeys = (obj, keys) => {
  */
 const CHANNEL_DATA_SLOT_KEYED_MAPS = ['configuredChannels', 'channelConfigs'];
 
+/** Empty `{}` patches must not wipe a populated slot map (bad partial saves / merge bugs). */
+function shouldIgnoreEmptySlotMapPatch(patchVal, baseVal) {
+  if (!isPlainObject(patchVal) || !isPlainObject(baseVal)) return false;
+  return Object.keys(patchVal).length === 0 && Object.keys(baseVal).length > 0;
+}
+
 const deepMerge = (target, source) => {
   if (!isPlainObject(target) || !isPlainObject(source)) return source;
   const next = { ...target };
@@ -70,7 +76,9 @@ function mergeChannelData(baseData, patchData) {
   const merged = { ...mergedRest };
   CHANNEL_DATA_SLOT_KEYED_MAPS.forEach((key) => {
     if (Object.prototype.hasOwnProperty.call(patchData, key)) {
-      merged[key] = patchData[key];
+      const pv = patchData[key];
+      const bv = baseData[key];
+      merged[key] = shouldIgnoreEmptySlotMapPatch(pv, bv) ? bv : pv;
     } else if (Object.prototype.hasOwnProperty.call(baseData, key)) {
       merged[key] = baseData[key];
     }

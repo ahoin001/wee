@@ -35,7 +35,14 @@ import {
 import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 import GameHubMinimalDock from './components/game-hub/GameHubMinimalDock';
 import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from './utils/channelSpaces';
+import {
+  SPACE_SHELL_EASE_CSS,
+  SPACE_SHELL_RAPID_WINDOW_MS,
+  SPACE_SHELL_TRANSITION_MS_DEFAULT,
+  SPACE_SHELL_TRANSITION_MS_RAPID,
+} from './design/spaceShellMotion';
 import { collectWarmMediaUrlsFromStore, warmImageUrlsOnIdle } from './utils/mediaWarmCache';
+import { IS_DEV } from './utils/env';
 
 // Lazy load components to reduce initial bundle size
 const lazyNamedExport = (importer, exportName) =>
@@ -147,7 +154,7 @@ function App() {
 
 
   // Initialize wallpaper cycling (only for cycling status indicator)
-  const { isCycling, cycleToNextWallpaper } = useWallpaperCycling();
+  const { isCycling, cycleToNextWallpaper, cycleIntervalSeconds } = useWallpaperCycling();
 
   // Initialize sound manager for background music
   const {
@@ -176,7 +183,7 @@ function App() {
   
   // Debug: Monitor dock state changes
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (IS_DEV) {
       console.log('[App] Dock state changed:', {
         particleSystemEnabled: dock?.particleSystemEnabled,
         particleEffectType: dock?.particleEffectType,
@@ -267,17 +274,23 @@ function App() {
     return i >= 0 ? i : 0;
   }, [resolvedSpaceOrder, activeSpaceId]);
   const lastSpaceSwitchAtRef = useRef(Date.now());
-  const [spaceWorldDurationMs, setSpaceWorldDurationMs] = useState(780);
+  const [spaceWorldDurationMs, setSpaceWorldDurationMs] = useState(SPACE_SHELL_TRANSITION_MS_DEFAULT);
   useEffect(() => {
     const now = Date.now();
     const elapsed = now - lastSpaceSwitchAtRef.current;
     lastSpaceSwitchAtRef.current = now;
-    if (elapsed > 0 && elapsed < 420) {
-      setSpaceWorldDurationMs(540);
+    if (elapsed > 0 && elapsed < SPACE_SHELL_RAPID_WINDOW_MS) {
+      setSpaceWorldDurationMs(SPACE_SHELL_TRANSITION_MS_RAPID);
     } else {
-      setSpaceWorldDurationMs(780);
+      setSpaceWorldDurationMs(SPACE_SHELL_TRANSITION_MS_DEFAULT);
     }
   }, [activeSpaceId]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--space-shell-transition-ms', `${spaceWorldDurationMs}ms`);
+    root.style.setProperty('--space-shell-ease', SPACE_SHELL_EASE_CSS);
+  }, [spaceWorldDurationMs]);
 
   const prevActiveSpaceIdRef = useRef(null);
   useEffect(() => {
@@ -444,7 +457,6 @@ function App() {
       });
     }
   }, [setUIState, openDevTools, activeSpaceId]);
-  const toggleDock = useCallback(() => setUIState(prev => ({ showDock: !prev.showDock })), [setUIState]);
   const toggleDarkMode = useCallback(() => setUIState(prev => ({ isDarkMode: !prev.isDarkMode })), [setUIState]);
   const toggleCustomCursor = useCallback(() => setUIState(prev => ({ useCustomCursor: !prev.useCustomCursor })), [setUIState]);
   const renderSpaceContent = useCallback((spaceId) => {
@@ -457,7 +469,7 @@ function App() {
 
   // Debug wallpaper cycling isolation
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (IS_DEV) {
       console.log('[DEBUG] 🖼️ === WALLPAPER CYCLING ISOLATION CHECK ===');
       console.log('[DEBUG] 🖼️ Wallpaper cycling is now completely isolated');
       console.log('[DEBUG] 🖼️ Channels should NOT be affected by cycling transitions');
@@ -484,7 +496,7 @@ function App() {
         onContextMenu={handleGlobalRightClick}
       >
         {/* Isolated Wallpaper Background - Completely separate from main app */}
-        <IsolatedWallpaperBackground />
+        <IsolatedWallpaperBackground shellTransitionMs={spaceWorldDurationMs} />
 
         {/* Wallpaper Overlay Effects */}
         <WallpaperOverlay
@@ -526,6 +538,7 @@ function App() {
         </div>
 
         <Suspense fallback={null}>
+          {/* Full-screen overlay (see appSpaceChrome.css) so Wii side nav position:fixed resolves to a viewport-sized box under transform */}
           <div
             className={`channel-space-chrome__stack ${!isGameHubSpace ? 'channel-space-chrome__stack--active' : ''}`}
             style={spaceChromeVars}
@@ -648,7 +661,7 @@ function App() {
               <div
                 className="cursor-pointer p-3 bg-green-500/20 backdrop-blur-md rounded-full border border-green-400/30 hover:bg-green-500/30 transition-all duration-200 shadow-lg"
                 onClick={cycleToNextWallpaper}
-                title={`Cycling active (${cycleInterval}s interval) - Click to cycle manually`}
+                title={`Cycling active (${cycleIntervalSeconds}s interval) - Click to cycle manually`}
               >
                 🔄
                 </div>
@@ -666,7 +679,7 @@ function App() {
             )}
             
             {/* Debug Button - Only in development */}
-            {process.env.NODE_ENV === 'development' && (
+            {IS_DEV && (
               <div
                 className="cursor-pointer p-3 bg-red-500/20 backdrop-blur-md rounded-full border border-red-400/30 hover:bg-red-500/30 transition-all duration-200 shadow-lg"
                 onClick={openDevTools}

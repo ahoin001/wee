@@ -44,7 +44,7 @@ class IntervalManager {
     this.masterInterval = setInterval(() => {
       const now = Date.now();
       
-      this.tasks.forEach((task, taskId) => {
+      this.tasks.forEach((task, _taskId) => {
         if (now - task.lastRun >= task.intervalMs) {
           try {
             task.fn();

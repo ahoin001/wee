@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { IS_DEV } from '../../utils/env';
 import WToggle from '../../ui/WToggle';
 import WeeButton from '../../ui/wee/WeeButton';
 import { useWeeMotion } from '../../design/weeMotion';
@@ -311,7 +312,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
                 </div>
               </section>
 
-              {process.env.NODE_ENV === 'development' ? (
+              {IS_DEV ? (
                 <section className="space-y-4">
                   <p className="ml-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
                     Developer

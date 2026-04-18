@@ -65,6 +65,8 @@ export default function AuraCollectionsSection({
   hubCollectionGamesSort = 'default',
   onHubCollectionGamesSortChange,
   onReorderCollectionShelves,
+  /** When true: shelf fly, collapse, or grid height transition is in progress — parent may freeze scroll-linked hero morph. */
+  onCollectionChromeBusyChange,
 }) {
   const sectionRef = useRef(null);
   const stackButtonRefs = useRef({});
@@ -98,6 +100,8 @@ export default function AuraCollectionsSection({
   const [shelvesReorderEnabled, setShelvesReorderEnabled] = useState(false);
   /** After fly-out (or when closing without fly): delay clearing collection so grid animates 1fr → 0fr. */
   const [shelfClosing, setShelfClosing] = useState(false);
+  /** Covers CSS grid row expansion/collapse tail after fly completes (or full duration when reduced-motion / no-fly). */
+  const [expansionHold, setExpansionHold] = useState(false);
   useEffect(() => {
     shelfClosingRef.current = shelfClosing;
   }, [shelfClosing]);
@@ -114,6 +118,22 @@ export default function AuraCollectionsSection({
   }, [shelfOrderMode]);
 
   const flyAllowed = Boolean(effectsEnabled) && !reducedMotion;
+
+  useEffect(() => {
+    if (!activeCollectionId) {
+      setExpansionHold(false);
+      return;
+    }
+    setExpansionHold(true);
+    const t = window.setTimeout(() => setExpansionHold(false), COLLECTION_EXPANSION_MS + 80);
+    return () => window.clearTimeout(t);
+  }, [activeCollectionId]);
+
+  const collectionChromeBusy = flyInProgress || shelfClosing || expansionHold;
+
+  useLayoutEffect(() => {
+    onCollectionChromeBusyChange?.(collectionChromeBusy);
+  }, [collectionChromeBusy, onCollectionChromeBusyChange]);
 
   const games = activeCollection?.games || [];
   const gameSignature = useMemo(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 // Lazy load modals
@@ -9,7 +9,6 @@ const LazyDockEffectsModal = React.lazy(() => import('./DockEffectsModal'));
 import WiiStyleButton from './WiiStyleButton';
 import DockParticleSystem from './DockParticleSystem';
 import './WiiRibbon.css';
-import reactIcon from '../../assets/react.svg';
 import intervalManager from '../../utils/IntervalManager';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -24,34 +23,68 @@ import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStr
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 // import more icons as needed
 
-const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange, onToggleDarkMode, onToggleCursor, useCustomCursor, glassWiiRibbon, onGlassWiiRibbonChange, animatedOnHover, setAnimatedOnHover, enableTimePill, timePillBlur, timePillOpacity, ribbonColor: propRibbonColor, onRibbonColorChange, recentRibbonColors, onRecentRibbonColorChange, ribbonGlowColor: propRibbonGlowColor, onRibbonGlowColorChange, recentRibbonGlowColors, onRecentRibbonGlowColorChange, ribbonGlowStrength: propRibbonGlowStrength, ribbonGlowStrengthHover: propRibbonGlowStrengthHover, ribbonDockOpacity: propRibbonDockOpacity, onRibbonDockOpacityChange, timeColor, timeFont, presetsButtonConfig, showPresetsButton, glassOpacity: propGlassOpacity, glassBlur: propGlassBlur, glassBorderOpacity: propGlassBorderOpacity, glassShineOpacity: propGlassShineOpacity, ribbonHoverAnimationEnabled = true, particleSettings = {} }) => {
+const WiiRibbonComponent = ({
+  onSettingsClick,
+  onPresetsClick,
+  onSettingsChange,
+  onToggleDarkMode: _onToggleDarkMode,
+  onToggleCursor: _onToggleCursor,
+  useCustomCursor: _useCustomCursor,
+  glassWiiRibbon,
+  onGlassWiiRibbonChange: _onGlassWiiRibbonChange,
+  animatedOnHover: _animatedOnHover,
+  setAnimatedOnHover: _setAnimatedOnHover,
+  enableTimePill,
+  timePillBlur,
+  timePillOpacity,
+  ribbonColor: propRibbonColor,
+  onRibbonColorChange: _onRibbonColorChange,
+  recentRibbonColors: _recentRibbonColors,
+  onRecentRibbonColorChange: _onRecentRibbonColorChange,
+  ribbonGlowColor: propRibbonGlowColor,
+  onRibbonGlowColorChange: _onRibbonGlowColorChange,
+  recentRibbonGlowColors: _recentRibbonGlowColors,
+  onRecentRibbonGlowColorChange: _onRecentRibbonGlowColorChange,
+  ribbonGlowStrength: propRibbonGlowStrength,
+  ribbonGlowStrengthHover: propRibbonGlowStrengthHover,
+  ribbonDockOpacity: propRibbonDockOpacity,
+  onRibbonDockOpacityChange: _onRibbonDockOpacityChange,
+  timeColor,
+  timeFont,
+  presetsButtonConfig,
+  showPresetsButton,
+  glassOpacity: propGlassOpacity,
+  glassBlur: propGlassBlur,
+  glassBorderOpacity: propGlassBorderOpacity,
+  glassShineOpacity: propGlassShineOpacity,
+  ribbonHoverAnimationEnabled = true,
+  particleSettings = {},
+}) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // Sound manager for dock button clicks
   const { playChannelClickSound } = useSoundManager();
   const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
   
-  // Spotify integration — single source of truth: store `ui.spotifyMatchEnabled`
-  const { spotifyExtractedColors, spotifyAlbumArtUrl } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      spotifyExtractedColors: state.spotify.extractedColors,
-      spotifyAlbumArtUrl: state.spotify.currentTrack?.album?.images?.[0]?.url || null,
-    }))
-  );
-  const spotifyMatchEnabled = useConsolidatedAppStore((s) => s.ui.spotifyMatchEnabled);
+  // Spotify — one shallow subscription; use track *name* primitive so progress/metadata churn does not re-render the ribbon.
+  const { spotifyExtractedColors, spotifyAlbumArtUrl, spotifyTrackName, spotifyMatchEnabled } =
+    useConsolidatedAppStore(
+      useShallow((state) => {
+        const track = state.spotify.currentTrack;
+        return {
+          spotifyExtractedColors: state.spotify.extractedColors,
+          spotifyAlbumArtUrl: track?.album?.images?.[0]?.url ?? null,
+          spotifyTrackName: track?.name ?? null,
+          spotifyMatchEnabled: state.ui.spotifyMatchEnabled,
+        };
+      })
+    );
   const [spotifyColors, setSpotifyColors] = useState(null);
   
   // Use consolidated store for modal states and UI settings
-  const { 
-    ui,
-    setUIState
-  } = useUIState();
-  const [isFullscreen, setIsFullscreen] = useState(true);
-  const [isFrameless, setIsFrameless] = useState(true);
-  const [showGeneralModal, setShowGeneralModal] = useState(false);
+  const { setUIState } = useUIState();
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDockEffectsModal, setShowDockEffectsModal] = useState(false);
-  const [updateAvailable, setUpdateAvailable] = useState(false);
   
 
   
@@ -176,24 +209,21 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   }, []);
 
   // Save configs to consolidated store and unified settings snapshot.
-  const saveButtonConfigs = async (configs) => {
-    
+  const saveButtonConfigs = useCallback(async (configs) => {
     setButtonConfigs(configs);
-    
-    // Save to consolidated store (primary storage)
+
     useConsolidatedAppStore.getState().actions.setRibbonState({
-      ribbonButtonConfigs: configs
+      ribbonButtonConfigs: configs,
     });
-    
+
     await saveUnifiedSettingsSnapshot({
       ribbon: { ribbonButtonConfigs: configs },
     });
-    
-    // Notify parent component of the change
+
     if (onSettingsChange) {
       onSettingsChange({ ribbonButtonConfigs: configs });
     }
-  };
+  }, [onSettingsChange]);
 
   const handleButtonContextMenu = (index, e) => {
     e.preventDefault();
@@ -230,17 +260,20 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
     setShowDockEffectsModal(true);
   };
 
-  const handlePrimaryActionsSave = (newConfig) => {
-    const newConfigs = [...(buttonConfigs || [])];
-    newConfigs[activeButtonIndex] = newConfig;
-    
-    saveButtonConfigs(newConfigs);
-    setShowPrimaryActionsModal(false);
-  };
+  const handlePrimaryActionsSave = useCallback(
+    (newConfig) => {
+      const newConfigs = [...(buttonConfigs || [])];
+      newConfigs[activeButtonIndex] = newConfig;
 
-  const handlePrimaryActionsCancel = () => {
+      void saveButtonConfigs(newConfigs);
+      setShowPrimaryActionsModal(false);
+    },
+    [activeButtonIndex, buttonConfigs, saveButtonConfigs]
+  );
+
+  const handlePrimaryActionsCancel = useCallback(() => {
     setShowPrimaryActionsModal(false);
-  };
+  }, []);
 
   const handlePresetsButtonContextMenu = (e) => {
     e.preventDefault();
@@ -248,17 +281,27 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
     setShowPresetsButtonModal(true);
   };
 
-  const handlePresetsButtonSave = (newConfig) => {
-    setShowPresetsButtonModal(false);
-    // Save to settings
-    if (onSettingsChange) {
-      onSettingsChange({ presetsButtonConfig: newConfig });
-    }
-  };
+  const handlePresetsButtonSave = useCallback(
+    (newConfig) => {
+      setShowPresetsButtonModal(false);
+      if (onSettingsChange) {
+        onSettingsChange({ presetsButtonConfig: newConfig });
+      }
+    },
+    [onSettingsChange]
+  );
 
-  const handlePresetsButtonCancel = () => {
+  const handlePresetsButtonCancel = useCallback(() => {
     setShowPresetsButtonModal(false);
-  };
+  }, []);
+
+  const handlePrimaryActionsExitComplete = useCallback(() => {
+    setPrimaryActionsModalMounted(false);
+  }, []);
+
+  const handlePresetsButtonExitComplete = useCallback(() => {
+    setPresetsButtonModalMounted(false);
+  }, []);
 
   // Update time every second
   useEffect(() => {
@@ -295,8 +338,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       }
       
       const rgbColor = hexToRgb(colorToUse);
-      const newTintedImages = {};
-      
+
       // Check all button configs for adaptive color and custom icons
       const allConfigs = [...(buttonConfigs || [])];
       if (presetsButtonConfig) {
@@ -335,27 +377,6 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
 
     generateTintedImages();
   }, [propRibbonGlowColor, buttonConfigs, presetsButtonConfig, spotifyMatchEnabled, spotifyColors]);
-  
-  // Listen for update status events
-  useEffect(() => {
-    const handleUpdateStatus = (data) => {
-      if (data.status === 'available') {
-        setUpdateAvailable(true);
-      } else if (data.status === 'not-available' || data.status === 'downloaded') {
-        setUpdateAvailable(false);
-      }
-    };
-    
-    if (window.api && window.api.onUpdateStatus) {
-      window.api.onUpdateStatus(handleUpdateStatus);
-    }
-    
-    return () => {
-      if (window.api && window.api.offUpdateStatus) {
-        window.api.offUpdateStatus(handleUpdateStatus);
-      }
-    };
-  }, []);
 
   // Handle Escape key to close admin menu
   useEffect(() => {
@@ -485,18 +506,6 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
     }
   };
 
-
-
-  // Guard for window.api to prevent errors in browser
-  const api = window.api || {
-    toggleFullscreen: () => {},
-    toggleFrame: () => {},
-    minimize: () => {},
-    close: () => {},
-    onFullscreenState: () => {},
-    onFrameState: () => {},
-  };
-
   // Debug functions for Spotify Match - only error logging
   useEffect(() => {
     // Only expose error logging functions
@@ -520,22 +529,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       delete window.enableSpotifyMatch;
       delete window.disableSpotifyMatch;
     };
-  }, [spotifyMatchEnabled, spotifyAlbumArtUrl, spotifyColors]);
-
-  useEffect(() => {
-    if (api.onFullscreenState) {
-      api.onFullscreenState((val) => setIsFullscreen(val));
-    }
-    if (api.onFrameState) {
-      api.onFrameState((val) => setIsFrameless(!val));
-    }
-  }, []);
-
-  // Preavailable icons (add more as needed)
-  const preavailableIcons = [
-    reactIcon,
-    // add more imported icons here
-  ];
+  }, [setUIState, spotifyMatchEnabled, spotifyAlbumArtUrl, spotifyColors]);
 
   const handleButtonClick = async (index) => {
     const config = buttonConfigs?.[index];
@@ -739,7 +733,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
 
           <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[300px] z-20 text-center pointer-events-auto">
               {/* Spotify Match Indicator */}
-              {spotifyMatchEnabled && spotify.currentTrack && (
+              {spotifyMatchEnabled && spotifyTrackName && (
                 <div 
                   className="spotify-match-indicator"
                   style={{
@@ -748,7 +742,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
                   }}
                 >
                   <span className="spotify-match-indicator__accent">🎵</span>
-                  <span>{spotify.currentTrack.name}</span>
+                  <span>{spotifyTrackName}</span>
                 </div>
               )}
               
@@ -1073,9 +1067,6 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
           <div 
             className="ribbon-admin-scrim"
             onClick={() => {
-              if (process.env.NODE_ENV === 'development') {
-        
-              }
               setShowAdminMenu(false);
             }}
           />
@@ -1098,9 +1089,8 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
             onSave={handlePrimaryActionsSave}
             config={buttonConfigs?.[activeButtonIndex]}
             buttonIndex={activeButtonIndex}
-            preavailableIcons={preavailableIcons}
             ribbonGlowColor={propRibbonGlowColor}
-            onExitAnimationComplete={() => setPrimaryActionsModalMounted(false)}
+            onExitAnimationComplete={handlePrimaryActionsExitComplete}
           />
         </Suspense>
       )}
@@ -1112,10 +1102,9 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
             onSave={handlePresetsButtonSave}
             config={presetsButtonConfig}
             buttonIndex="presets"
-            preavailableIcons={preavailableIcons}
             title="Customize Presets Button"
             ribbonGlowColor={propRibbonGlowColor}
-            onExitAnimationComplete={() => setPresetsButtonModalMounted(false)}
+            onExitAnimationComplete={handlePresetsButtonExitComplete}
           />
         </Suspense>
       )}

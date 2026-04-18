@@ -14,8 +14,6 @@ const SpotifyLiveGradientWallpaper = () => {
       isPlaying: state.spotify.isPlaying,
     }))
   );
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
   const lastWallpaperUrl = useRef(null);
   const { shouldAnimate, isLowPowerMode } = useAnimationActivity({
     activeFps: 20,

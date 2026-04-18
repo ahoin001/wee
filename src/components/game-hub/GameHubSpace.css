@@ -85,6 +85,31 @@
   }
 }
 
+/*
+ * Wide screens: hub column is centered with max-width (--hub-column-max). Viewport-fixed chrome
+ * (Space Rail, compact hero) used to sit at left:1rem / right:1rem — too far on ultrawide.
+ * Inset matches half of (100vw − column cap) so rails sit just outside the content column with breathing room.
+ * (--hub-chrome-align-inset must mirror the min(vw, px) terms in --hub-column-max for each breakpoint.)
+ */
+.app-container:has(.aura-hub-stage--dock-morph) {
+  --hub-chrome-align-inset: max(0px, calc((100vw - min(97vw, 1920px)) / 2));
+  --hub-chrome-edge-pad: clamp(0.65rem, 1.1vw, 1.1rem);
+}
+
+@media (max-width: 1600px) {
+  .app-container:has(.aura-hub-stage--dock-morph) {
+    --hub-chrome-align-inset: max(0px, calc((100vw - min(95vw, 1680px)) / 2));
+  }
+}
+
+@media (max-width: 1280px) {
+  .app-container:has(.aura-hub-stage--dock-morph) {
+    --hub-chrome-align-inset: max(0px, calc((100vw - min(94vw, 1420px)) / 2));
+  }
+}
+
+/* Space rail: not tied to hub column — fixed left gutter in App.css so it keeps its own lane. */
+
 /* Column: hero overlays top; scroll lives in main with top padding (hub-design pattern) */
 .aura-hub-column {
   position: relative;
@@ -119,8 +144,8 @@
 }
 
 /*
- * Compact hero: mirror `.space-rail` (App.css) — fixed to viewport, vertically centered, inset from edge.
- * Left rail uses left:1rem + top:50% + translateY(-50%); dock uses the same on the right.
+ * Compact hero: fixed to viewport, vertically centered — inset uses --hub-chrome-align-inset when
+ * .app-container:has(.aura-hub-stage--dock-morph) so the card aligns with Space Rail (see block above).
  * Out of flex flow; library width still respects Framer gridMaxWidth so tiles don’t sit under the card.
  */
 .aura-hub-dock-rail {
@@ -128,13 +153,19 @@
   flex-direction: column;
   justify-content: flex-start;
   position: fixed;
-  right: max(1rem, env(safe-area-inset-right, 0px));
+  right: calc(
+    var(--hub-chrome-align-inset, 0px) + var(--hub-chrome-edge-pad, 1rem) +
+      max(0px, env(safe-area-inset-right, 0px))
+  );
   top: 50%;
   transform: translateY(-50%);
   overflow: hidden;
   z-index: 2100;
   pointer-events: none;
-  max-width: min(calc(100vw - 2rem), calc(var(--hub-dock-lane-gap, 40px) + 420px));
+  max-width: min(
+    calc(100vw - 2 * (var(--hub-chrome-align-inset, 0px) + var(--hub-chrome-edge-pad, 1rem))),
+    calc(var(--hub-dock-lane-gap, 40px) + 420px)
+  );
 }
 
 .aura-hub-dock-rail .aura-hub-hero-sticky-wrap {
@@ -269,7 +300,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .aura-hub-hero-shell {
-    transition: height 0.58s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: height var(--space-shell-transition-ms, 780ms) var(--space-shell-ease, cubic-bezier(0.16, 1, 0.3, 1));
   }
 }
 
@@ -307,8 +338,8 @@
 /* Match shell space-switch feel / PS5-style calm fade when hero selection changes. */
 .aura-hub-space--effects .aura-hub-backdrop__layer--overlay {
   transition:
-    opacity 720ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity var(--space-shell-transition-ms, 780ms) var(--space-shell-ease, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--space-shell-transition-ms, 780ms) var(--space-shell-ease, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .aura-hub-space--static .aura-hub-backdrop__layer--overlay {
@@ -1195,6 +1226,8 @@
 .aura-hub-expansion--open {
   grid-template-rows: 1fr;
   margin-top: 1.15rem;
+  /* Predictable scroll anchoring when shelf height grows (pairs with #game-hub-collections scroll-margin). */
+  scroll-margin-top: 0.65rem;
 }
 
 .aura-hub-expansion--shelf-closing .aura-hub-expansion__inner {
@@ -1338,6 +1371,8 @@
   aspect-ratio: 2 / 3;
   object-fit: cover;
   display: block;
+  /* Right-clicks hit the launch button so Radix ContextMenu trigger sees contextmenu before inner preventDefault blocks it */
+  pointer-events: none;
 }
 
 .aura-game-card__fallback {

@@ -42,7 +42,7 @@ const KenBurnsImage = ({
   
   // Slideshow configuration
   enableReorder = false,
-  onImagesReorder = null,
+  onImagesReorder: _onImagesReorder = null,
   
   // Style props
   width = '100%',
@@ -197,8 +197,6 @@ const KenBurnsImage = ({
     if (!isVisible || mode !== 'slideshow') return;
 
     // For single images, still do transitions for visual effect
-    const imageCount = Math.max(images.length, 1);
-    
     // Check if all images are broken (for multi-image galleries)
     if (images.length > 1 && brokenImagesRef.current.size >= images.length) {
       console.warn('All images in slideshow are broken, stopping progression');
@@ -432,7 +430,7 @@ const KenBurnsImage = ({
     
     if (!currentImageSrc) {
       const hasImages = (mode === 'slideshow' && images.length > 0) || src;
-      const allImagesBroken = hasImages && ((mode === 'slideshow' && brokenImages.size >= images.length) || (src && brokenImages.has(src)));
+      const allImagesBroken = hasImages && ((mode === 'slideshow' && brokenImagesRef.current.size >= images.length) || (src && brokenImagesRef.current.has(src)));
       
       if (allImagesBroken) {
         classes.push('ken-burns-image-failed');
@@ -447,7 +445,7 @@ const KenBurnsImage = ({
   // Render placeholder when no image
   if (!currentImageSrc) {
     const hasImages = (mode === 'slideshow' && images.length > 0) || src;
-    const allImagesBroken = hasImages && ((mode === 'slideshow' && brokenImages.size >= images.length) || (src && brokenImages.has(src)));
+    const allImagesBroken = hasImages && ((mode === 'slideshow' && brokenImagesRef.current.size >= images.length) || (src && brokenImagesRef.current.has(src)));
     
     return (
       <div
@@ -516,7 +514,7 @@ const KenBurnsImage = ({
         }}
         loading="lazy"
         draggable={false}
-        onError={(e) => {
+        onError={() => {
           console.warn('KenBurns image failed to load:', currentImageSrc);
           
           // Mark this image as broken
@@ -557,7 +555,7 @@ const KenBurnsImage = ({
           }}
           loading="lazy"
           draggable={false}
-          onError={(e) => {
+          onError={() => {
             console.warn('KenBurns next image failed to load:', nextImageSrc);
             // Mark this image as broken and update next index
             if (nextImageSrc && images.length > 1) {

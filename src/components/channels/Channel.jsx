@@ -39,7 +39,7 @@ const Channel = React.memo(({
   onHover, 
   animationStyle, 
   idleAnimationClass, 
-  isIdleAnimating,
+  isIdleAnimating: _isIdleAnimating,
   wiiMode = false
 }) => {
   const fileInputRef = useRef();
@@ -53,8 +53,6 @@ const Channel = React.memo(({
   const [imageError, setImageError] = useState(false);
   const [fallbackIcon, setFallbackIcon] = useState(null);
   const videoRef = useRef(null);
-  const previewVideoRef = useRef(null);
-  const previewCanvasRef = useRef(null);
 
   // ✅ DATA LAYER: Use the new channel operations hook
   const {
@@ -62,9 +60,6 @@ const Channel = React.memo(({
     isChannelEmpty,
     updateChannelConfig,
     updateChannelMedia,
-    updateChannelPath,
-    updateChannelIcon,
-    updateChannelType
   } = useChannelOperations();
 
   const channelSpaceKey = useChannelSpaceKey();
@@ -257,7 +252,7 @@ const Channel = React.memo(({
         try {
           const dataUrl = canvas.toDataURL('image/png');
           setMp4Preview(dataUrl);
-        } catch (e) {
+        } catch (_e) {
           setMp4Preview(null);
         }
       };
@@ -451,13 +446,6 @@ const Channel = React.memo(({
     stopAllSounds();
   };
 
-  const handleChannelSave = (channelId, channelData) => {
-    updateChannelConfig(channelId, channelData);
-    if (onChannelSave) {
-      onChannelSave(channelId, channelData);
-    }
-  };
-
   const handleConfigure = () => {
     setShowChannelModal(true);
   };
@@ -466,28 +454,6 @@ const Channel = React.memo(({
     updateChannelConfig(channelId, channelData);
     if (onChannelSave) {
       onChannelSave(channelId, channelData);
-    }
-  };
-
-  const handleClearChannel = () => {
-    // Clear the channel configuration completely
-    updateChannelConfig(id, {
-      media: null,
-      path: null,
-      icon: null,
-      type: null,
-      empty: true
-    });
-    
-    if (onChannelSave) {
-      onChannelSave(id, null); // Pass null to indicate complete reset
-    }
-    // Also clear media and path maps
-    if (onMediaChange) {
-      onMediaChange(id, null);
-    }
-    if (onAppPathChange) {
-      onAppPathChange(id, '');
     }
   };
 

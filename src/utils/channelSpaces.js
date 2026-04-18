@@ -23,7 +23,7 @@ export function normalizeShellSpaceOrder(order) {
   for (const id of want) {
     if (!got.has(id)) return [...DEFAULT_SHELL_SPACE_ORDER];
   }
-  return [...DEFAULT_SHELL_SPACE_ORDER];
+  return [...order];
 }
 
 /** Default profile id for the second space’s channel grid (after migration). */

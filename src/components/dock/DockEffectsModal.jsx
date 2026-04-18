@@ -8,15 +8,6 @@ import { PARTICLE_TYPES } from './DockParticleSystem';
 import { DEFAULT_RIBBON_GLOW_HEX, INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings.js';
 import './DockEffectsModal.css';
 
-// Helper function to convert hex color to RGB array
-const hexToRgb = (hexColor) => {
-  const hex = hexColor.replace('#', '');
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  return [r, g, b];
-};
-
 const EFFECT_TYPES = [
   { value: 'normal', label: 'Normal Particles', emoji: '✨' },
   { value: 'stars', label: 'Stars', emoji: '⭐' },
@@ -34,7 +25,7 @@ const DIRECTION_OPTIONS = [
   { value: 'all', label: 'All Directions', emoji: '🌐' }
 ];
 
-function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX }) {
+function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ribbonGlowColor: _ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX }) {
   const [localSettings, setLocalSettings] = useState({
     enabled: false,
     effectType: 'normal',

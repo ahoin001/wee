@@ -16,3 +16,4 @@ export { default as WeeSettingsDisclosure } from './WeeSettingsDisclosure';
 export { default as WeeSettingsCollapsibleSection } from './WeeSettingsCollapsibleSection';
 export { default as WeeDockSettingsSubtabs } from './WeeDockSettingsSubtabs';
 export { default as WeeSettingsSection } from './WeeSettingsSection';
+export { default as WeeSlider } from './WeeSlider';

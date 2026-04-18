@@ -7,7 +7,7 @@ import { ImageModal } from '../modals';
 import { getSharedPresets, downloadPreset, getStoragePublicObjectUrl } from '../../utils/supabase';
 import './community-presets.css';
 
-const CommunityPresets = ({ onImportPreset, onClose }) => {
+const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

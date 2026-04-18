@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
@@ -112,9 +112,6 @@ const ApiIntegrationsSettingsTab = () => {
       }
     });
   }, [actions, floatingWidgets.adminPanel]);
-
-  // Save API & Widgets settings
-  const handleSaveSettings = useCallback(async () => {}, []);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
@@ -464,7 +461,7 @@ const ApiIntegrationsSettingsTab = () => {
                          
                 {adminPanelConfig.powerActions && adminPanelConfig.powerActions.length > 0 ? (
                   <div className="grid gap-2 api-integ-grid-actions">
-                    {adminPanelConfig.powerActions.slice(0, 6).map((action, index) => (
+                    {adminPanelConfig.powerActions.slice(0, 6).map((action) => (
                       <div key={action.id} className="api-integ-feature-row rounded-md p-3">
                         <div className="flex items-center">
                           <span className="text-sm mr-2">{action.icon}</span>

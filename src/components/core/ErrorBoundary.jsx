@@ -4,6 +4,7 @@ import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import '../../styles/error-ui.css';
+import { IS_DEV } from '../../utils/env';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -16,7 +17,7 @@ class ErrorBoundary extends React.Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     // Update state so the next render will show the fallback UI
     return { 
       hasError: true,
@@ -82,7 +83,7 @@ class ErrorBoundary extends React.Component {
                 An unexpected error occurred. The app has been prevented from crashing.
               </Text>
 
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {IS_DEV && this.state.error && (
                 <details className="app-error-details">
                   <summary>
                     Error Details (Development)

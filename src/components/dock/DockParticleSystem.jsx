@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 import { PARTICLE_EFFECT_PALETTES as COLOR_PALETTES } from '../../design/particleEffectPalettes.js';
 import { DEFAULT_RIBBON_GLOW_HEX } from '../../design/runtimeColorStrings.js';
+import { IS_DEV } from '../../utils/env';
 
 // Particle effect types
 const PARTICLE_TYPES = {
@@ -444,7 +445,7 @@ const DockParticleSystem = React.memo(({
         width: canvasRect.width,
         height: canvasRect.height
       };
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }, []);
@@ -507,8 +508,7 @@ const DockParticleSystem = React.memo(({
           // Flat top section
           y = 40 * (height / 240);
         } else if (normalizedX <= 450) {
-          // First curve control point - gradual transition
-          const progress = (normalizedX - 250) / (450 - 250);
+          // First curve control point — flat until the next segment
           y = 40 * (height / 240);
         } else if (normalizedX <= 500) {
           // Sharp curve down
@@ -524,8 +524,7 @@ const DockParticleSystem = React.memo(({
           // Flat bottom section
           y = 100 * (height / 240);
         } else if (normalizedX <= 940) {
-          // Second curve control point
-          const progress = (normalizedX - 770) / (940 - 770);
+          // Second curve control point — flat segment
           y = 100 * (height / 240);
         } else if (normalizedX <= 990) {
           // Sharp curve up
@@ -702,7 +701,7 @@ const DockParticleSystem = React.memo(({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Debug: Draw a test rectangle to see if canvas is working
-    if (process.env.NODE_ENV === 'development' && particlesRef.current.length === 0) {
+    if (IS_DEV && particlesRef.current.length === 0) {
       ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
       ctx.fillRect(10, 10, 20, 20);
     }
@@ -809,7 +808,7 @@ const DockParticleSystem = React.memo(({
         }}
       />
       {/* Debug info in development */}
-      {/* {process.env.NODE_ENV === 'development' && (
+      {/* {IS_DEV && (
         <div style={{
           position: 'absolute',
           top: '10px',

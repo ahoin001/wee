@@ -53,8 +53,13 @@
 
 /* Inner dock-container restores bottom chrome layout; shell does not add a second “dock” box */
 
-/* --- Channel UI (page dots + side nav): fades with space (vars on this node in App.jsx) --- */
+/* --- Channel UI (page dots + side nav): full-screen overlay so fixed descendants share a viewport-sized containing block (transform ancestor); shell stays pointer-transparent so the channel grid receives clicks --- */
 .channel-space-chrome__stack {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2100;
   pointer-events: none;
   opacity: 0;
   transform: translate3d(0, 10px, 0);
@@ -66,7 +71,6 @@
 }
 
 .channel-space-chrome__stack--active {
-  pointer-events: auto;
   opacity: 1;
   transform: translate3d(0, 0, 0);
   visibility: visible;
@@ -74,6 +78,10 @@
     opacity var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
     transform var(--space-chrome-duration, 780ms) var(--space-chrome-ease),
     visibility 0s linear 0s;
+}
+
+.channel-space-chrome__stack .page-navigation {
+  pointer-events: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

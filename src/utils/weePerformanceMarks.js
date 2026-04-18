@@ -1,9 +1,9 @@
+import { IS_DEV as DEV } from './env';
+
 /**
  * Dev-only Performance API marks for tuning hot paths (settings tabs, channel paging, Game Hub).
  * No-ops in production to avoid measurement overhead.
  */
-
-const DEV = typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
 
 function safeMark(name) {
   if (!DEV || typeof performance === 'undefined' || typeof performance.mark !== 'function') return;

@@ -263,6 +263,8 @@ const useWallpaperCycling = () => {
 
   return {
     isCycling: cycleWallpapers && likedWallpapers && likedWallpapers.length > 1,
+    /** Effective interval in seconds (respects low-power minimum). For UI/debug only. */
+    cycleIntervalSeconds: effectiveCycleInterval,
     isTransitioning: localTransitionState.isTransitioning,
     currentWallpaper: currentWallpaperRef.current,
     nextWallpaper: localTransitionState.nextWallpaper,

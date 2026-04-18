@@ -3,6 +3,10 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useWallpaperCycling from '../../utils/useWallpaperCycling';
 import { useSpaceWallpaperCrossfade } from '../../hooks/useSpaceWallpaperCrossfade';
 import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from '../../utils/channelSpaces';
+import {
+  SPACE_SHELL_EASE_CSS,
+  SPACE_SHELL_TRANSITION_MS_DEFAULT,
+} from '../../design/spaceShellMotion';
 
 /**
  * Space-switch depth cue via background-position (cover stays full viewport).
@@ -13,7 +17,9 @@ function spaceParallaxBackgroundYPercent(spaceIndex) {
   return 50 + i * 4;
 }
 
-const IsolatedWallpaperBackground = React.memo(() => {
+function IsolatedWallpaperBackgroundInner({
+  shellTransitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
+}) {
   const wallpaper = useConsolidatedAppStore((state) => state.wallpaper);
   const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
   const spaceOrder = useConsolidatedAppStore((state) => state.spaces.order);
@@ -64,6 +70,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
     activeSpaceId,
     cyclingTransitioning,
     transitionsEnabled: !reducedMotion,
+    transitionMs: shellTransitionMs,
   });
 
   const { opacity, blur, cycleAnimation } = wallpaper;
@@ -284,9 +291,13 @@ const IsolatedWallpaperBackground = React.memo(() => {
   const currentLayerStyle = getCurrentWallpaperStyle();
   const nextLayerStyle = getNextWallpaperStyle();
 
-  const idleWallpaperTransition = cyclingTransitioning
-    ? 'none'
-    : 'opacity 0.35s ease-out, transform 0.35s ease-out, filter 0.45s ease-out, background-position 0.78s cubic-bezier(0.16, 1, 0.3, 1)';
+  const idleWallpaperTransition = useMemo(
+    () =>
+      cyclingTransitioning
+        ? 'none'
+        : `opacity 0.35s ease-out, transform 0.35s ease-out, filter 0.45s ease-out, background-position ${shellTransitionMs}ms ${SPACE_SHELL_EASE_CSS}`,
+    [cyclingTransitioning, shellTransitionMs]
+  );
 
   const idleLayerStyle = useMemo(
     () => ({
@@ -297,7 +308,7 @@ const IsolatedWallpaperBackground = React.memo(() => {
     [applySpaceWallpaperTone, opacity, blur]
   );
 
-  const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+  const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
 
   return (
     <div
@@ -401,6 +412,8 @@ const IsolatedWallpaperBackground = React.memo(() => {
     </div>
     </div>
   );
-});
+}
+
+const IsolatedWallpaperBackground = React.memo(IsolatedWallpaperBackgroundInner);
 
 export default IsolatedWallpaperBackground;

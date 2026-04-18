@@ -101,11 +101,11 @@ const WiiSideNavigation = () => {
 
   // Default icon component
   const DefaultLeftIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path 
-        d="M12 6 L8 10 L12 14" 
+    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M12 6 L8 10 L12 14"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="2.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -113,11 +113,11 @@ const WiiSideNavigation = () => {
   );
 
   const DefaultRightIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path 
-        d="M8 6 L12 10 L8 14" 
+    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M8 6 L12 10 L8 14"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="2.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -125,7 +125,7 @@ const WiiSideNavigation = () => {
   );
 
   // Icon renderer with fallback
-  const renderIcon = (customIcon, DefaultIcon, side = 'left') => {
+  const renderIcon = (customIcon, DefaultIcon, _side = 'left') => {
     // Apply Spotify text color if enabled
     const textColor = spotifyEnabled && navigationSpotifyIntegration && spotifyColors?.text ? spotifyColors.text : 'currentColor';
     

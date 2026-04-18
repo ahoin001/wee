@@ -12,6 +12,7 @@ import '../audio/sound-management.css';
 import './surfaceStyles.css';
 import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
+import { IS_DEV } from '../../utils/env';
 
 const SOUND_CATEGORY_ICONS = {
   backgroundMusic: Music,
@@ -36,9 +37,6 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
     playChannelClickSound,
     playChannelHoverSound,
     stopAllSounds,
-    toggleBackgroundMusic,
-    toggleBackgroundMusicLooping,
-    togglePlaylistMode,
     updateChannelClickSound,
     updateChannelHoverSound,
     saveSoundSettings,
@@ -73,7 +71,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   }, [audioRefs]);
 
   const [draggedItem, setDraggedItem] = useState(null);
-  const [dragOverItem, setDragOverItem] = useState(null);
+  const [_dragOverItem, setDragOverItem] = useState(null);
 
   /** When `undefined`, treat as active (standalone / tests). */
   const isSoundsTabActive = settingsActiveTabId == null || settingsActiveTabId === 'sounds';
@@ -140,7 +138,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
 
   // Debug: Log current sound library state (only in development)
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (IS_DEV) {
       console.log('[SoundsSettingsTab] Current sound library:', soundLibrary);
       console.log('[SoundsSettingsTab] Background music sounds:', soundLibrary.backgroundMusic);
       console.log('[SoundsSettingsTab] Sound settings:', soundSettings);
@@ -396,7 +394,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
     try {
       await playChannelClickSound();
       showMessage('success', 'Channel click sound played');
-    } catch (err) {
+    } catch (_err) {
       showMessage('error', 'No channel click sound enabled');
     }
   }, [playChannelClickSound, showMessage]);
@@ -406,7 +404,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
     try {
       await playChannelHoverSound();
       showMessage('success', 'Channel hover sound played');
-    } catch (err) {
+    } catch (_err) {
       showMessage('error', 'No channel hover sound enabled');
     }
   }, [playChannelHoverSound, showMessage]);
@@ -829,7 +827,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
         );
       })}
 
-      {process.env.NODE_ENV === 'development' ? (
+      {IS_DEV ? (
         <WeeSettingsCollapsibleSection
           icon={Volume2}
           title="Debug"

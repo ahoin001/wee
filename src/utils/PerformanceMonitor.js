@@ -1,6 +1,8 @@
 // Performance Monitoring Utility
 // Tracks resource usage and performance metrics
 
+import { IS_DEV } from './env.js';
+
 class PerformanceMonitor {
   constructor() {
     this.metrics = {
@@ -255,7 +257,7 @@ class PerformanceMonitor {
 const performanceMonitor = new PerformanceMonitor();
 
 // Auto-start monitoring in development
-if (process.env.NODE_ENV === 'development') {
+if (IS_DEV) {
   performanceMonitor.startMonitoring();
   
   // Log performance report every 30 seconds in development

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { ResourceUsageIndicator } from '../widgets';
 import Text from '../../ui/Text';
@@ -7,6 +7,7 @@ import WToggle from '../../ui/WToggle';
 import Card from '../../ui/Card';
 import useSoundManager from '../../utils/useSoundManager';
 import './sound-management.css';
+import { IS_DEV } from '../../utils/env';
 
 const SOUND_CATEGORIES = [
   { key: 'backgroundMusic', label: 'Background Music' },
@@ -48,7 +49,6 @@ const SoundManagementCore = React.memo(({
     togglePlaylistMode,
     updateChannelClickSound,
     updateChannelHoverSound,
-    playSoundEffect,
     saveSoundSettings
   } = useSoundManager();
 
@@ -62,7 +62,7 @@ const SoundManagementCore = React.memo(({
   
   // Drag and drop state for playlist reordering
   const [draggedItem, setDraggedItem] = useState(null);
-  const [dragOverItem, setDragOverItem] = useState(null);
+  const [_dragOverItem, setDragOverItem] = useState(null);
 
   // Debug logging
   console.log('[SoundManagementCore] Current soundSettings:', soundSettings);
@@ -426,10 +426,6 @@ const SoundManagementCore = React.memo(({
     return localState.backgroundMusic?.filter(sound => sound.liked) || [];
   }, [localState.backgroundMusic]);
 
-  const getEnabledBackgroundMusic = useCallback(() => {
-    return localState.backgroundMusic?.filter(sound => sound.enabled) || [];
-  }, [localState.backgroundMusic]);
-
   // Drag and drop handlers for playlist reordering
   const handleDragStart = useCallback((e, soundId) => {
     if (!soundSettings?.backgroundMusicPlaylistMode) return;
@@ -626,6 +622,11 @@ const SoundManagementCore = React.memo(({
                   Only liked sounds will play in the order they appear below. 
                   Click the ❤️ to like/unlike sounds and drag items to reorder your playlist.
                 </div>
+                {getLikedBackgroundMusic().length === 0 && (
+                  <div className="sound-core-callout-text-info mt-2">
+                    No liked tracks yet — the first enabled background track plays until you like at least one sound for a full playlist.
+                  </div>
+                )}
               </div>
             )}
 
@@ -967,7 +968,7 @@ const SoundManagementCore = React.memo(({
       </div>
 
       {/* Debug Info */}
-      {process.env.NODE_ENV === 'development' && (
+      {IS_DEV && (
         <Card
           title="Debug Info"
           separator

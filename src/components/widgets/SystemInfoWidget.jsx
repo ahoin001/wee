@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
@@ -217,13 +217,6 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }, []);
-
-  // Get usage color based on percentage
-  const getUsageColor = useCallback((percentage) => {
-    if (percentage >= 80) return 'text-red-400';
-    if (percentage >= 60) return 'text-yellow-400';
-    return 'text-green-400';
   }, []);
 
   // Render metric card

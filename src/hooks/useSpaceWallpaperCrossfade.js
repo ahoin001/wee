@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-const SPACE_CROSSFADE_MS = 520;
+import { SPACE_SHELL_TRANSITION_MS_DEFAULT } from '../design/spaceShellMotion';
 
 /**
  * Cross-fades wallpaper URL when shell space changes (Home / Work / Games).
  * Same pattern as useHeroMediaCrossfade: base + overlay opacity, then promote on transitionend.
  * When transitions are off (reduced motion) or cycling is mid-transition, snaps to the new URL.
+ * `transitionMs` should match App’s space-world / dock duration for a unified feel.
  */
 export function useSpaceWallpaperCrossfade({
   displayUrl,
   activeSpaceId,
   cyclingTransitioning,
   transitionsEnabled,
+  transitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
 }) {
   const [base, setBase] = useState(displayUrl ?? null);
   const [overlay, setOverlay] = useState(null);
@@ -118,6 +119,6 @@ export function useSpaceWallpaperCrossfade({
     overlayOpacity,
     onOverlayTransitionEnd,
     spaceCrossfadeActive: Boolean(overlay),
-    spaceCrossfadeMs: SPACE_CROSSFADE_MS,
+    spaceCrossfadeMs: transitionMs,
   };
 }

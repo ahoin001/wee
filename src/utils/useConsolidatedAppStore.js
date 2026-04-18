@@ -64,7 +64,7 @@ const {
 // Consolidated app store - single source of truth for all app state
 useConsolidatedAppStore = create(
   subscribeWithSelector(
-    (set, get) => ({
+    (set, _get) => ({
         // Core app state
         app: {
           version: '2.9.4',
@@ -1078,12 +1078,21 @@ useConsolidatedAppStore = create(
             const nextId = nextSpaces.activeSpaceId;
 
             if (updates.activeSpaceId !== undefined && updates.activeSpaceId !== prevId) {
-              const captured = captureSpaceAppearanceFromState(state);
-              const appearanceBySpace = {
+              const liveCapture = captureSpaceAppearanceFromState(state);
+              let appearanceBySpace = {
                 ...state.appearanceBySpace,
-                [prevId]: captured,
+                [prevId]: liveCapture,
               };
-              const incoming = appearanceBySpace[nextId];
+              let incoming = appearanceBySpace[nextId];
+              // First visit to a shell space: no saved snapshot yet — seed from current live look
+              // so persist/reload keeps per-space appearance instead of leaving `null` forever.
+              if (incoming == null) {
+                incoming = liveCapture;
+                appearanceBySpace = {
+                  ...appearanceBySpace,
+                  [nextId]: liveCapture,
+                };
+              }
               const merged = mergeLiveStateFromSpaceAppearance(state, incoming);
 
               return {

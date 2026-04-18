@@ -15,8 +15,12 @@ import { getChannelDataSlice, normalizeChannelSpaceKey } from './channelSpaces';
  * Channel grid operations scoped to one shell space (`home` | `workspaces`).
  * Pass `spaceKey` explicitly for components outside `ChannelSpaceProvider` (e.g. page chrome).
  * Omit `spaceKey` when rendered under `ChannelSpaceProvider` (e.g. grid, slide nav).
+ *
+ * @param {object} [options]
+ * @param {boolean} [options.enableGlobalPageShortcuts] — Register window key/mouse page nav only here (e.g. PaginatedChannels shell), not per Channel tile.
  */
-export const useChannelOperations = (explicitSpaceKey) => {
+export const useChannelOperations = (explicitSpaceKey, options = {}) => {
+  const enableGlobalPageShortcuts = options.enableGlobalPageShortcuts === true;
   const contextKey = useChannelSpaceKey();
   const spaceKey = normalizeChannelSpaceKey(
     explicitSpaceKey !== undefined && explicitSpaceKey !== null ? explicitSpaceKey : contextKey
@@ -161,7 +165,26 @@ export const useChannelOperations = (explicitSpaceKey) => {
   }, [navigation.currentPage, goToPage]);
 
   useEffect(() => {
+    if (!enableGlobalPageShortcuts) {
+      return undefined;
+    }
+
+    const shellMatchesActiveChannelSpace = () => {
+      const activeSpaceId = useConsolidatedAppStore.getState().spaces.activeSpaceId;
+      if (activeSpaceId === 'gamehub') return false;
+      if (activeSpaceId === 'home' && spaceKey === 'home') return true;
+      if (activeSpaceId === 'workspaces' && spaceKey === 'workspaces') return true;
+      return false;
+    };
+
+    let lastAuxNavMs = 0;
+    const AUX_DEBOUNCE_MS = 120;
+
     const handleKeyDown = (event) => {
+      if (!shellMatchesActiveChannelSpace()) {
+        return;
+      }
+
       if (event.ctrlKey || event.metaKey) {
         return;
       }
@@ -203,28 +226,45 @@ export const useChannelOperations = (explicitSpaceKey) => {
       }
     };
 
-    const handleMouseDown = (event) => {
-      if (event.button === 3) {
-        event.preventDefault();
-        if (navigation.currentPage > 0) {
-          prevPage();
-        }
-      } else if (event.button === 4) {
-        event.preventDefault();
-        if (navigation.currentPage < navigation.totalPages - 1) {
-          nextPage();
-        }
+    const handleAuxButton = (event) => {
+      if (event.button !== 3 && event.button !== 4) {
+        return;
+      }
+      if (!shellMatchesActiveChannelSpace()) {
+        return;
+      }
+      const now = Date.now();
+      if (now - lastAuxNavMs < AUX_DEBOUNCE_MS) {
+        return;
+      }
+      lastAuxNavMs = now;
+      event.preventDefault();
+
+      if (event.button === 3 && navigation.currentPage > 0) {
+        prevPage();
+      } else if (event.button === 4 && navigation.currentPage < navigation.totalPages - 1) {
+        nextPage();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('pointerdown', handleAuxButton, true);
+    window.addEventListener('mousedown', handleAuxButton, true);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('pointerdown', handleAuxButton, true);
+      window.removeEventListener('mousedown', handleAuxButton, true);
     };
-  }, [navigation.currentPage, navigation.totalPages, nextPage, prevPage, goToPage]);
+  }, [
+    enableGlobalPageShortcuts,
+    spaceKey,
+    navigation.currentPage,
+    navigation.totalPages,
+    nextPage,
+    prevPage,
+    goToPage,
+  ]);
 
   const finishAnimation = useCallback(() => {
     setChannelNavigationForSpace(spaceKey, { isAnimating: false });

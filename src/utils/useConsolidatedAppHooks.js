@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 
 // Optimized hooks for selective state access

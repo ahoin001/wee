@@ -1,7 +1,6 @@
 import React, { Profiler } from 'react';
 import PropTypes from 'prop-types';
-
-const DEV = typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
+import { IS_DEV as DEV } from '../../utils/env';
 
 function onRenderCallback(id, phase, actualDuration) {
   if (!DEV || actualDuration < 12) return;

@@ -255,9 +255,11 @@ body, #root {
   }
 }
 
+/* Fixed left margin lane — not tied to Game Hub column centering; clears Wii side-nav peek zone on channel spaces */
+/* Shell ignores pointer events so the Wii side-nav (higher z-index) stays reachable; hit target is .space-rail__pill-surface only. */
 .space-rail {
   position: fixed;
-  left: 1rem;
+  left: max(env(safe-area-inset-left, 0px), clamp(1rem, 1.85vw, 1.65rem));
   top: 50%;
   transform: translateY(-50%);
   z-index: 2200;
@@ -266,6 +268,11 @@ body, #root {
   align-items: center;
   gap: 0.45rem;
   transition: opacity 240ms ease, transform 240ms ease;
+  pointer-events: none;
+}
+
+.space-rail__pill-surface {
+  pointer-events: auto;
 }
 
 .space-rail--hidden {

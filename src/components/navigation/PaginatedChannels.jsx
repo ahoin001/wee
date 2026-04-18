@@ -41,7 +41,7 @@ const PaginatedChannelsInner = React.memo(() => {
     updateChannelMedia,
     updateChannelPath,
     reorderChannels,
-  } = useChannelOperations();
+  } = useChannelOperations(undefined, { enableGlobalPageShortcuts: true });
 
   const isSpaceTransitioning = useConsolidatedAppStore((s) => s.spaces.isTransitioning);
   const channelConfigureModalOpen = useConsolidatedAppStore((s) => s.ui.channelConfigureModalOpen);

@@ -1,10 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import GameHubGameMediaDialog from './GameHubGameMediaDialog';
-import GameHubNewCollectionDialog from './GameHubNewCollectionDialog';
+import { useGameHubTileDialogs } from './useGameHubTileDialogs';
 
 /**
  * Radix context menu for hub tiles: favorites, art, Wee collections (portal content matches hub chrome).
@@ -14,8 +13,11 @@ import GameHubNewCollectionDialog from './GameHubNewCollectionDialog';
  * @param {string} [props.contextCollectionId] — when non-null and `wee-`, show "Remove from this collection"
  */
 export default function GameCardContextMenu({ children, game, contextCollectionId = null }) {
-  const [mediaOpen, setMediaOpen] = useState(false);
-  const [newCollectionOpen, setNewCollectionOpen] = useState(false);
+  const dialogs = useGameHubTileDialogs();
+  if (!dialogs) {
+    throw new Error('GameCardContextMenu must be rendered inside GameHubTileDialogsProvider');
+  }
+  const { openMediaDialog, openNewCollectionDialog } = dialogs;
 
   const {
     favoriteGameIds,
@@ -23,7 +25,6 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
     toggleGameHubFavorite,
     addGameToWeeCollection,
     removeGameFromWeeCollection,
-    createWeeCollectionWithGame,
     setGameHubCustomArt,
     customArtByGameId,
   } = useConsolidatedAppStore(
@@ -33,7 +34,6 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
       toggleGameHubFavorite: state.actions.toggleGameHubFavorite,
       addGameToWeeCollection: state.actions.addGameToWeeCollection,
       removeGameFromWeeCollection: state.actions.removeGameFromWeeCollection,
-      createWeeCollectionWithGame: state.actions.createWeeCollectionWithGame,
       setGameHubCustomArt: state.actions.setGameHubCustomArt,
       customArtByGameId: state.gameHub?.ui?.customArtByGameId || {},
     }))
@@ -44,25 +44,10 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
     contextCollectionId && String(contextCollectionId).startsWith('wee-');
   const hasCustomArt = Boolean(game?.id && customArtByGameId?.[game.id]?.url);
 
-  const handleApplyArt = useCallback(
-    (gameId, entry) => {
-      setGameHubCustomArt(gameId, entry);
-    },
-    [setGameHubCustomArt]
-  );
-
   const handleClearArt = useCallback(() => {
     if (!game?.id) return;
     setGameHubCustomArt(game.id, null);
   }, [game?.id, setGameHubCustomArt]);
-
-  const handleCreateCollection = useCallback(
-    (name) => {
-      if (!game?.id) return;
-      createWeeCollectionWithGame(name, game.id);
-    },
-    [createWeeCollectionWithGame, game?.id]
-  );
 
   return (
     <>
@@ -93,7 +78,7 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
             </ContextMenu.Item>
             <ContextMenu.Item
               className="aura-hub-context-menu__item"
-              onSelect={() => setMediaOpen(true)}
+              onSelect={() => openMediaDialog(game)}
             >
               Change art…
             </ContextMenu.Item>
@@ -130,7 +115,7 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
                   ))}
                   <ContextMenu.Item
                     className="aura-hub-context-menu__item aura-hub-context-menu__item--accent"
-                    onSelect={() => setNewCollectionOpen(true)}
+                    onSelect={() => openNewCollectionDialog(game)}
                   >
                     New collection…
                   </ContextMenu.Item>
@@ -140,18 +125,6 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
           </ContextMenu.Content>
         </ContextMenu.Portal>
       </ContextMenu.Root>
-
-      <GameHubGameMediaDialog
-        open={mediaOpen}
-        onOpenChange={setMediaOpen}
-        game={game}
-        onApplyArt={handleApplyArt}
-      />
-      <GameHubNewCollectionDialog
-        open={newCollectionOpen}
-        onOpenChange={setNewCollectionOpen}
-        onCreate={handleCreateCollection}
-      />
     </>
   );
 }

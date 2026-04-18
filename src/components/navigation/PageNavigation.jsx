@@ -5,8 +5,8 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import './PageNavigation.css';
 
 const PageNavigation = ({
-  position = 'bottom',
-  showPageIndicator = true
+  position: _position = 'bottom',
+  showPageIndicator: _showPageIndicator = true
 }) => {
   const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
   const channelSpaceKey = useMemo(

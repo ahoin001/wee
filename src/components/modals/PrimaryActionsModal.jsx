@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-// import AppPathSectionCard from './AppPathSectionCard'; // LEGACY: No longer used
+import React, { useState, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { UnifiedAppPathCard } from '../app-library';
 import {
   WeeModalShell,
@@ -7,14 +7,14 @@ import {
   WeeSettingsSection,
   WeeButton,
   WeeSectionEyebrow,
+  WeeToggle,
+  WeeSegmentedControl,
+  WeeDescriptionToggleRow,
+  WeeHelpParagraph,
+  WeeSlider,
 } from '../../ui/wee';
-import WToggle from '../../ui/WToggle';
 import WInput from '../../ui/WInput';
-import WSelect from '../../ui/WSelect';
-import Text from '../../ui/Text';
-import Slider from '../../ui/Slider';
-import WRadioGroup from '../../ui/WRadioGroup';
-import { useAppLibraryState, useIconState, useUnifiedAppsState } from '../../utils/useConsolidatedAppHooks';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   CSS_STATE_ERROR,
   DEFAULT_RIBBON_GLOW_HEX,
@@ -25,13 +25,12 @@ const ICON_SURFACE = 'hsl(var(--surface-primary))';
 const ICON_IDLE_SHADOW = 'var(--shadow-sm)';
 const ICON_DELETE_BADGE_FILL = 'hsl(var(--state-error-light))';
 
-function PrimaryActionsModal({
+function PrimaryActionsModalComponent({
   isOpen,
   onClose,
   onSave,
   config,
   buttonIndex,
-  preavailableIcons = [],
   ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX,
   onExitAnimationComplete,
 }) {
@@ -41,7 +40,6 @@ function PrimaryActionsModal({
   const [actionType, setActionType] = useState(config?.actionType === 'none' ? 'exe' : config?.actionType || 'exe');
   const [action, setAction] = useState(config?.action || '');
   const [appName, setAppName] = useState('');
-  const [pathError, setPathError] = useState('');
   const [useWiiGrayFilter, setUseWiiGrayFilter] = useState(config?.useWiiGrayFilter || false);
   const [useAdaptiveColor, setUseAdaptiveColor] = useState(config?.useAdaptiveColor || false);
   const [useGlowEffect, setUseGlowEffect] = useState(config?.useGlowEffect || false);
@@ -52,73 +50,62 @@ function PrimaryActionsModal({
   const [glassBorderOpacity, setGlassBorderOpacity] = useState(config?.glassBorderOpacity || 0.5);
   const [glassShineOpacity, setGlassShineOpacity] = useState(config?.glassShineOpacity || 0.7);
   const [textFont, setTextFont] = useState(config?.textFont || 'default');
-  const [path, setPath] = useState('');
   const [tintedImages, setTintedImages] = useState({});
 
-  // App/game path logic state
-  const [gameType, setGameType] = useState('exe');
-  const [appQuery, setAppQuery] = useState('');
-  const [appDropdownOpen, setAppDropdownOpen] = useState(false);
-  const [uwpQuery, setUwpQuery] = useState('');
-  const [uwpDropdownOpen, setUwpDropdownOpen] = useState(false);
-  const [gameQuery, setGameQuery] = useState('');
-  const [gameDropdownOpen, setGameDropdownOpen] = useState(false);
-  const exeFileInputRef = useRef(null);
-
-  // ✅ DATA LAYER: Get app library state from consolidated store
+  // Granular store subscriptions (avoid re-rendering on unrelated appLibrary / icons fields)
   const {
-    appLibrary: {
-      installedApps, appsLoading, appsError,
-      steamGames, steamLoading, steamError,
-      epicGames, epicLoading, epicError,
-      uwpApps, uwpLoading, uwpError,
-      customSteamPath
-    },
-    appLibraryManager: {
-      fetchInstalledApps, rescanInstalledApps,
-      fetchSteamGames, rescanSteamGames,
-      fetchEpicGames, rescanEpicGames,
-      fetchUwpApps, rescanUwpApps,
-      setCustomSteamPath
-    }
-  } = useAppLibraryState();
-
-  // ✅ DATA LAYER: Get icons state from consolidated store
-  const {
-    icons: {
-      savedIcons,
-      loading: iconsLoading,
-      error: iconsError,
-      uploading: iconsUploading,
-      uploadError: iconsUploadError
-    },
-    iconManager: {
-      fetchIcons,
-      uploadIcon,
-      deleteIcon,
-      clearError: clearIconsError
-    }
-  } = useIconState();
-
-  // ✅ DATA LAYER: Get unified apps state from consolidated store
-  const { unifiedApps } = useUnifiedAppsState();
-
-  // Fuzzy search for apps
-  const appResults = (gameType === 'exe' && appQuery && installedApps.length > 0)
-    ? installedApps.filter(a => a.name.toLowerCase().includes(appQuery.toLowerCase())).slice(0, 10)
-    : [];
-
-  // Fuzzy search for games
-  const installedGames = (gameType === 'steam') ? steamGames : (gameType === 'epic' ? epicGames : []);
-  const gameResults = (['steam', 'epic'].includes(gameType) && gameQuery && installedGames.length > 0)
-    ? installedGames.filter(g => g.name.toLowerCase().includes(gameQuery.toLowerCase())).slice(0, 10)
-    : [];
-
-  // Fuzzy search for UWP
-  const filteredUwpApps = uwpApps.filter(app =>
-    app.name.toLowerCase().includes(uwpQuery.toLowerCase()) ||
-    app.appId.toLowerCase().includes(uwpQuery.toLowerCase())
+    installedApps,
+    appsLoading,
+    steamGames,
+    steamLoading,
+    epicGames,
+    epicLoading,
+    uwpApps,
+    uwpLoading,
+    customSteamPath,
+    fetchInstalledApps,
+    fetchSteamGames,
+    fetchEpicGames,
+    fetchUwpApps,
+  } = useConsolidatedAppStore(
+    useShallow((s) => ({
+      installedApps: s.appLibrary.installedApps,
+      appsLoading: s.appLibrary.appsLoading,
+      steamGames: s.appLibrary.steamGames,
+      steamLoading: s.appLibrary.steamLoading,
+      epicGames: s.appLibrary.epicGames,
+      epicLoading: s.appLibrary.epicLoading,
+      uwpApps: s.appLibrary.uwpApps,
+      uwpLoading: s.appLibrary.uwpLoading,
+      customSteamPath: s.appLibrary.customSteamPath,
+      fetchInstalledApps: s.appLibraryManager.fetchInstalledApps,
+      fetchSteamGames: s.appLibraryManager.fetchSteamGames,
+      fetchEpicGames: s.appLibraryManager.fetchEpicGames,
+      fetchUwpApps: s.appLibraryManager.fetchUwpApps,
+    }))
   );
+
+  const {
+    savedIcons,
+    iconsLoading,
+    iconsUploading,
+    iconsUploadError,
+    fetchIcons,
+    uploadIcon,
+    deleteIcon,
+  } = useConsolidatedAppStore(
+    useShallow((s) => ({
+      savedIcons: s.icons.savedIcons,
+      iconsLoading: s.icons.loading,
+      iconsUploading: s.icons.uploading,
+      iconsUploadError: s.icons.uploadError,
+      fetchIcons: s.iconManager.fetchIcons,
+      uploadIcon: s.iconManager.uploadIcon,
+      deleteIcon: s.iconManager.deleteIcon,
+    }))
+  );
+
+  const unifiedApps = useConsolidatedAppStore((s) => s.unifiedApps);
 
   useEffect(() => {
     if (config) {
@@ -127,8 +114,6 @@ function PrimaryActionsModal({
       setIcon(config.icon || null);
       setActionType(config.actionType === 'none' ? 'exe' : config.actionType || 'exe');
       setAction(config.action || '');
-      setPath(config.action || '');
-      setGameType(config.actionType === 'none' ? 'exe' : config.actionType || 'exe');
       setUseWiiGrayFilter(config.useWiiGrayFilter || false);
       setUseAdaptiveColor(config.useAdaptiveColor || false);
       setUseGlowEffect(config.useGlowEffect || false);
@@ -188,27 +173,6 @@ function PrimaryActionsModal({
       }
     }
   }, [isOpen, installedApps.length, appsLoading, uwpApps.length, uwpLoading, steamGames.length, steamLoading, epicGames.length, epicLoading, fetchInstalledApps, fetchUwpApps, fetchSteamGames, fetchEpicGames, customSteamPath]);
-
-  useEffect(() => {
-    if (gameType === 'exe') {
-      if (appQuery && appResults.length > 0) setAppDropdownOpen(true);
-      else setAppDropdownOpen(false);
-    }
-  }, [gameType, appQuery, appResults.length]);
-
-  useEffect(() => {
-    if ((gameType === 'steam' || gameType === 'epic')) {
-      if (gameQuery && gameResults.length > 0) setGameDropdownOpen(true);
-      else setGameDropdownOpen(false);
-    }
-  }, [gameType, gameQuery, gameResults.length]);
-
-  useEffect(() => {
-    if (gameType === 'microsoftstore') {
-      if (uwpQuery && filteredUwpApps.length > 0) setUwpDropdownOpen(true);
-      else setUwpDropdownOpen(false);
-    }
-  }, [gameType, uwpQuery, filteredUwpApps.length]);
 
   const getIconColor = () => {
     if (useAdaptiveColor) {
@@ -354,67 +318,37 @@ function PrimaryActionsModal({
   };
 
   const validatePath = () => {
-    if (!action.trim()) {
-      setPathError('');
-      return true;
-    }
+    if (!action.trim()) return true;
     if (actionType === 'url') {
-      // Validate URL format
       try {
         const url = new URL(action.trim());
-        if (url.protocol === 'http:' || url.protocol === 'https:') {
-          setPathError('');
-          return true;
-        } else {
-          setPathError('Please enter a valid HTTP or HTTPS URL');
-          return false;
-        }
+        return url.protocol === 'http:' || url.protocol === 'https:';
       } catch {
-        setPathError('Please enter a valid URL (e.g., https://example.com)');
-        return false;
-      }
-    } else if (actionType === 'steam') {
-      // Validate Steam URI/AppID format
-      if (action.trim().startsWith('steam://') || action.trim().startsWith('steam://rungameid/') || action.trim().startsWith('steam://launch/')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Steam URI (e.g., steam://rungameid/252950) or AppID (e.g., 252950)');
-        return false;
-      }
-    } else if (actionType === 'epic') {
-      // Validate Epic URI format
-      if (action.trim().startsWith('com.epicgames.launcher://apps/')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Epic URI (e.g., com.epicgames.launcher://apps/Fortnite?action=launch&silent=true)');
-        return false;
-      }
-    } else if (actionType === 'microsoftstore') {
-      // Accept any AppID containing an exclamation mark
-      if (typeof action === 'string' && action.includes('!')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid Microsoft Store AppID (e.g., ROBLOXCORPORATION.ROBLOX_55nm5eh3cm0pr!App)');
-        return false;
-      }
-    } else if (actionType === 'exe') {
-      // Accept any path that contains .exe (case-insensitive), even with arguments or spaces
-      const trimmedPath = action.trim();
-      if (/\.exe(\s+.*)?$/i.test(trimmedPath) || /\.exe/i.test(trimmedPath)) {
-        setPathError('');
-        return true;
-      } else if (trimmedPath.startsWith('\\')) {
-        setPathError('');
-        return true;
-      } else {
-        setPathError('Please enter a valid file path or use "Browse Files" to select an executable');
         return false;
       }
     }
-    setPathError('');
+    if (actionType === 'steam') {
+      const t = action.trim();
+      return (
+        t.startsWith('steam://') ||
+        t.startsWith('steam://rungameid/') ||
+        t.startsWith('steam://launch/')
+      );
+    }
+    if (actionType === 'epic') {
+      return action.trim().startsWith('com.epicgames.launcher://apps/');
+    }
+    if (actionType === 'microsoftstore') {
+      return typeof action === 'string' && action.includes('!');
+    }
+    if (actionType === 'exe') {
+      const trimmedPath = action.trim();
+      return (
+        /\.exe(\s+.*)?$/i.test(trimmedPath) ||
+        /\.exe/i.test(trimmedPath) ||
+        trimmedPath.startsWith('\\')
+      );
+    }
     return true;
   };
 
@@ -454,32 +388,37 @@ function PrimaryActionsModal({
   function renderIconSection() {
     return (
       <>
-        <WRadioGroup
+        <WeeSegmentedControl
+          ariaLabel="Button label type"
+          className="mb-4"
           options={[
             { value: 'text', label: 'Text' },
-            { value: 'icon', label: 'Icon (PNG)' }
+            { value: 'icon', label: 'Icon (PNG)' },
           ]}
           value={type}
           onChange={setType}
-          className="mb-4"
         />
         {type === 'text' ? (
           <>
             <WInput
+              variant="wee"
               type="text"
               placeholder="Button text"
               value={text}
-              onChange={e => setText(e.target.value)}
+              onChange={(e) => setText(e.target.value)}
               maxLength={16}
               className="mb-3"
             />
-            {/* Font Selection for Text */}
             <div className="mb-3">
-              <Text variant="body" className="font-medium mb-2">Text Font</Text>
-              <WSelect
+              <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[hsl(var(--wee-text-rail-muted))]">
+                Text font
+              </p>
+              <WeeSegmentedControl
+                ariaLabel="Text font"
+                wrap
                 options={[
                   { value: 'default', label: 'Default' },
-                  { value: 'digital', label: 'DigitalDisplayRegular-ODEO' }
+                  { value: 'digital', label: 'Digital' },
                 ]}
                 value={textFont}
                 onChange={setTextFont}
@@ -490,7 +429,9 @@ function PrimaryActionsModal({
           <>
             {/* Built-in Icons Section */}
             <div className="mb-4">
-              <Text variant="body" className="font-medium mb-2">Built-in Icons:</Text>
+              <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[hsl(var(--wee-text-rail-muted))]">
+                Built-in icons
+              </p>
               <div className="flex gap-2 flex-wrap">
                 {/* Palette Icon */}
                 <button
@@ -598,14 +539,18 @@ function PrimaryActionsModal({
             >
               {iconsUploading ? 'Uploading...' : 'Upload New Icon'}
             </WeeButton>
-            {iconsUploadError && (
-              <Text variant="caption" className="mb-2 text-[hsl(var(--state-error))]">{iconsUploadError}</Text>
-            )}
+            {iconsUploadError ? (
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--state-error))]">
+                {iconsUploadError}
+              </p>
+            ) : null}
             {/* Saved Icons Section */}
             <div className="mb-3">
-              <Text variant="body" className="font-medium mb-2">Your saved icons:</Text>
+              <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-[hsl(var(--wee-text-rail-muted))]">
+                Your saved icons
+              </p>
               {iconsLoading ? (
-                <Text variant="caption" className="mb-3 text-[hsl(var(--text-tertiary))]">Loading saved icons...</Text>
+                <WeeHelpParagraph className="mb-3">Loading saved icons…</WeeHelpParagraph>
               ) : savedIcons.length > 0 ? (
                 <div className="flex gap-3 flex-wrap">
                   {savedIcons.map((i, idx) => (
@@ -658,7 +603,7 @@ function PrimaryActionsModal({
                   ))}
                 </div>
               ) : (
-                <Text variant="caption" className="mb-3 text-[hsl(var(--text-tertiary))]">No saved icons yet.</Text>
+                <WeeHelpParagraph className="mb-3">No saved icons yet.</WeeHelpParagraph>
               )}
             </div>
           </>
@@ -713,37 +658,30 @@ function PrimaryActionsModal({
                 : 'Choose or upload a custom icon for this channel. PNG recommended for best results.'
           }
         >
-          {renderIconSection && renderIconSection()}
+          {renderIconSection()}
         </WeeSettingsSection>
       </WeeModalFieldCard>
 
       {type === 'icon' && !isPresetsButton && !isAccessoryButton && (
         <WeeModalFieldCard className="mb-6">
           <WeeSettingsSection className="!mb-0" label="Icon color settings">
-            <div className="mb-4">
-              <WToggle
-                checked={useWiiGrayFilter}
-                onChange={handleWiiGrayFilterToggle}
-                label="Use Wii Button Color Filter"
-              />
-              <div className="ml-14 mt-1">
-                <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
-                  Make the icon Wii gray to match the classic Wii button style.
-                </Text>
-              </div>
-            </div>
-
-            <div>
-              <WToggle
-                checked={useAdaptiveColor}
-                onChange={handleAdaptiveColorToggle}
-                label="Use Adaptive Color"
-              />
-              <div className="ml-14 mt-1">
-                <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
-                  Make the icon color match the ribbon glow color ({ribbonGlowColor}).
-                </Text>
-              </div>
+            <div className="mb-4 space-y-4">
+              <WeeDescriptionToggleRow description="Make the icon Wii gray to match the classic Wii button style.">
+                <WeeToggle
+                  checked={useWiiGrayFilter}
+                  onChange={handleWiiGrayFilterToggle}
+                  label="Use Wii button color filter"
+                />
+              </WeeDescriptionToggleRow>
+              <WeeDescriptionToggleRow
+                description={`Make the icon color match the ribbon glow color (${ribbonGlowColor}).`}
+              >
+                <WeeToggle
+                  checked={useAdaptiveColor}
+                  onChange={handleAdaptiveColorToggle}
+                  label="Use adaptive color"
+                />
+              </WeeDescriptionToggleRow>
             </div>
           </WeeSettingsSection>
         </WeeModalFieldCard>
@@ -807,45 +745,47 @@ function PrimaryActionsModal({
           label="Hover effect"
           description="Choose how the button looks when you hover over it."
         >
-          <div className="mb-3">
-            <WRadioGroup
+          <div className="mb-3 space-y-3">
+            <WeeSegmentedControl
+              ariaLabel="Hover highlight style"
+              className="mb-1"
               options={[
-                { value: 'border', label: 'Border Effect' },
-                { value: 'glow', label: 'Glow Effect' },
+                { value: 'border', label: 'Border' },
+                { value: 'glow', label: 'Glow' },
               ]}
               value={useGlowEffect ? 'glow' : 'border'}
-              onChange={(value) => setUseGlowEffect(value === 'glow')}
-              className="mb-3"
+              onChange={(v) => setUseGlowEffect(v === 'glow')}
             />
-
-            <div className="ml-6">
-              <WToggle
+            <div className="pl-0 sm:pl-1">
+              <WeeToggle
                 checked={useAdaptiveColor}
                 onChange={(checked) => setUseAdaptiveColor(checked)}
-                label="Use adaptive color (matches ribbon glow)"
+                label="Adaptive color (ribbon glow)"
               />
             </div>
           </div>
 
-          {useGlowEffect && (
-            <div className="ml-6 mt-2">
+          {useGlowEffect ? (
+            <div className="mt-2 border-t border-[hsl(var(--border-primary)/0.2)] pt-3">
               <div className="mb-2 flex items-center gap-3">
-                <Text variant="small" className="min-w-[60px] text-[hsl(var(--text-secondary))]">
-                  Strength:
-                </Text>
-                <Slider
+                <span className="min-w-[4.5rem] text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--wee-text-rail-muted))]">
+                  Strength
+                </span>
+                <WeeSlider
                   min={5}
                   max={50}
+                  step={1}
                   value={glowStrength}
                   onChange={setGlowStrength}
                   className="flex-1"
+                  aria-label="Glow strength"
                 />
-                <Text variant="small" className="min-w-[30px] text-[hsl(var(--text-secondary))]">
+                <span className="min-w-[2.5rem] text-right text-[11px] font-black tabular-nums text-[hsl(var(--wee-text-header))]">
                   {glowStrength}px
-                </Text>
+                </span>
               </div>
             </div>
-          )}
+          ) : null}
         </WeeSettingsSection>
       </WeeModalFieldCard>
 
@@ -853,56 +793,102 @@ function PrimaryActionsModal({
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <WeeSectionEyebrow>Glass effect</WeeSectionEyebrow>
-            <Text variant="caption" className="!mt-2 max-w-prose text-[hsl(var(--text-secondary))]">
+            <WeeHelpParagraph className="mt-2 max-w-prose">
               Apply a glass morphism effect to the button background. Text and icons appear above the glass.
-            </Text>
+            </WeeHelpParagraph>
           </div>
-          <WToggle checked={useGlassEffect} onChange={(checked) => setUseGlassEffect(checked)} />
+          <WeeToggle checked={useGlassEffect} onChange={(checked) => setUseGlassEffect(checked)} label="Enable" />
         </div>
-        {useGlassEffect && (
-          <div>
-            <div className="mb-3">
-              <div className="mb-2 flex items-center justify-between">
-                <Text variant="small" className="text-[hsl(var(--text-secondary))]">Glass Opacity</Text>
-                <Text variant="small" className="text-[hsl(var(--text-secondary))]">
+        {useGlassEffect ? (
+          <div className="space-y-4 border-t border-[hsl(var(--border-primary)/0.2)] pt-4">
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--wee-text-rail-muted))]">
+                  Opacity
+                </span>
+                <span className="text-[11px] font-black tabular-nums text-[hsl(var(--wee-text-header))]">
                   {Math.round(glassOpacity * 100)}%
-                </Text>
+                </span>
               </div>
-              <Slider min={0.05} max={0.5} step={0.01} value={glassOpacity} onChange={setGlassOpacity} />
+              <WeeSlider
+                min={0.05}
+                max={0.5}
+                step={0.01}
+                value={glassOpacity}
+                onChange={setGlassOpacity}
+                aria-label="Glass opacity"
+              />
             </div>
 
-            <div className="mb-3">
-              <div className="mb-2 flex items-center justify-between">
-                <Text variant="small" className="text-[hsl(var(--text-secondary))]">Glass Blur</Text>
-                <Text variant="small" className="text-[hsl(var(--text-secondary))]">{glassBlur}px</Text>
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--wee-text-rail-muted))]">
+                  Blur
+                </span>
+                <span className="text-[11px] font-black tabular-nums text-[hsl(var(--wee-text-header))]">{glassBlur}px</span>
               </div>
-              <Slider min={0.5} max={8} step={0.1} value={glassBlur} onChange={setGlassBlur} />
+              <WeeSlider min={0.5} max={8} step={0.1} value={glassBlur} onChange={setGlassBlur} aria-label="Glass blur" />
             </div>
 
-            <div className="mb-3">
-              <div className="mb-2 flex items-center justify-between">
-                <Text variant="small" className="text-[hsl(var(--text-secondary))]">Glass Border Intensity</Text>
-                <Text variant="small" className="text-[hsl(var(--text-secondary))]">
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--wee-text-rail-muted))]">
+                  Border
+                </span>
+                <span className="text-[11px] font-black tabular-nums text-[hsl(var(--wee-text-header))]">
                   {Math.round(glassBorderOpacity * 100)}%
-                </Text>
+                </span>
               </div>
-              <Slider min={0.1} max={1} step={0.05} value={glassBorderOpacity} onChange={setGlassBorderOpacity} />
+              <WeeSlider
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={glassBorderOpacity}
+                onChange={setGlassBorderOpacity}
+                aria-label="Glass border intensity"
+              />
             </div>
 
-            <div className="mb-3">
-              <div className="mb-2 flex items-center justify-between">
-                <Text variant="small" className="text-[hsl(var(--text-secondary))]">Glass Shine Intensity</Text>
-                <Text variant="small" className="text-[hsl(var(--text-secondary))]">
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--wee-text-rail-muted))]">
+                  Shine
+                </span>
+                <span className="text-[11px] font-black tabular-nums text-[hsl(var(--wee-text-header))]">
                   {Math.round(glassShineOpacity * 100)}%
-                </Text>
+                </span>
               </div>
-              <Slider min={0.1} max={1} step={0.05} value={glassShineOpacity} onChange={setGlassShineOpacity} />
+              <WeeSlider
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={glassShineOpacity}
+                onChange={setGlassShineOpacity}
+                aria-label="Glass shine intensity"
+              />
             </div>
           </div>
-        )}
+        ) : null}
       </WeeModalFieldCard>
     </WeeModalShell>
   );
 }
 
-export default PrimaryActionsModal; 
+function arePrimaryActionsModalPropsEqual(prev, next) {
+  return (
+    prev.isOpen === next.isOpen &&
+    prev.buttonIndex === next.buttonIndex &&
+    prev.ribbonGlowColor === next.ribbonGlowColor &&
+    prev.config === next.config &&
+    prev.onClose === next.onClose &&
+    prev.onSave === next.onSave &&
+    prev.onExitAnimationComplete === next.onExitAnimationComplete
+  );
+}
+
+const PrimaryActionsModal = React.memo(
+  PrimaryActionsModalComponent,
+  arePrimaryActionsModalPropsEqual
+);
+
+export default PrimaryActionsModal;

@@ -31,7 +31,7 @@ const NavigationSettingsTab = () => {
   // Icon management state
   const [savedIcons, setSavedIcons] = useState([]);
   const [iconsLoading, setIconsLoading] = useState(false);
-  const [iconsError, setIconsError] = useState(null);
+  const [, setIconsError] = useState(null);
   const [iconsUploading, setIconsUploading] = useState(false);
   const [iconsUploadError, setIconsUploadError] = useState(null);
 

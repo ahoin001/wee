@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { IS_DEV } from '../../utils/env';
 
 /**
  * Cross-fades between hero art URLs using stacked layers (opacity).
@@ -143,7 +144,7 @@ export function useHeroMediaCrossfade(artUrl, transitionsEnabled, options = {}) 
     clearStallTimer();
     stallTimerRef.current = window.setTimeout(() => {
       stallTimerRef.current = null;
-      if (process.env.NODE_ENV === 'development') {
+      if (IS_DEV) {
         // eslint-disable-next-line no-console
         console.warn('[useHeroMediaCrossfade] Stall recovery: opacity transition did not complete in time');
       }

@@ -33,10 +33,6 @@ const AuraGameCard = forwardRef(function AuraGameCard(
         className="aura-game-card__launch"
         onFocus={() => onHover?.(game)}
         onClick={() => onLaunch?.(game)}
-        onContextMenu={(e) => {
-          // Let Radix on the outer trigger handle opening; block Electron/Chromium default image/menu UI.
-          e.preventDefault();
-        }}
         title={label}
         aria-label={label ? `Open ${label}` : 'Open game'}
       >
@@ -46,9 +42,6 @@ const AuraGameCard = forwardRef(function AuraGameCard(
             alt=""
             loading={imageLoading}
             draggable={false}
-            onContextMenu={(e) => {
-              e.preventDefault();
-            }}
           />
         ) : (
           <div className="aura-game-card__fallback">No art</div>

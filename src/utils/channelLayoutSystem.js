@@ -36,7 +36,7 @@ export const resolveNavigation = (rawNavigation = {}) => ({
   ...rawNavigation,
 });
 
-export const resolveGridConfig = (channelData, navigation) => {
+export const resolveGridConfig = (_channelData, _navigation) => {
   const channelsPerPage = getChannelsPerPage(WII_LAYOUT_PRESET.columns, WII_LAYOUT_PRESET.rows);
   return {
     columns: WII_LAYOUT_PRESET.columns,

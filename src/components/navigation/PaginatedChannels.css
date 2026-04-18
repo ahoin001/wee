@@ -44,10 +44,14 @@
   position: relative;
 }
 
-/* Wii mode: right edge flush for next-page peek; left inset only on page 0 (first page has no “previous”) */
+/* Wii mode: right edge flush for next-page peek; left inset clears fixed space rail on every page */
 .channels-content:has(.wii-mode-container) {
   padding-right: 0;
-  padding-left: calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(10px, 2vw, 20px));
+  --wii-channel-pad-base: clamp(10px, 2vw, 20px);
+  padding-left: max(
+    calc((1 - min(1, var(--wii-strip-current-page, 0))) * var(--wii-channel-pad-base)),
+    calc(env(safe-area-inset-left, 0px) + var(--channel-space-rail-gutter))
+  );
   padding-top: clamp(10px, 2vw, 20px);
   padding-bottom: clamp(10px, 2vw, 20px);
 }
@@ -269,7 +273,11 @@
 
   .channels-content:has(.wii-mode-container) {
     padding-right: 0;
-    padding-left: calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(8px, 1.5vw, 15px));
+    --wii-channel-pad-base: clamp(8px, 1.5vw, 15px);
+    padding-left: max(
+      calc((1 - min(1, var(--wii-strip-current-page, 0))) * var(--wii-channel-pad-base)),
+      calc(env(safe-area-inset-left, 0px) + var(--channel-space-rail-gutter))
+    );
     padding-top: clamp(8px, 1.5vw, 15px);
     padding-bottom: clamp(8px, 1.5vw, 15px);
   }
@@ -287,7 +295,11 @@
 
   .channels-content:has(.wii-mode-container) {
     padding-right: 0;
-    padding-left: calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(5px, 1vw, 10px));
+    --wii-channel-pad-base: clamp(5px, 1vw, 10px);
+    padding-left: max(
+      calc((1 - min(1, var(--wii-strip-current-page, 0))) * var(--wii-channel-pad-base)),
+      calc(env(safe-area-inset-left, 0px) + var(--channel-space-rail-gutter))
+    );
     padding-top: clamp(5px, 1vw, 10px);
     padding-bottom: clamp(5px, 1vw, 10px);
   }

@@ -168,7 +168,7 @@ const UnifiedAppPathCard = React.memo(({
         } else if (result && result.error) {
           setPathError(result.error);
         }
-      } catch (error) {
+      } catch (_error) {
         setPathError('Failed to browse for file');
       }
     }

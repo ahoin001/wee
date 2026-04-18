@@ -1,5 +1,5 @@
 /* Non-imported DLS sandbox reference (lucide-react + framer-motion). See src/design/weeMotion.js and src/ui/wee/. */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
   LayoutGrid, Home, Gamepad2, Sparkles, X, Plus, 

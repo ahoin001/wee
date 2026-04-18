@@ -10,8 +10,6 @@ export const useSoundManager = () => {
   const { sounds, actions } = useConsolidatedAppStore();
   const { setSoundsState } = actions;
   const audioManagerRef = useRef(null);
-  const backgroundMusicRef = useRef(null);
-  const currentBackgroundMusicRef = useRef(null);
   const [audioManagerReady, setAudioManagerReady] = useState(false);
 
   // Debug logging
@@ -25,7 +23,7 @@ export const useSoundManager = () => {
         audioManagerRef.current = AudioManager.default;
         setAudioManagerReady(true);
         // console.log('[useSoundManager] AudioManager initialized');
-      } catch (error) {
+      } catch (_error) {
         // console.warn('Failed to load AudioManager:', error);
       }
     };
@@ -36,7 +34,7 @@ export const useSoundManager = () => {
   const saveSoundSettings = useCallback(async (newSounds) => {
     try {
       await saveUnifiedSoundSettings(newSounds);
-    } catch (error) {
+    } catch (_error) {
       // console.error('Failed to save sound settings:', error);
     }
   }, []);
@@ -58,7 +56,7 @@ export const useSoundManager = () => {
           );
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // console.warn('Failed to play channel click sound:', error);
     }
   }, [sounds.channelClickEnabled, sounds.channelClickVolume]);
@@ -89,7 +87,7 @@ export const useSoundManager = () => {
           );
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // console.warn('Failed to play channel hover sound:', error);
     }
   }, [sounds.channelHoverEnabled, sounds.channelHoverVolume]);
@@ -126,21 +124,20 @@ export const useSoundManager = () => {
         
         if (enabledMusic.length > 0) {
           if (sounds.backgroundMusicPlaylistMode) {
-            // Playlist mode - play liked sounds in order
             const likedMusic = enabledMusic.filter(s => s.liked);
-            // console.log('[useSoundManager] Playlist mode - liked music:', likedMusic.length);
-            // console.log('[useSoundManager] Liked music details:', likedMusic);
-            
             if (likedMusic.length > 0) {
-              // console.log('[useSoundManager] Starting playlist mode...');
               await audioManagerRef.current.setBackgroundMusicPlaylist(
-                likedMusic, 
+                likedMusic,
                 sounds.backgroundMusicLooping
               );
-              // console.log('[useSoundManager] Playlist mode started successfully');
             } else {
-              // console.log('[useSoundManager] No liked music found for playlist mode');
-              audioManagerRef.current.pauseBackgroundMusic();
+              // Playlist mode but no liked tracks — fall back to first enabled track so BGM still plays
+              const sound = enabledMusic[0];
+              await audioManagerRef.current.setBackgroundMusic(
+                sound.url,
+                sound.volume ?? 0.5,
+                sounds.backgroundMusicLooping
+              );
             }
           } else {
             // Single track mode - play first enabled sound
@@ -162,7 +159,7 @@ export const useSoundManager = () => {
       } else {
         // console.warn('[useSoundManager] Sounds API not available');
       }
-    } catch (error) {
+    } catch (_error) {
       // console.error('[useSoundManager] Failed to start background music:', error);
     }
   }, [sounds.backgroundMusicEnabled, sounds.backgroundMusicLooping, sounds.backgroundMusicPlaylistMode]);
@@ -189,7 +186,7 @@ export const useSoundManager = () => {
     try {
       await saveSoundSettings(newSettings);
       // console.log('[useSoundManager] Background music settings saved successfully');
-    } catch (error) {
+    } catch (_error) {
       // console.error('[useSoundManager] Failed to save background music settings:', error);
     }
     
@@ -218,7 +215,7 @@ export const useSoundManager = () => {
     try {
       await saveSoundSettings(newSettings);
       // console.log('[useSoundManager] Looping settings saved successfully');
-    } catch (error) {
+    } catch (_error) {
       // console.error('[useSoundManager] Failed to save looping settings:', error);
     }
     
@@ -243,7 +240,7 @@ export const useSoundManager = () => {
     try {
       await saveSoundSettings(newSettings);
       // console.log('[useSoundManager] Playlist mode settings saved successfully');
-    } catch (error) {
+    } catch (_error) {
       // console.error('[useSoundManager] Failed to save playlist mode settings:', error);
     }
     
@@ -270,7 +267,7 @@ export const useSoundManager = () => {
     try {
       await saveSoundSettings(newSettings);
       // console.log('[useSoundManager] Channel click settings saved successfully');
-    } catch (error) {
+    } catch (_error) {
       // console.error('[useSoundManager] Failed to save channel click settings:', error);
     }
   }, [sounds, setSoundsState, saveSoundSettings]);
@@ -291,7 +288,7 @@ export const useSoundManager = () => {
     try {
       await saveSoundSettings(newSettings);
       // console.log('[useSoundManager] Channel hover settings saved successfully');
-    } catch (error) {
+    } catch (_error) {
       // console.error('[useSoundManager] Failed to save channel hover settings:', error);
     }
   }, [sounds, setSoundsState, saveSoundSettings]);
@@ -310,7 +307,7 @@ export const useSoundManager = () => {
     
     try {
       await audioManagerRef.current.playSound(soundUrl, volume);
-    } catch (error) {
+    } catch (_error) {
       // console.warn('Failed to play sound effect:', error);
     }
   }, []);
@@ -320,40 +317,41 @@ export const useSoundManager = () => {
     return sounds;
   }, [sounds]);
 
-  // Initialize background music when app becomes focused
+  const soundsRef = useRef(sounds);
+  soundsRef.current = sounds;
+  const startBackgroundMusicRef = useRef(startBackgroundMusic);
+  startBackgroundMusicRef.current = startBackgroundMusic;
+  const stopBackgroundMusicRef = useRef(stopBackgroundMusic);
+  stopBackgroundMusicRef.current = stopBackgroundMusic;
+
+  // Window focus/blur: stable listeners only — do not pause in cleanup (that ran on every startBackgroundMusic identity change)
   useEffect(() => {
     const handleWindowFocus = () => {
-      if (sounds.backgroundMusicEnabled && audioManagerRef.current) {
-        // console.log('[useSoundManager] Window focused, resuming background music...');
-        startBackgroundMusic();
+      if (soundsRef.current.backgroundMusicEnabled && audioManagerRef.current) {
+        startBackgroundMusicRef.current();
       }
     };
 
     const handleWindowBlur = () => {
-      // Pause background music when window loses focus
       if (audioManagerRef.current) {
-        // console.log('[useSoundManager] Window lost focus, pausing background music...');
-        stopBackgroundMusic();
+        stopBackgroundMusicRef.current();
       }
     };
 
-    // Add event listeners
     window.addEventListener('focus', handleWindowFocus);
     window.addEventListener('blur', handleWindowBlur);
 
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('blur', handleWindowBlur);
-      stopBackgroundMusic();
     };
-  }, [sounds.backgroundMusicEnabled, startBackgroundMusic, stopBackgroundMusic]);
+  }, []);
 
-  // Handle AudioManager initialization - but don't auto-start background music
+  // When dynamic import finishes, retry BGM if the first start ran before AudioManager existed
   useEffect(() => {
-    if (audioManagerReady) {
-      // console.log('[useSoundManager] AudioManager ready');
-    }
-  }, [audioManagerReady]);
+    if (!audioManagerReady || !sounds.backgroundMusicEnabled) return;
+    startBackgroundMusic();
+  }, [audioManagerReady, sounds.backgroundMusicEnabled, startBackgroundMusic]);
 
   return {
     // State

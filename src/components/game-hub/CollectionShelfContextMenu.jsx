@@ -26,7 +26,7 @@ export default function CollectionShelfContextMenu({
   }, [collection, isWee, onDeleteShelf]);
 
   return (
-    <ContextMenu.Root>
+    <ContextMenu.Root modal={false}>
       <ContextMenu.Trigger asChild>{children}</ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Content

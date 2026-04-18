@@ -1,12 +1,9 @@
 import { useCallback, useState, useEffect } from 'react';
-import useConsolidatedAppStore from './useConsolidatedAppStore';
-
 /**
  * Custom hook for managing the sound library
  * Handles sound file operations, library state, and Electron integration
  */
 export const useSoundLibrary = () => {
-  const { actions } = useConsolidatedAppStore();
   const [soundLibrary, setSoundLibrary] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
