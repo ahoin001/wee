@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { Search, X } from 'lucide-react';
-import { WeeModalShell, WeeModalRail } from '../../ui/wee';
+import { WeeModalShell, WeeModalRail, WeeSectionEyebrow } from '../../ui/wee';
 import WeeButton from '../../ui/wee/WeeButton';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import SettingsRailTabButton from './SettingsRailTabButton';
+import DevReactProfiler from '../dev/DevReactProfiler';
+import { weeMarkSettingsTab } from '../../utils/weePerformanceMarks';
 
 import {
   ChannelsLayoutSettingsTab,
@@ -28,9 +30,10 @@ import {
   WorkspacesSettingsTab,
 } from './index';
 
-const TabPanel = motion.div;
+const TabPanel = m.div;
 
-const SETTINGS_TABS = [
+/** Main rail list — everything except beta-only tabs (pinned below). */
+const SETTINGS_TABS_MAIN = [
   {
     id: 'api-integrations',
     label: 'API & Widgets',
@@ -72,14 +75,6 @@ const SETTINGS_TABS = [
     component: GeneralSettingsTab,
   },
   {
-    id: 'monitor',
-    label: 'Monitor (beta)',
-    icon: '🖥️',
-    color: 'hsl(var(--settings-tab-monitor))',
-    description: 'Multi-monitor settings',
-    component: MonitorSettingsTab,
-  },
-  {
     id: 'motion',
     label: 'Motion',
     icon: '✨',
@@ -88,28 +83,12 @@ const SETTINGS_TABS = [
     component: MotionFeedbackSettingsTab,
   },
   {
-    id: 'navigation',
-    label: 'Navigation',
-    icon: '🧭',
-    color: 'hsl(var(--settings-tab-navigation))',
-    description: 'Side navigation buttons',
-    component: NavigationSettingsTab,
-  },
-  {
     id: 'themes',
     label: 'Presets',
     icon: '🎨',
     color: 'hsl(var(--settings-tab-themes))',
     description: 'Preset themes & customization',
     component: PresetsSettingsTab,
-  },
-  {
-    id: 'shortcuts',
-    label: 'Shortcuts',
-    icon: '⌨️',
-    color: 'hsl(var(--settings-tab-shortcuts))',
-    description: 'Keyboard shortcuts & hotkeys',
-    component: ShortcutsSettingsTab,
   },
   {
     id: 'sounds',
@@ -153,6 +132,45 @@ const SETTINGS_TABS = [
   },
 ];
 
+const SETTINGS_TAB_BETA = [
+  {
+    id: 'monitor',
+    label: 'Monitor',
+    icon: '🖥️',
+    color: 'hsl(var(--settings-tab-monitor))',
+    description: 'Multi-monitor settings',
+    component: MonitorSettingsTab,
+  },
+  {
+    id: 'navigation',
+    label: 'Navigation',
+    icon: '🧭',
+    color: 'hsl(var(--settings-tab-navigation))',
+    description: 'Side navigation buttons',
+    component: NavigationSettingsTab,
+  },
+  {
+    id: 'shortcuts',
+    label: 'Shortcuts',
+    icon: '⌨️',
+    color: 'hsl(var(--settings-tab-shortcuts))',
+    description: 'Keyboard shortcuts & hotkeys',
+    component: ShortcutsSettingsTab,
+  },
+];
+
+/** Flat order for keyboard nav and lookups: main first, then beta. */
+const SETTINGS_TABS = [...SETTINGS_TABS_MAIN, ...SETTINGS_TAB_BETA];
+
+function tabMatchesQuery(tab, query) {
+  const q = query.toLowerCase();
+  return (
+    tab.label.toLowerCase().includes(q) ||
+    (tab.description && tab.description.toLowerCase().includes(q)) ||
+    tab.id.toLowerCase().includes(q)
+  );
+}
+
 function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
   const tabContentRef = useRef(null);
   const { tabTransition } = useWeeMotion();
@@ -167,7 +185,17 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
   const [, setShowMonitorModal] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredTabs, setFilteredTabs] = useState(SETTINGS_TABS);
+
+  const { filteredMainTabs, filteredBetaTabs } = useMemo(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      return { filteredMainTabs: SETTINGS_TABS_MAIN, filteredBetaTabs: SETTINGS_TAB_BETA };
+    }
+    return {
+      filteredMainTabs: SETTINGS_TABS_MAIN.filter((tab) => tabMatchesQuery(tab, q)),
+      filteredBetaTabs: SETTINGS_TAB_BETA.filter((tab) => tabMatchesQuery(tab, q)),
+    };
+  }, [searchQuery]);
 
   useEffect(() => {
     if (isOpen && effectiveInitialTab) {
@@ -175,9 +203,22 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
     }
   }, [isOpen, effectiveInitialTab]);
 
-  const handleTabChange = useCallback((tabId) => {
-    setActiveTab(tabId);
-  }, []);
+  useEffect(() => {
+    if (!isOpen) return;
+    weeMarkSettingsTab(activeTab);
+  }, [isOpen, activeTab]);
+
+  const handleTabChange = useCallback(
+    (tabId) => {
+      setActiveTab((prev) => {
+        if (prev === 'sounds' && tabId !== 'sounds') {
+          window.dispatchEvent(new CustomEvent('wee-settings-leave-sounds-tab'));
+        }
+        return tabId;
+      });
+    },
+    [],
+  );
 
   const currentTab = useMemo(() => SETTINGS_TABS.find((tab) => tab.id === activeTab), [activeTab]);
 
@@ -188,11 +229,13 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
 
     const TabComponent = currentTab.component;
     return (
-      <div ref={tabContentRef} className="relative flex min-h-0 flex-1 flex-col">
-        <TabComponent setShowMonitorModal={setShowMonitorModal} />
-      </div>
+      <DevReactProfiler id={`settings-tab-${activeTab}`}>
+        <div ref={tabContentRef} className="relative flex min-h-0 flex-1 flex-col">
+          <TabComponent setShowMonitorModal={setShowMonitorModal} settingsActiveTabId={activeTab} />
+        </div>
+      </DevReactProfiler>
     );
-  }, [currentTab]);
+  }, [currentTab, activeTab]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -227,22 +270,6 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, activeTab, handleTabChange, onClose]);
-
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredTabs(SETTINGS_TABS);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase();
-    const filtered = SETTINGS_TABS.filter(
-      (tab) =>
-        tab.label.toLowerCase().includes(query) ||
-        tab.description.toLowerCase().includes(query) ||
-        tab.id.toLowerCase().includes(query)
-    );
-    setFilteredTabs(filtered);
-  }, [searchQuery]);
 
   useEffect(() => {
     if (isOpen && tabContentRef.current) {
@@ -283,26 +310,47 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
         </div>
       </div>
 
-      <div className="wee-modal-scroll mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
-        {filteredTabs.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {filteredTabs.map((tab) => (
-              <SettingsRailTabButton
-                key={tab.id}
-                tab={tab}
-                isActive={activeTab === tab.id}
-                onClick={handleTabChange}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="px-2 py-4 text-center text-[hsl(var(--text-secondary))]">
+      <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
+        {filteredMainTabs.length === 0 && filteredBetaTabs.length === 0 ? (
+          <div className="wee-modal-scroll flex-1 overflow-y-auto px-2 py-4 text-center text-[hsl(var(--text-secondary))]">
             <div className="mb-2 text-2xl" aria-hidden>
               🔍
             </div>
             <div className="text-sm">No settings found</div>
             <div className="mt-1 text-xs">Try a different search term</div>
           </div>
+        ) : (
+          <>
+            <div className="wee-modal-scroll min-h-0 flex-1 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2">
+                {filteredMainTabs.map((tab) => (
+                  <SettingsRailTabButton
+                    key={tab.id}
+                    tab={tab}
+                    isActive={activeTab === tab.id}
+                    onClick={handleTabChange}
+                  />
+                ))}
+              </div>
+            </div>
+            {filteredBetaTabs.length > 0 ? (
+              <div className="shrink-0 border-t-2 border-[hsl(var(--wee-border-rail))] pt-4">
+                <WeeSectionEyebrow className="mb-2 px-1" trackingClassName="tracking-[0.14em]">
+                  Beta
+                </WeeSectionEyebrow>
+                <div className="flex flex-col gap-2">
+                  {filteredBetaTabs.map((tab) => (
+                    <SettingsRailTabButton
+                      key={tab.id}
+                      tab={tab}
+                      isActive={activeTab === tab.id}
+                      onClick={handleTabChange}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </WeeModalRail>

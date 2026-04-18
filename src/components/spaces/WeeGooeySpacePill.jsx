@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
 import { Gamepad2, Home, Layers2, Wand2 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from '../../utils/channelSpaces';
 import { useWeeMotion } from '../../design/weeMotion';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 
-const MotionDiv = motion.div;
-const MotionButton = motion.button;
+const MotionDiv = m.div;
+const MotionButton = m.button;
 
 const SPACE_META = {
   home: { label: 'Home', Icon: Home },
@@ -26,23 +26,19 @@ function getNextSpace(order, currentId, delta) {
 export default function WeeGooeySpacePill() {
   const {
     activeSpaceId,
-    railPinned,
     railVisible,
     order,
     secondaryChannelProfiles,
     activeSecondaryChannelProfileId,
     setSpacesState,
-    setUIState,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       activeSpaceId: state.spaces.activeSpaceId,
-      railPinned: state.spaces.railPinned,
       railVisible: state.spaces.railVisible,
       order: state.spaces.order,
       secondaryChannelProfiles: state.channels.secondaryChannelProfiles,
       activeSecondaryChannelProfileId: state.channels.activeSecondaryChannelProfileId,
       setSpacesState: state.actions.setSpacesState,
-      setUIState: state.actions.setUIState,
     }))
   );
 
@@ -312,19 +308,6 @@ export default function WeeGooeySpacePill() {
         />
       </LayoutGroup>
       </div>
-
-      <button
-        type="button"
-        className="space-rail__pin"
-        onClick={() => {
-          const nextPinned = !railPinned;
-          setSpacesState({ railPinned: nextPinned, railVisible: true });
-          setUIState({ spaceRailPinned: nextPinned });
-        }}
-        title={railPinned ? 'Unpin Space Rail' : 'Pin Space Rail'}
-      >
-        {railPinned ? 'Unpin' : 'Pin'}
-      </button>
     </aside>
   );
 }

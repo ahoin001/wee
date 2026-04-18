@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { MousePointer2, Settings, Sparkles, Zap } from 'lucide-react';
 import { WeeModalShell, WeeModalRail, WeeModalRailItem, WeeModalRailSection } from '../../ui/wee';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 
-const TabPanel = motion.div;
+const TabPanel = m.div;
 
 /**
  * Wee shell for Configure Channel: left rail + header title + scroll body + footer slot.
@@ -20,6 +20,7 @@ function WeeChannelModal({
   footerContent,
   children,
   maxWidth = 'min(1400px, 96vw)',
+  onExitAnimationComplete,
 }) {
   const { tabTransition } = useWeeMotion();
 
@@ -96,6 +97,7 @@ function WeeChannelModal({
       footerContent={footerContent}
       maxWidth={maxWidth}
       showRail
+      onExitAnimationComplete={onExitAnimationComplete}
     >
       <AnimatePresence mode="wait" initial={false}>
         <TabPanel
@@ -122,12 +124,14 @@ WeeChannelModal.propTypes = {
   footerContent: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
   children: PropTypes.node.isRequired,
   maxWidth: PropTypes.string,
+  onExitAnimationComplete: PropTypes.func,
 };
 
 WeeChannelModal.defaultProps = {
   isOpen: true,
   statusReady: false,
   maxWidth: 'min(1400px, 96vw)',
+  onExitAnimationComplete: undefined,
 };
 
 export default WeeChannelModal;

@@ -39,3 +39,12 @@ export function readHubDockInsetPx(fromEl) {
   const n = Number.parseFloat(raw);
   return Number.isFinite(n) ? n : 0;
 }
+
+/** Top padding for scroll-into-view math (jump links, sticky hero). Set `--hub-scroll-top-reserve` on `.aura-hub-stage`. */
+export function readHubScrollTopReservePx(fromEl) {
+  if (!fromEl || typeof window === 'undefined') return 10;
+  const stage = fromEl.closest?.('.aura-hub-stage');
+  const raw = stage ? window.getComputedStyle(stage).getPropertyValue('--hub-scroll-top-reserve').trim() : '';
+  const n = Number.parseFloat(raw);
+  return Number.isFinite(n) ? n : 10;
+}

@@ -9,7 +9,7 @@
 
 import React, { useCallback, useState } from "react";
 import { tv } from "tailwind-variants";
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useMotionFeedback } from "../hooks/useMotionFeedback";
 import { PLAYFUL_SPRINGS, PLAYFUL_AMPLITUDE } from "../design/playfulMotion";
 
@@ -133,7 +133,7 @@ const WButton = React.memo(({
   disabled = false,
   ...props
 }) => {
-  const MotionButton = motion.button;
+  const MotionButton = m.button;
   const { iconTilt } = useMotionFeedback();
   const [hovered, setHovered] = useState(false);
   

@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
-import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { m, useMotionValue, useTransform } from 'framer-motion';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import { formatDiskSize, formatLastPlayed, formatPlaytime } from './hubData';
-import { useHeroMediaCrossfade } from './useHeroMediaCrossfade';
 import GameCardContextMenu from './GameCardContextMenu';
 import WButton from '../../ui/WButton';
 
-const MotionDiv = motion.div;
+const MotionDiv = m.div;
 
 function hoursShort(minutes) {
   const m = Number(minutes || 0);
@@ -72,15 +71,18 @@ export default function AuraHero({
   onLaunchGame,
   onSelectGame,
   onHeroPreview,
+  /** Owned by GameHubSpace so hero and backdrop stay in sync. */
+  heroMediaBaseUrl = null,
+  heroMediaOverlayUrl = null,
+  heroMediaOverlayOpacity = 0,
+  onHeroMediaOverlayTransitionEnd,
 }) {
-  const heroArtUrl = heroGame?.headerUrl || heroGame?.imageUrl || null;
-  const transitionsOn = effectsEnabled;
   const isMorph = morphProgress != null;
 
-  const { baseUrl, overlayUrl, overlayOpacity, onOverlayTransitionEnd } = useHeroMediaCrossfade(
-    heroArtUrl,
-    transitionsOn
-  );
+  const baseUrl = heroMediaBaseUrl;
+  const overlayUrl = heroMediaOverlayUrl;
+  const overlayOpacity = heroMediaOverlayOpacity;
+  const onOverlayTransitionEnd = onHeroMediaOverlayTransitionEnd;
 
   const statItems = useMemo(() => buildHeroStats(heroGame), [heroGame]);
   const dockStatItems = useMemo(() => statItems.slice(0, 4), [statItems]);
@@ -93,10 +95,11 @@ export default function AuraHero({
   const railOpacity = useTransform(mp, [0.4, 0.72], [1, 0], { clamp: true });
 
   useEffect(() => {
-    if (!heroArtUrl) return;
+    const preload = overlayUrl || baseUrl;
+    if (!preload) return;
     const img = new Image();
-    img.src = heroArtUrl;
-  }, [heroArtUrl]);
+    img.src = preload;
+  }, [baseUrl, overlayUrl]);
 
   const titlePanelInner = (
     <>

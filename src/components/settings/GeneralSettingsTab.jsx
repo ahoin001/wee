@@ -5,6 +5,7 @@ import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsWeeSection from './SettingsWeeSection';
 
 const GeneralSettingsTab = React.memo(() => {
@@ -110,7 +111,9 @@ const GeneralSettingsTab = React.memo(() => {
   }, []);
 
   return (
-    <div className="flex max-w-3xl flex-col gap-10">
+    <div className="mx-auto flex max-w-4xl flex-col gap-10 pb-12">
+      <SettingsTabPageHeader title="General" subtitle="App behavior & startup" />
+
       <SettingsWeeSection eyebrow="Display & behavior">
         <SettingsToggleFieldCard
           title="Immersive Picture in Picture mode"

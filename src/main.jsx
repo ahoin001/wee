@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { LazyMotion, domAnimation } from 'framer-motion'
 import './index.css'
 import './App.css'
 import './components/shell/appSpaceChrome.css'
@@ -20,7 +21,9 @@ try {
     console.log('[DEBUG] 🎭 main.jsx: Rendering App component');
     root.render(
       <StrictMode>
-        <App />
+        <LazyMotion features={domAnimation} strict>
+          <App />
+        </LazyMotion>
       </StrictMode>,
     );
     console.log('[DEBUG] ✅ main.jsx: App rendered successfully');

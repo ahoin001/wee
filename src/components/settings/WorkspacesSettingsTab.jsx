@@ -15,6 +15,7 @@ import { normalizeWorkspacesState, removeWorkspaceById } from '../../utils/works
 import { MAX_SAVED_WORKSPACES } from '../../utils/workspaces/workspaceConstants';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import SecondaryChannelProfilesCard from './SecondaryChannelProfilesCard';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsWeeSection from './SettingsWeeSection';
 import './surfaceStyles.css';
 
@@ -159,7 +160,12 @@ const WorkspacesSettingsTab = React.memo(() => {
   };
 
   return (
-    <div className="surface-stack max-w-3xl space-y-8">
+    <div className="surface-stack mx-auto flex max-w-4xl flex-col space-y-8 pb-12">
+      <SettingsTabPageHeader
+        title="Workspaces"
+        subtitle="Create and switch full app environments"
+      />
+
       <SecondaryChannelProfilesCard />
 
       <SettingsWeeSection eyebrow="Create">

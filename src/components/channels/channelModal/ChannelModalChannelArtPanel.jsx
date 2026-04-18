@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useId } from 'react';
 import PropTypes from 'prop-types';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Upload } from 'lucide-react';
 import Text from '../../../ui/Text';
 import { WeeButton, WeeModalFieldCard, WeeSegmentedControl, WeeSectionEyebrow } from '../../../ui/wee';
@@ -172,7 +172,7 @@ function ChannelModalChannelArtPanel({
 
       <AnimatePresence>
         {media && !media.loading ? (
-          <motion.div
+          <m.div
             key="channel-art-preview"
             className="rounded-2xl border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] p-3 shadow-[var(--shadow-card)] sm:p-5"
             initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.97 }}
@@ -213,7 +213,7 @@ function ChannelModalChannelArtPanel({
                 Change channel art
               </WeeButton>
             </div>
-          </motion.div>
+          </m.div>
         ) : media?.loading ? (
           <div className="rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-4 py-3 text-sm text-[hsl(var(--text-secondary))] shadow-[var(--wee-shadow-field)]">
             Processing…
@@ -223,7 +223,7 @@ function ChannelModalChannelArtPanel({
 
       <AnimatePresence initial={false} mode="sync">
         {artToolsExpanded ? (
-          <motion.div
+          <m.div
             key="channel-art-tools"
             initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -246,7 +246,7 @@ function ChannelModalChannelArtPanel({
             <div className="relative min-h-0">
               <AnimatePresence mode="wait" initial={false}>
                 {artSubTab === 'library' && (
-                  <motion.div
+                  <m.div
                     key="library"
                     id="channel-art-panel-library"
                     role="tabpanel"
@@ -272,11 +272,11 @@ function ChannelModalChannelArtPanel({
                       compact
                       channelPicker
                     />
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {artSubTab === 'upload' && (
-                  <motion.div
+                  <m.div
                     key="upload"
                     id="channel-art-panel-upload"
                     role="tabpanel"
@@ -344,7 +344,7 @@ function ChannelModalChannelArtPanel({
                       </div>
 
                       {uploadFile && uploadPreviewUrl ? (
-                        <motion.div
+                        <m.div
                           layout
                           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -367,7 +367,7 @@ function ChannelModalChannelArtPanel({
                               <img src={uploadPreviewUrl} alt="" className="max-h-[200px] max-w-full rounded-xl object-contain" />
                             )}
                           </div>
-                        </motion.div>
+                        </m.div>
                       ) : null}
 
                       <WeeButton
@@ -381,11 +381,11 @@ function ChannelModalChannelArtPanel({
                         {libraryUploading ? 'Uploading…' : 'Upload & apply to channel'}
                       </WeeButton>
                     </WeeModalFieldCard>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </div>

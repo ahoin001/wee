@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 /** Above dock/ribbon, below devtools */
@@ -75,7 +75,7 @@ function buildDropMicroSparks() {
 
 function ParticleGlyph({ x, y, rot, endRot, delay, glyph, size, duration, accent }) {
   return (
-    <motion.span
+    <m.span
       className={`pointer-events-none absolute left-1/2 top-1/2 select-none font-bold ${
         accent
           ? 'text-[hsl(48_100%_72%)] [text-shadow:0_0_12px_hsl(48_100%_72%),0_0_22px_hsl(var(--primary)/0.85)]'
@@ -102,7 +102,7 @@ function ParticleGlyph({ x, y, rot, endRot, delay, glyph, size, duration, accent
       }}
     >
       {glyph}
-    </motion.span>
+    </m.span>
   );
 }
 
@@ -154,7 +154,7 @@ function LiftBurstLayer({ cx, cy, burstKey }) {
       aria-hidden
     >
       <div className="absolute" style={{ left: cx, top: cy }}>
-        <motion.div
+        <m.div
           className="absolute -translate-x-1/2 -translate-y-1/2"
           initial={{ scale: 0.6, opacity: 0.9 }}
           animate={{ scale: 1.15, opacity: 0 }}
@@ -167,7 +167,7 @@ function LiftBurstLayer({ cx, cy, burstKey }) {
                 'radial-gradient(circle, hsl(var(--primary) / 0.55) 0%, hsl(var(--primary) / 0) 70%)',
             }}
           />
-        </motion.div>
+        </m.div>
         {particles.map((p) => (
           <ParticleGlyph
             key={p.id}
@@ -227,26 +227,26 @@ function DropBurstLayer({ cx, cy, burstKey }) {
       aria-hidden
     >
       <div className="absolute" style={{ left: cx, top: cy }}>
-        <motion.div
+        <m.div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px]"
           style={{ borderColor: 'hsl(var(--primary) / 0.9)' }}
           initial={{ width: 12, height: 12, opacity: 1 }}
           animate={{ width: 152, height: 152, opacity: 0 }}
           transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
         />
-        <motion.div
+        <m.div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[hsl(48_100%_72%/0.75)]"
           initial={{ width: 10, height: 10, opacity: 0.85 }}
           animate={{ width: 118, height: 118, opacity: 0 }}
           transition={{ duration: 0.5, delay: 0.06, ease: [0.34, 1.56, 0.64, 1] }}
         />
-        <motion.div
+        <m.div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[hsl(var(--color-pure-white)/0.5)]"
           initial={{ width: 8, height: 8, opacity: 0.7 }}
           animate={{ width: 96, height: 96, opacity: 0 }}
           transition={{ duration: 0.42, delay: 0.12, ease: 'easeOut' }}
         />
-        <motion.div
+        <m.div
           className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[hsl(var(--color-pure-white))]"
           initial={{ scale: 0, rotate: -18 }}
           animate={{ scale: [0, 1.55, 1, 0.35], rotate: [0, 12, -6, 0] }}
@@ -256,7 +256,7 @@ function DropBurstLayer({ cx, cy, burstKey }) {
               '0 0 28px hsl(var(--primary) / 0.98), 0 0 48px hsl(48 100% 72% / 0.45), inset 0 0 12px hsl(var(--color-pure-white) / 0.9)',
           }}
         />
-        <motion.div
+        <m.div
           className="pointer-events-none absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
             background:

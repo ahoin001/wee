@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
@@ -179,12 +179,12 @@ function MediaLibraryBrowser({
       ) : null}
 
       {channelPicker ? (
-        <motion.div
+        <m.div
           layout
           className="image-search-modal__toolbar-card image-search-modal__toolbar-card--channel mb-3 rounded-[var(--wee-radius-card)] border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] p-4 shadow-[var(--shadow-card)]"
         >
           {toolbarInner}
-        </motion.div>
+        </m.div>
       ) : (
         <Card
           className={`mb-3 image-search-modal__toolbar-card ${compact ? '!mt-0' : 'mb-4'}`}

@@ -1,6 +1,6 @@
 /* Non-imported DLS sandbox reference (lucide-react + framer-motion). See src/design/weeMotion.js and src/ui/wee/. */
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { 
   LayoutGrid, Home, Gamepad2, Sparkles, X, Plus, 
   ChevronRight, Shield, Globe, RefreshCw, Film, Upload, 
@@ -82,7 +82,7 @@ const ModalButton = ({ children, onClick, variant = 'primary', disabled = false 
 
 const Toggle = ({ active, onToggle }) => (
   <button onClick={onToggle} className={`w-12 h-7 rounded-full transition-all relative ${active ? 'bg-blue-500' : 'bg-slate-200'}`}>
-    <motion.div animate={{ x: active ? 20 : 4 }} className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm" />
+    <m.div animate={{ x: active ? 20 : 4 }} className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm" />
   </button>
 );
 
@@ -130,9 +130,9 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-[200] p-6">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl" />
+          <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl" />
           
-          <motion.div 
+          <m.div 
             initial={{ opacity: 0, scale: 0.9, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 40 }}
@@ -215,7 +215,7 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
                 
                 {/* --- TAB: SETUP --- */}
                 {activeTab === 'setup' && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-16">
+                  <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-16">
                     <div className="space-y-8">
                        <div className="flex justify-between items-center">
                           <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Launch Target</h4>
@@ -312,12 +312,12 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
                          </div>
                        )}
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {/* --- TAB: BEHAVIOR --- */}
                 {activeTab === 'behavior' && (
-                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-4xl">
+                  <m.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-4xl">
                     <section className="space-y-6">
                        <h4 className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-300">Privileges & Audio</h4>
                        <div className="grid grid-cols-2 gap-8">
@@ -339,7 +339,7 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
                        </div>
                        
                        {config.soundActive && (
-                         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 grid grid-cols-2 gap-4">
+                         <m.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 grid grid-cols-2 gap-4">
                             {['Wii Hover 1', 'Dearly Beloved'].map(s => (
                               <button 
                                 key={s} 
@@ -354,7 +354,7 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
                               </button>
                             ))}
                             <button className="col-span-2 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase italic text-[10px] tracking-widest hover:bg-black transition-colors">Upload New Sound</button>
-                         </motion.div>
+                         </m.div>
                        )}
                     </section>
 
@@ -387,17 +387,17 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
                        <div className="bg-white p-12 rounded-[4rem] border-2 border-slate-100 shadow-sm space-y-10">
                           <SectionHeader icon={Film} title="Motion Architecture" colorClass="text-purple-500" />
                           <div className="grid grid-cols-3 gap-8">
-                             {['global', 'hover', 'always'].map(m => (
+                             {['global', 'hover', 'always'].map((motionMode) => (
                                <button 
-                                 key={m} 
-                                 onClick={() => setConfig({...config, motion: m})}
-                                 className={`p-10 rounded-[2.5rem] border-4 transition-all flex flex-col items-center gap-6 group ${config.motion === m ? 'border-blue-500 bg-blue-50' : 'border-slate-50 hover:border-slate-100'}`}
+                                 key={motionMode} 
+                                 onClick={() => setConfig({...config, motion: motionMode})}
+                                 className={`p-10 rounded-[2.5rem] border-4 transition-all flex flex-col items-center gap-6 group ${config.motion === motionMode ? 'border-blue-500 bg-blue-50' : 'border-slate-50 hover:border-slate-100'}`}
                                >
-                                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${config.motion === m ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-300 group-hover:text-slate-400'}`}>
+                                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${config.motion === motionMode ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-300 group-hover:text-slate-400'}`}>
                                      <PlayCircle size={32} />
                                   </div>
                                   <div className="text-center">
-                                     <p className={`font-black uppercase italic text-sm ${config.motion === m ? 'text-blue-500' : 'text-slate-800'}`}>{m} Play</p>
+                                     <p className={`font-black uppercase italic text-sm ${config.motion === motionMode ? 'text-blue-500' : 'text-slate-800'}`}>{motionMode} Play</p>
                                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Runtime Sync</p>
                                   </div>
                                </button>
@@ -421,12 +421,12 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
                           <Toggle active={config.kenBurns} onToggle={() => setConfig({...config, kenBurns: !config.kenBurns})} />
                        </div>
                     </section>
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {/* --- TAB: SUGGESTED --- */}
                 {activeTab === 'suggested' && (
-                  <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-10 max-w-4xl">
+                  <m.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-10 max-w-4xl">
                     <div className="flex justify-between items-center bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl">
                        <div className="space-y-2">
                           <h4 className="text-2xl font-black uppercase italic tracking-tighter">Ready to Scan</h4>
@@ -450,7 +450,7 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
                          </button>
                        ))}
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
                 
               </div>
@@ -464,7 +464,7 @@ const ChannelConfigModal = ({ isOpen, onClose }) => {
                  </div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       )}
     </AnimatePresence>
@@ -518,7 +518,7 @@ const GooeySpacePill = ({ activeIdx, onSelect, onConfigOpen }) => {
 
   return (
     <div className="fixed left-10 top-1/2 -translate-y-1/2 z-[150] flex flex-col items-center">
-      <motion.div
+      <m.div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         animate={isHovered ? "open" : "closed"}
@@ -530,7 +530,7 @@ const GooeySpacePill = ({ activeIdx, onSelect, onConfigOpen }) => {
         <AnimatePresence>
           {!isHovered ? (
             /* COMPACT STATE: Perfectly centered active icon */
-            <motion.div 
+            <m.div 
               key="compact"
               initial={{ opacity: 0, scale: 0.5 }} 
               animate={{ opacity: 1, scale: 1, transition: { delay: 0.15, type: 'spring' } }} 
@@ -538,10 +538,10 @@ const GooeySpacePill = ({ activeIdx, onSelect, onConfigOpen }) => {
               className="absolute inset-0 flex items-center justify-center text-slate-900"
             >
               <ActiveIcon size={28} />
-            </motion.div>
+            </m.div>
           ) : (
             /* EXPANDED STATE: Full waterfall list */
-            <motion.div 
+            <m.div 
               key="expanded" 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -549,7 +549,7 @@ const GooeySpacePill = ({ activeIdx, onSelect, onConfigOpen }) => {
               className="absolute inset-0 flex flex-col items-center pt-5 gap-2 w-full"
             >
               {SPACES.map((space, i) => (
-                <motion.button
+                <m.button
                   key={space.id}
                   custom={i}
                   variants={itemVariants}
@@ -562,12 +562,12 @@ const GooeySpacePill = ({ activeIdx, onSelect, onConfigOpen }) => {
                   className="group relative flex items-center justify-center w-14 h-14 rounded-full transition-colors"
                 >
                   {/* Fluid selection highlight */}
-                  {activeIdx === i && <motion.div layoutId="pillActive" className="absolute inset-0 bg-white shadow-md rounded-full z-0" />}
+                  {activeIdx === i && <m.div layoutId="pillActive" className="absolute inset-0 bg-white shadow-md rounded-full z-0" />}
                   
                   <space.icon size={22} className={`relative z-10 ${activeIdx === i ? 'text-blue-500' : 'text-slate-400 group-hover:text-slate-600'}`} />
                   
                   {/* Gooey blur effect behind icon on hover */}
-                  <motion.div 
+                  <m.div 
                     className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300"
                     style={{ backgroundColor: space.color, filter: 'blur(8px)', zIndex: -1 }}
                   />
@@ -576,14 +576,14 @@ const GooeySpacePill = ({ activeIdx, onSelect, onConfigOpen }) => {
                   <div className="absolute left-full ml-4 bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all -translate-x-2 group-hover:translate-x-0 shadow-xl whitespace-nowrap z-50">
                     {space.label}
                   </div>
-                </motion.button>
+                </m.button>
               ))}
               
               {/* Separator Line */}
-              <motion.div custom={SPACES.length} variants={itemVariants} initial="closed" animate="open" exit="closed" className="w-8 h-1 bg-slate-200/50 rounded-full my-1" />
+              <m.div custom={SPACES.length} variants={itemVariants} initial="closed" animate="open" exit="closed" className="w-8 h-1 bg-slate-200/50 rounded-full my-1" />
               
               {/* Magic Wand Button */}
-              <motion.button 
+              <m.button 
                 custom={SPACES.length + 1}
                 variants={itemVariants}
                 initial="closed"
@@ -595,15 +595,15 @@ const GooeySpacePill = ({ activeIdx, onSelect, onConfigOpen }) => {
                 className="w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-xl group relative"
               >
                 <Wand2 size={22} className="relative z-10" />
-                <motion.div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-40 bg-blue-500 transition-opacity" style={{ filter: 'blur(8px)', zIndex: 0 }} />
-              </motion.button>
-            </motion.div>
+                <m.div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-40 bg-blue-500 transition-opacity" style={{ filter: 'blur(8px)', zIndex: 0 }} />
+              </m.button>
+            </m.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </m.div>
       
       {/* Dynamic Floor Shadow for physical depth */}
-      <motion.div 
+      <m.div 
         className="absolute -bottom-4 w-12 h-2 bg-black/10 rounded-full blur-sm"
         animate={{ scaleX: isHovered ? 2.5 : 1, opacity: isHovered ? 0.15 : 0.4 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -628,7 +628,7 @@ const App = () => {
         onConfigOpen={() => setIsConfigOpen(true)} 
       />
 
-      <motion.div key={activeSpace.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center">
+      <m.div key={activeSpace.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center">
         <div className="w-48 h-48 rounded-[3.5rem] mb-10 flex items-center justify-center shadow-[0_30px_70px_-15px_rgba(0,0,0,0.1)] bg-white border-4 border-white">
           <activeSpace.icon size={80} color={activeSpace.color} strokeWidth={1.5} />
         </div>
@@ -638,7 +638,7 @@ const App = () => {
         <button onClick={() => setIsConfigOpen(true)} className="mt-12 px-12 py-5 bg-white rounded-full font-black uppercase italic tracking-widest text-[11px] shadow-xl hover:scale-105 transition-all flex items-center gap-4 text-slate-800 border border-slate-50">
            Launch Config Engine <ChevronRight size={18} className="text-blue-500" />
         </button>
-      </motion.div>
+      </m.div>
 
       <ChannelConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} />
       

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import WButton from '../../ui/WButton';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import AuraHubModalFrame from './AuraHubModalFrame';
 
 export default function GameHubManageCollectionsDialog({ open, onOpenChange }) {
   const { weeCollections, renameWeeCollection, deleteWeeCollection, createWeeCollection } = useConsolidatedAppStore(
@@ -41,90 +42,78 @@ export default function GameHubManageCollectionsDialog({ open, onOpenChange }) {
     createWeeCollection('New collection');
   }, [createWeeCollection]);
 
-  if (!open) return null;
-
   return (
-    <div
-      className="aura-hub-modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="hub-manage-collections-title"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
-    >
-      <div className="aura-hub-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="aura-hub-modal__header">
-          <h2 id="hub-manage-collections-title" className="aura-hub-modal__title">
-            Manage collections
-          </h2>
-          <button type="button" className="aura-hub-modal__close" onClick={close} aria-label="Close">
-            ×
-          </button>
-        </div>
-        <p className="aura-hub-modal__hint">
-          Rename or delete collections. Right-click games in the hub to add them to a collection.
-        </p>
-        <ul className="aura-hub-modal__list">
-          {weeCollections.length === 0 ? (
-            <li className="aura-hub-modal__empty">No custom collections yet. Create one below or use &quot;New collection…&quot; from a game&apos;s menu.</li>
-          ) : (
-            weeCollections.map((c) => (
-              <li key={c.id} className="aura-hub-modal__row">
-                {editingId === c.id ? (
-                  <>
-                    <input
-                      type="text"
-                      className="aura-hub-modal__input"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') commitRename();
-                        if (e.key === 'Escape') {
-                          setEditingId(null);
-                          setEditValue('');
+    <AuraHubModalFrame open={open} onOpenChange={onOpenChange} ariaLabelledBy="hub-manage-collections-title">
+      <div className="aura-hub-modal__header">
+        <h2 id="hub-manage-collections-title" className="aura-hub-modal__title">
+          Manage collections
+        </h2>
+        <button type="button" className="aura-hub-modal__close" onClick={close} aria-label="Close">
+          ×
+        </button>
+      </div>
+      <p className="aura-hub-modal__hint">
+        Rename or delete collections. Right-click games in the hub to add them to a collection.
+      </p>
+      <ul className="aura-hub-modal__list">
+        {weeCollections.length === 0 ? (
+          <li className="aura-hub-modal__empty">No custom collections yet. Create one below or use &quot;New collection…&quot; from a game&apos;s menu.</li>
+        ) : (
+          weeCollections.map((c) => (
+            <li key={c.id} className="aura-hub-modal__row">
+              {editingId === c.id ? (
+                <>
+                  <input
+                    type="text"
+                    className="aura-hub-modal__input"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitRename();
+                      if (e.key === 'Escape') {
+                        setEditingId(null);
+                        setEditValue('');
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <WButton type="button" variant="secondary" onClick={commitRename}>
+                    Save
+                  </WButton>
+                </>
+              ) : (
+                <>
+                  <span className="aura-hub-modal__label">{c.label}</span>
+                  <div className="aura-hub-modal__actions">
+                    <WButton type="button" variant="secondary" onClick={() => startRename(c)}>
+                      Rename
+                    </WButton>
+                    <WButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        if (window.confirm(`Delete collection “${c.label}”?`)) {
+                          deleteWeeCollection(c.id);
                         }
                       }}
-                      autoFocus
-                    />
-                    <WButton type="button" variant="secondary" onClick={commitRename}>
-                      Save
+                    >
+                      Delete
                     </WButton>
-                  </>
-                ) : (
-                  <>
-                    <span className="aura-hub-modal__label">{c.label}</span>
-                    <div className="aura-hub-modal__actions">
-                      <WButton type="button" variant="secondary" onClick={() => startRename(c)}>
-                        Rename
-                      </WButton>
-                      <WButton
-                        type="button"
-                        variant="secondary"
-                        onClick={() => {
-                          if (window.confirm(`Delete collection “${c.label}”?`)) {
-                            deleteWeeCollection(c.id);
-                          }
-                        }}
-                      >
-                        Delete
-                      </WButton>
-                    </div>
-                  </>
-                )}
-              </li>
-            ))
-          )}
-        </ul>
-        <div className="aura-hub-modal__footer">
-          <WButton type="button" onClick={handleCreate}>
-            New collection
-          </WButton>
-          <WButton type="button" variant="secondary" onClick={close}>
-            Done
-          </WButton>
-        </div>
+                  </div>
+                </>
+              )}
+            </li>
+          ))
+        )}
+      </ul>
+      <div className="aura-hub-modal__footer">
+        <WButton type="button" onClick={handleCreate}>
+          New collection
+        </WButton>
+        <WButton type="button" variant="secondary" onClick={close}>
+          Done
+        </WButton>
       </div>
-    </div>
+    </AuraHubModalFrame>
   );
 }

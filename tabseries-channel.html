@@ -1,0 +1,424 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  LayoutGrid, Monitor, Activity, Aperture, 
+  Info, X, ChevronDown, Settings, MousePointer2, 
+  Volume2, Zap, Sliders, Box, Layers, Play
+} from 'lucide-react';
+
+/**
+ * DESIGN PRINCIPLES: "CHUNKY TACTILE"
+ * 1. Deep Press: 4px bottom borders on interactive elements.
+ * 2. Visual Separation: Use "Slate Surface" for read-only and "White Surface" for interactive.
+ * 3. Motion: Snap-action springs (stiffness: 400, damping: 30).
+ */
+
+const TABS = [
+  { id: 'general', label: 'General', icon: Settings },
+  { id: 'channels', label: 'Channels & Layout', icon: LayoutGrid, desc: 'Wii grid, space status, and channel tile defaults' },
+  { id: 'navigation', label: 'Navigation', icon: MousePointer2 },
+  { id: 'motion', label: 'Motion', icon: Zap },
+  { id: 'sounds', label: 'Sounds', icon: Volume2 },
+];
+
+const IDLE_TYPES = ['Pulse', 'Bounce', 'Glow', 'Heartbeat', 'Shake', 'Wiggle'];
+const KEN_BURNS_MODES = ['Hover', 'Autoplay', 'Slideshow'];
+
+// --- UI Building Blocks ---
+
+/**
+ * Collapsible Section Component
+ * In Plain English: This wraps content in a drawer that opens and closes.
+ */
+const CollapsibleSection = ({ icon: Icon, title, desc, children, defaultOpen = false }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className={`border-2 transition-all duration-300 rounded-[3rem] overflow-hidden ${isOpen ? 'border-slate-200 bg-white shadow-sm' : 'border-transparent hover:bg-slate-50'}`}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-6 text-left group"
+      >
+        <div className="flex items-start gap-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all ${isOpen ? 'bg-blue-500 text-white shadow-blue-200' : 'bg-slate-900 text-white shadow-slate-200'}`}>
+            <Icon size={24} strokeWidth={2.5} />
+          </div>
+          <div>
+            <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 leading-tight">{title}</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{desc}</p>
+          </div>
+        </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          className={`p-2 rounded-full transition-colors ${isOpen ? 'bg-blue-50 text-blue-500' : 'bg-slate-100 text-slate-400'}`}
+        >
+          <ChevronDown size={20} strokeWidth={3} />
+        </motion.div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          >
+            <div className="px-8 pb-10 space-y-8 border-t border-slate-50 pt-8">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const StaticInfoCard = ({ label, value, subValue }) => (
+  <div className="p-6 bg-slate-100/50 rounded-[2rem] border-2 border-slate-100 flex flex-col justify-between">
+    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">{label}</span>
+    <div>
+      <div className="text-2xl font-black italic uppercase text-slate-800 leading-none">{value}</div>
+      {subValue && <div className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{subValue}</div>}
+    </div>
+  </div>
+);
+
+const ToggleField = ({ title, desc, checked, onChange, children }) => (
+  <div className={`p-6 rounded-[2.5rem] border-2 transition-all ${checked ? 'bg-white border-blue-500 shadow-xl shadow-blue-50' : 'bg-slate-50 border-slate-100'}`}>
+    <div className="flex justify-between items-start gap-6">
+      <div className="flex-1">
+        <h4 className="font-black uppercase italic text-sm tracking-tight text-slate-800">{title}</h4>
+        <p className="text-[11px] font-medium text-slate-400 leading-relaxed mt-1">{desc}</p>
+      </div>
+      <button 
+        onClick={() => onChange(!checked)}
+        className={`w-14 h-8 rounded-full relative flex-shrink-0 transition-colors ${checked ? 'bg-emerald-500' : 'bg-slate-200'}`}
+      >
+        <motion.div animate={{ x: checked ? 26 : 4 }} className="w-6 h-6 bg-white rounded-full absolute top-1 shadow-sm" />
+      </button>
+    </div>
+    {checked && children && (
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 pt-8 border-t border-slate-100 space-y-6">
+        {children}
+      </motion.div>
+    )}
+  </div>
+);
+
+const CustomSlider = ({ label, value, min, max, step = 1, unit = "", onChange }) => {
+  const percentage = ((value - min) / (max - min)) * 100;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+        <span className="px-3 py-1 bg-slate-900 text-white text-[10px] font-black rounded-lg min-w-[3rem] text-center">
+          {value}{unit}
+        </span>
+      </div>
+      
+      <div className="relative h-6 flex items-center group">
+        <div className="absolute w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+          <motion.div 
+            initial={false}
+            animate={{ width: `${percentage}%` }}
+            className="h-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.4)]"
+          />
+        </div>
+        
+        <input 
+          type="range" 
+          min={min} 
+          max={max} 
+          step={step}
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value))}
+          className="absolute w-full h-6 appearance-none bg-transparent cursor-pointer z-10 slider-thumb-only"
+        />
+      </div>
+    </div>
+  );
+};
+
+// --- TAB CONTENT ---
+
+const ChannelsLayoutTab = () => {
+  const [activeSettings, setActiveSettings] = useState({
+    adaptive: true,
+    hoverOnly: false,
+    autoFade: true,
+    autoFadeTimeout: 5,
+    idle: true,
+    idleInterval: 8,
+    kenBurns: true,
+    kenBurnsHoverScale: 1.1,
+    kenBurnsAutoplayScale: 1.15,
+    kenBurnsHoverDuration: 8000,
+    kenBurnsAutoplayDuration: 12000,
+    kenBurnsCrossfade: 1000
+  });
+
+  const updateSetting = (key, val) => setActiveSettings(prev => ({ ...prev, [key]: val }));
+
+  return (
+    <div className="space-y-6 pb-20">
+      {/* SECTION 1: Layout & Spaces */}
+      <CollapsibleSection icon={LayoutGrid} title="Layout & Spaces" desc="Grid structure and space context" defaultOpen={true}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2 p-8 bg-slate-900 rounded-[3rem] text-white flex justify-between items-center overflow-hidden relative">
+            <div className="relative z-10">
+              <span className="px-3 py-1 bg-blue-500 text-[9px] font-black uppercase tracking-widest rounded-full">Standard Preset</span>
+              <h4 className="text-4xl font-black italic uppercase tracking-tighter mt-2">4 × 3 × 3</h4>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-1">36 Total Slots (Immutable Design)</p>
+            </div>
+            <div className="opacity-10 absolute -right-4 -bottom-4 rotate-12"><LayoutGrid size={160} /></div>
+          </div>
+          <StaticInfoCard label="Editing Space" value="Home" subValue="Context: Gamehub" />
+          <StaticInfoCard label="Current Page" value="Page 01" subValue="Of 3 Total Pages" />
+          
+          <div className="md:col-span-2 p-6 bg-blue-50/50 border-2 border-blue-100 rounded-[2.5rem] flex items-start gap-4">
+            <Info size={20} className="text-blue-500 mt-1 flex-shrink-0" />
+            <p className="text-[11px] font-bold text-blue-600/70 uppercase tracking-wide leading-relaxed">
+              This tab controls the Wii board and global defaults. Styling for glass, Spotify, and reorder motion lives in <span className="text-blue-600 underline cursor-pointer font-black italic">Navigation</span> and <span className="text-blue-600 underline cursor-pointer font-black italic">Motion</span>.
+            </p>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* SECTION 2: Visibility & Playback */}
+      <CollapsibleSection icon={Monitor} title="Visibility & Playback" desc="Dynamic slot behavior">
+        <div className="space-y-4">
+          <ToggleField 
+            title="Adaptive Empty Slots" 
+            desc="Empty slots blend with your wallpaper. Uses your current Ribbon Accent color."
+            checked={activeSettings.adaptive}
+            onChange={(v) => updateSetting('adaptive', v)}
+          >
+            <div className="space-y-2">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Live Adaptive Preview</span>
+              <div className="h-16 w-full rounded-3xl bg-gradient-to-r from-blue-400/20 to-indigo-500/20 border-2 border-white shadow-inner flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-white/40 border-2 border-white shadow-xl" />
+                <div className="w-10 h-10 rounded-xl bg-white/40 border-2 border-white shadow-xl -ml-2 rotate-6" />
+              </div>
+            </div>
+          </ToggleField>
+
+          <ToggleField title="Hover-Only Animations" desc="GIFs and Videos only play when the cursor is active over the tile." checked={activeSettings.hoverOnly} onChange={(v) => updateSetting('hoverOnly', v)} />
+
+          <ToggleField 
+            title="Channel Auto-Fade" 
+            desc="Lowers grid opacity when pointer exits. Setting to 0 disables this feature."
+            checked={activeSettings.autoFade}
+            onChange={(v) => updateSetting('autoFade', v)}
+          >
+            <CustomSlider 
+              label="Delay Before Fade" 
+              value={activeSettings.autoFadeTimeout} 
+              min={1} 
+              max={30} 
+              unit="s" 
+              onChange={(v) => updateSetting('autoFadeTimeout', v)}
+            />
+          </ToggleField>
+        </div>
+      </CollapsibleSection>
+
+      {/* SECTION 3: Idle States */}
+      <CollapsibleSection icon={Activity} title="Idle States" desc="Behavior during inactivity">
+        <ToggleField 
+          title="Subtle Idle Motion" 
+          desc="Tiles play heartbeat or breathing animations when the system is idle."
+          checked={activeSettings.idle}
+          onChange={(v) => updateSetting('idle', v)}
+        >
+          <div className="space-y-8">
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-4">Active Motion Styles</span>
+              <div className="flex flex-wrap gap-2">
+                {IDLE_TYPES.map(type => (
+                  <button key={type} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-widest border-b-4 transition-all ${['Pulse', 'Glow'].includes(type) ? 'bg-slate-900 text-white border-black translate-y-[-1px]' : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200 hover:text-slate-600'}`}>
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <CustomSlider 
+              label="Animation Interval" 
+              value={activeSettings.idleInterval} 
+              min={2} 
+              max={20} 
+              unit="s" 
+              onChange={(v) => updateSetting('idleInterval', v)}
+            />
+          </div>
+        </ToggleField>
+      </CollapsibleSection>
+
+      {/* SECTION 4: Ken Burns */}
+      <CollapsibleSection icon={Aperture} title="Ken Burns Effect" desc="Cinematic Pan & Zoom Engine">
+        <ToggleField 
+          title="Enable Cinematic Motion" 
+          desc="Apply smooth camera movements to static channel artwork."
+          checked={activeSettings.kenBurns}
+          onChange={(v) => updateSetting('kenBurns', v)}
+        >
+          <div className="space-y-10">
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-4">Trigger Mode</span>
+              <div className="grid grid-cols-3 gap-2">
+                {KEN_BURNS_MODES.map(mode => (
+                  <button key={mode} className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border-b-4 transition-all ${mode === 'Hover' ? 'bg-blue-500 text-white border-blue-700 translate-y-[-1px]' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <CustomSlider label="Hover Scale" value={activeSettings.kenBurnsHoverScale} min={1.0} max={1.5} step={0.05} onChange={(v) => updateSetting('kenBurnsHoverScale', v)} />
+              <CustomSlider label="Autoplay Scale" value={activeSettings.kenBurnsAutoplayScale} min={1.0} max={1.5} step={0.05} onChange={(v) => updateSetting('kenBurnsAutoplayScale', v)} />
+              <CustomSlider label="Hover Duration" value={activeSettings.kenBurnsHoverDuration} min={2000} max={15000} step={500} unit="ms" onChange={(v) => updateSetting('kenBurnsHoverDuration', v)} />
+              <CustomSlider label="Autoplay Duration" value={activeSettings.kenBurnsAutoplayDuration} min={5000} max={20000} step={500} unit="ms" onChange={(v) => updateSetting('kenBurnsAutoplayDuration', v)} />
+              <CustomSlider label="Crossfade Speed" value={activeSettings.kenBurnsCrossfade} min={500} max={3000} step={100} unit="ms" onChange={(v) => updateSetting('kenBurnsCrossfade', v)} />
+              <div className="space-y-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Motion Easing</span>
+                <div className="flex gap-2">
+                  <button className="flex-1 py-3 bg-slate-900 text-white text-[10px] font-black uppercase italic rounded-xl border-b-4 border-black">Ease Out</button>
+                  <button className="flex-1 py-3 bg-slate-100 text-slate-400 text-[10px] font-black uppercase italic rounded-xl border-b-4 border-slate-200">Linear</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ToggleField>
+      </CollapsibleSection>
+    </div>
+  );
+};
+
+// --- MAIN MODAL COMPONENT ---
+
+const SettingsModal = ({ isOpen, onClose }) => {
+  const [activeTab, setActiveTab] = useState('channels');
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-slate-900/40 backdrop-blur-md" />
+          
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="relative w-full max-w-6xl h-[85vh] bg-white rounded-[4rem] shadow-2xl flex overflow-hidden border-8 border-white"
+          >
+            {/* Sidebar Rail */}
+            <div className="w-80 bg-slate-50 border-r-2 border-slate-100 flex flex-col p-8">
+              <div className="mb-12">
+                <div className="flex items-center gap-3 mb-2 px-4">
+                  <Settings className="text-blue-500" size={24} />
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">System</h2>
+                </div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4">Control Engine v2.0</p>
+              </div>
+
+              <nav className="flex-1 space-y-2">
+                {TABS.map(tab => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full p-4 rounded-3xl flex items-center gap-4 transition-all group ${activeTab === tab.id ? 'bg-white shadow-xl shadow-slate-200 translate-x-2' : 'hover:bg-slate-200/50'}`}
+                  >
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${activeTab === tab.id ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-400 group-hover:bg-slate-300'}`}>
+                      <tab.icon size={20} />
+                    </div>
+                    <div className="text-left">
+                      <p className={`text-[11px] font-black uppercase italic tracking-tight ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400'}`}>{tab.label}</p>
+                      {activeTab === tab.id && tab.desc && <p className="text-[9px] font-bold text-blue-400 uppercase leading-none mt-0.5">{tab.desc}</p>}
+                    </div>
+                  </button>
+                ))}
+              </nav>
+
+              <div className="mt-auto p-4 bg-white/50 rounded-3xl border-2 border-slate-100 flex items-center gap-3">
+                <Info size={16} className="text-slate-300" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Settings sync automatically</span>
+              </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-10 flex justify-end">
+                <button onClick={onClose} className="p-4 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-400 transition-all active:scale-90"><X size={24} /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-16 custom-scrollbar">
+                {activeTab === 'channels' && <ChannelsLayoutTab />}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const App = () => {
+  const [modalOpen, setModalOpen] = useState(true);
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center font-sans overflow-hidden">
+      <div className="text-center p-20">
+        <div className="w-40 h-40 bg-white rounded-[3rem] shadow-2xl mx-auto mb-10 flex items-center justify-center border-4 border-white">
+          <Settings size={64} className="text-blue-500 animate-spin-slow" />
+        </div>
+        <h1 className="text-7xl font-black italic uppercase tracking-tighter text-slate-900 mb-6 leading-none">Wii Engine</h1>
+        <button 
+          onClick={() => setModalOpen(true)}
+          className="px-12 py-6 bg-slate-900 text-white rounded-full font-black uppercase italic tracking-widest text-xs border-b-4 border-black hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-slate-300"
+        >
+          Open Configuration
+        </button>
+      </div>
+
+      <SettingsModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+
+      <style>{`
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 12s linear infinite; }
+        .custom-scrollbar::-webkit-scrollbar { width: 12px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 20px; border: 4px solid #FFFFFF; }
+
+        /* Slider Styling */
+        .slider-thumb-only::-webkit-slider-thumb {
+          appearance: none;
+          width: 28px;
+          height: 28px;
+          background: #ffffff;
+          border: 4px solid #3b82f6;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+          transition: transform 0.1s ease;
+        }
+        .slider-thumb-only:active::-webkit-slider-thumb {
+          transform: scale(1.1);
+          background: #3b82f6;
+          border-color: #ffffff;
+        }
+        .slider-thumb-only::-moz-range-thumb {
+          width: 28px;
+          height: 28px;
+          background: #ffffff;
+          border: 4px solid #3b82f6;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;

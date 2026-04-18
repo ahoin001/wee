@@ -1,11 +1,15 @@
 import React from 'react';
-import Card from '../../../ui/Card';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
 import WToggle from '../../../ui/WToggle';
 import Slider from '../../../ui/Slider';
 import WSelect from '../../../ui/WSelect';
 import { saveSpotifyGradientToWallpapers } from '../../../utils/presets/spotifyLookRegistry';
+
+const PANEL =
+  'rounded-2xl border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.65)] p-4';
+const PANEL_ACCENT =
+  'rounded-2xl border border-[hsl(var(--state-success)/0.28)] bg-[hsl(var(--state-success-light)/0.35)] p-4';
 
 function handleSaveGradientClick() {
   saveSpotifyGradientToWallpapers().catch((err) => {
@@ -29,98 +33,95 @@ const PresetsSpotifyMatchSection = React.memo(
     if (!show) return null;
 
     return (
-      <Card
-        variant="wii-emphasis"
-        color="green"
-        icon="🎵"
-        title="Spotify Match"
-        subtitle="Dynamic Color Matching"
-        className="mb-[18px]"
-        noHover
-      >
-        <div className="bg-white/70 rounded-xl p-4 mb-4">
-          <div className="mb-3">
-            <Text size="sm" color="hsl(var(--text-primary))" className="mb-2 leading-[1.4]">
-              When enabled, your ribbon colors, glow effects, and time display adapt to the current track&apos;s album art
-              colors (stored in Settings → consolidated state, not polled from disk).
-            </Text>
-            <Text size="sm" color="hsl(var(--state-success))" className="italic font-medium mb-3">
-              Cohesive visuals that respond to your music.
-            </Text>
-            <WToggle checked={spotifyMatchEnabled} onChange={onSpotifyMatchToggle} label="Enable Spotify Match" />
-          </div>
+      <div className="space-y-4">
+        <div className={PANEL}>
+          <Text variant="caption" className="!mb-3 !mt-0 block leading-relaxed text-[hsl(var(--text-secondary))]">
+            When enabled, ribbon colors, glow, and time display follow the current track&apos;s album art colors (stored
+            in consolidated settings).
+          </Text>
+          <Text variant="caption" className="!mb-3 block font-semibold italic text-[hsl(var(--state-success))]">
+            Cohesive visuals that respond to your music.
+          </Text>
+          <WToggle checked={spotifyMatchEnabled} onChange={onSpotifyMatchToggle} label="Enable Spotify Match" />
         </div>
 
-        <div className="bg-white/60 rounded-xl p-4 border-2 border-[hsl(var(--state-success))/0.2]">
-          <div className="mb-3">
-            <div className="surface-row mb-1">
-              <span className="text-[18px]">🌟</span>
-              <Text size="lg" color="hsl(var(--text-primary))" className="font-semibold">
-                Immersive Experience
-              </Text>
-            </div>
-            <Text size="sm" color="hsl(var(--text-secondary))" className="leading-[1.4] mb-3">
-              Transform your desktop with dynamic colors from the current track
+        <div className={PANEL_ACCENT}>
+          <div className="surface-row mb-2">
+            <span className="text-[18px]" aria-hidden>
+              🌟
+            </span>
+            <Text variant="body" className="font-semibold text-[hsl(var(--text-primary))]">
+              Immersive experience
             </Text>
-            <WToggle checked={immersiveModeState.enabled || false} onChange={onImmersiveModeToggle} label="Enable Immersive Experience" />
           </div>
+          <Text variant="caption" className="!mb-3 !mt-0 block text-[hsl(var(--text-tertiary))]">
+            Transform the desktop with colors from the current track.
+          </Text>
+          <WToggle
+            checked={immersiveModeState.enabled || false}
+            onChange={onImmersiveModeToggle}
+            label="Enable immersive experience"
+          />
 
-          {immersiveModeState.enabled && (
-            <div className="mt-4 p-4 bg-white/80 rounded-lg border border-[hsl(var(--state-success))/0.3]">
-              <div className="mb-4">
+          {immersiveModeState.enabled ? (
+            <div className="mt-4 space-y-4 border-t border-[hsl(var(--border-primary)/0.3)] pt-4">
+              <div>
                 <WToggle
                   checked={immersiveModeState.liveGradientWallpaper || false}
                   onChange={onLiveGradientWallpaperToggle}
-                  label="Live Gradient Wallpaper"
+                  label="Live gradient wallpaper"
                 />
-                <Text size="sm" color="hsl(var(--text-secondary))" className="ml-7 mt-1 leading-[1.4]">
-                  Replace your wallpaper with a live gradient that matches the current track&apos;s colors
+                <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
+                  Replace wallpaper with a live gradient matched to the track.
                 </Text>
               </div>
 
-              <div className="mb-4 p-3 bg-[hsl(var(--state-success))/0.1] rounded-lg border border-[hsl(var(--state-success))/0.2]">
-                <div className="surface-row mb-2">
-                  <span className="text-[16px]">💾</span>
-                  <Text size="sm" color="hsl(var(--text-primary))" className="font-semibold">
-                    Save Current Look
+              <div className={`${PANEL} space-y-3`}>
+                <div className="surface-row mb-1">
+                  <span className="text-[16px]" aria-hidden>
+                    💾
+                  </span>
+                  <Text variant="body" className="font-semibold text-[hsl(var(--text-primary))]">
+                    Save current look
                   </Text>
                 </div>
-                <div className="flex flex-wrap gap-2 mb-1.5">
+                <div className="flex flex-wrap gap-2">
                   <Button variant="primary" size="sm" onClick={handleSaveGradientClick}>
-                    Save to Wallpaper Library
+                    Save to wallpaper library
                   </Button>
                   <Button variant="secondary" size="sm" onClick={onSaveLookAsPreset}>
-                    Save as Named Preset
+                    Save as named preset
                   </Button>
                 </div>
-                <Text size="xs" color="hsl(var(--text-secondary))" className="leading-[1.3]">
-                  Wallpaper library saves the gradient image. Named preset freezes the current look (including Spotify colors)
-                  so you can reload it without playing music.
+                <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                  Library stores the gradient image. Named preset freezes the look so you can reload it without playback.
                 </Text>
               </div>
 
-              {immersiveModeState.liveGradientWallpaper && (
-                <div className="mb-4 p-4 bg-[hsl(var(--state-success))/0.05] rounded-lg border border-[hsl(var(--state-success))/0.15]">
-                  <div className="surface-row mb-3">
-                    <span className="text-[16px]">🎨</span>
-                    <Text size="sm" color="hsl(var(--text-primary))" className="font-semibold">
-                      Gradient Settings
+              {immersiveModeState.liveGradientWallpaper ? (
+                <div className={`${PANEL} space-y-3`}>
+                  <div className="surface-row mb-1">
+                    <span className="text-[16px]" aria-hidden>
+                      🎨
+                    </span>
+                    <Text variant="body" className="font-semibold text-[hsl(var(--text-primary))]">
+                      Gradient settings
                     </Text>
                   </div>
 
-                  <div className="mb-3">
+                  <div>
                     <WToggle
                       checked={immersiveModeState.overlayMode || false}
                       onChange={(value) => onImmersiveModeSettingChange('overlayMode', value)}
-                      label="Overlay on Existing Wallpaper"
+                      label="Overlay on existing wallpaper"
                     />
-                    <Text size="xs" color="hsl(var(--text-secondary))" className="ml-7 mt-1 leading-[1.3]">
-                      When enabled, gradient overlays your current wallpaper instead of replacing it
+                    <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
+                      Gradient overlays your current wallpaper instead of replacing it.
                     </Text>
                   </div>
 
-                  <div className="mb-3">
-                    <Text size="sm" color="hsl(var(--text-primary))" className="mb-1.5 font-medium">
+                  <div>
+                    <Text variant="body" className="mb-2 font-medium text-[hsl(var(--text-primary))]">
                       Intensity: {Math.round((immersiveModeState.intensity || 0.7) * 100)}%
                     </Text>
                     <Slider
@@ -132,24 +133,24 @@ const PresetsSpotifyMatchSection = React.memo(
                     />
                   </div>
 
-                  <div className="mb-3">
-                    <Text size="sm" color="hsl(var(--text-primary))" className="mb-1.5 font-medium">
-                      Gradient Style
+                  <div>
+                    <Text variant="body" className="mb-2 font-medium text-[hsl(var(--text-primary))]">
+                      Gradient style
                     </Text>
                     <WSelect
                       value={immersiveModeState.style || 'radial'}
                       onChange={(value) => onImmersiveModeSettingChange('style', value)}
                       options={[
-                        { value: 'radial', label: '⭕ Radial (Circular)' },
-                        { value: 'linear', label: '📐 Linear (Diagonal)' },
-                        { value: 'waves', label: '🌊 Waves (Flowing)' },
+                        { value: 'radial', label: 'Radial (circular)' },
+                        { value: 'linear', label: 'Linear (diagonal)' },
+                        { value: 'waves', label: 'Waves (flowing)' },
                       ]}
                     />
                   </div>
 
-                  <div className="mb-3">
-                    <Text size="sm" color="hsl(var(--text-primary))" className="mb-1.5 font-medium">
-                      Animation Level: {['Static', 'Subtle', 'Dynamic', 'Intense'][immersiveModeState.animationLevel || 2]}
+                  <div>
+                    <Text variant="body" className="mb-2 font-medium text-[hsl(var(--text-primary))]">
+                      Animation: {['Static', 'Subtle', 'Dynamic', 'Intense'][immersiveModeState.animationLevel || 2]}
                     </Text>
                     <Slider
                       value={immersiveModeState.animationLevel || 2}
@@ -160,38 +161,44 @@ const PresetsSpotifyMatchSection = React.memo(
                     />
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              <div className="p-3 bg-[hsl(var(--state-success))/0.08] rounded-lg border border-[hsl(var(--state-success))/0.2]">
-                <div className="surface-row mb-3">
-                  <span className="text-[14px]">✨</span>
-                  <Text size="sm" color="hsl(var(--text-primary))" className="font-semibold">
-                    Additional Effects
+              <div className={`${PANEL} space-y-3`}>
+                <div className="surface-row mb-1">
+                  <span className="text-[14px]" aria-hidden>
+                    ✨
+                  </span>
+                  <Text variant="body" className="font-semibold text-[hsl(var(--text-primary))]">
+                    Additional effects
                   </Text>
                 </div>
 
-                <div className="mb-3">
+                <div>
                   <WToggle
                     checked={immersiveModeState.ambientLighting || false}
                     onChange={onAmbientLightingToggle}
-                    label="Ambient Lighting"
+                    label="Ambient lighting"
                   />
-                  <Text size="xs" color="hsl(var(--text-secondary))" className="ml-7 mt-1 leading-[1.3]">
-                    Subtle color tinting and floating particles in the interface
+                  <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
+                    Subtle tinting and particles in the interface.
                   </Text>
                 </div>
 
-                <div className="mb-3">
-                  <WToggle checked={immersiveModeState.pulseEffects || false} onChange={onPulseEffectsToggle} label="Pulse Effects" />
-                  <Text size="xs" color="hsl(var(--text-secondary))" className="ml-7 mt-1 leading-[1.3]">
-                    Pulses synchronized with playback
+                <div>
+                  <WToggle
+                    checked={immersiveModeState.pulseEffects || false}
+                    onChange={onPulseEffectsToggle}
+                    label="Pulse effects"
+                  />
+                  <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
+                    Pulses synchronized with playback.
                   </Text>
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
-      </Card>
+      </div>
     );
   }
 );

@@ -3,7 +3,19 @@ import PropTypes from 'prop-types';
 import { Switch } from '@headlessui/react';
 import { useMotionFeedback } from '../hooks/useMotionFeedback';
 
-const WToggle = React.memo(({ checked, onChange, label, disabled = false, disableLabelClick = false, style, containerClassName = '', ...props }) => {
+const WToggle = React.memo(
+  ({
+    checked,
+    onChange,
+    label,
+    disabled = false,
+    disableLabelClick = false,
+    style,
+    containerClassName = '',
+    disabledHint,
+    title,
+    ...props
+  }) => {
   const { iconTilt } = useMotionFeedback();
   const handleLabelClick = () => {
     if (!disabled && !disableLabelClick && onChange) {
@@ -11,8 +23,14 @@ const WToggle = React.memo(({ checked, onChange, label, disabled = false, disabl
     }
   };
 
+  const tooltip = disabled && disabledHint ? disabledHint : title;
+
   return (
-    <div className={`flex items-center gap-2.5 ${containerClassName}`.trim()} style={style}>
+    <div
+      className={`flex items-center gap-2.5 ${containerClassName}`.trim()}
+      style={style}
+      title={tooltip || undefined}
+    >
       <Switch
         checked={checked}
         onChange={onChange}
@@ -58,7 +76,8 @@ const WToggle = React.memo(({ checked, onChange, label, disabled = false, disabl
       )}
     </div>
   );
-});
+  },
+);
 
 WToggle.displayName = 'WToggle';
 
@@ -70,6 +89,8 @@ WToggle.propTypes = {
   disableLabelClick: PropTypes.bool,
   style: PropTypes.object,
   containerClassName: PropTypes.string,
+  disabledHint: PropTypes.string,
+  title: PropTypes.string,
 };
 
 export default WToggle; 

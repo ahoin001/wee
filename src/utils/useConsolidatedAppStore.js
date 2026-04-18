@@ -579,6 +579,8 @@ useConsolidatedAppStore = create(
             showDetails: false,
             launchingGameId: null,
             showHubBackdrop: false,
+            /** When true, Game Hub lists/collections show Steam titles only (Epic still launchable elsewhere). */
+            hubSteamOnlyGames: true,
             effectsEnabled: true,
             activeCollectionId: null,
             favoriteGameIds: [],
@@ -1063,7 +1065,12 @@ useConsolidatedAppStore = create(
 
           setSpacesState: (updates) => set((state) => {
             const nextSpaces = { ...state.spaces, ...updates };
-            if (nextSpaces.activeSpaceId === 'home' || nextSpaces.activeSpaceId === 'workspaces') {
+            // Sync last Wii board when shell space changes — not when only `lastChannelSpaceId` is updated
+            // (e.g. Channels & layout tab previewing the other board while staying on Home).
+            if (
+              updates.activeSpaceId !== undefined &&
+              (nextSpaces.activeSpaceId === 'home' || nextSpaces.activeSpaceId === 'workspaces')
+            ) {
               nextSpaces.lastChannelSpaceId = nextSpaces.activeSpaceId;
             }
 
@@ -1506,6 +1513,7 @@ useConsolidatedAppStore = create(
                 showDetails: false,
                 launchingGameId: null,
                 showHubBackdrop: false,
+                hubSteamOnlyGames: true,
                 effectsEnabled: true,
                 activeCollectionId: null,
                 favoriteGameIds: [],

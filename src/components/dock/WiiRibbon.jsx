@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 // Lazy load modals
@@ -62,10 +62,21 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
   const [activeButtonIndex, setActiveButtonIndex] = useState(null);
   const [showPrimaryActionsModal, setShowPrimaryActionsModal] = useState(false);
   const [showPresetsButtonModal, setShowPresetsButtonModal] = useState(false);
+  /** Keep WeeModalShell mounted through close animation (see Channel.jsx + onExitAnimationComplete). */
+  const [primaryActionsModalMounted, setPrimaryActionsModalMounted] = useState(false);
+  const [presetsButtonModalMounted, setPresetsButtonModalMounted] = useState(false);
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [tintedImages, setTintedImages] = useState({});
   const [activeButton, setActiveButton] = useState(null);
+
+  useLayoutEffect(() => {
+    if (showPrimaryActionsModal) setPrimaryActionsModalMounted(true);
+  }, [showPrimaryActionsModal]);
+
+  useLayoutEffect(() => {
+    if (showPresetsButtonModal) setPresetsButtonModalMounted(true);
+  }, [showPresetsButtonModal]);
 
   // Mirror album-art colors into local paint state when Spotify Match is on
   useEffect(() => {
@@ -1079,7 +1090,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
       </Suspense>
 
 
-      {showPrimaryActionsModal && (
+      {primaryActionsModalMounted && (
         <Suspense fallback={<div>Loading Primary Actions Modal...</div>}>
           <LazyPrimaryActionsModal
             isOpen={showPrimaryActionsModal}
@@ -1089,10 +1100,11 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
             buttonIndex={activeButtonIndex}
             preavailableIcons={preavailableIcons}
             ribbonGlowColor={propRibbonGlowColor}
+            onExitAnimationComplete={() => setPrimaryActionsModalMounted(false)}
           />
         </Suspense>
       )}
-      {showPresetsButtonModal && (
+      {presetsButtonModalMounted && (
         <Suspense fallback={<div>Loading Presets Button Modal...</div>}>
           <LazyPrimaryActionsModal
             isOpen={showPresetsButtonModal}
@@ -1103,6 +1115,7 @@ const WiiRibbonComponent = ({ onSettingsClick, onPresetsClick, onSettingsChange,
             preavailableIcons={preavailableIcons}
             title="Customize Presets Button"
             ribbonGlowColor={propRibbonGlowColor}
+            onExitAnimationComplete={() => setPresetsButtonModalMounted(false)}
           />
         </Suspense>
       )}

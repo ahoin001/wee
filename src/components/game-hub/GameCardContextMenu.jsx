@@ -66,8 +66,19 @@ export default function GameCardContextMenu({ children, game, contextCollectionI
 
   return (
     <>
-      <ContextMenu.Root>
-        <ContextMenu.Trigger asChild>{children}</ContextMenu.Trigger>
+      {/* Native wrapper: Radix Slot + ref merge is most reliable on a DOM div; stopPropagation avoids nested shelf menu roots stealing the gesture. */}
+      <ContextMenu.Root modal={false}>
+        <ContextMenu.Trigger asChild>
+          <div
+            className="aura-hub-game-card__context-anchor"
+            tabIndex={-1}
+            onContextMenu={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {children}
+          </div>
+        </ContextMenu.Trigger>
         <ContextMenu.Portal>
           <ContextMenu.Content
             className="aura-hub-context-menu"

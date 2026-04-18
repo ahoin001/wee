@@ -1,5 +1,13 @@
+/* Shell size: stable height across tabs (short content still fills; long content scrolls). */
+.wee-modal-panel {
+  min-height: min(600px, 82vh);
+  max-height: 88vh;
+}
+
 /* Wee modal — scroll region uses design-system scrollbar tokens */
 .wee-modal-scroll {
+  /* Reserve gutter when scrollbar appears so tab content width doesn’t jump (disclosures open/close) */
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
 }

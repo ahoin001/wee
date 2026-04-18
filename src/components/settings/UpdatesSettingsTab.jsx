@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import SettingsWeeSection from './SettingsWeeSection';
+import { WeeModalFieldCard } from '../../ui/wee';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
+import './settings-wee-panels.css';
 
 const RELEASES_URL = 'https://github.com/ahoin001/wee/releases';
 
@@ -15,7 +17,6 @@ const UpdatesSettingsTab = () => {
   const [updateInfo, setUpdateInfo] = useState(null);
   const [error, setError] = useState('');
 
-  // Get current version on component mount
   useEffect(() => {
     const getCurrentVersion = async () => {
       try {
@@ -25,8 +26,8 @@ const UpdatesSettingsTab = () => {
         } else {
           setCurrentVersion('Unknown');
         }
-      } catch (error) {
-        console.error('[UpdatesSettingsTab] Error getting current version:', error);
+      } catch (err) {
+        console.error('[UpdatesSettingsTab] Error getting current version:', err);
         setCurrentVersion('Unknown');
       }
     };
@@ -34,15 +35,14 @@ const UpdatesSettingsTab = () => {
     getCurrentVersion();
   }, []);
 
-  // Check for updates
   const checkForUpdates = useCallback(async () => {
     setCheckingForUpdates(true);
     setError('');
-    
+
     try {
       if (window.api?.checkForUpdates) {
         const result = await window.api.checkForUpdates();
-        
+
         if (result.success) {
           const isAvailable = result.status === 'available';
           setLatestVersion(isAvailable ? result.version || 'Unknown' : currentVersion || 'Unknown');
@@ -54,25 +54,23 @@ const UpdatesSettingsTab = () => {
                   releaseDate: result.releaseDate || null,
                   status: result.status,
                 }
-              : null
+              : null,
           );
           setLastChecked(new Date());
         } else {
           setError(result.error || 'Failed to check for updates');
         }
       } else {
-        // Fallback: simulate update check
         setError('Update checking not available in this version');
       }
-    } catch (error) {
-      console.error('[UpdatesSettingsTab] Error checking for updates:', error);
+    } catch (err) {
+      console.error('[UpdatesSettingsTab] Error checking for updates:', err);
       setError('Failed to check for updates. Please try again.');
     } finally {
       setCheckingForUpdates(false);
     }
   }, [currentVersion]);
 
-  // Download update
   const downloadUpdate = useCallback(async () => {
     try {
       if (window.api?.downloadUpdate) {
@@ -83,16 +81,14 @@ const UpdatesSettingsTab = () => {
           setError(result.error || 'Failed to download update');
         }
       } else {
-        // Fallback: open GitHub releases page
         window.open(RELEASES_URL, '_blank');
       }
-    } catch (error) {
-      console.error('[UpdatesSettingsTab] Error downloading update:', error);
+    } catch (err) {
+      console.error('[UpdatesSettingsTab] Error downloading update:', err);
       setError('Failed to download update. Please try again.');
     }
   }, []);
 
-  // Install update
   const installUpdate = useCallback(async () => {
     try {
       if (window.api?.installUpdate) {
@@ -105,158 +101,117 @@ const UpdatesSettingsTab = () => {
       } else {
         setError('Automatic installation not available. Please download and install manually.');
       }
-    } catch (error) {
-      console.error('[UpdatesSettingsTab] Error installing update:', error);
+    } catch (err) {
+      console.error('[UpdatesSettingsTab] Error installing update:', err);
       setError('Failed to install update. Please try again.');
     }
   }, []);
 
-  // Open GitHub releases
   const openGitHubReleases = useCallback(() => {
     window.open(RELEASES_URL, '_blank');
   }, []);
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <SettingsWeeSection eyebrow="Version & updates">
-      <Card>
-        <div className="p-6">
-          <Text variant="h3" className="mb-6">Version & Updates</Text>
-          
-          {/* Current Version Section */}
-          <div className="mb-6">
-            <Text variant="h4" className="mb-3">Current Version</Text>
-            <div className="flex items-center gap-4">
-              <div className="bg-[hsl(var(--surface-tertiary))] px-4 py-2 rounded-lg">
-                <Text variant="body" className="font-mono text-lg">
-                  {currentVersion}
-                </Text>
-              </div>
-              <Text variant="body" className="text-[hsl(var(--text-secondary))]">
-                Installed version
-              </Text>
-            </div>
+    <div className="settings-wee-tab-root pb-12">
+      <SettingsTabPageHeader title="Updates" subtitle="Check for updates & version info" />
+
+      <SettingsWeeSection eyebrow="Version">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <Text variant="h3" className="mb-4 playful-hero-text">
+            This install
+          </Text>
+          <div className="mb-6 flex flex-wrap items-center gap-4">
+            <span className="settings-wee-version-pill">{currentVersion}</span>
+            <Text variant="body" className="!m-0 text-[hsl(var(--text-secondary))]">
+              Installed version
+            </Text>
           </div>
 
-          {/* Update Check Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="primary"
-                onClick={checkForUpdates}
-                disabled={checkingForUpdates}
-                className="min-w-[140px]"
-              >
-                {checkingForUpdates ? 'Checking...' : 'Check for Updates'}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <Button variant="primary" onClick={checkForUpdates} disabled={checkingForUpdates} className="min-w-[140px]">
+                {checkingForUpdates ? 'Checking…' : 'Check for updates'}
               </Button>
-              
-              {lastChecked && (
+              {lastChecked ? (
                 <Text variant="body" className="text-[hsl(var(--text-secondary))]">
                   Last checked: {lastChecked.toLocaleString()}
                 </Text>
-              )}
+              ) : null}
             </div>
 
-            {error && (
-              <div className="rounded-lg border border-[hsl(var(--state-danger)/0.35)] bg-[hsl(var(--state-danger)/0.08)] p-3">
-                <Text variant="body" className="text-[hsl(var(--state-danger))]">
+            {error ? (
+              <div className="settings-wee-msg settings-wee-msg--error !mb-0">
+                <Text variant="body" className="!m-0">
                   {error}
                 </Text>
               </div>
-            )}
+            ) : null}
 
-            {latestVersion && (
-              <div className="bg-[hsl(var(--surface-tertiary))] rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <Text variant="body" className="font-semibold">
-                    Latest Version Available
-                  </Text>
-                  <div className="bg-[hsl(var(--surface-secondary))] px-3 py-1 rounded">
-                    <Text variant="body" className="font-mono">
-                      {latestVersion}
-                    </Text>
-                  </div>
+            {latestVersion ? (
+              <div className="settings-wee-panel">
+                <div className="settings-wee-panel__head">
+                  <p className="settings-wee-panel__title">Latest from updater</p>
                 </div>
-                
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Text variant="body" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
+                    Reported version
+                  </Text>
+                  <span className="settings-wee-version-pill text-sm">{latestVersion}</span>
+                </div>
+
                 {updateAvailable ? (
-                  <div className="space-y-3">
+                  <div className="settings-wee-panel__body mt-2">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-[hsl(var(--state-success))]" />
-                      <Text variant="body" className="text-[hsl(var(--state-success))]">
-                        Update available!
+                      <span className="settings-wee-status-dot" aria-hidden />
+                      <Text variant="body" className="!m-0 text-[hsl(var(--state-success))]">
+                        Update available
                       </Text>
                     </div>
-                    
-                    {updateInfo && (
-                      <div className="bg-[hsl(var(--surface-secondary))] rounded p-3">
+                    {updateInfo ? (
+                      <div className="rounded-[1.25rem] border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-primary)/0.65)] p-3">
                         <Text variant="body" className="text-sm">
                           {updateInfo.releaseNotes || 'No release notes available'}
                         </Text>
                       </div>
-                    )}
-                    
-                    <div className="flex gap-3">
-                      <Button
-                        variant="primary"
-                        onClick={downloadUpdate}
-                        className="flex-1"
-                      >
-                        Download Update
+                    ) : null}
+                    <div className="flex flex-wrap gap-3">
+                      <Button variant="primary" onClick={downloadUpdate} className="min-w-0 flex-1">
+                        Download update
                       </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={installUpdate}
-                        className="flex-1"
-                      >
-                        Install Update
+                      <Button variant="secondary" onClick={installUpdate} className="min-w-0 flex-1">
+                        Install update
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-[hsl(var(--state-success))]" />
-                    <Text variant="body" className="text-[hsl(var(--state-success))]">
-                      You&apos;re running the latest version!
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="settings-wee-status-dot" aria-hidden />
+                    <Text variant="body" className="!m-0 text-[hsl(var(--state-success))]">
+                      You&apos;re up to date
                     </Text>
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
-        </div>
-      </Card>
+        </WeeModalFieldCard>
       </SettingsWeeSection>
 
-      <SettingsWeeSection eyebrow="More options">
-      <Card>
-        <div className="p-6">
-          <Text variant="h3" className="mb-6">Additional Options</Text>
-          
-          {/* Manual Download Section */}
-          <div className="mb-6">
-            <Text variant="h4" className="mb-3">Manual Download</Text>
-            <Text variant="body" className="mb-4 text-[hsl(var(--text-secondary))]">
-              If automatic updates aren't working, you can manually download the latest version from GitHub.
-            </Text>
-            
-            <Button
-              variant="secondary"
-              onClick={openGitHubReleases}
-              className="w-full"
-            >
-              Open GitHub Releases
-            </Button>
-          </div>
-
-          {/* Update Settings Section */}
-          <div>
-            <Text variant="h4" className="mb-3">Update Settings</Text>
-            <Text variant="body" className="text-[hsl(var(--text-secondary))]">
-              Automatic update checking and installation settings can be configured in the Advanced tab.
-            </Text>
-          </div>
-        </div>
-      </Card>
+      <SettingsWeeSection eyebrow="More">
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-5 md:p-6">
+          <Text variant="h3" className="mb-3 playful-hero-text">
+            Manual download
+          </Text>
+          <Text variant="body" className="mb-4 text-[hsl(var(--text-secondary))]">
+            If automatic updates are unavailable, grab the latest build from GitHub.
+          </Text>
+          <Button variant="secondary" onClick={openGitHubReleases} className="w-full">
+            Open GitHub releases
+          </Button>
+          <Text variant="caption" className="mt-4 text-[hsl(var(--text-tertiary))]">
+            Advanced update preferences live under the Advanced settings tab.
+          </Text>
+        </WeeModalFieldCard>
       </SettingsWeeSection>
     </div>
   );

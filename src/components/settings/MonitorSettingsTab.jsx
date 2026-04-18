@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import Button from '../../ui/WButton';
-import Text from '../../ui/Text';
 import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
 
 const MonitorSettingsTab = React.memo(({ setShowMonitorModal }) => {
   const handleOpenMonitorSettings = useCallback(() => {
@@ -9,15 +9,11 @@ const MonitorSettingsTab = React.memo(({ setShowMonitorModal }) => {
   }, [setShowMonitorModal]);
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-12">
+      <SettingsTabPageHeader title="Monitor" subtitle="Multi-monitor settings" />
+
       <WeeModalFieldCard>
-        <Text variant="h3" className="m-0">
-          Monitor settings
-        </Text>
-        <Text variant="body" className="mt-2 text-[hsl(var(--text-secondary))]">
-          Configure which monitor the launcher appears on and manage multi-monitor preferences.
-        </Text>
-        <div className="mt-6 flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <Button variant="secondary" onClick={handleOpenMonitorSettings} className="w-full sm:w-auto">
             Open monitor settings
           </Button>

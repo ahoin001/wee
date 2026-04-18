@@ -26,7 +26,6 @@
   --hub-hero-collapsed: clamp(88px, 11vh, 120px);
   --hub-hero-below-gap: clamp(1.35rem, 3vw, 2.5rem);
   --hub-dock-inset: 0px;
-  --hub-morph-sticky-top: 96px;
 
   position: relative;
   display: flex;
@@ -64,23 +63,25 @@
   }
 }
 
-/* Wide dock-morph layout: allow hub column to use more horizontal space than legacy cap. */
+/* Wide dock-morph layout: use more horizontal space when the window is wide (see fixed dock on the right). */
 .aura-hub-stage--dock-morph {
-  --hub-column-max: min(100%, min(94vw, 1560px));
+  --hub-column-max: min(100%, min(97vw, 1920px));
   /* Tighter gap under overlay hero (padding already reserves hero height). */
   --hub-hero-below-gap: clamp(0.45rem, 1vw, 0.75rem);
   --hub-dock-lane-gap: 40px;
+  /* Cap game grid columns (5) so width doesn’t thrash when the morph column squeezes during scroll */
+  --hub-game-grid-gap: clamp(1rem, 2.4vw, 1.45rem);
 }
 
 @media (max-width: 1600px) {
   .aura-hub-stage--dock-morph {
-    --hub-column-max: min(100%, min(92vw, 1380px));
+    --hub-column-max: min(100%, min(95vw, 1680px));
   }
 }
 
 @media (max-width: 1280px) {
   .aura-hub-stage--dock-morph {
-    --hub-column-max: min(100%, min(92vw, 1180px));
+    --hub-column-max: min(100%, min(94vw, 1420px));
   }
 }
 
@@ -106,7 +107,7 @@
   margin-inline: auto;
 }
 
-/* Library left, dock lane right; dock card top-aligned (upper-right of library block). */
+/* Library left, dock lane right; dock card top-aligned beside collections + library. */
 .aura-hub-morph-stack {
   display: flex;
   flex-direction: row;
@@ -117,18 +118,23 @@
   min-height: 0;
 }
 
+/*
+ * Compact hero: mirror `.space-rail` (App.css) — fixed to viewport, vertically centered, inset from edge.
+ * Left rail uses left:1rem + top:50% + translateY(-50%); dock uses the same on the right.
+ * Out of flex flow; library width still respects Framer gridMaxWidth so tiles don’t sit under the card.
+ */
 .aura-hub-dock-rail {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-self: flex-start;
-  position: sticky;
-  top: var(--hub-morph-sticky-top, 96px);
-  flex: 0 0 auto;
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  top: 50%;
+  transform: translateY(-50%);
   overflow: hidden;
-  z-index: 14;
+  z-index: 2100;
   pointer-events: none;
-  max-width: min(100%, calc(var(--hub-dock-lane-gap, 40px) + 420px));
+  max-width: min(calc(100vw - 2rem), calc(var(--hub-dock-lane-gap, 40px) + 420px));
 }
 
 .aura-hub-dock-rail .aura-hub-hero-sticky-wrap {
@@ -347,11 +353,41 @@
   color: hsl(var(--color-pure-white) / 0.55);
 }
 
-.aura-hub-mode-toggle {
+/* Top-right: backdrop + Steam-only filter (see .space-rail on the left for vertical pill). */
+.aura-hub-stage-toolbar {
   position: absolute;
   top: clamp(1rem, 2.5vw, 1.5rem);
   right: clamp(1rem, 2.5vw, 1.5rem);
   z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 0.85rem;
+  max-width: min(100%, calc(100vw - 2rem));
+}
+
+.aura-hub-steam-only {
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-elevated) / 0.88);
+  padding: 0.35rem 0.65rem 0.35rem 0.5rem;
+}
+
+.aura-hub-steam-only__toggle label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: hsl(var(--text-primary));
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aura-hub-mode-toggle {
+  position: static;
   border-radius: 999px;
   border: 1px solid hsl(var(--border-primary));
   background: hsl(var(--surface-elevated) / 0.88);
@@ -682,6 +718,62 @@
 .aura-hub-hero__dock-launch {
   width: 100%;
   margin-top: 0.25rem;
+}
+
+/* Compact morph dock: align title + stats with expanded hero (white type, same stat “glass” chips). */
+.aura-hub-hero-shell--morph .aura-hub-hero__dock-title {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
+  font-weight: 900;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--color-pure-white));
+  text-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.12),
+    0 3px 22px hsl(0 0% 0% / 0.72),
+    0 0 32px hsl(var(--wii-blue) / 0.2);
+}
+
+.aura-hub-hero-shell--morph .aura-hub-hero__dock-eyebrow {
+  margin: 0 0 0.35rem;
+  opacity: 1;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(0 0% 100% / 0.55);
+}
+
+.aura-hub-hero-shell--morph .aura-hub-hero__dock-stat {
+  padding: 0.35rem 0.55rem 0.4rem;
+  border-radius: 0.55rem;
+  border: 1px solid hsl(0 0% 100% / 0.14);
+  background: hsl(0 0% 0% / 0.22);
+  box-shadow: none;
+}
+
+.aura-hub-hero-shell--morph .aura-hub-hero__dock-stat-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(0 0% 100% / 0.55);
+}
+
+.aura-hub-hero-shell--morph .aura-hub-hero__dock-stat-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  color: hsl(0 0% 100% / 0.96);
+  text-shadow: 0 1px 8px hsl(0 0% 0% / 0.45);
+}
+
+.aura-hub-hero-shell--morph .aura-hub-hero__dock-empty {
+  color: hsl(0 0% 100% / 0.88);
+  text-shadow: 0 1px 10px hsl(0 0% 0% / 0.55);
 }
 
 .aura-hub-hero--morph .aura-hub-rail {
@@ -1039,22 +1131,20 @@
   filter: brightness(0.88);
 }
 
-.aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--1,
-.aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--2 {
+.aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__cards .aura-hub-stack__item:not(:last-child) {
   opacity: 0;
   transform: translate(0, 12px) scale(0.88);
   pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--1,
-  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--2 {
+  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__cards .aura-hub-stack__item:not(:last-child) {
     opacity: 0;
     transform: none;
   }
 }
 
-.aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--3 {
+.aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__cards .aura-hub-stack__item:last-child {
   border-color: hsl(var(--wii-blue));
   animation: aura-hub-stack-breathe 2.4s ease-in-out infinite;
 }
@@ -1073,7 +1163,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__item--3 {
+  .aura-hub-space--effects .aura-hub-stack--active .aura-hub-stack__cards .aura-hub-stack__item:last-child {
     animation: none;
     transform: none;
     border-color: hsl(var(--wii-blue));
@@ -1176,6 +1266,27 @@
   gap: clamp(1rem, 2.4vw, 1.45rem);
 }
 
+/* Large libraries: skip off-screen paint work while scrolling the hub */
+.aura-hub-grid--content-visibility .aura-game-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 320px 400px;
+}
+
+/* Dock-morph: max 5 columns — stable min track when morph column width changes */
+.aura-hub-stage--dock-morph .aura-hub-grid {
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(
+      min(
+        100%,
+        max(210px, calc((100% - 4 * var(--hub-game-grid-gap)) / 5))
+      ),
+      1fr
+    )
+  );
+  gap: var(--hub-game-grid-gap);
+}
+
 /* Portaled fly tiles — must match `.aura-game-card` on shelves (transparent + --aura-game-card-elev-shadow) */
 .aura-hub-flyer {
   position: fixed;
@@ -1193,6 +1304,15 @@
   backface-visibility: hidden;
   contain: layout style paint;
   isolation: isolate;
+}
+
+/* Wraps AuraGameCard / shelf tiles so Radix ContextMenu.Trigger uses a real DOM node (reliable in Electron). */
+.aura-hub-game-card__context-anchor {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  border-radius: 0.85rem;
+  outline: none;
 }
 
 .aura-game-card {
@@ -1239,6 +1359,7 @@
 }
 
 .aura-hub-space--effects .aura-hub-mode-toggle,
+.aura-hub-space--effects .aura-hub-steam-only,
 .aura-hub-space--effects .aura-hub-stack__item {
   transition: all 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -1305,6 +1426,16 @@
   border-color: hsl(var(--color-pure-white) / 0.2);
   color: hsl(var(--color-pure-white));
   backdrop-filter: blur(10px);
+}
+
+.aura-hub-space--floating .aura-hub-steam-only {
+  background: hsl(var(--color-pure-black) / 0.42);
+  border-color: hsl(var(--color-pure-white) / 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.aura-hub-space--floating .aura-hub-steam-only__toggle label {
+  color: hsl(var(--color-pure-white));
 }
 
 .aura-hub-space--floating .aura-hub-status {
@@ -1423,6 +1554,7 @@
   }
 
   .aura-hub-space--effects .aura-hub-mode-toggle,
+  .aura-hub-space--effects .aura-hub-steam-only,
   .aura-hub-space--effects .aura-game-card,
   .aura-hub-space--effects .aura-hub-stack__item,
   .aura-hub-space--effects .aura-hub-rail__launch {
@@ -1433,47 +1565,134 @@
   .aura-hub-space--effects.aura-hub-space--launching .aura-hub-stage {
     animation: none !important;
   }
+
+  .aura-hub-context-menu[data-state='open'],
+  .aura-hub-context-menu[data-state='closed'] {
+    animation: none !important;
+  }
+
+  .aura-hub-context-menu__item {
+    transition-duration: 90ms !important;
+    transition-timing-function: ease !important;
+  }
+
+  .aura-hub-context-menu__item[data-highlighted] {
+    transform: none !important;
+  }
+
+  .aura-hub-context-menu__subtrigger[data-highlighted]::after {
+    transform: none !important;
+  }
 }
 
-/* —— Context menu (Radix) —— */
+/* —— Context menu (Radix) — Space Rail / wee-pill gooey + springy feel —— */
+@keyframes aura-hub-context-menu-spring-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(0.45rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes aura-hub-context-menu-spring-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.88) translateY(0.45rem);
+  }
+}
+
 .aura-hub-context-menu {
+  --aura-hub-context-spring: cubic-bezier(0.34, 1.4, 0.52, 1);
+
   z-index: 12000;
-  min-width: 10rem;
+  min-width: 11rem;
   max-height: min(70vh, 22rem);
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 0.35rem 0;
-  border-radius: 0.5rem;
-  border: 1px solid hsl(var(--border-primary));
-  background: hsl(var(--surface-primary));
-  box-shadow: var(--shadow-lg);
+  padding: 0.45rem;
+  border-radius: 1.35rem;
+  border: 4px solid hsl(var(--wee-pill-border));
+  background: hsl(var(--wee-pill-glass));
+  box-shadow: var(--wee-pill-shadow), var(--playful-shadow-elevated);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-sizing: border-box;
+  transform-origin: var(--radix-context-menu-content-transform-origin, center);
+}
+
+.aura-hub-context-menu[data-state='open'] {
+  animation: aura-hub-context-menu-spring-in 0.42s var(--aura-hub-context-spring) both;
+}
+
+.aura-hub-context-menu[data-state='closed'] {
+  animation: aura-hub-context-menu-spring-out 0.22s var(--aura-hub-context-spring) both;
 }
 
 .aura-hub-context-menu--sub {
-  padding: 0.35rem 0;
+  padding: 0.45rem;
+  min-width: 9.5rem;
 }
 
 .aura-hub-context-menu__item {
   display: flex;
   align-items: center;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.875rem;
+  margin: 0.2rem 0;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   line-height: 1.25;
-  color: hsl(var(--text-primary));
+  color: hsl(var(--text-secondary));
   cursor: default;
   outline: none;
   user-select: none;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    transform 0.32s var(--aura-hub-context-spring),
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.32s var(--aura-hub-context-spring),
+    color 0.18s ease;
 }
 
 .aura-hub-context-menu__item[data-highlighted] {
-  background: hsl(var(--state-hover));
+  transform: scale(1.035) translateX(0.12rem);
+  color: hsl(var(--text-primary));
+  background: var(--playful-gooey-bg);
+  border-color: var(--playful-gooey-border);
+  box-shadow: var(--playful-shadow-active);
 }
 
 .aura-hub-context-menu__item--accent {
-  color: hsl(var(--accent-primary, 210 90% 55%));
+  color: hsl(var(--primary));
+}
+
+.aura-hub-context-menu__item--accent[data-highlighted] {
+  color: hsl(var(--primary));
 }
 
 .aura-hub-context-menu__item--danger {
   color: hsl(var(--state-error));
+}
+
+.aura-hub-context-menu__item--danger[data-highlighted] {
+  color: hsl(var(--state-error));
+  background: hsl(var(--state-error) / 0.12);
+  border-color: hsl(var(--state-error) / 0.45);
+  box-shadow: none;
 }
 
 .aura-hub-context-menu__subtrigger {
@@ -1483,10 +1702,16 @@
 .aura-hub-context-menu__subtrigger::after {
   content: '›';
   margin-left: 0.5rem;
-  opacity: 0.65;
+  font-weight: 900;
+  opacity: 0.7;
+  transition: transform 0.28s var(--aura-hub-context-spring);
 }
 
-/* —— Manage collections modal —— */
+.aura-hub-context-menu__subtrigger[data-highlighted]::after {
+  transform: translateX(0.2rem);
+}
+
+/* —— Game Hub modal shell (AuraHubModalFrame) —— */
 .aura-hub-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1495,7 +1720,11 @@
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+
+.aura-hub-modal-backdrop {
+  pointer-events: auto;
 }
 
 .aura-hub-modal {

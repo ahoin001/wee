@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { Bookmark, Library, Music, Users } from 'lucide-react';
 import { AuthModal } from '../modals';
 import { getCommunityPresetUpdates, uploadPreset } from '../../utils/supabase';
 import {
@@ -32,6 +33,8 @@ import PresetsSaveCurrentCard from './presets/PresetsSaveCurrentCard';
 import PresetsSpotifyMatchSection from './presets/PresetsSpotifyMatchSection';
 import PresetsSavedListCard from './presets/PresetsSavedListCard';
 import PresetsCommunityCard from './presets/PresetsCommunityCard';
+import { WeeModalFieldCard, WeeSectionEyebrow, WeeSettingsCollapsibleSection } from '../../ui/wee';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
 
 const MAX_CUSTOM_PRESETS = 5;
 
@@ -565,102 +568,144 @@ const PresetsSettingsTab = React.memo(() => {
     if (uploadMessage.text) setUploadMessage({ type: '', text: '' });
   };
 
+  const showSpotifySection = presets.some((p) => p.name === SPOTIFY_MATCH_PRESET_NAME);
+
   return (
-    <div className="surface-stack max-w-3xl space-y-8">
-      <PresetsSaveCurrentCard
-        newPresetName={newPresetName}
-        onNewPresetNameChange={(v) => {
-          setNewPresetName(v);
-          setError('');
-        }}
-        onSave={handleSave}
-        error={error}
-        captureNotice={captureNotice}
-        includeSounds={includeSounds}
-        onIncludeSoundsChange={setIncludeSounds}
-        onOpenWorkspaces={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'workspaces' })}
-        customPresetCount={customPresetCount}
-        maxCustomPresets={MAX_CUSTOM_PRESETS}
-      />
+    <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
+      <SettingsTabPageHeader title="Presets" subtitle="Preset themes & customization" />
 
-      <PresetsSpotifyMatchSection
-        show={presets.some((p) => p.name === SPOTIFY_MATCH_PRESET_NAME)}
-        spotifyMatchEnabled={spotifyMatchEnabled}
-        onSpotifyMatchToggle={handleSpotifyMatchToggle}
-        immersiveModeState={immersiveModeState}
-        onImmersiveModeToggle={handleImmersiveModeToggle}
-        onLiveGradientWallpaperToggle={handleLiveGradientWallpaperToggle}
-        onAmbientLightingToggle={handleAmbientLightingToggle}
-        onPulseEffectsToggle={handlePulseEffectsToggle}
-        onImmersiveModeSettingChange={handleImmersiveModeSettingChange}
-        onSaveLookAsPreset={handleSaveSpotifyLookAsPreset}
-      />
+      <WeeSettingsCollapsibleSection
+        icon={Bookmark}
+        title="Save current look"
+        description="Capture the active appearance as a named preset (theme-focused)."
+        defaultOpen
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <PresetsSaveCurrentCard
+            newPresetName={newPresetName}
+            onNewPresetNameChange={(v) => {
+              setNewPresetName(v);
+              setError('');
+            }}
+            onSave={handleSave}
+            error={error}
+            captureNotice={captureNotice}
+            includeSounds={includeSounds}
+            onIncludeSoundsChange={setIncludeSounds}
+            onOpenWorkspaces={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'workspaces' })}
+            customPresetCount={customPresetCount}
+            maxCustomPresets={MAX_CUSTOM_PRESETS}
+          />
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
 
-      <PresetsSavedListCard
-        presets={presets}
-        excludeName={SPOTIFY_MATCH_PRESET_NAME}
-        draggingPreset={draggingPreset}
-        dropTarget={dropTarget}
-        editingPreset={editingPreset}
-        editName={editName}
-        justUpdated={justUpdated}
-        communityUpdateMap={communityUpdateMap}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onDragEnd={handleDragEnd}
-        onApply={handleApplyPreset}
-        onUpdate={handleUpdate}
-        onStartEdit={handleStartEdit}
-        onDelete={handleDeletePreset}
-        onSaveEdit={handleSaveEdit}
-        onCancelEdit={handleCancelEdit}
-        onEditNameChange={(e) => setEditName(e.target.value)}
-        onKeyPress={handleKeyPress}
-        onApplyToActiveWorkspace={handleApplyPresetToActiveWorkspace}
-        hasActiveWorkspace={hasActiveWorkspace}
-      />
+      {showSpotifySection ? (
+        <WeeSettingsCollapsibleSection
+          icon={Music}
+          title="Spotify Match"
+          description="Album-driven colors, immersive mode, and gradient tools."
+          defaultOpen
+        >
+          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+            <PresetsSpotifyMatchSection
+              show={showSpotifySection}
+              spotifyMatchEnabled={spotifyMatchEnabled}
+              onSpotifyMatchToggle={handleSpotifyMatchToggle}
+              immersiveModeState={immersiveModeState}
+              onImmersiveModeToggle={handleImmersiveModeToggle}
+              onLiveGradientWallpaperToggle={handleLiveGradientWallpaperToggle}
+              onAmbientLightingToggle={handleAmbientLightingToggle}
+              onPulseEffectsToggle={handlePulseEffectsToggle}
+              onImmersiveModeSettingChange={handleImmersiveModeSettingChange}
+              onSaveLookAsPreset={handleSaveSpotifyLookAsPreset}
+            />
+          </WeeModalFieldCard>
+        </WeeSettingsCollapsibleSection>
+      ) : null}
 
-      <PresetsCommunityCard
-        showCommunitySection={showCommunitySection}
-        onToggleCommunitySection={() => setShowCommunitySection((s) => !s)}
-        presets={presets}
-        showUploadForm={showUploadForm}
-        uploadFormData={uploadFormData}
-        uploadMessage={uploadMessage}
-        uploading={uploading}
-        onOpenUploadForm={() => {
-          setUploadFormData({
-            name: '',
-            description: '',
-            creator_name: '',
-            tags: '',
-            custom_image: null,
-            custom_image_name: null,
-            selectedPreset: null,
-          });
-          setShowUploadForm(true);
-          setUploadMessage({ type: '', text: '' });
-        }}
-        onCloseUploadForm={() => {
-          setShowUploadForm(false);
-          setUploadFormData({
-            name: '',
-            description: '',
-            creator_name: '',
-            tags: '',
-            custom_image: null,
-            custom_image_name: null,
-            selectedPreset: null,
-          });
-          setUploadMessage({ type: '', text: '' });
-        }}
-        onUploadField={onUploadField}
-        onUpload={handleUpload}
-        onImportCommunityPreset={handleImportCommunityPreset}
-      />
+      <WeeSettingsCollapsibleSection
+        icon={Library}
+        title="Saved presets"
+        description="Drag the ⋮⋮ handle to reorder. Presets change look only — use Workspaces for layouts."
+        defaultOpen
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <PresetsSavedListCard
+            presets={presets}
+            excludeName={SPOTIFY_MATCH_PRESET_NAME}
+            draggingPreset={draggingPreset}
+            dropTarget={dropTarget}
+            editingPreset={editingPreset}
+            editName={editName}
+            justUpdated={justUpdated}
+            communityUpdateMap={communityUpdateMap}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onDragEnd={handleDragEnd}
+            onApply={handleApplyPreset}
+            onUpdate={handleUpdate}
+            onStartEdit={handleStartEdit}
+            onDelete={handleDeletePreset}
+            onSaveEdit={handleSaveEdit}
+            onCancelEdit={handleCancelEdit}
+            onEditNameChange={(e) => setEditName(e.target.value)}
+            onKeyPress={handleKeyPress}
+            onApplyToActiveWorkspace={handleApplyPresetToActiveWorkspace}
+            hasActiveWorkspace={hasActiveWorkspace}
+          />
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
+      <WeeSettingsCollapsibleSection
+        icon={Users}
+        title="Community"
+        description="Browse shared presets or upload your own."
+        defaultOpen={false}
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <PresetsCommunityCard
+            showCommunitySection={showCommunitySection}
+            onToggleCommunitySection={() => setShowCommunitySection((s) => !s)}
+            presets={presets}
+            showUploadForm={showUploadForm}
+            uploadFormData={uploadFormData}
+            uploadMessage={uploadMessage}
+            uploading={uploading}
+            onOpenUploadForm={() => {
+              setUploadFormData({
+                name: '',
+                description: '',
+                creator_name: '',
+                tags: '',
+                custom_image: null,
+                custom_image_name: null,
+                selectedPreset: null,
+              });
+              setShowUploadForm(true);
+              setUploadMessage({ type: '', text: '' });
+            }}
+            onCloseUploadForm={() => {
+              setShowUploadForm(false);
+              setUploadFormData({
+                name: '',
+                description: '',
+                creator_name: '',
+                tags: '',
+                custom_image: null,
+                custom_image_name: null,
+                selectedPreset: null,
+              });
+              setUploadMessage({ type: '', text: '' });
+            }}
+            onUploadField={onUploadField}
+            onUpload={handleUpload}
+            onImportCommunityPreset={handleImportCommunityPreset}
+          />
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
 
       <AuthModal />
     </div>

@@ -31,15 +31,6 @@ export function effectiveRecentSeconds(game, lastLaunchedAt) {
   return Math.max(steamSec, weeSec);
 }
 
-function sortInstalledByEffectiveRecent(installed, lastLaunchedAt) {
-  return [...installed]
-    .map((g) => ({ g, eff: effectiveRecentSeconds(g, lastLaunchedAt) }))
-    .filter(({ eff }) => eff > 0)
-    .sort((a, b) => b.eff - a.eff || b.g.playtimeRecent - a.g.playtimeRecent)
-    .map(({ g }) => g)
-    .slice(0, MAX_COLLECTION_GAMES);
-}
-
 /**
  * Union of installed scan rows + any app present in API enrichment (owned but not installed).
  */
@@ -152,12 +143,7 @@ function buildDynamicCollections(installed, normalizedSteam, clientLibrary, weeM
     })
     .slice(0, MAX_COLLECTION_GAMES);
 
-  const recentlyPlayed = sortInstalledByEffectiveRecent(installed, lastLaunchedAt);
-
   const items = [{ id: 'hub-most-played', label: 'Most played', games: mostPlayed }];
-  if (recentlyPlayed.length > 0) {
-    items.push({ id: 'hub-recently-played', label: 'Recently played', games: recentlyPlayed });
-  }
 
   const favoritesGames = installed
     .filter((g) => favIdSet.has(g.id))
@@ -309,15 +295,6 @@ export function buildHubData({ steamGames, epicGames, enrichmentMap, clientLibra
     .sort((a, b) => b.playtimeForever - a.playtimeForever)
     .slice(0, 10);
 
-  const recentlyPlayed = [...installed]
-    .sort(
-      (a, b) =>
-        effectiveRecentSeconds(b, lastLaunchedAt) - effectiveRecentSeconds(a, lastLaunchedAt) ||
-        b.playtimeRecent - a.playtimeRecent
-    )
-    .filter((g) => effectiveRecentSeconds(g, lastLaunchedAt) > 0)
-    .slice(0, 8);
-
   const railGames = installed
     .filter((g) => favIdSet.has(g.id))
     .sort(
@@ -332,7 +309,6 @@ export function buildHubData({ steamGames, epicGames, enrichmentMap, clientLibra
   return {
     installed,
     favoritesOnly,
-    recentlyPlayed,
     railGames,
     collections,
   };

@@ -63,8 +63,6 @@ export const HUB_MORPH = {
   scrollRangePx: 380,
   dockWidthPx: 400,
   dockGapPx: 40,
-  /** Sticky offset from top of scroll container (px). */
-  stickyTopPx: 96,
 };
 
 export const PLAYFUL_VARIANTS = {

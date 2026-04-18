@@ -1,9 +1,11 @@
 import React from 'react';
-import Card from '../../../ui/Card';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
 import { CommunityPresets } from '../../app-library';
 import { ACCEPT_GALLERY_STILLS, SUPPORTED_GALLERY_HINT } from '../../../utils/supportedUploadMedia';
+
+const UPLOAD_SHELL =
+  'mb-4 rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.55)] p-4 md:p-5';
 
 const PresetsCommunityCard = React.memo(
   ({
@@ -20,35 +22,35 @@ const PresetsCommunityCard = React.memo(
     onUpload,
     onImportCommunityPreset,
   }) => (
-    <Card className="mb-[18px]" title="Community Presets" separator desc="Browse and download presets shared by the community.">
-      <div className="mb-4">
-        <Button variant="secondary" onClick={onToggleCommunitySection} className="mr-3">
-          {showCommunitySection ? 'Hide Community' : 'Browse Community'}
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={onToggleCommunitySection}>
+          {showCommunitySection ? 'Hide community' : 'Browse community'}
         </Button>
-        {presets.length > 0 && (
+        {presets.length > 0 ? (
           <Button variant="primary" onClick={onOpenUploadForm}>
-            Share My Preset
+            Share my preset
           </Button>
-        )}
+        ) : null}
       </div>
 
-      {showUploadForm && (
-        <Card className="mb-4 p-4">
-          {uploadMessage.text && (
+      {showUploadForm ? (
+        <div className={UPLOAD_SHELL}>
+          {uploadMessage.text ? (
             <div
-              className={`p-3 rounded-[6px] mb-4 border ${
+              className={`mb-4 rounded-xl border p-3 text-sm font-medium ${
                 uploadMessage.type === 'success'
-                  ? 'bg-[hsl(var(--success-light))] text-[hsl(var(--success))] border-[hsl(var(--success))]'
-                  : 'bg-[hsl(var(--error-light))] text-[hsl(var(--error))] border-[hsl(var(--error))]'
+                  ? 'border-[hsl(var(--state-success))] bg-[hsl(var(--state-success-light))] text-[hsl(var(--state-success))]'
+                  : 'border-[hsl(var(--state-error))] bg-[hsl(var(--state-error-light))] text-[hsl(var(--state-error))]'
               }`}
             >
               {uploadMessage.text}
             </div>
-          )}
+          ) : null}
 
           <div className="mb-3">
             <Text variant="label" className="mb-2">
-              Select Preset to Share *
+              Select preset to share *
             </Text>
             <select
               value={uploadFormData.selectedPreset ? uploadFormData.selectedPreset.name : ''}
@@ -79,7 +81,20 @@ const PresetsCommunityCard = React.memo(
 
           <div className="mb-4">
             <Text variant="label" className="mb-2">
-              Your Name (Optional)
+              Tags (optional)
+            </Text>
+            <input
+              type="text"
+              value={uploadFormData.tags}
+              onChange={(e) => onUploadField('tags', e.target.value)}
+              placeholder="e.g. dark, minimal, blue"
+              className="surface-input"
+            />
+          </div>
+
+          <div className="mb-4">
+            <Text variant="label" className="mb-2">
+              Your name (optional)
             </Text>
             <input
               type="text"
@@ -92,11 +107,10 @@ const PresetsCommunityCard = React.memo(
 
           <div className="mb-4">
             <Text variant="label" className="mb-2">
-              Custom Image (Optional)
+              Custom image (optional)
             </Text>
-            <Text size="sm" color="hsl(var(--text-secondary))" className="mb-2">
-              Upload a custom image to represent your preset ({SUPPORTED_GALLERY_HINT.trim()}). If not provided, a
-              thumbnail will be auto-generated.
+            <Text variant="caption" className="!mb-2 !mt-0 block text-[hsl(var(--text-tertiary))]">
+              Upload a cover image ({SUPPORTED_GALLERY_HINT.trim()}). If omitted, a thumbnail is auto-generated.
             </Text>
             <div className="surface-actions">
               <input
@@ -115,49 +129,45 @@ const PresetsCommunityCard = React.memo(
                 onClick={() => document.getElementById('presets-custom-image-upload')?.click()}
                 className="flex-1"
               >
-                Choose Image
+                Choose image
               </Button>
-              {uploadFormData.custom_image && (
+              {uploadFormData.custom_image ? (
                 <Button variant="secondary" onClick={() => onUploadField('custom_image', null)}>
                   Remove
                 </Button>
-              )}
+              ) : null}
             </div>
-            {uploadFormData.custom_image && (
+            {uploadFormData.custom_image ? (
               <div className="mt-2 space-y-1">
                 {uploadFormData.custom_image_name ? (
-                  <Text variant="small" className="block">
+                  <Text variant="caption" className="block text-[hsl(var(--text-secondary))]">
                     {uploadFormData.custom_image_name}
                   </Text>
                 ) : null}
                 <img
                   src={uploadFormData.custom_image}
                   alt="Custom preview"
-                  className="w-full max-w-[200px] max-h-[120px] object-contain rounded border border-primary bg-[hsl(var(--surface-secondary))]"
+                  className="max-h-[120px] w-full max-w-[200px] rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] object-contain"
                 />
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="surface-actions justify-end">
             <Button variant="secondary" onClick={onCloseUploadForm} disabled={uploading}>
               Cancel
             </Button>
-            <Button
-              variant="primary"
-              onClick={onUpload}
-              disabled={uploading || !uploadFormData.selectedPreset}
-            >
-              {uploading ? 'Uploading...' : 'Share Preset'}
+            <Button variant="primary" onClick={onUpload} disabled={uploading || !uploadFormData.selectedPreset}>
+              {uploading ? 'Uploading...' : 'Share preset'}
             </Button>
           </div>
-        </Card>
-      )}
+        </div>
+      ) : null}
 
-      {showCommunitySection && (
+      {showCommunitySection ? (
         <CommunityPresets onImportPreset={onImportCommunityPreset} onClose={onToggleCommunitySection} />
-      )}
-    </Card>
+      ) : null}
+    </div>
   )
 );
 

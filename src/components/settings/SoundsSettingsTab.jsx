@@ -1,21 +1,35 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { GripVertical, Headphones, Heart, MousePointer2, Music, Trash2, Volume2 } from 'lucide-react';
 import useSoundManager from '../../utils/useSoundManager';
 import useSoundLibrary from '../../utils/useSoundLibrary';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import WToggle from '../../ui/WToggle';
-import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
 import { ResourceUsageIndicator } from '../widgets';
 import Slider from '../../ui/Slider';
 import '../audio/sound-management.css';
-import SettingsWeeSection from './SettingsWeeSection';
+import './surfaceStyles.css';
+import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
+
+const SOUND_CATEGORY_ICONS = {
+  backgroundMusic: Music,
+  channelClick: MousePointer2,
+  channelHover: Headphones,
+};
+
+const SOUND_CATEGORY_DESCRIPTIONS = {
+  backgroundMusic: 'Continuous background audio — playlist, loop, and library.',
+  channelClick: 'One-shot when you activate a channel tile.',
+  channelHover: 'Optional hover feedback — can add overhead with many tiles.',
+};
 
 /**
  * Sound Settings Tab - Complete sound management interface
  * Manages background music, channel click sounds, and channel hover sounds
  */
-const SoundsSettingsTab = React.memo(() => {
+const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   // Sound management hooks
   const {
     soundSettings,
@@ -53,12 +67,48 @@ const SoundsSettingsTab = React.memo(() => {
   const [uploading, setUploading] = useState({});
   const [testing, setTesting] = useState({});
   const [audioRefs, setAudioRefs] = useState({});
+  const audioRefsRef = React.useRef({});
+  React.useEffect(() => {
+    audioRefsRef.current = audioRefs;
+  }, [audioRefs]);
+
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
 
+  /** When `undefined`, treat as active (standalone / tests). */
+  const isSoundsTabActive = settingsActiveTabId == null || settingsActiveTabId === 'sounds';
+
+  const stopAllPreviewAudio = useCallback(() => {
+    Object.values(audioRefsRef.current).forEach((audio) => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    });
+    setAudioRefs({});
+    setTesting({});
+  }, []);
+
+  // Stop immediately when user selects another settings tab (exit animation keeps this view mounted briefly).
+  React.useEffect(() => {
+    const onLeaveTab = () => {
+      stopAllPreviewAudio();
+      stopAllSounds();
+    };
+    window.addEventListener('wee-settings-leave-sounds-tab', onLeaveTab);
+    return () => window.removeEventListener('wee-settings-leave-sounds-tab', onLeaveTab);
+  }, [stopAllPreviewAudio, stopAllSounds]);
+
+  // If this view ever stays mounted with a non-sounds active id, stop previews.
+  React.useEffect(() => {
+    if (isSoundsTabActive) return;
+    stopAllPreviewAudio();
+    stopAllSounds();
+  }, [isSoundsTabActive, stopAllPreviewAudio, stopAllSounds]);
+
   
-  // Get sounds state from consolidated store
-  const sounds = useConsolidatedAppStore((state) => state.sounds);
+  // Global sound preferences (store slice) — do not shadow with per-category lists below.
+  const soundPrefs = useConsolidatedAppStore((state) => state.sounds);
   const { setSoundsState } = useConsolidatedAppStore(state => state.actions);
   
 
@@ -75,17 +125,18 @@ const SoundsSettingsTab = React.memo(() => {
     }
   }, [message.text]);
 
-  // Stop all audio on unmount
+  // Stop all preview audio on unmount (always use ref so we catch the latest instances).
   React.useEffect(() => {
     return () => {
-      Object.values(audioRefs).forEach(audio => {
+      Object.values(audioRefsRef.current).forEach((audio) => {
         if (audio) {
           audio.pause();
           audio.currentTime = 0;
         }
       });
+      stopAllSounds();
     };
-  }, [audioRefs]);
+  }, [stopAllSounds]);
 
   // Debug: Log current sound library state (only in development)
   useEffect(() => {
@@ -165,7 +216,7 @@ const SoundsSettingsTab = React.memo(() => {
   // Handle sound testing
   const handleTestSound = useCallback((category, sound) => {
     // Stop all other audio
-    Object.values(audioRefs).forEach(audio => {
+    Object.values(audioRefsRef.current).forEach((audio) => {
       if (audio) {
         audio.pause();
         audio.currentTime = 0;
@@ -185,17 +236,17 @@ const SoundsSettingsTab = React.memo(() => {
       setTesting({});
       setAudioRefs({});
     };
-  }, [audioRefs]);
+  }, []);
 
   const handleStopTest = useCallback((soundId) => {
-    const audio = audioRefs[soundId];
+    const audio = audioRefsRef.current[soundId];
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
       setTesting({});
       setAudioRefs({});
     }
-  }, [audioRefs]);
+  }, []);
 
   // Handle sound toggle (enable/disable)
   const handleToggleSound = useCallback(async (category, soundId) => {
@@ -253,13 +304,14 @@ const SoundsSettingsTab = React.memo(() => {
       }
 
       // Update test audio volume if playing
-      if (audioRefs[soundId]) {
-        audioRefs[soundId].volume = volume;
+      const playing = audioRefsRef.current[soundId];
+      if (playing) {
+        playing.volume = volume;
       }
     } catch (err) {
       showMessage('error', err.message || 'Failed to update volume');
     }
-  }, [updateSound, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, updateBackgroundMusic, audioRefs, showMessage]);
+  }, [updateSound, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, updateBackgroundMusic, showMessage]);
 
   // Handle like toggle
   const handleToggleLike = useCallback(async (soundId) => {
@@ -273,29 +325,39 @@ const SoundsSettingsTab = React.memo(() => {
 
 
 
-  // Handle setting changes - update consolidated store and save immediately
-  const handleSettingChange = useCallback((key, value) => {
-    setSoundsState({ [key]: value });
-  }, [setSoundsState]);
+  // Setting changes — merge into store and persist sounds slice (same path as useSoundManager toggles).
+  const handleSettingChange = useCallback(
+    async (key, value) => {
+      const prev = useConsolidatedAppStore.getState().sounds;
+      const next = { ...prev, [key]: value };
+      setSoundsState({ [key]: value });
+      try {
+        await saveSoundSettings(next);
+      } catch {
+        /* unified persistence also debounces; ignore duplicate errors */
+      }
+    },
+    [setSoundsState, saveSoundSettings],
+  );
 
 
 
   // Drag and drop handlers for playlist reordering
   const handleDragStart = useCallback((e, soundId) => {
-    if (!(sounds?.backgroundMusicPlaylistMode ?? false)) return;
+    if (!(soundPrefs?.backgroundMusicPlaylistMode ?? false)) return;
     setDraggedItem(soundId);
     e.dataTransfer.effectAllowed = 'move';
-  }, [sounds?.backgroundMusicPlaylistMode]);
+  }, [soundPrefs?.backgroundMusicPlaylistMode]);
 
   const handleDragOver = useCallback((e, soundId) => {
-    if (!(sounds?.backgroundMusicPlaylistMode ?? false) || !draggedItem) return;
+    if (!(soundPrefs?.backgroundMusicPlaylistMode ?? false) || !draggedItem) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverItem(soundId);
-  }, [sounds?.backgroundMusicPlaylistMode, draggedItem]);
+  }, [soundPrefs?.backgroundMusicPlaylistMode, draggedItem]);
 
   const handleDrop = useCallback((e, targetSoundId) => {
-    if (!(sounds?.backgroundMusicPlaylistMode ?? false) || !draggedItem || draggedItem === targetSoundId) {
+    if (!(soundPrefs?.backgroundMusicPlaylistMode ?? false) || !draggedItem || draggedItem === targetSoundId) {
       setDraggedItem(null);
       setDragOverItem(null);
       return;
@@ -322,7 +384,7 @@ const SoundsSettingsTab = React.memo(() => {
     
     setDraggedItem(null);
     setDragOverItem(null);
-  }, [sounds?.backgroundMusicPlaylistMode, draggedItem, getSoundsByCategory, updateSound, showMessage]);
+  }, [soundPrefs?.backgroundMusicPlaylistMode, draggedItem, getSoundsByCategory, updateSound, showMessage]);
 
   const handleDragEnd = useCallback(() => {
     setDraggedItem(null);
@@ -349,97 +411,84 @@ const SoundsSettingsTab = React.memo(() => {
     }
   }, [playChannelHoverSound, showMessage]);
 
-  // Render sound section
+  // Render sound section body (shell is WeeSettingsCollapsibleSection + WeeModalFieldCard)
   const renderSoundSection = (category) => {
-    const sounds = getSoundsByCategory(category.key);
+    const categorySounds = getSoundsByCategory(category.key);
     const enabledSounds = getEnabledSoundsByCategory(category.key);
     const likedSounds = getLikedSoundsByCategory(category.key);
-    const catIconClass =
-      category.key === 'backgroundMusic'
-        ? 'sound-cat-icon--bg-music'
-        : category.key === 'channelClick'
-          ? 'sound-cat-icon--click'
-          : 'sound-cat-icon--hover';
-    const catEmoji =
-      category.key === 'backgroundMusic' ? '🎵' : category.key === 'channelClick' ? '🖱️' : '🎧';
 
-  return (
-      <Card
-        key={category.key}
-        className="sound-settings-card"
-        title={
-          <div className="sound-mgmt-title-row">
-            <div className={`sound-cat-icon ${catIconClass}`}>
-              {catEmoji}
-            </div>
-            <div>
-              <div className="sound-cat-title-row">
-                <span className="sound-cat-label">{category.label}</span>
-                {category.key === 'backgroundMusic' && (
-                  <ResourceUsageIndicator 
-                    level="high" 
-                    tooltip="Background music plays continuously and can use significant CPU and memory resources"
-                  />
-                )}
-                {category.key === 'channelHover' && (
-                  <ResourceUsageIndicator 
-                    level="medium" 
-                    tooltip="Hover sounds play frequently and can impact performance with many channels"
-                  />
-                )}
-              </div>
-              <div className="sound-cat-desc">
-                {category.key === 'backgroundMusic' ? 'Continuous background audio' :
-                 category.key === 'channelClick' ? 'Sounds when clicking channels' :
-                 'Sounds when hovering over channels'}
-              </div>
-            </div>
+    return (
+      <div className="sound-card-pad">
+        {(category.key === 'backgroundMusic' || category.key === 'channelHover') && (
+          <div className="sound-resource-strip">
+            {category.key === 'backgroundMusic' && (
+              <ResourceUsageIndicator
+                level="high"
+                tooltip="Background music plays continuously and can use significant CPU and memory resources"
+              />
+            )}
+            {category.key === 'channelHover' && (
+              <ResourceUsageIndicator
+                level="medium"
+                tooltip="Hover sounds play frequently and can impact performance with many channels"
+              />
+            )}
+            <Text variant="caption" className="!m-0 max-w-md text-[hsl(var(--text-tertiary))]">
+              {category.key === 'backgroundMusic'
+                ? 'Continuous playback uses more resources — pause from the ribbon when you need silence.'
+                : 'Hover SFX fire often; keep volumes low or disable on slower machines.'}
+            </Text>
           </div>
-        }
-        separator
-      >
-        <div className="sound-card-pad">
+        )}
           {/* Category-specific settings */}
           {category.key === 'backgroundMusic' && (
           <div className="sound-mb-20">
-              <div className="sound-panel">
-                <div className="sound-panel-head">
-                  <div className="sound-panel-head-row">
-                    <span className="sound-emoji-lg">⚙️</span>
-                    <Text variant="p" className="sound-section-heading">
-                      Background Music Settings
-                    </Text>
-                  </div>
+              <div className="sound-panel-wee">
+                <div className="sound-panel-wee__head">
+                  <p className="sound-panel-wee__title">Playback</p>
                 </div>
-                
-                <div className="sound-stack-12">
-                  <WToggle
-                    checked={sounds?.backgroundMusicEnabled ?? true}
-                    onChange={(checked) => handleSettingChange('backgroundMusicEnabled', checked)}
-                    label="Enable Background Music"
-                  />
-                  
-                  {(sounds?.backgroundMusicEnabled ?? true) && (
+
+                <div className="sound-toggle-stack">
+                  <div className="sound-toggle-row">
+                    <span className="sound-toggle-row__label">Enable background music</span>
+                    <WToggle
+                      checked={soundPrefs?.backgroundMusicEnabled ?? true}
+                      onChange={(checked) => handleSettingChange('backgroundMusicEnabled', checked)}
+                      disableLabelClick
+                    />
+                  </div>
+
+                  {(soundPrefs?.backgroundMusicEnabled ?? true) && (
                     <>
-                      <WToggle
-                        checked={sounds?.backgroundMusicLooping ?? true}
-                        onChange={(checked) => handleSettingChange('backgroundMusicLooping', checked)}
-                        label="Loop Music"
-                      />
-                      
-                      <WToggle
-                        checked={sounds?.backgroundMusicPlaylistMode ?? false}
-                        onChange={(checked) => handleSettingChange('backgroundMusicPlaylistMode', checked)}
-                        label="Playlist Mode (Play liked sounds in order)"
-                      />
-                      
-              </>
-            )}
-          </div>
+                      <div className="sound-toggle-row">
+                        <span className="sound-toggle-row__label">Loop current track</span>
+                        <WToggle
+                          checked={soundPrefs?.backgroundMusicLooping ?? true}
+                          onChange={(checked) => handleSettingChange('backgroundMusicLooping', checked)}
+                          disableLabelClick
+                        />
+                      </div>
+
+                      <div className="sound-toggle-row">
+                        <div>
+                          <span className="sound-toggle-row__label">Playlist mode</span>
+                          <p className="sound-toggle-row__hint">
+                            Liked tracks only, in order — use hearts and drag below when this is on.
+                          </p>
+                        </div>
+                        <WToggle
+                          checked={soundPrefs?.backgroundMusicPlaylistMode ?? false}
+                          onChange={(checked) => handleSettingChange('backgroundMusicPlaylistMode', checked)}
+                          disableLabelClick
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Playlist Mode Info */}
-              {(sounds?.backgroundMusicEnabled ?? true) && (sounds?.backgroundMusicPlaylistMode ?? false) && (
+              {(soundPrefs?.backgroundMusicEnabled ?? true) && (soundPrefs?.backgroundMusicPlaylistMode ?? false) && (
                 <div className="sound-callout sound-callout--playlist">
                   <div className="sound-callout-head">
                     <span className="sound-emoji-lg">🎵</span>
@@ -455,7 +504,7 @@ const SoundsSettingsTab = React.memo(() => {
               )}
 
           {/* Background Music Disabled Warning */}
-              {!(sounds?.backgroundMusicEnabled ?? true) && (
+              {!(soundPrefs?.backgroundMusicEnabled ?? true) && (
             <div className="sound-callout sound-callout--warn-music">
               <div className="sound-callout-head">
                 <span className="sound-emoji-lg">🔇</span>
@@ -474,21 +523,18 @@ const SoundsSettingsTab = React.memo(() => {
           {/* Channel Click Settings */}
           {category.key === 'channelClick' && (
             <div className="sound-mb-20">
-              <div className="sound-panel">
-                <div className="sound-panel-head">
-                  <div className="sound-panel-head-row">
-                    <span className="sound-emoji-lg">⚙️</span>
-                    <Text variant="p" className="sound-section-heading">
-                      Channel Click Settings
-                    </Text>
-                  </div>
+              <div className="sound-panel-wee">
+                <div className="sound-panel-wee__head">
+                  <p className="sound-panel-wee__title">Channel click</p>
                 </div>
-                
-                <WToggle
-                  checked={sounds?.channelClickEnabled ?? true}
-                  onChange={(checked) => handleSettingChange('channelClickEnabled', checked)}
-                  label="Enable Channel Click Sounds"
-                />
+                <div className="sound-toggle-row">
+                  <span className="sound-toggle-row__label">Enable click sounds</span>
+                  <WToggle
+                    checked={soundPrefs?.channelClickEnabled ?? true}
+                    onChange={(checked) => handleSettingChange('channelClickEnabled', checked)}
+                    disableLabelClick
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -496,21 +542,18 @@ const SoundsSettingsTab = React.memo(() => {
           {/* Channel Hover Settings */}
           {category.key === 'channelHover' && (
             <div className="sound-mb-20">
-              <div className="sound-panel">
-                <div className="sound-panel-head">
-                  <div className="sound-panel-head-row">
-                    <span className="sound-emoji-lg">⚙️</span>
-                    <Text variant="p" className="sound-section-heading">
-                      Channel Hover Settings
-                    </Text>
-                  </div>
+              <div className="sound-panel-wee">
+                <div className="sound-panel-wee__head">
+                  <p className="sound-panel-wee__title">Channel hover</p>
                 </div>
-                
-                <WToggle
-                  checked={sounds?.channelHoverEnabled ?? true}
-                  onChange={(checked) => handleSettingChange('channelHoverEnabled', checked)}
-                  label="Enable Channel Hover Sounds"
-                />
+                <div className="sound-toggle-row">
+                  <span className="sound-toggle-row__label">Enable hover sounds</span>
+                  <WToggle
+                    checked={soundPrefs?.channelHoverEnabled ?? true}
+                    onChange={(checked) => handleSettingChange('channelHoverEnabled', checked)}
+                    disableLabelClick
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -521,11 +564,18 @@ const SoundsSettingsTab = React.memo(() => {
               <Button
                 variant="secondary"
                 size="sm"
-                className="sound-btn-test-click"
+                className="sound-test-pill-wee"
                 onClick={handleTestChannelClick}
-                disabled={!(sounds?.channelClickEnabled ?? true) || enabledSounds.length === 0}
+                disabled={!(soundPrefs?.channelClickEnabled ?? true) || enabledSounds.length === 0}
+                title={
+                  !(soundPrefs?.channelClickEnabled ?? true)
+                    ? 'Turn on click sounds above to test.'
+                    : enabledSounds.length === 0
+                      ? 'Add or enable a sound below to test.'
+                      : undefined
+                }
               >
-                🎵 Test Channel Click Sound
+                Test click sound
               </Button>
             </div>
           )}
@@ -535,144 +585,178 @@ const SoundsSettingsTab = React.memo(() => {
               <Button
                 variant="secondary"
                 size="sm"
-                className="sound-btn-test-hover"
+                className="sound-test-pill-wee"
                 onClick={handleTestChannelHover}
-                disabled={!(sounds?.channelHoverEnabled ?? true) || enabledSounds.length === 0}
+                disabled={!(soundPrefs?.channelHoverEnabled ?? true) || enabledSounds.length === 0}
+                title={
+                  !(soundPrefs?.channelHoverEnabled ?? true)
+                    ? 'Turn on hover sounds above to test.'
+                    : enabledSounds.length === 0
+                      ? 'Add or enable a sound below to test.'
+                      : undefined
+                }
               >
-                🎵 Test Channel Hover Sound
+                Test hover sound
               </Button>
-        </div>
+            </div>
           )}
 
           {/* Sound List */}
           <div className="sound-mb-16">
-            {sounds.length === 0 && (
+            {categorySounds.length === 0 && (
               <Text variant="help" className="sound-help-italic">No sounds yet. Add your first sound below.</Text>
             )}
             
-            {sounds.map(sound => (
+            {categorySounds.map((sound) => (
               <div
                 key={sound.id}
                 className={[
-                  'sound-row',
-                  sound.enabled ? 'sound-row--enabled' : 'sound-row--disabled',
-                  draggedItem === sound.id ? 'sound-row--dragging' : '',
-                  category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true) ? 'sound-row--faded' : '',
-                  category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false) ? 'sound-row--draggable' : '',
-                ].filter(Boolean).join(' ')}
-                draggable={category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false)}
+                  'sound-item-gooey',
+                  sound.enabled ? '' : 'sound-item-gooey--disabled',
+                  draggedItem === sound.id ? 'sound-item-gooey--dragging' : '',
+                  category.key === 'backgroundMusic' && !(soundPrefs?.backgroundMusicEnabled ?? true)
+                    ? 'sound-item-gooey--faded'
+                    : '',
+                  category.key === 'backgroundMusic' && (soundPrefs?.backgroundMusicPlaylistMode ?? false)
+                    ? 'sound-item-gooey--draggable'
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                draggable={category.key === 'backgroundMusic' && (soundPrefs?.backgroundMusicPlaylistMode ?? false)}
                 onDragStart={(e) => handleDragStart(e, sound.id)}
                 onDragOver={(e) => handleDragOver(e, sound.id)}
                 onDrop={(e) => handleDrop(e, sound.id)}
                 onDragEnd={handleDragEnd}
               >
-                <div className="sound-row-main">
-                  {category.key === 'backgroundMusic' && (sounds?.backgroundMusicPlaylistMode ?? false) && (
-                    <span className="sound-drag-handle" title="Drag to reorder">⋮⋮</span>
-                  )}
-                  
-                  <div className="sound-row-body">
-                    <div className="sound-name-row">
-                      <span className="sound-name">{sound.name}</span>
-                      {sound.isDefault && (
-                        <span className="sound-badge-default">
-                          Default
-                        </span>
-                      )}
-                      {sound.liked && <span>❤️</span>}
-          </div>
-          
-                    <div className="sound-vol-row">
-                      <div className="sound-vol-group">
-                        <span className="sound-vol-label">Volume:</span>
-                        <Slider
-                          value={sound.volume ?? 0.5}
-                          onChange={(value) => handleVolumeChange(category.key, sound.id, value)}
-                    min={0}
-                    max={1}
-                    step={0.01}
-                          disabled={category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true)}
-                          hideValue
-                          containerClassName="!mb-0 sound-slider-grow"
+                <div className="sound-item-gooey__top">
+                  <div className="sound-item-gooey__left">
+                    {category.key === 'backgroundMusic' && (soundPrefs?.backgroundMusicPlaylistMode ?? false) && (
+                      <span className="sound-item-gooey__drag" title="Drag to reorder" aria-hidden>
+                        <GripVertical size={18} strokeWidth={2.25} className="text-[hsl(var(--text-tertiary))]" />
+                      </span>
+                    )}
+                    <div className="sound-item-gooey__name-block">
+                      <span className="sound-item-gooey__name">{sound.name}</span>
+                      <div className="sound-item-gooey__badges">
+                        {sound.isDefault ? <span className="sound-badge-wee">Default</span> : null}
+                      </div>
+                    </div>
+                  </div>
+                  <WToggle
+                    checked={!!sound.enabled}
+                    onChange={() => handleToggleSound(category.key, sound.id)}
+                    disabled={category.key === 'backgroundMusic' && !(soundPrefs?.backgroundMusicEnabled ?? true)}
+                    disabledHint={
+                      category.key === 'backgroundMusic' && !(soundPrefs?.backgroundMusicEnabled ?? true)
+                        ? 'Turn on background music above to enable or switch tracks.'
+                        : undefined
+                    }
+                    disableLabelClick
                   />
-                        <span className="sound-vol-pct">
-                          {Math.round((sound.volume ?? 0.5) * 100)}%
-                  </span>
                 </div>
-              </div>
-            </div>
+
+                <div
+                  className="sound-item-gooey__volume-well"
+                  title={
+                    category.key === 'backgroundMusic' && !(soundPrefs?.backgroundMusicEnabled ?? true)
+                      ? 'Enable background music above to edit volume.'
+                      : undefined
+                  }
+                >
+                  <span className="sound-item-gooey__vol-label">Volume</span>
+                  <span className="sound-item-gooey__vol-pill">{Math.round((sound.volume ?? 0.5) * 100)}%</span>
+                  <div className="sound-item-gooey__slider-wrap">
+                    <Slider
+                      value={sound.volume ?? 0.5}
+                      onChange={(value) => handleVolumeChange(category.key, sound.id, value)}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      disabled={category.key === 'backgroundMusic' && !(soundPrefs?.backgroundMusicEnabled ?? true)}
+                      hideValue
+                      containerClassName="!mb-0"
+                    />
+                  </div>
                 </div>
-                
-                <div className="sound-actions">
+
+                <div className="sound-item-gooey__toolbar">
                   {testing[sound.id] ? (
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="sound-btn-min-60"
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="sound-chip-btn"
                       onClick={() => handleStopTest(sound.id)}
                     >
                       Stop
                     </Button>
                   ) : (
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="sound-btn-min-60"
-                      onClick={() => handleTestSound(category.key, sound)} 
-                      disabled={category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true)}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="sound-chip-btn"
+                      onClick={() => handleTestSound(category.key, sound)}
+                      disabled={category.key === 'backgroundMusic' && !(soundPrefs?.backgroundMusicEnabled ?? true)}
+                      title={
+                        category.key === 'backgroundMusic' && !(soundPrefs?.backgroundMusicEnabled ?? true)
+                          ? 'Enable background music above to preview.'
+                          : undefined
+                      }
                     >
-                      Test
+                      Preview
                     </Button>
                   )}
-                  
-                  {category.key === 'backgroundMusic' && (
-                    <Button 
-                      variant="tertiary" 
-                      size="sm" 
-                      className={`sound-btn-icon ${sound.liked ? 'sound-like--active' : 'sound-like--inactive'}`}
+
+                  {category.key === 'backgroundMusic' ? (
+                    <button
+                      type="button"
+                      className={`sound-icon-btn inline-flex items-center justify-center border-2 border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-primary))] transition-colors hover:bg-[hsl(var(--state-hover))] disabled:opacity-45 ${sound.liked ? 'sound-like-btn--on' : ''}`}
                       onClick={() => handleToggleLike(sound.id)}
-                      title={sound.liked ? 'Unlike' : 'Like'}
-                      disabled={!(sounds?.backgroundMusicEnabled ?? true)}
+                      aria-label={sound.liked ? 'Unlike for playlist' : 'Like for playlist'}
+                      disabled={!(soundPrefs?.backgroundMusicEnabled ?? true)}
+                      title={
+                        !(soundPrefs?.backgroundMusicEnabled ?? true)
+                          ? 'Enable background music above to like tracks for the playlist.'
+                          : undefined
+                      }
                     >
-                      {sound.liked ? '❤️' : '🤍'}
-                    </Button>
-                  )}
-                  
-                  {!sound.isDefault && (
-                    <Button 
-                      variant="danger-secondary" 
-                      size="sm" 
-                      className="sound-btn-icon"
-                      onClick={() => handleDeleteSound(category.key, sound.id)} 
-                      title="Delete Sound"
+                      <Heart
+                        size={18}
+                        strokeWidth={2.25}
+                        className={sound.liked ? 'fill-current' : ''}
+                        aria-hidden
+                      />
+                    </button>
+                  ) : null}
+
+                  {!sound.isDefault ? (
+                    <Button
+                      variant="danger-secondary"
+                      size="sm"
+                      className="sound-icon-btn !border-[hsl(var(--state-error)/0.45)] !text-[hsl(var(--state-error))]"
+                      onClick={() => handleDeleteSound(category.key, sound.id)}
+                      aria-label="Remove sound"
                     >
-                      🗑️
+                      <Trash2 size={16} strokeWidth={2.25} aria-hidden />
                     </Button>
-                  )}
-                  
-            <WToggle
-                    checked={!!sound.enabled}
-                    onChange={() => handleToggleSound(category.key, sound.id)}
-                    disabled={category.key === 'backgroundMusic' && !(sounds?.backgroundMusicEnabled ?? true)}
-                  />
+                  ) : null}
                 </div>
               </div>
             ))}
           </div>
           
-          <div className="sound-row-actions">
+          <div className="sound-row-actions sound-row-actions--wee">
             <Button
               variant="primary"
               size="sm"
-              className="sound-btn-add"
+              className="sound-add-gooey"
               onClick={() => handleUploadClick(category.key)}
               disabled={uploading[category.key]}
             >
-              {uploading[category.key] ? '⏳ Uploading...' : '➕ Add Sound'}
+              {uploading[category.key] ? 'Uploading…' : 'Add sound'}
             </Button>
-            </div>
+          </div>
         </div>
-      </Card>
     );
   };
 
@@ -686,84 +770,79 @@ const SoundsSettingsTab = React.memo(() => {
           : 'sound-msg--hint';
 
   return (
-    <div className="sound-mgmt mx-auto max-w-3xl">
-      {/* Enhanced Header */}
-      <div className="sound-mgmt-header">
-        <div className="sound-mgmt-title-row">
-          <div className="sound-mgmt-header-icon">
-            🔊
-          </div>
-          <div>
-            <h3 className="sound-mgmt-title">
-              Sound Management
-            </h3>
-            <p className="sound-mgmt-subtitle">
-              Manage global background music and channel SFX. Per-channel hover overrides are set in Configure Channel.
-            </p>
-          </div>
-        </div>
+    <div className="sound-mgmt mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
+      <SettingsTabPageHeader title="Sounds" subtitle="Audio feedback & music" />
 
-      </div>
-
-      {/* Enhanced Error/Message Display */}
-      {error && (
-        <div className="sound-alert sound-alert--error">
-          <div className="sound-msg-row">
-            <span className="sound-emoji-md">⚠️</span>
-            <strong>Error:</strong> {error}
-          </div>
-          <Button 
-            variant="tertiary" 
-            size="sm" 
-            className="sound-msg-dismiss"
-            onClick={clearError}
-          >
+      {error ? (
+        <WeeModalFieldCard
+          hoverAccent="none"
+          paddingClassName="p-4"
+          className="flex flex-col gap-3 border border-[hsl(var(--state-error)/0.45)] bg-[hsl(var(--state-error-light)/0.45)] sm:flex-row sm:items-center sm:justify-between"
+        >
+          <Text variant="body" className="!m-0 text-[hsl(var(--state-error))]">
+            {error}
+          </Text>
+          <Button variant="tertiary" size="sm" onClick={clearError}>
             Dismiss
           </Button>
-        </div>
-      )}
+        </WeeModalFieldCard>
+      ) : null}
 
-      {message.text && (
+      {message.text ? (
         <div className={`sound-msg ${messageToneClass}`}>
           <div className="sound-msg-row">
             <span className="sound-emoji-md">
-              {message.type === 'error' ? '⚠️' : 
-               message.type === 'success' ? '✅' : 
-               message.type === 'info' ? 'ℹ️' : '💡'}
+              {message.type === 'error'
+                ? '⚠️'
+                : message.type === 'success'
+                  ? '✅'
+                  : message.type === 'info'
+                    ? 'ℹ️'
+                    : '💡'}
             </span>
             {message.text}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Enhanced Loading State */}
-      {loading && (
+      {loading ? (
         <div className="sound-loading">
           <div className="sound-loading-spinner" aria-hidden />
           <span className="sound-loading-label">Loading sound library...</span>
         </div>
-      )}
+      ) : null}
 
-      <SettingsWeeSection eyebrow="Sound categories">
-      <div>
-        {SOUND_CATEGORIES.map(cat => renderSoundSection(cat))}
-      </div>
-      </SettingsWeeSection>
+      {SOUND_CATEGORIES.map((category) => {
+        const CategoryIcon = SOUND_CATEGORY_ICONS[category.key] || Volume2;
+        return (
+          <WeeSettingsCollapsibleSection
+            key={category.key}
+            icon={CategoryIcon}
+            title={category.label}
+            description={SOUND_CATEGORY_DESCRIPTIONS[category.key] || 'Sound library for this slot.'}
+            defaultOpen
+          >
+            <WeeModalFieldCard hoverAccent="none" paddingClassName="p-0" className="overflow-hidden">
+              {renderSoundSection(category)}
+            </WeeModalFieldCard>
+          </WeeSettingsCollapsibleSection>
+        );
+      })}
 
-      {/* Debug Info */}
-      {process.env.NODE_ENV === 'development' && (
-      <Card
-          title="Debug Info"
-        separator
-        className="sound-settings-card--tight sound-card-pad--debug"
-      >
-        <div className="sound-card-pad">
+      {process.env.NODE_ENV === 'development' ? (
+        <WeeSettingsCollapsibleSection
+          icon={Volume2}
+          title="Debug"
+          description="Sound manager snapshot (dev only)."
+          defaultOpen={false}
+        >
+          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="sound-settings-card--tight">
             <Text variant="p" className="sound-debug-pre">
               {JSON.stringify(soundSettings, null, 2)}
             </Text>
-          </div>
-        </Card>
-      )}
+          </WeeModalFieldCard>
+        </WeeSettingsCollapsibleSection>
+      ) : null}
     </div>
   );
 });

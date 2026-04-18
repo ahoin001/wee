@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
+import { Heart, Loader2, Trash2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import Card from '../../ui/Card';
+import { useWeeMotion } from '../../design/weeMotion';
 import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
@@ -10,6 +12,9 @@ import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { WALLPAPER_CHECKERBOARD_BG } from '../../design/runtimeColorStrings.js';
 import SettingsWeeSection from './SettingsWeeSection';
+import { WeeButton, WeeModalFieldCard } from '../../ui/wee';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
+import './settings-wee-panels.css';
 
 const WALLPAPER_ANIMATIONS = [
   { value: 'fade', label: 'Crossfade - Smooth, elegant transition (Recommended)' },
@@ -400,193 +405,261 @@ const WallpaperSettingsTab = React.memo(() => {
     setSelectedWallpaper(activeWallpaper);
   }, [activeWallpaper]);
 
+  const reduceMotion = useReducedMotion();
+  const { tabTransition } = useWeeMotion();
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Text variant="body">Loading wallpaper settings...</Text>
+      <div className="flex min-h-[12rem] items-center justify-center p-8">
+        <Text variant="body" className="text-[hsl(var(--text-secondary))]">
+          Loading wallpaper settings…
+        </Text>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      {message.text && (
+    <div className="settings-wee-tab-root pb-12">
+      <SettingsTabPageHeader title="Wallpaper" subtitle="Background & cycling" />
+
+      {message.text ? (
         <div
-          className={`message mb-4 rounded-lg p-3 font-medium ${
+          className={`settings-wee-msg ${
             message.type === 'success'
-              ? 'bg-[hsl(var(--state-success-light))] text-[hsl(var(--state-success))]'
+              ? 'settings-wee-msg--success'
               : message.type === 'error'
-                ? 'bg-[hsl(var(--state-danger)/0.12)] text-[hsl(var(--state-danger))]'
-                : 'bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))]'
+                ? 'settings-wee-msg--error'
+                : 'settings-wee-msg--info'
           }`}
         >
           {message.text}
         </div>
-      )}
+      ) : null}
 
       <SettingsWeeSection eyebrow="Library">
-      <Card
-        title="Upload New Wallpaper"
-        separator
-        desc="Add a new wallpaper from your computer. Supported formats: JPG, PNG, GIF, MP4, WEBM, etc."
-        actions={
-          <div className="mt-3.5">
-            <Button variant="secondary" onClick={handleUpload} disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Upload New Wallpaper'}
-            </Button>
-          </div>
-        }
-      />
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <Text variant="h3" className="mb-1 playful-hero-text">
+            Add to library
+          </Text>
+          <Text variant="desc" className="mb-5">
+            From your computer — JPG, PNG, GIF, MP4, WEBM, and other supported formats.
+          </Text>
+          <Button
+            variant="primary"
+            onClick={handleUpload}
+            disabled={uploading}
+            className="settings-wee-primary-pill"
+          >
+            {uploading ? 'Uploading…' : 'Upload wallpaper'}
+          </Button>
+        </WeeModalFieldCard>
 
-      {/* Saved Wallpapers Card */}
-      <Card
-        title="Saved Wallpapers"
-        separator
-        desc="Browse, select, and manage your saved wallpapers below."
-        actions={
-          <>
-            <div className="flex items-center justify-center mb-5 py-3 px-4 bg-gradient-to-br from-white/80 to-blue-50/90 rounded-xl border border-blue-300/15 shadow-md">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <Text variant="h3" className="mb-1 playful-hero-text">
+            Saved wallpapers
+          </Text>
+          <Text variant="desc" className="mb-5">
+            Same vibe as Configure Channel — pick a tile, preview it in the hero, then set it as your desktop or
+            heart it for cycling.
+          </Text>
+          <div className="mb-5 flex justify-center py-1">
+            <button
+              type="button"
+              className={`settings-wee-default-wallpaper min-w-[220px] max-w-full text-left ${
+                activeWallpaper === null ? 'settings-wee-default-wallpaper--active' : ''
+              }`}
+              onClick={handleRemoveWallpaper}
+            >
               <div
-                className={`flex items-center gap-3 cursor-pointer px-4 py-2 rounded-lg min-w-[200px] justify-center transition-all duration-200
-                  ${activeWallpaper === null
-                    ? 'bg-blue-100/60 border-2 border-blue-400'
-                    : 'bg-white/70 border border-blue-300/20'}
-                `}
-                onClick={handleRemoveWallpaper}
-                onMouseEnter={e => {
-                  if (activeWallpaper !== null) {
-                    e.currentTarget.classList.remove('bg-white/70', 'border-blue-300/20');
-                    e.currentTarget.classList.add('bg-blue-100/40', 'border-blue-300/30');
-                  }
+                className="settings-wee-default-wallpaper__swatch"
+                style={{
+                  background: WALLPAPER_CHECKERBOARD_BG,
+                  backgroundSize: '8px 8px',
+                  backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
                 }}
-                onMouseLeave={e => {
-                  if (activeWallpaper !== null) {
-                    e.currentTarget.classList.remove('bg-blue-100/40', 'border-blue-300/30');
-                    e.currentTarget.classList.add('bg-white/70', 'border-blue-300/20');
-                  }
-                }}
-              >
+              />
+              <div className="min-w-0">
                 <div
-                  className="w-10 h-[25px] rounded border border-gray-200"
-                  style={{
-                    background: WALLPAPER_CHECKERBOARD_BG,
-                    backgroundSize: '8px 8px',
-                    backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px',
-                  }}
-                />
-                <div className="text-left">
-                  <div className={`font-semibold text-[14px] mb-0.5 ${activeWallpaper === null ? 'text-blue-500' : 'text-gray-900'}`}>
-                    Default Background
-                  </div>
-                  <div className={`text-xs ${activeWallpaper === null ? 'text-blue-500' : 'text-gray-500'}`}>
-                    {activeWallpaper === null ? 'Currently active' : 'Remove wallpaper'}
-                  </div>
+                  className={`mb-0.5 text-[14px] font-semibold ${
+                    activeWallpaper === null ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--text-primary))]'
+                  }`}
+                >
+                  Default background
+                </div>
+                <div
+                  className={`text-xs ${
+                    activeWallpaper === null
+                      ? 'text-[hsl(var(--primary))]'
+                      : 'text-[hsl(var(--text-tertiary))]'
+                  }`}
+                >
+                  {activeWallpaper === null ? 'Currently active' : 'Click to clear wallpaper'}
                 </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center items-start">
-              {wallpapers.length === 0 && <Text variant="help">No saved wallpapers yet.</Text>}
-              {wallpapers.map((wallpaper, idx) => (
+            </button>
+          </div>
+
+          <AnimatePresence mode="wait" initial={false}>
+            {selectedWallpaper ? (
+              <m.div
+                key={selectedWallpaper.url}
+                className="settings-wee-wallpaper-hero"
+                initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduceMotion ? undefined : { opacity: 0, y: -8, scale: 0.98 }}
+                transition={tabTransition}
+              >
+                <div className="settings-wee-wallpaper-hero__row">
+                  <div className="settings-wee-wallpaper-hero__frame">
+                    <img src={selectedWallpaper.url} alt="" />
+                  </div>
+                  <div className="settings-wee-wallpaper-hero__meta">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="settings-wee-wallpaper-hero__eyebrow">
+                        {activeWallpaper?.url === selectedWallpaper.url ? 'Active asset' : 'Preview'}
+                      </span>
+                      {activeWallpaper?.url === selectedWallpaper.url ? (
+                        <span className="settings-wee-wallpaper-hero__badge">On desktop</span>
+                      ) : null}
+                    </div>
+                    <div className="settings-wee-wallpaper-hero__name">{selectedWallpaper.name}</div>
+                  </div>
+                  <div className="settings-wee-wallpaper-hero__actions">
+                    <WeeButton
+                      type="button"
+                      variant="primary"
+                      className="!px-4 !py-2.5 sm:!px-5 sm:!py-3"
+                      disabled={activeWallpaper?.url === selectedWallpaper.url}
+                      onClick={() => handleSetCurrent(selectedWallpaper)}
+                    >
+                      {activeWallpaper?.url === selectedWallpaper.url ? 'On desktop' : 'Set as desktop'}
+                    </WeeButton>
+                    <WeeButton
+                      type="button"
+                      variant="secondary"
+                      className="!min-w-0 !px-3 !py-2.5 sm:!py-3"
+                      title={likedWallpapers.includes(selectedWallpaper.url) ? 'Unlike for cycling' : 'Like for cycling'}
+                      aria-label={
+                        likedWallpapers.includes(selectedWallpaper.url) ? 'Unlike wallpaper' : 'Like wallpaper'
+                      }
+                      onClick={() => handleLike(selectedWallpaper.url)}
+                    >
+                      <Heart
+                        size={18}
+                        strokeWidth={2.4}
+                        className={
+                          likedWallpapers.includes(selectedWallpaper.url)
+                            ? 'fill-[hsl(var(--state-error))] text-[hsl(var(--state-error))]'
+                            : ''
+                        }
+                        aria-hidden
+                      />
+                    </WeeButton>
+                  </div>
+                </div>
+              </m.div>
+            ) : null}
+          </AnimatePresence>
+
+          <p className="settings-wee-subhead !mb-3 !mt-1">Library</p>
+          <div className="settings-wee-wallpaper-picker-grid">
+            {wallpapers.length === 0 ? (
+              <Text variant="help" className="col-span-full text-center">
+                No saved wallpapers yet.
+              </Text>
+            ) : null}
+            {wallpapers.map((wallpaper, idx) => {
+              const selected = selectedWallpaper && selectedWallpaper.url === wallpaper.url;
+              const liked = likedWallpapers.includes(wallpaper.url);
+              const onDesktop = activeWallpaper?.url === wallpaper.url;
+              return (
                 <div
                   key={wallpaper.url || idx}
-                  className="min-w-[120px] max-w-[160px] flex flex-col items-center justify-start"
+                  role="button"
+                  tabIndex={0}
+                  className={[
+                    'settings-wee-wallpaper-picker-tile',
+                    selected ? 'settings-wee-wallpaper-picker-tile--selected' : '',
+                    onDesktop ? 'settings-wee-wallpaper-picker-tile--active-desktop' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-label={`Select wallpaper ${wallpaper.name}`}
+                  onClick={() => setSelectedWallpaper(wallpaper)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedWallpaper(wallpaper);
+                    }
+                  }}
                 >
-                  <div
-                    className={`
-                      relative w-[110px] h-[70px] rounded-xl overflow-hidden
-                      ${selectedWallpaper && selectedWallpaper.url === wallpaper.url
-                        ? 'border-2.5 border-[hsl(var(--wii-blue))] shadow-[0_0_0_2px_hsl(var(--link)/0.35)]'
-                        : 'border border-gray-300 shadow-md'}
-                      bg-white cursor-pointer flex items-center justify-center mb-0.5
-                      transition-all duration-200
-                    `}
-                    tabIndex={0}
-                    aria-label={`Select wallpaper ${wallpaper.name}`}
-                    onClick={() => setSelectedWallpaper(wallpaper)}
-                    onKeyDown={e => { if (e.key === 'Enter') setSelectedWallpaper(wallpaper); }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                  >
+                  <div className="settings-wee-wallpaper-picker-tile__media">
                     <img
+                      className="settings-wee-wallpaper-picker-tile__img"
                       src={wallpaper.url}
-                      alt={wallpaper.name}
-                      className="w-full h-full object-cover rounded-xl"
+                      alt=""
                     />
-                    {/* Like button */}
+                    {onDesktop ? (
+                      <span className="settings-wee-wallpaper-picker-tile__pill">Desktop</span>
+                    ) : null}
                     <button
-                      className={`
-                        absolute top-2 left-2 flex items-center justify-center rounded-full w-7 h-7 z-20
-                        text-base shadow
-                        transition-colors duration-200
-                        ${likedWallpapers.includes(wallpaper.url)
-                          ? 'bg-red-100 text-red-500'
-                          : 'bg-white/90 text-gray-800'}
-                      `}
-                      title={likedWallpapers.includes(wallpaper.url) ? 'Unlike' : 'Like'}
-                      aria-label={likedWallpapers.includes(wallpaper.url) ? 'Unlike wallpaper' : 'Like wallpaper'}
-                      onClick={e => { e.stopPropagation(); handleLike(wallpaper.url); }}
-                      onMouseEnter={e => {
-                        e.currentTarget.classList.add('bg-red-200', 'text-red-500');
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.classList.remove('bg-red-200');
-                        if (likedWallpapers.includes(wallpaper.url)) {
-                          e.currentTarget.classList.add('bg-red-100', 'text-red-500');
-                        } else {
-                          e.currentTarget.classList.remove('text-red-500');
-                          e.currentTarget.classList.add('bg-white/90', 'text-gray-800');
-                        }
+                      type="button"
+                      className={`settings-wee-wallpaper-fab settings-wee-wallpaper-fab--bl ${
+                        liked ? 'settings-wee-wallpaper-fab--like-on' : ''
+                      }`}
+                      title={liked ? 'Unlike' : 'Like for cycling'}
+                      aria-label={liked ? 'Unlike wallpaper' : 'Like wallpaper'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLike(wallpaper.url);
                       }}
                     >
-                      {likedWallpapers.includes(wallpaper.url) ? '♥' : '♡'}
+                      <Heart size={14} strokeWidth={2.5} className={liked ? 'fill-current' : ''} aria-hidden />
                     </button>
-                    {/* Delete button */}
                     <button
-                      className={`
-                        absolute top-2 right-2 flex items-center justify-center rounded-full w-7 h-7 z-20
-                        text-base shadow
-                        transition-colors duration-200
-                        bg-white/90 text-gray-800
-                        hover:bg-gray-500 hover:text-white
-                      `}
-                      title="Remove saved wallpaper"
+                      type="button"
+                      className="settings-wee-wallpaper-fab settings-wee-wallpaper-fab--br settings-wee-wallpaper-fab--danger"
+                      title="Remove from library"
                       aria-label="Remove saved wallpaper"
-                      onClick={e => { e.stopPropagation(); handleDelete(wallpaper.url); }}
                       disabled={deleting[wallpaper.url]}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(wallpaper.url);
+                      }}
                     >
-                      {deleting[wallpaper.url] ? '⏳' : <span>🗑️</span>}
+                      {deleting[wallpaper.url] ? (
+                        <Loader2 size={14} className="animate-spin" aria-hidden />
+                      ) : (
+                        <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+                      )}
                     </button>
                   </div>
-                  {/* Set as current button */}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleSetCurrent(wallpaper)}
-                    className="mt-1 text-xs px-2 py-1"
-                  >
-                    Set as Current
-                  </Button>
+                  <span className="settings-wee-wallpaper-picker-tile__title" title={wallpaper.name}>
+                    {wallpaper.name}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </>
-        }
-      />
+              );
+            })}
+          </div>
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
 
-      {/* Wallpaper Effects Card */}
-      <Card
-        title="Wallpaper Effects"
-        separator
-        desc="Opacity and blur apply everywhere. Brightness and saturation are applied per space so you can darken Game Hub and tune Home & Workspaces independently."
-        actions={
-          <>
-            <p className="text-[13px] text-gray-500 mt-0 mb-3">
+      <SettingsWeeSection eyebrow="Wallpaper layer">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <Text variant="h3" className="mb-1 playful-hero-text">
+            Layer &amp; spaces
+          </Text>
+          <Text variant="desc" className="mb-4">
+            Opacity and blur apply everywhere. Brightness and saturation are per space so you can dim Game Hub and
+            tune Home &amp; Workspaces independently.
+          </Text>
+            <p className="mt-0 mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
               These settings affect the desktop wallpaper layer behind channels and Game Hub.
             </p>
 
-            <h4 className="text-[12px] font-semibold uppercase tracking-wide text-gray-500 mb-2">Overall</h4>
-            <div className="flex items-center gap-4 mt-1">
-              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-opacity-range">
+            <h4 className="settings-wee-subhead">Overall</h4>
+            <div className="settings-wee-slider-row">
+              <label className="settings-wee-slider-row__label" htmlFor="wallpaper-opacity-range">
                 Wallpaper opacity
               </label>
               <div className="flex-1 min-w-0">
@@ -602,14 +675,14 @@ const WallpaperSettingsTab = React.memo(() => {
                   hideValue
                 />
               </div>
-              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{Math.round(wallpaperOpacity * 100)}%</span>
+              <span className="settings-wee-slider-row__value">{Math.round(wallpaperOpacity * 100)}%</span>
             </div>
-            <p className="text-[12px] text-gray-400 mt-1 mb-4 pl-[156px] max-md:pl-0">
+            <p className="settings-wee-help mb-4 pl-[156px] max-md:pl-0">
               100% = fully opaque image; lower values let more of the default background show through.
             </p>
 
-            <div className="flex items-center gap-4 mt-1">
-              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-blur-range">
+            <div className="settings-wee-slider-row">
+              <label className="settings-wee-slider-row__label" htmlFor="wallpaper-blur-range">
                 Background blur
               </label>
               <div className="flex-1 min-w-0">
@@ -625,15 +698,15 @@ const WallpaperSettingsTab = React.memo(() => {
                   hideValue
                 />
               </div>
-              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{wallpaperBlur}px</span>
+              <span className="settings-wee-slider-row__value">{wallpaperBlur}px</span>
             </div>
-            <p className="text-[12px] text-gray-400 mt-1 mb-5 pl-[156px] max-md:pl-0">
+            <p className="settings-wee-help mb-5 pl-[156px] max-md:pl-0">
               Gaussian blur on the wallpaper only (not UI). 0 = sharp, higher = softer.
             </p>
 
-            <h4 className="text-[12px] font-semibold uppercase tracking-wide text-gray-500 mb-2">Home &amp; Workspaces</h4>
-            <div className="flex items-center gap-4 mt-1">
-              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-ws-brightness-range">
+            <h4 className="settings-wee-subhead">Home &amp; Workspaces</h4>
+            <div className="settings-wee-slider-row">
+              <label className="settings-wee-slider-row__label" htmlFor="wallpaper-ws-brightness-range">
                 Brightness
               </label>
               <div className="flex-1 min-w-0">
@@ -649,14 +722,14 @@ const WallpaperSettingsTab = React.memo(() => {
                   hideValue
                 />
               </div>
-              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{workspaceBrightness.toFixed(2)}×</span>
+              <span className="settings-wee-slider-row__value">{workspaceBrightness.toFixed(2)}×</span>
             </div>
-            <p className="text-[12px] text-gray-400 mt-1 mb-3 pl-[156px] max-md:pl-0">
+            <p className="settings-wee-help mb-3 pl-[156px] max-md:pl-0">
               Darken or brighten the wallpaper behind channel grids. 1.00 = unchanged.
             </p>
 
-            <div className="flex items-center gap-4 mt-1">
-              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-ws-saturate-range">
+            <div className="settings-wee-slider-row">
+              <label className="settings-wee-slider-row__label" htmlFor="wallpaper-ws-saturate-range">
                 Saturation
               </label>
               <div className="flex-1 min-w-0">
@@ -672,15 +745,15 @@ const WallpaperSettingsTab = React.memo(() => {
                   hideValue
                 />
               </div>
-              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{workspaceSaturate.toFixed(2)}×</span>
+              <span className="settings-wee-slider-row__value">{workspaceSaturate.toFixed(2)}×</span>
             </div>
-            <p className="text-[12px] text-gray-400 mt-1 mb-5 pl-[156px] max-md:pl-0">
+            <p className="settings-wee-help mb-5 pl-[156px] max-md:pl-0">
               1.00 = natural color; lower approaches grayscale; above 1 boosts vividness.
             </p>
 
-            <h4 className="text-[12px] font-semibold uppercase tracking-wide text-gray-500 mb-2">Game Hub</h4>
-            <div className="flex items-center gap-4 mt-1">
-              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-gh-brightness-range">
+            <h4 className="settings-wee-subhead">Game Hub</h4>
+            <div className="settings-wee-slider-row">
+              <label className="settings-wee-slider-row__label" htmlFor="wallpaper-gh-brightness-range">
                 Brightness
               </label>
               <div className="flex-1 min-w-0">
@@ -696,14 +769,14 @@ const WallpaperSettingsTab = React.memo(() => {
                   hideValue
                 />
               </div>
-              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{gameHubBrightness.toFixed(2)}×</span>
+              <span className="settings-wee-slider-row__value">{gameHubBrightness.toFixed(2)}×</span>
             </div>
-            <p className="text-[12px] text-gray-400 mt-1 mb-3 pl-[156px] max-md:pl-0">
+            <p className="settings-wee-help mb-3 pl-[156px] max-md:pl-0">
               Default ~0.78 matched the previous Game Hub dim. Raise for a brighter hero backdrop.
             </p>
 
-            <div className="flex items-center gap-4 mt-1">
-              <label className="font-medium min-w-[140px] text-gray-700 shrink-0" htmlFor="wallpaper-gh-saturate-range">
+            <div className="settings-wee-slider-row">
+              <label className="settings-wee-slider-row__label" htmlFor="wallpaper-gh-saturate-range">
                 Saturation
               </label>
               <div className="flex-1 min-w-0">
@@ -719,92 +792,95 @@ const WallpaperSettingsTab = React.memo(() => {
                   hideValue
                 />
               </div>
-              <span className="min-w-[42px] text-right font-semibold text-gray-500 tabular-nums">{gameHubSaturate.toFixed(2)}×</span>
+              <span className="settings-wee-slider-row__value">{gameHubSaturate.toFixed(2)}×</span>
             </div>
-            <p className="text-[12px] text-gray-400 mt-1 pl-[156px] max-md:pl-0">
+            <p className="settings-wee-help pl-[156px] max-md:pl-0">
               Pairs with brightness to keep artwork readable behind Game Hub cards.
             </p>
-          </>
-        }
-      />
+        </WeeModalFieldCard>
       </SettingsWeeSection>
 
-      {/* Enable Cycling Card */}
-      <Card
-        title="Enable Wallpaper Cycling"
-        separator
-        desc="When enabled, your wallpapers will automatically cycle through your liked wallpapers at the interval you set below."
-        headerActions={
-          <WToggle
-            checked={cycling}
-            onChange={handleCyclingChange}
-          />
-        }
-        actions={
-          cycling && (
+      <SettingsWeeSection eyebrow="Cycling">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <Text variant="h3" className="mb-1 playful-hero-text">
+                Liked-wallpaper cycling
+              </Text>
+              <Text variant="desc" className="!m-0">
+                Rotate through liked wallpapers on an interval. Only applies when cycling is enabled.
+              </Text>
+            </div>
+            <WToggle checked={cycling} onChange={handleCyclingChange} disableLabelClick title="Enable automatic cycling" />
+          </div>
+          {cycling ? (
             <>
-              {/* Manual Cycle Button for Testing */}
-              <div className="flex items-center gap-4 mb-4">
-                <span className="font-medium text-gray-700">Test Cycling</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    // Trigger manual cycle
-                    if (window.api?.wallpapers?.cycle) {
-                      window.api.wallpapers.cycle();
-                    }
-                    // Also trigger through the cycling hook if available
-                    if (window.cycleToNextWallpaper) {
-                      window.cycleToNextWallpaper();
-                    }
-                  }}
-                >
-                  Manual Cycle
-                </Button>
-                <Text variant="small" className="text-gray-500">
-                  Test the cycling animation manually
-                </Text>
-              </div>
-              
-              <div className="flex items-center gap-4 mt-3.5">
-                <span className="font-medium min-w-[120px] text-gray-700">Time per wallpaper</span>
-                <div className="w-[70px] mr-2">
-                  <WInput
-                type="number"
-                min={2}
-                max={600}
-                    value={cycleInterval}
-                    onChange={e => handleCycleIntervalChange(Number(e.target.value))}
-                    className="text-[15px]"
-                  />
+              <div className="settings-wee-field-row mb-4">
+                <span className="settings-wee-field-row__label">Try it</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    rounded
+                    onClick={() => {
+                      if (window.api?.wallpapers?.cycle) {
+                        window.api.wallpapers.cycle();
+                      }
+                      if (window.cycleToNextWallpaper) {
+                        window.cycleToNextWallpaper();
+                      }
+                    }}
+                  >
+                    Manual cycle
+                  </Button>
+                  <Text variant="small" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                    Fire one advance with your current animation settings.
+                  </Text>
                 </div>
-                <Text variant="small" className="text-gray-500">seconds</Text>
               </div>
-              
-              <div className="flex items-center gap-4 mt-3.5">
-                <span className="font-medium min-w-[120px] text-gray-700">Animation</span>
-                <div className="flex-1">
+
+              <div className="settings-wee-slider-row">
+                <span className="settings-wee-slider-row__label">Interval</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="w-[4.5rem]">
+                    <WInput
+                      type="number"
+                      min={2}
+                      max={600}
+                      value={cycleInterval}
+                      onChange={(e) => handleCycleIntervalChange(Number(e.target.value))}
+                      className="text-[15px]"
+                    />
+                  </div>
+                  <Text variant="small" className="text-[hsl(var(--text-tertiary))]">
+                    seconds per wallpaper
+                  </Text>
+                </div>
+              </div>
+
+              <div className="settings-wee-slider-row items-start">
+                <span className="settings-wee-slider-row__label pt-1">Animation</span>
+                <div className="min-w-0 flex-1">
                   <WSelect
                     options={WALLPAPER_ANIMATIONS}
                     value={cycleAnimation}
                     onChange={handleCycleAnimationChange}
                     className="w-full"
                   />
-                  <Text variant="small" className="text-gray-500 mt-1">
-                    {cycleAnimation === 'fade' && 'Smooth crossfade - best for most wallpapers'}
-                    {cycleAnimation === 'slide' && 'Directional slide - good for panoramic images'}
-                    {cycleAnimation === 'zoom' && 'Gentle zoom - subtle and elegant'}
-                    {cycleAnimation === 'ken-burns' && 'Cinematic effect - dramatic and engaging'}
-                    {cycleAnimation === 'morph' && 'Smooth morphing - unique and creative'}
-                    {cycleAnimation === 'blur' && 'Blur transition - soft and dreamy'}
+                  <Text variant="small" className="mt-1 text-[hsl(var(--text-tertiary))]">
+                    {cycleAnimation === 'fade' && 'Smooth crossfade — best for most wallpapers'}
+                    {cycleAnimation === 'slide' && 'Directional slide — good for panoramas'}
+                    {cycleAnimation === 'zoom' && 'Gentle zoom — subtle and calm'}
+                    {cycleAnimation === 'ken-burns' && 'Cinematic pan and zoom'}
+                    {cycleAnimation === 'morph' && 'Shape-style blend transition'}
+                    {cycleAnimation === 'blur' && 'Soft blur-based blend'}
                   </Text>
                 </div>
                 <Button
                   variant="secondary"
                   size="sm"
+                  rounded
                   onClick={() => {
-                    // Trigger a test cycle to preview the animation
                     if (window.cycleToNextWallpaper) {
                       window.cycleToNextWallpaper();
                     }
@@ -814,12 +890,12 @@ const WallpaperSettingsTab = React.memo(() => {
                   Preview
                 </Button>
               </div>
-              
-              {cycleAnimation === 'slide' && (
+
+              {cycleAnimation === 'slide' ? (
                 <>
-                  <div className="flex items-center gap-4 mt-3.5">
-                    <span className="font-medium min-w-[120px] text-gray-700">Slide Direction</span>
-                    <div className="flex-1">
+                  <div className="settings-wee-slider-row">
+                    <span className="settings-wee-slider-row__label">Slide mode</span>
+                    <div className="min-w-0 flex-1">
                       <WSelect
                         options={SLIDE_DIRECTION_MODE_OPTIONS}
                         value={slideRandomDirection ? 'random' : 'fixed'}
@@ -828,11 +904,11 @@ const WallpaperSettingsTab = React.memo(() => {
                       />
                     </div>
                   </div>
-                  
-                  {!slideRandomDirection && (
-                    <div className="flex items-center gap-4 mt-3.5">
-                      <span className="font-medium min-w-[120px] text-gray-700">Direction</span>
-                      <div className="flex-1">
+
+                  {!slideRandomDirection ? (
+                    <div className="settings-wee-slider-row">
+                      <span className="settings-wee-slider-row__label">Direction</span>
+                      <div className="min-w-0 flex-1">
                         <WSelect
                           options={SLIDE_DIRECTION_OPTIONS}
                           value={slideDirection}
@@ -841,25 +917,27 @@ const WallpaperSettingsTab = React.memo(() => {
                         />
                       </div>
                     </div>
-                  )}
-                  
-                  <div className="flex items-center gap-4 mt-3.5">
-                    <span className="font-medium min-w-[120px] text-gray-700">Slide Duration</span>
-                    <div className="flex-1">
+                  ) : null}
+
+                  <div className="settings-wee-slider-row">
+                    <span className="settings-wee-slider-row__label">Slide duration</span>
+                    <div className="min-w-0 flex-1">
                       <Slider
                         min={0.3}
                         max={2}
                         step={0.1}
                         value={slideDuration}
                         onChange={handleSlideDurationChange}
+                        containerClassName="!mb-0"
+                        hideValue
                       />
                     </div>
-                    <span className="min-w-[40px] font-semibold text-gray-500">{slideDuration}s</span>
+                    <span className="settings-wee-slider-row__value">{slideDuration}s</span>
                   </div>
-                  
-                  <div className="flex items-center gap-4 mt-3.5">
-                    <span className="font-medium min-w-[120px] text-gray-700">Slide Easing</span>
-                    <div className="flex-1">
+
+                  <div className="settings-wee-slider-row">
+                    <span className="settings-wee-slider-row__label">Slide easing</span>
+                    <div className="min-w-0 flex-1">
                       <WSelect
                         options={EASING_OPTIONS}
                         value={slideEasing}
@@ -869,27 +947,29 @@ const WallpaperSettingsTab = React.memo(() => {
                     </div>
                   </div>
                 </>
-              )}
-              
-              {cycleAnimation === 'fade' && (
+              ) : null}
+
+              {cycleAnimation === 'fade' ? (
                 <>
-                  <div className="flex items-center gap-4 mt-3.5">
-                    <span className="font-medium min-w-[120px] text-gray-700">Crossfade Duration</span>
-                    <div className="flex-1">
+                  <div className="settings-wee-slider-row">
+                    <span className="settings-wee-slider-row__label">Crossfade duration</span>
+                    <div className="min-w-0 flex-1">
                       <Slider
                         min={0.3}
                         max={2}
                         step={0.1}
                         value={crossfadeDuration}
                         onChange={handleCrossfadeDurationChange}
+                        containerClassName="!mb-0"
+                        hideValue
                       />
                     </div>
-                    <span className="min-w-[40px] font-semibold text-gray-500">{crossfadeDuration}s</span>
+                    <span className="settings-wee-slider-row__value">{crossfadeDuration}s</span>
                   </div>
-                  
-                  <div className="flex items-center gap-4 mt-3.5">
-                    <span className="font-medium min-w-[120px] text-gray-700">Crossfade Easing</span>
-                    <div className="flex-1">
+
+                  <div className="settings-wee-slider-row">
+                    <span className="settings-wee-slider-row__label">Crossfade easing</span>
+                    <div className="min-w-0 flex-1">
                       <WSelect
                         options={EASING_OPTIONS}
                         value={crossfadeEasing}
@@ -897,38 +977,44 @@ const WallpaperSettingsTab = React.memo(() => {
                         className="w-full"
                       />
                     </div>
-            </div>
+                  </div>
                 </>
-              )}
-              
-              <div className="text-[13px] text-gray-400 mt-2">
-                <strong>Animation Types:</strong> Fade (smooth crossfade), Slide (slide transition), 
-                Zoom (zoom effect), Ken Burns (pan and zoom), Dissolve (pixel dissolve), Wipe (clean wipe).
-            </div>
-          </>
-          )
-        }
-      />
+              ) : null}
 
-      {/* Wallpaper Overlay Effects Card */}
-      <Card
-        title="Wallpaper Overlay Effects"
-        separator
-        desc="Add beautiful animated overlay effects to your wallpaper, like snow, rain, leaves, fireflies, or dust particles."
-        headerActions={
-          <WToggle
-            checked={overlayEnabled}
-            onChange={handleOverlayEnabledChange}
-          />
-        }
-        actions={
-          overlayEnabled && (
+              <p className="settings-wee-help !mb-0 mt-2">
+                Fade, slide, zoom, Ken Burns, morph, and blur transitions use the same liked set — tune the interval
+                so cycling stays gentle on slower machines.
+              </p>
+            </>
+          ) : null}
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
+
+      <SettingsWeeSection eyebrow="Overlay">
+        <WeeModalFieldCard hoverAccent="discovery" paddingClassName="p-5 md:p-6">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <Text variant="h3" className="mb-1 playful-hero-text">
+                Particle overlay
+              </Text>
+              <Text variant="desc" className="!m-0">
+                Optional snow, rain, leaves, fireflies, dust, or fire — drawn above the wallpaper, under the UI.
+              </Text>
+            </div>
+            <WToggle
+              checked={overlayEnabled}
+              onChange={handleOverlayEnabledChange}
+              disableLabelClick
+              title="Toggle animated particles over the wallpaper"
+            />
+          </div>
+          {overlayEnabled ? (
             <>
-              <div className="flex items-center gap-4 mt-3.5">
-                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-effect">
-                  Effect type
+              <div className="settings-wee-slider-row items-start">
+                <label className="settings-wee-slider-row__label pt-1" htmlFor="wallpaper-overlay-effect">
+                  Effect
                 </label>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <WSelect
                     id="wallpaper-overlay-effect"
                     options={OVERLAY_EFFECT_OPTIONS}
@@ -938,11 +1024,11 @@ const WallpaperSettingsTab = React.memo(() => {
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-4 mt-3.5">
-                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-intensity">
+              <div className="settings-wee-slider-row">
+                <label className="settings-wee-slider-row__label" htmlFor="wallpaper-overlay-intensity">
                   Intensity
                 </label>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <Slider
                     id="wallpaper-overlay-intensity"
                     aria-label="Particle overlay intensity"
@@ -955,13 +1041,13 @@ const WallpaperSettingsTab = React.memo(() => {
                     hideValue
                   />
                 </div>
-                <span className="min-w-[44px] text-right font-semibold text-gray-500 tabular-nums">{overlayIntensity}%</span>
+                <span className="settings-wee-slider-row__value">{overlayIntensity}%</span>
               </div>
-              <div className="flex items-center gap-4 mt-3.5">
-                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-speed">
+              <div className="settings-wee-slider-row">
+                <label className="settings-wee-slider-row__label" htmlFor="wallpaper-overlay-speed">
                   Speed
                 </label>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <Slider
                     id="wallpaper-overlay-speed"
                     aria-label="Particle overlay speed"
@@ -974,13 +1060,13 @@ const WallpaperSettingsTab = React.memo(() => {
                     hideValue
                   />
                 </div>
-                <span className="min-w-[44px] text-right font-semibold text-gray-500 tabular-nums">{overlaySpeed}x</span>
+                <span className="settings-wee-slider-row__value">{overlaySpeed}x</span>
               </div>
-              <div className="flex items-center gap-4 mt-3.5">
-                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-wind">
+              <div className="settings-wee-slider-row">
+                <label className="settings-wee-slider-row__label" htmlFor="wallpaper-overlay-wind">
                   Wind
                 </label>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <Slider
                     id="wallpaper-overlay-wind"
                     aria-label="Particle overlay wind"
@@ -993,13 +1079,13 @@ const WallpaperSettingsTab = React.memo(() => {
                     hideValue
                   />
                 </div>
-                <span className="min-w-[44px] text-right font-semibold text-gray-500 tabular-nums">{overlayWind.toFixed(3)}</span>
+                <span className="settings-wee-slider-row__value">{overlayWind.toFixed(3)}</span>
               </div>
-              <div className="flex items-center gap-4 mt-3.5">
-                <label className="font-medium min-w-[120px] text-gray-700 shrink-0" htmlFor="wallpaper-overlay-gravity">
+              <div className="settings-wee-slider-row">
+                <label className="settings-wee-slider-row__label" htmlFor="wallpaper-overlay-gravity">
                   Gravity
                 </label>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <Slider
                     id="wallpaper-overlay-gravity"
                     aria-label="Particle overlay gravity"
@@ -1012,18 +1098,15 @@ const WallpaperSettingsTab = React.memo(() => {
                     hideValue
                   />
                 </div>
-                <span className="min-w-[44px] text-right font-semibold text-gray-500 tabular-nums">{overlayGravity.toFixed(2)}</span>
+                <span className="settings-wee-slider-row__value">{overlayGravity.toFixed(2)}</span>
               </div>
-              <div className="text-[13px] text-gray-400 mt-2">
-                <strong>Effect Types:</strong> Snow (gentle falling snowflakes), Rain (falling raindrops),
-                Leaves (floating autumn leaves), Fireflies (glowing particles), Dust (floating dust particles),
-                Fire (rising flames).
-              </div>
+              <p className="settings-wee-help !mb-0 mt-1">
+                Heavier overlays cost more GPU — lower intensity on laptops or when many channels are visible.
+              </p>
             </>
-          )
-        }
-      />
-
+          ) : null}
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
 
     </div>
   );

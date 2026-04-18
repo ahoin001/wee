@@ -354,18 +354,6 @@ body, #root {
   transform: translateX(0);
 }
 
-.space-rail__pin {
-  border: 2px solid hsl(var(--border-primary) / 0.8);
-  background: hsl(var(--surface-elevated) / 0.92);
-  color: hsl(var(--text-secondary));
-  border-radius: 999px;
-  font-size: 0.64rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  padding: 0.28rem 0.65rem;
-}
-
 /* Legacy channels-grid - keeping for backward compatibility but not used by PaginatedChannels */
 .channels-grid {
   display: grid;

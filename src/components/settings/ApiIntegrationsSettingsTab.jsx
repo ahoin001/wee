@@ -23,6 +23,7 @@ import {
   SYSTEM_INFO_GRADIENT,
 } from '../../design/runtimeColorStrings.js';
 import './api-integrations-settings.css';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
 
 const spotifyBtnClass = (active, isGreen = true) =>
   active
@@ -116,15 +117,11 @@ const ApiIntegrationsSettingsTab = () => {
   const handleSaveSettings = useCallback(async () => {}, []);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="mb-6">
-        <Text variant="h2" className="text-[hsl(var(--text-primary))] mb-2">
-          API & Widgets
-      </Text>
-        <Text variant="body" className="text-[hsl(var(--text-secondary))]">
-          Configure external integrations and floating widgets
-      </Text>
-      </div>
+    <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
+      <SettingsTabPageHeader
+        title="API & Widgets"
+        subtitle="External services & floating widgets"
+      />
 
       {/* Spotify Integration */}
       <CollapsibleSection

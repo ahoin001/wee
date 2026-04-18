@@ -1,10 +1,14 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { WBaseModal } from '../core';
+import React, { useState, useRef, useEffect } from 'react';
 // import AppPathSectionCard from './AppPathSectionCard'; // LEGACY: No longer used
 import { UnifiedAppPathCard } from '../app-library';
-import Button from '../../ui/WButton';
+import {
+  WeeModalShell,
+  WeeModalFieldCard,
+  WeeSettingsSection,
+  WeeButton,
+  WeeSectionEyebrow,
+} from '../../ui/wee';
 import WToggle from '../../ui/WToggle';
-import Card from '../../ui/Card';
 import WInput from '../../ui/WInput';
 import WSelect from '../../ui/WSelect';
 import Text from '../../ui/Text';
@@ -19,10 +23,18 @@ import {
 const ICON_NEUTRAL_BORDER = 'hsl(var(--border-secondary))';
 const ICON_SURFACE = 'hsl(var(--surface-primary))';
 const ICON_IDLE_SHADOW = 'var(--shadow-sm)';
-const ICON_DELETE_HOVER_BG = 'hsl(var(--state-error) / 0.13)';
 const ICON_DELETE_BADGE_FILL = 'hsl(var(--state-error-light))';
 
-function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, preavailableIcons = [], ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX }) {
+function PrimaryActionsModal({
+  isOpen,
+  onClose,
+  onSave,
+  config,
+  buttonIndex,
+  preavailableIcons = [],
+  ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX,
+  onExitAnimationComplete,
+}) {
   const [type, setType] = useState(config?.type || 'text');
   const [text, setText] = useState(config?.text || (buttonIndex === 0 ? 'Wii' : ''));
   const [icon, setIcon] = useState(config?.icon || null);
@@ -41,6 +53,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
   const [glassShineOpacity, setGlassShineOpacity] = useState(config?.glassShineOpacity || 0.7);
   const [textFont, setTextFont] = useState(config?.textFont || 'default');
   const [path, setPath] = useState('');
+  const [tintedImages, setTintedImages] = useState({});
 
   // App/game path logic state
   const [gameType, setGameType] = useState('exe');
@@ -576,22 +589,23 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
             </div>
             
             {/* Upload New Icon Button */}
-            <Button
+            <WeeButton
+              type="button"
               variant="primary"
               onClick={handleUploadIcon}
               disabled={iconsUploading}
               className="mb-4"
             >
               {iconsUploading ? 'Uploading...' : 'Upload New Icon'}
-            </Button>
+            </WeeButton>
             {iconsUploadError && (
-              <Text variant="caption" className="text-red-500 mb-2">{iconsUploadError}</Text>
+              <Text variant="caption" className="mb-2 text-[hsl(var(--state-error))]">{iconsUploadError}</Text>
             )}
             {/* Saved Icons Section */}
             <div className="mb-3">
               <Text variant="body" className="font-medium mb-2">Your saved icons:</Text>
               {iconsLoading ? (
-                <Text variant="caption" className="text-gray-500 mb-3">Loading saved icons...</Text>
+                <Text variant="caption" className="mb-3 text-[hsl(var(--text-tertiary))]">Loading saved icons...</Text>
               ) : savedIcons.length > 0 ? (
                 <div className="flex gap-3 flex-wrap">
                   {savedIcons.map((i, idx) => (
@@ -630,31 +644,9 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                       <button
                         type="button"
                         title="Delete icon"
-                        className="icon-delete-btn"
-                        style={{
-                          position: 'absolute',
-                          top: -8,
-                          right: -8,
-                          background: ICON_SURFACE,
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: 22,
-                          height: 22,
-                          fontSize: 15,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          zIndex: 2,
-                          boxShadow: 'var(--shadow-md)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: CSS_STATE_ERROR,
-                          transition: 'background 0.18s, color 0.18s',
-                        }}
+                        className="icon-delete-btn absolute -right-2 -top-2 z-[2] flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full border-0 bg-[hsl(var(--surface-primary))] text-[hsl(var(--state-error))] shadow-[var(--shadow-md)] transition-colors hover:bg-[hsl(var(--state-error)/0.13)]"
                         onClick={() => handleDeleteSavedIcon(i.url)}
                         aria-label="Delete icon"
-                        onMouseEnter={e => { e.currentTarget.style.background = ICON_DELETE_HOVER_BG; e.currentTarget.style.color = CSS_STATE_ERROR; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = ICON_SURFACE; e.currentTarget.style.color = CSS_STATE_ERROR; }}
                       >
                         <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <circle cx="10" cy="10" r="10" fill={ICON_DELETE_BADGE_FILL}/>
@@ -666,7 +658,7 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                   ))}
                 </div>
               ) : (
-                <Text variant="caption" className="text-gray-500 mb-3">No saved icons yet.</Text>
+                <Text variant="caption" className="mb-3 text-[hsl(var(--text-tertiary))]">No saved icons yet.</Text>
               )}
             </div>
           </>
@@ -675,88 +667,95 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
     );
   }
 
-  const [tintedImages, setTintedImages] = useState({});
-
-  if (!isOpen) return null;
+  const modalTitle = isPresetsButton
+    ? 'Customize Presets Button'
+    : isAccessoryButton
+      ? 'Customize Accessory Button'
+      : 'Primary Actions';
 
   return (
-    <WBaseModal
-      title={isPresetsButton ? "Customize Presets Button" : isAccessoryButton ? "Customize Accessory Button" : "Primary Actions"}
+    <WeeModalShell
+      isOpen={isOpen}
       onClose={onClose}
-      maxWidth="700px"
+      onExitAnimationComplete={onExitAnimationComplete}
+      headerTitle={modalTitle}
+      showRail={false}
+      maxWidth="min(760px, 96vw)"
       footerContent={({ handleClose }) => (
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => { 
-            if (isPresetsButton || isAccessoryButton || validatePath()) { 
-              handleSave();
-              handleClose(); 
-            } 
-          }}>Save</Button>
+        <div className="flex flex-wrap justify-end gap-3">
+          <WeeButton type="button" variant="secondary" onClick={handleClose}>
+            Cancel
+          </WeeButton>
+          <WeeButton
+            type="button"
+            variant="primary"
+            onClick={() => {
+              if (isPresetsButton || isAccessoryButton || validatePath()) {
+                handleSave();
+                handleClose();
+              }
+            }}
+          >
+            Save
+          </WeeButton>
         </div>
       )}
     >
-      {/* Icon Selection/Upload Card */}
-      <Card
-        title={isPresetsButton ? "Presets Button Icon" : isAccessoryButton ? "Accessory Button Icon" : "Channel Icon"}
-        separator
-        desc={isPresetsButton 
-          ? "Choose or upload a custom icon for the presets button. This button opens the presets modal when clicked."
-          : isAccessoryButton
-          ? "Choose or upload a custom icon for the accessory button. This button can be configured to launch apps or URLs."
-          : "Choose or upload a custom icon for this channel. PNG recommended for best results."
-        }
-        className="mb-5"
-      >
-        <div className="mt-3">
-          {/* Icon selection/upload UI here */}
-          {renderIconSection && renderIconSection()}
-        </div>
-      </Card>
-      {/* Icon Color Settings Card - Only show when using icon and not presets button or accessory button */}
-      {type === 'icon' && !isPresetsButton && !isAccessoryButton && (
-        <Card
-          title="Icon Color Settings"
-          separator
-          className="mb-5"
+      <WeeModalFieldCard className="mb-6">
+        <WeeSettingsSection
+          className="!mb-0"
+          label={isPresetsButton ? 'Presets button icon' : isAccessoryButton ? 'Accessory button icon' : 'Channel icon'}
+          description={
+            isPresetsButton
+              ? 'Choose or upload a custom icon for the presets button. This button opens the presets modal when clicked.'
+              : isAccessoryButton
+                ? 'Choose or upload a custom icon for the accessory button. This button can be configured to launch apps or URLs.'
+                : 'Choose or upload a custom icon for this channel. PNG recommended for best results.'
+          }
         >
-                  <div className="mb-4">
-          <WToggle
-            checked={useWiiGrayFilter}
-            onChange={handleWiiGrayFilterToggle}
-            label="Use Wii Button Color Filter"
-          />
-          <div className="ml-14 mt-1">
-            <Text variant="caption" className="text-gray-600">
-              Make the icon Wii gray to match the classic Wii button style.
-            </Text>
-          </div>
-        </div>
-        
-        <div>
-          <WToggle
-            checked={useAdaptiveColor}
-            onChange={handleAdaptiveColorToggle}
-            label="Use Adaptive Color"
-          />
-          <div className="ml-14 mt-1">
-            <Text variant="caption" className="text-gray-600">
-              Make the icon color match the ribbon glow color ({ribbonGlowColor}).
-            </Text>
-          </div>
-        </div>
-        </Card>
+          {renderIconSection && renderIconSection()}
+        </WeeSettingsSection>
+      </WeeModalFieldCard>
+
+      {type === 'icon' && !isPresetsButton && !isAccessoryButton && (
+        <WeeModalFieldCard className="mb-6">
+          <WeeSettingsSection className="!mb-0" label="Icon color settings">
+            <div className="mb-4">
+              <WToggle
+                checked={useWiiGrayFilter}
+                onChange={handleWiiGrayFilterToggle}
+                label="Use Wii Button Color Filter"
+              />
+              <div className="ml-14 mt-1">
+                <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
+                  Make the icon Wii gray to match the classic Wii button style.
+                </Text>
+              </div>
+            </div>
+
+            <div>
+              <WToggle
+                checked={useAdaptiveColor}
+                onChange={handleAdaptiveColorToggle}
+                label="Use Adaptive Color"
+              />
+              <div className="ml-14 mt-1">
+                <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
+                  Make the icon color match the ribbon glow color ({ribbonGlowColor}).
+                </Text>
+              </div>
+            </div>
+          </WeeSettingsSection>
+        </WeeModalFieldCard>
       )}
 
-      {/* Unified App Path Card - Only show for non-presets buttons */}
       {!isPresetsButton && (
-        <Card
-          title="Unified App Path (NEW)"
-          separator
-          desc="NEW: Unified app search that consolidates all app types (EXE, Steam, Epic, Microsoft Store) into a single interface."
-          className="mb-5"
-        >
-                  <div className="mt-3">
+        <WeeModalFieldCard className="mb-6">
+          <WeeSettingsSection
+            className="!mb-0"
+            label="App path"
+            description="Search and pick apps across EXE, Steam, Epic, and Microsoft Store in one place."
+          >
           <UnifiedAppPathCard
               key={`unified-app-path-${buttonIndex}-${isOpen}`} // Force remount when button or modal changes
               value={{
@@ -798,30 +797,27 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                 }
               }}
             />
-          </div>
-        </Card>
+          </WeeSettingsSection>
+        </WeeModalFieldCard>
       )}
 
-      {/* Hover Effect Card - Show for all buttons */}
-      <Card
-        title="Hover Effect"
-        separator
-        desc="Choose how the button looks when you hover over it."
-        className="mb-5"
-      >
-        <div className="mt-3">
-          {/* Border Effect Option */}
+      <WeeModalFieldCard className="mb-6">
+        <WeeSettingsSection
+          className="!mb-0"
+          label="Hover effect"
+          description="Choose how the button looks when you hover over it."
+        >
           <div className="mb-3">
             <WRadioGroup
               options={[
                 { value: 'border', label: 'Border Effect' },
-                { value: 'glow', label: 'Glow Effect' }
+                { value: 'glow', label: 'Glow Effect' },
               ]}
               value={useGlowEffect ? 'glow' : 'border'}
               onChange={(value) => setUseGlowEffect(value === 'glow')}
               className="mb-3"
             />
-            
+
             <div className="ml-6">
               <WToggle
                 checked={useAdaptiveColor}
@@ -830,12 +826,13 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
               />
             </div>
           </div>
-          
-          {/* Glow Effect Settings */}
+
           {useGlowEffect && (
             <div className="ml-6 mt-2">
-              <div className="flex items-center gap-3 mb-2">
-                <Text variant="small" className="text-gray-600 min-w-[60px]">Strength:</Text>
+              <div className="mb-2 flex items-center gap-3">
+                <Text variant="small" className="min-w-[60px] text-[hsl(var(--text-secondary))]">
+                  Strength:
+                </Text>
                 <Slider
                   min={5}
                   max={50}
@@ -843,90 +840,68 @@ function PrimaryActionsModal({ isOpen, onClose, onSave, config, buttonIndex, pre
                   onChange={setGlowStrength}
                   className="flex-1"
                 />
-                <Text variant="small" className="text-gray-600 min-w-[30px]">{glowStrength}px</Text>
+                <Text variant="small" className="min-w-[30px] text-[hsl(var(--text-secondary))]">
+                  {glowStrength}px
+                </Text>
               </div>
             </div>
           )}
+        </WeeSettingsSection>
+      </WeeModalFieldCard>
+
+      <WeeModalFieldCard>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <WeeSectionEyebrow>Glass effect</WeeSectionEyebrow>
+            <Text variant="caption" className="!mt-2 max-w-prose text-[hsl(var(--text-secondary))]">
+              Apply a glass morphism effect to the button background. Text and icons appear above the glass.
+            </Text>
+          </div>
+          <WToggle checked={useGlassEffect} onChange={(checked) => setUseGlassEffect(checked)} />
         </div>
-      </Card>
-      {/* Glass Effect Card - Show for all buttons */}
-      <Card
-        title="Glass Effect"
-        separator
-        desc="Apply a glass morphism effect to the button background. Text and icons will appear above the glass effect."
-        headerActions={
-          <WToggle
-            checked={useGlassEffect}
-            onChange={(checked) => setUseGlassEffect(checked)}
-          />
-        }
-        className="mb-5"
-      >
         {useGlassEffect && (
-          <div className="mt-3">
-            {/* Glass Opacity */}
+          <div>
             <div className="mb-3">
-              <div className="flex justify-between items-center mb-2">
-                <Text variant="small" className="text-gray-600">Glass Opacity</Text>
-                <Text variant="small" className="text-gray-600">{Math.round(glassOpacity * 100)}%</Text>
+              <div className="mb-2 flex items-center justify-between">
+                <Text variant="small" className="text-[hsl(var(--text-secondary))]">Glass Opacity</Text>
+                <Text variant="small" className="text-[hsl(var(--text-secondary))]">
+                  {Math.round(glassOpacity * 100)}%
+                </Text>
               </div>
-              <Slider
-                min={0.05}
-                max={0.5}
-                step={0.01}
-                value={glassOpacity}
-                onChange={setGlassOpacity}
-              />
+              <Slider min={0.05} max={0.5} step={0.01} value={glassOpacity} onChange={setGlassOpacity} />
             </div>
-            
-            {/* Glass Blur */}
+
             <div className="mb-3">
-              <div className="flex justify-between items-center mb-2">
-                <Text variant="small" className="text-gray-600">Glass Blur</Text>
-                <Text variant="small" className="text-gray-600">{glassBlur}px</Text>
+              <div className="mb-2 flex items-center justify-between">
+                <Text variant="small" className="text-[hsl(var(--text-secondary))]">Glass Blur</Text>
+                <Text variant="small" className="text-[hsl(var(--text-secondary))]">{glassBlur}px</Text>
               </div>
-              <Slider
-                min={0.5}
-                max={8}
-                step={0.1}
-                value={glassBlur}
-                onChange={setGlassBlur}
-              />
+              <Slider min={0.5} max={8} step={0.1} value={glassBlur} onChange={setGlassBlur} />
             </div>
-            
-            {/* Glass Border Intensity */}
+
             <div className="mb-3">
-              <div className="flex justify-between items-center mb-2">
-                <Text variant="small" className="text-gray-600">Glass Border Intensity</Text>
-                <Text variant="small" className="text-gray-600">{Math.round(glassBorderOpacity * 100)}%</Text>
+              <div className="mb-2 flex items-center justify-between">
+                <Text variant="small" className="text-[hsl(var(--text-secondary))]">Glass Border Intensity</Text>
+                <Text variant="small" className="text-[hsl(var(--text-secondary))]">
+                  {Math.round(glassBorderOpacity * 100)}%
+                </Text>
               </div>
-              <Slider
-                min={0.1}
-                max={1}
-                step={0.05}
-                value={glassBorderOpacity}
-                onChange={setGlassBorderOpacity}
-              />
+              <Slider min={0.1} max={1} step={0.05} value={glassBorderOpacity} onChange={setGlassBorderOpacity} />
             </div>
-            
-            {/* Glass Shine Intensity */}
+
             <div className="mb-3">
-              <div className="flex justify-between items-center mb-2">
-                <Text variant="small" className="text-gray-600">Glass Shine Intensity</Text>
-                <Text variant="small" className="text-gray-600">{Math.round(glassShineOpacity * 100)}%</Text>
+              <div className="mb-2 flex items-center justify-between">
+                <Text variant="small" className="text-[hsl(var(--text-secondary))]">Glass Shine Intensity</Text>
+                <Text variant="small" className="text-[hsl(var(--text-secondary))]">
+                  {Math.round(glassShineOpacity * 100)}%
+                </Text>
               </div>
-              <Slider
-                min={0.1}
-                max={1}
-                step={0.05}
-                value={glassShineOpacity}
-                onChange={setGlassShineOpacity}
-              />
+              <Slider min={0.1} max={1} step={0.05} value={glassShineOpacity} onChange={setGlassShineOpacity} />
             </div>
           </div>
         )}
-        </Card>
-    </WBaseModal>
+      </WeeModalFieldCard>
+    </WeeModalShell>
   );
 }
 

@@ -1,6 +1,7 @@
 import { createFloatingWidgetManager } from './floatingWidgetManager';
 import { createPerformanceManager } from './performanceManager';
 import { filterSteamToolEntries } from '../steamLibraryFilter.js';
+import { collectWarmMediaUrlsFromStore, warmImageUrlsOnIdle } from '../mediaWarmCache.js';
 
 export const createStoreManagers = (getStore) => {
   const appLibraryManager = {
@@ -324,6 +325,12 @@ export const createStoreManagers = (getStore) => {
           await appLibraryManager.fetchEpicGames(false, { silent: true });
           await pause(350);
           await appLibraryManager.fetchUwpApps(false, { silent: true });
+          await pause(400);
+          try {
+            warmImageUrlsOnIdle(collectWarmMediaUrlsFromStore(getStore()), { max: 56 });
+          } catch {
+            /* ignore */
+          }
         } catch (e) {
           console.warn('[appLibraryManager] Background prefetch:', e);
         }

@@ -14,7 +14,6 @@ import {
   runFlyInAnimations,
   runFlyOutAnimations,
 } from './collectionFlyAnimations';
-import { readHubDockInsetPx, scrollHubRegionIntoFocus } from './hubScrollUtils';
 
 /** One frame — hub-design uses rAF before measuring slot rects. */
 function nextFrame() {
@@ -38,11 +37,6 @@ function waitMs(ms) {
   });
 }
 
-/** Scroll after shelf + fly settle (hub: scrollIntoView first — we defer to avoid fighting expansion). */
-function scrollDelayMs(flyEnabled) {
-  return flyEnabled ? COLLECTION_EXPANSION_MS + 160 : 100;
-}
-
 function shouldIgnoreCollectionCloseTarget(target) {
   if (!(target instanceof Element)) return false;
   if (target.closest('.modal-overlay')) return true;
@@ -58,7 +52,6 @@ function shouldIgnoreCollectionCloseTarget(target) {
 }
 
 export default function AuraCollectionsSection({
-  scrollContainerRef,
   collections,
   activeCollection,
   activeCollectionId,
@@ -79,9 +72,6 @@ export default function AuraCollectionsSection({
   /** Synchronous guard — stack clicks can land before React state would reflect an in-flight close. */
   const uiLockedRef = useRef(false);
   const shelfClosingRef = useRef(false);
-  const scrollIntoCollectionViewRef = useRef(false);
-  const scrollRoRef = useRef(null);
-  const scrollStopTimerRef = useRef(null);
   /** Single in-flight close — rapid clicks await the same work instead of racing. */
   const closePromiseRef = useRef(null);
   const closeSessionRef = useRef(0);
@@ -295,48 +285,6 @@ export default function AuraCollectionsSection({
     };
   }, [activeCollectionId, gameSignature, flyAllowed, prepareCollectionHandoff]);
 
-  useEffect(() => {
-    if (!activeCollectionId || !scrollIntoCollectionViewRef.current) return undefined;
-    scrollIntoCollectionViewRef.current = false;
-
-    const container = scrollContainerRef?.current;
-    const region = sectionRef.current;
-    if (!container || !region) return undefined;
-
-    const runScroll = () => {
-      const inset = readHubDockInsetPx(region);
-      scrollHubRegionIntoFocus(container, region, { bottomInset: inset });
-    };
-
-    const delayMs = scrollDelayMs(flyAllowed);
-
-    const startTimer = window.setTimeout(() => {
-      runScroll();
-      if (scrollRoRef.current) {
-        scrollRoRef.current.disconnect();
-        scrollRoRef.current = null;
-      }
-      const ro = new ResizeObserver(() => runScroll());
-      scrollRoRef.current = ro;
-      ro.observe(region);
-      scrollStopTimerRef.current = window.setTimeout(() => {
-        scrollRoRef.current?.disconnect();
-        scrollRoRef.current = null;
-        scrollStopTimerRef.current = null;
-      }, 650);
-    }, delayMs);
-
-    return () => {
-      window.clearTimeout(startTimer);
-      scrollRoRef.current?.disconnect();
-      scrollRoRef.current = null;
-      if (scrollStopTimerRef.current) {
-        window.clearTimeout(scrollStopTimerRef.current);
-        scrollStopTimerRef.current = null;
-      }
-    };
-  }, [activeCollectionId, gameSignature, scrollContainerRef, flyAllowed]);
-
   const flushPendingOpen = useCallback(() => {
     const pid = pendingOpenCollectionIdRef.current;
     pendingOpenCollectionIdRef.current = null;
@@ -344,7 +292,6 @@ export default function AuraCollectionsSection({
     const col = collections.find((c) => c.id === pid);
     if (!col) return;
     if (activeCollectionIdRef.current === pid) return;
-    scrollIntoCollectionViewRef.current = true;
     onSetCollection(pid);
   }, [collections, onSetCollection]);
 
@@ -377,7 +324,6 @@ export default function AuraCollectionsSection({
           await animateClose();
         }
 
-        scrollIntoCollectionViewRef.current = true;
         onSetCollection(collection.id);
       } finally {
         uiLockedRef.current = false;
@@ -430,11 +376,13 @@ export default function AuraCollectionsSection({
     if (!activeCollectionId) return undefined;
 
     const onGlobalDown = (event) => {
+      if (event.button !== 0) return;
       const target = event.target;
       if (!(target instanceof Element)) return;
       if (shouldIgnoreCollectionCloseTarget(target)) return;
       if (target.closest('.aura-hub-stack')) return;
       if (target.closest('.aura-hub-expansion')) return;
+      if (target.closest('#game-hub-library') || target.closest('.aura-hub-section--library')) return;
       if (target.closest('.aura-hub-scroll-anchors')) return;
       if (target.closest('.aura-hub-mode-toggle')) return;
       if (uiLockedRef.current) return;
@@ -643,8 +591,8 @@ export default function AuraCollectionsSection({
         </>
       ) : (
         <div className="aura-hub-empty">
-          No shelves yet. Add Wee favorites from the right-click menu, launch games from the hub to build a Recently
-          played shelf, or connect Steam for playtime-based shelves and client tags.
+          No shelves yet. Add Wee favorites from the right-click menu, connect Steam for playtime-based shelves and
+          client tags, or create Wee collections from Manage collections.
         </div>
       )}
     </section>

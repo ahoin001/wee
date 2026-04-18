@@ -5,6 +5,7 @@ import { normalizeUnifiedSettingsSnapshot } from '../utils/store/settingsPersist
 import { normalizeShellSpaceOrder } from '../utils/channelSpaces';
 import { mergeMotionFeedback } from '../utils/motionFeedbackDefaults';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { weeMeasureAsync } from '../utils/weePerformanceMarks';
 
 export const useAppInitialization = ({
   setAppState,
@@ -28,9 +29,9 @@ export const useAppInitialization = ({
       try {
         if (cancelled) return;
 
-        const unifiedData = await electronApi.getUnifiedData();
+        const unifiedData = await weeMeasureAsync('ipc-unified-data-get', () => electronApi.getUnifiedData());
         const [wallpaperData] = await Promise.all([
-          electronApi.getWallpapers(),
+          weeMeasureAsync('ipc-wallpapers-get', () => electronApi.getWallpapers()),
         ]);
 
         const resolvedSettings = normalizeUnifiedSettingsSnapshot(unifiedData?.settings || {});

@@ -1,11 +1,10 @@
 import React from 'react';
-import Card from '../../../ui/Card';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
 import WToggle from '../../../ui/WToggle';
 import WInput from '../../../ui/WInput';
 
-/** "Save current as preset" form + include toggles */
+/** "Save current as preset" form + include toggles — body only (parent provides wee shell). */
 const PresetsSaveCurrentCard = React.memo(
   ({
     newPresetName,
@@ -19,65 +18,63 @@ const PresetsSaveCurrentCard = React.memo(
     customPresetCount,
     maxCustomPresets,
   }) => (
-    <Card className="mb-[18px]" title="Save Current as Preset" separator>
-      <div className="wee-card-desc">
-        <div className="surface-actions">
-          <WInput
-            type="text"
-            placeholder="Preset name"
-            value={newPresetName}
-            onChange={(e) => onNewPresetNameChange(e.target.value)}
-            maxLength={32}
-            disabled={customPresetCount >= maxCustomPresets}
-            className="flex-1"
-          />
-          <Button
-            variant="primary"
-            className="min-w-[90px]"
-            onClick={onSave}
-            disabled={customPresetCount >= maxCustomPresets}
-          >
-            Save Preset
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+        <WInput
+          variant="wee"
+          type="text"
+          placeholder="Preset name"
+          value={newPresetName}
+          onChange={(e) => onNewPresetNameChange(e.target.value)}
+          maxLength={32}
+          disabled={customPresetCount >= maxCustomPresets}
+          className="min-w-0 flex-1"
+        />
+        <Button
+          variant="primary"
+          className="min-w-[90px] shrink-0 sm:self-stretch"
+          onClick={onSave}
+          disabled={customPresetCount >= maxCustomPresets}
+        >
+          Save Preset
+        </Button>
+      </div>
 
-        <div className="mt-3 surface-actions">
-          <Text size="sm" color="hsl(var(--text-secondary))">
-            Presets now save theme/look only. Use Workspaces for app/channel setups.
-          </Text>
-        </div>
+      <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
+        Presets save theme and look only. Use Workspaces for app and channel setups.
+      </Text>
 
-        <div className="mt-2 surface-actions">
-          <Button variant="tertiary" size="sm" onClick={onOpenWorkspaces}>
-            Open Workspaces
-          </Button>
-          <WToggle checked={includeSounds} onChange={onIncludeSoundsChange} label="Include Sound Settings" />
-          <Text size="sm" color="hsl(var(--text-secondary))" className="ml-2">
+      <div className="flex flex-col gap-3 border-t border-[hsl(var(--border-primary)/0.35)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
+        <Button variant="tertiary" size="sm" onClick={onOpenWorkspaces} className="w-fit">
+          Open Workspaces
+        </Button>
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:ml-auto">
+          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))] sm:text-right">
             Save sound library and audio preferences
           </Text>
+          <WToggle checked={includeSounds} onChange={onIncludeSoundsChange} label="Include sounds" disableLabelClick />
         </div>
-
-        {error && (
-          <Text size="sm" color="hsl(var(--state-error))" className="mt-1.5">
-            {error}
-          </Text>
-        )}
-        {captureNotice.text && (
-          <Text
-            size="sm"
-            color={captureNotice.type === 'success' ? 'hsl(var(--success))' : 'hsl(var(--text-secondary))'}
-            className="mt-1.5"
-          >
-            {captureNotice.text}
-          </Text>
-        )}
-        {customPresetCount >= maxCustomPresets && (
-          <Text size="sm" color="hsl(var(--text-secondary))" className="mt-1.5">
-            You can save up to {maxCustomPresets} custom presets (plus Spotify Match).
-          </Text>
-        )}
       </div>
-    </Card>
+
+      {error ? (
+        <Text variant="caption" className="!m-0 text-[hsl(var(--state-error))]">
+          {error}
+        </Text>
+      ) : null}
+      {captureNotice.text ? (
+        <Text
+          variant="caption"
+          className={`!m-0 ${captureNotice.type === 'success' ? 'text-[hsl(var(--state-success))]' : 'text-[hsl(var(--text-secondary))]'}`}
+        >
+          {captureNotice.text}
+        </Text>
+      ) : null}
+      {customPresetCount >= maxCustomPresets ? (
+        <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+          You can save up to {maxCustomPresets} custom presets (plus Spotify Match).
+        </Text>
+      ) : null}
+    </div>
   )
 );
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 /** Spring used for tile lift + drop-target feedback */
@@ -35,7 +35,7 @@ export function ChannelDragOverlayFrame({ children }) {
   }
 
   return (
-    <motion.div
+    <m.div
       className="channel-drag-overlay pointer-events-none rounded-xl"
       initial={{ scale: 1, rotate: 0, y: 0 }}
       animate={{
@@ -51,7 +51,7 @@ export function ChannelDragOverlayFrame({ children }) {
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -72,7 +72,7 @@ export function ChannelDropTargetMotion({ isActive, isSource, children }) {
   }
 
   return (
-    <motion.div
+    <m.div
       className="h-full w-full min-h-0 min-w-0 rounded-[inherit]"
       animate={{
         scale: isActive && !isSource ? 1.035 : 1,
@@ -87,7 +87,7 @@ export function ChannelDropTargetMotion({ isActive, isSource, children }) {
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 

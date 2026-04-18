@@ -1,3 +1,8 @@
+.shortcuts-settings-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 96px;
+}
+
 .surface-stack {
   display: flex;
   flex-direction: column;
@@ -229,4 +234,25 @@
   color: hsl(var(--text-on-accent));
   font-size: 10px;
   font-weight: 700;
+}
+
+/* Dock settings — particle “live” indicator (replaces inline @keyframes in component) */
+@keyframes wee-settings-pulse-opacity {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.42;
+  }
+}
+
+.wee-settings-pulse-dot {
+  animation: wee-settings-pulse-opacity 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wee-settings-pulse-dot {
+    animation: none;
+  }
 }

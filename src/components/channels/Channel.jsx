@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import ReactFreezeframe from 'react-freezeframe-vite';
@@ -19,6 +19,7 @@ import { useChannelSpaceKey } from '../../contexts/ChannelSpaceContext';
 import { getRecentLaunchHintTtlMs } from '../../utils/channelOpenHint';
 import { PlayfulTapLayer } from '../navigation/PlayfulInteractionMotion';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
+import { useRendererMediaPowerState } from '../../hooks/useRendererMediaPowerState';
 
 const api = window.api;
 
@@ -45,6 +46,8 @@ const Channel = React.memo(({
   const exeInputRef = useRef();
   const [showImageSearch, setShowImageSearch] = useState(false);
   const [showChannelModal, setShowChannelModal] = useState(false);
+  /** Keeps ChannelModal mounted through close animation; cleared in onExitAnimationComplete. */
+  const [channelModalMounted, setChannelModalMounted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [mp4Preview, setMp4Preview] = useState(null);
   const [imageError, setImageError] = useState(false);
@@ -116,6 +119,13 @@ const Channel = React.memo(({
   
   // Use sound manager for centralized sound handling
   const { playChannelHoverSound, playChannelClickSound, stopAllSounds } = useSoundManager();
+  const { shouldPauseDecorativeVideo } = useRendererMediaPowerState();
+
+  useLayoutEffect(() => {
+    if (showChannelModal) {
+      setChannelModalMounted(true);
+    }
+  }, [showChannelModal]);
 
   useEffect(() => {
     setUIState({ channelConfigureModalOpen: showChannelModal });
@@ -274,6 +284,34 @@ const Channel = React.memo(({
       }
     };
   }, [effectiveMedia, effectiveAnimatedOnHover, mp4Preview]);
+
+  // Pause decorative MP4 when the window is unfocused, hidden, or low-power mode is on.
+  useEffect(() => {
+    if (!effectiveMedia || !isVideoMediaType(effectiveMedia.type)) return undefined;
+    const el = videoRef.current;
+    if (!el) return undefined;
+
+    if (shouldPauseDecorativeVideo) {
+      el.pause();
+      return undefined;
+    }
+
+    if (effectiveAnimatedOnHover) {
+      if (isHovered) {
+        el.play?.().catch(() => {});
+      } else {
+        el.pause();
+      }
+    } else {
+      el.play?.().catch(() => {});
+    }
+    return undefined;
+  }, [
+    shouldPauseDecorativeVideo,
+    effectiveMedia,
+    effectiveAnimatedOnHover,
+    isHovered,
+  ]);
 
   // Cleanup audio when component unmounts
   useEffect(() => {
@@ -658,7 +696,18 @@ const Channel = React.memo(({
           );
         }
       } else {
-        mediaPreview = <video src={effectiveMedia.url} className="channel-media" autoPlay loop muted playsInline style={{ objectFit: 'cover', width: '100%', height: '100%' }} />;
+        mediaPreview = (
+          <video
+            ref={videoRef}
+            src={effectiveMedia.url}
+            className="channel-media"
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+          />
+        );
       }
     } else if (isRasterImageMediaType(effectiveMedia.type)) {
       // Handle other image types (PNG, JPG, etc.)
@@ -810,12 +859,13 @@ const Channel = React.memo(({
         />
       )}
 
-      {showChannelModal && (
+      {channelModalMounted ? (
         <ChannelModal
           channelId={id}
           channelSpaceKey={channelSpaceKey}
           isOpen={showChannelModal}
           onClose={() => setShowChannelModal(false)}
+          onExitAnimationComplete={() => setChannelModalMounted(false)}
           onSave={handleChannelModalSave}
           currentMedia={effectiveMedia}
           currentPath={effectivePath}
@@ -826,7 +876,7 @@ const Channel = React.memo(({
           currentKenBurnsEnabled={effectiveConfig?.kenBurnsEnabled}
           currentKenBurnsMode={effectiveConfig?.kenBurnsMode}
         />
-      )}
+      ) : null}
 
       {/* Spotify Music Channel Modal */}
       {/* Removed */}

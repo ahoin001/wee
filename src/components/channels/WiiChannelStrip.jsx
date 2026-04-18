@@ -14,6 +14,9 @@ const WiiChannelStrip = ({
   rows,
   onGridMouseEnter,
   onGridMouseLeave,
+  onGridPointerMove,
+  onGridPointerDown,
+  onGridWheel,
   renderChannelAtIndex,
 }) => {
   const safeTotalPages = Math.max(1, Number(totalPages) || 1);
@@ -36,6 +39,9 @@ const WiiChannelStrip = ({
       className={`wii-mode-grid${isGridFaded ? ' auto-fade' : ''}`}
       onMouseEnter={onGridMouseEnter}
       onMouseLeave={onGridMouseLeave}
+      onPointerMove={onGridPointerMove}
+      onPointerDown={onGridPointerDown}
+      onWheel={onGridWheel}
     >
       <div
         className={`wii-strip-continuous${isAnimating ? ' wii-strip-track--animating' : ''}`}
@@ -77,6 +83,9 @@ WiiChannelStrip.propTypes = {
   rows: PropTypes.number.isRequired,
   onGridMouseEnter: PropTypes.func.isRequired,
   onGridMouseLeave: PropTypes.func.isRequired,
+  onGridPointerMove: PropTypes.func,
+  onGridPointerDown: PropTypes.func,
+  onGridWheel: PropTypes.func,
   renderChannelAtIndex: PropTypes.func.isRequired,
 };
 

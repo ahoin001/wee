@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { ChannelDropTargetMotion } from './ChannelDragMotion';
 import { computeReorderShiftMotion } from '../../utils/channelReorderShift';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
@@ -89,7 +89,7 @@ function ChannelSlotDnd({ channelSpaceKey, channelIndex, disabled, celebrateDrop
       {...listeners}
       {...attributes}
     >
-      <motion.div
+      <m.div
         className="channel-slot-dnd__shift h-full w-full min-h-0 min-w-0"
         initial={false}
         animate={shiftMotion.animate}
@@ -97,7 +97,7 @@ function ChannelSlotDnd({ channelSpaceKey, channelIndex, disabled, celebrateDrop
         style={{ transformOrigin: 'center center' }}
       >
         <ChannelDropTargetMotion isActive={isOver} isSource={isDragging}>
-          <motion.div
+          <m.div
             className="channel-slot-dnd__content h-full w-full min-h-0 min-w-0"
             animate={
               celebrateDrop && !reduceMotion
@@ -111,9 +111,9 @@ function ChannelSlotDnd({ channelSpaceKey, channelIndex, disabled, celebrateDrop
             }
           >
             {children}
-          </motion.div>
+          </m.div>
         </ChannelDropTargetMotion>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

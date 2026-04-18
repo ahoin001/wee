@@ -1,35 +1,60 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import Card from '../../ui/Card';
+import {
+  AppWindow,
+  Compass,
+  Keyboard,
+  LayoutGrid,
+  Lightbulb,
+  Lock,
+  RotateCcw,
+  SlidersHorizontal,
+} from 'lucide-react';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { formatShortcut, validateShortcut, checkShortcutConflict, getShortcutsByCategory, DEFAULT_SHORTCUTS } from '../../utils/keyboardShortcuts';
-import SettingsWeeSection from './SettingsWeeSection';
+import {
+  formatShortcut,
+  validateShortcut,
+  checkShortcutConflict,
+  getShortcutsByCategory,
+  DEFAULT_SHORTCUTS,
+} from '../../utils/keyboardShortcuts';
+import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
+import './surfaceStyles.css';
+
+const CATEGORY_ICONS = {
+  Navigation: Compass,
+  Settings: SlidersHorizontal,
+  Widgets: LayoutGrid,
+  Interface: AppWindow,
+};
 
 const ShortcutsSettingsTab = React.memo(() => {
   const ui = useConsolidatedAppStore((state) => state.ui);
-  const actions = useConsolidatedAppStore(useShallow((state) => ({
-    setUIState: state.actions.setUIState,
-    resetKeyboardShortcuts: state.actions.resetKeyboardShortcuts,
-  })));
-  
-  // Local state for shortcut recording
+  const actions = useConsolidatedAppStore(
+    useShallow((state) => ({
+      setUIState: state.actions.setUIState,
+      resetKeyboardShortcuts: state.actions.resetKeyboardShortcuts,
+    }))
+  );
+
   const [editingShortcut, setEditingShortcut] = useState(null);
   const [shortcutError, setShortcutError] = useState('');
   const [recordingShortcut, setRecordingShortcut] = useState(false);
   const [currentShortcut, setCurrentShortcut] = useState('');
 
-  // Get keyboard shortcuts from store or use defaults
-  const keyboardShortcuts = ui?.keyboardShortcuts || DEFAULT_SHORTCUTS.map(shortcut => ({
-    ...shortcut,
-    key: shortcut.defaultKey,
-    modifier: shortcut.defaultModifier,
-    enabled: true
-  }));
+  const keyboardShortcuts =
+    ui?.keyboardShortcuts ||
+    DEFAULT_SHORTCUTS.map((shortcut) => ({
+      ...shortcut,
+      key: shortcut.defaultKey,
+      modifier: shortcut.defaultModifier,
+      enabled: true,
+    }));
 
-  // Reserved shortcuts that cannot be changed
   const RESERVED_SHORTCUTS = [
     { key: 'Ctrl+Shift+I', label: 'Developer Tools', description: 'Open browser developer tools' },
     { key: 'Ctrl+Shift+F', label: 'Force Developer Tools', description: 'Force open dev tools (development only)' },
@@ -37,22 +62,22 @@ const ShortcutsSettingsTab = React.memo(() => {
     { key: 'Escape', label: 'Settings Action Menu', description: 'Quick settings access' },
   ];
 
-  // Update keyboard shortcut in store
-  const updateKeyboardShortcut = useCallback((shortcutId, updates) => {
-    const updatedShortcuts = keyboardShortcuts.map(shortcut => 
-      shortcut.id === shortcutId ? { ...shortcut, ...updates } : shortcut
-    );
-    actions.setUIState({ keyboardShortcuts: updatedShortcuts });
-  }, [keyboardShortcuts, actions]);
+  const updateKeyboardShortcut = useCallback(
+    (shortcutId, updates) => {
+      const updatedShortcuts = keyboardShortcuts.map((shortcut) =>
+        shortcut.id === shortcutId ? { ...shortcut, ...updates } : shortcut
+      );
+      actions.setUIState({ keyboardShortcuts: updatedShortcuts });
+    },
+    [keyboardShortcuts, actions]
+  );
 
-  // Reset all shortcuts to default
   const handleResetShortcuts = useCallback(() => {
-    if (window.confirm('Are you sure you want to reset all keyboard shortcuts to default?')) {
+    if (window.confirm('Reset all keyboard shortcuts to defaults?')) {
       actions.resetKeyboardShortcuts();
     }
   }, [actions]);
 
-  // Handle shortcut editing
   const handleEditShortcut = useCallback((shortcut) => {
     setEditingShortcut(shortcut);
     setShortcutError('');
@@ -60,31 +85,29 @@ const ShortcutsSettingsTab = React.memo(() => {
     setCurrentShortcut('');
   }, []);
 
-  // Handle saving shortcut
-  const handleSaveShortcut = useCallback((shortcutId, updates) => {
-    // Validate the shortcut
-    const validation = validateShortcut(updates);
-    if (!validation.valid) {
-      setShortcutError(validation.error);
-      return;
-    }
+  const handleSaveShortcut = useCallback(
+    (shortcutId, updates) => {
+      const validation = validateShortcut(updates);
+      if (!validation.valid) {
+        setShortcutError(validation.error);
+        return;
+      }
 
-    // Check for conflicts
-    const conflict = checkShortcutConflict(updates, keyboardShortcuts);
-    if (conflict.hasConflict) {
-      setShortcutError(`Conflict with "${conflict.conflictingShortcut.name}"`);
-      return;
-    }
+      const conflict = checkShortcutConflict(updates, keyboardShortcuts);
+      if (conflict.hasConflict) {
+        setShortcutError(`Conflict with “${conflict.conflictingShortcut.name}”`);
+        return;
+      }
 
-    // Update the shortcut
-    updateKeyboardShortcut(shortcutId, updates);
-    setEditingShortcut(null);
-    setShortcutError('');
-    setRecordingShortcut(false);
-    setCurrentShortcut('');
-  }, [keyboardShortcuts, updateKeyboardShortcut]);
+      updateKeyboardShortcut(shortcutId, updates);
+      setEditingShortcut(null);
+      setShortcutError('');
+      setRecordingShortcut(false);
+      setCurrentShortcut('');
+    },
+    [keyboardShortcuts, updateKeyboardShortcut]
+  );
 
-  // Handle canceling edit
   const handleCancelEditShortcut = useCallback(() => {
     setEditingShortcut(null);
     setShortcutError('');
@@ -92,31 +115,36 @@ const ShortcutsSettingsTab = React.memo(() => {
     setCurrentShortcut('');
   }, []);
 
-  // Handle toggling shortcut
-  const handleToggleShortcut = useCallback((shortcutId) => {
-    const shortcut = keyboardShortcuts.find(s => s.id === shortcutId);
-    if (shortcut) {
-      updateKeyboardShortcut(shortcutId, { enabled: !shortcut.enabled });
-    }
-  }, [keyboardShortcuts, updateKeyboardShortcut]);
+  const handleToggleShortcut = useCallback(
+    (shortcutId) => {
+      const shortcut = keyboardShortcuts.find((s) => s.id === shortcutId);
+      if (shortcut) {
+        updateKeyboardShortcut(shortcutId, { enabled: !shortcut.enabled });
+      }
+    },
+    [keyboardShortcuts, updateKeyboardShortcut]
+  );
 
-  // Handle key recording
   useEffect(() => {
     if (!recordingShortcut) return;
 
     const handleKeyDown = (event) => {
       event.preventDefault();
-      
+
       const key = event.key.toLowerCase();
-      const modifier = event.ctrlKey ? 'ctrl' : 
-                      event.altKey ? 'alt' : 
-                      event.shiftKey ? 'shift' : 
-                      event.metaKey ? 'meta' : 'none';
-      
-      // Check if it's a reserved shortcut
+      const modifier = event.ctrlKey
+        ? 'ctrl'
+        : event.altKey
+          ? 'alt'
+          : event.shiftKey
+            ? 'shift'
+            : event.metaKey
+              ? 'meta'
+              : 'none';
+
       const shortcutString = formatShortcut({ key, modifier });
-      if (RESERVED_SHORTCUTS.some(reserved => reserved.key === shortcutString)) {
-        setCurrentShortcut('⚠️ Reserved shortcut - cannot use');
+      if (RESERVED_SHORTCUTS.some((reserved) => reserved.key === shortcutString)) {
+        setCurrentShortcut('Reserved — cannot use');
         setTimeout(() => {
           setRecordingShortcut(false);
           setEditingShortcut(null);
@@ -126,8 +154,7 @@ const ShortcutsSettingsTab = React.memo(() => {
       }
 
       setCurrentShortcut(shortcutString);
-      
-      // Auto-save after a short delay
+
       setTimeout(() => {
         if (editingShortcut) {
           handleSaveShortcut(editingShortcut.id, { key, modifier });
@@ -139,220 +166,243 @@ const ShortcutsSettingsTab = React.memo(() => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [recordingShortcut, editingShortcut, handleSaveShortcut]);
 
-  // Render shortcut key display
   const renderShortcutKey = (shortcut) => {
     if (!shortcut || !shortcut.enabled) return null;
-    
+
     const shortcutString = formatShortcut(shortcut);
+    const parts = shortcutString.split('+');
     return (
-      <div className="inline-flex items-center gap-1 px-2 py-1 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] rounded text-xs font-mono font-medium">
-        {shortcutString.split('+').map((key, index) => (
-          <React.Fragment key={index}>
-            <span className="px-1 py-0.5 bg-[hsl(var(--accent-foreground))] text-[hsl(var(--accent))] rounded text-xs">
-              {key}
+      <div className="inline-flex flex-wrap items-center gap-1">
+        {parts.map((keyPart, index) => (
+          <React.Fragment key={`${keyPart}-${index}`}>
+            <span className="rounded-md border border-[hsl(var(--primary)/0.4)] bg-[hsl(var(--primary)/0.12)] px-1.5 py-0.5 font-mono text-[11px] font-black text-[hsl(var(--primary))]">
+              {keyPart}
             </span>
-            {index < shortcutString.split('+').length - 1 && <span>+</span>}
+            {index < parts.length - 1 ? (
+              <span className="text-[hsl(var(--text-tertiary))]" aria-hidden>
+                +
+              </span>
+            ) : null}
           </React.Fragment>
         ))}
       </div>
     );
   };
 
-  // Group shortcuts by category
+  const renderReservedKeyChips = (keyString) => {
+    const parts = keyString.split('+');
+    return (
+      <div className="inline-flex flex-wrap items-center gap-1">
+        {parts.map((keyPart, index) => (
+          <React.Fragment key={`${keyString}-${index}`}>
+            <span className="rounded-md border border-[hsl(var(--border-primary)/0.5)] bg-[hsl(var(--surface-tertiary))] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[hsl(var(--text-primary))]">
+              {keyPart}
+            </span>
+            {index < parts.length - 1 ? (
+              <span className="text-[hsl(var(--text-tertiary))]" aria-hidden>
+                +
+              </span>
+            ) : null}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
+
   const groupedShortcuts = getShortcutsByCategory(keyboardShortcuts);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <SettingsWeeSection eyebrow="Overview">
-      <div className="mb-8 text-center">
-        <Text variant="h2" className="text-[hsl(var(--text-primary))] mb-3">
-          🎹 Keyboard Shortcuts
-        </Text>
-        <Text variant="body" className="text-[hsl(var(--text-secondary))] max-w-2xl mx-auto">
-          Configure keyboard shortcuts for quick access to app features and widgets. 
-          Click on any shortcut to customize it to your preference.
-        </Text>
-      </div>
+    <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
+      <SettingsTabPageHeader
+        title="Shortcuts"
+        subtitle="Keyboard shortcuts & hotkeys — bind keys for settings, widgets, and navigation"
+      />
 
-      {/* Header Actions */}
-      <div className="flex justify-between items-center">
-        <div></div>
-        <WButton
-          variant="secondary"
-          onClick={handleResetShortcuts}
-          size="sm"
-        >
-          🔄 Reset to Default
+      <div className="flex justify-end">
+        <WButton variant="secondary" onClick={handleResetShortcuts} size="sm" className="gap-1.5">
+          <RotateCcw size={14} strokeWidth={2.5} aria-hidden />
+          Reset to defaults
         </WButton>
       </div>
-      </SettingsWeeSection>
 
-      {shortcutError && (
-        <Card className="border-[hsl(var(--destructive))] bg-[hsl(var(--destructive))]/10">
-          <div className="p-4">
-            <Text variant="body" className="text-[hsl(var(--destructive))]">
-              ⚠️ {shortcutError}
-            </Text>
-          </div>
-        </Card>
-      )}
+      {shortcutError ? (
+        <WeeModalFieldCard
+          hoverAccent="none"
+          paddingClassName="p-4"
+          className="border border-[hsl(var(--state-error)/0.45)] bg-[hsl(var(--state-error-light)/0.45)]"
+        >
+          <Text variant="body" className="text-[hsl(var(--state-error))]">
+            {shortcutError}
+          </Text>
+        </WeeModalFieldCard>
+      ) : null}
 
-      <SettingsWeeSection eyebrow="Your shortcuts">
-      {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
-        <Card key={category} className="overflow-hidden">
-          <div className="bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(var(--accent))]/80 p-4">
-            <Text variant="h3" className="text-[hsl(var(--accent-foreground))] font-semibold">
-              {category}
-            </Text>
-          </div>
-          
-          <div className="p-6">
-            <div className="grid gap-4">
-              {shortcuts.map((shortcut) => (
-                <div key={shortcut.id} className="group">
-                  {/* Main Shortcut Row */}
-                  <div className="flex items-center justify-between p-4 bg-[hsl(var(--surface-secondary))] rounded-lg border border-[hsl(var(--border-primary))] hover:border-[hsl(var(--accent))] transition-all duration-200">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="text-2xl">{shortcut.icon}</div>
-                      <div className="flex-1">
-                        <Text variant="body" className="font-semibold text-[hsl(var(--text-primary))] mb-1">
-                          {shortcut.name}
-                        </Text>
-                        <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
-                          {shortcut.description}
-                        </Text>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      {/* Current Shortcut Display */}
-                      {shortcut.enabled && !editingShortcut && (
-                        <div className="flex items-center gap-2">
-                          {renderShortcutKey(shortcut)}
-                        </div>
-                      )}
-                      
-                      {/* Recording Display */}
-                      {recordingShortcut && editingShortcut?.id === shortcut.id && (
-                        <div className="flex items-center gap-2" data-recording-shortcut="true">
-                          <Text variant="caption" className="text-[hsl(var(--accent))]">
-                            Recording:
-                          </Text>
-                          <div className="px-2 py-1 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] rounded text-xs font-mono animate-pulse">
-                            {currentShortcut || 'Press keys...'}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        {editingShortcut?.id === shortcut.id ? (
-                          <WButton
-                            variant="secondary"
-                            size="sm"
-                            onClick={handleCancelEditShortcut}
-                            className="min-w-[60px]"
+      {Object.entries(groupedShortcuts).map(([category, shortcuts]) => {
+        const CategoryIcon = CATEGORY_ICONS[category] || Keyboard;
+        return (
+          <WeeSettingsCollapsibleSection
+            key={category}
+            icon={CategoryIcon}
+            title={category}
+            description={`${shortcuts.length} shortcut${shortcuts.length === 1 ? '' : 's'}`}
+            defaultOpen
+          >
+            <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+              <div className="space-y-3">
+                {shortcuts.map((shortcut) => (
+                  <div
+                    key={shortcut.id}
+                    className="shortcuts-settings-row rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.55)] p-3 transition-colors md:p-4"
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex min-w-0 gap-3">
+                        <span className="text-2xl leading-none" aria-hidden>
+                          {shortcut.icon}
+                        </span>
+                        <div className="min-w-0">
+                          <Text
+                            variant="body"
+                            className="!mb-1 text-[0.8125rem] font-black uppercase tracking-[0.06em] text-[hsl(var(--text-primary))]"
                           >
-                            ❌ Cancel
-                          </WButton>
-                        ) : (
-                          <>
-                            <WButton
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleEditShortcut(shortcut)}
-                              disabled={!shortcut.enabled}
-                              className="min-w-[60px]"
+                            {shortcut.name}
+                          </Text>
+                          <Text variant="caption" className="text-[hsl(var(--text-tertiary))]">
+                            {shortcut.description}
+                          </Text>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-stretch gap-3 sm:min-w-[12rem] sm:items-end">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {shortcut.enabled && !editingShortcut ? renderShortcutKey(shortcut) : null}
+
+                          {recordingShortcut && editingShortcut?.id === shortcut.id ? (
+                            <div
+                              className="flex flex-wrap items-center gap-2"
+                              data-recording-shortcut="true"
                             >
-                              ✏️ Edit
+                              <Text variant="caption" className="text-[hsl(var(--primary))]">
+                                Recording
+                              </Text>
+                              <div className="rounded-lg border border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.12)] px-2 py-1 font-mono text-[11px] font-bold text-[hsl(var(--primary))] animate-pulse">
+                                {currentShortcut || 'Press keys…'}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {editingShortcut?.id === shortcut.id ? (
+                            <WButton variant="secondary" size="sm" onClick={handleCancelEditShortcut}>
+                              Cancel
                             </WButton>
-                            <WToggle
-                              checked={shortcut.enabled}
-                              onChange={() => handleToggleShortcut(shortcut.id)}
-                              label=""
-                            />
-                          </>
-                        )}
+                          ) : (
+                            <>
+                              <WButton
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleEditShortcut(shortcut)}
+                                disabled={!shortcut.enabled}
+                              >
+                                Edit
+                              </WButton>
+                              <WToggle
+                                checked={shortcut.enabled}
+                                onChange={() => handleToggleShortcut(shortcut.id)}
+                                disableLabelClick
+                              />
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      ))}
-      </SettingsWeeSection>
+                ))}
+              </div>
+            </WeeModalFieldCard>
+          </WeeSettingsCollapsibleSection>
+        );
+      })}
 
-      <SettingsWeeSection eyebrow="Reserved">
-      <Card className="overflow-hidden">
-        <div className="bg-gradient-to-r from-[hsl(var(--destructive))] to-[hsl(var(--destructive))]/80 p-4">
-          <Text variant="h3" className="text-[hsl(var(--destructive-foreground))] font-semibold">
-            🔒 Reserved Shortcuts
+      <WeeSettingsCollapsibleSection
+        icon={Lock}
+        title="Reserved shortcuts"
+        description="Handled by the shell — not remappable."
+        defaultOpen={false}
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <Text variant="caption" className="!mb-4 !mt-0 text-[hsl(var(--text-tertiary))]">
+            These chords are reserved and cannot be assigned to app actions.
           </Text>
-        </div>
-        <div className="p-6">
-          <Text variant="body" className="text-[hsl(var(--text-secondary))] mb-6">
-            These shortcuts are reserved by the system and cannot be changed:
-          </Text>
-          
-          <div className="grid gap-3">
+          <div className="space-y-3">
             {RESERVED_SHORTCUTS.map((shortcut) => (
-              <div key={shortcut.key} className="flex items-center justify-between p-4 bg-[hsl(var(--surface-secondary))] rounded-lg border border-[hsl(var(--border-primary))]">
-                <div className="flex items-center gap-4">
-                  <div className="text-xl">🔒</div>
+              <div
+                key={shortcut.key}
+                className="flex flex-col gap-3 rounded-2xl border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.45)] p-3 sm:flex-row sm:items-center sm:justify-between md:p-4"
+              >
+                <div className="flex min-w-0 gap-3">
+                  <Lock size={18} strokeWidth={2.2} className="mt-0.5 shrink-0 text-[hsl(var(--text-tertiary))]" aria-hidden />
                   <div>
-                    <Text variant="body" className="font-medium text-[hsl(var(--text-primary))]">
+                    <Text variant="body" className="font-semibold text-[hsl(var(--text-primary))]">
                       {shortcut.label}
                     </Text>
-                    <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
+                    <Text variant="caption" className="text-[hsl(var(--text-tertiary))]">
                       {shortcut.description}
                     </Text>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex items-center gap-1 px-2 py-1 bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] rounded text-xs font-mono font-medium">
-                    {shortcut.key.split('+').map((key, index) => (
-                      <React.Fragment key={index}>
-                        <span className="px-1 py-0.5 bg-[hsl(var(--destructive-foreground))] text-[hsl(var(--destructive))] rounded text-xs">
-                          {key}
-                        </span>
-                        {index < shortcut.key.split('+').length - 1 && <span>+</span>}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                  <div className="px-2 py-1 bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] rounded text-xs font-medium">
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                  {renderReservedKeyChips(shortcut.key)}
+                  <span className="rounded-full border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary))] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--wee-text-rail-muted))]">
                     Reserved
-                  </div>
+                  </span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </Card>
-      </SettingsWeeSection>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
 
-      <SettingsWeeSection eyebrow="Tips">
-      <Card className="border-[hsl(var(--accent))]/20 bg-gradient-to-r from-[hsl(var(--accent))]/10 to-[hsl(var(--accent))]/5">
-        <div className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="text-2xl">💡</div>
-            <div>
-              <Text variant="h4" className="text-[hsl(var(--text-primary))] mb-2">
-                Tips for Setting Shortcuts
-              </Text>
-              <div className="space-y-2 text-sm text-[hsl(var(--text-secondary))]">
-                <p>• Use combinations like <code className="bg-[hsl(var(--surface-secondary))] px-1 rounded">Ctrl + Shift + A</code> for unique shortcuts</p>
-                <p>• Avoid conflicts with system shortcuts like <code className="bg-[hsl(var(--surface-secondary))] px-1 rounded">Ctrl + C</code></p>
-                <p>• Function keys (F1-F12) work well for quick access</p>
-                <p>• You can use <code className="bg-[hsl(var(--surface-secondary))] px-1 rounded">Alt</code>, <code className="bg-[hsl(var(--surface-secondary))] px-1 rounded">Ctrl</code>, <code className="bg-[hsl(var(--surface-secondary))] px-1 rounded">Shift</code>, and <code className="bg-[hsl(var(--surface-secondary))] px-1 rounded">Cmd</code> (Mac) keys</p>
-                <p>• Toggle shortcuts on/off using the switch next to each shortcut</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-      </SettingsWeeSection>
+      <WeeSettingsCollapsibleSection
+        icon={Lightbulb}
+        title="Tips"
+        description="Fewer conflicts, clearer muscle memory."
+        defaultOpen={false}
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <ul className="m-0 list-none space-y-2 p-0 text-sm text-[hsl(var(--text-secondary))]">
+            <li>
+              Prefer chords like{' '}
+              <code className="rounded border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-tertiary))] px-1.5 py-0.5 font-mono text-[11px] text-[hsl(var(--text-primary))]">
+                Ctrl + Shift + Letter
+              </code>{' '}
+              so they stay unique.
+            </li>
+            <li>Avoid overlapping common system shortcuts (e.g. copy/paste) where possible.</li>
+            <li>Function keys are good for one-shot toggles.</li>
+            <li>
+              Modifiers{' '}
+              <code className="rounded border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-tertiary))] px-1.5 py-0.5 font-mono text-[11px]">
+                Alt
+              </code>
+              ,{' '}
+              <code className="rounded border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-tertiary))] px-1.5 py-0.5 font-mono text-[11px]">
+                Ctrl
+              </code>
+              ,{' '}
+              <code className="rounded border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-tertiary))] px-1.5 py-0.5 font-mono text-[11px]">
+                Shift
+              </code>
+              , and{' '}
+              <code className="rounded border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-tertiary))] px-1.5 py-0.5 font-mono text-[11px]">
+                Meta
+              </code>{' '}
+              (Cmd on Mac) can combine with letter keys.
+            </li>
+            <li>Use the switch to disable a shortcut without deleting its binding.</li>
+          </ul>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
     </div>
   );
 });

@@ -36,6 +36,7 @@ function SettingsToggleFieldCard({
 
   return (
     <WeeModalFieldCard hoverAccent={hoverAccent} className={`p-0 overflow-hidden ${className}`.trim()} paddingClassName="p-0">
+      {/* Header row only: nested controls must live below so clicks don’t bubble and flip the toggle */}
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
@@ -56,7 +57,6 @@ function SettingsToggleFieldCard({
               {desc}
             </Text>
           ) : null}
-          {children}
         </div>
         <div
           className="shrink-0 pt-0.5"
@@ -66,6 +66,15 @@ function SettingsToggleFieldCard({
           <WToggle checked={checked} onChange={onChange} disabled={disabled} disableLabelClick />
         </div>
       </div>
+      {children ? (
+        <div
+          className="border-t border-[hsl(var(--border-primary)/0.35)] px-6 pb-6 pt-4 md:px-8"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
+      ) : null}
     </WeeModalFieldCard>
   );
 }

@@ -28,7 +28,9 @@ export default function AuraLibrarySection({
           </label>
         </div>
       </div>
-      <div className="aura-hub-grid">
+      <div
+        className={`aura-hub-grid${games.length > 32 ? ' aura-hub-grid--content-visibility' : ''}`}
+      >
         {games.map((game) => (
           <GameCardContextMenu key={game.id} game={game}>
             <AuraGameCard

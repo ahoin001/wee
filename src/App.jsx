@@ -35,6 +35,7 @@ import {
 import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 import GameHubMinimalDock from './components/game-hub/GameHubMinimalDock';
 import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from './utils/channelSpaces';
+import { collectWarmMediaUrlsFromStore, warmImageUrlsOnIdle } from './utils/mediaWarmCache';
 
 // Lazy load components to reduce initial bundle size
 const lazyNamedExport = (importer, exportName) =>
@@ -399,6 +400,8 @@ function App() {
     if (!appReady) return;
     const { appLibraryManager: mgr } = useConsolidatedAppStore.getState();
     mgr?.scheduleAppLibraryBackgroundPrefetch?.();
+    const urls = collectWarmMediaUrlsFromStore(useConsolidatedAppStore.getState());
+    warmImageUrlsOnIdle(urls, { max: 56 });
   }, [appReady]);
 
   // Optimized handlers using consolidated store with useCallback
@@ -677,13 +680,11 @@ function App() {
 
         {/* Modals */}
         <Suspense fallback={null}>
-          {showSettingsModal && (
           <LazySettingsModal
-              isOpen={showSettingsModal}
+            isOpen={showSettingsModal}
             onClose={closeSettingsModal}
-              initialActiveTab={settingsActiveTab}
-            />
-          )}
+            initialActiveTab={settingsActiveTab}
+          />
         </Suspense>
 
         {/* Settings Action Menu - Independent of dock visibility */}

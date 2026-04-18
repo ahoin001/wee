@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
+import { m, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
@@ -8,14 +8,16 @@ import { buildHubData, orderHubCollectionItems, sortHubGamesByName } from './hub
 import AuraHero from './AuraHero';
 import AuraCollectionsSection from './AuraCollectionsSection';
 import AuraLibrarySection from './AuraLibrarySection';
-import { readHubDockInsetPx, scrollHubRegionIntoFocus } from './hubScrollUtils';
+import { readHubDockInsetPx, readHubScrollTopReservePx, scrollHubRegionIntoFocus } from './hubScrollUtils';
 import { shouldUseWarmEnrichmentCache } from '../../utils/gameHub/gameHubEnrichmentCache';
 import { getCachedSteamClientLibrary, setCachedSteamClientLibrary } from '../../utils/gameHub/gameHubClientLibraryCache';
 import { useHeroMediaCrossfade } from './useHeroMediaCrossfade';
 import { HUB_MORPH } from '../../design/playfulMotion';
+import { weeMarkGameHubLibrary } from '../../utils/weePerformanceMarks';
+import WToggle from '../../ui/WToggle';
 import './GameHubSpace.css';
 
-const MotionDiv = motion.div;
+const MotionDiv = m.div;
 
 /** Smooth Hermite edge for scroll-linked fades (0–1). */
 function smoothstep01(t) {
@@ -40,6 +42,12 @@ function useMinWidthDockMorph() {
 }
 const BACKDROP_HOVER_DEBOUNCE_MS = 110;
 const BACKDROP_MIN_HOLD_MS = 260;
+/** After scroll stops, resume debounced hero/backdrop media updates. */
+const SCROLL_SETTLE_MS = 150;
+const URL_CHURN_WINDOW_MS = 450;
+const URL_CHURN_THRESHOLD = 8;
+const HEAVY_DEBOUNCE_MS = 280;
+const HEAVY_MIN_HOLD_MS = 380;
 
 export default function GameHubSpace() {
   const { appLibrary, gameHub, setGameHubState, patchGameHubLastLaunch, appLibraryManager, showDock } =
@@ -63,10 +71,17 @@ export default function GameHubSpace() {
   const [isLaunching, setIsLaunching] = useState(false);
   const [isHeroCompact, setIsHeroCompact] = useState(false);
   const [heroPreviewGameId, setHeroPreviewGameId] = useState(null);
-  const [backdropIntentUrl, setBackdropIntentUrl] = useState(null);
   const heroPreviewClearRef = useRef(null);
-  const backdropIntentTimerRef = useRef(null);
   const contentScrollRef = useRef(null);
+  const [scrollHot, setScrollHot] = useState(false);
+  const scrollSettleTimerRef = useRef(null);
+  const mediaDebounceTimerRef = useRef(null);
+  const urlChurnTimestampsRef = useRef([]);
+  const prevRawArtUrlRef = useRef(undefined);
+  const firstMediaDebounceRef = useRef(true);
+  const [mediaMinHoldMs, setMediaMinHoldMs] = useState(BACKDROP_MIN_HOLD_MS);
+  /** `undefined` = not yet synced; then follows debounced raw art URL. */
+  const [debouncedMediaUrl, setDebouncedMediaUrl] = useState(undefined);
   const [scrollNode, setScrollNode] = useState(null);
   const stageRef = useRef(null);
   const heroScrollRafRef = useRef(null);
@@ -88,6 +103,24 @@ export default function GameHubSpace() {
     update();
     return () => scrollNode.removeEventListener('scroll', update);
   }, [scrollY, scrollNode]);
+
+  /** Freeze debounced hero/backdrop media while scrolling so hover+scroll doesn’t thrash layers. */
+  useEffect(() => {
+    if (!scrollNode) return undefined;
+    const onScroll = () => {
+      setScrollHot(true);
+      if (scrollSettleTimerRef.current) window.clearTimeout(scrollSettleTimerRef.current);
+      scrollSettleTimerRef.current = window.setTimeout(() => {
+        scrollSettleTimerRef.current = null;
+        setScrollHot(false);
+      }, SCROLL_SETTLE_MS);
+    };
+    scrollNode.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      scrollNode.removeEventListener('scroll', onScroll);
+      if (scrollSettleTimerRef.current) window.clearTimeout(scrollSettleTimerRef.current);
+    };
+  }, [scrollNode]);
 
   const handoffPx = HUB_MORPH.scrollHandoffPx;
   const morphRangePx = HUB_MORPH.scrollRangePx;
@@ -124,7 +157,6 @@ export default function GameHubSpace() {
   const heroWidth = useTransform(morphProgress, [0, 1], ['100%', `${HUB_MORPH.dockWidthPx}px`]);
   const heroPaddingBottom = useTransform(morphProgress, [0, 1], ['30%', '118%']);
   const dockLanePx = HUB_MORPH.dockWidthPx + HUB_MORPH.dockGapPx;
-  /** Library column cap tracks reserved dock lane (must stay in sync with dock rail intrinsic width at p→1). */
   const gridMaxWidth = useTransform(morphProgress, (p) => `calc(100% - ${p * dockLanePx}px)`);
 
   /** Collapse dock rail in layout until scroll nears handoff (removes double gap vs overlay padding). */
@@ -133,7 +165,7 @@ export default function GameHubSpace() {
     clamp: true,
   });
 
-  /** “Vacuum” into dock lane: slide + settle scale (paired with library squeeze). */
+  /** Vacuum into dock lane: slide + settle scale (paired with library squeeze). */
   const dockVacuumX = useTransform(morphProgress, [0, 0.5], [22, 0], { clamp: true });
   const dockVacuumScale = useTransform(morphProgress, [0, 0.55], [0.93, 1], { clamp: true });
 
@@ -393,6 +425,7 @@ export default function GameHubSpace() {
   }, [gameHub.profile?.steamId]);
 
   const showHubBackdrop = gameHub.ui?.showHubBackdrop ?? false;
+  const hubSteamOnlyGames = gameHub.ui?.hubSteamOnlyGames ?? true;
   const effectsEnabled = gameHub.ui?.effectsEnabled ?? true;
   const activeCollectionId = gameHub.ui?.activeCollectionId || null;
   const selectedGameId = gameHub.ui?.selectedGameId || null;
@@ -409,8 +442,26 @@ export default function GameHubSpace() {
     [appLibrary.epicGames, appLibrary.steamGames, enrichmentMap, clientLibrary, weeMeta]
   );
 
+  const hubDataView = useMemo(() => {
+    if (!hubSteamOnlyGames) return hubData;
+    const steamOnly = (arr) => (Array.isArray(arr) ? arr.filter((g) => g?.source === 'steam') : []);
+    return {
+      ...hubData,
+      installed: steamOnly(hubData.installed),
+      favoritesOnly: steamOnly(hubData.favoritesOnly),
+      railGames: steamOnly(hubData.railGames),
+      collections: {
+        ...hubData.collections,
+        items: hubData.collections.items.map((c) => ({
+          ...c,
+          games: steamOnly(c.games),
+        })),
+      },
+    };
+  }, [hubData, hubSteamOnlyGames]);
+
   const displayCollections = useMemo(() => {
-    const raw = hubData.collections.items;
+    const raw = hubDataView.collections.items;
     const ordered = orderHubCollectionItems(raw, {
       shelfOrderMode: hubShelfOrderMode,
       customShelfOrder: collectionShelfOrder,
@@ -419,68 +470,93 @@ export default function GameHubSpace() {
       return ordered.map((c) => ({ ...c, games: sortHubGamesByName(c.games) }));
     }
     return ordered;
-  }, [hubData.collections.items, hubShelfOrderMode, collectionShelfOrder, hubCollectionGamesSort]);
+  }, [hubDataView.collections.items, hubShelfOrderMode, collectionShelfOrder, hubCollectionGamesSort]);
 
   const libraryGames = useMemo(() => {
-    const installed = hubData.installed;
+    const installed = hubDataView.installed;
     if (hubLibrarySort === 'alphabetical') {
       return sortHubGamesByName(installed);
     }
     return installed;
-  }, [hubData.installed, hubLibrarySort]);
+  }, [hubDataView.installed, hubLibrarySort]);
+
+  useEffect(() => {
+    weeMarkGameHubLibrary(libraryGames.length);
+  }, [libraryGames.length]);
 
   const selectedGame = useMemo(
-    () => hubData.installed.find((game) => game.id === selectedGameId) || null,
-    [hubData.installed, selectedGameId]
+    () => hubDataView.installed.find((game) => game.id === selectedGameId) || null,
+    [hubDataView.installed, selectedGameId]
   );
 
   const previewGame = useMemo(
-    () => (heroPreviewGameId ? hubData.installed.find((g) => g.id === heroPreviewGameId) : null),
-    [heroPreviewGameId, hubData.installed]
+    () => (heroPreviewGameId ? hubDataView.installed.find((g) => g.id === heroPreviewGameId) : null),
+    [heroPreviewGameId, hubDataView.installed]
   );
 
   const heroGame =
     previewGame ||
     selectedGame ||
-    hubData.favoritesOnly[0] ||
-    hubData.recentlyPlayed[0] ||
-    hubData.installed[0] ||
+    hubDataView.favoritesOnly[0] ||
+    hubDataView.installed[0] ||
     null;
-  const backdropUrl = heroGame?.headerUrl || heroGame?.imageUrl || null;
+
+  const rawArtUrl = useMemo(() => heroGame?.headerUrl || heroGame?.imageUrl || null, [heroGame]);
+
+  /** Single input for hero + hub backdrop layers; debounced to avoid desync under hover + scroll. */
+  const mediaInputUrl = debouncedMediaUrl === undefined ? rawArtUrl : debouncedMediaUrl;
 
   useEffect(() => {
-    if (backdropIntentTimerRef.current) {
-      window.clearTimeout(backdropIntentTimerRef.current);
-      backdropIntentTimerRef.current = null;
+    const now = Date.now();
+    urlChurnTimestampsRef.current = urlChurnTimestampsRef.current.filter((t) => now - t < URL_CHURN_WINDOW_MS);
+    if (prevRawArtUrlRef.current !== rawArtUrl) {
+      prevRawArtUrlRef.current = rawArtUrl;
+      if (rawArtUrl != null) urlChurnTimestampsRef.current.push(now);
     }
-    // Keep hero content responsive, but smooth backdrop churn during fast hover passes.
-    if (!backdropUrl) {
-      setBackdropIntentUrl(null);
-      return;
-    }
-    backdropIntentTimerRef.current = window.setTimeout(() => {
-      setBackdropIntentUrl(backdropUrl);
-      backdropIntentTimerRef.current = null;
-    }, BACKDROP_HOVER_DEBOUNCE_MS);
-  }, [backdropUrl]);
+    const heavy = urlChurnTimestampsRef.current.length >= URL_CHURN_THRESHOLD;
+    setMediaMinHoldMs(heavy ? HEAVY_MIN_HOLD_MS : BACKDROP_MIN_HOLD_MS);
 
-  useEffect(
-    () => () => {
-      if (backdropIntentTimerRef.current) {
-        window.clearTimeout(backdropIntentTimerRef.current);
-        backdropIntentTimerRef.current = null;
+    if (scrollHot) {
+      if (mediaDebounceTimerRef.current) {
+        window.clearTimeout(mediaDebounceTimerRef.current);
+        mediaDebounceTimerRef.current = null;
       }
-    },
-    []
-  );
+      return undefined;
+    }
+
+    const debounceMs = firstMediaDebounceRef.current
+      ? 0
+      : heavy
+        ? HEAVY_DEBOUNCE_MS
+        : BACKDROP_HOVER_DEBOUNCE_MS;
+    if (firstMediaDebounceRef.current) firstMediaDebounceRef.current = false;
+
+    if (mediaDebounceTimerRef.current) {
+      window.clearTimeout(mediaDebounceTimerRef.current);
+      mediaDebounceTimerRef.current = null;
+    }
+
+    mediaDebounceTimerRef.current = window.setTimeout(() => {
+      mediaDebounceTimerRef.current = null;
+      setDebouncedMediaUrl(rawArtUrl ?? null);
+    }, debounceMs);
+
+    return () => {
+      if (mediaDebounceTimerRef.current) {
+        window.clearTimeout(mediaDebounceTimerRef.current);
+        mediaDebounceTimerRef.current = null;
+      }
+    };
+  }, [rawArtUrl, scrollHot]);
 
   const {
-    baseUrl: backdropBaseUrl,
-    overlayUrl: backdropOverlayUrl,
-    overlayOpacity: backdropOverlayOpacity,
-    onOverlayTransitionEnd: onBackdropOverlayTransitionEnd,
-  } = useHeroMediaCrossfade(backdropIntentUrl, effectsEnabled && showHubBackdrop, {
-    minHoldMs: BACKDROP_MIN_HOLD_MS,
+    baseUrl: heroMediaBaseUrl,
+    overlayUrl: heroMediaOverlayUrl,
+    overlayOpacity: heroMediaOverlayOpacity,
+    onOverlayTransitionEnd: onHeroMediaOverlayTransitionEnd,
+  } = useHeroMediaCrossfade(mediaInputUrl, effectsEnabled, {
+    minHoldMs: mediaMinHoldMs,
+    stallRecoveryMs: 1000,
   });
 
   const setHeroPreview = useCallback((game) => {
@@ -499,7 +575,7 @@ export default function GameHubSpace() {
   }, []);
   const activeCollection =
     displayCollections.find((collection) => collection.id === activeCollectionId) || null;
-  const hasFavorites = hubData.railGames.length > 0;
+  const hasFavorites = hubDataView.railGames.length > 0;
 
   const handleLaunchGame = async (game) => {
     if (!game?.launchPath || !window.api?.launchApp) return;
@@ -524,6 +600,32 @@ export default function GameHubSpace() {
 
   const floatingUi = !showHubBackdrop;
 
+  const hubHeroNotice =
+    gameHub.library?.syncStatus === 'error'
+      ? gameHub.library?.statusReason || 'Could not refresh Steam library stats.'
+      : gameHub.library?.syncStatus === 'refreshing'
+        ? gameHub.library?.statusReason || 'Refreshing library…'
+        : null;
+
+  /** Shared hub hero data; overlay = full banner (morphProgress null), dock rail = compact morph. */
+  const hubHeroBaseProps = {
+    floatingUi,
+    effectsEnabled,
+    selectedGameId,
+    heroGame,
+    heroNotice: hubHeroNotice,
+    hasSteamId: Boolean(gameHub.profile?.steamId),
+    hasFavorites,
+    railGames: hubDataView.railGames,
+    onLaunchGame: handleLaunchGame,
+    onSelectGame: (gameId) => setGameHubState({ ui: { selectedGameId: gameId } }),
+    onHeroPreview: setHeroPreview,
+    heroMediaBaseUrl,
+    heroMediaOverlayUrl,
+    heroMediaOverlayOpacity,
+    onHeroMediaOverlayTransitionEnd,
+  };
+
   const stageClassName = [
     'aura-hub-stage',
     dockMorphEnabled ? 'aura-hub-stage--dock-morph' : '',
@@ -533,37 +635,48 @@ export default function GameHubSpace() {
     .filter(Boolean)
     .join(' ');
 
+  const hubCollectionsAnchor = (
+    <div id="game-hub-collections-anchor" className="aura-hub-scroll-anchor" aria-hidden />
+  );
+
+  const hubCollectionsSection = (
+    <AuraCollectionsSection
+      collections={displayCollections}
+      activeCollection={activeCollection}
+      activeCollectionId={activeCollectionId}
+      effectsEnabled={effectsEnabled}
+      shelfOrderMode={hubShelfOrderMode}
+      onShelfOrderModeChange={(mode) => setGameHubState({ ui: { hubShelfOrderMode: mode } })}
+      hubCollectionGamesSort={hubCollectionGamesSort}
+      onHubCollectionGamesSortChange={(sort) =>
+        setGameHubState({ ui: { hubCollectionGamesSort: sort } })
+      }
+      onReorderCollectionShelves={(ids) =>
+        setGameHubState({ ui: { hubShelfOrderMode: 'custom', collectionShelfOrder: ids } })
+      }
+      onSetCollection={(collectionId) => setGameHubState({ ui: { activeCollectionId: collectionId } })}
+      onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
+      onLaunchGame={handleLaunchGame}
+      onHeroPreview={setHeroPreview}
+    />
+  );
+
+  const hubLibrarySection = (
+    <AuraLibrarySection
+      games={libraryGames}
+      librarySort={hubLibrarySort}
+      onLibrarySortChange={(sort) => setGameHubState({ ui: { hubLibrarySort: sort } })}
+      onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
+      onLaunchGame={handleLaunchGame}
+      onHeroPreview={setHeroPreview}
+    />
+  );
+
   const hubSections = (
     <>
-      <div id="game-hub-collections-anchor" className="aura-hub-scroll-anchor" aria-hidden />
-      <AuraCollectionsSection
-        scrollContainerRef={contentScrollRef}
-        collections={displayCollections}
-        activeCollection={activeCollection}
-        activeCollectionId={activeCollectionId}
-        effectsEnabled={effectsEnabled}
-        shelfOrderMode={hubShelfOrderMode}
-        onShelfOrderModeChange={(mode) => setGameHubState({ ui: { hubShelfOrderMode: mode } })}
-        hubCollectionGamesSort={hubCollectionGamesSort}
-        onHubCollectionGamesSortChange={(sort) =>
-          setGameHubState({ ui: { hubCollectionGamesSort: sort } })
-        }
-        onReorderCollectionShelves={(ids) =>
-          setGameHubState({ ui: { hubShelfOrderMode: 'custom', collectionShelfOrder: ids } })
-        }
-        onSetCollection={(collectionId) => setGameHubState({ ui: { activeCollectionId: collectionId } })}
-        onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
-        onLaunchGame={handleLaunchGame}
-        onHeroPreview={setHeroPreview}
-      />
-      <AuraLibrarySection
-        games={libraryGames}
-        librarySort={hubLibrarySort}
-        onLibrarySortChange={(sort) => setGameHubState({ ui: { hubLibrarySort: sort } })}
-        onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
-        onLaunchGame={handleLaunchGame}
-        onHeroPreview={setHeroPreview}
-      />
+      {hubCollectionsAnchor}
+      {hubCollectionsSection}
+      {hubLibrarySection}
     </>
   );
 
@@ -574,38 +687,51 @@ export default function GameHubSpace() {
       <div
         ref={stageRef}
         className={stageClassName}
-        style={{ '--hub-morph-sticky-top': `${HUB_MORPH.stickyTopPx}px` }}
+        style={{ '--hub-scroll-top-reserve': '18px' }}
       >
-        {showHubBackdrop && (backdropBaseUrl || backdropOverlayUrl) ? (
+        {showHubBackdrop && (heroMediaBaseUrl || heroMediaOverlayUrl) ? (
           <div className="aura-hub-backdrop" aria-hidden>
-            {backdropBaseUrl ? (
+            {heroMediaBaseUrl ? (
               <div
                 className="aura-hub-backdrop__layer aura-hub-backdrop__layer--base"
-                style={{ backgroundImage: `url('${backdropBaseUrl}')` }}
+                style={{ backgroundImage: `url('${heroMediaBaseUrl}')` }}
               />
             ) : null}
-            {backdropOverlayUrl ? (
+            {heroMediaOverlayUrl ? (
               <div
                 className="aura-hub-backdrop__layer aura-hub-backdrop__layer--overlay"
                 style={{
-                  backgroundImage: `url('${backdropOverlayUrl}')`,
-                  opacity: backdropOverlayOpacity,
-                  transform: `scale(${1.015 - backdropOverlayOpacity * 0.015})`,
+                  backgroundImage: `url('${heroMediaOverlayUrl}')`,
+                  opacity: heroMediaOverlayOpacity,
+                  transform: `scale(${1.015 - heroMediaOverlayOpacity * 0.015})`,
                 }}
-                onTransitionEnd={onBackdropOverlayTransitionEnd}
+                onTransitionEnd={onHeroMediaOverlayTransitionEnd}
               />
             ) : null}
           </div>
         ) : null}
 
-        <button
-          type="button"
-          className="aura-hub-mode-toggle"
-          onClick={() => setGameHubState({ ui: { showHubBackdrop: !showHubBackdrop } })}
-          title={showHubBackdrop ? 'Hide hub backdrop' : 'Show hub backdrop'}
-        >
-          {showHubBackdrop ? 'Backdrop On' : 'Backdrop Off'}
-        </button>
+        <div className="aura-hub-stage-toolbar">
+          <button
+            type="button"
+            className="aura-hub-mode-toggle"
+            onClick={() => setGameHubState({ ui: { showHubBackdrop: !showHubBackdrop } })}
+            title={showHubBackdrop ? 'Hide hub backdrop' : 'Show hub backdrop'}
+          >
+            {showHubBackdrop ? 'Backdrop On' : 'Backdrop Off'}
+          </button>
+          <div
+            className="aura-hub-steam-only"
+            title="Non-Steam games can still be opened, but art may not be found."
+          >
+            <WToggle
+              checked={hubSteamOnlyGames}
+              onChange={(checked) => setGameHubState({ ui: { hubSteamOnlyGames: checked } })}
+              label="Only Steam games"
+              containerClassName="aura-hub-steam-only__toggle"
+            />
+          </div>
+        </div>
 
         <nav className="aura-hub-scroll-anchors" aria-label="Jump to hub section">
           <a
@@ -616,7 +742,10 @@ export default function GameHubSpace() {
               const main = contentScrollRef.current;
               const region = document.getElementById('game-hub-collections');
               if (main && region) {
-                scrollHubRegionIntoFocus(main, region, { bottomInset: readHubDockInsetPx(region) });
+                scrollHubRegionIntoFocus(main, region, {
+                  bottomInset: readHubDockInsetPx(region),
+                  topReserve: readHubScrollTopReservePx(region),
+                });
               }
             }}
           >
@@ -633,7 +762,10 @@ export default function GameHubSpace() {
               const main = contentScrollRef.current;
               const region = document.getElementById('game-hub-library');
               if (main && region) {
-                scrollHubRegionIntoFocus(main, region, { bottomInset: readHubDockInsetPx(region) });
+                scrollHubRegionIntoFocus(main, region, {
+                  bottomInset: readHubDockInsetPx(region),
+                  topReserve: readHubScrollTopReservePx(region),
+                });
               }
             }}
           >
@@ -651,36 +783,13 @@ export default function GameHubSpace() {
               }}
             >
               <div className="aura-hub-hero-shell">
-                <AuraHero
-                  floatingUi={floatingUi}
-                  compact={false}
-                  morphProgress={null}
-                  effectsEnabled={effectsEnabled}
-                  selectedGameId={selectedGameId}
-                  heroGame={heroGame}
-                  heroNotice={
-                    gameHub.library?.syncStatus === 'error'
-                      ? gameHub.library?.statusReason || 'Could not refresh Steam library stats.'
-                      : gameHub.library?.syncStatus === 'refreshing'
-                        ? gameHub.library?.statusReason || 'Refreshing library…'
-                        : null
-                  }
-                  hasSteamId={Boolean(gameHub.profile?.steamId)}
-                  hasFavorites={hasFavorites}
-                  railGames={hubData.railGames}
-                  onLaunchGame={handleLaunchGame}
-                  onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
-                  onHeroPreview={setHeroPreview}
-                />
+                <AuraHero {...hubHeroBaseProps} compact={false} morphProgress={null} />
               </div>
             </MotionDiv>
 
             <main ref={setScrollRef} className="aura-hub-content aura-hub-content--dock-morph">
               <div className="aura-hub-morph-stack">
-                <MotionDiv
-                  className="aura-hub-morph-main"
-                  style={{ maxWidth: gridMaxWidth, width: '100%' }}
-                >
+                <MotionDiv className="aura-hub-morph-main" style={{ maxWidth: gridMaxWidth, width: '100%' }}>
                   {hubSections}
                 </MotionDiv>
                 <MotionDiv
@@ -700,31 +809,8 @@ export default function GameHubSpace() {
                       scale: dockVacuumScale,
                     }}
                   >
-                    <MotionDiv
-                      className="aura-hub-hero-shell aura-hub-hero-shell--morph"
-                      style={{ paddingBottom: heroPaddingBottom }}
-                    >
-                      <AuraHero
-                        floatingUi={floatingUi}
-                        compact={false}
-                        morphProgress={morphProgress}
-                        effectsEnabled={effectsEnabled}
-                        selectedGameId={selectedGameId}
-                        heroGame={heroGame}
-                        heroNotice={
-                          gameHub.library?.syncStatus === 'error'
-                            ? gameHub.library?.statusReason || 'Could not refresh Steam library stats.'
-                            : gameHub.library?.syncStatus === 'refreshing'
-                              ? gameHub.library?.statusReason || 'Refreshing library…'
-                              : null
-                        }
-                        hasSteamId={Boolean(gameHub.profile?.steamId)}
-                        hasFavorites={hasFavorites}
-                        railGames={hubData.railGames}
-                        onLaunchGame={handleLaunchGame}
-                        onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
-                        onHeroPreview={setHeroPreview}
-                      />
+                    <MotionDiv className="aura-hub-hero-shell aura-hub-hero-shell--morph" style={{ paddingBottom: heroPaddingBottom }}>
+                      <AuraHero {...hubHeroBaseProps} compact={false} morphProgress={morphProgress} />
                     </MotionDiv>
                   </MotionDiv>
                 </MotionDiv>
@@ -735,27 +821,7 @@ export default function GameHubSpace() {
           <div className="aura-hub-column">
             <div className="aura-hub-hero-wrap">
               <div className="aura-hub-hero-shell">
-                <AuraHero
-                  floatingUi={floatingUi}
-                  compact={isHeroCompact}
-                  morphProgress={null}
-                  effectsEnabled={effectsEnabled}
-                  selectedGameId={selectedGameId}
-                  heroGame={heroGame}
-                  heroNotice={
-                    gameHub.library?.syncStatus === 'error'
-                      ? gameHub.library?.statusReason || 'Could not refresh Steam library stats.'
-                      : gameHub.library?.syncStatus === 'refreshing'
-                        ? gameHub.library?.statusReason || 'Refreshing library…'
-                        : null
-                  }
-                  hasSteamId={Boolean(gameHub.profile?.steamId)}
-                  hasFavorites={hasFavorites}
-                  railGames={hubData.railGames}
-                  onLaunchGame={handleLaunchGame}
-                  onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
-                  onHeroPreview={setHeroPreview}
-                />
+                <AuraHero {...hubHeroBaseProps} compact={isHeroCompact} morphProgress={null} />
               </div>
             </div>
 

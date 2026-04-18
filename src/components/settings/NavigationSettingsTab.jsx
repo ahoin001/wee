@@ -6,6 +6,7 @@ import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { logError } from '../../utils/logger';
+import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsWeeSection from './SettingsWeeSection';
 
 const NavigationSettingsTab = () => {
@@ -210,25 +211,19 @@ const NavigationSettingsTab = () => {
     'border-[hsl(var(--border-primary))] hover:border-[hsl(var(--border-secondary))]';
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <Text variant="h3" className="text-[hsl(var(--text-primary))]">
-            Side navigation buttons
-          </Text>
-          <Text variant="body" className="mt-1 text-[hsl(var(--text-secondary))]">
-            Customize the left/right side-arrow button visuals. Channel layout and paging are in Channels & layout
-            settings.
-          </Text>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <WButton variant="secondary" onClick={resetToDefaults}>
-            Reset to defaults
-          </WButton>
-          <WButton variant="primary" onClick={saveSettings}>
-            Save settings
-          </WButton>
-        </div>
+    <div className="mx-auto max-w-4xl space-y-10 pb-12">
+      <SettingsTabPageHeader
+        title="Navigation"
+        subtitle="Side navigation buttons — customize glass, icons, and Spotify tinting"
+      />
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <WButton variant="secondary" onClick={resetToDefaults}>
+          Reset to defaults
+        </WButton>
+        <WButton variant="primary" onClick={saveSettings}>
+          Save settings
+        </WButton>
       </div>
 
       <SettingsWeeSection eyebrow="Spotify">

@@ -15,6 +15,7 @@ import {
 } from '../../utils/supportedUploadMedia';
 import '../modals/ImageSearchModal.css';
 import '../settings/surfaceStyles.css';
+import AuraHubModalFrame from './AuraHubModalFrame';
 
 /**
  * Pick from media library or upload — applies to Game Hub game art via parent callback.
@@ -137,32 +138,23 @@ function GameHubGameMediaDialog({ open, onOpenChange, game, onApplyArt }) {
     onOpenChange,
   ]);
 
-  if (!open) return null;
-
   return (
-    <div
-      className="aura-hub-modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="hub-game-media-title"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onOpenChange(false);
-      }}
+    <AuraHubModalFrame
+      open={open}
+      onOpenChange={onOpenChange}
+      ariaLabelledBy="hub-game-media-title"
+      panelClassName="max-h-[min(92vh,900px)] max-w-[min(960px,96vw)] overflow-y-auto"
     >
-      <div
-        className="aura-hub-modal max-h-[min(92vh,900px)] max-w-[min(960px,96vw)] overflow-y-auto"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="aura-hub-modal__header">
-          <h2 id="hub-game-media-title" className="aura-hub-modal__title">
-            Art for {game?.name || 'game'}
-          </h2>
-          <button type="button" className="aura-hub-modal__close" onClick={() => onOpenChange(false)} aria-label="Close">
-            ×
-          </button>
-        </div>
+      <div className="aura-hub-modal__header">
+        <h2 id="hub-game-media-title" className="aura-hub-modal__title">
+          Art for {game?.name || 'game'}
+        </h2>
+        <button type="button" className="aura-hub-modal__close" onClick={() => onOpenChange(false)} aria-label="Close">
+          ×
+        </button>
+      </div>
 
-        <div className="aura-hub-modal__body space-y-4 px-1 pb-2">
+      <div className="aura-hub-modal__body space-y-4 px-1 pb-2">
           <Text variant="desc" className="block text-[hsl(var(--text-secondary))]">
             Choose from your media library or upload. This replaces the default Steam/Epic art for this game in the hub.
           </Text>
@@ -263,9 +255,8 @@ function GameHubGameMediaDialog({ open, onOpenChange, game, onApplyArt }) {
               {uploading ? 'Uploading…' : 'Upload to library & apply'}
             </WButton>
           </Card>
-        </div>
       </div>
-    </div>
+    </AuraHubModalFrame>
   );
 }
 

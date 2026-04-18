@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import {
   Code2,
@@ -222,7 +222,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
     <AnimatePresence>
       {isOpen ? (
         <>
-          <motion.button
+          <m.button
             type="button"
             key="quick-menu-backdrop"
             aria-label="Close quick menu"
@@ -233,7 +233,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
             className="fixed inset-0 z-[100000] cursor-default border-0 bg-[hsl(var(--wee-overlay-backdrop))] backdrop-blur-[8px]"
             onClick={handleClose}
           />
-          <motion.div
+          <m.div
             key="quick-menu-panel"
             role="dialog"
             aria-modal="true"
@@ -341,7 +341,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
                 </WeeButton>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </>
       ) : null}
     </AnimatePresence>

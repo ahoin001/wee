@@ -38,6 +38,7 @@ function ChannelModal({
   currentKenBurnsEnabled,
   currentKenBurnsMode,
   isOpen = true,
+  onExitAnimationComplete,
 }) {
   const {
     media,
@@ -495,6 +496,7 @@ function ChannelModal({
         statusReady={statusReady}
         footerContent={footerContent}
         maxWidth="min(1400px, 96vw)"
+        onExitAnimationComplete={onExitAnimationComplete}
       >
         <div className="channel-modal-wee-inner min-w-0">
           {activeTab === 'setup' && (
@@ -596,7 +598,8 @@ ChannelModal.propTypes = {
   currentAnimatedOnHover: PropTypes.oneOf([true, false, 'global']),
   currentKenBurnsEnabled: PropTypes.oneOf([true, false, 'global']),
   currentKenBurnsMode: PropTypes.oneOf(['hover', 'autoplay', 'slideshow', 'global']),
-  isOpen: PropTypes.bool
+  isOpen: PropTypes.bool,
+  onExitAnimationComplete: PropTypes.func,
 };
 
 export default ChannelModal; 

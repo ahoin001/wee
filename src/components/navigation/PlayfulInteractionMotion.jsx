@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
-import { motion, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { PLAYFUL_SPRINGS, PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
 
@@ -38,7 +38,7 @@ export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
   const allowDock = variant === 'dockButton' || variant === 'dockAccessory' ? mf.dockPress : mf.ribbonTap;
   const reduced = osReduced || !allowDock;
   const v = PRESS_VARIANT[variant] || PRESS_VARIANT.dockButton;
-  const Comp = as === 'button' ? motion.button : motion.div;
+  const Comp = as === 'button' ? m.button : m.div;
 
   if (reduced) {
     const Plain = as === 'button' ? 'button' : 'div';
@@ -103,7 +103,7 @@ export const PlayfulTapLayer = forwardRef(function PlayfulTapLayer(
   }
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       className={className}
       style={{ transformOrigin: 'center center', ...style }}
@@ -112,7 +112,7 @@ export const PlayfulTapLayer = forwardRef(function PlayfulTapLayer(
       {...rest}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 });
 

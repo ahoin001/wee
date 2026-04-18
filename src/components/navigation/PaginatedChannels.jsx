@@ -24,6 +24,7 @@ import {
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../utils/supportedUploadMedia';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { weeMarkChannelPage } from '../../utils/weePerformanceMarks';
 import './PaginatedChannels.css';
 
 const PaginatedChannelsInner = React.memo(() => {
@@ -110,50 +111,72 @@ const PaginatedChannelsInner = React.memo(() => {
     autoFadeTimeout: channelSettings.autoFadeTimeout ?? 5
   }), [channelSettings]);
 
-  // Grid-level auto-fade functionality
+  // Grid-level auto-fade: fade after `autoFadeTimeout` seconds of *no* pointer activity on the grid
+  // (idle), not only after mouseleave — so it works while focused on Home / Workspaces.
   const [isGridFaded, setIsGridFaded] = useState(false);
-  const gridFadeTimeoutRef = useRef(null);
+  const idleFadeTimerRef = useRef(null);
+  const lastPointerThrottleRef = useRef(0);
   const autoFadeTimeout = effectiveSettings.autoFadeTimeout;
 
-  // Handle grid hover events
-  const handleGridMouseEnter = useCallback(() => {
-    // Clear auto-fade timeout and restore opacity
-    if (gridFadeTimeoutRef.current) {
-      clearTimeout(gridFadeTimeoutRef.current);
-      gridFadeTimeoutRef.current = null;
+  const clearIdleFadeTimer = useCallback(() => {
+    if (idleFadeTimerRef.current) {
+      clearTimeout(idleFadeTimerRef.current);
+      idleFadeTimerRef.current = null;
     }
-    setIsGridFaded(false);
   }, []);
 
+  const scheduleIdleFade = useCallback(() => {
+    clearIdleFadeTimer();
+    if (autoFadeTimeout <= 0) return;
+    idleFadeTimerRef.current = window.setTimeout(() => {
+      idleFadeTimerRef.current = null;
+      setIsGridFaded(true);
+    }, autoFadeTimeout * 1000);
+  }, [autoFadeTimeout, clearIdleFadeTimer]);
+
+  const bumpGridActivity = useCallback(() => {
+    setIsGridFaded(false);
+    scheduleIdleFade();
+  }, [scheduleIdleFade]);
+
+  /** Throttle move so we don’t reset the idle timer every frame. */
+  const handleGridPointerMove = useCallback(() => {
+    const now = Date.now();
+    if (now - lastPointerThrottleRef.current < 200) return;
+    lastPointerThrottleRef.current = now;
+    bumpGridActivity();
+  }, [bumpGridActivity]);
+
+  const handleGridMouseEnter = useCallback(() => {
+    bumpGridActivity();
+  }, [bumpGridActivity]);
+
   const handleGridMouseLeave = useCallback(() => {
-    if (autoFadeTimeout > 0) {
-      gridFadeTimeoutRef.current = setTimeout(() => {
-        setIsGridFaded(true);
-      }, autoFadeTimeout * 1000);
-    }
-  }, [autoFadeTimeout]);
+    clearIdleFadeTimer();
+    setIsGridFaded(false);
+  }, [clearIdleFadeTimer]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
-      if (gridFadeTimeoutRef.current) {
-        clearTimeout(gridFadeTimeoutRef.current);
+      if (idleFadeTimerRef.current) {
+        clearTimeout(idleFadeTimerRef.current);
       }
       vfxTimersRef.current.forEach(clearTimeout);
       vfxTimersRef.current = [];
     };
   }, []);
 
-  // If fade is disabled, immediately restore visibility.
+  // (Re)start idle countdown when the setting changes; disable clears fade.
   useEffect(() => {
     if (autoFadeTimeout <= 0) {
-      if (gridFadeTimeoutRef.current) {
-        clearTimeout(gridFadeTimeoutRef.current);
-        gridFadeTimeoutRef.current = null;
-      }
+      clearIdleFadeTimer();
       setIsGridFaded(false);
+      return undefined;
     }
-  }, [autoFadeTimeout]);
+    scheduleIdleFade();
+    return () => clearIdleFadeTimer();
+  }, [autoFadeTimeout, clearIdleFadeTimer, scheduleIdleFade]);
 
   /** Wii strip: drive peek + layout math via inherited custom properties */
   const wiiStripCssVars = useMemo(() => {
@@ -167,6 +190,10 @@ const PaginatedChannelsInner = React.memo(() => {
       '--wii-total-pages': safeTotalPages,
     };
   }, [navigation.currentPage, navigation.totalPages]);
+
+  useEffect(() => {
+    weeMarkChannelPage(Number(navigation.currentPage) || 0);
+  }, [navigation.currentPage]);
 
   // Channel event handlers
   const handleChannelMediaChange = useCallback(
@@ -374,6 +401,9 @@ const PaginatedChannelsInner = React.memo(() => {
           rows={WII_LAYOUT_PRESET.rows}
           onGridMouseEnter={handleGridMouseEnter}
           onGridMouseLeave={handleGridMouseLeave}
+          onGridPointerMove={handleGridPointerMove}
+          onGridPointerDown={bumpGridActivity}
+          onGridWheel={bumpGridActivity}
           renderChannelAtIndex={renderChannelAtIndex}
         />
       </div>
@@ -383,6 +413,8 @@ const PaginatedChannelsInner = React.memo(() => {
     isGridFaded,
     handleGridMouseEnter,
     handleGridMouseLeave,
+    handleGridPointerMove,
+    bumpGridActivity,
     renderChannelAtIndex,
   ]);
 
