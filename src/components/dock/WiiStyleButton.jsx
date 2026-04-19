@@ -25,7 +25,9 @@ const WiiStyleButton = ({
   ribbonGlowColor = CSS_WII_BLUE,
   spotifySecondaryColor = null,
   spotifyTextColor = null,
-  spotifyAccentColor = null
+  spotifyAccentColor = null,
+  /** Match space rail glass pill (tokens in WiiStyleButton.css `.wii-style-button--wee-rail`). */
+  useSpaceRailChrome = true,
 }) => {
   // Helper function to convert RGB color to rgba with opacity
   const rgbToRgba = (rgbColor, opacity) => {
@@ -49,7 +51,7 @@ const WiiStyleButton = ({
     return `hsl(var(--color-pure-white) / ${opacity})`;
   };
 
-  const baseStyle = {
+  const legacyBaseStyle = {
     '--wii-style-bg': useGlassEffect
       ? (spotifySecondaryColor ? rgbToRgba(spotifySecondaryColor, glassOpacity) : `hsl(var(--color-pure-white) / ${glassOpacity})`)
       : (spotifySecondaryColor || 'hsl(var(--surface-primary))'),
@@ -73,6 +75,18 @@ const WiiStyleButton = ({
     ...style
   };
 
+  const baseStyle = useSpaceRailChrome
+    ? {
+        '--wii-style-text': spotifyTextColor || 'inherit',
+        '--wii-style-shine': `linear-gradient(135deg, hsl(var(--color-pure-white) / ${glassShineOpacity}) 0%, hsl(var(--color-pure-white) / 0.1) 50%, hsl(var(--color-pure-white) / 0) 100%)`,
+        '--wii-style-hover-shadow': useGlowEffect
+          ? `0 0 ${glowStrength}px ${spotifyAccentColor || (useAdaptiveColor ? ribbonGlowColor : 'hsl(var(--primary))')}`
+          : 'var(--shadow-soft-hover)',
+        '--wii-style-hover-border': 'hsl(var(--border-accent) / 0.42)',
+        ...style
+      }
+    : legacyBaseStyle;
+
   const [isHovered, setIsHovered] = React.useState(false);
 
   const handleMouseEnter = () => {
@@ -88,8 +102,12 @@ const WiiStyleButton = ({
     <PlayfulPressSurface
       variant="ribbon"
       enableHover={false}
-      className={`wii-style-button ${className}`}
-      style={{ ...baseStyle, '--wii-style-is-hovered': isHovered ? 1 : 0 }}
+      className={`wii-style-button ${useSpaceRailChrome ? 'wii-style-button--wee-rail' : ''} ${className}`.trim()}
+      style={{
+        ...baseStyle,
+        /* Wee-rail uses CSS spring hover on `.wii-style-button--wee-rail`; skip JS-driven scale to avoid fighting transforms. */
+        '--wii-style-is-hovered': useSpaceRailChrome ? 0 : isHovered ? 1 : 0,
+      }}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onMouseEnter={handleMouseEnter}
@@ -106,9 +124,9 @@ const WiiStyleButton = ({
       }}
     >
       {/* Glass shine effect */}
-      {useGlassEffect && (
-        <div className="wii-style-button-shine" />
-      )}
+      {useGlassEffect ? (
+        <div className={`wii-style-button-shine ${useSpaceRailChrome ? 'wii-style-button-shine--wee-rail' : ''}`.trim()} />
+      ) : null}
       {/* Content with higher z-index to appear above glass */}
       <div className="wii-style-button-content">
         {children}
@@ -135,7 +153,8 @@ WiiStyleButton.propTypes = {
   ribbonGlowColor: PropTypes.string,
   spotifySecondaryColor: PropTypes.string,
   spotifyTextColor: PropTypes.string,
-  spotifyAccentColor: PropTypes.string
+  spotifyAccentColor: PropTypes.string,
+  useSpaceRailChrome: PropTypes.bool,
 };
 
 export default WiiStyleButton; 

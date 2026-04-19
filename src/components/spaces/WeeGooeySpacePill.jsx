@@ -25,7 +25,12 @@ import {
   resolveActiveChannelSpaceKey,
 } from '../../utils/channelSpaces';
 import useChannelOperations from '../../utils/useChannelOperations';
-import { useWeeMotion } from '../../design/weeMotion';
+import {
+  useWeeMotion,
+  createWeeShellRailContainerVariants,
+  createWeeShellRailItemVariants,
+  getWeeShellChromeEntrance,
+} from '../../design/weeMotion';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 
 const MotionDiv = m.div;
@@ -52,6 +57,7 @@ function SortableSpaceRow({
   pillOpen,
   reducedMotion,
   onSelectSpace,
+  onRailSpacePointerEnter,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: space.id,
@@ -87,6 +93,7 @@ function SortableSpaceRow({
           e.stopPropagation();
           onSelectSpace(space.id);
         }}
+        onPointerEnter={() => onRailSpacePointerEnter?.(space.id)}
         title={`${space.label} — click to switch; drag to reorder`}
         aria-label={`${space.label}: switch space or drag to reorder`}
         aria-pressed={active}
@@ -131,6 +138,13 @@ export default function WeeGooeySpacePill() {
       setSpacesState: state.actions.setSpacesState,
     }))
   );
+
+  const gameHubChunkPrefetched = useRef(false);
+  const handleRailSpacePointerEnter = useCallback((spaceId) => {
+    if (spaceId !== 'gamehub' || gameHubChunkPrefetched.current) return;
+    gameHubChunkPrefetched.current = true;
+    import('../../components/game-hub').catch(() => {});
+  }, []);
 
   const [hovered, setHovered] = useState(false);
   const [compactDirection, setCompactDirection] = useState(1);
@@ -206,41 +220,18 @@ export default function WeeGooeySpacePill() {
   );
 
   const containerVariants = useMemo(
-    () => ({
-      closed: {
-        height: 80,
-        width: 80,
-        borderRadius: 40,
-        transition: pillClose,
-      },
-      open: {
-        height: expandedHeight,
-        width: 90,
-        borderRadius: 45,
-        transition: pillOpen,
-      },
-    }),
+    () => createWeeShellRailContainerVariants(expandedHeight, pillClose, pillOpen),
     [expandedHeight, pillClose, pillOpen]
   );
 
   const itemVariants = useMemo(
-    () => ({
-      closed: {
-        opacity: 0,
-        scale: 0.5,
-        y: 15,
-        transition: reducedMotion ? { duration: 0.08 } : { duration: 0.1 },
-      },
-      open: (i) => ({
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        transition: reducedMotion
-          ? { duration: 0.12 }
-          : { delay: i * 0.04, ...pillOpen },
-      }),
-    }),
+    () => createWeeShellRailItemVariants(pillOpen, reducedMotion),
     [pillOpen, reducedMotion]
+  );
+
+  const shellChromeEntrance = useMemo(
+    () => getWeeShellChromeEntrance(reducedMotion, pillOpen),
+    [reducedMotion, pillOpen]
   );
 
   const onSelectSpace = useCallback(
@@ -318,15 +309,16 @@ export default function WeeGooeySpacePill() {
 
   return (
     <aside className={`${railClassName} relative`} aria-label="Space navigation">
-      <m.div
-        className="pointer-events-none relative flex flex-col items-center"
-        animate={{
-          y: showLeftNav ? railNudgeWithLeftNav.y : 0,
-          x: showLeftNav ? railNudgeWithLeftNav.x : 0,
-          scale: reducedMotion ? 1 : showLeftNav ? railNudgeWithLeftNav.scale : 1,
-        }}
-        transition={railNudgeTransition}
-      >
+      <m.div {...shellChromeEntrance} className="pointer-events-none relative flex flex-col items-center">
+        <m.div
+          className="pointer-events-none relative flex flex-col items-center"
+          animate={{
+            y: showLeftNav ? railNudgeWithLeftNav.y : 0,
+            x: showLeftNav ? railNudgeWithLeftNav.x : 0,
+            scale: reducedMotion ? 1 : showLeftNav ? railNudgeWithLeftNav.scale : 1,
+          }}
+          transition={railNudgeTransition}
+        >
         <LayoutGroup>
           <MotionDiv
             animate={hovered ? 'open' : 'closed'}
@@ -389,6 +381,7 @@ export default function WeeGooeySpacePill() {
                           pillOpen={pillOpen}
                           reducedMotion={reducedMotion}
                           onSelectSpace={onSelectSpace}
+                          onRailSpacePointerEnter={handleRailSpacePointerEnter}
                         />
                       ))}
                     </SortableContext>
@@ -438,6 +431,7 @@ export default function WeeGooeySpacePill() {
             aria-hidden
           />
         </LayoutGroup>
+        </m.div>
       </m.div>
     </aside>
   );

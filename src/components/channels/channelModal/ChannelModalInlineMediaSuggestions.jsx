@@ -149,6 +149,8 @@ export default function ChannelModalInlineMediaSuggestions({
   matchingApp,
   onApplyMedia,
   appliedMedia,
+  sectionHeading,
+  appliedPillText,
 }) {
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
@@ -273,7 +275,7 @@ export default function ChannelModalInlineMediaSuggestions({
     <section className="channel-inline-media-suggest" aria-labelledby="channel-inline-media-suggest-heading">
       <div className="channel-inline-media-suggest__header">
         <h4 id="channel-inline-media-suggest-heading" className="channel-inline-media-suggest__title">
-          Suggested channel art
+          {sectionHeading}
         </h4>
       </div>
 
@@ -295,7 +297,7 @@ export default function ChannelModalInlineMediaSuggestions({
           className="channel-inline-media-suggest__viewport channel-inline-media-suggest__viewport--no-scrollbar"
           role="region"
           aria-roledescription="carousel"
-          aria-label="Suggested channel art"
+          aria-label={sectionHeading}
         >
           <div ref={trackRef} className="channel-inline-media-suggest__track" role="list">
             {matches.map((item) => {
@@ -314,7 +316,7 @@ export default function ChannelModalInlineMediaSuggestions({
                   <span className="channel-inline-media-suggest__thumb-wrap">
                     <SuggestionThumb row={item} thumbUrl={thumbUrl} />
                     {applied ? (
-                      <span className="channel-inline-media-suggest__applied-pill">On channel</span>
+                      <span className="channel-inline-media-suggest__applied-pill">{appliedPillText}</span>
                     ) : null}
                     <span className="channel-inline-media-suggest__kind-badge">{formatMediaKind(item)}</span>
                   </span>
@@ -349,6 +351,8 @@ ChannelModalInlineMediaSuggestions.propTypes = {
     url: PropTypes.string,
     loading: PropTypes.bool,
   }),
+  sectionHeading: PropTypes.string,
+  appliedPillText: PropTypes.string,
 };
 
 ChannelModalInlineMediaSuggestions.defaultProps = {
@@ -357,4 +361,6 @@ ChannelModalInlineMediaSuggestions.defaultProps = {
   matchingApp: null,
   onApplyMedia: undefined,
   appliedMedia: null,
+  sectionHeading: 'Suggested channel art',
+  appliedPillText: 'On channel',
 };

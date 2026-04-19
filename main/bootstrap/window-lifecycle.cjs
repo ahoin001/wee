@@ -101,6 +101,8 @@ function createWindowLifecycle({
         nodeIntegration: false,
         devTools: true,
         webSecurity: false,
+        /** Throttle timers/animations when the window is occluded or backgrounded (wallpaper-style idle target). */
+        backgroundThrottling: true,
       },
     });
 

@@ -1,7 +1,8 @@
-/* Shell size: stable height across tabs (short content still fills; long content scrolls). */
+/* Viewport-capped shell: content scrolls inside .wee-modal-scroll (no forced empty height). */
 .wee-modal-panel {
-  min-height: min(600px, 82vh);
-  max-height: 88vh;
+  width: 100%;
+  min-height: 0;
+  max-height: min(88dvh, 920px);
 }
 
 /* Wee modal — scroll region uses design-system scrollbar tokens */

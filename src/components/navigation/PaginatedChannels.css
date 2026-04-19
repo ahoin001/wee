@@ -192,12 +192,7 @@
   justify-content: stretch;
 }
 
-.wii-strip-channel-cell--enter {
-  opacity: 0;
-  transform: translateY(14px) scale(0.985);
-  animation: wiiTileEnter 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  animation-delay: var(--wii-enter-delay, 0ms);
-}
+/* Tile enter: Framer stagger in WiiChannelStrip (weeMotion.js), not CSS keyframes */
 
 .wii-strip-channel-cell .channel {
   width: 100%;
@@ -353,12 +348,6 @@
   .wii-strip-track--animating {
     transition: none;
   }
-
-  .wii-strip-channel-cell--enter {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
 }
 
 /* ===== CHANNEL REORDER (whole-tile drag) ===== */
@@ -383,19 +372,4 @@
 
 .channel-drag-overlay--reduced {
   filter: drop-shadow(0 12px 28px rgb(0 0 0 / 0.4));
-}
-
-@keyframes wiiTileEnter {
-  0% {
-    opacity: 0;
-    transform: translateY(14px) scale(0.985);
-  }
-  70% {
-    opacity: 1;
-    transform: translateY(-2px) scale(1.002);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }

@@ -1,9 +1,23 @@
+import { startTransition } from 'react';
 import { createFloatingWidgetManager } from './floatingWidgetManager';
 import { createPerformanceManager } from './performanceManager';
 import { filterSteamToolEntries } from '../steamLibraryFilter.js';
-import { collectWarmMediaUrlsFromStore, warmImageUrlsOnIdle } from '../mediaWarmCache.js';
+import { collectWarmMediaUrlsFromStore } from '../mediaWarmCache.js';
+import { scheduleMediaWarmPass } from '../mediaWarmScheduler.js';
+import { markAppLibraryBackgroundPrefetchScheduled } from '../appLibraryStartupCoordinator.js';
+import { weeMarkAppLibraryPrefetchScheduled } from '../weePerformanceMarks.js';
 
 export const createStoreManagers = (getStore) => {
+  const setAppLibraryPatch = (store, patch, silent) => {
+    if (silent) {
+      startTransition(() => {
+        store.actions.setAppLibraryState(patch);
+      });
+    } else {
+      store.actions.setAppLibraryState(patch);
+    }
+  };
+
   const appLibraryManager = {
     _cache: {
       /** Align with main-process apps cache (see electron APPS_CACHE_TTL) to avoid redundant full scans */
@@ -74,10 +88,14 @@ export const createStoreManagers = (getStore) => {
 
       if (!forceRefresh && appLibraryManager._isCacheValid('installedApps')) {
         const cachedData = appLibraryManager._cache.installedApps.data;
-        store.actions.setAppLibraryState({
-          installedApps: cachedData,
-          appsLoading: false,
-        });
+        setAppLibraryPatch(
+          store,
+          {
+            installedApps: cachedData,
+            appsLoading: false,
+          },
+          silent
+        );
         return { success: true, apps: cachedData };
       }
 
@@ -104,13 +122,13 @@ export const createStoreManagers = (getStore) => {
           }
           const apps = Array.isArray(result) ? result : [];
           appLibraryManager._setCache('installedApps', apps);
-          store.actions.setAppLibraryState({ installedApps: apps, appsLoading: false });
+          setAppLibraryPatch(store, { installedApps: apps, appsLoading: false }, silent);
           return { success: true, apps };
         }
 
         const apps = [];
         appLibraryManager._setCache('installedApps', apps);
-        store.actions.setAppLibraryState({ installedApps: apps, appsLoading: false });
+        setAppLibraryPatch(store, { installedApps: apps, appsLoading: false }, silent);
         return { success: true, apps };
       } catch (error) {
         if (silent) {
@@ -118,12 +136,16 @@ export const createStoreManagers = (getStore) => {
         } else {
           console.warn('[fetchInstalledApps]', error);
         }
-        store.actions.setAppLibraryState({
-          appsLoading: false,
-          ...(silent
-            ? {}
-            : { appsError: error.message || 'Failed to fetch installed apps' }),
-        });
+        setAppLibraryPatch(
+          store,
+          {
+            appsLoading: false,
+            ...(silent
+              ? {}
+              : { appsError: error.message || 'Failed to fetch installed apps' }),
+          },
+          silent
+        );
         return { success: false, error: error.message };
       }
     },
@@ -133,7 +155,7 @@ export const createStoreManagers = (getStore) => {
 
       if (!forceRefresh && appLibraryManager._isCacheValid('steamGames')) {
         const cachedData = appLibraryManager._cache.steamGames.data;
-        store.actions.setAppLibraryState({ steamGames: cachedData, steamLoading: false });
+        setAppLibraryPatch(store, { steamGames: cachedData, steamLoading: false }, silent);
         return { success: true, games: cachedData };
       }
 
@@ -181,13 +203,13 @@ export const createStoreManagers = (getStore) => {
           const result = await window.api.steam.scanGames({ libraryPaths });
           const games = filterSteamToolEntries(result?.games || []);
           appLibraryManager._setCache('steamGames', games);
-          store.actions.setAppLibraryState({ steamGames: games, steamLoading: false });
+          setAppLibraryPatch(store, { steamGames: games, steamLoading: false }, silent);
           return { success: true, games };
         }
 
         const games = [];
         appLibraryManager._setCache('steamGames', games);
-        store.actions.setAppLibraryState({ steamGames: games, steamLoading: false });
+        setAppLibraryPatch(store, { steamGames: games, steamLoading: false }, silent);
         return { success: true, games };
       } catch (error) {
         if (silent) {
@@ -195,12 +217,16 @@ export const createStoreManagers = (getStore) => {
         } else {
           console.warn('[fetchSteamGames]', error);
         }
-        store.actions.setAppLibraryState({
-          steamLoading: false,
-          ...(silent
-            ? {}
-            : { steamError: error.message || 'Failed to fetch Steam games' }),
-        });
+        setAppLibraryPatch(
+          store,
+          {
+            steamLoading: false,
+            ...(silent
+              ? {}
+              : { steamError: error.message || 'Failed to fetch Steam games' }),
+          },
+          silent
+        );
         return { success: false, error: error.message };
       }
     },
@@ -210,7 +236,7 @@ export const createStoreManagers = (getStore) => {
 
       if (!forceRefresh && appLibraryManager._isCacheValid('epicGames')) {
         const cachedData = appLibraryManager._cache.epicGames.data;
-        store.actions.setAppLibraryState({ epicGames: cachedData, epicLoading: false });
+        setAppLibraryPatch(store, { epicGames: cachedData, epicLoading: false }, silent);
         return { success: true, games: cachedData };
       }
 
@@ -230,13 +256,13 @@ export const createStoreManagers = (getStore) => {
           const result = await window.api.epic.getInstalledGames();
           const games = result?.games || [];
           appLibraryManager._setCache('epicGames', games);
-          store.actions.setAppLibraryState({ epicGames: games, epicLoading: false });
+          setAppLibraryPatch(store, { epicGames: games, epicLoading: false }, silent);
           return { success: true, games };
         }
 
         const games = [];
         appLibraryManager._setCache('epicGames', games);
-        store.actions.setAppLibraryState({ epicGames: games, epicLoading: false });
+        setAppLibraryPatch(store, { epicGames: games, epicLoading: false }, silent);
         return { success: true, games };
       } catch (error) {
         if (silent) {
@@ -244,12 +270,16 @@ export const createStoreManagers = (getStore) => {
         } else {
           console.warn('[fetchEpicGames]', error);
         }
-        store.actions.setAppLibraryState({
-          epicLoading: false,
-          ...(silent
-            ? {}
-            : { epicError: error.message || 'Failed to fetch Epic games' }),
-        });
+        setAppLibraryPatch(
+          store,
+          {
+            epicLoading: false,
+            ...(silent
+              ? {}
+              : { epicError: error.message || 'Failed to fetch Epic games' }),
+          },
+          silent
+        );
         return { success: false, error: error.message };
       }
     },
@@ -259,7 +289,7 @@ export const createStoreManagers = (getStore) => {
 
       if (!forceRefresh && appLibraryManager._isCacheValid('uwpApps')) {
         const cachedData = appLibraryManager._cache.uwpApps.data;
-        store.actions.setAppLibraryState({ uwpApps: cachedData, uwpLoading: false });
+        setAppLibraryPatch(store, { uwpApps: cachedData, uwpLoading: false }, silent);
         return { success: true, apps: cachedData };
       }
 
@@ -279,13 +309,13 @@ export const createStoreManagers = (getStore) => {
           const result = await window.api.uwp.listApps();
           const apps = Array.isArray(result) ? result : [];
           appLibraryManager._setCache('uwpApps', apps);
-          store.actions.setAppLibraryState({ uwpApps: apps, uwpLoading: false });
+          setAppLibraryPatch(store, { uwpApps: apps, uwpLoading: false }, silent);
           return { success: true, apps };
         }
 
         const apps = [];
         appLibraryManager._setCache('uwpApps', apps);
-        store.actions.setAppLibraryState({ uwpApps: apps, uwpLoading: false });
+        setAppLibraryPatch(store, { uwpApps: apps, uwpLoading: false }, silent);
         return { success: true, apps };
       } catch (error) {
         if (silent) {
@@ -293,10 +323,14 @@ export const createStoreManagers = (getStore) => {
         } else {
           console.warn('[fetchUwpApps]', error);
         }
-        store.actions.setAppLibraryState({
-          uwpLoading: false,
-          ...(silent ? {} : { uwpError: error.message || 'Failed to fetch UWP apps' }),
-        });
+        setAppLibraryPatch(
+          store,
+          {
+            uwpLoading: false,
+            ...(silent ? {} : { uwpError: error.message || 'Failed to fetch UWP apps' }),
+          },
+          silent
+        );
         return { success: false, error: error.message };
       }
     },
@@ -314,20 +348,37 @@ export const createStoreManagers = (getStore) => {
         return;
       }
       appLibraryManager._backgroundPrefetchScheduled = true;
+      markAppLibraryBackgroundPrefetchScheduled();
+      weeMarkAppLibraryPrefetchScheduled();
+
+      const coldScan =
+        !appLibraryManager._isCacheValid('installedApps') ||
+        !appLibraryManager._isCacheValid('steamGames') ||
+        !appLibraryManager._isCacheValid('epicGames') ||
+        !appLibraryManager._isCacheValid('uwpApps');
+
+      const staggerMs = coldScan ? 520 : 350;
+      const initialDelayMs = coldScan ? 1200 : 700;
+      const idleCallbackTimeoutMs = coldScan ? 18000 : 12000;
 
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       const runChain = async () => {
         try {
           await appLibraryManager.fetchInstalledApps(false, { silent: true });
-          await pause(350);
+          await pause(staggerMs);
           await appLibraryManager.fetchSteamGames(false, { silent: true });
-          await pause(350);
+          await pause(staggerMs);
           await appLibraryManager.fetchEpicGames(false, { silent: true });
-          await pause(350);
+          await pause(staggerMs);
           await appLibraryManager.fetchUwpApps(false, { silent: true });
           await pause(400);
           try {
-            warmImageUrlsOnIdle(collectWarmMediaUrlsFromStore(getStore()), { max: 56 });
+            scheduleMediaWarmPass({
+              urls: collectWarmMediaUrlsFromStore(getStore()),
+              max: 48,
+              chunkSize: 6,
+              tier: 'normal',
+            });
           } catch {
             /* ignore */
           }
@@ -337,11 +388,11 @@ export const createStoreManagers = (getStore) => {
       };
 
       const start = () => {
-        setTimeout(runChain, 700);
+        setTimeout(runChain, initialDelayMs);
       };
 
       if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(start, { timeout: 12000 });
+        window.requestIdleCallback(start, { timeout: idleCallbackTimeoutMs });
       } else {
         setTimeout(start, 2000);
       }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { m, useMotionValue, useTransform, useReducedMotion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -9,6 +9,7 @@ import AuraHero from './AuraHero';
 import AuraCollectionsSection from './AuraCollectionsSection';
 import AuraLibrarySection from './AuraLibrarySection';
 import { readHubDockInsetPx, readHubScrollTopReservePx, scrollHubRegionIntoFocus } from './hubScrollUtils';
+import { isAppLibraryBackgroundPrefetchScheduled } from '../../utils/appLibraryStartupCoordinator';
 import { shouldUseWarmEnrichmentCache } from '../../utils/gameHub/gameHubEnrichmentCache';
 import { getCachedSteamClientLibrary, setCachedSteamClientLibrary } from '../../utils/gameHub/gameHubClientLibraryCache';
 import { useHeroMediaCrossfade } from './useHeroMediaCrossfade';
@@ -66,6 +67,10 @@ export default function GameHubSpace() {
       }))
     );
 
+  /** Defer heavy hub recompute when library arrays churn rapidly (React concurrent-friendly). */
+  const deferredSteamGames = useDeferredValue(appLibrary.steamGames);
+  const deferredEpicGames = useDeferredValue(appLibrary.epicGames);
+
   const hubShelfOrderMode = gameHub.ui?.hubShelfOrderMode ?? 'custom';
   const collectionShelfOrder = gameHub.ui?.collectionShelfOrder ?? null;
   const hubLibrarySort = gameHub.ui?.hubLibrarySort ?? 'default';
@@ -93,6 +98,8 @@ export default function GameHubSpace() {
   const heroScrollRafRef = useRef(null);
 
   const dockMorphEnabled = useMinWidthDockMorph();
+  const hubDockScrollMorphEnabled = gameHub.ui?.hubDockScrollMorphEnabled ?? true;
+  const useDockMorphLayout = dockMorphEnabled && hubDockScrollMorphEnabled;
   const reducedMotion = useReducedMotion();
 
   const scrollY = useMotionValue(0);
@@ -182,7 +189,7 @@ export default function GameHubSpace() {
     return smoothstep01((v - fadeStart) / (fadeEnd - fadeStart));
   });
 
-  const overlayPointerEvents = useTransform(overlayOpacity, (o) => (o < 0.08 ? 'none' : 'auto'));
+  /** Dock overlay uses pointer-events:none on the wrapper (see CSS) so stacks beneath stay clickable; rail/hero controls opt in with pointer-events:auto. */
   const dockPointerEvents = useTransform(dockHeroOpacity, (o) => (o < 0.08 ? 'none' : 'auto'));
 
   const heroWidth = useTransform(morphProgress, [0, 1], ['100%', `${HUB_MORPH.dockWidthPx}px`]);
@@ -201,25 +208,25 @@ export default function GameHubSpace() {
   const dockVacuumScale = useTransform(morphProgress, [0, 0.55], [0.93, 1], { clamp: true });
 
   const applyHeroScrollMode = useCallback(() => {
-    if (dockMorphEnabled) return;
+    if (useDockMorphLayout) return;
     const main = contentScrollRef.current;
     if (!main) return;
     const scrolled = main.scrollTop > HERO_SCROLL_COMPACT_THRESHOLD_PX;
     setIsHeroCompact((prev) => (prev !== scrolled ? scrolled : prev));
-  }, [dockMorphEnabled]);
+  }, [useDockMorphLayout]);
 
   const scheduleHeroScrollMode = useCallback(() => {
-    if (dockMorphEnabled) return;
+    if (useDockMorphLayout) return;
     if (heroScrollRafRef.current != null) return;
     heroScrollRafRef.current = window.requestAnimationFrame(() => {
       heroScrollRafRef.current = null;
       applyHeroScrollMode();
     });
-  }, [applyHeroScrollMode, dockMorphEnabled]);
+  }, [applyHeroScrollMode, useDockMorphLayout]);
 
   useEffect(() => {
     applyHeroScrollMode();
-  }, [applyHeroScrollMode, dockMorphEnabled]);
+  }, [applyHeroScrollMode, useDockMorphLayout]);
 
   /* Reserve space + scroll math for fixed dock so hub content doesn’t sit unreadably under it */
   useEffect(() => {
@@ -271,10 +278,12 @@ export default function GameHubSpace() {
       const useSteamWebApi = profile.useSteamWebApi !== false;
 
       try {
-        await Promise.all([
-          appLibraryManager?.fetchSteamGames?.(false, { silent: true }),
-          appLibraryManager?.fetchEpicGames?.(false, { silent: true }),
-        ]);
+        if (!isAppLibraryBackgroundPrefetchScheduled()) {
+          await Promise.all([
+            appLibraryManager?.fetchSteamGames?.(false, { silent: true }),
+            appLibraryManager?.fetchEpicGames?.(false, { silent: true }),
+          ]);
+        }
       } catch {
         /* app library manager is best-effort; hub still uses persisted / API enrichment */
       }
@@ -474,13 +483,13 @@ export default function GameHubSpace() {
   const hubData = useMemo(
     () =>
       buildHubData({
-        steamGames: appLibrary.steamGames,
-        epicGames: appLibrary.epicGames,
+        steamGames: deferredSteamGames,
+        epicGames: deferredEpicGames,
         enrichmentMap,
         clientLibrary,
         weeMeta,
       }),
-    [appLibrary.epicGames, appLibrary.steamGames, enrichmentMap, clientLibrary, weeMeta]
+    [deferredEpicGames, deferredSteamGames, enrichmentMap, clientLibrary, weeMeta]
   );
 
   const hubDataView = useMemo(() => {
@@ -689,8 +698,8 @@ export default function GameHubSpace() {
 
   const stageClassName = [
     'aura-hub-stage',
-    dockMorphEnabled ? 'aura-hub-stage--dock-morph' : '',
-    !dockMorphEnabled && isHeroCompact ? 'aura-hub-stage--scrolled' : '',
+    useDockMorphLayout ? 'aura-hub-stage--dock-morph' : '',
+    !useDockMorphLayout && isHeroCompact ? 'aura-hub-stage--scrolled' : '',
     floatingUi ? 'aura-hub-stage--floating' : '',
   ]
     .filter(Boolean)
@@ -720,6 +729,7 @@ export default function GameHubSpace() {
       onLaunchGame={handleLaunchGame}
       onHeroPreview={setHeroPreview}
       onCollectionChromeBusyChange={handleCollectionChromeBusyChange}
+      hubScrollContainerRef={contentScrollRef}
     />
   );
 
@@ -794,55 +804,27 @@ export default function GameHubSpace() {
               containerClassName="aura-hub-steam-only__toggle"
             />
           </div>
+          {dockMorphEnabled ? (
+            <div
+              className="aura-hub-dock-morph-toggle"
+              title="Scroll-linked dock rail and library width. Off uses a simpler layout with a compact hero bar after you scroll."
+            >
+              <WToggle
+                checked={hubDockScrollMorphEnabled}
+                onChange={(checked) => setGameHubState({ ui: { hubDockScrollMorphEnabled: checked } })}
+                label="Dock morph"
+                containerClassName="aura-hub-dock-morph-toggle__toggle"
+              />
+            </div>
+          ) : null}
         </div>
 
-        <nav className="aura-hub-scroll-anchors" aria-label="Jump to hub section">
-          <a
-            href="#game-hub-collections"
-            className="aura-hub-scroll-anchors__link"
-            onClick={(e) => {
-              e.preventDefault();
-              const main = contentScrollRef.current;
-              const region = document.getElementById('game-hub-collections');
-              if (main && region) {
-                scrollHubRegionIntoFocus(main, region, {
-                  bottomInset: readHubDockInsetPx(region),
-                  topReserve: readHubScrollTopReservePx(region),
-                });
-              }
-            }}
-          >
-            Collections
-          </a>
-          <span className="aura-hub-scroll-anchors__sep" aria-hidden>
-            ·
-          </span>
-          <a
-            href="#game-hub-library"
-            className="aura-hub-scroll-anchors__link"
-            onClick={(e) => {
-              e.preventDefault();
-              const main = contentScrollRef.current;
-              const region = document.getElementById('game-hub-library');
-              if (main && region) {
-                scrollHubRegionIntoFocus(main, region, {
-                  bottomInset: readHubDockInsetPx(region),
-                  topReserve: readHubScrollTopReservePx(region),
-                });
-              }
-            }}
-          >
-            Library
-          </a>
-        </nav>
-
-        {dockMorphEnabled ? (
+        {useDockMorphLayout ? (
           <div className="aura-hub-column aura-hub-column--dock-morph">
             <MotionDiv
               className="aura-hub-hero-wrap aura-hub-hero-wrap--dock-overlay"
               style={{
                 opacity: overlayOpacity,
-                pointerEvents: overlayPointerEvents,
               }}
             >
               <div className="aura-hub-hero-shell">

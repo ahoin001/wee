@@ -20,7 +20,7 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { IS_DEV } from '../../utils/env';
 import WToggle from '../../ui/WToggle';
 import WeeButton from '../../ui/wee/WeeButton';
-import { useWeeMotion } from '../../design/weeMotion';
+import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 import './SettingsActionMenu.css';
 
 function QuickToggleRow({ label, icon: Icon, active, onToggle }) {
@@ -239,9 +239,9 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="wee-quick-menu-title"
-            initial={{ x: 120, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 120, opacity: 0 }}
+            initial={{ ...WEE_VARIANTS.modalPanelInitial, x: 96 }}
+            animate={{ ...WEE_VARIANTS.modalPanelAnimate, x: 0 }}
+            exit={{ ...WEE_VARIANTS.modalPanelExit, x: 96 }}
             transition={modalTransition}
             className="fixed bottom-6 right-6 top-6 z-[100001] flex w-[min(24rem,calc(100vw-3rem))] flex-col overflow-hidden rounded-[var(--wee-radius-shell)] border-[0.5rem] border-[hsl(var(--wee-border-outer))] bg-[hsl(var(--wee-surface-well))] shadow-[var(--wee-shadow-modal)]"
             onClick={(e) => e.stopPropagation()}

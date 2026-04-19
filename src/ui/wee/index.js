@@ -1,6 +1,7 @@
 export { default as WeeModalShell } from './WeeModalShell';
 export { WeeModalRail, WeeModalRailSection, WeeModalRailItem } from './WeeModalRail';
 export { default as WeeButton } from './WeeButton';
+export { default as WeeSpaceRailPillButton } from './WeeSpaceRailPillButton';
 export { default as WeeCard } from './WeeCard';
 export { default as WeeToggle } from './WeeToggle';
 export { default as WeeSectionHeader } from './WeeSectionHeader';

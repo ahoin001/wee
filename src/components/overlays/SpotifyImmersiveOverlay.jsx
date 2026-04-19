@@ -2,17 +2,17 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useAnimationActivity from '../../hooks/useAnimationActivity';
+import { useSpotifyPlaybackSample } from '../../hooks/useSpotifyPlaybackSample';
 
 const SpotifyImmersiveOverlay = () => {
-  const { extractedColors, immersiveMode, isPlaying, progress, duration } = useConsolidatedAppStore(
+  const { extractedColors, immersiveMode, isPlaying } = useConsolidatedAppStore(
     useShallow((state) => ({
       extractedColors: state.spotify.extractedColors,
       immersiveMode: state.spotify.immersiveMode,
       isPlaying: state.spotify.isPlaying,
-      progress: state.spotify.progress,
-      duration: state.spotify.duration,
     }))
   );
+  const { progress, duration } = useSpotifyPlaybackSample(200);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const particlesRef = useRef([]);

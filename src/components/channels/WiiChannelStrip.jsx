@@ -1,10 +1,13 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { m } from 'framer-motion';
+import { useWeeMotion, createWeeChannelTileItemVariants } from '../../design/weeMotion';
 
 /**
  * Single continuous 4×N column grid (Option A): one uniform gap everywhere,
  * including between “pages”. Pan with translateX(-page * 100% / totalPages) of the strip.
  * Expects `--wii-strip-current-page` / `--wii-total-pages` on an ancestor (e.g. `.channels-content`).
+ * Tile entrance uses shared Wee gooey springs (see `weeMotion.js`); stagger is per slot index on the page.
  */
 const WiiChannelStrip = ({
   totalPages,
@@ -19,6 +22,12 @@ const WiiChannelStrip = ({
   onGridWheel,
   renderChannelAtIndex,
 }) => {
+  const { pillOpen, reducedMotion } = useWeeMotion();
+  const tileItemVariants = useMemo(
+    () => createWeeChannelTileItemVariants(pillOpen, reducedMotion),
+    [pillOpen, reducedMotion]
+  );
+
   const safeTotalPages = Math.max(1, Number(totalPages) || 1);
   const safeColumns = Math.max(1, Number(columns) || 1);
   const safeRows = Math.max(1, Number(rows) || 1);
@@ -56,17 +65,20 @@ const WiiChannelStrip = ({
             const row = Math.floor(idxInPage / safeColumns);
             const col = (idxInPage % safeColumns) + page * safeColumns;
             return (
-              <div
+              <m.div
                 key={`wii-cell-${i}`}
-                className="wii-strip-channel-cell wii-strip-channel-cell--enter"
+                className="wii-strip-channel-cell"
                 style={{
                   gridColumn: col + 1,
                   gridRow: row + 1,
-                  '--wii-enter-delay': `${Math.min(idxInPage * 24, 260)}ms`,
                 }}
+                variants={tileItemVariants}
+                custom={idxInPage}
+                initial="closed"
+                animate="open"
               >
                 {renderChannelAtIndex(i, true)}
-              </div>
+              </m.div>
             );
           })}
         </div>

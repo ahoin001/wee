@@ -70,53 +70,58 @@ function WBaseModal({
       <div className="fixed inset-0 z-[99999] overflow-y-auto pointer-events-auto">
         <div className="flex min-h-full items-center justify-center p-4">
           <Dialog.Panel
-            as={MotionDiv}
-            className={`w-[95%] max-h-[85vh] min-w-[800px] bg-[hsl(var(--surface-primary))] rounded-[2.2rem] border-[3px] border-[hsl(var(--color-pure-white)/0.85)] shadow-[var(--playful-shadow-elevated)] overflow-hidden flex flex-col lg:w-[90%] lg:min-w-[600px] md:w-[95%] md:min-w-[400px] sm:w-[98%] sm:min-w-[320px] relative z-[99999] ${className}`}
+            className={`relative z-[99999] w-full min-w-0 max-w-[min(1240px,96vw)] sm:max-w-[98vw] ${className}`}
             style={{ maxWidth }}
-            variants={panelVariants}
-            initial="closed"
-            animate={isOpen ? 'open' : 'closed'}
-            transition={panelTransition}
-            onAnimationComplete={onPanelAnimationComplete}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Inner motion layer: reliable `onAnimationComplete` + variants vs `Dialog.Panel as={motion}`. */}
             <MotionDiv
-              className="flex justify-between items-center p-7 border-b-[3px] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.72)]"
-              initial={modalStaggeredEntrance ? { opacity: 0, y: -8 } : false}
-              animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
-              transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.04 } : undefined}
+              layout
+              className="max-h-[min(88dvh,920px)] min-h-0 overflow-hidden flex flex-col w-full bg-[hsl(var(--surface-primary))] rounded-[2.2rem] border-[3px] border-[hsl(var(--color-pure-white)/0.85)] shadow-[var(--playful-shadow-elevated)]"
+              variants={panelVariants}
+              initial="closed"
+              animate={isOpen ? 'open' : 'closed'}
+              transition={panelTransition}
+              onAnimationComplete={onPanelAnimationComplete}
             >
-              <Dialog.Title as="h2" className="m-0 playful-hero-text text-[hsl(var(--text-primary))]">
-                {title}
-              </Dialog.Title>
-              <Button
-                variant="tertiary"
-                onClick={handleClose}
-                className="!bg-none !border-none text-2xl !p-1 !min-w-auto !w-auto"
-              >
-                ×
-              </Button>
-            </MotionDiv>
-
-            <MotionDiv
-              className="p-7 overflow-y-auto flex-1 min-h-0 scrollbar-soft scroll-region-inset pb-10"
-              initial={modalStaggeredEntrance ? { opacity: 0, y: 8 } : false}
-              animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
-              transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.08 } : undefined}
-            >
-              {children}
-            </MotionDiv>
-
-            {footerContent && (
               <MotionDiv
-                className="flex justify-end items-center px-8 py-5 gap-4 min-h-16 sticky bottom-0 left-0 right-0 z-10 bg-[hsl(var(--surface-secondary))] border-t-[3px] border-[hsl(var(--border-primary))] shadow-[var(--playful-inner-glow)]"
-                initial={modalStaggeredEntrance ? { opacity: 0, y: 10 } : false}
+                className="flex justify-between items-center p-7 border-b-[3px] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.72)]"
+                initial={modalStaggeredEntrance ? { opacity: 0, y: -8 } : false}
                 animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
-                transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.14 } : undefined}
+                transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.04 } : undefined}
               >
-                {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
+                <Dialog.Title as="h2" className="m-0 playful-hero-text text-[hsl(var(--text-primary))]">
+                  {title}
+                </Dialog.Title>
+                <Button
+                  variant="tertiary"
+                  onClick={handleClose}
+                  className="!bg-none !border-none text-2xl !p-1 !min-w-auto !w-auto"
+                >
+                  ×
+                </Button>
               </MotionDiv>
-            )}
+
+              <MotionDiv
+                className="p-7 overflow-y-auto flex-1 min-h-0 scrollbar-soft scroll-region-inset pb-10"
+                initial={modalStaggeredEntrance ? { opacity: 0, y: 8 } : false}
+                animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
+                transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.08 } : undefined}
+              >
+                {children}
+              </MotionDiv>
+
+              {footerContent && (
+                <MotionDiv
+                  className="flex justify-end items-center px-8 py-5 gap-4 min-h-16 sticky bottom-0 left-0 right-0 z-10 bg-[hsl(var(--surface-secondary))] border-t-[3px] border-[hsl(var(--border-primary))] shadow-[var(--playful-inner-glow)]"
+                  initial={modalStaggeredEntrance ? { opacity: 0, y: 10 } : false}
+                  animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
+                  transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.14 } : undefined}
+                >
+                  {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
+                </MotionDiv>
+              )}
+            </MotionDiv>
           </Dialog.Panel>
         </div>
       </div>

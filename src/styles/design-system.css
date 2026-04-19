@@ -205,10 +205,14 @@
   /* Side navigation — Wii peek + Wee gooey motion (see WiiSideNavigation.css, WeeGooeySpacePill) */
   /* Above dock/ribbon (1000) and space rail (2200) so prev/next stay clickable */
   --side-nav-z-index: 2300;
-  --side-nav-width: 104px;
+  /* Longer strip so the inner straight edge reads as a rail; pair with peek so the round cap tucks off-screen */
+  --side-nav-width: 156px;
   --side-nav-height: 64px;
-  /* Peek: partial tuck at rest; hover goes to translateX(0) flush to screen — no gap */
-  --side-nav-peek-offset: 36px;
+  /* Peek: larger tuck hides more of the circular cap — visible area feels like a strip, not a floating stub */
+  --side-nav-peek-offset: 56px;
+  /* Icon inset from the rounded cap; inner edge keeps comfortable padding toward the strip */
+  --side-nav-cap-padding: 6px;
+  --side-nav-inner-padding: 22px;
   --side-nav-reveal-offset: 0px;
   --side-nav-radius: 30px;
   --side-nav-icon-size: 24px;

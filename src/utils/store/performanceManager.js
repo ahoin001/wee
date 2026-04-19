@@ -1,10 +1,14 @@
 import { isRendererActive } from './manager-utils';
+import { IS_DEV } from '../env.js';
 
 export const createPerformanceManager = (getStore) => {
   const manager = {
     fpsInterval: null,
     memoryInterval: null,
     startMonitoring() {
+      if (!IS_DEV) {
+        return;
+      }
       const store = getStore();
       store.actions.setPerformanceState({ isMonitoring: true, loading: false });
       manager.startFpsMonitoring();

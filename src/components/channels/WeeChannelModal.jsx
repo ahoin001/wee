@@ -99,7 +99,7 @@ function WeeChannelModal({
       showRail
       onExitAnimationComplete={onExitAnimationComplete}
     >
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="wait">
         <TabPanel
           key={activeTab}
           initial={WEE_VARIANTS.tabBodyInitial}

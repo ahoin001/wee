@@ -12,7 +12,7 @@ import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { WALLPAPER_CHECKERBOARD_BG } from '../../design/runtimeColorStrings.js';
 import SettingsWeeSection from './SettingsWeeSection';
-import { WeeButton, WeeModalFieldCard } from '../../ui/wee';
+import { WeeButton, WeeModalFieldCard, WeeSpaceRailPillButton } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import './settings-wee-panels.css';
 
@@ -202,58 +202,67 @@ const WallpaperSettingsTab = React.memo(() => {
     setMessage({ type: '', text: '' });
     try {
       const data = await api.get();
+      const prevW = useConsolidatedAppStore.getState().wallpaper;
+      const prevO = useConsolidatedAppStore.getState().overlay;
+      const c = data.cyclingSettings || {};
+
+      const num = (v, fallback) => (typeof v === 'number' && !Number.isNaN(v) ? v : fallback);
+      const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
+      const str = (v, fallback) => (typeof v === 'string' && v.length ? v : fallback);
+
       setWallpapers(data.savedWallpapers || []);
       setActiveWallpaper(data.wallpaper || null);
       setLikedWallpapers(data.likedWallpapers || []);
-      setCycling(data.cyclingSettings?.enabled ?? false);
-      setCycleInterval(data.cyclingSettings?.interval ?? 30);
-      setCycleAnimation(data.cyclingSettings?.animation ?? 'fade');
-      setSlideDirection(data.cyclingSettings?.slideDirection ?? 'right');
-      setCrossfadeDuration(data.cyclingSettings?.crossfadeDuration ?? 1.2);
-      setCrossfadeEasing(data.cyclingSettings?.crossfadeEasing ?? 'ease-out');
-      setSlideRandomDirection(data.cyclingSettings?.slideRandomDirection ?? false);
-      setSlideDuration(data.cyclingSettings?.slideDuration ?? 1.5);
-      setSlideEasing(data.cyclingSettings?.slideEasing ?? 'ease-out');
-      // setWallpaperOpacity(typeof data.wallpaperOpacity === 'number' ? data.wallpaperOpacity : 1); // This line is now redundant
-      // setWallpaperBlur(data.wallpaperBlur ?? 0); // This line is now redundant
 
-      // Load overlay settings
-      // setOverlayEnabled(data.overlayEnabled ?? false); // This line is now redundant
-      // setOverlayEffect(data.overlayEffect ?? 'snow'); // This line is now redundant
-      // setOverlayIntensity(data.overlayIntensity ?? 50); // This line is now redundant
-      // setOverlaySpeed(data.overlaySpeed ?? 1); // This line is now redundant
-      // setOverlayWind(data.overlayWind ?? 0.02); // This line is now redundant
-      // setOverlayGravity(data.overlayGravity ?? 0.1); // This line is now redundant
+      const mergedCycleEnabled = bool(c.enabled, prevW.cycleWallpapers);
+      const mergedInterval = num(c.interval, prevW.cycleInterval);
+      const mergedAnimation = str(c.animation, prevW.cycleAnimation);
+      const mergedSlideDir = str(c.slideDirection, prevW.slideDirection);
+      const mergedCfDur = num(c.crossfadeDuration, prevW.crossfadeDuration);
+      const mergedCfEase = str(c.crossfadeEasing, prevW.crossfadeEasing);
+      const mergedSlideRand = bool(c.slideRandomDirection, prevW.slideRandomDirection);
+      const mergedSlideDur = num(c.slideDuration, prevW.slideDuration);
+      const mergedSlideEase = str(c.slideEasing, prevW.slideEasing);
 
-      // Update consolidated store with loaded data
+      setCycling(mergedCycleEnabled);
+      setCycleInterval(mergedInterval);
+      setCycleAnimation(mergedAnimation);
+      setSlideDirection(mergedSlideDir);
+      setCrossfadeDuration(mergedCfDur);
+      setCrossfadeEasing(mergedCfEase);
+      setSlideRandomDirection(mergedSlideRand);
+      setSlideDuration(mergedSlideDur);
+      setSlideEasing(mergedSlideEase);
+
+      // Merge with current store when `wallpapers.json` omits fields (avoids clobbering unified store / session state).
       setWallpaperState({
         current: data.wallpaper || null,
         savedWallpapers: data.savedWallpapers || [],
         likedWallpapers: data.likedWallpapers || [],
-        opacity: data.wallpaperOpacity ?? 1,
-        blur: data.wallpaperBlur ?? 0,
-        workspaceBrightness: data.wallpaperWorkspaceBrightness ?? 1,
-        workspaceSaturate: data.wallpaperWorkspaceSaturate ?? 1,
-        gameHubBrightness: data.wallpaperGameHubBrightness ?? 0.78,
-        gameHubSaturate: data.wallpaperGameHubSaturate ?? 1,
-        cycleWallpapers: data.cyclingSettings?.enabled ?? false,
-        cycleInterval: data.cyclingSettings?.interval ?? 30,
-        cycleAnimation: data.cyclingSettings?.animation ?? 'fade',
-        slideDirection: data.cyclingSettings?.slideDirection ?? 'right',
-        crossfadeDuration: data.cyclingSettings?.crossfadeDuration ?? 1.2,
-        crossfadeEasing: data.cyclingSettings?.crossfadeEasing ?? 'ease-out',
-        slideRandomDirection: data.cyclingSettings?.slideRandomDirection ?? false,
-        slideDuration: data.cyclingSettings?.slideDuration ?? 1.5,
-        slideEasing: data.cyclingSettings?.slideEasing ?? 'ease-out',
+        opacity: num(data.wallpaperOpacity, prevW.opacity),
+        blur: num(data.wallpaperBlur, prevW.blur),
+        workspaceBrightness: num(data.wallpaperWorkspaceBrightness, prevW.workspaceBrightness ?? 1),
+        workspaceSaturate: num(data.wallpaperWorkspaceSaturate, prevW.workspaceSaturate ?? 1),
+        gameHubBrightness: num(data.wallpaperGameHubBrightness, prevW.gameHubBrightness ?? 0.78),
+        gameHubSaturate: num(data.wallpaperGameHubSaturate, prevW.gameHubSaturate ?? 1),
+        cycleWallpapers: mergedCycleEnabled,
+        cycleInterval: mergedInterval,
+        cycleAnimation: mergedAnimation,
+        slideDirection: mergedSlideDir,
+        crossfadeDuration: mergedCfDur,
+        crossfadeEasing: mergedCfEase,
+        slideRandomDirection: mergedSlideRand,
+        slideDuration: mergedSlideDur,
+        slideEasing: mergedSlideEase,
       });
 
       setOverlayState({
-        enabled: data.overlayEnabled ?? false,
-        effect: data.overlayEffect ?? 'snow',
-        intensity: data.overlayIntensity ?? 50,
-        speed: data.overlaySpeed ?? 1,
-        wind: data.overlayWind ?? 0.02,
-        gravity: data.overlayGravity ?? 0.1,
+        enabled: bool(data.overlayEnabled, prevO.enabled),
+        effect: str(data.overlayEffect, prevO.effect),
+        intensity: num(data.overlayIntensity, prevO.intensity),
+        speed: num(data.overlaySpeed, prevO.speed),
+        wind: num(data.overlayWind, prevO.wind),
+        gravity: num(data.overlayGravity, prevO.gravity),
       });
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load wallpapers: ' + err.message });
@@ -813,15 +822,23 @@ const WallpaperSettingsTab = React.memo(() => {
             </div>
             <WToggle checked={cycling} onChange={handleCyclingChange} disableLabelClick title="Enable automatic cycling" />
           </div>
+          <AnimatePresence initial={false}>
           {cycling ? (
-            <>
-              <div className="settings-wee-field-row mb-4">
+            <m.div
+              key="cycling-panel"
+              layout
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
+              transition={{ ...tabTransition, layout: { duration: 0.28 } }}
+              className="flex flex-col gap-4"
+            >
+              <div className="settings-wee-field-row mb-0">
                 <span className="settings-wee-field-row__label">Try it</span>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    variant="secondary"
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                  <WeeSpaceRailPillButton
+                    type="button"
                     size="sm"
-                    rounded
                     onClick={() => {
                       if (window.api?.wallpapers?.cycle) {
                         window.api.wallpapers.cycle();
@@ -832,24 +849,25 @@ const WallpaperSettingsTab = React.memo(() => {
                     }}
                   >
                     Manual cycle
-                  </Button>
+                  </WeeSpaceRailPillButton>
                   <Text variant="small" className="!m-0 text-[hsl(var(--text-tertiary))]">
                     Fire one advance with your current animation settings.
                   </Text>
                 </div>
               </div>
 
-              <div className="settings-wee-slider-row">
+              <div className="settings-wee-slider-row !items-center">
                 <span className="settings-wee-slider-row__label">Interval</span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="w-[4.5rem]">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <div className="min-w-[6rem] max-w-[8rem] shrink-0">
                     <WInput
+                      variant="wee"
                       type="number"
                       min={2}
                       max={600}
                       value={cycleInterval}
                       onChange={(e) => handleCycleIntervalChange(Number(e.target.value))}
-                      className="text-[15px]"
+                      className="!py-2.5 text-[15px] tabular-nums leading-normal"
                     />
                   </div>
                   <Text variant="small" className="text-[hsl(var(--text-tertiary))]">
@@ -858,14 +876,16 @@ const WallpaperSettingsTab = React.memo(() => {
                 </div>
               </div>
 
-              <div className="settings-wee-slider-row items-start">
-                <span className="settings-wee-slider-row__label pt-1">Animation</span>
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
+                <span className="settings-wee-slider-row__label shrink-0 pt-0.5 lg:w-[8.75rem] lg:pt-1">
+                  Animation
+                </span>
                 <div className="min-w-0 flex-1">
                   <WSelect
                     options={WALLPAPER_ANIMATIONS}
                     value={cycleAnimation}
                     onChange={handleCycleAnimationChange}
-                    className="w-full"
+                    className="w-full min-w-0"
                   />
                   <Text variant="small" className="mt-1 text-[hsl(var(--text-tertiary))]">
                     {cycleAnimation === 'fade' && 'Smooth crossfade — best for most wallpapers'}
@@ -876,19 +896,20 @@ const WallpaperSettingsTab = React.memo(() => {
                     {cycleAnimation === 'blur' && 'Soft blur-based blend'}
                   </Text>
                 </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  rounded
-                  onClick={() => {
-                    if (window.cycleToNextWallpaper) {
-                      window.cycleToNextWallpaper();
-                    }
-                  }}
-                  title="Preview animation with current settings"
-                >
-                  Preview
-                </Button>
+                <div className="flex shrink-0 justify-start lg:pt-1">
+                  <WeeSpaceRailPillButton
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (window.cycleToNextWallpaper) {
+                        window.cycleToNextWallpaper();
+                      }
+                    }}
+                    title="Preview animation with current settings"
+                  >
+                    Preview
+                  </WeeSpaceRailPillButton>
+                </div>
               </div>
 
               {cycleAnimation === 'slide' ? (
@@ -985,8 +1006,9 @@ const WallpaperSettingsTab = React.memo(() => {
                 Fade, slide, zoom, Ken Burns, morph, and blur transitions use the same liked set — tune the interval
                 so cycling stays gentle on slower machines.
               </p>
-            </>
+            </m.div>
           ) : null}
+          </AnimatePresence>
         </WeeModalFieldCard>
       </SettingsWeeSection>
 

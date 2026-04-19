@@ -48,10 +48,10 @@ export function computeReorderShiftMotion(channelIndex, reorderWave, reduceMotio
       scale: [1, 1.06, 0.97, 1.02, 1],
     },
     transition: {
-      duration: 0.72,
+      duration: 0.88,
       delay: stagger,
-      times: [0, 0.2, 0.45, 0.72, 1],
-      ease: [0.22, 1, 0.36, 1],
+      times: [0, 0.18, 0.48, 0.78, 1],
+      ease: [0.2, 0.85, 0.28, 1],
     },
   };
 }

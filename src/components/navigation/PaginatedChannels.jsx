@@ -151,10 +151,9 @@ const PaginatedChannelsInner = React.memo(() => {
     bumpGridActivity();
   }, [bumpGridActivity]);
 
-  const handleGridMouseLeave = useCallback(() => {
-    clearIdleFadeTimer();
-    setIsGridFaded(false);
-  }, [clearIdleFadeTimer]);
+  /** Do not clear the idle timer on leave — fade should still run after N s since last grid activity
+   *  while the pointer is over dock, ribbon, or nav (fixes fade only after space switch). */
+  const handleGridMouseLeave = useCallback(() => {}, []);
 
   // Cleanup timeout on unmount
   useEffect(() => {

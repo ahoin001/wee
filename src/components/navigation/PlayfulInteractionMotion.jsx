@@ -2,27 +2,27 @@ import React, { forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { m, useReducedMotion } from 'framer-motion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
-import { PLAYFUL_SPRINGS, PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
+import { PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
+import { useWeeMotion } from '../../design/weeMotion';
 
-/** Snappy spring for press / release — aligned with channel drag springs */
-const playfulTapSpring = {
-  ...PLAYFUL_SPRINGS.press,
-};
+/** Matches WeeGooeySpacePill row buttons (whileTap / whileHover scale). */
+const PILL_ROW_PRESS_SCALE = 0.92;
+const PILL_ROW_HOVER_SCALE = 1.12;
 
-/** Inner tap under `.channel` — CSS keeps hover scale on the outer shell */
-const CHANNEL_TAP = { scale: 0.97, rotate: -0.75 };
+/** Inner tap under `.channel` — CSS keeps hover scale on the outer shell; subtler than full chrome. */
+const CHANNEL_TAP = { scale: 0.95, rotate: -0.75 };
 
 const PRESS_VARIANT = {
   dockButton: {
-    tap: { scale: PLAYFUL_AMPLITUDE.pressScale, rotate: PLAYFUL_AMPLITUDE.pressRotate },
-    hover: { scale: PLAYFUL_AMPLITUDE.hoverScale, rotate: 0.35, y: PLAYFUL_AMPLITUDE.hoverLiftY },
+    tap: { scale: PILL_ROW_PRESS_SCALE, rotate: PLAYFUL_AMPLITUDE.pressRotate },
+    hover: { scale: PILL_ROW_HOVER_SCALE, rotate: 0.35, y: PLAYFUL_AMPLITUDE.hoverLiftY },
   },
   dockAccessory: {
-    tap: { scale: PLAYFUL_AMPLITUDE.pressScale, rotate: -2 },
-    hover: { scale: PLAYFUL_AMPLITUDE.hoverScale, rotate: 0, y: PLAYFUL_AMPLITUDE.hoverLiftY },
+    tap: { scale: PILL_ROW_PRESS_SCALE, rotate: -2 },
+    hover: { scale: PILL_ROW_HOVER_SCALE, rotate: 0, y: PLAYFUL_AMPLITUDE.hoverLiftY },
   },
   ribbon: {
-    tap: { scale: PLAYFUL_AMPLITUDE.pressScale, rotate: -0.65 },
+    tap: { scale: PILL_ROW_PRESS_SCALE, rotate: -0.65 },
   },
 };
 
@@ -35,6 +35,7 @@ export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
 ) {
   const osReduced = useReducedMotion();
   const mf = useMotionFeedback();
+  const { pillSurfacePress } = useWeeMotion();
   const allowDock = variant === 'dockButton' || variant === 'dockAccessory' ? mf.dockPress : mf.ribbonTap;
   const reduced = osReduced || !allowDock;
   const v = PRESS_VARIANT[variant] || PRESS_VARIANT.dockButton;
@@ -57,7 +58,7 @@ export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
       style={{ transformOrigin: 'center center', ...style }}
       whileTap={v.tap}
       whileHover={enableHover && v.hover ? v.hover : undefined}
-      transition={playfulTapSpring}
+      transition={pillSurfacePress}
       {...rest}
     >
       {children}
@@ -93,6 +94,7 @@ export const PlayfulTapLayer = forwardRef(function PlayfulTapLayer(
 ) {
   const osReduced = useReducedMotion();
   const { channelTap } = useMotionFeedback();
+  const { pillSurfacePress } = useWeeMotion();
   const reduced = osReduced || !channelTap;
   if (reduced) {
     return (
@@ -108,7 +110,7 @@ export const PlayfulTapLayer = forwardRef(function PlayfulTapLayer(
       className={className}
       style={{ transformOrigin: 'center center', ...style }}
       whileTap={CHANNEL_TAP}
-      transition={playfulTapSpring}
+      transition={pillSurfacePress}
       {...rest}
     >
       {children}

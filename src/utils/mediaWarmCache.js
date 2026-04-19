@@ -12,28 +12,44 @@ function isHttpLike(url) {
 
 /**
  * @param {string[]} urls
- * @param {{ max?: number }} [options]
+ * @param {{ max?: number, chunkSize?: number }} [options]
  */
 export function warmImageUrlsOnIdle(urls, options = {}) {
   if (typeof window === 'undefined' || !Array.isArray(urls) || urls.length === 0) return;
 
   const max = options.max ?? 48;
+  const chunkSize = Math.max(1, options.chunkSize ?? 6);
   const slice = urls.filter(isHttpLike).slice(0, max);
 
-  const run = () => {
-    slice.forEach((url) => {
-      if (warmedUrls.has(url)) return;
-      warmedUrls.add(url);
-      const img = new Image();
-      img.decoding = 'async';
-      img.src = url;
-    });
+  const warmOne = (url) => {
+    if (warmedUrls.has(url)) return;
+    warmedUrls.add(url);
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
   };
 
+  const scheduleChunk = (startIdx) => {
+    if (startIdx >= slice.length) return;
+    const end = Math.min(startIdx + chunkSize, slice.length);
+    for (let i = startIdx; i < end; i += 1) {
+      warmOne(slice[i]);
+    }
+    if (end >= slice.length) return;
+
+    const runNext = () => scheduleChunk(end);
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(runNext, { timeout: 2000 });
+    } else {
+      window.setTimeout(runNext, 48);
+    }
+  };
+
+  const kickoff = () => scheduleChunk(0);
   if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(run, { timeout: 10000 });
+    window.requestIdleCallback(kickoff, { timeout: 10000 });
   } else {
-    window.setTimeout(run, 600);
+    window.setTimeout(kickoff, 600);
   }
 }
 
@@ -92,4 +108,21 @@ export function collectWarmMediaUrlsFromStore(storeState) {
   }
 
   return [...new Set(out)].filter(Boolean);
+}
+
+/**
+ * Current wallpaper first, then remaining tile URLs (for prioritized warming).
+ * @param {object} storeState
+ * @returns {{ high: string[], normal: string[] }}
+ */
+export function collectPrioritizedWarmMediaUrls(storeState) {
+  const all = collectWarmMediaUrlsFromStore(storeState);
+  const wp = storeState?.wallpaper;
+  const current = wp?.current?.url;
+  const high = [];
+  if (current && isHttpLike(current)) {
+    high.push(current);
+  }
+  const rest = all.filter((u) => u !== current);
+  return { high, normal: rest };
 }

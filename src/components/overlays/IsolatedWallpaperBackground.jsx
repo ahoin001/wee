@@ -7,6 +7,7 @@ import {
   SPACE_SHELL_EASE_CSS,
   SPACE_SHELL_TRANSITION_MS_DEFAULT,
 } from '../../design/spaceShellMotion';
+import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 
 /**
  * Space-switch depth cue via background-position (cover stays full viewport).
@@ -23,7 +24,9 @@ function IsolatedWallpaperBackgroundInner({
   const wallpaper = useConsolidatedAppStore((state) => state.wallpaper);
   const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
   const spaceOrder = useConsolidatedAppStore((state) => state.spaces.order);
-  const displayWallpaperUrl = wallpaper.current?.url || null;
+  const displayWallpaperUrl = wallpaper.current
+    ? wallpaperEntryUrlKey(wallpaper.current) || null
+    : null;
 
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {

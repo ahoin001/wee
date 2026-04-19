@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { useAppActivity } from '../hooks/useAppActivity';
+import { getChannelIdleDurationMs } from '../design/channelIdleAnimations';
 
 const useIdleChannelAnimations = (
   enabled,
@@ -10,6 +12,7 @@ const useIdleChannelAnimations = (
 ) => {
   const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
   const { isAppActive } = useAppActivity();
+  const reducedMotion = useReducedMotion();
   const [activeAnimations, setActiveAnimations] = useState(new Set());
   const intervalRef = useRef(null);
   const timeoutRefs = useRef(new Set());
@@ -17,93 +20,56 @@ const useIdleChannelAnimations = (
   const prevChannelsLengthRef = useRef(channels.length);
   const activeAnimationsRef = useRef(new Set());
 
-  // Memoize channels to prevent unnecessary re-renders
   const memoizedChannels = useMemo(() => channels, [channels.length]);
 
-  // Update channels ref only when the length or content actually changes
   useEffect(() => {
     const currentLength = memoizedChannels.length;
     const prevLength = prevChannelsLengthRef.current;
-    
-    // Only update if the number of channels changed
+
     if (currentLength !== prevLength) {
       channelsRef.current = memoizedChannels;
       prevChannelsLengthRef.current = currentLength;
     }
   }, [memoizedChannels]);
 
-  // Get channels that have content (not empty) - memoized
   const getChannelsWithContent = useCallback(() => {
-    return channelsRef.current.filter(channel => 
-      channel && !channel.isEmpty && (channel.config?.media || channel.config?.path)
+    return channelsRef.current.filter(
+      (channel) => channel && !channel.isEmpty && (channel.config?.media || channel.config?.path)
     );
   }, []);
 
-  // Get animation duration based on type - memoized
-  const getAnimationDuration = useCallback((animationType) => {
-    const durations = {
-      pulse: 2000,
-      bounce: 1500,
-      wiggle: 1000,
-      glow: 3000,
-      parallax: 2000,
-      flip: 1200,
-      swing: 1800,
-      shake: 800,
-      pop: 600,
-      slide: 1500,
-      colorcycle: 4000,
-      sparkle: 2500,
-      heartbeat: 2000,
-      orbit: 3000,
-      wave: 2500,
-      jelly: 1200,
-      zoom: 1000,
-      rotate: 2000,
-      glowtrail: 3500
-    };
-    return durations[animationType] || 2000;
-  }, []);
-
-  // Start animation for a specific channel - memoized
   const startAnimation = useCallback((channelId, animationType) => {
     const animationKey = `${channelId}-${animationType}`;
-    setActiveAnimations(prev => new Set([...prev, animationKey]));
+    setActiveAnimations((prev) => new Set([...prev, animationKey]));
     activeAnimationsRef.current.add(animationKey);
-    
-    // Animation duration (most CSS animations are 1-3 seconds)
-    const duration = getAnimationDuration(animationType);
-    
-    // Clear animation after duration
-    const timeoutId = setTimeout(() => {
-      setActiveAnimations(prev => {
+
+    const durationMs = getChannelIdleDurationMs(animationType);
+
+    const timeoutId = window.setTimeout(() => {
+      timeoutRefs.current.delete(timeoutId);
+      setActiveAnimations((prev) => {
         const newSet = new Set(prev);
         newSet.delete(animationKey);
         return newSet;
       });
       activeAnimationsRef.current.delete(animationKey);
-    }, duration);
-    
-    // Store timeout reference for cleanup
-    timeoutRefs.current.add(timeoutId);
-  }, [getAnimationDuration]);
+    }, durationMs);
 
-  // Trigger random animation - memoized
+    timeoutRefs.current.add(timeoutId);
+  }, []);
+
   const triggerRandomAnimation = useCallback(() => {
     const channelsWithContent = getChannelsWithContent();
-    
+
     if (channelsWithContent.length === 0) {
       return;
     }
 
-    // Pick a random channel with content
     const randomChannel = channelsWithContent[Math.floor(Math.random() * channelsWithContent.length)];
     const channelId = randomChannel.id;
-    
-    // Pick a random animation type
+
     const randomAnimationType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
-    
-    // Don't start if this channel is already animating
+
     const animationKey = `${channelId}-${randomAnimationType}`;
     if (activeAnimations.has(animationKey)) {
       return;
@@ -114,40 +80,44 @@ const useIdleChannelAnimations = (
 
   const effectiveInterval = lowPowerMode ? Math.max(interval, 20) : interval;
 
-  // Set up interval for random animations - with proper dependencies
+  const idleAllowed = enabled && !reducedMotion;
+
   useEffect(() => {
-    if (!enabled || animationTypes.length === 0 || !isAppActive) {
-      // Clear existing interval and animations
+    if (reducedMotion) {
+      timeoutRefs.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeoutRefs.current.clear();
+      setActiveAnimations(new Set());
+      activeAnimationsRef.current.clear();
+    }
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    if (!idleAllowed || animationTypes.length === 0 || !isAppActive) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      
-      // Clear all active animations
-      timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+
+      timeoutRefs.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
       timeoutRefs.current.clear();
       setActiveAnimations(new Set());
-      
+      activeAnimationsRef.current.clear();
+
       return;
     }
 
-    // Start interval for triggering animations
     intervalRef.current = setInterval(() => {
-      // Call the function directly instead of using the memoized version
       const channelsWithContent = getChannelsWithContent();
-      
+
       if (channelsWithContent.length === 0) {
         return;
       }
 
-      // Pick a random channel with content
       const randomChannel = channelsWithContent[Math.floor(Math.random() * channelsWithContent.length)];
       const channelId = randomChannel.id;
-      
-      // Pick a random animation type
+
       const randomAnimationType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
-      
-      // Don't start if this channel is already animating
+
       const animationKey = `${channelId}-${randomAnimationType}`;
       if (activeAnimationsRef.current.has(animationKey)) {
         return;
@@ -162,50 +132,57 @@ const useIdleChannelAnimations = (
         intervalRef.current = null;
       }
     };
-  }, [enabled, effectiveInterval, animationTypes.length, getChannelsWithContent, animationTypes, startAnimation, isAppActive]);
+  }, [idleAllowed, effectiveInterval, animationTypes.length, getChannelsWithContent, animationTypes, startAnimation, isAppActive]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+      timeoutRefs.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
       timeoutRefs.current.clear();
-    };
-  }, []);
+    },
+    []
+  );
 
-  // Helper function to check if a channel should be animating - memoized
-  const getChannelAnimationClass = useCallback((channelId) => {
-    const animations = [];
-    
-    for (const animationKey of activeAnimations) {
-      if (animationKey.startsWith(`${channelId}-`)) {
-        const animationType = animationKey.replace(`${channelId}-`, '');
-        animations.push(`channel-anim-${animationType}`);
-      }
-    }
-    
-    return animations.join(' ');
-  }, [activeAnimations]);
+  const getChannelAnimationClass = useCallback(
+    (channelId) => {
+      if (reducedMotion || !idleAllowed) return '';
 
-  // Check if a specific channel is currently animating - memoized
-  const isChannelAnimating = useCallback((channelId) => {
-    for (const animationKey of activeAnimations) {
-      if (animationKey.startsWith(`${channelId}-`)) {
-        return true;
+      const animations = [];
+
+      for (const animationKey of activeAnimations) {
+        if (animationKey.startsWith(`${channelId}-`)) {
+          const animationType = animationKey.replace(`${channelId}-`, '');
+          animations.push(`channel-anim-${animationType}`);
+        }
       }
-    }
-    return false;
-  }, [activeAnimations]);
+
+      return animations.join(' ');
+    },
+    [activeAnimations, reducedMotion, idleAllowed]
+  );
+
+  const isChannelAnimating = useCallback(
+    (channelId) => {
+      if (reducedMotion) return false;
+      for (const animationKey of activeAnimations) {
+        if (animationKey.startsWith(`${channelId}-`)) {
+          return true;
+        }
+      }
+      return false;
+    },
+    [activeAnimations, reducedMotion]
+  );
 
   return {
     getChannelAnimationClass,
     isChannelAnimating,
     activeAnimations: activeAnimations.size,
     isThrottled: lowPowerMode || !isAppActive,
-    triggerRandomAnimation: enabled ? triggerRandomAnimation : null
+    triggerRandomAnimation: idleAllowed ? triggerRandomAnimation : null,
   };
 };
 
-export default useIdleChannelAnimations; 
+export default useIdleChannelAnimations;

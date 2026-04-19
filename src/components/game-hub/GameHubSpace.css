@@ -239,7 +239,7 @@
   padding: calc(var(--hub-hero-expanded) + var(--hub-hero-below-gap)) clamp(1rem, 3.2vw, 2.25rem)
     calc(clamp(4.5rem, 9vw, 7.5rem) + var(--hub-dock-inset, 0px));
   scrollbar-width: none;
-  scroll-snap-type: y proximity;
+  scroll-snap-type: none;
   background: transparent;
   box-shadow: none;
   scroll-padding-top: calc(var(--hub-hero-expanded) + 10px);
@@ -282,9 +282,10 @@
   pointer-events: none;
 }
 
-/* Dock-morph overlay: Framer may set pointer-events inline for crossfade pass-through. */
+/* Dock-morph banner: wrapper stays non-interactive so scrolled collection stacks beneath receive clicks; .aura-hub-hero__content / .aura-hub-rail opt in. */
 .aura-hub-hero-wrap--dock-overlay {
   z-index: 11;
+  pointer-events: none;
 }
 
 /* Hero overlays scroll root (not in flow); height transitions when stage gets --scrolled */
@@ -408,6 +409,25 @@
 }
 
 .aura-hub-steam-only__toggle label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: hsl(var(--text-primary));
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aura-hub-dock-morph-toggle {
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border-primary));
+  background: hsl(var(--surface-elevated) / 0.88);
+  padding: 0.35rem 0.65rem 0.35rem 0.5rem;
+}
+
+.aura-hub-dock-morph-toggle__toggle label {
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -935,7 +955,7 @@
   padding: calc(var(--hub-hero-expanded) + var(--hub-hero-below-gap)) clamp(1rem, 3.2vw, 2.25rem)
     calc(clamp(4.5rem, 9vw, 7.5rem) + var(--hub-dock-inset, 0px));
   scrollbar-width: none;
-  scroll-snap-type: y proximity;
+  scroll-snap-type: none;
   background: transparent;
   box-shadow: none;
   scroll-padding-top: calc(var(--hub-hero-expanded) + 10px);
@@ -1297,6 +1317,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: clamp(1rem, 2.4vw, 1.45rem);
+  /* Tiles read as floating on wallpaper — no shelf panel behind the grid */
+  background: transparent;
 }
 
 /* Large libraries: skip off-screen paint work while scrolling the hub */
@@ -1318,6 +1340,25 @@
     )
   );
   gap: var(--hub-game-grid-gap);
+}
+
+@media (max-height: 700px) {
+  .aura-hub-grid {
+    grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
+  }
+
+  .aura-hub-stage--dock-morph .aura-hub-grid {
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(
+        min(
+          100%,
+          max(188px, calc((100% - 4 * var(--hub-game-grid-gap)) / 5))
+        ),
+        1fr
+      )
+    );
+  }
 }
 
 /* Portaled fly tiles — must match `.aura-game-card` on shelves (transparent + --aura-game-card-elev-shadow) */

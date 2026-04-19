@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo } from 'react';
+import { m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import './ClassicWiiDock.css';
 import DockParticleSystem from './DockParticleSystem';
 import { PlayfulPressSurface } from '../navigation/PlayfulInteractionMotion';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { CLASSIC_DOCK_DEFAULT_COLORS as DEFAULT_DOCK_COLORS } from '../../design/classicDockThemeDefaults.js';
+import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
 
 const WiiDock = ({ 
   dockSettings = {}, 
@@ -121,8 +123,15 @@ const WiiDock = ({
     }
   };
 
+  const { pillOpen, reducedMotion } = useWeeMotion();
+  const dockBarEntrance = useMemo(
+    () => getWeeDockBarEntrance(reducedMotion, pillOpen),
+    [reducedMotion, pillOpen]
+  );
+
   return (
-    <div
+    <m.div
+      {...dockBarEntrance}
       className={`wii-dock-container ${glassEnabled ? 'dock-glass-enabled' : ''}`}
       onContextMenu={handleContextMenu}
       style={dockStyleVars}
@@ -371,7 +380,7 @@ const WiiDock = ({
           })()}
         </div>
       </div>
-    </div>
+    </m.div>
   );
 };
 

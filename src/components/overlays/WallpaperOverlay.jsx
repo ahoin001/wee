@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { WALLPAPER_OVERLAY_COLORS } from '../../design/wallpaperAmbientPalettes.js';
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 
 const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, wind = 0.02, gravity = 0.1 }) => {
+  const [overlayEngineReady, setOverlayEngineReady] = useState(false);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const particlesRef = useRef([]);
@@ -13,6 +14,33 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
     activeFps: 60,
     lowPowerFps: 24,
   });
+
+  useEffect(() => {
+    if (!enabled) {
+      setOverlayEngineReady(false);
+      return undefined;
+    }
+    let cancelled = false;
+    const kick = () => {
+      if (!cancelled) setOverlayEngineReady(true);
+    };
+    let idleId;
+    let usedIdleCallback = false;
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      usedIdleCallback = true;
+      idleId = window.requestIdleCallback(kick, { timeout: 2800 });
+    } else if (typeof window !== 'undefined') {
+      idleId = window.setTimeout(kick, 0);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window === 'undefined' || idleId == null) return;
+      if (usedIdleCallback) window.cancelIdleCallback(idleId);
+      else window.clearTimeout(idleId);
+    };
+  }, [enabled]);
+
+  const engineActive = enabled && overlayEngineReady;
 
   // Memoize effect configurations to prevent recreation
   const effects = useMemo(() => ({
@@ -77,7 +105,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
 
   // Initialize particles with object pooling
   const initializeParticles = useCallback(() => {
-    if (!enabled || !effect || !effects[effect]) {
+    if (!engineActive || !effect || !effects[effect]) {
       // Return existing particles to pool
       particlesRef.current.forEach(returnParticleToPool);
       particlesRef.current = [];
@@ -119,14 +147,14 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
     }
 
     particlesRef.current = newParticles;
-  }, [enabled, effect, effects, getParticleFromPool, returnParticleToPool, isLowPowerMode]);
+  }, [engineActive, effect, effects, getParticleFromPool, returnParticleToPool, isLowPowerMode]);
 
   // Optimized animation loop with delta time
   const animate = useCallback((currentTime) => {
     if (!isActiveRef.current) return;
 
     const canvas = canvasRef.current;
-    if (!canvas || !enabled || !effect || !effects[effect]) {
+    if (!canvas || !engineActive || !effect || !effects[effect]) {
       isActiveRef.current = false;
       return;
     }
@@ -221,11 +249,11 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
     }
 
     animationRef.current = requestAnimationFrame(animate);
-  }, [enabled, effect, effects, intensity, speed, wind, gravity]);
+  }, [engineActive, effect, effects, intensity, speed, wind, gravity]);
 
   // Start/stop animation with proper cleanup
   useEffect(() => {
-    if (enabled && shouldAnimate && effect && effects[effect]) {
+    if (engineActive && shouldAnimate && effect && effects[effect]) {
       isActiveRef.current = true;
       lastTimeRef.current = performance.now();
       animationRef.current = requestAnimationFrame(animate);
@@ -244,7 +272,7 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
         animationRef.current = null;
       }
     };
-  }, [enabled, shouldAnimate, effect, animate, effects]);
+  }, [engineActive, shouldAnimate, effect, animate, effects]);
 
   // Initialize particles when effect changes
   useEffect(() => {
@@ -299,6 +327,10 @@ const WallpaperOverlay = ({ effect, enabled = false, intensity = 50, speed = 1, 
   }, []);
 
   if (!enabled || !effect || !effects[effect]) {
+    return null;
+  }
+
+  if (!overlayEngineReady) {
     return null;
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { useAppActivity } from '../hooks/useAppActivity';
+import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from './wallpaperShape';
 
 const useWallpaperCycling = () => {
   const { wallpaper } = useConsolidatedAppStore();
@@ -27,10 +28,13 @@ const useWallpaperCycling = () => {
   // Force update counter to ensure isolated component re-renders
   const [forceUpdate, setForceUpdate] = useState(0);
 
-  // Update refs when store changes (but don't trigger re-renders)
+  // Update refs when store changes — normalize strings so layers always get `.url`
   useEffect(() => {
-    currentWallpaperRef.current = wallpaper.current;
-  }, [wallpaper.current]);
+    const normalized = normalizeWallpaperForStore(wallpaper.current, {
+      savedWallpapers: wallpaper.savedWallpapers,
+    });
+    currentWallpaperRef.current = normalized?.url ? normalized : wallpaper.current ?? null;
+  }, [wallpaper.current, wallpaper.savedWallpapers]);
 
   /** Space switch: abort in-flight cycle animation so merged wallpaper + space crossfade own the frame. */
   useEffect(() => {
@@ -63,39 +67,38 @@ const useWallpaperCycling = () => {
   } = wallpaper;
   const effectiveCycleInterval = lowPowerMode ? Math.max(cycleInterval, 60) : cycleInterval;
 
-  // Simple function to get next wallpaper
+  // Next wallpaper from liked list (URLs or objects) → always `{ url }` for store + layers
   const getNextWallpaper = useCallback(() => {
     if (!likedWallpapers || likedWallpapers.length === 0) {
       return null;
     }
 
+    const opts = { savedWallpapers };
+
     if (!current) {
-      return likedWallpapers[0];
+      return normalizeWallpaperForStore(likedWallpapers[0], opts);
     }
 
-    const currentUrl = current.url || current;
-    const currentIndex = likedWallpapers.findIndex(w => 
-      (w.url || w) === currentUrl
-    );
+    const currentUrl = wallpaperEntryUrlKey(current);
+    const currentIndex = likedWallpapers.findIndex((w) => wallpaperEntryUrlKey(w) === currentUrl);
 
     if (currentIndex === -1) {
-      return likedWallpapers[0];
+      return normalizeWallpaperForStore(likedWallpapers[0], opts);
     }
 
     const nextIndex = (currentIndex + 1) % likedWallpapers.length;
-    const nextWallpaper = likedWallpapers[nextIndex];
-    
-    return nextWallpaper;
-  }, [likedWallpapers, current]);
+    return normalizeWallpaperForStore(likedWallpapers[nextIndex], opts);
+  }, [likedWallpapers, current, savedWallpapers]);
 
   // Enhanced transition function with animation-specific behavior
   const transitionToWallpaper = useCallback(async (nextWallpaper) => {
-    if (!nextWallpaper || isTransitioningRef.current) {
+    const normalized = normalizeWallpaperForStore(nextWallpaper, { savedWallpapers });
+    if (!normalized?.url || isTransitioningRef.current) {
       return;
     }
 
     isTransitioningRef.current = true;
-    nextWallpaperRef.current = nextWallpaper;
+    nextWallpaperRef.current = normalized;
 
     // Use local state for transition properties to avoid triggering other components
     setLocalTransitionState({
@@ -104,7 +107,7 @@ const useWallpaperCycling = () => {
       slideDirection: slideRandomDirection 
         ? ['left', 'right', 'up', 'down'][Math.floor(Math.random() * 4)]
         : slideDirection,
-      nextWallpaper: nextWallpaper
+      nextWallpaper: normalized
     });
 
     // Animation-specific duration and easing
@@ -182,13 +185,13 @@ const useWallpaperCycling = () => {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Complete transition - update refs and store
-        currentWallpaperRef.current = nextWallpaper;
+        // Complete transition - update refs and store (always `{ url }`, never bare URL string)
+        currentWallpaperRef.current = normalized;
         nextWallpaperRef.current = null;
         
         // Only update the store ONCE at the very end
         setWallpaperState({
-          current: nextWallpaper,
+          current: normalized,
         });
         
         // Reset local transition state
@@ -212,7 +215,8 @@ const useWallpaperCycling = () => {
     slideDuration,
     crossfadeDuration,
     slideEasing,
-    crossfadeEasing
+    crossfadeEasing,
+    savedWallpapers,
   ]);
 
   // Simple cycle function

@@ -4,6 +4,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { m, useReducedMotion } from 'framer-motion';
 import { ChannelDropTargetMotion } from './ChannelDragMotion';
 import { computeReorderShiftMotion } from '../../utils/channelReorderShift';
+import { WEE_SPRINGS } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
 const DRAG_PREFIX = 'channel-drag-';
@@ -104,11 +105,7 @@ function ChannelSlotDnd({ channelSpaceKey, channelIndex, disabled, celebrateDrop
                 ? { scale: [1, 1.14, 0.98, 1] }
                 : { scale: 1 }
             }
-            transition={
-              reduceMotion
-                ? { duration: 0 }
-                : { type: 'spring', stiffness: 580, damping: 22, mass: 0.65 }
-            }
+            transition={reduceMotion ? { duration: 0 } : WEE_SPRINGS.channelDropCelebrate}
           >
             {children}
           </m.div>

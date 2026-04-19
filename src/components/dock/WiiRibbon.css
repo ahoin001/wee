@@ -88,7 +88,8 @@
   transform: translateX(-15px);
 }
 
-.wii-style-button {
+/* Legacy circular chrome only — space-rail pills use `WiiStyleButton.css` + `.wii-style-button--wee-rail`. */
+.wii-style-button:not(.wii-style-button--wee-rail) {
   transform: scale(1.2);
   transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.2s ease-in-out;
   background: hsl(var(--surface-primary));
@@ -101,13 +102,13 @@
   justify-content: center;
 }
 
-.wii-style-button:hover {
+.wii-style-button:not(.wii-style-button--wee-rail):hover {
   transform: scale(1.25);
   filter: drop-shadow(0px 0px 12px hsla(var(--wii-blue), 0.7));
   border-color: hsl(var(--wii-blue));
 }
 
-.wii-style-button:active {
+.wii-style-button:not(.wii-style-button--wee-rail):active {
   transform: scale(1.15);
   transition-duration: 0.1s;
 }
@@ -231,6 +232,15 @@
   filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
 }
 
+/* Space-rail primary tabs: springy icon motion (matches pill hover) */
+.wii-style-button--wee-rail .palette-icon {
+  transition: transform 0.65s cubic-bezier(0.22, 1.45, 0.36, 1), filter 0.5s ease-out;
+}
+.wii-style-button--wee-rail:hover .palette-icon {
+  transform: scale(1.12) rotate(-5deg);
+  filter: drop-shadow(0 0 10px hsl(var(--primary) / 0.45));
+}
+
 .star-icon {
   transition: transform 0.4s cubic-bezier(.4,1.3,.5,1), filter 0.3s;
 }
@@ -239,12 +249,36 @@
   filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
 }
 
+.wii-style-button--wee-rail .star-icon {
+  transition: transform 0.65s cubic-bezier(0.22, 1.45, 0.36, 1), filter 0.5s ease-out;
+}
+.wii-style-button--wee-rail:hover .star-icon {
+  transform: scale(1.12) rotate(26deg);
+  filter: drop-shadow(0 0 10px hsl(var(--primary) / 0.45));
+}
+
 .heart-icon {
   transition: transform 0.4s cubic-bezier(.4,1.3,.5,1), filter 0.3s;
 }
 .wii-style-button:hover .heart-icon {
   transform: scale(1.15);
   filter: drop-shadow(0 0 8px hsl(var(--wii-blue) / 0.53));
+}
+
+.wii-style-button--wee-rail .heart-icon {
+  transition: transform 0.65s cubic-bezier(0.28, 1.5, 0.4, 1), filter 0.5s ease-out;
+}
+.wii-style-button--wee-rail:hover .heart-icon {
+  transform: scale(1.14);
+  filter: drop-shadow(0 0 10px hsl(var(--state-error) / 0.35));
+}
+
+.wii-style-button--wee-rail .ribbon-icon-img {
+  transition: transform 0.65s cubic-bezier(0.22, 1.45, 0.36, 1), filter 0.5s ease-out;
+}
+.wii-style-button--wee-rail:hover .ribbon-icon-img {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 9px hsl(var(--primary) / 0.35));
 }
 
 /* Presets Button Icon Animations */
@@ -397,20 +431,65 @@
   z-index: 10;
   left: 220px;
   top: 158px;
-  backdrop-filter: blur(12px) saturate(1.5);
-  -webkit-backdrop-filter: blur(12px) saturate(1.5);
-  border: 1.5px solid hsl(var(--border-primary) / 0.22);
-  box-shadow: var(--shadow-md);
-  background: var(--settings-cog-bg, hsl(var(--surface-elevated) / 0.45));
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 4px solid hsl(var(--wee-pill-border));
+  box-shadow: var(--wee-pill-shadow);
+  background: hsl(var(--wee-pill-glass));
+  cursor: pointer;
+  transform: translateZ(0);
+  transition:
+    transform 0.62s cubic-bezier(0.22, 1.45, 0.36, 1),
+    border-color 0.55s cubic-bezier(0.34, 1.2, 0.64, 1),
+    box-shadow 0.58s cubic-bezier(0.25, 1.35, 0.45, 1),
+    filter 0.45s ease-out;
+}
+
+.ribbon-settings-cog-host:hover {
+  transform: translateZ(0) scale(1.08) translateY(-3px);
+  border-color: hsl(var(--border-accent) / 0.42);
+  box-shadow: var(--shadow-soft-hover);
+  filter: drop-shadow(0 10px 22px hsl(var(--primary) / 0.18));
 }
 
 .ribbon-settings-cog-host svg {
   color: var(--settings-icon-color, inherit);
+  transform-origin: 50% 50%;
+  transition: transform 0.58s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ribbon-settings-cog-host:hover svg {
+  transform: rotate(90deg);
 }
 
 .ribbon-btn-label-text {
   font-family: var(--ribbon-btn-font, 'Orbitron', sans-serif);
   color: var(--ribbon-accent-color, inherit);
+}
+
+/* Primary action tabs (glass / space-rail pills): match WButton wee chip typography */
+.wii-style-button--wee-rail .ribbon-btn-label-text {
+  font-family: var(--ribbon-btn-font, 'Orbitron', system-ui, sans-serif);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  font-size: clamp(0.625rem, 0.55vw + 0.55rem, 0.8125rem);
+  line-height: 1.15;
+  color: var(--ribbon-accent-color, hsl(var(--text-primary)));
+  text-shadow: 0 1px 0 hsl(var(--color-pure-black) / 0.07);
+}
+
+/* Digital display font: skip italic (LCD aesthetic) */
+.wii-style-button--wee-rail .ribbon-btn-label-text--digital {
+  font-style: normal;
+  letter-spacing: 0.09em;
 }
 
 .ribbon-preset-emoji-fallback {

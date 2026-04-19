@@ -65,3 +65,13 @@ export function weeMarkGameHubLibrary(gameCount) {
   if (!DEV) return;
   safeMark(`wee:gamehub-library:${gameCount}`);
 }
+
+/** Consolidated store hydration committed after IPC (startup Performance timeline). */
+export function weeMarkStartupHydrationCommitted() {
+  safeMark('wee:startup-hydration:committed');
+}
+
+/** App library background prefetch chain scheduled (idle). */
+export function weeMarkAppLibraryPrefetchScheduled() {
+  safeMark('wee:app-library-prefetch:scheduled');
+}

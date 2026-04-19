@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, Suspense } from 'react';
+import { m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 
 // Lazy load modals
@@ -20,6 +21,7 @@ import { loadUnifiedSettingsSnapshot, saveUnifiedSettingsSnapshot } from '../../
 import { logError } from '../../utils/logger';
 import isEqual from 'fast-deep-equal';
 import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
+import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 // import more icons as needed
 
@@ -102,6 +104,12 @@ const WiiRibbonComponent = ({
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [tintedImages, setTintedImages] = useState({});
   const [activeButton, setActiveButton] = useState(null);
+
+  const { pillOpen, reducedMotion } = useWeeMotion();
+  const dockBarEntrance = useMemo(
+    () => getWeeDockBarEntrance(reducedMotion, pillOpen),
+    [reducedMotion, pillOpen]
+  );
 
   useLayoutEffect(() => {
     if (showPrimaryActionsModal) setPrimaryActionsModalMounted(true);
@@ -610,23 +618,6 @@ const WiiRibbonComponent = ({
     return `hsl(var(--color-pure-white) / ${timePillOpacity})`;
   })();
 
-  const settingsCogBackground = (() => {
-    if (spotifyColors?.secondary) {
-      const match = spotifyColors.secondary.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-      if (match) {
-        const [, r, g, b] = match;
-        return `rgba(${r}, ${g}, ${b}, 0.45)`;
-      }
-      if (spotifyColors.secondary.startsWith('#')) {
-        const r = parseInt(spotifyColors.secondary.slice(1, 3), 16);
-        const g = parseInt(spotifyColors.secondary.slice(3, 5), 16);
-        const b = parseInt(spotifyColors.secondary.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, 0.45)`;
-      }
-    }
-    return 'hsl(var(--color-pure-white) / 0.45)';
-  })();
-
   const timeFontStack = timeFont === 'digital' ? 'DigitalDisplayRegular-ODEO, monospace' : "'Orbitron', sans-serif";
 
   const ribbonBtnFont = (textFont) =>
@@ -648,7 +639,11 @@ const WiiRibbonComponent = ({
 
   return (
     <>
-      <footer className={`interactive-footer ${ribbonHoverAnimationEnabled ? 'ribbon-hover-enabled' : ''}`} onContextMenu={handleRibbonContextMenu}>
+      <m.footer
+        {...dockBarEntrance}
+        className={`interactive-footer ${ribbonHoverAnimationEnabled ? 'ribbon-hover-enabled' : ''}`}
+        onContextMenu={handleRibbonContextMenu}
+      >
         {/* Particle System */}
         <DockParticleSystem
           enabled={particleSettings.particleSystemEnabled || false}
@@ -839,7 +834,7 @@ const WiiRibbonComponent = ({
               >
                 {buttonConfigs[0] && buttonConfigs[0].type === 'text' ? (
                   <span 
-                    className="text-wii-gray-dark ribbon-btn-label-text font-bold text-sm"
+                    className={`ribbon-btn-label-text${buttonConfigs[0]?.textFont === 'digital' ? ' ribbon-btn-label-text--digital' : ''}`}
                     style={{
                       ['--ribbon-btn-font']: ribbonBtnFont(buttonConfigs[0].textFont),
                       ...ribbonAccentStyle,
@@ -871,10 +866,7 @@ const WiiRibbonComponent = ({
                     style={{ ['--ribbon-icon-filter']: getIconFilter(buttonConfigs[0].useWiiGrayFilter) }} 
                   />
                 ) : (
-                  <span 
-                    className="text-wii-gray-dark ribbon-btn-label-text font-bold text-sm"
-                    style={ribbonAccentStyle}
-                  >
+                  <span className="ribbon-btn-label-text" style={ribbonAccentStyle}>
                     Wii
                   </span>
                 )}
@@ -882,10 +874,9 @@ const WiiRibbonComponent = ({
               </div>
           </div>
           {/* Restore settings button to original absolute position with glass effect */}
-          <div 
-            className="sd-card-button settings-cog-button glass-effect ribbon-settings-cog-host"
+          <div
+            className="ribbon-settings-cog-host"
             style={{
-              ['--settings-cog-bg']: settingsCogBackground,
               ...(spotifyMatchEnabled && spotifyColors?.text ? { ['--settings-icon-color']: spotifyColors.text } : {}),
             }}
             onClick={(e) => handleSettingsClick(e)}
@@ -929,7 +920,7 @@ const WiiRibbonComponent = ({
             {/* Dynamic icon based on configuration */}
             {presetsButtonConfig.type === 'text' ? (
               <span 
-                className="text-wii-gray-dark ribbon-btn-label-text font-bold text-sm"
+                className={`ribbon-btn-label-text${presetsButtonConfig?.textFont === 'digital' ? ' ribbon-btn-label-text--digital' : ''}`}
                 style={{
                   ['--ribbon-btn-font']: ribbonBtnFont(presetsButtonConfig.textFont),
                   ...ribbonAccentStyle,
@@ -993,7 +984,7 @@ const WiiRibbonComponent = ({
                   >
                       {buttonConfigs[1] && buttonConfigs[1].type === 'text' ? (
                         <span 
-                          className="text-wii-gray-dark ribbon-btn-label-text font-bold text-sm"
+                          className={`ribbon-btn-label-text${buttonConfigs[1]?.textFont === 'digital' ? ' ribbon-btn-label-text--digital' : ''}`}
                           style={{
                             ['--ribbon-btn-font']: ribbonBtnFont(buttonConfigs[1].textFont),
                             ...ribbonAccentStyle,
@@ -1032,7 +1023,7 @@ const WiiRibbonComponent = ({
           </div>
 
 
-              </footer>
+              </m.footer>
 
         {/* Admin Menu */}
         {showAdminMenu && (

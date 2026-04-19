@@ -1,9 +1,41 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { m, useReducedMotion } from 'framer-motion';
 import useChannelOperations from '../../utils/useChannelOperations';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useSoundManager from '../../utils/useSoundManager';
+import { useWeeMotion } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import './WiiSideNavigation.css';
+
+/** Icon-only squish — avoids transform on the peeking button shell (see WeeGooeySpacePill row tap). */
+function WiiSideNavIconPress({ children, side }) {
+  const osReduced = useReducedMotion();
+  const { ribbonTap } = useMotionFeedback();
+  const { pillSurfacePress } = useWeeMotion();
+  const enabled = ribbonTap && !osReduced;
+  const alignClass = side === 'right' ? 'justify-end' : 'justify-start';
+  if (!enabled) {
+    return (
+      <span className={`flex h-full w-full items-center ${alignClass}`}>{children}</span>
+    );
+  }
+  return (
+    <m.span
+      className={`flex h-full w-full items-center ${alignClass}`}
+      style={{ transformOrigin: 'center center' }}
+      whileTap={{ scale: 0.92 }}
+      transition={pillSurfacePress}
+    >
+      {children}
+    </m.span>
+  );
+}
+
+WiiSideNavIconPress.propTypes = {
+  children: PropTypes.node.isRequired,
+  side: PropTypes.oneOf(['left', 'right']).isRequired,
+};
 
 const WiiSideNavigation = () => {
   const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
@@ -175,7 +207,7 @@ const WiiSideNavigation = () => {
             style={getGlassStyleVars(leftGlassSettings)}
           >
             <div className="wii-side-nav-content">
-              {renderIcon(leftIcon, DefaultLeftIcon, 'left')}
+              <WiiSideNavIconPress side="left">{renderIcon(leftIcon, DefaultLeftIcon, 'left')}</WiiSideNavIconPress>
             </div>
           </div>
         </button>
@@ -198,7 +230,7 @@ const WiiSideNavigation = () => {
             style={getGlassStyleVars(rightGlassSettings)}
           >
             <div className="wii-side-nav-content">
-              {renderIcon(rightIcon, DefaultRightIcon, 'right')}
+              <WiiSideNavIconPress side="right">{renderIcon(rightIcon, DefaultRightIcon, 'right')}</WiiSideNavIconPress>
             </div>
           </div>
         </button>

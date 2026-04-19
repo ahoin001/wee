@@ -14,6 +14,7 @@ import {
   runFlyInAnimations,
   runFlyOutAnimations,
 } from './collectionFlyAnimations';
+import { maybeScrollHubExpansionIntoView, readHubDockInsetPx, readHubScrollTopReservePx } from './hubScrollUtils';
 
 /** One frame — hub-design uses rAF before measuring slot rects. */
 function nextFrame() {
@@ -67,8 +68,11 @@ export default function AuraCollectionsSection({
   onReorderCollectionShelves,
   /** When true: shelf fly, collapse, or grid height transition is in progress — parent may freeze scroll-linked hero morph. */
   onCollectionChromeBusyChange,
+  /** Hub `main` scroll root — used to nudge scroll when an opened shelf is mostly off-screen. */
+  hubScrollContainerRef,
 }) {
   const sectionRef = useRef(null);
+  const expansionRef = useRef(null);
   const stackButtonRefs = useRef({});
   const flyGeneration = useRef(0);
   /** Synchronous guard — stack clicks can land before React state would reflect an in-flight close. */
@@ -134,6 +138,43 @@ export default function AuraCollectionsSection({
   useLayoutEffect(() => {
     onCollectionChromeBusyChange?.(collectionChromeBusy);
   }, [collectionChromeBusy, onCollectionChromeBusyChange]);
+
+  /** If the expanded shelf is mostly below the fold or clipped by the dock, scroll — subtly (ratio threshold). */
+  useLayoutEffect(() => {
+    if (!activeCollectionId || !hubScrollContainerRef?.current) return undefined;
+
+    let cancelled = false;
+
+    const run = () => {
+      if (cancelled) return;
+      const container = hubScrollContainerRef.current;
+      const region = expansionRef.current;
+      if (!container || !region) return;
+      const reduced =
+        typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      maybeScrollHubExpansionIntoView(container, region, {
+        bottomInset: readHubDockInsetPx(region),
+        topReserve: readHubScrollTopReservePx(region),
+        minVisibleRatio: 0.42,
+        behavior: reduced ? 'auto' : 'smooth',
+      });
+    };
+
+    const id0 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) run();
+      });
+    });
+    const t = window.setTimeout(() => {
+      if (!cancelled) requestAnimationFrame(run);
+    }, COLLECTION_EXPANSION_MS + 60);
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(id0);
+      window.clearTimeout(t);
+    };
+  }, [activeCollectionId, hubScrollContainerRef]);
 
   const games = activeCollection?.games || [];
   const gameSignature = useMemo(
@@ -573,6 +614,7 @@ export default function AuraCollectionsSection({
             })}
           </div>
           <div
+            ref={expansionRef}
             className={`aura-hub-expansion ${activeCollection && !shelfClosing ? 'aura-hub-expansion--open' : ''} ${shelfClosing ? 'aura-hub-expansion--shelf-closing' : ''}`}
             style={
               (activeCollection || shelfClosing) && flyAllowed

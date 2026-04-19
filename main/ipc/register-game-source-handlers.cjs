@@ -1,10 +1,12 @@
+const { runExclusive } = require('../services/scan-serialization.cjs');
+
 function registerGameSourceHandlers({
   ipcMain,
   gameSourceService,
   dialog,
 }) {
   ipcMain.handle('steam:getInstalledGames', async () => {
-    return await gameSourceService.getInstalledSteamGames();
+    return runExclusive(() => gameSourceService.getInstalledSteamGames());
   });
 
   ipcMain.handle('detectSteamInstallation', async () => {
@@ -16,7 +18,7 @@ function registerGameSourceHandlers({
   });
 
   ipcMain.handle('scanSteamGames', async (_event, { libraryPaths }) => {
-    return await gameSourceService.scanSteamGames({ libraryPaths });
+    return runExclusive(() => gameSourceService.scanSteamGames({ libraryPaths }));
   });
 
   ipcMain.handle('steam:getEnrichedGames', async (_event, { steamId, apiKey } = {}) => {
@@ -28,7 +30,7 @@ function registerGameSourceHandlers({
   });
 
   ipcMain.handle('epic:getInstalledGames', async () => {
-    return await gameSourceService.getInstalledEpicGames();
+    return runExclusive(() => gameSourceService.getInstalledEpicGames());
   });
 
   ipcMain.handle('steam:pickLibraryFolder', async () => {

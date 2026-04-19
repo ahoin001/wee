@@ -373,7 +373,7 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
         </div>
       )}
     >
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="wait">
         <TabPanel
           key={activeTab}
           initial={WEE_VARIANTS.tabBodyInitial}

@@ -1,27 +1,36 @@
 import { useEffect } from 'react';
 import { electronApi } from '../utils/electronApi';
 import { normalizeChannelPayload } from '../utils/store/storeContracts';
-import { normalizeUnifiedSettingsSnapshot } from '../utils/store/settingsPersistenceContract';
+import {
+  mergeChannelsSlice,
+  normalizeUnifiedSettingsSnapshot,
+} from '../utils/store/settingsPersistenceContract';
 import { normalizeShellSpaceOrder } from '../utils/channelSpaces';
-import { mergeMotionFeedback } from '../utils/motionFeedbackDefaults';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
-import { weeMeasureAsync } from '../utils/weePerformanceMarks';
+import { weeMeasureAsync, weeMarkStartupHydrationCommitted } from '../utils/weePerformanceMarks';
 
-export const useAppInitialization = ({
-  setAppState,
-  setWallpaperState,
-  setOverlayState,
-  setChannelState,
-  setUIState,
-  setRibbonState,
-  setTimeState,
-  setDockState,
-  setSoundsState,
-  setPresets,
-  setWorkspacesState,
-  setSpacesState,
-  setGameHubState,
-}) => {
+function buildChannelPatchFromNormalized(normalized) {
+  if (!normalized) return null;
+  const channelPatch = {};
+  if (normalized.settings && Object.keys(normalized.settings).length > 0) {
+    channelPatch.settings = normalized.settings;
+  }
+  if (normalized.data && Object.keys(normalized.data).length > 0) {
+    channelPatch.data = normalized.data;
+  }
+  if (normalized.dataBySpace) {
+    channelPatch.dataBySpace = normalized.dataBySpace;
+  }
+  if (normalized.secondaryChannelProfiles) {
+    channelPatch.secondaryChannelProfiles = normalized.secondaryChannelProfiles;
+  }
+  if (normalized.activeSecondaryChannelProfileId != null) {
+    channelPatch.activeSecondaryChannelProfileId = normalized.activeSecondaryChannelProfileId;
+  }
+  return Object.keys(channelPatch).length > 0 ? channelPatch : null;
+}
+
+export const useAppInitialization = () => {
   useEffect(() => {
     let cancelled = false;
 
@@ -38,14 +47,26 @@ export const useAppInitialization = ({
         const resolvedWallpaperData = unifiedData?.wallpapers || wallpaperData;
         const resolvedChannelData = unifiedData?.channels;
 
-        setAppState({
-          appReady: true,
-          isLoading: false,
-          splashFading: false,
-        });
+        const { channels: initialChannels } = useConsolidatedAppStore.getState();
+        let mergedChannels = initialChannels;
+
+        if (resolvedChannelData) {
+          const normalizedChannelPayload = normalizeChannelPayload(resolvedChannelData);
+          const unifiedPatch = buildChannelPatchFromNormalized(normalizedChannelPayload);
+          if (unifiedPatch) mergedChannels = mergeChannelsSlice(mergedChannels, unifiedPatch);
+        }
+
+        /** @type {Record<string, unknown>} */
+        const slices = {
+          app: {
+            appReady: true,
+            isLoading: false,
+            splashFading: false,
+          },
+        };
 
         if (!cancelled && resolvedWallpaperData) {
-          setWallpaperState({
+          slices.wallpaper = {
             current: resolvedWallpaperData.wallpaper || null,
             savedWallpapers: resolvedWallpaperData.savedWallpapers || [],
             likedWallpapers: resolvedWallpaperData.likedWallpapers || [],
@@ -64,125 +85,75 @@ export const useAppInitialization = ({
             slideRandomDirection: resolvedWallpaperData.cyclingSettings?.slideRandomDirection ?? false,
             slideDuration: resolvedWallpaperData.cyclingSettings?.slideDuration ?? 1.5,
             slideEasing: resolvedWallpaperData.cyclingSettings?.slideEasing ?? 'ease-out',
-          });
+          };
 
-          setOverlayState({
+          slices.overlay = {
             enabled: resolvedWallpaperData.overlayEnabled ?? false,
             effect: resolvedWallpaperData.overlayEffect ?? 'snow',
             intensity: resolvedWallpaperData.overlayIntensity ?? 50,
             speed: resolvedWallpaperData.overlaySpeed ?? 1,
             wind: resolvedWallpaperData.overlayWind ?? 0.02,
             gravity: resolvedWallpaperData.overlayGravity ?? 0.1,
-          });
-        }
-
-        if (!cancelled && resolvedChannelData) {
-          const normalizedChannelPayload = normalizeChannelPayload(resolvedChannelData);
-          if (normalizedChannelPayload.settings && Object.keys(normalizedChannelPayload.settings).length > 0) {
-            setChannelState({ settings: normalizedChannelPayload.settings });
-          }
-          const channelPatch = {};
-          if (normalizedChannelPayload.data && Object.keys(normalizedChannelPayload.data).length > 0) {
-            channelPatch.data = normalizedChannelPayload.data;
-          }
-          if (normalizedChannelPayload.dataBySpace) {
-            channelPatch.dataBySpace = normalizedChannelPayload.dataBySpace;
-          }
-          if (normalizedChannelPayload.secondaryChannelProfiles) {
-            channelPatch.secondaryChannelProfiles = normalizedChannelPayload.secondaryChannelProfiles;
-          }
-          if (normalizedChannelPayload.activeSecondaryChannelProfileId != null) {
-            channelPatch.activeSecondaryChannelProfileId =
-              normalizedChannelPayload.activeSecondaryChannelProfileId;
-          }
-          if (Object.keys(channelPatch).length > 0) {
-            setChannelState(channelPatch);
-          }
+          };
         }
 
         if (!cancelled && resolvedSettings) {
           if (resolvedSettings.ui) {
-            setUIState((prev) => ({
-              ...prev,
-              ...resolvedSettings.ui,
-              motionFeedback: mergeMotionFeedback(
-                resolvedSettings.ui.motionFeedback ?? prev.motionFeedback
-              ),
-            }));
+            slices.ui = resolvedSettings.ui;
           }
-          if (resolvedSettings.ribbon) setRibbonState(resolvedSettings.ribbon);
-          if (resolvedSettings.wallpaper) setWallpaperState(resolvedSettings.wallpaper);
-          if (resolvedSettings.overlay) setOverlayState(resolvedSettings.overlay);
+          if (resolvedSettings.ribbon) slices.ribbon = resolvedSettings.ribbon;
+          if (resolvedSettings.wallpaper) {
+            slices.wallpaper = { ...(slices.wallpaper || {}), ...resolvedSettings.wallpaper };
+          }
+          if (resolvedSettings.overlay) {
+            slices.overlay = { ...(slices.overlay || {}), ...resolvedSettings.overlay };
+          }
           if (resolvedSettings.channels) {
             const normalizedSettingsChannels = normalizeChannelPayload(resolvedSettings.channels);
-            if (normalizedSettingsChannels.settings && Object.keys(normalizedSettingsChannels.settings).length > 0) {
-              setChannelState({ settings: normalizedSettingsChannels.settings });
-            }
-            const settingsChannelPatch = {};
-            if (normalizedSettingsChannels.data && Object.keys(normalizedSettingsChannels.data).length > 0) {
-              settingsChannelPatch.data = normalizedSettingsChannels.data;
-            }
-            if (normalizedSettingsChannels.dataBySpace) {
-              settingsChannelPatch.dataBySpace = normalizedSettingsChannels.dataBySpace;
-            }
-            if (normalizedSettingsChannels.secondaryChannelProfiles) {
-              settingsChannelPatch.secondaryChannelProfiles = normalizedSettingsChannels.secondaryChannelProfiles;
-            }
-            if (normalizedSettingsChannels.activeSecondaryChannelProfileId != null) {
-              settingsChannelPatch.activeSecondaryChannelProfileId =
-                normalizedSettingsChannels.activeSecondaryChannelProfileId;
-            }
-            if (Object.keys(settingsChannelPatch).length > 0) {
-              setChannelState(settingsChannelPatch);
-            }
+            const settingsPatch = buildChannelPatchFromNormalized(normalizedSettingsChannels);
+            if (settingsPatch) mergedChannels = mergeChannelsSlice(mergedChannels, settingsPatch);
           }
-          if (resolvedSettings.time) setTimeState(resolvedSettings.time);
-          if (resolvedSettings.dock) setDockState(resolvedSettings.dock);
-          if (resolvedSettings.sounds) setSoundsState(resolvedSettings.sounds);
-          if (resolvedSettings.navigation) {
-            const { setNavigationState } = useConsolidatedAppStore.getState().actions;
-            setNavigationState(resolvedSettings.navigation);
-          }
-          if (resolvedSettings.floatingWidgets) {
-            const { setFloatingWidgetsState } = useConsolidatedAppStore.getState().actions;
-            setFloatingWidgetsState(resolvedSettings.floatingWidgets);
-          }
-          if (resolvedSettings.monitors) {
-            const { setMonitorState } = useConsolidatedAppStore.getState().actions;
-            setMonitorState(resolvedSettings.monitors);
-          }
-          if (resolvedSettings.spotify) {
-            const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-            setSpotifyState(resolvedSettings.spotify);
-          }
-          if (resolvedSettings.presets) setPresets(resolvedSettings.presets);
-          if (resolvedSettings.workspaces) setWorkspacesState(resolvedSettings.workspaces);
+          if (resolvedSettings.time) slices.time = resolvedSettings.time;
+          if (resolvedSettings.dock) slices.dock = resolvedSettings.dock;
+          if (resolvedSettings.sounds) slices.sounds = resolvedSettings.sounds;
+          if (resolvedSettings.navigation) slices.navigation = resolvedSettings.navigation;
+          if (resolvedSettings.floatingWidgets) slices.floatingWidgets = resolvedSettings.floatingWidgets;
+          if (resolvedSettings.monitors) slices.monitors = resolvedSettings.monitors;
+          if (resolvedSettings.spotify) slices.spotify = resolvedSettings.spotify;
+          if (resolvedSettings.presets) slices.presets = resolvedSettings.presets;
+          if (resolvedSettings.workspaces) slices.workspaces = resolvedSettings.workspaces;
           if (resolvedSettings.spaces) {
-            setSpacesState({
+            slices.spaces = {
               ...resolvedSettings.spaces,
               order: normalizeShellSpaceOrder(resolvedSettings.spaces.order),
               isTransitioning: resolvedSettings.spaces.isTransitioning ?? false,
-            });
+            };
           }
           if (resolvedSettings.appearanceBySpace) {
-            const { setAppearanceBySpaceState } = useConsolidatedAppStore.getState().actions;
-            setAppearanceBySpaceState(resolvedSettings.appearanceBySpace);
+            slices.appearanceBySpace = resolvedSettings.appearanceBySpace;
           }
-          if (resolvedSettings.gameHub) setGameHubState(resolvedSettings.gameHub);
+          if (resolvedSettings.gameHub) slices.gameHub = resolvedSettings.gameHub;
+        }
 
-          /* Never cold-start on Game Hub: restore last home/work panel (persisted in lastChannelSpaceId). */
-          if (!cancelled) {
-            const snap = useConsolidatedAppStore.getState().spaces;
-            if (snap.activeSpaceId === 'gamehub') {
-              const fallback = snap.lastChannelSpaceId === 'workspaces' ? 'workspaces' : 'home';
-              setSpacesState({ activeSpaceId: fallback });
-            }
-          }
+        if (mergedChannels !== initialChannels) {
+          slices.channelsSnapshot = mergedChannels;
+        }
+
+        /* Never cold-start on Game Hub: restore last home/work panel (persisted in lastChannelSpaceId). */
+        if (!cancelled && slices.spaces && slices.spaces.activeSpaceId === 'gamehub') {
+          const last = slices.spaces.lastChannelSpaceId;
+          const fallback = last === 'workspaces' ? 'workspaces' : 'home';
+          slices.spaces = { ...slices.spaces, activeSpaceId: fallback };
+        }
+
+        if (!cancelled) {
+          useConsolidatedAppStore.getState().actions.applyStartupHydration(slices);
+          weeMarkStartupHydrationCommitted();
         }
       } catch (error) {
         console.error('[AppInitialization] Failed to initialize app:', error);
         if (!cancelled) {
-          setAppState({
+          useConsolidatedAppStore.getState().actions.setAppState({
             appReady: true,
             isLoading: false,
             splashFading: false,
@@ -196,19 +167,5 @@ export const useAppInitialization = ({
     return () => {
       cancelled = true;
     };
-  }, [
-    setAppState,
-    setWallpaperState,
-    setOverlayState,
-    setChannelState,
-    setUIState,
-    setRibbonState,
-    setTimeState,
-    setDockState,
-    setSoundsState,
-    setPresets,
-    setWorkspacesState,
-    setSpacesState,
-    setGameHubState,
-  ]);
+  }, []);
 };

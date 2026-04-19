@@ -15,6 +15,7 @@ import {
 } from './hooks/useAppShellEffects';
 import { useAppInitialization } from './hooks/useAppInitialization';
 import { useUnifiedSettingsPersistence } from './hooks/useUnifiedSettingsPersistence';
+import { useWallpaperDataFileSync } from './hooks/useWallpaperDataFileSync';
 import { useActiveWorkspaceAutoSync } from './hooks/useActiveWorkspaceAutoSync';
 import { 
   useTimeColor, 
@@ -25,13 +26,7 @@ import {
 } from './utils/useConsolidatedAppHooks';
 import { ErrorBoundary, SplashScreen, SpaceBootLoader } from './components/core';
 import { LaunchFeedbackProvider } from './contexts/LaunchFeedbackContext';
-import {
-  WallpaperOverlay,
-  IsolatedWallpaperBackground,
-  SpotifyImmersiveOverlay,
-  SpotifyGradientOverlay,
-  SpotifyLiveGradientWallpaper,
-} from './components/overlays';
+import { WallpaperOverlay, IsolatedWallpaperBackground } from './components/overlays';
 import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 import GameHubMinimalDock from './components/game-hub/GameHubMinimalDock';
 import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from './utils/channelSpaces';
@@ -41,7 +36,8 @@ import {
   SPACE_SHELL_TRANSITION_MS_DEFAULT,
   SPACE_SHELL_TRANSITION_MS_RAPID,
 } from './design/spaceShellMotion';
-import { collectWarmMediaUrlsFromStore, warmImageUrlsOnIdle } from './utils/mediaWarmCache';
+import { collectPrioritizedWarmMediaUrls } from './utils/mediaWarmCache';
+import { scheduleMediaWarmPass } from './utils/mediaWarmScheduler';
 import { IS_DEV } from './utils/env';
 
 // Lazy load components to reduce initial bundle size
@@ -63,6 +59,9 @@ const LazyAdminPanelWidget = lazyNamedExport(() => import('./components/admin'),
 const LazyPerformanceMonitor = lazyNamedExport(() => import('./components/widgets'), 'PerformanceMonitor');
 const LazySpaceRail = lazyNamedExport(() => import('./components/spaces'), 'SpaceRail');
 const LazyGameHubSpace = lazyNamedExport(() => import('./components/game-hub'), 'GameHubSpace');
+const LazySpotifyLiveGradientWallpaper = React.lazy(() => import('./components/overlays/SpotifyLiveGradientWallpaper'));
+const LazySpotifyImmersiveOverlay = React.lazy(() => import('./components/overlays/SpotifyImmersiveOverlay'));
+const LazySpotifyGradientOverlay = React.lazy(() => import('./components/overlays/SpotifyGradientOverlay'));
 
 
 function App() {
@@ -167,10 +166,11 @@ function App() {
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
   useUnifiedSettingsPersistence();
+  useWallpaperDataFileSync();
   useActiveWorkspaceAutoSync();
 
-  // Debug: Log floating widgets state
   useEffect(() => {
+    if (!IS_DEV) return;
     console.log('[App] Floating widgets state:', {
       spotify: floatingWidgets.spotify.visible,
       systemInfo: floatingWidgets.systemInfo.visible,
@@ -228,35 +228,11 @@ function App() {
   });
 
   // Actions from consolidated store
-  const {
-    setAppState,
-    setUIState,
-    setRibbonState,
-    setWallpaperState,
-    setChannelState,
-    setOverlayState,
-    setTimeState,
-    setDockState,
-    setSoundsState,
-    setPresets,
-    setWorkspacesState,
-    setSpacesState,
-    setGameHubState,
-  } = useConsolidatedAppStore(
+  const { setUIState, setRibbonState, setSpacesState } = useConsolidatedAppStore(
     useShallow((state) => ({
-      setAppState: state.actions.setAppState,
       setUIState: state.actions.setUIState,
       setRibbonState: state.actions.setRibbonState,
-      setWallpaperState: state.actions.setWallpaperState,
-      setChannelState: state.actions.setChannelState,
-      setOverlayState: state.actions.setOverlayState,
-      setTimeState: state.actions.setTimeState,
-      setDockState: state.actions.setDockState,
-      setSoundsState: state.actions.setSoundsState,
-      setPresets: state.actions.setPresets,
-      setWorkspacesState: state.actions.setWorkspacesState,
       setSpacesState: state.actions.setSpacesState,
-      setGameHubState: state.actions.setGameHubState,
     }))
   );
 
@@ -329,6 +305,36 @@ function App() {
     [spaceWorldDurationMs]
   );
 
+  const mountSpotifyChromeStack = useConsolidatedAppStore(
+    useShallow((s) => {
+      const sp = s.spotify;
+      return (
+        Boolean(sp.isConnected) ||
+        Boolean(sp.accessToken || sp.refreshToken) ||
+        sp.immersiveMode?.enabled === true ||
+        sp.immersiveMode?.liveGradientWallpaper === true
+      );
+    })
+  );
+
+  const [visitedSpaces, setVisitedSpaces] = useState(null);
+  useEffect(() => {
+    setVisitedSpaces((prev) => {
+      const base = prev ?? new Set();
+      const next = new Set(base);
+      next.add(activeSpaceId);
+      return next;
+    });
+  }, [activeSpaceId]);
+
+  const shouldMountSpaceContent = useCallback(
+    (spaceId) => {
+      if (visitedSpaces === null) return spaceId === activeSpaceId;
+      return visitedSpaces.has(spaceId);
+    },
+    [visitedSpaces, activeSpaceId]
+  );
+
   const isGameHubSpace = activeSpaceId === 'gamehub';
   
   // Ref to access SettingsActionMenu's handleClose method
@@ -391,21 +397,7 @@ function App() {
     };
   }, [openDevTools, wallpaper, isCycling, cycleToNextWallpaper]);
 
-  useAppInitialization({
-    setAppState,
-    setWallpaperState,
-    setOverlayState,
-    setChannelState,
-    setUIState,
-    setRibbonState,
-    setTimeState,
-    setDockState,
-    setSoundsState,
-    setPresets,
-    setWorkspacesState,
-    setSpacesState,
-    setGameHubState,
-  });
+  useAppInitialization();
 
   useFullscreenEffect({ appReady, startInFullscreen });
 
@@ -413,8 +405,14 @@ function App() {
     if (!appReady) return;
     const { appLibraryManager: mgr } = useConsolidatedAppStore.getState();
     mgr?.scheduleAppLibraryBackgroundPrefetch?.();
-    const urls = collectWarmMediaUrlsFromStore(useConsolidatedAppStore.getState());
-    warmImageUrlsOnIdle(urls, { max: 56 });
+    const state = useConsolidatedAppStore.getState();
+    const { high, normal } = collectPrioritizedWarmMediaUrls(state);
+    if (high.length > 0) {
+      scheduleMediaWarmPass({ urls: high, max: 24, chunkSize: 6, tier: 'high' });
+    }
+    if (normal.length > 0) {
+      scheduleMediaWarmPass({ urls: normal, max: 40, chunkSize: 6, tier: 'normal' });
+    }
   }, [appReady]);
 
   // Optimized handlers using consolidated store with useCallback
@@ -528,7 +526,11 @@ function App() {
                     style={{ flex: `0 0 ${panelPct}%`, minHeight: 0 }}
                   >
                     <div className="space-world__panel-surface">
-                      {renderSpaceContent(spaceId)}
+                      {shouldMountSpaceContent(spaceId) ? (
+                        renderSpaceContent(spaceId)
+                      ) : (
+                        <div className="h-full min-h-0 w-full" aria-hidden />
+                      )}
                     </div>
                   </section>
                 );
@@ -570,7 +572,7 @@ function App() {
                     onSettingsChange={(settings) => setRibbonState(settings)}
                     onButtonClick={() => {}}
                     onButtonContextMenu={() => {}}
-                    onAccessoryButtonClick={() => {}}
+                    onAccessoryButtonClick={handleSettingsActionMenuOpen}
                     onAccessoryButtonContextMenu={() => {}}
                     onDockContextMenu={() => {}}
                     showPresetsButton
@@ -712,14 +714,13 @@ function App() {
           )}
         </Suspense>
 
-        {/* Spotify Live Gradient Wallpaper */}
-        <SpotifyLiveGradientWallpaper />
-        
-        {/* Spotify Immersive Overlay */}
-        <SpotifyImmersiveOverlay />
-        
-        {/* Spotify Gradient Overlay */}
-        <SpotifyGradientOverlay />
+        {mountSpotifyChromeStack ? (
+          <Suspense fallback={null}>
+            <LazySpotifyLiveGradientWallpaper />
+            <LazySpotifyImmersiveOverlay />
+            <LazySpotifyGradientOverlay />
+          </Suspense>
+        ) : null}
 
         {/* Floating Widgets */}
         <Suspense fallback={null}>
@@ -756,8 +757,8 @@ function App() {
             />
           )}
           
-          {/* Performance Monitor Widget */}
-          {floatingWidgets.performanceMonitor.visible && (
+          {/* Performance Monitor Widget — dev builds only (intervals + RAF in performanceManager) */}
+          {IS_DEV && floatingWidgets.performanceMonitor.visible && (
             <LazyPerformanceMonitor 
               isVisible={floatingWidgets.performanceMonitor.visible}
               onClose={() => {

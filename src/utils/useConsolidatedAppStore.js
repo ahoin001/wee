@@ -10,12 +10,13 @@ import {
 } from '../design/runtimeColorStrings.js';
 import { resolveGridConfig, resolveNavigation } from './channelLayoutSystem';
 import { applyChannelSlotReorder } from './channelReorder';
-import { DEFAULT_MOTION_FEEDBACK } from './motionFeedbackDefaults';
+import { DEFAULT_MOTION_FEEDBACK, mergeMotionFeedback } from './motionFeedbackDefaults';
 import {
   createDefaultChannelSpaceData,
   DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
   getSecondaryChannelSpaceData,
   normalizeChannelSpaceKey,
+  normalizeShellSpaceOrder,
 } from './channelSpaces';
 import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
@@ -581,6 +582,8 @@ useConsolidatedAppStore = create(
             showHubBackdrop: false,
             /** When true, Game Hub lists/collections show Steam titles only (Epic still launchable elsewhere). */
             hubSteamOnlyGames: true,
+            /** Wide layout: scroll-linked hero dock rail + library squeeze. Off = simple column + compact hero on scroll. */
+            hubDockScrollMorphEnabled: true,
             effectsEnabled: true,
             activeCollectionId: null,
             favoriteGameIds: [],
@@ -1139,6 +1142,95 @@ useConsolidatedAppStore = create(
             },
           })),
 
+          /**
+           * Single Zustand commit for cold-start hydration (IPC unified data + settings).
+           * Reduces subscriber churn vs many sequential per-slice updates.
+           * @param {Partial<{
+           *   app: object, wallpaper: object, overlay: object, channels: object,
+           *   ui: object, ribbon: object, time: object, dock: object, sounds: object,
+           *   presets: unknown[], workspaces: object, spaces: object, gameHub: object,
+           *   navigation: object, floatingWidgets: object, monitors: object, spotify: object,
+           *   appearanceBySpace: object, channelsSnapshot: object
+           * }>} slices
+           */
+          applyStartupHydration: (slices) =>
+            set((state) => {
+              if (!slices || typeof slices !== 'object') return state;
+              const next = { ...state };
+
+              if (slices.app) next.app = { ...state.app, ...slices.app };
+              if (slices.wallpaper) next.wallpaper = { ...state.wallpaper, ...slices.wallpaper };
+              if (slices.overlay) next.overlay = { ...state.overlay, ...slices.overlay };
+              if (slices.channelsSnapshot) {
+                next.channels = slices.channelsSnapshot;
+              } else if (slices.channels) {
+                next.channels = mergeChannelsSlice(state.channels, slices.channels);
+              }
+              if (slices.ui) {
+                next.ui = {
+                  ...state.ui,
+                  ...slices.ui,
+                  motionFeedback: mergeMotionFeedback(
+                    slices.ui.motionFeedback ?? state.ui.motionFeedback
+                  ),
+                };
+              }
+              if (slices.ribbon) next.ribbon = { ...state.ribbon, ...slices.ribbon };
+              if (slices.time) next.time = { ...state.time, ...slices.time };
+              if (slices.dock) next.dock = { ...state.dock, ...slices.dock };
+              if (slices.sounds) next.sounds = { ...state.sounds, ...slices.sounds };
+              if (slices.presets !== undefined) next.presets = slices.presets;
+              if (slices.workspaces) next.workspaces = { ...state.workspaces, ...slices.workspaces };
+              if (slices.spaces) {
+                next.spaces = {
+                  ...state.spaces,
+                  ...slices.spaces,
+                  order: normalizeShellSpaceOrder(
+                    slices.spaces.order ?? state.spaces.order
+                  ),
+                };
+              }
+              if (slices.gameHub) {
+                next.gameHub = {
+                  ...state.gameHub,
+                  ...slices.gameHub,
+                  profile: {
+                    ...state.gameHub.profile,
+                    ...(slices.gameHub.profile || {}),
+                  },
+                  ui: {
+                    ...state.gameHub.ui,
+                    ...(slices.gameHub.ui || {}),
+                  },
+                  library: {
+                    ...state.gameHub.library,
+                    ...(slices.gameHub.library || {}),
+                    shelves: {
+                      ...state.gameHub.library.shelves,
+                      ...(slices.gameHub.library?.shelves || {}),
+                    },
+                  },
+                };
+              }
+              if (slices.navigation) next.navigation = { ...state.navigation, ...slices.navigation };
+              if (slices.floatingWidgets) {
+                next.floatingWidgets = {
+                  ...state.floatingWidgets,
+                  ...slices.floatingWidgets,
+                };
+              }
+              if (slices.monitors) next.monitors = { ...state.monitors, ...slices.monitors };
+              if (slices.spotify) next.spotify = { ...state.spotify, ...slices.spotify };
+              if (slices.appearanceBySpace) {
+                next.appearanceBySpace = {
+                  ...state.appearanceBySpace,
+                  ...slices.appearanceBySpace,
+                };
+              }
+
+              return next;
+            }),
+
           /** Merge-safe: avoids dropping other `lastLaunchedAt` entries when shallow-updating library. */
           patchGameHubLastLaunch: (gameId, timestampMs) => set((state) => ({
             gameHub: {
@@ -1523,6 +1615,7 @@ useConsolidatedAppStore = create(
                 launchingGameId: null,
                 showHubBackdrop: false,
                 hubSteamOnlyGames: true,
+                hubDockScrollMorphEnabled: true,
                 effectsEnabled: true,
                 activeCollectionId: null,
                 favoriteGameIds: [],

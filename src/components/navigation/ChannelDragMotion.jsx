@@ -1,22 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { m, useReducedMotion } from 'framer-motion';
+import { WEE_SPRINGS } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 
-/** Spring used for tile lift + drop-target feedback */
-export const channelDragSpring = {
-  type: 'spring',
-  stiffness: 520,
-  damping: 36,
-  mass: 0.75,
-};
+/** Spring used for tile lift + drop-target feedback (aligned with WeeGooey pill / pillOpen family) */
+export const channelDragSpring = WEE_SPRINGS.channelDragOverlay;
 
-export const channelDragSpringSoft = {
-  type: 'spring',
-  stiffness: 440,
-  damping: 32,
-  mass: 0.85,
-};
+export const channelDragSpringSoft = WEE_SPRINGS.channelDragSoft;
 
 /**
  * Floating preview while dragging — playful lift, tilt, glow (respects reduced motion).
@@ -39,9 +30,9 @@ export function ChannelDragOverlayFrame({ children }) {
       className="channel-drag-overlay pointer-events-none rounded-xl"
       initial={{ scale: 1, rotate: 0, y: 0 }}
       animate={{
-        scale: 1.09,
-        rotate: -3,
-        y: -8,
+        scale: 1.08,
+        rotate: -2.5,
+        y: -7,
       }}
       transition={channelDragSpring}
       style={{

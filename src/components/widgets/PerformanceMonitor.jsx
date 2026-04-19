@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePerformanceState } from '../../utils/useConsolidatedAppHooks';
+import { IS_DEV } from '../../utils/env';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
@@ -46,7 +47,7 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
 
   const report = getPerformanceReport();
 
-  if (!isVisible) return null;
+  if (!IS_DEV || !isVisible) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

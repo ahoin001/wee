@@ -16,7 +16,7 @@
   transform: scale(calc(1 + (var(--wii-style-is-hovered, 0) * 0.05)));
 }
 
-.wii-style-button:hover {
+.wii-style-button:hover:not(.wii-style-button--wee-rail) {
   box-shadow: var(--wii-style-hover-shadow);
   border-color: var(--wii-style-hover-border);
 }
@@ -34,4 +34,31 @@
   position: relative;
   z-index: 2;
   color: var(--wii-style-text);
+}
+
+/* Space rail pill — same tokens as `.space-rail__pill-surface` / wee modal chrome */
+.wii-style-button.wii-style-button--wee-rail {
+  background: hsl(var(--wee-pill-glass));
+  border-color: hsl(var(--wee-pill-border));
+  box-shadow: var(--wee-pill-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  /* Override generic scale(var) — hover motion is springy below */
+  transform: translateZ(0) scale(1);
+  transition:
+    transform 0.62s cubic-bezier(0.22, 1.45, 0.36, 1),
+    border-color 0.55s cubic-bezier(0.34, 1.2, 0.64, 1),
+    box-shadow 0.58s cubic-bezier(0.25, 1.35, 0.45, 1),
+    filter 0.45s ease-out;
+}
+
+.wii-style-button.wii-style-button--wee-rail:hover {
+  transform: translateZ(0) scale(1.065) translateY(-4px);
+  border-color: hsl(var(--border-accent) / 0.48);
+  box-shadow: var(--shadow-soft-hover);
+  filter: drop-shadow(0 14px 32px hsl(var(--primary) / 0.2));
+}
+
+.wii-style-button-shine--wee-rail {
+  opacity: 0.55;
 }
