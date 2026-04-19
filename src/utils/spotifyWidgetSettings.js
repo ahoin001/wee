@@ -24,7 +24,8 @@ export function getResolvedSpotifyWidgetSettings(spotify) {
     useBlurredBackground: s?.useBlurredBackground ?? false,
     blurAmount: s?.blurAmount ?? 30,
     autoShowWidget: s?.autoShowWidget ?? false,
-    visualizerType: s?.visualizerType ?? 'bars',
+    /** @type {'off'|'bars'|'circles'|'waves'|'sparkle'} */
+    visualizerType: s?.visualizerType ?? 'off',
     trackInfoPanelOpacity: s?.trackInfoPanelOpacity ?? 0.6,
     trackInfoPanelBlur: s?.trackInfoPanelBlur ?? 10,
   };

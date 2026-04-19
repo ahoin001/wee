@@ -2671,3 +2671,14 @@
   box-shadow: none;
   border-color: var(--spotify-white-30);
 }
+
+/* Playful “toy shell” — thicker border + rounder chrome (tokens) */
+.floating-spotify-widget.floating-spotify-widget--wee-playful {
+  border-radius: 2.5rem;
+  border-width: 6px;
+  border-style: solid;
+  border-color: hsl(var(--color-pure-black) / 0.42);
+  box-shadow:
+    0 28px 56px -16px hsl(var(--color-pure-black) / 0.55),
+    0 0 0 1px hsl(var(--color-pure-white) / 0.08);
+}

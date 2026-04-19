@@ -9,20 +9,19 @@ import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import './WiiSideNavigation.css';
 
 /** Icon-only squish — avoids transform on the peeking button shell (see WeeGooeySpacePill row tap). */
-function WiiSideNavIconPress({ children, side }) {
+function WiiSideNavIconPress({ children }) {
   const osReduced = useReducedMotion();
   const { ribbonTap } = useMotionFeedback();
   const { pillSurfacePress } = useWeeMotion();
   const enabled = ribbonTap && !osReduced;
-  const alignClass = side === 'right' ? 'justify-end' : 'justify-start';
   if (!enabled) {
     return (
-      <span className={`flex h-full w-full items-center ${alignClass}`}>{children}</span>
+      <span className="flex h-full w-full items-center justify-center">{children}</span>
     );
   }
   return (
     <m.span
-      className={`flex h-full w-full items-center ${alignClass}`}
+      className="flex h-full w-full items-center justify-center"
       style={{ transformOrigin: 'center center' }}
       whileTap={{ scale: 0.92 }}
       transition={pillSurfacePress}
@@ -34,7 +33,6 @@ function WiiSideNavIconPress({ children, side }) {
 
 WiiSideNavIconPress.propTypes = {
   children: PropTypes.node.isRequired,
-  side: PropTypes.oneOf(['left', 'right']).isRequired,
 };
 
 const WiiSideNavigation = () => {
@@ -207,7 +205,7 @@ const WiiSideNavigation = () => {
             style={getGlassStyleVars(leftGlassSettings)}
           >
             <div className="wii-side-nav-content">
-              <WiiSideNavIconPress side="left">{renderIcon(leftIcon, DefaultLeftIcon, 'left')}</WiiSideNavIconPress>
+              <WiiSideNavIconPress>{renderIcon(leftIcon, DefaultLeftIcon, 'left')}</WiiSideNavIconPress>
             </div>
           </div>
         </button>
@@ -230,7 +228,7 @@ const WiiSideNavigation = () => {
             style={getGlassStyleVars(rightGlassSettings)}
           >
             <div className="wii-side-nav-content">
-              <WiiSideNavIconPress side="right">{renderIcon(rightIcon, DefaultRightIcon, 'right')}</WiiSideNavIconPress>
+              <WiiSideNavIconPress>{renderIcon(rightIcon, DefaultRightIcon, 'right')}</WiiSideNavIconPress>
             </div>
           </div>
         </button>

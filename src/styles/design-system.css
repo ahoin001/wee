@@ -208,9 +208,9 @@
   /* Longer strip so the inner straight edge reads as a rail; pair with peek so the round cap tucks off-screen */
   --side-nav-width: 156px;
   --side-nav-height: 64px;
-  /* Peek: larger tuck hides more of the circular cap — visible area feels like a strip, not a floating stub */
-  --side-nav-peek-offset: 56px;
-  /* Icon inset from the rounded cap; inner edge keeps comfortable padding toward the strip */
+  /* Peek: tuck most of the pill off-screen — small “there’s more” sliver; hover brings full strip */
+  --side-nav-peek-offset: 100px;
+  /* Symmetric inset when icon is centered (matches hover ripple at 50% / 50%) */
   --side-nav-cap-padding: 6px;
   --side-nav-inner-padding: 22px;
   --side-nav-reveal-offset: 0px;
@@ -363,6 +363,8 @@
   --wee-text-header: 222 47% 11%;
   --wee-text-destructive: 0 72% 51%;
   --wee-radius-shell: 4rem;
+  /** Modal outer ring width — playful parity with floating widgets */
+  --wee-modal-shell-border: 0.55rem;
   --wee-radius-card: 3rem;
   --wee-radius-pill: 2rem;
   --wee-radius-rail-item: 2rem;

@@ -88,7 +88,7 @@ function WeeModalShell({
               layout
               className={`
                   flex w-full min-h-0 max-h-[min(88dvh,920px)] overflow-hidden flex-col
-                  border-[0.5rem] border-[hsl(var(--wee-border-outer))]
+                  border-[length:var(--wee-modal-shell-border)] border-[hsl(var(--wee-border-outer))]
                   rounded-[var(--wee-radius-shell)] bg-[hsl(var(--wee-surface-shell))]
                   shadow-[var(--wee-shadow-modal)]
                   ${panelLayoutClass}
