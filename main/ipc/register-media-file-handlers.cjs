@@ -1,3 +1,6 @@
+const os = require('os');
+const { execFile } = require('child_process');
+
 function registerMediaFileHandlers({
   ipcMain,
   dialog,
@@ -8,6 +11,7 @@ function registerMediaFileHandlers({
   fsExtra,
   ws,
   getMainWindow,
+  app,
   paths,
 }) {
   const {
@@ -16,6 +20,26 @@ function registerMediaFileHandlers({
     userWallpapersPath,
     userIconsPath,
   } = paths;
+  const MEDIA_EXTENSIONS = new Set([
+    '.mp4',
+    '.mkv',
+    '.webm',
+    '.avi',
+    '.mov',
+    '.m4v',
+    '.wmv',
+    '.flv',
+    '.mpg',
+    '.mpeg',
+    '.ts',
+    '.mp3',
+    '.m4a',
+    '.wav',
+    '.flac',
+    '.aac',
+    '.ogg',
+    '.opus',
+  ]);
 
   ipcMain.handle('wallpaper:selectFile', async () => {
     try {
@@ -211,6 +235,179 @@ function registerMediaFileHandlers({
       console.error('[IPC] Error in select-exe-or-shortcut-file:', error);
       return { success: false, error: `Failed to open file dialog: ${error.message}` };
     }
+  });
+
+  ipcMain.handle('mediahub:get-default-library-path', async () => {
+    try {
+      if (!app?.getPath) {
+        return { success: false, error: 'App path API unavailable', path: '' };
+      }
+      const videosPath = app.getPath('videos');
+      return { success: true, path: typeof videosPath === 'string' ? videosPath : '' };
+    } catch (error) {
+      return { success: false, error: error?.message || 'Failed to resolve default library path', path: '' };
+    }
+  });
+
+  ipcMain.handle('mediahub:pick-folder', async () => {
+    try {
+      const result = await dialog.showOpenDialog(getMainWindow(), {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Select Media Folder',
+      });
+      if (result.canceled || !Array.isArray(result.filePaths) || result.filePaths.length === 0) {
+        return { success: false, error: 'No folder selected' };
+      }
+      return { success: true, folderPath: result.filePaths[0] };
+    } catch (error) {
+      return { success: false, error: `Failed to open folder dialog: ${error.message}` };
+    }
+  });
+
+  ipcMain.handle('mediahub:scan-folder', async (_event, args = {}) => {
+    const folderPath = typeof args.folderPath === 'string' ? args.folderPath.trim() : '';
+    const maxFiles = Math.max(10, Math.min(Number(args.maxFiles) || 300, 2000));
+    const maxDepth = Math.max(0, Math.min(Number(args.maxDepth) || 1, 3));
+    if (!folderPath) {
+      return { success: false, error: 'Missing folderPath', files: [] };
+    }
+
+    try {
+      const rootStats = await fsPromises.stat(folderPath);
+      if (!rootStats.isDirectory()) {
+        return { success: false, error: 'Selected path is not a folder', files: [] };
+      }
+
+      const files = [];
+      const queue = [{ dir: folderPath, depth: 0 }];
+      while (queue.length > 0 && files.length < maxFiles) {
+        const { dir, depth } = queue.shift();
+        const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (files.length >= maxFiles) break;
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            if (depth < maxDepth) {
+              queue.push({ dir: fullPath, depth: depth + 1 });
+            }
+            continue;
+          }
+          if (!entry.isFile()) continue;
+
+          const ext = path.extname(entry.name).toLowerCase();
+          if (!MEDIA_EXTENSIONS.has(ext)) continue;
+
+          let size = 0;
+          let modifiedAt = null;
+          try {
+            const stat = await fsPromises.stat(fullPath);
+            size = Number(stat.size) || 0;
+            modifiedAt = stat.mtime?.toISOString?.() || null;
+          } catch {
+            // Keep entry even when stats fail to avoid aborting full scan.
+          }
+
+          files.push({
+            id: `local:${fullPath}`,
+            path: fullPath,
+            name: entry.name,
+            extension: ext,
+            size,
+            modifiedAt,
+            source: 'local',
+          });
+        }
+      }
+
+      return {
+        success: true,
+        folderPath,
+        files,
+        scannedAt: new Date().toISOString(),
+        truncated: files.length >= maxFiles,
+      };
+    } catch (error) {
+      return { success: false, error: error.message || 'Failed to scan folder', files: [] };
+    }
+  });
+
+  /**
+   * Common install locations for media apps (Windows). Used for “suggested apps” in Media Hub.
+   */
+  ipcMain.handle('mediahub:detect-suggested-players', async () => {
+    const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+    const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+    const candidates = [
+      { id: 'vlc', label: 'VLC media player', path: path.join(programFiles, 'VideoLAN', 'VLC', 'vlc.exe') },
+      { id: 'vlc-x86', label: 'VLC media player', path: path.join(programFilesX86, 'VideoLAN', 'VLC', 'vlc.exe') },
+      {
+        id: 'wmp-legacy',
+        label: 'Windows Media Player (legacy)',
+        path: path.join(programFilesX86, 'Windows Media Player', 'wmplayer.exe'),
+      },
+      {
+        id: 'wmp-legacy-pf',
+        label: 'Windows Media Player (legacy)',
+        path: path.join(programFiles, 'Windows Media Player', 'wmplayer.exe'),
+      },
+    ];
+    const seen = new Set();
+    const players = [];
+    for (const c of candidates) {
+      const key = c.path.toLowerCase();
+      if (seen.has(key)) continue;
+      try {
+        await fsPromises.access(c.path);
+        seen.add(key);
+        players.push({ id: c.id, label: c.label, path: c.path });
+      } catch {
+        // not installed at this path
+      }
+    }
+    return { success: true, players };
+  });
+
+  /**
+   * Shows the classic Windows “Open with” dialog for a temp file (same mechanism as Explorer).
+   * - http(s): writes a minimal M3U pointing at the URL (apps that handle .m3u appear in the list).
+   * - magnet: writes a one-line .magnet file (torrent clients / some players may appear).
+   */
+  ipcMain.handle('mediahub:open-with-windows-dialog', async (_event, payload = {}) => {
+    const uri = typeof payload.uri === 'string' ? payload.uri.trim() : '';
+    if (!uri) {
+      return { success: false, error: 'No URI' };
+    }
+    const isMagnet = /^magnet:/i.test(uri);
+    const tmpDir = os.tmpdir();
+    const base = `wee-mediahub-openwith-${Date.now()}`;
+    let tempPath;
+    let content;
+    if (isMagnet) {
+      tempPath = path.join(tmpDir, `${base}.magnet`);
+      content = uri;
+    } else {
+      tempPath = path.join(tmpDir, `${base}.m3u`);
+      content = `#EXTM3U\n#EXTINF:-1,Wee Media Hub\n${uri}\n`;
+    }
+    try {
+      await fsPromises.writeFile(tempPath, content, 'utf8');
+    } catch (err) {
+      return { success: false, error: err?.message || 'Could not write temp file' };
+    }
+    return new Promise((resolve) => {
+      execFile(
+        'rundll32.exe',
+        ['shell32.dll,OpenAs_RunDLL', tempPath],
+        { windowsHide: true },
+        (err) => {
+          if (err) {
+            resolve({ success: false, error: err.message || String(err) });
+            return;
+          }
+          resolve({ success: true, tempPath });
+        }
+      );
+    });
   });
 }
 

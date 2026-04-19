@@ -5,10 +5,94 @@ function createAppScanService({
   os,
   nativeImage,
   wsQuery,
+  scanCacheFile = null,
   cacheTtlMs = 24 * 60 * 60 * 1000,
 }) {
   let appsCache = null;
   let appsCacheTime = 0;
+  let persistedCacheLoaded = false;
+  let persistedScanSnapshot = null;
+
+  async function loadPersistedScanSnapshot() {
+    if (persistedCacheLoaded || !scanCacheFile) return;
+    persistedCacheLoaded = true;
+    try {
+      const raw = await fsPromises.readFile(scanCacheFile, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
+        persistedScanSnapshot = {
+          items: parsed.items,
+          count: Number(parsed.count) || 0,
+          fingerprint: typeof parsed.fingerprint === 'string' ? parsed.fingerprint : null,
+          updatedAt: Number(parsed.updatedAt) || 0,
+        };
+      }
+    } catch {
+      persistedScanSnapshot = null;
+    }
+  }
+
+  async function persistScanSnapshot(items, snapshot) {
+    if (!scanCacheFile) return;
+    try {
+      await fsPromises.mkdir(path.dirname(scanCacheFile), { recursive: true });
+      const payload = {
+        version: 1,
+        items: Array.isArray(items) ? items : [],
+        count: Number(snapshot?.count) || 0,
+        fingerprint: typeof snapshot?.fingerprint === 'string' ? snapshot.fingerprint : null,
+        updatedAt: Date.now(),
+      };
+      await fsPromises.writeFile(scanCacheFile, JSON.stringify(payload, null, 2), 'utf-8');
+      persistedScanSnapshot = payload;
+    } catch (error) {
+      console.warn('[apps:scan-cache] Failed to persist scan snapshot:', error?.message || error);
+    }
+  }
+
+  async function buildInstalledAppsQuickSnapshot(startMenuDirs) {
+    let lnkCount = 0;
+    let maxLnkMtimeMs = 0;
+    let directoryCount = 0;
+
+    async function walk(dir) {
+      let entries = [];
+      try {
+        entries = await fsPromises.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          directoryCount += 1;
+          await walk(fullPath);
+          continue;
+        }
+        if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.lnk')) {
+          continue;
+        }
+        lnkCount += 1;
+        try {
+          const stat = await fsPromises.stat(fullPath);
+          if (stat?.mtimeMs && stat.mtimeMs > maxLnkMtimeMs) {
+            maxLnkMtimeMs = stat.mtimeMs;
+          }
+        } catch {
+          /* ignore stat failures */
+        }
+      }
+    }
+
+    for (const dir of startMenuDirs) {
+      await walk(dir);
+    }
+
+    return {
+      count: lnkCount,
+      fingerprint: `${lnkCount}|${directoryCount}|${Math.floor(maxLnkMtimeMs)}`,
+    };
+  }
 
   async function scanInstalledApps() {
     console.log('[scanInstalledApps] Starting app scan...');
@@ -211,7 +295,11 @@ function createAppScanService({
       return true;
     });
     console.log(`[scanInstalledApps] Returning ${deduped.length} apps after deduplication`);
-    return deduped;
+    const snapshot = await buildInstalledAppsQuickSnapshot(startMenuDirs);
+    return {
+      apps: deduped,
+      snapshot,
+    };
   }
 
   async function getInstalledApps() {
@@ -221,19 +309,46 @@ function createAppScanService({
       console.log('[apps:getInstalled] Using cached apps:', appsCache.length);
       return appsCache;
     }
+    await loadPersistedScanSnapshot();
+    const startMenuDirs = [
+      path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+      path.join('C:', 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+    ];
+
+    if (persistedScanSnapshot?.items?.length) {
+      try {
+        const quickSnapshot = await buildInstalledAppsQuickSnapshot(startMenuDirs);
+        if (
+          quickSnapshot.count === persistedScanSnapshot.count &&
+          quickSnapshot.fingerprint === persistedScanSnapshot.fingerprint
+        ) {
+          appsCache = persistedScanSnapshot.items;
+          appsCacheTime = now;
+          console.log('[apps:getInstalled] Using persisted scan snapshot:', appsCache.length);
+          return appsCache;
+        }
+      } catch (error) {
+        console.warn('[apps:getInstalled] Quick snapshot check failed, falling back to full scan:', error?.message || error);
+      }
+    }
+
     console.log('[apps:getInstalled] Cache miss, scanning apps...');
-    const deduped = await scanInstalledApps();
+    const result = await scanInstalledApps();
+    const deduped = Array.isArray(result?.apps) ? result.apps : [];
     appsCache = deduped;
     appsCacheTime = now;
+    await persistScanSnapshot(deduped, result?.snapshot);
     console.log('[apps:getInstalled] Returning apps:', deduped.length);
     return deduped;
   }
 
   async function rescanInstalledApps() {
     console.log('[apps:rescanInstalled] Called - forcing fresh scan');
-    const deduped = await scanInstalledApps();
+    const result = await scanInstalledApps();
+    const deduped = Array.isArray(result?.apps) ? result.apps : [];
     appsCache = deduped;
     appsCacheTime = Date.now();
+    await persistScanSnapshot(deduped, result?.snapshot);
     console.log('[apps:rescanInstalled] Returning apps:', deduped.length);
     return deduped;
   }

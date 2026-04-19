@@ -360,18 +360,55 @@ export const createStoreManagers = (getStore) => {
       const staggerMs = coldScan ? 520 : 350;
       const initialDelayMs = coldScan ? 1200 : 700;
       const idleCallbackTimeoutMs = coldScan ? 18000 : 12000;
+      const inactiveRetryMs = coldScan ? 4500 : 3000;
 
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const isAppActiveForPrefetch = () =>
+        document.visibilityState === 'visible' && document.hasFocus();
+      const waitForActiveApp = (timeoutMs = 45000) =>
+        new Promise((resolve) => {
+          if (isAppActiveForPrefetch()) {
+            resolve(true);
+            return;
+          }
+          let settled = false;
+          const settle = (value) => {
+            if (settled) return;
+            settled = true;
+            window.removeEventListener('focus', onActivity);
+            document.removeEventListener('visibilitychange', onVisibility);
+            clearTimeout(timer);
+            resolve(value);
+          };
+          const onActivity = () => {
+            if (isAppActiveForPrefetch()) settle(true);
+          };
+          const onVisibility = () => {
+            if (document.visibilityState === 'visible' && document.hasFocus()) settle(true);
+          };
+          const timer = setTimeout(() => settle(isAppActiveForPrefetch()), timeoutMs);
+          window.addEventListener('focus', onActivity);
+          document.addEventListener('visibilitychange', onVisibility);
+        });
       const runChain = async () => {
         try {
+          const activeAtStart = await waitForActiveApp(idleCallbackTimeoutMs);
+          if (!activeAtStart) {
+            setTimeout(runChain, inactiveRetryMs);
+            return;
+          }
           await appLibraryManager.fetchInstalledApps(false, { silent: true });
           await pause(staggerMs);
+          if (!isAppActiveForPrefetch()) return;
           await appLibraryManager.fetchSteamGames(false, { silent: true });
           await pause(staggerMs);
+          if (!isAppActiveForPrefetch()) return;
           await appLibraryManager.fetchEpicGames(false, { silent: true });
           await pause(staggerMs);
+          if (!isAppActiveForPrefetch()) return;
           await appLibraryManager.fetchUwpApps(false, { silent: true });
           await pause(400);
+          if (!isAppActiveForPrefetch()) return;
           try {
             scheduleMediaWarmPass({
               urls: collectWarmMediaUrlsFromStore(getStore()),

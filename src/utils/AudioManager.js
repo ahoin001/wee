@@ -21,6 +21,7 @@ class AudioManager {
   constructor() {
     this.audioInstances = new Map(); // Store reusable audio instances
     this.backgroundAudio = null;
+    this.previewAudio = null;
     this.maxConcurrentSounds = 3; // Limit concurrent audio playback
     this.activeSounds = new Set();
   }
@@ -292,6 +293,37 @@ class AudioManager {
     }
   }
 
+  // Centralized one-at-a-time preview channel for settings/modals.
+  async playPreview(url, volume = 0.5) {
+    if (!url) return;
+    this.stopPreview();
+    try {
+      const audio = this.getAudioInstance(url);
+      audio.loop = false;
+      audio.currentTime = 0;
+      audio.volume = volume;
+      await waitForAudioReady(audio);
+      await audio.play();
+      this.previewAudio = audio;
+      audio.addEventListener(
+        'ended',
+        () => {
+          if (this.previewAudio === audio) this.previewAudio = null;
+        },
+        { once: true }
+      );
+    } catch (error) {
+      console.error('[AudioManager] Failed to play preview:', error);
+    }
+  }
+
+  stopPreview() {
+    if (!this.previewAudio) return;
+    this.previewAudio.pause();
+    this.previewAudio.currentTime = 0;
+    this.previewAudio = null;
+  }
+
   // Resume background music with fade
   async resumeBackgroundMusic(targetVolume = 0.4) {
     if (this.backgroundAudio) {
@@ -393,6 +425,7 @@ class AudioManager {
   // Cleanup all audio instances
   cleanup() {
     this.stopAllSounds();
+    this.stopPreview();
     if (this.backgroundAudio) {
       this.backgroundAudio.pause();
       this.backgroundAudio.currentTime = 0;

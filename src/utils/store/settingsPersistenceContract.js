@@ -26,6 +26,7 @@ export const CANONICAL_SETTINGS_KEYS = [
   'spaces',
   'appearanceBySpace',
   'gameHub',
+  'mediaHub',
 ];
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -221,9 +222,11 @@ export const buildSettingsSnapshotFromStore = (state = {}) => ({
   appearanceBySpace: state.appearanceBySpace || {
     home: null,
     workspaces: null,
+    mediahub: null,
     gamehub: null,
   },
   gameHub: state.gameHub || {},
+  mediaHub: state.mediaHub || {},
 });
 
 export const normalizeUnifiedSettingsSnapshot = (settings = {}) => {

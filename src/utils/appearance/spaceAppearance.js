@@ -11,7 +11,7 @@ const WALLPAPER_TRANSIENT_KEYS = new Set([
   'slideProgress',
 ]);
 
-const SPACE_IDS = ['home', 'workspaces', 'gamehub'];
+const SPACE_IDS = ['home', 'workspaces', 'mediahub', 'gamehub'];
 
 /** @returns {{ wallpaper: object, ribbon: object, time: object, overlay: object, ui: object }} */
 export function captureSpaceAppearanceFromState(storeState) {

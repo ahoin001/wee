@@ -78,18 +78,6 @@ export const useBackgroundMusicEffects = ({
   updateBackgroundMusic,
 }) => {
   useEffect(() => {
-    if (appReady && soundSettings?.backgroundMusicEnabled) {
-      startBackgroundMusic();
-    }
-  }, [appReady, soundSettings?.backgroundMusicEnabled, startBackgroundMusic]);
-
-  useEffect(() => {
-    if (appReady && soundSettings?.backgroundMusicEnabled) {
-      updateBackgroundMusic();
-    }
-  }, [appReady, soundSettings, updateBackgroundMusic]);
-
-  useEffect(() => {
     if (!appReady) {
       return;
     }
@@ -100,6 +88,20 @@ export const useBackgroundMusicEffects = ({
       stopBackgroundMusic();
     }
   }, [appReady, soundSettings?.backgroundMusicEnabled, startBackgroundMusic, stopBackgroundMusic]);
+
+  // Reconfigure active BGM only when playback-relevant knobs change.
+  useEffect(() => {
+    if (!appReady || !soundSettings?.backgroundMusicEnabled) {
+      return;
+    }
+    updateBackgroundMusic();
+  }, [
+    appReady,
+    soundSettings?.backgroundMusicEnabled,
+    soundSettings?.backgroundMusicLooping,
+    soundSettings?.backgroundMusicPlaylistMode,
+    updateBackgroundMusic,
+  ]);
 
   useEffect(() => {
     return () => {

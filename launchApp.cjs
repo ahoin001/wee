@@ -229,6 +229,11 @@ async function launchChannelApp(payload) {
   const trimmed = rawPath.trim();
   console.log(`[launchApp] type=${launchType} path=${trimmed} asAdmin=${!!asAdmin}`);
 
+  // Magnet URIs use magnet:?… not magnet:// — handle before generic scheme regex.
+  if (/^magnet:/i.test(trimmed)) {
+    return launchViaOpenExternal(trimmed);
+  }
+
   // 1) Well-known URI schemes → OS default handler (browser, Steam, Epic, etc.)
   if (/^https?:\/\//i.test(trimmed)) {
     return launchViaOpenExternal(trimmed);

@@ -51,6 +51,20 @@ function patchSecondaryChannelSpace(state, updater) {
   };
 }
 
+function shallowEqualObjects(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (let i = 0; i < aKeys.length; i += 1) {
+    const key = aKeys[i];
+    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+    if (!Object.is(a[key], b[key])) return false;
+  }
+  return true;
+}
+
 let useConsolidatedAppStore;
 const {
   appLibraryManager,
@@ -548,8 +562,8 @@ useConsolidatedAppStore = create(
           activeSpaceId: 'home',
           /** Last non–Game Hub panel (home vs work) — used to restore on launch (never cold-start on gamehub). */
           lastChannelSpaceId: 'home',
-          /** Vertical rail: secondary channel slot → Home → Game Hub (Home is middle). */
-          order: ['workspaces', 'home', 'gamehub'],
+          /** Vertical rail: secondary channel slot → Home → Media Hub → Game Hub. */
+          order: ['workspaces', 'home', 'mediahub', 'gamehub'],
           /** True while the space-world slide is animating — channel drag should be disabled. */
           isTransitioning: false,
           autoHideRail: true,
@@ -563,6 +577,7 @@ useConsolidatedAppStore = create(
         appearanceBySpace: {
           home: null,
           workspaces: null,
+          mediahub: null,
           gamehub: null,
         },
 
@@ -608,6 +623,47 @@ useConsolidatedAppStore = create(
             lastEnrichedSteamId: '',
             weeCollections: [],
             lastLaunchedAt: {},
+          },
+        },
+        mediaHub: {
+          ui: {
+            activeTab: 'discover',
+            contentMode: 'movie',
+            activeGenre: 'All',
+            searchQuery: '',
+            selectedItemId: null,
+            preferredPlayerPath: '',
+            preferredPlayerArgs: '',
+            launchFallbackMessage: '',
+            /** When true, main browse tray uses frosted glass; when false, airy transparent chrome over wallpaper. */
+            frostedTrayEnabled: true,
+            /** 'external' | 'inapp' — HTTPS stream links: external player vs in-app video */
+            streamPlaybackMode: 'external',
+            /** Discover series: episode pick for Torrentio (`id:season:episode` stream cache). */
+            selectedSeriesSeason: null,
+            selectedSeriesEpisode: null,
+          },
+          sources: {
+            cinemeta: {
+              items: [],
+              fetchedAt: null,
+              loading: false,
+              error: null,
+            },
+            streamsById: {},
+            /** @type {Record<string, { loading?: boolean, error?: string|null, meta?: object, videos?: object[] }>} */
+            seriesMetaById: {},
+            local: {
+              folderPath: '',
+              files: [],
+              scannedAt: null,
+              loading: false,
+              error: null,
+            },
+          },
+          library: {
+            recentLocalIds: [],
+            recentStreamIds: [],
           },
         },
 
@@ -1142,13 +1198,115 @@ useConsolidatedAppStore = create(
             },
           })),
 
+          setMediaHubState: (updates) =>
+            set((state) => {
+              if (!updates || typeof updates !== 'object') return state;
+
+              const prevMediaHub = state.mediaHub;
+              const { ui: uiPatch, sources: sourcesPatch, library: libraryPatch, ...rootPatch } = updates;
+
+              let rootChanged = false;
+              for (const key of Object.keys(rootPatch)) {
+                if (!Object.is(prevMediaHub[key], rootPatch[key])) {
+                  rootChanged = true;
+                  break;
+                }
+              }
+
+              let nextUi = prevMediaHub.ui;
+              let uiChanged = false;
+              if (uiPatch && typeof uiPatch === 'object') {
+                const mergedUi = { ...prevMediaHub.ui, ...uiPatch };
+                uiChanged = !shallowEqualObjects(prevMediaHub.ui, mergedUi);
+                if (uiChanged) nextUi = mergedUi;
+              }
+
+              let nextSources = prevMediaHub.sources;
+              let sourcesChanged = false;
+              if (sourcesPatch && typeof sourcesPatch === 'object') {
+                const mergedSources = { ...prevMediaHub.sources };
+                const { cinemeta, local, streamsById, seriesMetaById, ...sourceRootPatch } = sourcesPatch;
+
+                for (const key of Object.keys(sourceRootPatch)) {
+                  if (!Object.is(prevMediaHub.sources[key], sourceRootPatch[key])) {
+                    mergedSources[key] = sourceRootPatch[key];
+                    sourcesChanged = true;
+                  }
+                }
+
+                if (Object.prototype.hasOwnProperty.call(sourcesPatch, 'seriesMetaById')) {
+                  const mergedSeriesMeta = {
+                    ...prevMediaHub.sources.seriesMetaById,
+                    ...(seriesMetaById || {}),
+                  };
+                  if (!shallowEqualObjects(prevMediaHub.sources.seriesMetaById || {}, mergedSeriesMeta)) {
+                    mergedSources.seriesMetaById = mergedSeriesMeta;
+                    sourcesChanged = true;
+                  }
+                }
+
+                if (Object.prototype.hasOwnProperty.call(sourcesPatch, 'cinemeta')) {
+                  const mergedCinemeta = { ...prevMediaHub.sources.cinemeta, ...(cinemeta || {}) };
+                  if (!shallowEqualObjects(prevMediaHub.sources.cinemeta, mergedCinemeta)) {
+                    mergedSources.cinemeta = mergedCinemeta;
+                    sourcesChanged = true;
+                  }
+                }
+
+                if (Object.prototype.hasOwnProperty.call(sourcesPatch, 'local')) {
+                  const mergedLocal = { ...prevMediaHub.sources.local, ...(local || {}) };
+                  if (!shallowEqualObjects(prevMediaHub.sources.local, mergedLocal)) {
+                    mergedSources.local = mergedLocal;
+                    sourcesChanged = true;
+                  }
+                }
+
+                if (Object.prototype.hasOwnProperty.call(sourcesPatch, 'streamsById')) {
+                  const mergedStreamsById = {
+                    ...prevMediaHub.sources.streamsById,
+                    ...(streamsById || {}),
+                  };
+                  if (!shallowEqualObjects(prevMediaHub.sources.streamsById, mergedStreamsById)) {
+                    mergedSources.streamsById = mergedStreamsById;
+                    sourcesChanged = true;
+                  }
+                }
+
+                if (sourcesChanged) {
+                  nextSources = mergedSources;
+                }
+              }
+
+              let nextLibrary = prevMediaHub.library;
+              let libraryChanged = false;
+              if (libraryPatch && typeof libraryPatch === 'object') {
+                const mergedLibrary = { ...prevMediaHub.library, ...libraryPatch };
+                libraryChanged = !shallowEqualObjects(prevMediaHub.library, mergedLibrary);
+                if (libraryChanged) nextLibrary = mergedLibrary;
+              }
+
+              if (!rootChanged && !uiChanged && !sourcesChanged && !libraryChanged) {
+                return state;
+              }
+
+              return {
+                mediaHub: {
+                  ...prevMediaHub,
+                  ...rootPatch,
+                  ui: nextUi,
+                  sources: nextSources,
+                  library: nextLibrary,
+                },
+              };
+            }),
+
           /**
            * Single Zustand commit for cold-start hydration (IPC unified data + settings).
            * Reduces subscriber churn vs many sequential per-slice updates.
            * @param {Partial<{
            *   app: object, wallpaper: object, overlay: object, channels: object,
            *   ui: object, ribbon: object, time: object, dock: object, sounds: object,
-           *   presets: unknown[], workspaces: object, spaces: object, gameHub: object,
+           *   presets: unknown[], workspaces: object, spaces: object, gameHub: object, mediaHub: object,
            *   navigation: object, floatingWidgets: object, monitors: object, spotify: object,
            *   appearanceBySpace: object, channelsSnapshot: object
            * }>} slices
@@ -1209,6 +1367,40 @@ useConsolidatedAppStore = create(
                       ...state.gameHub.library.shelves,
                       ...(slices.gameHub.library?.shelves || {}),
                     },
+                  },
+                };
+              }
+              if (slices.mediaHub) {
+                next.mediaHub = {
+                  ...state.mediaHub,
+                  ...slices.mediaHub,
+                  ui: {
+                    ...state.mediaHub.ui,
+                    ...(slices.mediaHub.ui || {}),
+                  },
+                  sources: {
+                    ...state.mediaHub.sources,
+                    ...(slices.mediaHub.sources || {}),
+                    cinemeta: {
+                      ...state.mediaHub.sources.cinemeta,
+                      ...(slices.mediaHub.sources?.cinemeta || {}),
+                    },
+                    local: {
+                      ...state.mediaHub.sources.local,
+                      ...(slices.mediaHub.sources?.local || {}),
+                    },
+                    streamsById: {
+                      ...state.mediaHub.sources.streamsById,
+                      ...(slices.mediaHub.sources?.streamsById || {}),
+                    },
+                    seriesMetaById: {
+                      ...state.mediaHub.sources.seriesMetaById,
+                      ...(slices.mediaHub.sources?.seriesMetaById || {}),
+                    },
+                  },
+                  library: {
+                    ...state.mediaHub.library,
+                    ...(slices.mediaHub.library || {}),
                   },
                 };
               }
@@ -1590,7 +1782,7 @@ useConsolidatedAppStore = create(
             spaces: {
               activeSpaceId: 'home',
               lastChannelSpaceId: 'home',
-              order: ['workspaces', 'home', 'gamehub'],
+              order: ['workspaces', 'home', 'mediahub', 'gamehub'],
               isTransitioning: false,
               autoHideRail: true,
               railPinned: false,
@@ -1599,6 +1791,7 @@ useConsolidatedAppStore = create(
             appearanceBySpace: {
               home: null,
               workspaces: null,
+              mediahub: null,
               gamehub: null,
             },
             gameHub: {
@@ -1639,6 +1832,40 @@ useConsolidatedAppStore = create(
                 lastEnrichedSteamId: '',
                 weeCollections: [],
                 lastLaunchedAt: {},
+              },
+            },
+            mediaHub: {
+              ui: {
+                activeTab: 'discover',
+                contentMode: 'movie',
+                activeGenre: 'All',
+                searchQuery: '',
+                selectedItemId: null,
+                preferredPlayerPath: '',
+                preferredPlayerArgs: '',
+                launchFallbackMessage: '',
+                frostedTrayEnabled: true,
+                streamPlaybackMode: 'external',
+              },
+              sources: {
+                cinemeta: {
+                  items: [],
+                  fetchedAt: null,
+                  loading: false,
+                  error: null,
+                },
+                streamsById: {},
+                local: {
+                  folderPath: '',
+                  files: [],
+                  scannedAt: null,
+                  loading: false,
+                  error: null,
+                },
+              },
+              library: {
+                recentLocalIds: [],
+                recentStreamIds: [],
               },
             },
           }),

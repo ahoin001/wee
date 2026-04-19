@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
-import { Gamepad2, Home, Layers2, Wand2 } from 'lucide-react';
+import { Clapperboard, Gamepad2, Home, Layers2, Wand2 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   DEFAULT_SHELL_SPACE_ORDER,
@@ -39,6 +39,7 @@ const MotionButton = m.button;
 const SPACE_META = {
   home: { label: 'Home', Icon: Home },
   workspaces: { label: 'Second', Icon: Layers2 },
+  mediahub: { label: 'Media', Icon: Clapperboard },
   gamehub: { label: 'Games', Icon: Gamepad2 },
 };
 
@@ -140,10 +141,17 @@ export default function WeeGooeySpacePill() {
   );
 
   const gameHubChunkPrefetched = useRef(false);
+  const mediaHubChunkPrefetched = useRef(false);
   const handleRailSpacePointerEnter = useCallback((spaceId) => {
-    if (spaceId !== 'gamehub' || gameHubChunkPrefetched.current) return;
-    gameHubChunkPrefetched.current = true;
-    import('../../components/game-hub').catch(() => {});
+    if (spaceId === 'gamehub' && !gameHubChunkPrefetched.current) {
+      gameHubChunkPrefetched.current = true;
+      import('../../components/game-hub').catch(() => {});
+      return;
+    }
+    if (spaceId === 'mediahub' && !mediaHubChunkPrefetched.current) {
+      mediaHubChunkPrefetched.current = true;
+      import('../../components/media-hub').catch(() => {});
+    }
   }, []);
 
   const [hovered, setHovered] = useState(false);
@@ -155,6 +163,7 @@ export default function WeeGooeySpacePill() {
   const { navigation } = useChannelOperations(channelKey);
   const showLeftNav =
     activeSpaceId !== 'gamehub' &&
+    activeSpaceId !== 'mediahub' &&
     navigation.mode === 'wii' &&
     navigation.totalPages > 1 &&
     navigation.currentPage > 0;

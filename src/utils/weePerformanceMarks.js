@@ -44,6 +44,11 @@ export async function weeMeasureAsync(label, fn) {
   }
 }
 
+/** Settings modal became visible (commit after `showSettingsModal` true). */
+export function weeMarkSettingsModalVisible() {
+  safeMark('wee:settings-modal:visible');
+}
+
 /** Settings modal switched tab (rail id). */
 export function weeMarkSettingsTab(tabId) {
   if (!DEV) return;

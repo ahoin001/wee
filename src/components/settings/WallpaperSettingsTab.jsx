@@ -659,11 +659,11 @@ const WallpaperSettingsTab = React.memo(() => {
             Layer &amp; spaces
           </Text>
           <Text variant="desc" className="mb-4">
-            Opacity and blur apply everywhere. Brightness and saturation are per space so you can dim Game Hub and
-            tune Home &amp; Workspaces independently.
+            Opacity and blur apply everywhere. Brightness and saturation are per space so you can dim Game Hub /
+            Media Hub and tune Home &amp; Workspaces independently.
           </Text>
             <p className="mt-0 mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
-              These settings affect the desktop wallpaper layer behind channels and Game Hub.
+              These settings affect the desktop wallpaper layer behind channels, Game Hub, and Media Hub.
             </p>
 
             <h4 className="settings-wee-subhead">Overall</h4>
@@ -760,7 +760,7 @@ const WallpaperSettingsTab = React.memo(() => {
               1.00 = natural color; lower approaches grayscale; above 1 boosts vividness.
             </p>
 
-            <h4 className="settings-wee-subhead">Game Hub</h4>
+            <h4 className="settings-wee-subhead">Game Hub &amp; Media Hub</h4>
             <div className="settings-wee-slider-row">
               <label className="settings-wee-slider-row__label" htmlFor="wallpaper-gh-brightness-range">
                 Brightness
@@ -768,7 +768,7 @@ const WallpaperSettingsTab = React.memo(() => {
               <div className="flex-1 min-w-0">
                 <Slider
                   id="wallpaper-gh-brightness-range"
-                  aria-label="Game Hub wallpaper brightness"
+                  aria-label="Game Hub and Media Hub wallpaper brightness"
                   min={0.45}
                   max={1.2}
                   step={0.01}
@@ -781,7 +781,8 @@ const WallpaperSettingsTab = React.memo(() => {
               <span className="settings-wee-slider-row__value">{gameHubBrightness.toFixed(2)}×</span>
             </div>
             <p className="settings-wee-help mb-3 pl-[156px] max-md:pl-0">
-              Default ~0.78 matched the previous Game Hub dim. Raise for a brighter hero backdrop.
+              Default ~0.78 matched the previous hub dim. Raise for a brighter hero backdrop behind Game Hub or Media
+              Hub.
             </p>
 
             <div className="settings-wee-slider-row">
@@ -791,7 +792,7 @@ const WallpaperSettingsTab = React.memo(() => {
               <div className="flex-1 min-w-0">
                 <Slider
                   id="wallpaper-gh-saturate-range"
-                  aria-label="Game Hub wallpaper saturation"
+                  aria-label="Game Hub and Media Hub wallpaper saturation"
                   min={0}
                   max={1.5}
                   step={0.02}
@@ -804,7 +805,7 @@ const WallpaperSettingsTab = React.memo(() => {
               <span className="settings-wee-slider-row__value">{gameHubSaturate.toFixed(2)}×</span>
             </div>
             <p className="settings-wee-help pl-[156px] max-md:pl-0">
-              Pairs with brightness to keep artwork readable behind Game Hub cards.
+              Pairs with brightness to keep artwork readable behind Game Hub and Media Hub cards.
             </p>
         </WeeModalFieldCard>
       </SettingsWeeSection>

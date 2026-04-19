@@ -37,6 +37,11 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
     playChannelClickSound,
     playChannelHoverSound,
     stopAllSounds,
+    stopPreviewSound,
+    playPreviewSound,
+    toggleBackgroundMusic,
+    toggleBackgroundMusicLooping,
+    togglePlaylistMode,
     updateChannelClickSound,
     updateChannelHoverSound,
     saveSoundSettings,
@@ -64,12 +69,6 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [uploading, setUploading] = useState({});
   const [testing, setTesting] = useState({});
-  const [audioRefs, setAudioRefs] = useState({});
-  const audioRefsRef = React.useRef({});
-  React.useEffect(() => {
-    audioRefsRef.current = audioRefs;
-  }, [audioRefs]);
-
   const [draggedItem, setDraggedItem] = useState(null);
   const [_dragOverItem, setDragOverItem] = useState(null);
 
@@ -77,15 +76,9 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   const isSoundsTabActive = settingsActiveTabId == null || settingsActiveTabId === 'sounds';
 
   const stopAllPreviewAudio = useCallback(() => {
-    Object.values(audioRefsRef.current).forEach((audio) => {
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    });
-    setAudioRefs({});
+    stopPreviewSound();
     setTesting({});
-  }, []);
+  }, [stopPreviewSound]);
 
   // Stop immediately when user selects another settings tab (exit animation keeps this view mounted briefly).
   React.useEffect(() => {
@@ -126,15 +119,10 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   // Stop all preview audio on unmount (always use ref so we catch the latest instances).
   React.useEffect(() => {
     return () => {
-      Object.values(audioRefsRef.current).forEach((audio) => {
-        if (audio) {
-          audio.pause();
-          audio.currentTime = 0;
-        }
-      });
+      stopPreviewSound();
       stopAllSounds();
     };
-  }, [stopAllSounds]);
+  }, [stopAllSounds, stopPreviewSound]);
 
   // Debug: Log current sound library state (only in development)
   useEffect(() => {
@@ -213,38 +201,19 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
 
   // Handle sound testing
   const handleTestSound = useCallback((category, sound) => {
-    // Stop all other audio
-    Object.values(audioRefsRef.current).forEach((audio) => {
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    });
-    setAudioRefs({});
+    stopPreviewSound();
+    stopAllSounds();
     setTesting({});
 
-    // Play new audio
-    const audio = new Audio(sound.url);
-    audio.volume = sound.volume ?? 0.5;
-    audio.play();
-    setAudioRefs({ [sound.id]: audio });
+    // Play new audio through centralized preview channel
+    playPreviewSound(sound.url, sound.volume ?? 0.5);
     setTesting({ [sound.id]: true });
-    
-    audio.onended = () => {
-      setTesting({});
-      setAudioRefs({});
-    };
-  }, []);
+  }, [playPreviewSound, stopAllSounds, stopPreviewSound]);
 
   const handleStopTest = useCallback((soundId) => {
-    const audio = audioRefsRef.current[soundId];
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
-      setTesting({});
-      setAudioRefs({});
-    }
-  }, []);
+    stopPreviewSound();
+    setTesting((prev) => (prev[soundId] ? {} : prev));
+  }, [stopPreviewSound]);
 
   // Handle sound toggle (enable/disable)
   const handleToggleSound = useCallback(async (category, soundId) => {
@@ -301,15 +270,18 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
         updateBackgroundMusic();
       }
 
-      // Update test audio volume if playing
-      const playing = audioRefsRef.current[soundId];
-      if (playing) {
-        playing.volume = volume;
+      // Keep preview volume in sync when actively testing this row.
+      if (testing[soundId]) {
+        const sounds = getSoundsByCategory(category);
+        const s = sounds.find((x) => x.id === soundId);
+        if (s?.url) {
+          playPreviewSound(s.url, volume);
+        }
       }
     } catch (err) {
       showMessage('error', err.message || 'Failed to update volume');
     }
-  }, [updateSound, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, updateBackgroundMusic, showMessage]);
+  }, [updateSound, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, updateBackgroundMusic, showMessage, testing, getSoundsByCategory, playPreviewSound]);
 
   // Handle like toggle
   const handleToggleLike = useCallback(async (soundId) => {
@@ -326,6 +298,18 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   // Setting changes — merge into store and persist sounds slice (same path as useSoundManager toggles).
   const handleSettingChange = useCallback(
     async (key, value) => {
+      if (key === 'backgroundMusicEnabled') {
+        await toggleBackgroundMusic(value);
+        return;
+      }
+      if (key === 'backgroundMusicLooping') {
+        await toggleBackgroundMusicLooping(value);
+        return;
+      }
+      if (key === 'backgroundMusicPlaylistMode') {
+        await togglePlaylistMode(value);
+        return;
+      }
       const prev = useConsolidatedAppStore.getState().sounds;
       const next = { ...prev, [key]: value };
       setSoundsState({ [key]: value });
@@ -335,7 +319,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
         /* unified persistence also debounces; ignore duplicate errors */
       }
     },
-    [setSoundsState, saveSoundSettings],
+    [setSoundsState, saveSoundSettings, toggleBackgroundMusic, toggleBackgroundMusicLooping, togglePlaylistMode],
   );
 
 

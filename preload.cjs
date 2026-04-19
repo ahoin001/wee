@@ -106,7 +106,16 @@ contextBridge.exposeInMainWorld('api', {
   onFrameState: (cb) => ipcRenderer.on('frame-state', (e, val) => cb(val)),
   openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
   openExternal: (url) => ipcRenderer.send('open-external-url', url),
+  /** @returns {Promise<{ ok: boolean, error?: string }>} */
+  openExternalWithResult: (url) => ipcRenderer.invoke('open-external-url-invoke', url),
   launchApp: (data) => ipcRenderer.invoke('launch-app', data),
+  mediaHub: {
+    getDefaultLibraryPath: () => ipcRenderer.invoke('mediahub:get-default-library-path'),
+    pickFolder: () => ipcRenderer.invoke('mediahub:pick-folder'),
+    scanFolder: (args) => ipcRenderer.invoke('mediahub:scan-folder', args),
+    detectSuggestedPlayers: () => ipcRenderer.invoke('mediahub:detect-suggested-players'),
+    openWithWindowsDialog: (args) => ipcRenderer.invoke('mediahub:open-with-windows-dialog', args),
+  },
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
   setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
   // Auto-updater APIs

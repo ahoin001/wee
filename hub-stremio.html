@@ -1,0 +1,366 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
+import {
+  Clapperboard,
+  Film,
+  HardDrive,
+  Play,
+  Search,
+  Tv,
+  Video,
+  X,
+  ChevronRight,
+  Info,
+  Calendar,
+  Maximize2,
+  Volume2,
+  Settings,
+  RotateCcw
+} from 'lucide-react';
+
+/**
+ * MOCK DATA & CONSTANTS
+ */
+const GENRES = ['All', 'Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Animation'];
+const SPRING_CONFIG = { type: "spring", stiffness: 350, damping: 28, mass: 1 };
+
+const MOCK_ITEMS = [
+  { id: 'm1', name: 'Interstellar', year: '2014', poster: 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?auto=format&fit=crop&q=80&w=1000', type: 'movie', genre: 'Sci-Fi', description: 'When mankind is facing extinction, a group of astronauts travel through a wormhole in search of a new home.', streamUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+  { id: 'm2', name: 'The Dark Knight', year: '2008', poster: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=80&w=1000', type: 'movie', genre: 'Action', description: 'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham.', streamUrl: 'https://www.w3schools.com/html/movie.mp4' },
+  { id: 'm3', name: 'Cyberpunk Edgerunners', year: '2022', poster: 'https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&q=80&w=1000', type: 'series', genre: 'Animation', description: 'A street kid trying to survive in a technology and body modification-obsessed city of the future.', streamUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+  { id: 'm4', name: 'Inception', year: '2010', poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=1000', type: 'movie', genre: 'Sci-Fi', description: 'A thief who steals corporate secrets through the use of dream-sharing technology.', streamUrl: 'https://www.w3schools.com/html/movie.mp4' },
+];
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('discover');
+  const [contentMode, setContentMode] = useState('movie');
+  const [activeGenre, setActiveGenre] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedItemId, setSelectedItemId] = useState(null);
+  const [activeStream, setActiveStream] = useState(null);
+
+  const filteredItems = useMemo(() => {
+    return MOCK_ITEMS.filter(item => {
+      const matchesType = item.type === contentMode;
+      const matchesGenre = activeGenre === 'All' || item.genre === activeGenre;
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesType && matchesGenre && matchesSearch;
+    });
+  }, [contentMode, activeGenre, searchQuery]);
+
+  const selectedItem = MOCK_ITEMS.find(i => i.id === selectedItemId);
+  const backdropImage = selectedItem?.poster || filteredItems[0]?.poster;
+
+  return (
+    <div className="relative h-screen w-full bg-[#050505] text-zinc-100 overflow-hidden font-sans selection:bg-blue-500/30">
+      
+      {/* AMBIENT BACKDROP */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={backdropImage}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.2 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.2 }}
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `url(${backdropImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(120px) saturate(1.8)',
+          }}
+        />
+      </AnimatePresence>
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#050505]/90 to-[#050505] pointer-events-none" />
+
+      {/* VIDEO PLAYER OVERLAY */}
+      <AnimatePresence>
+        {activeStream && (
+          <VideoPlayer 
+            item={activeStream} 
+            onClose={() => setActiveStream(null)} 
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10 flex h-full p-6 gap-6">
+        {/* BROWSER SECTION */}
+        <section className="flex-1 flex flex-col min-w-0">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <motion.div initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={SPRING_CONFIG}>
+              <div className="flex items-center gap-2 mb-1">
+                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500/80">Cinematic Hub</span>
+              </div>
+              <h1 className="text-5xl font-black italic tracking-tighter uppercase flex items-center gap-3 leading-none">
+                EXPLORE<span className="text-blue-500 not-italic font-light">MEDIA</span>
+              </h1>
+              
+              <div className="flex gap-2 mt-6 p-1 bg-white/5 rounded-full w-fit border border-white/10 backdrop-blur-md">
+                <TabButton active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} icon={<Clapperboard size={14}/>} label="Discover" />
+                <TabButton active={activeTab === 'local'} onClick={() => setActiveTab('local')} icon={<HardDrive size={14}/>} label="Local" />
+              </div>
+            </motion.div>
+
+            <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10 backdrop-blur-xl">
+              <div className="flex gap-1 p-1 bg-black/20 rounded-xl">
+                <ModeToggle active={contentMode === 'movie'} onClick={() => setContentMode('movie')} icon={<Film size={14}/>} label="Movies" />
+                <ModeToggle active={contentMode === 'series'} onClick={() => setContentMode('series')} icon={<Tv size={14}/>} label="Series" />
+              </div>
+              <div className="h-8 w-px bg-white/10 mx-1" />
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors" size={16} />
+                <input 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search titles..."
+                  className="bg-black/20 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm w-48 placeholder:text-zinc-600 outline-none focus:border-blue-500/50 transition-all"
+                />
+              </div>
+              <GenreSelector activeGenre={activeGenre} onChange={setActiveGenre} />
+            </motion.div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <LayoutGroup>
+              <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-24">
+                <AnimatePresence mode='popLayout'>
+                  {filteredItems.map((item, idx) => (
+                    <MediaCard key={item.id} item={item} isSelected={selectedItemId === item.id} onClick={() => setSelectedItemId(item.id)} delay={idx * 0.03} />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            </LayoutGroup>
+          </div>
+        </section>
+
+        {/* DETAIL PANEL */}
+        <aside className="hidden lg:flex w-[420px] flex-col">
+          <AnimatePresence mode="wait">
+            {selectedItem ? (
+              <motion.div
+                key={selectedItem.id}
+                initial={{ x: 60, opacity: 0, scale: 0.9 }}
+                animate={{ x: 0, opacity: 1, scale: 1 }}
+                exit={{ x: 30, opacity: 0, scale: 0.95 }}
+                transition={SPRING_CONFIG}
+                className="flex-1 bg-white/[0.03] border border-white/10 rounded-[3rem] overflow-hidden backdrop-blur-2xl flex flex-col shadow-2xl shadow-black/50"
+              >
+                <div className="h-80 relative overflow-hidden group">
+                  <motion.img layoutId={`img-${selectedItem.id}`} src={selectedItem.poster} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/20 to-transparent" />
+                  <div className="absolute top-6 right-6 flex gap-2">
+                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setSelectedItemId(null)} className="p-3 bg-black/40 rounded-full border border-white/10 backdrop-blur-md text-white"><X size={18} /></motion.button>
+                  </div>
+                  <div className="absolute bottom-6 left-8 right-8">
+                     <h2 className="text-4xl font-black uppercase italic leading-none mb-2 tracking-tighter">{selectedItem.name}</h2>
+                     <div className="flex items-center gap-4 text-blue-400 font-bold text-[10px] tracking-widest uppercase">
+                        <span>{selectedItem.genre}</span>
+                        <span className="w-1 h-1 rounded-full bg-zinc-700" />
+                        <span>{selectedItem.type}</span>
+                     </div>
+                  </div>
+                </div>
+
+                <div className="p-8 pt-4 flex-1 flex flex-col">
+                  <div className="flex gap-3 mb-8">
+                    <Badge icon={<Calendar size={12}/>} text={selectedItem.year} />
+                    <Badge icon={<Video size={12}/>} text="4K HDR" />
+                    <Badge icon={<Info size={12}/>} text="8.9 IMDb" />
+                  </div>
+                  <p className="text-zinc-300 text-sm leading-relaxed font-medium mb-8">{selectedItem.description}</p>
+                  
+                  <div className="pt-4">
+                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-4">Available Sources</h3>
+                    <div className="space-y-2">
+                      <SourceItem label="Torrentio (1080p)" quality="4.2 GB" onClick={() => setActiveStream(selectedItem)} />
+                      <SourceItem label="Cinemeta Mirror" quality="2.1 GB" onClick={() => setActiveStream(selectedItem)} />
+                    </div>
+                  </div>
+
+                  <div className="mt-auto pt-8">
+                    <ActionButton 
+                      primary 
+                      icon={<Play size={18} fill="currentColor" />} 
+                      label="Watch Now" 
+                      onClick={() => setActiveStream(selectedItem)}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <EmptyPanel />
+            )}
+          </AnimatePresence>
+        </aside>
+      </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+      `}</style>
+    </div>
+  );
+}
+
+/**
+ * PLAYER COMPONENT
+ * Implements the actual video logic.
+ */
+function VideoPlayer({ item, onClose }) {
+  const [isPlaying, setIsPlaying] = useState(true);
+  const videoRef = React.useRef(null);
+
+  const togglePlay = () => {
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    } else {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black flex flex-col"
+    >
+      {/* Top Bar Controls */}
+      <motion.div 
+        initial={{ y: -50 }} animate={{ y: 0 }}
+        className="absolute top-0 left-0 right-0 p-8 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent z-10 opacity-0 hover:opacity-100 transition-opacity duration-500"
+      >
+        <div className="flex items-center gap-4">
+          <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full transition-colors">
+            <X size={24} />
+          </button>
+          <div>
+            <h4 className="text-sm font-black uppercase tracking-widest">{item.name}</h4>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Streaming 1080p via Torrentio</p>
+          </div>
+        </div>
+        <div className="flex gap-4">
+          <Settings size={20} className="text-zinc-400 cursor-pointer" />
+        </div>
+      </motion.div>
+
+      {/* Main Video Viewport */}
+      <div className="flex-1 relative flex items-center justify-center group" onClick={togglePlay}>
+        <video 
+          ref={videoRef}
+          src={item.streamUrl}
+          autoPlay 
+          className="w-full h-full object-contain"
+          onEnded={onClose}
+        />
+        
+        {/* Play/Pause Overlay Icon */}
+        <AnimatePresence>
+          {!isPlaying && (
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              className="absolute pointer-events-none p-10 bg-blue-600/20 backdrop-blur-xl rounded-full border border-blue-500/50"
+            >
+              <Play size={48} fill="white" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom Progress Bar (Mock) */}
+      <motion.div 
+        initial={{ y: 50 }} animate={{ y: 0 }}
+        className="absolute bottom-0 left-0 right-0 p-8 pt-20 bg-gradient-to-t from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500"
+      >
+        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mb-6 group cursor-pointer">
+          <div className="h-full w-1/3 bg-blue-600 relative">
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-0 group-hover:scale-100 transition-transform" />
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <button onClick={togglePlay} className="text-white hover:text-blue-400 transition-colors">
+              {isPlaying ? <RotateCcw size={22} className="rotate-90"/> : <Play size={22} fill="white"/>}
+            </button>
+            <div className="flex items-center gap-3">
+               <Volume2 size={20} />
+               <div className="w-24 h-1 bg-white/20 rounded-full"><div className="w-2/3 h-full bg-white rounded-full"/></div>
+            </div>
+            <span className="text-xs font-mono text-zinc-400">00:42:15 / 02:29:00</span>
+          </div>
+          <button className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Subtitles: English (CC)</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// --- HELPERS & STYLES ---
+
+const MediaCard = ({ item, isSelected, onClick, delay }) => (
+  <motion.div
+    layout
+    variants={{ hidden: { opacity: 0, scale: 0.8 }, show: { opacity: 1, scale: 1 } }}
+    initial="hidden" animate="show"
+    whileHover={{ y: -12, scale: 1.04 }}
+    whileTap={{ scale: 0.94 }}
+    onClick={onClick}
+    className={`group relative cursor-pointer rounded-3xl overflow-hidden transition-all duration-500 ${isSelected ? 'ring-4 ring-blue-500 shadow-2xl' : 'hover:shadow-2xl'}`}
+  >
+    <div className="aspect-[2/3] bg-zinc-900 relative">
+      <motion.img layoutId={`img-${item.id}`} src={item.poster} className="w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-transparent" />
+      <div className="absolute inset-0 flex flex-col justify-end p-5 translate-y-2 group-hover:translate-y-0 transition-transform">
+         <h3 className="text-lg font-black text-white leading-none tracking-tight">{item.name}</h3>
+      </div>
+    </div>
+  </motion.div>
+);
+
+const TabButton = ({ active, onClick, icon, label }) => (
+  <button onClick={onClick} className={`relative px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all ${active ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+    <span className="relative z-10 flex items-center gap-2">{icon} {label}</span>
+    {active && <motion.div layoutId="tab-bg" className="absolute inset-0 bg-blue-600 rounded-full" transition={SPRING_CONFIG}/>}
+  </button>
+);
+
+const ModeToggle = ({ active, onClick, icon, label }) => (
+  <button onClick={onClick} className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${active ? 'bg-white/10 text-white shadow-inner' : 'text-zinc-600 hover:text-zinc-400'}`}>{icon} {label}</button>
+);
+
+const GenreSelector = ({ activeGenre, onChange }) => (
+  <select value={activeGenre} onChange={(e) => onChange(e.target.value)} className="bg-transparent text-[10px] font-black uppercase text-zinc-500 outline-none appearance-none pr-4">
+    {GENRES.map(g => <option key={g} value={g} className="bg-black">{g}</option>)}
+  </select>
+);
+
+const Badge = ({ icon, text }) => (
+  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/[0.04] border border-white/5 text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]"><span className="text-blue-500">{icon}</span> {text}</div>
+);
+
+const SourceItem = ({ label, quality, onClick }) => (
+  <motion.div whileHover={{ x: 6, backgroundColor: 'rgba(255,255,255,0.03)' }} onClick={onClick} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/[0.03] cursor-pointer group">
+    <span className="text-xs font-bold text-zinc-300 group-hover:text-white">{label}</span>
+    <span className="text-[10px] font-black text-zinc-600 group-hover:text-blue-500 uppercase tracking-widest">{quality}</span>
+  </motion.div>
+);
+
+const ActionButton = ({ primary, icon, label, onClick }) => (
+  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onClick}
+    className={`w-full py-5 rounded-[1.5rem] flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.25em] border transition-all ${primary ? 'bg-blue-600 border-blue-500 text-white shadow-2xl shadow-blue-600/30' : 'bg-white/[0.02] border-white/5 text-zinc-400'}`}>
+    {icon} {label}
+  </motion.button>
+);
+
+const EmptyPanel = () => (
+  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 border border-white/5 rounded-[3rem] flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
+    <div className="w-20 h-20 rounded-full bg-white/[0.03] flex items-center justify-center mb-6"><ChevronRight size={32} className="text-zinc-800" /></div>
+    <h3 className="text-zinc-500 font-black uppercase tracking-[0.2em] text-[10px] mb-2">Theater Mode</h3>
+    <p className="text-zinc-700 text-sm max-w-[200px]">Select a title to start watching.</p>
+  </motion.div>
+);

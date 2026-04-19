@@ -36,8 +36,16 @@ const { setupDisplayEvents } = require('./main/bootstrap/setup-display-events.cj
 const { createWindowLifecycle } = require('./main/bootstrap/window-lifecycle.cjs');
 
 const wsQuery = promisify(ws.query);
+const appScanCacheFile = path.join(app.getPath('userData'), 'data', 'app-scan-cache.json');
+const gameSourceScanCacheFile = path.join(app.getPath('userData'), 'data', 'game-source-scan-cache.json');
 
-const gameSourceService = createGameSourceService({ fs, path, vdf, os });
+const gameSourceService = createGameSourceService({
+  fs,
+  path,
+  vdf,
+  os,
+  scanCacheFile: gameSourceScanCacheFile,
+});
 const appScanService = createAppScanService({
   fs,
   fsPromises,
@@ -45,6 +53,7 @@ const appScanService = createAppScanService({
   os,
   nativeImage,
   wsQuery,
+  scanCacheFile: appScanCacheFile,
 });
 
 // --- Version Constants for Manual Fresh Install ---

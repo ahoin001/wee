@@ -312,6 +312,20 @@ export const useSoundManager = () => {
     }
   }, []);
 
+  const playPreviewSound = useCallback(async (soundUrl, volume = 0.5) => {
+    if (!audioManagerRef.current) return;
+    try {
+      await audioManagerRef.current.playPreview(soundUrl, volume);
+    } catch (_error) {
+      // ignore preview failures
+    }
+  }, []);
+
+  const stopPreviewSound = useCallback(() => {
+    if (!audioManagerRef.current) return;
+    audioManagerRef.current.stopPreview();
+  }, []);
+
   // Get current sound settings
   const getSoundSettings = useCallback(() => {
     return sounds;
@@ -370,6 +384,8 @@ export const useSoundManager = () => {
     updateChannelHoverSound,
     updateBackgroundMusic,
     playSoundEffect,
+    playPreviewSound,
+    stopPreviewSound,
     getSoundSettings,
     saveSoundSettings,
     

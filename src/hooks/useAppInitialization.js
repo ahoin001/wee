@@ -133,14 +133,15 @@ export const useAppInitialization = () => {
             slices.appearanceBySpace = resolvedSettings.appearanceBySpace;
           }
           if (resolvedSettings.gameHub) slices.gameHub = resolvedSettings.gameHub;
+          if (resolvedSettings.mediaHub) slices.mediaHub = resolvedSettings.mediaHub;
         }
 
         if (mergedChannels !== initialChannels) {
           slices.channelsSnapshot = mergedChannels;
         }
 
-        /* Never cold-start on Game Hub: restore last home/work panel (persisted in lastChannelSpaceId). */
-        if (!cancelled && slices.spaces && slices.spaces.activeSpaceId === 'gamehub') {
+        /* Never cold-start on hub spaces: restore last home/work panel (persisted in lastChannelSpaceId). */
+        if (!cancelled && slices.spaces && ['gamehub', 'mediahub'].includes(slices.spaces.activeSpaceId)) {
           const last = slices.spaces.lastChannelSpaceId;
           const fallback = last === 'workspaces' ? 'workspaces' : 'home';
           slices.spaces = { ...slices.spaces, activeSpaceId: fallback };

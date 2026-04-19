@@ -77,6 +77,7 @@ const KenBurnsImage = ({
   const currentImageRef = useRef(null);
   const nextImageRef = useRef(null);
   const brokenImagesRef = useRef(new Set()); // Track broken image URLs without causing re-renders
+  const lastResetKeyRef = useRef('');
 
   // Get valid image source helper - stable function that checks current broken images
   const getValidImageSrc = useCallback((index) => {
@@ -287,6 +288,10 @@ const KenBurnsImage = ({
 
   // Reset broken images tracking when images change
   useEffect(() => {
+    const resetKey = `${src || ''}\u241f${Array.isArray(images) ? images.join('\u241f') : ''}`;
+    if (lastResetKeyRef.current === resetKey) return;
+    lastResetKeyRef.current = resetKey;
+
     brokenImagesRef.current = new Set();
     setImageLoadAttempts(0);
     setImageErrorCounter(0);

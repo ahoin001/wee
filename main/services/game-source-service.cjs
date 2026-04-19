@@ -1,7 +1,94 @@
 /** Steam tools/redistributables (not games). Sync with src/utils/steamLibraryFilter.js */
 const STEAM_TOOL_APP_IDS = new Set(['228980']);
 
-function createGameSourceService({ fs, path, vdf, os }) {
+function createGameSourceService({ fs, path, vdf, os, scanCacheFile = null }) {
+  let persistedCacheLoaded = false;
+  let persistedScanCache = {
+    steamInstalled: null,
+    steamScanByPaths: {},
+    epicInstalled: null,
+  };
+
+  const normalizePath = (p) => String(p || '').replace(/\\/g, '/');
+  const normalizeLibraryPaths = (paths) =>
+    [...new Set((Array.isArray(paths) ? paths : []).map(normalizePath).filter(Boolean))].sort();
+
+  function loadPersistedScanCache() {
+    if (persistedCacheLoaded || !scanCacheFile) return;
+    persistedCacheLoaded = true;
+    try {
+      const raw = fs.readFileSync(scanCacheFile, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        persistedScanCache = {
+          steamInstalled: parsed.steamInstalled || null,
+          steamScanByPaths: parsed.steamScanByPaths && typeof parsed.steamScanByPaths === 'object'
+            ? parsed.steamScanByPaths
+            : {},
+          epicInstalled: parsed.epicInstalled || null,
+        };
+      }
+    } catch {
+      /* ignore missing cache file */
+    }
+  }
+
+  function persistScanCache() {
+    if (!scanCacheFile) return;
+    try {
+      fs.mkdirSync(path.dirname(scanCacheFile), { recursive: true });
+      fs.writeFileSync(
+        scanCacheFile,
+        JSON.stringify(
+          {
+            version: 1,
+            updatedAt: Date.now(),
+            steamInstalled: persistedScanCache.steamInstalled,
+            steamScanByPaths: persistedScanCache.steamScanByPaths,
+            epicInstalled: persistedScanCache.epicInstalled,
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+    } catch (error) {
+      console.warn('[GameSourceCache] Persist failed:', error?.message || error);
+    }
+  }
+
+  function buildManifestSnapshotForPaths(libraryPaths) {
+    const normalized = normalizeLibraryPaths(libraryPaths);
+    let manifestCount = 0;
+    let maxMtimeMs = 0;
+    for (const libraryPath of normalized) {
+      if (!fs.existsSync(libraryPath)) continue;
+      let files = [];
+      try {
+        files = fs.readdirSync(libraryPath);
+      } catch {
+        continue;
+      }
+      const manifestFiles = files.filter((file) => file.startsWith('appmanifest_') && file.endsWith('.acf'));
+      manifestCount += manifestFiles.length;
+      for (const file of manifestFiles) {
+        try {
+          const stat = fs.statSync(path.join(libraryPath, file));
+          if (stat?.mtimeMs && stat.mtimeMs > maxMtimeMs) {
+            maxMtimeMs = stat.mtimeMs;
+          }
+        } catch {
+          /* ignore bad manifest stat */
+        }
+      }
+    }
+    return {
+      count: manifestCount,
+      fingerprint: `${normalized.join(';')}|${manifestCount}|${Math.floor(maxMtimeMs)}`,
+      normalizedPaths: normalized,
+    };
+  }
+
   function normalizeSteamEnrichment(recentlyPlayed, ownedGames) {
     const map = new Map();
     (ownedGames || []).forEach((item) => {
@@ -141,29 +228,11 @@ function createGameSourceService({ fs, path, vdf, os }) {
   }
   async function getInstalledSteamGames() {
     try {
-      let steamPath = 'C:/Program Files (x86)/Steam';
-      const libraryVdfPath = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
-      if (!fs.existsSync(libraryVdfPath)) {
-        const home = os.homedir();
-        const altPaths = [
-          path.join(home, 'AppData', 'Local', 'Steam'),
-          path.join(home, 'AppData', 'Roaming', 'Steam'),
-          path.join('D:/Steam'),
-          path.join('E:/Steam'),
-        ];
-        let found = false;
-        for (const alt of altPaths) {
-          const altVdf = path.join(alt, 'steamapps', 'libraryfolders.vdf');
-          if (fs.existsSync(altVdf)) {
-            steamPath = alt;
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          console.error('[SteamScan] Could not find Steam installation.');
-          return { error: 'Could not find Steam installation.' };
-        }
+      loadPersistedScanCache();
+      const steamPath = resolveSteamRootPathSync();
+      if (!steamPath) {
+        console.error('[SteamScan] Could not find Steam installation.');
+        return { error: 'Could not find Steam installation.' };
       }
       console.log('[SteamScan] Using Steam path:', steamPath);
       const libraryVdf = fs.readFileSync(path.join(steamPath, 'steamapps', 'libraryfolders.vdf'), 'utf-8');
@@ -178,6 +247,19 @@ function createGameSourceService({ fs, path, vdf, os }) {
       }
       if (!libraryPaths.includes(steamPath)) {
         libraryPaths.push(steamPath);
+      }
+      const quickSnapshot = buildManifestSnapshotForPaths(
+        libraryPaths.map((lp) => path.join(lp, 'steamapps'))
+      );
+      const cachedSteam = persistedScanCache.steamInstalled;
+      if (
+        cachedSteam &&
+        Array.isArray(cachedSteam.games) &&
+        quickSnapshot.count === Number(cachedSteam.count || 0) &&
+        quickSnapshot.fingerprint === cachedSteam.fingerprint
+      ) {
+        console.log('[SteamScan] Using persisted installed-games cache:', cachedSteam.games.length);
+        return { games: cachedSteam.games };
       }
 
       console.log('[SteamScan] Scanning libraries:', libraryPaths);
@@ -229,6 +311,13 @@ function createGameSourceService({ fs, path, vdf, os }) {
       });
 
       console.log(`[SteamScan] Found ${games.length} total games, ${uniqueGames.length} unique installed Steam games.`);
+      persistedScanCache.steamInstalled = {
+        count: quickSnapshot.count,
+        fingerprint: quickSnapshot.fingerprint,
+        games: uniqueGames,
+        updatedAt: Date.now(),
+      };
+      persistScanCache();
       return { games: uniqueGames };
     } catch (err) {
       console.error('[SteamScan] Error scanning Steam games:', err);
@@ -458,6 +547,20 @@ function createGameSourceService({ fs, path, vdf, os }) {
   }
 
   async function scanSteamGames({ libraryPaths }) {
+    loadPersistedScanCache();
+    const quickSnapshot = buildManifestSnapshotForPaths(libraryPaths);
+    const cacheKey = quickSnapshot.normalizedPaths.join('|');
+    const cachedByPaths = persistedScanCache.steamScanByPaths?.[cacheKey];
+    if (
+      cachedByPaths &&
+      Array.isArray(cachedByPaths.games) &&
+      quickSnapshot.count === Number(cachedByPaths.count || 0) &&
+      quickSnapshot.fingerprint === cachedByPaths.fingerprint
+    ) {
+      console.log('[Steam] Using cached scan for library paths:', quickSnapshot.normalizedPaths.length);
+      return { games: cachedByPaths.games };
+    }
+
     const games = [];
 
     for (const libraryPath of libraryPaths) {
@@ -512,17 +615,50 @@ function createGameSourceService({ fs, path, vdf, os }) {
     });
 
     console.log(`[Steam] Total games found: ${games.length}, unique games: ${uniqueGames.length}`);
+    persistedScanCache.steamScanByPaths[cacheKey] = {
+      count: quickSnapshot.count,
+      fingerprint: quickSnapshot.fingerprint,
+      games: uniqueGames,
+      updatedAt: Date.now(),
+    };
+    persistScanCache();
     return { games: uniqueGames };
   }
 
   async function getInstalledEpicGames() {
     try {
+      loadPersistedScanCache();
       const epicManifestsDir = 'C:/ProgramData/Epic/EpicGamesLauncher/Data/Manifests';
       if (!fs.existsSync(epicManifestsDir)) {
         console.error('[EpicScan] Could not find Epic Games manifests directory.');
         return { error: 'Could not find Epic Games manifests directory.' };
       }
       const files = fs.readdirSync(epicManifestsDir).filter((f) => f.endsWith('.item'));
+      let maxMtimeMs = 0;
+      for (const file of files) {
+        try {
+          const stat = fs.statSync(path.join(epicManifestsDir, file));
+          if (stat?.mtimeMs && stat.mtimeMs > maxMtimeMs) {
+            maxMtimeMs = stat.mtimeMs;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      const quickSnapshot = {
+        count: files.length,
+        fingerprint: `${files.length}|${Math.floor(maxMtimeMs)}`,
+      };
+      const cachedEpic = persistedScanCache.epicInstalled;
+      if (
+        cachedEpic &&
+        Array.isArray(cachedEpic.games) &&
+        quickSnapshot.count === Number(cachedEpic.count || 0) &&
+        quickSnapshot.fingerprint === cachedEpic.fingerprint
+      ) {
+        console.log('[EpicScan] Using persisted installed-games cache:', cachedEpic.games.length);
+        return { games: cachedEpic.games };
+      }
       const games = [];
       for (const file of files) {
         try {
@@ -542,6 +678,13 @@ function createGameSourceService({ fs, path, vdf, os }) {
       }
       console.log(`[EpicScan] Found ${games.length} installed Epic games.`);
       console.log('[EpicScan] Games data:', games);
+      persistedScanCache.epicInstalled = {
+        count: quickSnapshot.count,
+        fingerprint: quickSnapshot.fingerprint,
+        games,
+        updatedAt: Date.now(),
+      };
+      persistScanCache();
       return { games };
     } catch (err) {
       console.error('[EpicScan] Error scanning Epic games:', err);

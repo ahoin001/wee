@@ -232,15 +232,17 @@ body, #root {
     inset 0 1px 0 hsl(var(--border-primary) / 0.12);
 }
 
-/* Game Hub: clip floating UI to this space only; keeps hero/cards from painting outside the rail */
-.space-world__panel[data-space-id='gamehub'] .space-world__panel-surface {
+/* Hubs: clip floating UI to this space only; keeps hero/cards from painting outside the rail */
+.space-world__panel[data-space-id='gamehub'] .space-world__panel-surface,
+.space-world__panel[data-space-id='mediahub'] .space-world__panel-surface {
   overflow: hidden;
   contain: layout style;
   isolation: isolate;
 }
 
 /* No inset top highlight — avoids a thin light line at the viewport edge on dark wallpapers */
-.space-world--gamehub .space-world__panel[data-space-id='gamehub'] .space-world__panel-surface {
+.space-world--gamehub .space-world__panel[data-space-id='gamehub'] .space-world__panel-surface,
+.space-world--mediahub .space-world__panel[data-space-id='mediahub'] .space-world__panel-surface {
   box-shadow: 0 22px 52px hsl(var(--wii-blue) / 0.09);
 }
 

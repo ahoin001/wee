@@ -11,17 +11,28 @@ import { clampPageIndex, DEFAULT_CHANNEL_NAVIGATION, WII_LAYOUT_PRESET } from '.
 
 export const CHANNEL_SPACE_KEYS = ['home', 'workspaces'];
 
-/** Vertical shell rail order: second channel slot → Home → Game Hub (Home is middle). */
-export const DEFAULT_SHELL_SPACE_ORDER = ['workspaces', 'home', 'gamehub'];
+/** Vertical shell rail order: second channel slot → Home → Media Hub → Game Hub (Home is near middle). */
+export const DEFAULT_SHELL_SPACE_ORDER = ['workspaces', 'home', 'mediahub', 'gamehub'];
 
-/** Migrate legacy `['home','workspaces','gamehub']` and any invalid order to the canonical rail. */
+/** Migrate legacy orders and any invalid order to the canonical rail. */
 export function normalizeShellSpaceOrder(order) {
-  const want = new Set(DEFAULT_SHELL_SPACE_ORDER);
-  if (!Array.isArray(order) || order.length !== 3) return [...DEFAULT_SHELL_SPACE_ORDER];
+  const canonical = [...DEFAULT_SHELL_SPACE_ORDER];
+  const want = new Set(canonical);
+  if (!Array.isArray(order)) return canonical;
+
+  // Legacy persisted order before Media Hub existed.
+  if (order.length === 3 && order.includes('home') && order.includes('workspaces') && order.includes('gamehub')) {
+    const next = [...order];
+    const gameHubIndex = next.indexOf('gamehub');
+    next.splice(gameHubIndex >= 0 ? gameHubIndex : next.length, 0, 'mediahub');
+    return normalizeShellSpaceOrder(next);
+  }
+
+  if (order.length !== canonical.length) return canonical;
   const got = new Set(order);
-  if (want.size !== got.size) return [...DEFAULT_SHELL_SPACE_ORDER];
+  if (want.size !== got.size) return canonical;
   for (const id of want) {
-    if (!got.has(id)) return [...DEFAULT_SHELL_SPACE_ORDER];
+    if (!got.has(id)) return canonical;
   }
   return [...order];
 }

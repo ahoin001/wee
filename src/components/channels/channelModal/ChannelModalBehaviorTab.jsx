@@ -14,6 +14,7 @@ import {
   WeeSectionEyebrow,
   WeeSegmentedControl,
 } from '../../../ui/wee';
+import AudioManager from '../../../utils/AudioManager';
 
 function ChannelModalBehaviorTab({
   channelId,
@@ -165,13 +166,7 @@ function ChannelModalBehaviorTab({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const testAudio = new Audio(sound.url);
-                      testAudio.volume = sound.volume ?? 0.5;
-                      testAudio.play();
-                      testAudio.onended = () => {
-                        testAudio.src = '';
-                        testAudio.load();
-                      };
+                      AudioManager.playPreview(sound.url, sound.volume ?? 0.5);
                     }}
                     className="channel-min-w-60"
                   >

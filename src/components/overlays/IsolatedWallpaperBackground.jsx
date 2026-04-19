@@ -45,10 +45,10 @@ function IsolatedWallpaperBackgroundInner({
   } = wallpaper;
 
   const applySpaceWallpaperTone = useMemo(() => {
-    const isGameHub = activeSpaceId === 'gamehub';
-    const b = isGameHub ? gameHubBrightness : workspaceBrightness;
-    const s = isGameHub ? gameHubSaturate : workspaceSaturate;
-    const bb = typeof b === 'number' && !Number.isNaN(b) ? b : isGameHub ? 0.78 : 1;
+    const isHubSpace = activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub';
+    const b = isHubSpace ? gameHubBrightness : workspaceBrightness;
+    const s = isHubSpace ? gameHubSaturate : workspaceSaturate;
+    const bb = typeof b === 'number' && !Number.isNaN(b) ? b : isHubSpace ? 0.78 : 1;
     const ss = typeof s === 'number' && !Number.isNaN(s) ? s : 1;
     return (filterCss) => `${filterCss} brightness(${bb}) saturate(${ss})`;
   }, [

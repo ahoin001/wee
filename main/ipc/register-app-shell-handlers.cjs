@@ -29,6 +29,18 @@ function registerAppShellHandlers({
     shell.openExternal(urlToOpen);
   });
 
+  /** Promise-based openExternal for UI that needs success/error (e.g. Media Hub stream modal). */
+  ipcMain.handle('open-external-url-invoke', async (_event, urlToOpen) => {
+    const s = String(urlToOpen || '').trim();
+    if (!s) return { ok: false, error: 'No URL provided' };
+    try {
+      await shell.openExternal(s);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err?.message || String(err) };
+    }
+  });
+
   ipcMain.handle('get-fullscreen-state', async () => {
     const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
     return win ? win.isFullScreen() : false;

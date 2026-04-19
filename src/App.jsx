@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, useMemo } from 'react';
+import { m } from 'framer-motion';
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 import { useShallow } from 'zustand/react/shallow';
 import useWallpaperCycling from './utils/useWallpaperCycling';
@@ -39,6 +40,9 @@ import {
 import { collectPrioritizedWarmMediaUrls } from './utils/mediaWarmCache';
 import { scheduleMediaWarmPass } from './utils/mediaWarmScheduler';
 import { IS_DEV } from './utils/env';
+import { useAppActivity } from './hooks/useAppActivity';
+import { useWeeMotion } from './design/weeMotion';
+import { weeMeasureAsync, weeMarkSettingsModalVisible } from './utils/weePerformanceMarks';
 
 // Lazy load components to reduce initial bundle size
 const lazyNamedExport = (importer, exportName) =>
@@ -59,9 +63,11 @@ const LazyAdminPanelWidget = lazyNamedExport(() => import('./components/admin'),
 const LazyPerformanceMonitor = lazyNamedExport(() => import('./components/widgets'), 'PerformanceMonitor');
 const LazySpaceRail = lazyNamedExport(() => import('./components/spaces'), 'SpaceRail');
 const LazyGameHubSpace = lazyNamedExport(() => import('./components/game-hub'), 'GameHubSpace');
+const LazyMediaHubSpace = lazyNamedExport(() => import('./components/media-hub'), 'MediaHubSpace');
 const LazySpotifyLiveGradientWallpaper = React.lazy(() => import('./components/overlays/SpotifyLiveGradientWallpaper'));
 const LazySpotifyImmersiveOverlay = React.lazy(() => import('./components/overlays/SpotifyImmersiveOverlay'));
 const LazySpotifyGradientOverlay = React.lazy(() => import('./components/overlays/SpotifyGradientOverlay'));
+const prefetchSettingsModules = () => import('./components/settings');
 
 
 function App() {
@@ -72,6 +78,7 @@ function App() {
     isDarkMode,
     useCustomCursor,
     cursorStyle,
+    lowPowerMode,
     startInFullscreen,
     showDock,
     classicMode,
@@ -110,6 +117,7 @@ function App() {
       isDarkMode: state.ui.isDarkMode,
       useCustomCursor: state.ui.useCustomCursor,
       cursorStyle: state.ui.cursorStyle,
+      lowPowerMode: state.ui.lowPowerMode ?? false,
       startInFullscreen: state.ui.startInFullscreen,
       showDock: state.ui.showDock,
       classicMode: state.ui.classicMode,
@@ -149,7 +157,10 @@ function App() {
   const timePillBlur = useTimePillBlur();
   const timePillOpacity = useTimePillOpacity();
   const timeFont = useTimeFont();
-  
+
+  /** Must run before any early return (splash) — same hook order every render. */
+  const { isAppActive } = useAppActivity();
+  const { reducedMotion, pillOpen } = useWeeMotion();
 
 
   // Initialize wallpaper cycling (only for cycling status indicator)
@@ -336,6 +347,19 @@ function App() {
   );
 
   const isGameHubSpace = activeSpaceId === 'gamehub';
+  const isMediaHubSpace = activeSpaceId === 'mediahub';
+  const isHubSpace = isGameHubSpace || isMediaHubSpace;
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const enableDeferredMounts = appReady && hasUserInteracted;
+  const settingsPrefetchPromiseRef = useRef(null);
+  const prefetchSettingsUI = useCallback(() => {
+    if (!settingsPrefetchPromiseRef.current) {
+      settingsPrefetchPromiseRef.current = weeMeasureAsync('settings-bundle-prefetch', () =>
+        prefetchSettingsModules()
+      ).catch(() => null);
+    }
+    return settingsPrefetchPromiseRef.current;
+  }, []);
   
   // Ref to access SettingsActionMenu's handleClose method
   const settingsActionMenuRef = useRef(null);
@@ -347,10 +371,11 @@ function App() {
 
   // Handle settings action menu positioning
   const handleSettingsActionMenuOpen = useCallback(() => {
+    prefetchSettingsUI();
     // Use modal-style centering - no need to calculate position manually
     setSettingsMenuPosition({ x: 0, y: 0 }); // Will be centered by CSS
     setUIState({ showSettingsActionMenu: true });
-  }, [setUIState]);
+  }, [prefetchSettingsUI, setUIState]);
 
   // Debug function to open developer tools
   const openDevTools = useCallback(() => {
@@ -415,8 +440,37 @@ function App() {
     }
   }, [appReady]);
 
+  useEffect(() => {
+    if (!appReady || hasUserInteracted || typeof window === 'undefined') return undefined;
+    const markInteracted = () => setHasUserInteracted(true);
+    window.addEventListener('pointerdown', markInteracted, { passive: true, once: true });
+    window.addEventListener('keydown', markInteracted, { once: true });
+    const idleFallback = window.setTimeout(() => setHasUserInteracted(true), 3500);
+    return () => {
+      window.removeEventListener('pointerdown', markInteracted);
+      window.removeEventListener('keydown', markInteracted);
+      window.clearTimeout(idleFallback);
+    };
+  }, [appReady, hasUserInteracted]);
+
+  useEffect(() => {
+    if (!enableDeferredMounts || typeof window === 'undefined') return undefined;
+    const run = () => {
+      prefetchSettingsUI();
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(run, { timeout: 3000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const timer = window.setTimeout(run, 700);
+    return () => window.clearTimeout(timer);
+  }, [enableDeferredMounts, prefetchSettingsUI]);
+
   // Optimized handlers using consolidated store with useCallback
-  const openSettingsModal = useCallback(() => setUIState({ showSettingsModal: true }), [setUIState]);
+  const openSettingsModal = useCallback(() => {
+    prefetchSettingsUI();
+    setUIState({ showSettingsModal: true });
+  }, [prefetchSettingsUI, setUIState]);
   const closeSettingsModal = useCallback(() => setUIState({ showSettingsModal: false }), [setUIState]);
 
 
@@ -428,7 +482,7 @@ function App() {
     const isInRibbon = target.closest('.interactive-footer') || target.closest('.wii-dock-wrapper');
     const isInDock = target.closest('.dock-container');
     const isInModal = target.closest('.modal-overlay') || target.closest('.modal-content');
-    const isInGameHub = activeSpaceId === 'gamehub' || target.closest('.aura-hub-space');
+    const isInGameHub = isHubSpace || target.closest('.aura-hub-space') || target.closest('.media-hub-space');
 
     // Check if Ctrl key is held for DevTools
     if (event.ctrlKey) {
@@ -448,18 +502,22 @@ function App() {
     if (!isInRibbon && !isInDock && !isInModal) {
       event.preventDefault();
       event.stopPropagation();
+      prefetchSettingsUI();
       // Open settings modal and set active tab to wallpaper
       setUIState({ 
         showSettingsModal: true,
         settingsActiveTab: 'wallpaper' // This will be handled by SettingsModal
       });
     }
-  }, [setUIState, openDevTools, activeSpaceId]);
+  }, [prefetchSettingsUI, setUIState, openDevTools, isHubSpace]);
   const toggleDarkMode = useCallback(() => setUIState(prev => ({ isDarkMode: !prev.isDarkMode })), [setUIState]);
   const toggleCustomCursor = useCallback(() => setUIState(prev => ({ useCustomCursor: !prev.useCustomCursor })), [setUIState]);
   const renderSpaceContent = useCallback((spaceId) => {
     if (spaceId === 'gamehub') {
       return <LazyGameHubSpace />;
+    }
+    if (spaceId === 'mediahub') {
+      return <LazyMediaHubSpace />;
     }
     const channelSpaceKey = spaceId === 'workspaces' ? 'workspaces' : 'home';
     return <LazyPaginatedChannels channelSpaceKey={channelSpaceKey} />;
@@ -474,6 +532,12 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (showSettingsModal) {
+      weeMarkSettingsModalVisible();
+    }
+  }, [showSettingsModal]);
+
   // Render splash screen only if not ready
   if (!appReady || isLoading) {
     return <SplashScreen fadingOut={splashFading} />;
@@ -485,13 +549,18 @@ function App() {
   }
 
   const mainContentClassName = `main-content space-world space-world--${activeSpaceId}`;
+  const shouldPlayStartupGooey =
+    appReady && isAppActive && !lowPowerMode && !reducedMotion;
 
   return (
     <ErrorBoundary>
       <LaunchFeedbackProvider>
-      <div 
+      <m.div
         className={`app-container ${useCustomCursor ? 'custom-cursor' : ''} ${isDarkMode ? 'dark-mode' : ''}`}
         onContextMenu={handleGlobalRightClick}
+        initial={shouldPlayStartupGooey ? { opacity: 0, scale: 0.992, y: 10 } : false}
+        animate={shouldPlayStartupGooey ? { opacity: 1, scale: 1, y: 0 } : undefined}
+        transition={shouldPlayStartupGooey ? pillOpen : undefined}
       >
         {/* Isolated Wallpaper Background - Completely separate from main app */}
         <IsolatedWallpaperBackground shellTransitionMs={spaceWorldDurationMs} />
@@ -542,9 +611,9 @@ function App() {
         <Suspense fallback={null}>
           {/* Full-screen overlay (see appSpaceChrome.css) so Wii side nav position:fixed resolves to a viewport-sized box under transform */}
           <div
-            className={`channel-space-chrome__stack ${!isGameHubSpace ? 'channel-space-chrome__stack--active' : ''}`}
+            className={`channel-space-chrome__stack ${!isHubSpace ? 'channel-space-chrome__stack--active' : ''}`}
             style={spaceChromeVars}
-            aria-hidden={isGameHubSpace}
+            aria-hidden={isHubSpace}
           >
             <LazyPageNavigation position="bottom" showPageIndicator />
             <LazyWiiSideNavigation />
@@ -560,8 +629,8 @@ function App() {
           <Suspense fallback={null}>
           <div className="dock-shell" style={spaceChromeVars}>
             <div
-              className={`dock-space-layer dock-space-layer--channels ${!isGameHubSpace ? 'dock-space-layer--active' : ''}`}
-              aria-hidden={isGameHubSpace}
+              className={`dock-space-layer dock-space-layer--channels ${!isHubSpace ? 'dock-space-layer--active' : ''}`}
+              aria-hidden={isHubSpace}
             >
               <div className="dock-container">
                 {classicMode ? (
@@ -613,8 +682,8 @@ function App() {
               </div>
             </div>
             <div
-              className={`dock-space-layer dock-space-layer--gamehub ${isGameHubSpace ? 'dock-space-layer--active' : ''}`}
-              aria-hidden={!isGameHubSpace}
+              className={`dock-space-layer dock-space-layer--gamehub ${isHubSpace ? 'dock-space-layer--active' : ''}`}
+              aria-hidden={!isHubSpace}
             >
               <div className="dock-container dock-container--gamehub-minimal">
                 <GameHubMinimalDock
@@ -634,6 +703,8 @@ function App() {
             <div
               className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
               onClick={handleSettingsActionMenuOpen}
+              onMouseEnter={prefetchSettingsUI}
+              onFocus={prefetchSettingsUI}
               title="Quick Settings (Escape key)"
             >
               ⚙️
@@ -641,10 +712,15 @@ function App() {
             {/* Wallpaper Quick Access */}
             <div
               className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
-              onClick={() => setUIState({ 
-                showSettingsModal: true,
-                settingsActiveTab: 'wallpaper'
-              })}
+              onClick={() => {
+                prefetchSettingsUI();
+                setUIState({ 
+                  showSettingsModal: true,
+                  settingsActiveTab: 'wallpaper'
+                });
+              }}
+              onMouseEnter={prefetchSettingsUI}
+              onFocus={prefetchSettingsUI}
               title="Wallpaper Settings"
             >
               🖼️
@@ -653,6 +729,8 @@ function App() {
             <div
               className="cursor-pointer p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 hover:bg-white/20 transition-all duration-200 shadow-lg"
               onClick={openSettingsModal}
+              onMouseEnter={prefetchSettingsUI}
+              onFocus={prefetchSettingsUI}
               title="Settings"
             >
               🔧
@@ -694,13 +772,15 @@ function App() {
         )}
 
         {/* Modals */}
-        <Suspense fallback={null}>
-          <LazySettingsModal
-            isOpen={showSettingsModal}
-            onClose={closeSettingsModal}
-            initialActiveTab={settingsActiveTab}
-          />
-        </Suspense>
+        {(showSettingsModal || enableDeferredMounts) ? (
+          <Suspense fallback={null}>
+            <LazySettingsModal
+              isOpen={showSettingsModal}
+              onClose={closeSettingsModal}
+              initialActiveTab={settingsActiveTab}
+            />
+          </Suspense>
+        ) : null}
 
         {/* Settings Action Menu - Independent of dock visibility */}
         <Suspense fallback={null}>
@@ -714,7 +794,7 @@ function App() {
           )}
         </Suspense>
 
-        {mountSpotifyChromeStack ? (
+        {mountSpotifyChromeStack && enableDeferredMounts ? (
           <Suspense fallback={null}>
             <LazySpotifyLiveGradientWallpaper />
             <LazySpotifyImmersiveOverlay />
@@ -725,7 +805,7 @@ function App() {
         {/* Floating Widgets */}
         <Suspense fallback={null}>
           {/* Spotify Widget */}
-          {floatingWidgets.spotify.visible && (
+          {enableDeferredMounts && floatingWidgets.spotify.visible && (
             <LazyFloatingSpotifyWidget 
               isVisible={floatingWidgets.spotify.visible}
               onClose={() => {
@@ -736,7 +816,7 @@ function App() {
           )}
           
           {/* System Info Widget */}
-          {floatingWidgets.systemInfo.visible && (
+          {enableDeferredMounts && floatingWidgets.systemInfo.visible && (
             <LazySystemInfoWidget 
               isVisible={floatingWidgets.systemInfo.visible}
               onClose={() => {
@@ -747,7 +827,7 @@ function App() {
           )}
           
           {/* Admin Panel Widget */}
-          {floatingWidgets.adminPanel.visible && (
+          {enableDeferredMounts && floatingWidgets.adminPanel.visible && (
             <LazyAdminPanelWidget 
               isVisible={floatingWidgets.adminPanel.visible}
               onClose={() => {
@@ -758,7 +838,7 @@ function App() {
           )}
           
           {/* Performance Monitor Widget — dev builds only (intervals + RAF in performanceManager) */}
-          {IS_DEV && floatingWidgets.performanceMonitor.visible && (
+          {IS_DEV && enableDeferredMounts && floatingWidgets.performanceMonitor.visible && (
             <LazyPerformanceMonitor 
               isVisible={floatingWidgets.performanceMonitor.visible}
               onClose={() => {
@@ -770,7 +850,7 @@ function App() {
         </Suspense>
 
 
-      </div>
+      </m.div>
       </LaunchFeedbackProvider>
     </ErrorBoundary>
   );

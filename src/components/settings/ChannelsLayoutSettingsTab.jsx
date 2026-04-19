@@ -158,12 +158,13 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
 
   const shellLabel = useMemo(() => {
     if (activeSpaceId === 'gamehub') return 'Game Hub';
+    if (activeSpaceId === 'mediahub') return 'Media Hub';
     if (activeSpaceId === 'workspaces') return 'Workspaces';
     return 'Home';
   }, [activeSpaceId]);
 
   const previewDiffersFromShell = useMemo(() => {
-    if (activeSpaceId === 'gamehub') return false;
+    if (activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub') return false;
     const shellChannel =
       activeSpaceId === 'workspaces' ? 'workspaces' : activeSpaceId === 'home' ? 'home' : null;
     if (!shellChannel) return false;
@@ -275,9 +276,9 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             <Text variant="desc" className="!mb-3 !mt-0 text-[hsl(var(--text-secondary))]">
               Tile defaults below apply everywhere. This only chooses which board&apos;s page status you see.
             </Text>
-            {activeSpaceId === 'gamehub' ? (
+            {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
               <Text variant="caption" className="!mb-4 block text-[hsl(var(--text-tertiary))]">
-                You&apos;re in Game Hub — pick which Wii board&apos;s strip status to mirror here.
+                You&apos;re in a Hub space — pick which Wii board&apos;s strip status to mirror here.
               </Text>
             ) : null}
             {previewDiffersFromShell ? (

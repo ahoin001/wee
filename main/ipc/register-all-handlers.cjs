@@ -83,6 +83,7 @@ function registerAllIpcHandlers({
     fsExtra,
     ws,
     getMainWindow,
+    app,
     paths: {
       userChannelHoverSoundsPath: paths.userChannelHoverSoundsPath,
       userSoundsPath: paths.userSoundsPath,

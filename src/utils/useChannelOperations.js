@@ -171,7 +171,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
 
     const shellMatchesActiveChannelSpace = () => {
       const activeSpaceId = useConsolidatedAppStore.getState().spaces.activeSpaceId;
-      if (activeSpaceId === 'gamehub') return false;
+      if (activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub') return false;
       if (activeSpaceId === 'home' && spaceKey === 'home') return true;
       if (activeSpaceId === 'workspaces' && spaceKey === 'workspaces') return true;
       return false;
