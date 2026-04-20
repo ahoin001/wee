@@ -267,7 +267,7 @@
 }
 
 .media-hub-card--interactive:hover .media-hub-poster {
-  transform: scale(1.06);
+  transform: scale(1.1);
   filter: saturate(1.12) contrast(1.04);
 }
 
@@ -282,30 +282,6 @@
   transform: translateY(8px) scale(0.97);
   transition: opacity 0.2s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
-}
-
-.media-hub-stream-skeleton {
-  height: 58px;
-  border-radius: 0.65rem;
-  border: 1px solid hsl(var(--border-primary) / 0.56);
-  background:
-    linear-gradient(
-      105deg,
-      hsl(var(--surface-primary) / 0.62) 28%,
-      hsl(var(--surface-primary) / 0.82) 46%,
-      hsl(var(--surface-primary) / 0.62) 64%
-    );
-  background-size: 220% 100%;
-  animation: media-hub-shimmer 1.35s linear infinite;
-}
-
-@keyframes media-hub-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -20% 0;
-  }
 }
 
 .media-hub-card--interactive:hover .media-hub-card__veil {

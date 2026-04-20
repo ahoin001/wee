@@ -442,7 +442,6 @@ useConsolidatedAppStore = create(
             useBlurredBackground: true, // Enabled by default
             blurAmount: 2, // 2px blur by default
             autoShowWidget: false,
-            visualizerType: 'bars',
             trackInfoPanelOpacity: 0.8,
             trackInfoPanelBlur: 10
           }

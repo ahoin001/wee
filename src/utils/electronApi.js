@@ -9,6 +9,50 @@ import PQueue from 'p-queue';
 const getApi = () => (typeof window !== 'undefined' ? window.api : null);
 const settingsWriteQueue = new PQueue({ concurrency: 1 });
 
+/** Coalesce rapid partial saves before a single read–merge–write (settings churn). */
+const SETTINGS_SAVE_DEBOUNCE_MS = 400;
+let debouncedPatchAccumulator = null;
+let debounceFlushTimer = null;
+const debounceWaiters = [];
+
+function flushDebouncedSettingsWrites() {
+  debounceFlushTimer = null;
+  const patch = debouncedPatchAccumulator;
+  debouncedPatchAccumulator = null;
+  const waiters = debounceWaiters.splice(0);
+  const api = getApi();
+  if (!patch) {
+    waiters.forEach((w) => w.resolve(true));
+    return;
+  }
+  if (!api?.data?.get || !api?.data?.set) {
+    waiters.forEach((w) => w.resolve(false));
+    return;
+  }
+
+  settingsWriteQueue
+    .add(async () => {
+      const current = await safeCall(() => api.data.get(), null);
+      if (!current) return false;
+
+      const nextSettings = mergeCanonicalSettings(current.settings, patch);
+      if (isEqual(current.settings, nextSettings)) {
+        return true;
+      }
+
+      const payload = withSettingsSchemaMeta({
+        ...current,
+        settings: nextSettings,
+      });
+
+      return safeCall(() => api.data.set(payload), false);
+    })
+    .then(
+      (r) => waiters.forEach((w) => w.resolve(r)),
+      (e) => waiters.forEach((w) => w.reject(e))
+    );
+}
+
 const safeCall = async (fn, fallback = null) => {
   try {
     return await fn();
@@ -37,21 +81,14 @@ export async function saveUnifiedSettingsSnapshot(settingsSnapshot) {
   const api = getApi();
   if (!api?.data?.get || !api?.data?.set) return false;
 
-  return settingsWriteQueue.add(async () => {
-    const current = await safeCall(() => api.data.get(), null);
-    if (!current) return false;
+  debouncedPatchAccumulator = debouncedPatchAccumulator
+    ? mergeCanonicalSettings(debouncedPatchAccumulator, settingsSnapshot || {})
+    : mergeCanonicalSettings({}, settingsSnapshot || {});
 
-    const nextSettings = mergeCanonicalSettings(current.settings, settingsSnapshot || {});
-    if (isEqual(current.settings, nextSettings)) {
-      return true;
-    }
-
-    const payload = withSettingsSchemaMeta({
-      ...current,
-      settings: nextSettings,
-    });
-
-    return safeCall(() => api.data.set(payload), false);
+  return new Promise((resolve, reject) => {
+    debounceWaiters.push({ resolve, reject });
+    if (debounceFlushTimer) clearTimeout(debounceFlushTimer);
+    debounceFlushTimer = setTimeout(flushDebouncedSettingsWrites, SETTINGS_SAVE_DEBOUNCE_MS);
   });
 }
 

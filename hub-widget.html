@@ -1,0 +1,525 @@
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Play, Pause, SkipBack, SkipForward, Music, 
+  Search, ChevronLeft, Disc, Library, Maximize2,
+  Sun, Moon, Settings, User, Bell, Shield, Info, LogOut
+} from 'lucide-react';
+
+// --- Token-Based Theme Configurations ---
+const PALETTES = {
+  mint: {
+    name: 'Classic Mint',
+    type: 'dark',
+    tokens: {
+      primary: '#1DB954',
+      bg: '#121212',
+      surface: 'rgba(255, 255, 255, 0.05)',
+      surfaceHover: 'rgba(255, 255, 255, 0.1)',
+      textPrimary: '#FFFFFF',
+      textSecondary: 'rgba(255, 255, 255, 0.4)',
+      border: 'rgba(255, 255, 255, 0.05)',
+      glow: 'rgba(29, 185, 84, 0.3)',
+      contrastText: '#000000'
+    }
+  },
+  sunset: {
+    name: 'Cyber Sunset',
+    type: 'dark',
+    tokens: {
+      primary: '#FF00CC',
+      bg: '#1A0B2E',
+      surface: 'rgba(255, 255, 255, 0.05)',
+      surfaceHover: 'rgba(255, 255, 255, 0.1)',
+      textPrimary: '#FFFFFF',
+      textSecondary: 'rgba(255, 255, 255, 0.4)',
+      border: 'rgba(255, 255, 255, 0.05)',
+      glow: 'rgba(255, 0, 204, 0.3)',
+      contrastText: '#000000'
+    }
+  },
+  volt: {
+    name: 'Frozen Volt',
+    type: 'dark',
+    tokens: {
+      primary: '#00F0FF',
+      bg: '#0A0F14',
+      surface: 'rgba(255, 255, 255, 0.05)',
+      surfaceHover: 'rgba(255, 255, 255, 0.1)',
+      textPrimary: '#FFFFFF',
+      textSecondary: 'rgba(255, 255, 255, 0.4)',
+      border: 'rgba(255, 255, 255, 0.05)',
+      glow: 'rgba(0, 240, 255, 0.3)',
+      contrastText: '#000000'
+    }
+  },
+  daylight: {
+    name: 'Daylight Mint',
+    type: 'light',
+    tokens: {
+      primary: '#1DB954',
+      bg: '#F8F9FA',
+      surface: 'rgba(0, 0, 0, 0.03)',
+      surfaceHover: 'rgba(0, 0, 0, 0.06)',
+      textPrimary: '#121212',
+      textSecondary: 'rgba(0, 0, 0, 0.5)',
+      border: 'rgba(0, 0, 0, 0.05)',
+      glow: 'rgba(29, 185, 84, 0.2)',
+      contrastText: '#FFFFFF'
+    }
+  },
+  candy: {
+    name: 'Candy Pop',
+    type: 'light',
+    tokens: {
+      primary: '#FF477E',
+      bg: '#FFF0F5',
+      surface: 'rgba(0, 0, 0, 0.03)',
+      surfaceHover: 'rgba(0, 0, 0, 0.06)',
+      textPrimary: '#2D0C1F',
+      textSecondary: 'rgba(45, 12, 31, 0.5)',
+      border: 'rgba(0, 0, 0, 0.05)',
+      glow: 'rgba(255, 71, 126, 0.2)',
+      contrastText: '#FFFFFF'
+    }
+  },
+  arctic: {
+    name: 'Arctic Neon',
+    type: 'light',
+    tokens: {
+      primary: '#0070FF',
+      bg: '#EBF2FF',
+      surface: 'rgba(0, 0, 0, 0.03)',
+      surfaceHover: 'rgba(0, 0, 0, 0.06)',
+      textPrimary: '#001A33',
+      textSecondary: 'rgba(0, 26, 51, 0.5)',
+      border: 'rgba(0, 0, 0, 0.05)',
+      glow: 'rgba(0, 112, 255, 0.2)',
+      contrastText: '#FFFFFF'
+    }
+  }
+};
+
+const PLAYLISTS = [
+  { id: 'daily', title: 'Daily Mix 1', desc: 'Made for you', color: '#1DB954', img: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&q=80' },
+  { id: 'synth', title: 'Synthwave Night', desc: 'Retro vibes', color: '#FF00CC', img: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=800&q=80' },
+  { id: 'focus', title: 'Deep Focus', desc: 'Ambient beats', color: '#34ACE0', img: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=80' },
+  { id: 'rock', title: 'Solid Rock', desc: 'Classic anthems', color: '#F1C40F', img: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=800&q=80' },
+];
+
+const SONGS = [
+  { id: 1, title: 'Super Mario Beats', artist: 'Koji Kondo Remix', duration: '2:45', img: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&q=80' },
+  { id: 2, title: 'Neon Jungle', artist: 'Cyber-Phonk', duration: '3:12', img: 'https://images.unsplash.com/photo-1506466010722-395aa2bef877?w=800&q=80' },
+  { id: 3, title: 'The Last Star', artist: 'Orbital Voyager', duration: '4:01', img: 'https://images.unsplash.com/photo-1464802686167-b939a67e06a1?w=800&q=80' },
+  { id: 4, title: 'Midnight City', artist: 'M83', duration: '4:03', img: 'https://images.unsplash.com/photo-1514525253344-a8135a43cf3e?w=800&q=80' },
+];
+
+const SongRow = ({ song, isPlaying, onClick, theme }) => (
+  <motion.button
+    whileHover={{ scale: 1.02, x: 8 }}
+    whileTap={{ scale: 0.98 }}
+    onClick={onClick}
+    className="w-full flex items-center gap-4 p-4 rounded-[2rem] border-4 transition-all"
+    style={{ 
+        backgroundColor: isPlaying ? theme.tokens.primary : theme.tokens.surface,
+        borderColor: isPlaying ? 'transparent' : theme.tokens.border,
+        color: isPlaying ? theme.tokens.contrastText : theme.tokens.textPrimary,
+        boxShadow: isPlaying ? `0 15px 30px ${theme.tokens.glow}` : ''
+    }}
+  >
+    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shadow-lg border-2 border-white/10 shrink-0">
+      <img src={song.img} className="w-full h-full object-cover" alt="" />
+    </div>
+    <div className="flex-1 text-left overflow-hidden">
+      <h4 className="font-black uppercase italic text-sm tracking-tight truncate">{song.title}</h4>
+      <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">{song.artist}</p>
+    </div>
+    <span className="text-[11px] font-black opacity-40">{song.duration}</span>
+  </motion.button>
+);
+
+const SettingsRow = ({ icon: Icon, label, value, theme, onClick }) => (
+  <motion.button
+    whileHover={{ scale: 1.01, x: 5 }}
+    onClick={onClick}
+    className="w-full flex items-center justify-between p-5 rounded-3xl border-2 mb-3"
+    style={{ backgroundColor: theme.tokens.surface, borderColor: theme.tokens.border }}
+  >
+    <div className="flex items-center gap-4">
+      <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ backgroundColor: theme.tokens.bg, color: theme.tokens.primary }}>
+        <Icon size={18} />
+      </div>
+      <span className="font-black uppercase italic text-xs tracking-widest">{label}</span>
+    </div>
+    <span className="text-[10px] font-bold uppercase opacity-40">{value}</span>
+  </motion.button>
+);
+
+const App = () => {
+  const [currentPalette, setCurrentPalette] = useState('mint');
+  const [view, setView] = useState('player'); 
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentSong, setCurrentSong] = useState(SONGS[0]);
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
+  const [progress, setProgress] = useState(42);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dimensions, setDimensions] = useState({ width: 480, height: 720 });
+
+  const theme = PALETTES[currentPalette];
+  const t = theme.tokens;
+
+  const filteredSongs = useMemo(() => {
+    return SONGS.filter(song => 
+      song.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      song.artist.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
+  const handlePlaylistClick = (pl) => {
+    setSelectedPlaylist(pl);
+    setView('playlist');
+  };
+
+  const isHorizontal = dimensions.width / dimensions.height > 1.2;
+  const isShort = dimensions.height < 650;
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans flex flex-col items-center justify-center p-4 sm:p-8 overflow-hidden transition-colors duration-1000">
+      
+      {/* THEME TOGGLE DOCK */}
+      <div className="mb-8 flex flex-col items-center gap-4 z-[100]">
+        <div className="flex flex-wrap justify-center gap-3 p-3 bg-white/5 rounded-[2.5rem] border-2 border-white/10 backdrop-blur-md">
+            {Object.entries(PALETTES).map(([key, item]) => (
+                <motion.button
+                    key={key}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setCurrentPalette(key)}
+                    className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase italic tracking-widest transition-all flex items-center gap-2 ${currentPalette === key ? 'text-black shadow-lg' : 'text-white/60 hover:text-white'}`}
+                    style={{ 
+                        backgroundColor: currentPalette === key ? item.tokens.primary : 'transparent',
+                        boxShadow: currentPalette === key ? `0 10px 20px ${item.tokens.glow}` : ''
+                    }}
+                >
+                    {item.type === 'light' ? <Sun size={12} strokeWidth={3} /> : <Moon size={12} strokeWidth={3} />}
+                    {item.name}
+                </motion.button>
+            ))}
+        </div>
+      </div>
+
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
+          transition={{ duration: 15, repeat: Infinity }}
+          className="absolute top-[-10%] left-[-10%] w-[70vw] h-[70vw] opacity-30 blur-[120px] rounded-full transition-colors duration-1000"
+          style={{ backgroundColor: isPlaying ? t.primary : t.surface }}
+        />
+      </div>
+
+      <motion.div 
+        layout
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        style={{ 
+          width: dimensions.width, 
+          height: dimensions.height,
+          minWidth: 400,
+          minHeight: 500,
+          maxWidth: '90vw',
+          maxHeight: '85vh',
+          backgroundColor: t.bg,
+          color: t.textPrimary
+        }}
+        className="relative rounded-[3.5rem] border-8 border-[#1a1a1a] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden transition-colors duration-700"
+      >
+        
+        {/* Navigation Bar */}
+        <div className="p-6 sm:p-8 pb-4 flex items-center justify-between z-10 shrink-0">
+          <div className="flex items-center gap-4">
+            {view !== 'player' && (
+              <motion.button 
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setView(view === 'playlist' ? 'library' : 'player')}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center border-2"
+                style={{ backgroundColor: t.surface, borderColor: t.border }}
+              >
+                <ChevronLeft size={20} />
+              </motion.button>
+            )}
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-700"
+                style={{ backgroundColor: t.primary, color: t.contrastText, boxShadow: `0 8px 20px ${t.glow}` }}
+              >
+                <Music size={18} strokeWidth={3} />
+              </div>
+              <span className="font-black italic uppercase tracking-tighter text-lg sm:text-xl hidden xs:inline">SoundQuest</span>
+            </div>
+          </div>
+          
+          <div className="flex gap-2 sm:gap-3">
+            <button 
+               onClick={() => setView('library')}
+               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all border-2 ${view === 'library' ? 'shadow-lg' : ''}`}
+               style={{ 
+                   backgroundColor: view === 'library' ? t.primary : t.surface, 
+                   color: view === 'library' ? t.contrastText : t.textPrimary,
+                   borderColor: view === 'library' ? 'transparent' : t.border
+                }}
+            >
+              <Library size={18} />
+            </button>
+            <button 
+               onClick={() => setView('settings')}
+               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all border-2 ${view === 'settings' ? 'shadow-lg' : ''}`}
+               style={{ 
+                   backgroundColor: view === 'settings' ? t.primary : t.surface, 
+                   color: view === 'settings' ? t.contrastText : t.textPrimary,
+                   borderColor: view === 'settings' ? 'transparent' : t.border
+                }}
+            >
+              <Settings size={18} />
+            </button>
+            <div className="relative group">
+              <input 
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if(view === 'player' || view === 'settings') setView('library');
+                }}
+                className={`transition-all duration-500 border-2 rounded-2xl h-10 sm:h-12 pl-10 sm:pl-12 pr-4 text-[10px] font-black uppercase italic outline-none focus:border-current ${searchQuery ? 'w-32 sm:w-48' : 'w-10 sm:w-12 group-hover:w-32 sm:group-hover:w-48'}`}
+                style={{ backgroundColor: t.surface, borderColor: t.border, color: t.primary }}
+              />
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 opacity-40 group-hover:opacity-100 group-hover:text-current" size={16} />
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic Views */}
+        <div className="flex-1 overflow-hidden px-6 sm:px-10 relative flex flex-col">
+          <AnimatePresence mode="wait">
+            {view === 'player' && (
+              <motion.div 
+                key="player"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                className={`flex items-center justify-center h-full w-full gap-8 sm:gap-12 pb-12 ${isHorizontal ? 'flex-row text-left' : 'flex-col text-center'}`}
+              >
+                <div className={`relative flex items-center justify-center ${isHorizontal ? 'h-full max-h-[70%] aspect-square' : 'w-full max-w-[400px] aspect-square shrink min-h-0'}`}>
+                    <motion.div layoutId="artwork" className="w-full h-full rounded-[3.5rem] overflow-hidden shadow-2xl border-4 border-white/10 relative">
+                      <img src={currentSong.img} className="w-full h-full object-cover" alt="" />
+                      {isPlaying && (
+                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 10, ease: "linear" }} className="absolute -right-12 top-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-black rounded-full -z-10 border-[12px] border-[#1a1a1a] opacity-30">
+                           <Disc size="100%" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                </div>
+
+                <div className={`flex flex-col justify-center ${isHorizontal ? 'flex-1 max-w-[450px]' : 'w-full max-w-[450px] shrink-0'}`}>
+                  <div className={isShort ? "mb-4" : "mb-8"}>
+                    <h2 className={`${isShort ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-5xl'} font-black uppercase italic tracking-tighter mb-1 truncate leading-tight`}>
+                        {currentSong.title}
+                    </h2>
+                    <p className="font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs transition-colors duration-700" style={{ color: t.primary }}>
+                        {currentSong.artist}
+                    </p>
+                  </div>
+                  
+                  <div className={`${isShort ? 'mb-6' : 'mb-10'} h-2 rounded-full relative overflow-hidden`} style={{ backgroundColor: t.surface }}>
+                    <motion.div 
+                      className="absolute left-0 h-full rounded-full transition-colors duration-700" 
+                      style={{ width: `${progress}%`, backgroundColor: t.primary }} 
+                    />
+                  </div>
+
+                  <div className={`flex items-center gap-6 sm:gap-10 ${isHorizontal ? 'justify-start' : 'justify-center'}`}>
+                    <button className="opacity-40 hover:opacity-100 transition-opacity"><SkipBack size={isShort ? 28 : 36} fill="currentColor" /></button>
+                    <motion.button 
+                      whileHover={{ scale: 1.1, y: -5 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setIsPlaying(!isPlaying)}
+                      className={`${isShort ? 'w-16 h-16' : 'w-20 h-20 sm:w-28 sm:h-28'} rounded-[2rem] sm:rounded-[3rem] flex items-center justify-center border-b-8 shadow-xl`}
+                      style={{ backgroundColor: t.textPrimary, color: t.bg, borderColor: t.surface }}
+                    >
+                      {isPlaying ? <Pause size={isShort ? 32 : 44} fill="currentColor" /> : <Play size={isShort ? 32 : 44} className="ml-1.5" fill="currentColor" />}
+                    </motion.button>
+                    <button className="opacity-40 hover:opacity-100 transition-opacity"><SkipForward size={isShort ? 28 : 36} fill="currentColor" /></button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {(view === 'library' || view === 'playlist') && (
+              <motion.div 
+                key={view} 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className="flex-1 overflow-y-auto custom-scrollbar pb-10"
+              >
+                {view === 'library' ? (
+                  <div className="space-y-10 sm:space-y-12 pt-4">
+                    <header>
+                      <h3 className="text-4xl sm:text-5xl font-black uppercase italic tracking-tighter">
+                        {searchQuery ? 'Results' : 'Library'}
+                      </h3>
+                    </header>
+
+                    {!searchQuery && (
+                      <div className={`grid gap-4 sm:gap-6 ${dimensions.width > 700 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                          {PLAYLISTS.map(pl => (
+                              <motion.button
+                                  key={pl.id}
+                                  whileHover={{ scale: 1.05, y: -5 }}
+                                  onClick={() => handlePlaylistClick(pl)}
+                                  className="aspect-[4/5] rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-6 border-4 relative overflow-hidden text-left shadow-lg"
+                                  style={{ backgroundColor: t.surface, borderColor: t.border }}
+                              >
+                                  <img src={pl.img} className="absolute inset-0 w-full h-full object-cover opacity-40" alt="" />
+                                  <div className="relative z-10 h-full flex flex-col justify-end">
+                                      <h4 className="font-black italic uppercase text-sm sm:text-lg leading-tight">{pl.title}</h4>
+                                      <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest opacity-60">{pl.desc}</p>
+                                  </div>
+                              </motion.button>
+                          ))}
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                        <label className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.3em] transition-colors duration-700" style={{ color: t.primary }}>
+                            {searchQuery ? `Found ${filteredSongs.length} Tracks` : 'Recently Played'}
+                        </label>
+                        <div className={`grid gap-3 ${dimensions.width > 750 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {filteredSongs.map(song => (
+                                <SongRow 
+                                    key={song.id} 
+                                    song={song} 
+                                    theme={theme}
+                                    isPlaying={currentSong.id === song.id} 
+                                    onClick={() => { setCurrentSong(song); setIsPlaying(true); setView('player'); }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-10 pt-4">
+                    <div className="relative rounded-[3rem] overflow-hidden border-8 flex items-end p-6 sm:p-10 shadow-2xl h-64" style={{ borderColor: t.border }}>
+                       <img src={selectedPlaylist.img} className="absolute inset-0 w-full h-full object-cover" alt="" />
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                       <h3 className="relative z-10 text-3xl sm:text-5xl font-black italic uppercase tracking-tighter text-white">{selectedPlaylist.title}</h3>
+                    </div>
+                    <div className={`grid gap-3 ${dimensions.width > 750 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                       {SONGS.map(song => (
+                         <SongRow 
+                            key={song.id} 
+                            song={song} 
+                            theme={theme}
+                            isPlaying={currentSong.id === song.id} 
+                            onClick={() => { setCurrentSong(song); setIsPlaying(true); }}
+                          />
+                       ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {view === 'settings' && (
+              <motion.div
+                key="settings"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex-1 overflow-y-auto custom-scrollbar pb-10 pt-4"
+              >
+                <header className="mb-10">
+                  <h3 className="text-4xl sm:text-5xl font-black uppercase italic tracking-tighter">System</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mt-1">Version 2.4.0-Alpha</p>
+                </header>
+
+                <div className="space-y-8">
+                  <section>
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 block" style={{ color: t.primary }}>Account & Profile</label>
+                    <SettingsRow icon={User} label="User Profile" value="QuestMaster_99" theme={theme} />
+                    <SettingsRow icon={Bell} label="Notifications" value="Push Only" theme={theme} />
+                  </section>
+
+                  <section>
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 block" style={{ color: t.primary }}>Security & App</label>
+                    <SettingsRow icon={Shield} label="Privacy Mode" value="Active" theme={theme} />
+                    <SettingsRow icon={Info} label="Legal & Credits" value="v2.4.0" theme={theme} />
+                  </section>
+
+                  <section className="pt-4">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full py-6 rounded-[2rem] border-4 flex items-center justify-center gap-3 font-black uppercase italic text-sm tracking-widest transition-all"
+                      style={{ backgroundColor: t.bg, borderColor: '#ff4b4b', color: '#ff4b4b' }}
+                    >
+                      <LogOut size={18} /> Sign Out
+                    </motion.button>
+                  </section>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Mini-Player Footer */}
+        <AnimatePresence>
+          {view !== 'player' && (
+             <motion.div 
+              initial={{ y: 120 }} animate={{ y: 0 }} exit={{ y: 120 }}
+              className="absolute bottom-6 sm:bottom-8 left-6 sm:left-8 right-6 sm:right-8 backdrop-blur-xl rounded-[2.5rem] border-4 p-3 sm:p-4 flex items-center gap-4 shadow-2xl z-50 cursor-pointer"
+              style={{ backgroundColor: t.bg, borderColor: t.border }}
+              onClick={() => setView('player')}
+             >
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shrink-0 border-2 border-white/10">
+                   <img src={currentSong.img} className="w-full h-full object-cover" alt="" />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                   <h5 className="font-black italic uppercase text-[10px] sm:text-xs truncate">{currentSong.title}</h5>
+                   <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] truncate transition-colors duration-700" style={{ color: t.primary }}>{currentSong.artist}</p>
+                </div>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }} 
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-md shrink-0"
+                    style={{ backgroundColor: t.textPrimary, color: t.bg }}
+                >
+                     {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} className="ml-1" fill="currentColor" />}
+                </button>
+             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Resizer */}
+        <motion.div
+          drag dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} dragElastic={0}
+          onDrag={(e, info) => {
+            setDimensions({
+              width: Math.max(400, dimensions.width + info.delta.x),
+              height: Math.max(500, dimensions.height + info.delta.y)
+            });
+          }}
+          className="absolute bottom-4 right-4 w-10 h-10 rounded-2xl flex items-center justify-center cursor-nwse-resize z-[100] transition-colors"
+          style={{ backgroundColor: t.surface, color: t.textSecondary }}
+        >
+          <Maximize2 size={18} rotate={45} />
+        </motion.div>
+      </motion.div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: ${t.surface}; border-radius: 20px; }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;

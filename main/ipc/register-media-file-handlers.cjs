@@ -1,5 +1,8 @@
 const os = require('os');
+const crypto = require('crypto');
 const { execFile } = require('child_process');
+const { nativeImage } = require('electron');
+const { pathToFileURL } = require('url');
 
 function registerMediaFileHandlers({
   ipcMain,
@@ -328,6 +331,49 @@ function registerMediaFileHandlers({
       };
     } catch (error) {
       return { success: false, error: error.message || 'Failed to scan folder', files: [] };
+    }
+  });
+
+  /**
+   * OS shell-backed thumbnails (Windows / macOS). Cached under userData/media-hub-thumbs.
+   * Linux: shell preview is unreliable — return failure so the renderer keeps placeholders.
+   */
+  ipcMain.handle('mediahub:get-file-thumbnail', async (_event, payload = {}) => {
+    const filePath = typeof payload.filePath === 'string' ? payload.filePath.trim() : '';
+    const maxWidth = Math.min(800, Math.max(64, Number(payload.maxWidth) || 400));
+    const maxHeight = Math.min(800, Math.max(64, Number(payload.maxHeight) || 400));
+    if (!filePath) {
+      return { success: false, error: 'Missing filePath' };
+    }
+    if (process.platform === 'linux') {
+      return { success: false, error: 'Shell thumbnails unavailable on Linux' };
+    }
+    try {
+      await fsPromises.access(filePath);
+      const stat = await fsPromises.stat(filePath);
+      const mtimeMs = stat.mtimeMs != null ? stat.mtimeMs : stat.mtime?.getTime?.() ?? 0;
+      const keyMaterial = `${filePath}\0${mtimeMs}`;
+      const hash = crypto.createHash('sha256').update(keyMaterial).digest('hex');
+      const cacheDir = path.join(app.getPath('userData'), 'media-hub-thumbs');
+      await fsPromises.mkdir(cacheDir, { recursive: true });
+      const outPath = path.join(cacheDir, `${hash}.png`);
+      try {
+        await fsPromises.access(outPath);
+        return { success: true, fileUrl: pathToFileURL(outPath).href };
+      } catch {
+        // cache miss — generate below
+      }
+      const image = await nativeImage.createThumbnailFromPath(filePath, {
+        width: maxWidth,
+        height: maxHeight,
+      });
+      if (!image || image.isEmpty()) {
+        return { success: false, error: 'Empty thumbnail' };
+      }
+      await fsPromises.writeFile(outPath, image.toPNG());
+      return { success: true, fileUrl: pathToFileURL(outPath).href };
+    } catch (err) {
+      return { success: false, error: err?.message || 'Thumbnail failed' };
     }
   });
 

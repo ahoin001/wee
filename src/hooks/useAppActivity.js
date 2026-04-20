@@ -11,8 +11,15 @@ const getInitialActivity = () => {
   };
 };
 
+const getInitialMainWindowActivity = () => ({
+  isMinimized: false,
+  isFocused: true,
+  isVisible: true,
+});
+
 export const useAppActivity = () => {
   const [activity, setActivity] = useState(getInitialActivity);
+  const [mainWindowActivity, setMainWindowActivity] = useState(getInitialMainWindowActivity);
 
   useEffect(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
@@ -45,9 +52,38 @@ export const useAppActivity = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const api = typeof window !== 'undefined' ? window.api : null;
+    if (!api?.onAppWindowActivity) return undefined;
+
+    const handler = (payload) => {
+      if (!payload || typeof payload !== 'object') return;
+      setMainWindowActivity((prev) => ({
+        ...prev,
+        ...(typeof payload.isMinimized === 'boolean' ? { isMinimized: payload.isMinimized } : {}),
+        ...(typeof payload.isFocused === 'boolean' ? { isFocused: payload.isFocused } : {}),
+        ...(typeof payload.isVisible === 'boolean' ? { isVisible: payload.isVisible } : {}),
+      }));
+    };
+
+    api.onAppWindowActivity(handler);
+    return () => {
+      api.offAppWindowActivity?.(handler);
+    };
+  }, []);
+
+  const isAppActive =
+    activity.isVisible &&
+    activity.isFocused &&
+    mainWindowActivity.isFocused &&
+    !mainWindowActivity.isMinimized &&
+    mainWindowActivity.isVisible;
+
   return {
     isVisible: activity.isVisible,
     isFocused: activity.isFocused,
-    isAppActive: activity.isVisible && activity.isFocused,
+    isMainMinimized: mainWindowActivity.isMinimized,
+    mainWindowFocused: mainWindowActivity.isFocused,
+    isAppActive,
   };
 };

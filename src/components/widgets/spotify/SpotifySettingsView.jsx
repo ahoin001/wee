@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import WToggle from '../../../ui/WToggle';
+import WButton from '../../../ui/WButton';
 import Slider from '../../../ui/Slider';
+import GooeySettingsRow from './GooeySettingsRow';
 
 function SpotifySettingsView({
   isFreeTierConnected,
@@ -11,53 +13,79 @@ function SpotifySettingsView({
   onBlurredBackgroundToggle,
   onBlurAmountChange,
   onAutoShowWidgetToggle,
-  onVisualizerTypeChange,
-  getVisualizerOptionClass,
+  onCloseWidget,
+  reducedMotion,
 }) {
+  const label = { color: 'var(--spotify-gooey-text)' };
+  const primaryLabel = { color: 'var(--spotify-gooey-primary, rgb(var(--spotify-green-rgb)))' };
+  const muted = { color: 'var(--spotify-gooey-text-secondary)' };
+
   return (
-    <div className="settings-page wee-spotify-widget__scroll max-h-full px-4 py-3 sm:px-6">
-      <div className="settings-header mb-4">
-        <h2 className="settings-title-modern text-[hsl(var(--text-on-accent))]">Widget settings</h2>
-        <p className="settings-subtitle text-[hsl(var(--color-pure-white)/0.65)]">Customize this floating player</p>
-      </div>
+    <div className="custom-scrollbar gooey-floating-panel__scrollbar wee-spotify-widget__scroll max-h-full flex-1 overflow-y-auto pb-10 pt-4">
+      <header className="mb-10">
+        <h3
+          className="text-4xl font-black uppercase italic tracking-tighter sm:text-5xl"
+          style={label}
+        >
+          Widget
+        </h3>
+        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] opacity-40" style={label}>
+          Spotify floating player
+        </p>
+      </header>
 
       {isFreeTierConnected ? (
-        <div className="floating-spotify-widget__settings-tier-note mb-4" role="note">
-          <strong className="floating-spotify-widget__settings-tier-note-title">Spotify Free</strong>
-          <p>
+        <div
+          className="mb-8 rounded-3xl border-2 p-4 text-xs sm:text-sm"
+          style={{
+            borderColor: 'var(--spotify-gooey-border)',
+            backgroundColor: 'var(--spotify-gooey-surface)',
+            color: 'var(--spotify-gooey-text-secondary)',
+          }}
+          role="note"
+        >
+          <strong style={label}>Spotify Free</strong>
+          <p className="mt-1">
             Appearance options below apply to this widget. Playback control from Wee requires Spotify Premium; on Free,
             use the Spotify app and keep this widget for now playing.
           </p>
         </div>
       ) : null}
 
-      <div className="settings-sections space-y-6">
-        <div className="settings-section-modern">
-          <h3 className="section-title text-[hsl(var(--text-on-accent))]">Appearance</h3>
-          <div className="setting-item-modern">
+      <div className="space-y-8">
+        <section>
+          <label
+            className="mb-4 block text-[10px] font-black uppercase tracking-[0.3em]"
+            style={primaryLabel}
+          >
+            Appearance
+          </label>
+          <GooeySettingsRow reducedMotion={reducedMotion}>
             <WToggle
               checked={spotifySettings.dynamicColors}
               onChange={onDynamicColorsToggle}
               label="Dynamic colors from album art"
             />
-            <p className="setting-description text-[hsl(var(--color-pure-white)/0.55)]">
+            <p className="mt-2 text-xs" style={muted}>
               Adjust colors from the current track&apos;s album art
             </p>
-          </div>
-          <div className="setting-item-modern">
+          </GooeySettingsRow>
+          <GooeySettingsRow reducedMotion={reducedMotion}>
             <WToggle
               checked={spotifySettings.useBlurredBackground}
               onChange={onBlurredBackgroundToggle}
               label="Blurred album art background"
             />
-            <p className="setting-description text-[hsl(var(--color-pure-white)/0.55)]">
+            <p className="mt-2 text-xs" style={muted}>
               Use album art as a blurred background on the player page
             </p>
-          </div>
+          </GooeySettingsRow>
           {spotifySettings.useBlurredBackground ? (
-            <div className="setting-item-modern">
-              <div className="setting-label mb-2 text-[hsl(var(--text-on-accent))]">Blur amount</div>
-              <div className="slider-container flex items-center gap-3">
+            <GooeySettingsRow reducedMotion={reducedMotion}>
+              <div className="mb-2 text-xs font-semibold" style={label}>
+                Blur amount
+              </div>
+              <div className="flex items-center gap-3">
                 <input
                   type="range"
                   min="0"
@@ -67,51 +95,65 @@ function SpotifySettingsView({
                   onChange={(e) => onBlurAmountChange(Number(e.target.value))}
                   className="blur-slider flex-1"
                 />
-                <span className="slider-value font-semibold text-[hsl(var(--text-on-accent))]">
+                <span className="text-sm font-semibold tabular-nums" style={label}>
                   {spotifySettings.blurAmount || 0}px
                 </span>
               </div>
-            </div>
+            </GooeySettingsRow>
           ) : null}
-        </div>
+        </section>
 
-        <div className="settings-section-modern">
-          <h3 className="section-title text-[hsl(var(--text-on-accent))]">Behavior</h3>
-          <div className="setting-item-modern">
+        <section>
+          <label
+            className="mb-4 block text-[10px] font-black uppercase tracking-[0.3em]"
+            style={primaryLabel}
+          >
+            Behavior
+          </label>
+          <GooeySettingsRow reducedMotion={reducedMotion}>
             <WToggle
               checked={spotifySettings.autoShowWidget}
               onChange={onAutoShowWidgetToggle}
               label="Auto-show widget on playback"
             />
-            <p className="setting-description text-[hsl(var(--color-pure-white)/0.55)]">
+            <p className="mt-2 text-xs" style={muted}>
               Show this widget when music starts
             </p>
-          </div>
-        </div>
-
-        <div className="settings-section-modern">
-          <h3 className="section-title text-[hsl(var(--text-on-accent))]">Visualizer</h3>
-          <p className="mb-2 text-xs text-[hsl(var(--color-pure-white)/0.5)]">
-            Off by default for lower CPU use. Enable a style for a thin bar above the player.
-          </p>
-          <div className="visualizer-options-modern flex flex-wrap gap-2">
-            {['off', 'bars', 'circles', 'waves', 'sparkle'].map((type) => (
-              <button
-                key={type}
+          </GooeySettingsRow>
+          <GooeySettingsRow reducedMotion={reducedMotion}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold" style={label}>
+                  Hide floating widget
+                </p>
+                <p className="mt-1 text-xs" style={muted}>
+                  Closes this panel. Turn it back on from Settings → API &amp; Widgets or your keyboard shortcut.
+                </p>
+              </div>
+              <WButton
                 type="button"
-                className={getVisualizerOptionClass(type)}
-                onClick={() => onVisualizerTypeChange(type)}
+                variant="secondary"
+                size="sm"
+                className="shrink-0 self-start sm:self-center"
+                onClick={onCloseWidget}
               >
-                {type === 'off' ? 'Off' : type.charAt(0).toUpperCase() + type.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
+                Close widget
+              </WButton>
+            </div>
+          </GooeySettingsRow>
+        </section>
 
-        <div className="settings-section-modern">
-          <h3 className="section-title text-[hsl(var(--text-on-accent))]">Track info panel</h3>
-          <div className="setting-item-modern">
-            <div className="setting-label mb-2 text-[hsl(var(--text-on-accent))]">Opacity</div>
+        <section>
+          <label
+            className="mb-4 block text-[10px] font-black uppercase tracking-[0.3em]"
+            style={primaryLabel}
+          >
+            Track info panel
+          </label>
+          <GooeySettingsRow reducedMotion={reducedMotion}>
+            <div className="mb-2 text-xs font-semibold" style={label}>
+              Opacity
+            </div>
             <div className="slider-container">
               <Slider
                 value={spotifySettings.trackInfoPanelOpacity}
@@ -120,13 +162,15 @@ function SpotifySettingsView({
                 step={0.1}
                 onChange={(value) => spotifyManager.updateSpotifySettings({ trackInfoPanelOpacity: value })}
               />
-              <span className="slider-value font-semibold text-[hsl(var(--text-on-accent))]">
+              <span className="slider-value font-semibold tabular-nums" style={label}>
                 {Math.round(spotifySettings.trackInfoPanelOpacity * 100)}%
               </span>
             </div>
-          </div>
-          <div className="setting-item-modern">
-            <div className="setting-label mb-2 text-[hsl(var(--text-on-accent))]">Blur</div>
+          </GooeySettingsRow>
+          <GooeySettingsRow reducedMotion={reducedMotion}>
+            <div className="mb-2 text-xs font-semibold" style={label}>
+              Blur
+            </div>
             <div className="slider-container">
               <Slider
                 value={spotifySettings.trackInfoPanelBlur}
@@ -135,12 +179,12 @@ function SpotifySettingsView({
                 step={1}
                 onChange={(value) => spotifyManager.updateSpotifySettings({ trackInfoPanelBlur: value })}
               />
-              <span className="slider-value font-semibold text-[hsl(var(--text-on-accent))]">
+              <span className="slider-value font-semibold tabular-nums" style={label}>
                 {spotifySettings.trackInfoPanelBlur}px
               </span>
             </div>
-          </div>
-        </div>
+          </GooeySettingsRow>
+        </section>
       </div>
     </div>
   );
@@ -154,12 +198,13 @@ SpotifySettingsView.propTypes = {
   onBlurredBackgroundToggle: PropTypes.func.isRequired,
   onBlurAmountChange: PropTypes.func.isRequired,
   onAutoShowWidgetToggle: PropTypes.func.isRequired,
-  onVisualizerTypeChange: PropTypes.func.isRequired,
-  getVisualizerOptionClass: PropTypes.func.isRequired,
+  onCloseWidget: PropTypes.func.isRequired,
+  reducedMotion: PropTypes.bool,
 };
 
 SpotifySettingsView.defaultProps = {
   isFreeTierConnected: false,
+  reducedMotion: false,
 };
 
 export default SpotifySettingsView;

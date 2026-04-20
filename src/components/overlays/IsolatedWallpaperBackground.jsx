@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useWallpaperCycling from '../../utils/useWallpaperCycling';
 import { useSpaceWallpaperCrossfade } from '../../hooks/useSpaceWallpaperCrossfade';
@@ -21,9 +22,13 @@ function spaceParallaxBackgroundYPercent(spaceIndex) {
 function IsolatedWallpaperBackgroundInner({
   shellTransitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
 }) {
-  const wallpaper = useConsolidatedAppStore((state) => state.wallpaper);
-  const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
-  const spaceOrder = useConsolidatedAppStore((state) => state.spaces.order);
+  const { wallpaper, activeSpaceId, spaceOrder } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      wallpaper: state.wallpaper,
+      activeSpaceId: state.spaces.activeSpaceId,
+      spaceOrder: state.spaces.order,
+    }))
+  );
   const displayWallpaperUrl = wallpaper.current
     ? wallpaperEntryUrlKey(wallpaper.current) || null
     : null;
@@ -58,6 +63,15 @@ function IsolatedWallpaperBackgroundInner({
     gameHubBrightness,
     gameHubSaturate,
   ]);
+
+  /** Skip `blur(0px)` so the compositor can avoid unnecessary full-layer blur passes when blur is off. */
+  const toneBlurPx = useCallback(
+    (px) => {
+      const n = typeof px === 'number' && Number.isFinite(px) ? px : 0;
+      return applySpaceWallpaperTone(n > 0 ? `blur(${n}px)` : 'none');
+    },
+    [applySpaceWallpaperTone]
+  );
   const {
     isTransitioning: cyclingTransitioning,
     currentWallpaper,
@@ -79,12 +93,11 @@ function IsolatedWallpaperBackgroundInner({
   const { opacity, blur, cycleAnimation } = wallpaper;
 
   const getCurrentWallpaperStyle = useCallback(() => {
-    const dim = applySpaceWallpaperTone;
     if (!cyclingTransitioning || !currentWallpaper?.url) {
       return {
         opacity,
         transform: 'none',
-        filter: dim(`blur(${blur}px)`),
+        filter: toneBlurPx(blur),
       };
     }
 
@@ -95,7 +108,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress),
           transform: 'none',
-          filter: dim(`blur(${blur}px)`),
+          filter: toneBlurPx(blur),
         };
       case 'slide': {
         const slideOffset = progress * 100;
@@ -121,7 +134,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity,
           transform: slideTransform,
-          filter: dim(`blur(${blur}px)`),
+          filter: toneBlurPx(blur),
         };
       }
       case 'zoom': {
@@ -129,7 +142,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.5),
           transform: `scale(${zoomScale})`,
-          filter: dim(`blur(${blur + (progress * 2)}px)`),
+          filter: toneBlurPx(blur + progress * 2),
         };
       }
       case 'ken-burns': {
@@ -139,7 +152,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.3),
           transform: `scale(${kenBurnsScale}) translateX(${kenBurnsX}%) translateY(${kenBurnsY}%)`,
-          filter: dim(`blur(${blur}px)`),
+          filter: toneBlurPx(blur),
         };
       }
       case 'morph': {
@@ -149,7 +162,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.7),
           transform: `scale(${morphScale}) rotate(${morphRotate}deg) skew(${morphSkew}deg)`,
-          filter: dim(`blur(${blur + progress}px)`),
+          filter: toneBlurPx(blur + progress),
         };
       }
       case 'blur': {
@@ -157,18 +170,18 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.8),
           transform: 'none',
-          filter: dim(`blur(${blurIntensity}px)`),
+          filter: toneBlurPx(blurIntensity),
         };
       }
       default:
         return {
           opacity,
           transform: 'none',
-          filter: dim(`blur(${blur}px)`),
+          filter: toneBlurPx(blur),
         };
     }
   }, [
-    applySpaceWallpaperTone,
+    toneBlurPx,
     cyclingTransitioning,
     currentWallpaper?.url,
     opacity,
@@ -179,12 +192,11 @@ function IsolatedWallpaperBackgroundInner({
   ]);
 
   const getNextWallpaperStyle = useCallback(() => {
-    const dim = applySpaceWallpaperTone;
     if (!cyclingTransitioning || !nextWallpaper?.url) {
       return {
         opacity: 0,
         transform: 'none',
-        filter: dim(`blur(${blur}px)`),
+        filter: toneBlurPx(blur),
       };
     }
 
@@ -195,7 +207,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: dim(`blur(${blur}px)`),
+          filter: toneBlurPx(blur),
         };
       case 'slide': {
         const slideOffset = (1 - progress) * 100;
@@ -221,7 +233,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity,
           transform: slideTransform,
-          filter: dim(`blur(${blur}px)`),
+          filter: toneBlurPx(blur),
         };
       }
       case 'zoom': {
@@ -229,7 +241,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: `scale(${zoomScale})`,
-          filter: dim(`blur(${blur + ((1 - progress) * 2)}px)`),
+          filter: toneBlurPx(blur + (1 - progress) * 2),
         };
       }
       case 'ken-burns': {
@@ -239,7 +251,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: `scale(${kenBurnsScale}) translateX(-${kenBurnsX}%) translateY(-${kenBurnsY}%)`,
-          filter: dim(`blur(${blur}px)`),
+          filter: toneBlurPx(blur),
         };
       }
       case 'morph': {
@@ -249,26 +261,26 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: `scale(${morphScale}) rotate(-${morphRotate}deg) skew(-${morphSkew}deg)`,
-          filter: dim(`blur(${blur + ((1 - progress) * 1)}px)`),
+          filter: toneBlurPx(blur + (1 - progress) * 1),
         };
       }
       case 'blur': {
-        const blurIntensity = blur + ((1 - progress) * 10);
+        const blurIntensity = blur + (1 - progress) * 10;
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: dim(`blur(${blurIntensity}px)`),
+          filter: toneBlurPx(blurIntensity),
         };
       }
       default:
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: dim(`blur(${blur}px)`),
+          filter: toneBlurPx(blur),
         };
     }
   }, [
-    applySpaceWallpaperTone,
+    toneBlurPx,
     cyclingTransitioning,
     nextWallpaper?.url,
     opacity,
@@ -306,9 +318,9 @@ function IsolatedWallpaperBackgroundInner({
     () => ({
       opacity,
       transform: 'none',
-      filter: applySpaceWallpaperTone(`blur(${blur}px)`),
+      filter: toneBlurPx(blur),
     }),
-    [applySpaceWallpaperTone, opacity, blur]
+    [toneBlurPx, opacity, blur]
   );
 
   const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
@@ -360,7 +372,7 @@ function IsolatedWallpaperBackgroundInner({
                 backgroundPosition: `center ${parallaxBgY}%`,
                 backgroundRepeat: 'no-repeat',
                 opacity: opacity * spaceFade.overlayOpacity,
-                filter: applySpaceWallpaperTone(`blur(${blur}px)`),
+                filter: toneBlurPx(blur),
                 transition: spaceOverlayTransition,
               }}
               onTransitionEnd={spaceFade.onOverlayTransitionEnd}

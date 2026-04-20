@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 export const useChannelModalInitialization = ({
-  isOpen,
+  isOpen = true,
   channelId,
   configuredChannels,
   channelConfigs,
@@ -37,7 +37,7 @@ export const useChannelModalInitialization = ({
   preloadMediaLibrary,
 }) => {
   useEffect(() => {
-    if (!channelId) return;
+    if (!isOpen || !channelId) return;
 
     setPath('');
     setPathError('');
@@ -62,7 +62,7 @@ export const useChannelModalInitialization = ({
     setMedia(existingChannel.media || null);
     setHoverSound(existingChannel.hoverSound || null);
     setAnimatedOnHover(existingChannel.animatedOnHover ?? 'global');
-    setAsAdmin(existingChannel.asAdmin || false);
+    setAsAdmin(existingChannel.asAdmin ?? false);
 
     const channelConfig = channelConfigs[channelId];
     if (!channelConfig) return;
@@ -76,6 +76,7 @@ export const useChannelModalInitialization = ({
     setKenBurnsCrossfadeDuration(channelConfig.kenBurnsCrossfadeDuration ?? 1000);
     setKenBurnsEasing(channelConfig.kenBurnsEasing ?? 'ease-out');
   }, [
+    isOpen,
     channelId,
     configuredChannels,
     channelConfigs,

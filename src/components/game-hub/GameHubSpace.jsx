@@ -14,6 +14,12 @@ import { shouldUseWarmEnrichmentCache } from '../../utils/gameHub/gameHubEnrichm
 import { getCachedSteamClientLibrary, setCachedSteamClientLibrary } from '../../utils/gameHub/gameHubClientLibraryCache';
 import { useHeroMediaCrossfade } from './useHeroMediaCrossfade';
 import { HUB_MORPH } from '../../design/playfulMotion';
+import {
+  createHubEntranceBandVariants,
+  createHubEntranceFadeVariants,
+  createHubEntranceOrchestratorVariants,
+} from '../../design/weeMotion';
+import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
 import { weeMarkGameHubLibrary } from '../../utils/weePerformanceMarks';
 import WToggle from '../../ui/WToggle';
 import './GameHubSpace.css';
@@ -101,6 +107,20 @@ export default function GameHubSpace() {
   const hubDockScrollMorphEnabled = gameHub.ui?.hubDockScrollMorphEnabled ?? true;
   const useDockMorphLayout = dockMorphEnabled && hubDockScrollMorphEnabled;
   const reducedMotion = useReducedMotion();
+  const { entranceKey, tier: hubEntranceTier, canStart, onEntranceComplete } = useHubSpaceEntrance(
+    'gamehub',
+    reducedMotion
+  );
+
+  const hubOrchestratorVariants = useMemo(
+    () => createHubEntranceOrchestratorVariants(hubEntranceTier, reducedMotion),
+    [hubEntranceTier, reducedMotion]
+  );
+  const hubBandVariants = useMemo(
+    () => createHubEntranceBandVariants(hubEntranceTier, reducedMotion),
+    [hubEntranceTier, reducedMotion]
+  );
+  const hubFadeVariants = useMemo(() => createHubEntranceFadeVariants(reducedMotion), [reducedMotion]);
 
   const scrollY = useMotionValue(0);
   /** Drives dock-morph transforms; frozen while collection shelf animates (scrollY still tracks DOM). */
@@ -741,6 +761,7 @@ export default function GameHubSpace() {
       onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
       onLaunchGame={handleLaunchGame}
       onHeroPreview={setHeroPreview}
+      hubScrollContainerRef={contentScrollRef}
     />
   );
 
@@ -762,8 +783,18 @@ export default function GameHubSpace() {
         className={stageClassName}
         style={{ '--hub-scroll-top-reserve': '18px' }}
       >
+        <MotionDiv
+          layout={false}
+          className="flex min-h-0 flex-1 flex-col"
+          variants={hubOrchestratorVariants}
+          initial={canStart ? 'hidden' : false}
+          animate={!canStart ? 'show' : entranceKey > 0 ? 'show' : 'hidden'}
+          onAnimationComplete={
+            entranceKey > 0 && canStart ? () => onEntranceComplete(entranceKey) : undefined
+          }
+        >
         {showHubBackdrop && (heroMediaBaseUrl || heroMediaOverlayUrl) ? (
-          <div className="aura-hub-backdrop" aria-hidden>
+          <m.div className="aura-hub-backdrop" aria-hidden variants={hubFadeVariants}>
             {heroMediaBaseUrl ? (
               <div
                 className="aura-hub-backdrop__layer aura-hub-backdrop__layer--base"
@@ -781,10 +812,10 @@ export default function GameHubSpace() {
                 onTransitionEnd={onHeroMediaOverlayTransitionEnd}
               />
             ) : null}
-          </div>
+          </m.div>
         ) : null}
 
-        <div className="aura-hub-stage-toolbar">
+        <m.div className="aura-hub-stage-toolbar" variants={hubBandVariants}>
           <button
             type="button"
             className="aura-hub-mode-toggle"
@@ -817,10 +848,10 @@ export default function GameHubSpace() {
               />
             </div>
           ) : null}
-        </div>
+        </m.div>
 
         {useDockMorphLayout ? (
-          <div className="aura-hub-column aura-hub-column--dock-morph">
+          <m.div className="aura-hub-column aura-hub-column--dock-morph" variants={hubBandVariants}>
             <MotionDiv
               className="aura-hub-hero-wrap aura-hub-hero-wrap--dock-overlay"
               style={{
@@ -861,9 +892,9 @@ export default function GameHubSpace() {
                 </MotionDiv>
               </div>
             </main>
-          </div>
+          </m.div>
         ) : (
-          <div className="aura-hub-column">
+          <m.div className="aura-hub-column" variants={hubBandVariants}>
             <div className="aura-hub-hero-wrap">
               <div className="aura-hub-hero-shell">
                 <AuraHero {...hubHeroBaseProps} compact={isHeroCompact} morphProgress={null} />
@@ -873,8 +904,9 @@ export default function GameHubSpace() {
             <main ref={setScrollRef} className="aura-hub-content" onScroll={scheduleHeroScrollMode}>
               {hubSections}
             </main>
-          </div>
+          </m.div>
         )}
+        </MotionDiv>
       </div>
     </section>
     </GameHubTileDialogsProvider>

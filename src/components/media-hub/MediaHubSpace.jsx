@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { AnimatePresence, m } from 'framer-motion';
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import {
   Calendar,
   Clapperboard,
   ExternalLink,
   Film,
-  Folder,
   FolderSearch,
   HardDrive,
   Info,
@@ -23,34 +22,35 @@ import { groupLocalFilesByFolder } from './mediaHubLocalUtils';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import WToggle from '../../ui/WToggle';
-import MediaHubStreamOpenModal from './MediaHubStreamOpenModal';
+import MediaHubLocalShelfSection from './MediaHubLocalShelfSection';
+import MediaHubDiscoverGrid, { MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD } from './MediaHubDiscoverGrid';
+import { buildStremioDetailUrl } from '../../utils/mediaHubStremio';
+import {
+  WEE_EASING,
+  createHubEntranceBandVariants,
+  createHubEntranceOrchestratorVariants,
+  createMediaHubGridContainerVariants,
+  createMediaHubGridItemVariants,
+  getMediaHubAsideMotion,
+  getMediaHubOverlayPanelMotion,
+} from '../../design/weeMotion';
+import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
 import './MediaHubSpace.css';
 
 const MotionDiv = m.div;
 const MotionButton = m.button;
+const MotionHeader = m.header;
 const CINEMETA_URL = 'https://v3-cinemeta.strem.io';
-const TORRENTIO_URL = 'https://torrentio.strem.fun';
 const GENRES = ['All', 'Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Animation'];
 const LOCAL_MEDIA_LIMIT = 350;
-const CARD_EASE = [0.22, 1, 0.36, 1];
+const CARD_EASE = WEE_EASING.mediaHubCard;
 const EMPTY_OBJECT = Object.freeze({});
-/** Matches hub-stremio prototype spring for detail surfaces */
-const SPRING_DETAIL = { type: 'spring', stiffness: 350, damping: 28, mass: 1 };
-const GRID_VARIANTS = {
-  hidden: { opacity: 0, y: 8 },
+/** Parent list for poster grid — item delays come from `createMediaHubGridItemVariants` + `custom` index. */
+const GRID_LIST_PARENT_VARIANTS = {
+  hidden: {},
   show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      staggerChildren: 0.02,
-      delayChildren: 0.02,
-    },
+    transition: { staggerChildren: 0, delayChildren: 0 },
   },
-};
-
-const GRID_ITEM_VARIANTS = {
-  hidden: { opacity: 0, y: 10, scale: 0.985 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.24, ease: CARD_EASE } },
 };
 
 function useMinWidth1024() {
@@ -69,11 +69,6 @@ function useMinWidth1024() {
 function getPosterUrl(item) {
   if (!item) return '';
   return item.poster || item.logo || '';
-}
-
-function normalizeStreamLabel(stream) {
-  const raw = String(stream?.title || stream?.name || 'Unnamed stream');
-  return raw.split('\n')[0] || raw;
 }
 
 function formatBytes(size) {
@@ -121,17 +116,8 @@ function episodesForSeason(videos, season) {
     .sort((a, b) => Number(a.episode) - Number(b.episode));
 }
 
-function discoverStreamCacheKey(item, contentMode, season, episode) {
-  if (!item?.id) return null;
-  if (contentMode === 'movie') return String(item.id);
-  if (Number.isFinite(Number(season)) && Number.isFinite(Number(episode))) {
-    return `${item.id}:${Number(season)}:${Number(episode)}`;
-  }
-  return null;
-}
-
 /**
- * Shared detail body: hero + badges + description + sources (hub-stremio hierarchy, tokenized).
+ * Shared detail body: hero + badges + description + Stremio / local actions (hub-stremio hierarchy, tokenized).
  */
 function MediaHubItemDetail({
   variant,
@@ -139,11 +125,9 @@ function MediaHubItemDetail({
   activeTab,
   contentMode,
   onClose,
-  streamsLoading,
-  selectedStreams,
-  onOpenStreamModal,
+  canOpenStremioDetail = false,
+  onOpenStremioDetail,
   onPlayLocal,
-  normalizeStreamLabel: normLabel,
   formatBytes: fmtBytes,
   seriesMetaLoading,
   seriesMetaError,
@@ -171,8 +155,8 @@ function MediaHubItemDetail({
     contentMode === 'series' &&
     (seriesMetaLoading || seriesMetaError || (Array.isArray(seriesVideos) && seriesVideos.length > 0));
 
-  const firstStream = selectedStreams?.[0] || null;
-  const canWatchDiscover = isDiscover && !streamsLoading && firstStream;
+  const stremioOpenDisabled =
+    !canOpenStremioDetail || (contentMode === 'series' && seriesMetaLoading);
 
   const shellClass =
     variant === 'overlay'
@@ -307,54 +291,22 @@ function MediaHubItemDetail({
         ) : null}
 
         {isDiscover ? (
-          <>
-            <div>
-              <h3 className="m-0 text-[10px] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-tertiary))]">
-                Available sources
-              </h3>
-              <div className="mt-3 space-y-2">
-                {streamsLoading ? (
-                  [1, 2, 3, 4].map((i) => <div key={`skeleton-${i}`} className="media-hub-stream-skeleton" />)
-                ) : selectedStreams.length === 0 ? (
-                  <p className="m-0 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
-                    No stream sources loaded.
-                  </p>
-                ) : (
-                  selectedStreams.slice(0, 12).map((stream, idx) => (
-                    <MotionButton
-                      key={`${selectedItem.id}-${idx}`}
-                      type="button"
-                      onClick={() => onOpenStreamModal(stream)}
-                      whileHover={{ x: 4 }}
-                      whileTap={{ scale: 0.985 }}
-                      transition={{ duration: 0.16 }}
-                      className="group flex w-full items-center justify-between rounded-2xl border border-[hsl(var(--border-primary)/0.5)] bg-[hsl(var(--surface-primary)/0.45)] p-3 text-left transition-colors hover:border-[hsl(var(--border-primary)/0.75)] hover:bg-[hsl(var(--surface-secondary)/0.5)]"
-                    >
-                      <span className="truncate text-[11px] font-black uppercase tracking-[0.06em] text-[hsl(var(--text-primary))] group-hover:text-[hsl(var(--text-primary))]">
-                        {normLabel(stream)}
-                      </span>
-                      <span className="shrink-0 pl-2 text-[10px] font-black uppercase tracking-widest text-[hsl(var(--text-tertiary))] group-hover:text-[hsl(var(--primary))]">
-                        Play
-                      </span>
-                    </MotionButton>
-                  ))
-                )}
-              </div>
-            </div>
-            <div className="mt-auto border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
-              <MotionButton
-                type="button"
-                disabled={!canWatchDiscover}
-                whileHover={canWatchDiscover ? { scale: 1.01 } : undefined}
-                whileTap={canWatchDiscover ? { scale: 0.99 } : undefined}
-                onClick={() => firstStream && onOpenStreamModal(firstStream)}
-                className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] border border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary))] py-4 text-[10px] font-black uppercase tracking-[0.25em] text-[hsl(var(--text-on-accent))] shadow-[0_12px_28px_-12px_hsl(var(--primary)/0.55)] disabled:cursor-not-allowed disabled:border-[hsl(var(--border-primary)/0.6)] disabled:bg-[hsl(var(--surface-tertiary)/0.8)] disabled:text-[hsl(var(--text-tertiary))] disabled:shadow-none"
-              >
-                <Play size={18} fill="currentColor" />
-                Watch now
-              </MotionButton>
-            </div>
-          </>
+          <div className="mt-auto border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
+            <p className="m-0 mb-3 text-[11px] font-bold uppercase tracking-[0.11em] leading-relaxed text-[hsl(var(--text-secondary))]">
+              Opens this title in the Stremio app using the catalog.
+            </p>
+            <MotionButton
+              type="button"
+              disabled={stremioOpenDisabled}
+              whileHover={!stremioOpenDisabled ? { scale: 1.01 } : undefined}
+              whileTap={!stremioOpenDisabled ? { scale: 0.99 } : undefined}
+              onClick={() => onOpenStremioDetail?.()}
+              className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] border border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary))] py-4 text-[10px] font-black uppercase tracking-[0.25em] text-[hsl(var(--text-on-accent))] shadow-[0_12px_28px_-12px_hsl(var(--primary)/0.55)] disabled:cursor-not-allowed disabled:border-[hsl(var(--border-primary)/0.6)] disabled:bg-[hsl(var(--surface-tertiary)/0.8)] disabled:text-[hsl(var(--text-tertiary))] disabled:shadow-none"
+            >
+              <Clapperboard size={18} aria-hidden />
+              Open in Stremio
+            </MotionButton>
+          </div>
         ) : (
           <div className="mt-auto border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
             <p className="m-0 mb-3 text-[11px] font-bold uppercase tracking-[0.11em] text-[hsl(var(--text-secondary))]">
@@ -392,7 +344,6 @@ export default function MediaHubSpace() {
     cinemetaStateRaw,
     catalogCacheRaw,
     localStateRaw,
-    streamsByIdRaw,
     seriesMetaByIdRaw,
     libraryRaw,
     setMediaHubState,
@@ -415,7 +366,6 @@ export default function MediaHubSpace() {
       cinemetaStateRaw: state.mediaHub?.sources?.cinemeta,
       catalogCacheRaw: state.mediaHub?.sources?.catalogCache,
       localStateRaw: state.mediaHub?.sources?.local,
-      streamsByIdRaw: state.mediaHub?.sources?.streamsById,
       seriesMetaByIdRaw: state.mediaHub?.sources?.seriesMetaById,
       libraryRaw: state.mediaHub?.library,
       setMediaHubState: state.actions.setMediaHubState,
@@ -424,13 +374,39 @@ export default function MediaHubSpace() {
   );
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
   const discoverAbortRef = useRef(null);
-  const streamAbortRef = useRef(null);
   const seriesMetaAbortRef = useRef(null);
   const autoScannedFolderKeysRef = useRef(new Set());
+  const hubScrollRef = useRef(null);
+  const thumbMtimeRef = useRef(new Map());
+  const thumbnailByPathRef = useRef({});
+  const [thumbnailByPath, setThumbnailByPath] = useState({});
   const isLgUp = useMinWidth1024();
-  const [streamModalTarget, setStreamModalTarget] = useState(null);
-  const [streamModalOpen, setStreamModalOpen] = useState(false);
-
+  const reducedMotion = useReducedMotion();
+  const mediaHubAsideMotion = useMemo(() => getMediaHubAsideMotion(reducedMotion), [reducedMotion]);
+  const mediaHubOverlayPanelMotion = useMemo(
+    () => getMediaHubOverlayPanelMotion(reducedMotion),
+    [reducedMotion]
+  );
+  const { entranceKey, tier: hubEntranceTier, canStart, onEntranceComplete } = useHubSpaceEntrance(
+    'mediahub',
+    reducedMotion
+  );
+  const hubOrchestratorVariants = useMemo(
+    () => createHubEntranceOrchestratorVariants(hubEntranceTier, reducedMotion),
+    [hubEntranceTier, reducedMotion]
+  );
+  const hubHeaderBandVariants = useMemo(
+    () => createHubEntranceBandVariants(hubEntranceTier, reducedMotion),
+    [hubEntranceTier, reducedMotion]
+  );
+  const mediaHubGridContainerVariants = useMemo(
+    () => createMediaHubGridContainerVariants(hubEntranceTier, reducedMotion),
+    [hubEntranceTier, reducedMotion]
+  );
+  const mediaHubGridItemVariants = useMemo(
+    () => createMediaHubGridItemVariants(hubEntranceTier, reducedMotion),
+    [hubEntranceTier, reducedMotion]
+  );
   const activeTab = activeTabRaw || 'discover';
   const contentMode = contentModeRaw || 'movie';
   const activeGenre = activeGenreRaw || 'All';
@@ -451,7 +427,6 @@ export default function MediaHubSpace() {
   const cinemetaState = cinemetaStateRaw || EMPTY_OBJECT;
   const catalogCache = catalogCacheRaw || EMPTY_OBJECT;
   const localState = localStateRaw || EMPTY_OBJECT;
-  const streamsById = streamsByIdRaw || EMPTY_OBJECT;
   const seriesMetaById = seriesMetaByIdRaw || EMPTY_OBJECT;
   const library = libraryRaw || EMPTY_OBJECT;
 
@@ -468,23 +443,15 @@ export default function MediaHubSpace() {
   );
   const selectedItem = activeTab === 'local' ? selectedLocalFile : selectedDiscoverItem;
 
-  const streamCacheKey = useMemo(
+  const stremioDetailUrl = useMemo(
     () =>
-      selectedItem && activeTab === 'discover'
-        ? discoverStreamCacheKey(selectedItem, contentMode, selectedSeriesSeason, selectedSeriesEpisode)
+      selectedDiscoverItem && activeTab === 'discover'
+        ? buildStremioDetailUrl(contentMode, selectedDiscoverItem, selectedSeriesSeason, selectedSeriesEpisode)
         : null,
-    [activeTab, contentMode, selectedItem, selectedSeriesEpisode, selectedSeriesSeason]
+    [activeTab, contentMode, selectedDiscoverItem, selectedSeriesEpisode, selectedSeriesSeason]
   );
 
-  const streamsCacheEntry = useMemo(() => {
-    if (streamCacheKey == null) return undefined;
-    return streamsById[streamCacheKey];
-  }, [streamCacheKey, streamsById]);
-
-  const selectedStreams = useMemo(() => {
-    if (!selectedItem || activeTab !== 'discover' || streamCacheKey == null) return [];
-    return Array.isArray(streamsCacheEntry) ? streamsCacheEntry : [];
-  }, [activeTab, selectedItem, streamCacheKey, streamsCacheEntry]);
+  const canOpenStremioDetail = Boolean(stremioDetailUrl);
 
   const seriesMetaEntry = selectedDiscoverItem ? seriesMetaById[selectedDiscoverItem.id] : null;
   const seriesVideos = Array.isArray(seriesMetaEntry?.videos) ? seriesMetaEntry.videos : [];
@@ -497,22 +464,6 @@ export default function MediaHubSpace() {
   const episodeOptions = useMemo(
     () => episodesForSeason(seriesVideos, selectedSeriesSeason).map((v) => Number(v.episode)),
     [selectedSeriesSeason, seriesVideos]
-  );
-
-  const streamsLoading = Boolean(
-    selectedItem &&
-      activeTab === 'discover' &&
-      (contentMode === 'movie'
-        ? streamsById[selectedItem.id] === undefined
-        : seriesMetaLoading ||
-            (seriesMetaEntry &&
-              !seriesMetaLoading &&
-              seriesVideos.length > 0 &&
-              (selectedSeriesSeason == null || selectedSeriesEpisode == null)) ||
-            (Number.isFinite(selectedSeriesSeason) &&
-              Number.isFinite(selectedSeriesEpisode) &&
-              streamCacheKey != null &&
-              streamsCacheEntry === undefined))
   );
 
   const filteredDiscovery = useMemo(() => {
@@ -531,6 +482,79 @@ export default function MediaHubSpace() {
     if (!root || activeTab !== 'local') return [];
     return groupLocalFilesByFolder(root, filteredLocal);
   }, [activeTab, filteredLocal, localState.folderPath]);
+
+  const localFilesThumbSignature = useMemo(
+    () => filteredLocal.map((f) => `${f.path}\0${f.modifiedAt || ''}`).join('|'),
+    [filteredLocal]
+  );
+
+  useEffect(() => {
+    thumbnailByPathRef.current = thumbnailByPath;
+  }, [thumbnailByPath]);
+
+  useEffect(() => {
+    if (activeSpaceId !== 'mediahub' || activeTab !== 'local') return undefined;
+    const api = window.api?.mediaHub?.getFileThumbnail;
+    if (typeof api !== 'function') return undefined;
+
+    const paths = new Set(filteredLocal.map((f) => f.path).filter(Boolean));
+    for (const p of thumbMtimeRef.current.keys()) {
+      if (!paths.has(p)) thumbMtimeRef.current.delete(p);
+    }
+    setThumbnailByPath((prev) => {
+      const next = { ...prev };
+      for (const k of Object.keys(next)) {
+        if (!paths.has(k)) delete next[k];
+      }
+      return next;
+    });
+
+    let cancelled = false;
+    const queue = [];
+    for (const file of filteredLocal) {
+      if (!file?.path) continue;
+      const m = file.modifiedAt || '';
+      if (
+        thumbMtimeRef.current.get(file.path) === m &&
+        thumbnailByPathRef.current[file.path]
+      ) {
+        continue;
+      }
+      queue.push(file);
+    }
+
+    let active = 0;
+    const maxConcurrent = 3;
+
+    const pump = () => {
+      if (cancelled) return;
+      while (active < maxConcurrent && queue.length > 0) {
+        const file = queue.shift();
+        if (!file?.path) continue;
+        active += 1;
+        api({ filePath: file.path, maxWidth: 400, maxHeight: 400 })
+          .then((res) => {
+            if (cancelled) return;
+            if (res?.success && res?.fileUrl) {
+              thumbMtimeRef.current.set(file.path, file.modifiedAt || '');
+              setThumbnailByPath((prev) => {
+                if (prev[file.path] === res.fileUrl) return prev;
+                return { ...prev, [file.path]: res.fileUrl };
+              });
+            }
+          })
+          .finally(() => {
+            active -= 1;
+            if (!cancelled) pump();
+          });
+      }
+    };
+
+    pump();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSpaceId, activeTab, localFilesThumbSignature]);
   const updateUi = useCallback((patch) => {
     setMediaHubState({ ui: patch });
   }, [setMediaHubState]);
@@ -759,40 +783,11 @@ export default function MediaHubSpace() {
         selectedSeriesSeason: null,
         selectedSeriesEpisode: null,
       });
-      const imdbOrMetaId = item.imdb_id || item.id;
-      if (contentMode === 'movie') {
-        if (streamsById[item.id] !== undefined) return;
-        if (streamAbortRef.current) streamAbortRef.current.abort();
-        const controller = new AbortController();
-        streamAbortRef.current = controller;
-        try {
-          const response = await fetch(`${TORRENTIO_URL}/stream/movie/${imdbOrMetaId}.json`, {
-            signal: controller.signal,
-          });
-          const data = await response.json();
-          setMediaHubState({
-            sources: {
-              streamsById: {
-                [item.id]: Array.isArray(data?.streams) ? data.streams : [],
-              },
-            },
-          });
-        } catch (error) {
-          if (error?.name === 'AbortError') return;
-          setMediaHubState({
-            ui: { launchFallbackMessage: error?.message || 'Could not fetch stream sources.' },
-            sources: {
-              streamsById: {
-                [item.id]: [],
-              },
-            },
-          });
-        }
-        return;
+      if (contentMode === 'series') {
+        await fetchSeriesMeta(item);
       }
-      await fetchSeriesMeta(item);
     },
-    [contentMode, fetchSeriesMeta, setMediaHubState, streamsById, updateUi]
+    [contentMode, fetchSeriesMeta, updateUi]
   );
 
   useEffect(() => {
@@ -814,61 +809,6 @@ export default function MediaHubSpace() {
     selectedSeriesSeason,
     selectedSeriesEpisode,
     updateUi,
-  ]);
-
-  useEffect(() => {
-    if (activeSpaceId !== 'mediahub' || activeTab !== 'discover' || contentMode !== 'series') return undefined;
-    if (!selectedDiscoverItem) return undefined;
-    if (selectedSeriesSeason == null || selectedSeriesEpisode == null) return undefined;
-    const key = discoverStreamCacheKey(selectedDiscoverItem, 'series', selectedSeriesSeason, selectedSeriesEpisode);
-    if (!key) return undefined;
-    if (streamsCacheEntry !== undefined) return undefined;
-    const imdbOrMetaId = selectedDiscoverItem.imdb_id || selectedDiscoverItem.id;
-    const streamPathId = `${imdbOrMetaId}:${selectedSeriesSeason}:${selectedSeriesEpisode}`;
-    if (streamAbortRef.current) streamAbortRef.current.abort();
-    const controller = new AbortController();
-    streamAbortRef.current = controller;
-    let cancelled = false;
-    (async () => {
-      try {
-        const response = await fetch(`${TORRENTIO_URL}/stream/series/${streamPathId}.json`, {
-          signal: controller.signal,
-        });
-        const data = await response.json();
-        if (cancelled) return;
-        setMediaHubState({
-          sources: {
-            streamsById: {
-              [key]: Array.isArray(data?.streams) ? data.streams : [],
-            },
-          },
-        });
-      } catch (error) {
-        if (error?.name === 'AbortError') return;
-        if (cancelled) return;
-        setMediaHubState({
-          ui: { launchFallbackMessage: error?.message || 'Could not fetch stream sources.' },
-          sources: {
-            streamsById: {
-              [key]: [],
-            },
-          },
-        });
-      }
-    })();
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [
-    activeSpaceId,
-    activeTab,
-    contentMode,
-    selectedDiscoverItem?.id,
-    selectedSeriesSeason,
-    selectedSeriesEpisode,
-    setMediaHubState,
-    streamsCacheEntry,
   ]);
 
   const handleSeriesSeasonChange = useCallback(
@@ -919,45 +859,34 @@ export default function MediaHubSpace() {
     updateUi({ launchFallbackMessage: result?.error || 'Unable to launch local file.' });
   }, [beginLaunchFeedback, endLaunchFeedback, launchWithPreferredPlayer, library.recentLocalIds, setMediaHubState, showLaunchError, updateUi]);
 
-  const openStreamModal = useCallback((stream) => {
-    if (!stream) return;
-    setStreamModalTarget(stream);
-    setStreamModalOpen(true);
-  }, []);
-
-  const closeStreamModal = useCallback(() => {
-    setStreamModalOpen(false);
-  }, []);
-
-  const onStreamModalExitComplete = useCallback(() => {
-    setStreamModalTarget(null);
-  }, []);
-
-  const recordRecentStream = useCallback(
-    (stream) => {
-      const episodeKey =
-        selectedItem?.id &&
-        contentMode === 'series' &&
-        selectedSeriesSeason != null &&
-        selectedSeriesEpisode != null
-          ? `${selectedItem.id}:${selectedSeriesSeason}:${selectedSeriesEpisode}`
-          : null;
-      const key = episodeKey || selectedItem?.id || normalizeStreamLabel(stream);
-      const prev = Array.isArray(library.recentStreamIds) ? library.recentStreamIds : [];
-      const next = [key, ...prev.filter((id) => id !== key)].slice(0, 20);
-      setMediaHubState({ library: { recentStreamIds: next } });
+  const openStremioDetail = useCallback(async () => {
+    if (!stremioDetailUrl) {
+      updateUi({
+        launchFallbackMessage:
+          contentMode === 'series'
+            ? 'Choose a season and episode before opening in Stremio.'
+            : 'Unable to open this title in Stremio.',
+      });
+      return;
+    }
+    const api = window.api;
+    let result;
+    if (api?.openExternalWithResult) {
+      result = await api.openExternalWithResult(stremioDetailUrl);
+    } else {
+      try {
+        api?.openExternal?.(stremioDetailUrl);
+        result = { ok: true };
+      } catch (e) {
+        result = { ok: false, error: e?.message || String(e) };
+      }
+    }
+    if (result?.ok !== false) {
       updateUi({ launchFallbackMessage: '' });
-    },
-    [
-      contentMode,
-      library.recentStreamIds,
-      selectedItem?.id,
-      selectedSeriesEpisode,
-      selectedSeriesSeason,
-      setMediaHubState,
-      updateUi,
-    ]
-  );
+    } else {
+      updateUi({ launchFallbackMessage: result?.error || 'Could not open Stremio.' });
+    }
+  }, [contentMode, stremioDetailUrl, updateUi]);
 
   const choosePreferredPlayer = useCallback(async () => {
     const result = await window.api?.selectExeOrShortcutFile?.();
@@ -983,19 +912,23 @@ export default function MediaHubSpace() {
     <section className={spaceSectionClass}>
       <div className={shellClass}>
         <MotionDiv
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
+          layout={false}
           className={mainPanelClass}
+          variants={hubOrchestratorVariants}
+          initial={canStart ? 'hidden' : false}
+          animate={!canStart ? 'show' : entranceKey > 0 ? 'show' : 'hidden'}
+          onAnimationComplete={
+            entranceKey > 0 && canStart ? () => onEntranceComplete(entranceKey) : undefined
+          }
         >
-          <header className="media-hub-header mb-3 flex flex-col gap-3">
+          <MotionHeader className="media-hub-header mb-3 flex flex-col gap-3" variants={hubHeaderBandVariants}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="media-hub-brand-eyebrow m-0 text-[10px] font-black uppercase tracking-[0.18em] text-[hsl(var(--text-secondary))]">
                   Media Hub
                 </p>
                 <h1 className="media-hub-brand-title m-0 text-3xl font-black uppercase italic tracking-tight text-[hsl(var(--text-primary))]">
-                  Discover & Local
+                  See What People Are Watching
                 </h1>
               </div>
               <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
@@ -1133,112 +1066,82 @@ export default function MediaHubSpace() {
                 </>
               )}
             </div>
-          </header>
+          </MotionHeader>
 
-          <div className="media-hub-grid-scroll flex-1 pr-1">
+          <MotionDiv
+            ref={hubScrollRef}
+            className="media-hub-grid-scroll flex-1 pr-1"
+            variants={mediaHubGridContainerVariants}
+          >
             {activeTab === 'discover' ? (
               <MotionDiv
                 key={`${activeTab}:${contentMode}:${activeGenre}:${searchQuery ? 'search' : 'base'}`}
-                variants={GRID_VARIANTS}
+                variants={GRID_LIST_PARENT_VARIANTS}
                 initial="hidden"
                 animate="show"
-                className="media-hub-grid"
+                className={
+                  filteredDiscovery.length > MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD
+                    ? 'flex w-full min-h-0 flex-1 flex-col'
+                    : 'w-full'
+                }
               >
-                {filteredDiscovery.map((item) => (
-                  <MotionButton
-                    key={item.id}
-                    type="button"
-                    onClick={() => openDiscoverItem(item)}
-                    whileHover={{ y: -5, scale: 1.015 }}
-                    whileTap={{ scale: 0.985 }}
-                    transition={{ duration: 0.22, ease: CARD_EASE }}
-                    variants={GRID_ITEM_VARIANTS}
-                    className={`media-hub-card media-hub-card--interactive p-2 text-left ${selectedItemId === item.id ? 'media-hub-card--selected' : ''}`}
-                  >
-                    {getPosterUrl(item) ? (
-                      <MotionDiv className="relative overflow-hidden rounded-[0.95rem]">
-                        <img src={getPosterUrl(item)} alt={item.name} className="media-hub-poster" loading="lazy" />
-                        <div className="media-hub-card__veil absolute inset-0" aria-hidden />
-                        <div className="media-hub-card__cta absolute bottom-2 left-2 right-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-on-accent))]">
-                          <Play size={13} />
-                          Open sources
+                <MediaHubDiscoverGrid
+                  items={filteredDiscovery}
+                  scrollRef={hubScrollRef}
+                  renderItem={(item, index) => (
+                    <MotionButton
+                      key={item.id}
+                      type="button"
+                      custom={index}
+                      layout
+                      onClick={() => openDiscoverItem(item)}
+                      whileHover={{ y: -20 }}
+                      whileTap={{ scale: 0.985 }}
+                      transition={{ duration: 0.22, ease: CARD_EASE }}
+                      variants={mediaHubGridItemVariants}
+                      className={`media-hub-card media-hub-card--interactive p-2 text-left ${selectedItemId === item.id ? 'media-hub-card--selected' : ''}`}
+                    >
+                      {getPosterUrl(item) ? (
+                        <MotionDiv className="relative overflow-hidden rounded-[0.95rem]">
+                          <img src={getPosterUrl(item)} alt={item.name} className="media-hub-poster" loading="lazy" />
+                          <div className="media-hub-card__veil absolute inset-0" aria-hidden />
+                          <div className="media-hub-card__cta absolute bottom-2 left-2 right-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-on-accent))]">
+                            <Play size={13} />
+                            Details
+                          </div>
+                        </MotionDiv>
+                      ) : (
+                        <div className="media-hub-poster flex items-center justify-center text-[hsl(var(--text-tertiary))]">
+                          <Video size={28} />
                         </div>
-                      </MotionDiv>
-                    ) : (
-                      <div className="media-hub-poster flex items-center justify-center text-[hsl(var(--text-tertiary))]">
-                        <Video size={28} />
+                      )}
+                      <div className="px-1 pb-1 pt-2">
+                        <p className="media-hub-card__title m-0 truncate text-[11px] font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
+                          {item.name}
+                        </p>
+                        <p className="media-hub-card__meta m-0 mt-1 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                          {item.year || 'Unknown year'}
+                        </p>
                       </div>
-                    )}
-                    <div className="px-1 pb-1 pt-2">
-                      <p className="media-hub-card__title m-0 truncate text-[11px] font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
-                        {item.name}
-                      </p>
-                      <p className="media-hub-card__meta m-0 mt-1 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                        {item.year || 'Unknown year'}
-                      </p>
-                    </div>
-                  </MotionButton>
-                ))}
+                    </MotionButton>
+                  )}
+                />
               </MotionDiv>
             ) : (
               <MotionDiv
                 key={`local:${localState.folderPath || 'none'}:${searchQuery ? 'q' : 'all'}`}
-                variants={GRID_VARIANTS}
+                variants={GRID_LIST_PARENT_VARIANTS}
                 initial="hidden"
                 animate="show"
                 className="media-hub-local-groups"
               >
-                {localFolderGroups.map((group) => (
-                  <section key={group.key} className="media-hub-local-section" aria-label={group.title}>
-                    <div className="media-hub-local-section__head">
-                      <div className="media-hub-local-section__head-main">
-                        <Folder size={16} className="media-hub-local-section__folder-icon shrink-0" aria-hidden />
-                        <div className="min-w-0">
-                          <h2 className="media-hub-local-section__title">{group.title}</h2>
-                          {group.subtitle ? (
-                            <p className="media-hub-local-section__subtitle">{group.subtitle}</p>
-                          ) : null}
-                        </div>
-                      </div>
-                      <span className="media-hub-local-section__count">{group.files.length}</span>
-                    </div>
-                    <div className="media-hub-grid media-hub-grid--section">
-                      {group.files.map((item) => (
-                        <MotionButton
-                          key={item.id}
-                          type="button"
-                          onClick={() => updateUi({ selectedItemId: item.id, launchFallbackMessage: '' })}
-                          whileHover={{ y: -5, scale: 1.015 }}
-                          whileTap={{ scale: 0.985 }}
-                          transition={{ duration: 0.22, ease: CARD_EASE }}
-                          variants={GRID_ITEM_VARIANTS}
-                          className={`media-hub-card media-hub-card--interactive media-hub-card--local-video p-2 text-left ${selectedItemId === item.id ? 'media-hub-card--selected' : ''}`}
-                        >
-                          <div className="media-hub-local-video-placeholder relative overflow-hidden rounded-[0.95rem]">
-                            <div className="media-hub-local-video-placeholder__gradient" aria-hidden />
-                            <Video className="media-hub-local-video-placeholder__icon" size={32} aria-hidden />
-                            {item.extension ? (
-                              <span className="media-hub-local-video-placeholder__badge">{item.extension.replace(/^\./, '')}</span>
-                            ) : null}
-                            <div className="media-hub-card__veil absolute inset-0" aria-hidden />
-                            <div className="media-hub-card__cta absolute bottom-2 left-2 right-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-on-accent))]">
-                              <Play size={13} />
-                              Play video
-                            </div>
-                          </div>
-                          <div className="px-1 pb-1 pt-2">
-                            <p className="media-hub-card__title m-0 truncate text-[11px] font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
-                              {item.name}
-                            </p>
-                            <p className="media-hub-card__meta m-0 mt-1 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                              {Number.isFinite(item.size) && item.size > 0 ? formatBytes(item.size) : 'Video'}
-                            </p>
-                          </div>
-                        </MotionButton>
-                      ))}
-                    </div>
-                  </section>
-                ))}
+                <MediaHubLocalShelfSection
+                  localFolderGroups={localFolderGroups}
+                  thumbnailByPath={thumbnailByPath}
+                  onSelectItem={(id) => updateUi({ selectedItemId: id, launchFallbackMessage: '' })}
+                  onLaunchLocal={handlePlayLocal}
+                  hubScrollContainerRef={hubScrollRef}
+                />
                 {searchQuery.trim() && filteredLocal.length === 0 && localFiles.length > 0 ? (
                   <p className="m-0 mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
                     No files match your search.
@@ -1258,7 +1161,7 @@ export default function MediaHubSpace() {
             {(activeTab === 'discover' && cinemetaState.loading) || (activeTab === 'local' && localState.loading) ? (
               <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">Loading...</p>
             ) : null}
-          </div>
+          </MotionDiv>
 
           {activeTab === 'discover' && cinemetaState.error ? (
             <p className="m-0 mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--state-error))]">{cinemetaState.error}</p>
@@ -1286,10 +1189,10 @@ export default function MediaHubSpace() {
           {showDetailAside && selectedItem ? (
             <MotionDiv
               key={`detail-aside:${selectedItem.id}`}
-              initial={{ x: 60, opacity: 0, scale: 0.9 }}
-              animate={{ x: 0, opacity: 1, scale: 1 }}
-              exit={{ x: 30, opacity: 0, scale: 0.95 }}
-              transition={SPRING_DETAIL}
+              initial={mediaHubAsideMotion.initial}
+              animate={mediaHubAsideMotion.animate}
+              exit={mediaHubAsideMotion.exit}
+              transition={mediaHubAsideMotion.transition}
               className="media-hub-detail-aside-wrap min-h-0"
             >
               <MediaHubItemDetail
@@ -1298,11 +1201,9 @@ export default function MediaHubSpace() {
                 activeTab={activeTab}
                 contentMode={contentMode}
                 onClose={clearSelection}
-                streamsLoading={streamsLoading}
-                selectedStreams={selectedStreams}
-                onOpenStreamModal={openStreamModal}
+                canOpenStremioDetail={canOpenStremioDetail}
+                onOpenStremioDetail={openStremioDetail}
                 onPlayLocal={handlePlayLocal}
-                normalizeStreamLabel={normalizeStreamLabel}
                 formatBytes={formatBytes}
                 seriesMetaLoading={seriesMetaLoading}
                 seriesMetaError={seriesMetaError}
@@ -1338,10 +1239,10 @@ export default function MediaHubSpace() {
             />
             <div className="media-hub-detail-overlay__center pointer-events-none">
               <MotionDiv
-                initial={{ y: 48, opacity: 0, scale: 0.94 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 28, opacity: 0, scale: 0.96 }}
-                transition={SPRING_DETAIL}
+                initial={mediaHubOverlayPanelMotion.initial}
+                animate={mediaHubOverlayPanelMotion.animate}
+                exit={mediaHubOverlayPanelMotion.exit}
+                transition={mediaHubOverlayPanelMotion.transition}
                 className="pointer-events-auto max-h-full w-full overflow-hidden px-3 py-6 sm:px-5"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1351,11 +1252,9 @@ export default function MediaHubSpace() {
                   activeTab={activeTab}
                   contentMode={contentMode}
                   onClose={clearSelection}
-                  streamsLoading={streamsLoading}
-                  selectedStreams={selectedStreams}
-                  onOpenStreamModal={openStreamModal}
+                  canOpenStremioDetail={canOpenStremioDetail}
+                  onOpenStremioDetail={openStremioDetail}
                   onPlayLocal={handlePlayLocal}
-                  normalizeStreamLabel={normalizeStreamLabel}
                   formatBytes={formatBytes}
                   seriesMetaLoading={seriesMetaLoading}
                   seriesMetaError={seriesMetaError}
@@ -1373,30 +1272,6 @@ export default function MediaHubSpace() {
         ) : null}
       </AnimatePresence>
 
-      {streamModalTarget ? (
-        <MediaHubStreamOpenModal
-          isOpen={streamModalOpen}
-          stream={streamModalTarget}
-          onClose={closeStreamModal}
-          onExitAnimationComplete={onStreamModalExitComplete}
-          normalizeStreamLabel={normalizeStreamLabel}
-          preferredPlayerPath={preferredPlayerPath}
-          preferredPlayerArgs={preferredPlayerArgs}
-          onSavePreferredPlayer={(path, args) =>
-            updateUi({ preferredPlayerPath: path, preferredPlayerArgs: args || '' })
-          }
-          onOpenedSuccessfully={() => recordRecentStream(streamModalTarget)}
-          mediaTitle={
-            activeTab === 'discover' && selectedItem?.name
-              ? contentMode === 'series' &&
-                selectedSeriesSeason != null &&
-                selectedSeriesEpisode != null
-                ? `${selectedItem.name} · S${selectedSeriesSeason}E${String(selectedSeriesEpisode).padStart(2, '0')}`
-                : selectedItem.name
-              : ''
-          }
-        />
-      ) : null}
     </section>
   );
 }

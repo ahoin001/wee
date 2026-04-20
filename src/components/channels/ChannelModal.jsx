@@ -159,7 +159,7 @@ function ChannelModal({
   });
 
   useChannelModalInitialization({
-    isOpen,
+    isOpen: Boolean(isOpen),
     channelId,
     configuredChannels,
     channelConfigs,

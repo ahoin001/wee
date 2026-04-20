@@ -23,7 +23,8 @@ function WeeSettingsCollapsibleSection({
 
   const toggle = useCallback(() => setOpen((o) => !o), []);
 
-  const spring = reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 32, mass: 0.85 };
+  /** Slightly bouncier panel — Wee “gooey” feel (tabBody-adjacent). */
+  const spring = reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 360, damping: 24, mass: 0.78 };
 
   return (
     <div

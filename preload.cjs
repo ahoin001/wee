@@ -104,6 +104,8 @@ contextBridge.exposeInMainWorld('api', {
   minimize: () => ipcRenderer.send('minimize-window'),
   onFullscreenState: (cb) => ipcRenderer.on('fullscreen-state', (e, val) => cb(val)),
   onFrameState: (cb) => ipcRenderer.on('frame-state', (e, val) => cb(val)),
+  onAppWindowActivity: (cb) => ipcRenderer.on('app-window-activity', (_e, payload) => cb(payload)),
+  offAppWindowActivity: (cb) => ipcRenderer.removeListener('app-window-activity', cb),
   openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
   openExternal: (url) => ipcRenderer.send('open-external-url', url),
   /** @returns {Promise<{ ok: boolean, error?: string }>} */
@@ -115,6 +117,7 @@ contextBridge.exposeInMainWorld('api', {
     scanFolder: (args) => ipcRenderer.invoke('mediahub:scan-folder', args),
     detectSuggestedPlayers: () => ipcRenderer.invoke('mediahub:detect-suggested-players'),
     openWithWindowsDialog: (args) => ipcRenderer.invoke('mediahub:open-with-windows-dialog', args),
+    getFileThumbnail: (args) => ipcRenderer.invoke('mediahub:get-file-thumbnail', args),
   },
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
   setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),

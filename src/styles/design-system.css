@@ -340,6 +340,13 @@
   --widget-system-info-start: 239 84% 67%;
   --widget-system-info-end: 262 52% 47%;
 
+  /* Gooey floating panel (Spotify widget hub parity — frame is theme-agnostic) */
+  --widget-gooey-frame-border: 0 0% 10%;
+  --widget-gooey-inner-bg: 0 0% 7%;
+  /* Hub-widget panel shadow */
+  --widget-gooey-frame-shadow: 0 50px 100px -20px rgb(0 0 0 / 0.8);
+  --widget-gooey-ambient-opacity: 0.3;
+
   /* Wee — channel config modal & space pill (semantic surfaces; use hsl(var(--wee-*))) */
   --wee-overlay-backdrop: 222 47% 11% / 0.55;
   --wee-surface-shell: 0 0% 100%;

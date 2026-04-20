@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { Film, Maximize2, PlayCircle, Shield, Volume2 } from 'lucide-react';
-import Card from '../../../ui/Card';
 import Slider from '../../../ui/Slider';
 import Text from '../../../ui/Text';
 import WButton from '../../../ui/WButton';
@@ -13,6 +13,7 @@ import {
   WeeModalFieldCard,
   WeeSectionEyebrow,
   WeeSegmentedControl,
+  WeeSettingsCollapsibleSection,
 } from '../../../ui/wee';
 import AudioManager from '../../../utils/AudioManager';
 
@@ -70,28 +71,7 @@ function ChannelModalBehaviorTab({
     else setKenBurnsEnabled(false);
   };
 
-  const renderDisplayOptionsSection = () => (
-    <div className="flex flex-col gap-3">
-      <label className="channel-radio-label channel-radio-label-compact">
-        <input
-          type="radio"
-          name={`admin-mode-${channelId}`}
-          checked={!asAdmin}
-          onChange={() => setAsAdmin(false)}
-        />
-        Normal Launch
-      </label>
-      <label className="channel-radio-label channel-radio-label-compact">
-        <input
-          type="radio"
-          name={`admin-mode-${channelId}`}
-          checked={asAdmin}
-          onChange={() => setAsAdmin(true)}
-        />
-        Run as Administrator
-      </label>
-    </div>
-  );
+  const reduceMotion = useReducedMotion();
 
   const renderHoverSoundSection = () => (
     <div className="channel-stack-16">
@@ -280,58 +260,118 @@ function ChannelModalBehaviorTab({
     <div className="flex max-w-4xl flex-col gap-12 md:gap-16">
       <section className="space-y-6">
         <WeeSectionEyebrow trackingClassName="tracking-[0.35em]">Privileges & audio</WeeSectionEyebrow>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <WeeModalFieldCard hoverAccent="primary">
-            <WeeIconHeadingRow icon={Shield} title="Privileges" />
-            <p className="mb-4 text-[11px] font-bold uppercase leading-relaxed text-[hsl(var(--text-tertiary))]">
-              Choose how this application launches when the channel is clicked.
-            </p>
-            {renderDisplayOptionsSection()}
-          </WeeModalFieldCard>
 
-          <WeeModalFieldCard hoverAccent="discovery">
-            <WeeIconHeadingRow
-              icon={Volume2}
-              title="Audio focus"
-              iconClassName="text-[hsl(var(--wee-accent-discovery))]"
-            />
-            <WeeDescriptionToggleRow description="Play a custom sound when hovering over this channel.">
+        <WeeModalFieldCard hoverAccent="primary" className="w-full" paddingClassName="p-0">
+          <div
+            role="button"
+            tabIndex={0}
+            aria-pressed={asAdmin}
+            aria-label="Run as administrator"
+            onClick={() => setAsAdmin(!asAdmin)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setAsAdmin(!asAdmin);
+              }
+            }}
+            className="flex w-full cursor-pointer flex-col rounded-[var(--wee-radius-card)] p-8 text-left outline-none transition-[background-color,box-shadow] duration-200 hover:bg-[hsl(var(--state-hover)/0.22)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary)/0.45)] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--wee-surface-card))] md:p-10"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 flex-1 items-start gap-4">
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-[var(--shadow-sm)] transition-colors ${
+                    asAdmin
+                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+                      : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-tertiary))]'
+                  }`}
+                >
+                  <Shield size={24} strokeWidth={2.35} aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="mb-1 font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--wee-text-header))]">
+                    Run as administrator
+                  </p>
+                  <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
+                    When on, Wee requests Administrator rights for this channel&apos;s app. Leave off for a standard user
+                    launch.
+                  </Text>
+                </div>
+              </div>
+              <div
+                data-wee-card-toggle-guard
+                className="shrink-0 pt-0.5"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <WToggle checked={asAdmin} onChange={setAsAdmin} disableLabelClick />
+              </div>
+            </div>
+          </div>
+        </WeeModalFieldCard>
+
+        <WeeSettingsCollapsibleSection
+          key={`hover-sound-${channelId}`}
+          icon={Volume2}
+          title="Custom hover sound"
+          description="Play a sound from your library when hovering over this channel — expand to enable and configure."
+          defaultOpen={hoverSoundEnabled}
+          className="w-full"
+        >
+          <div className="flex flex-col gap-6">
+            <WeeDescriptionToggleRow
+              description={
+                <div className="space-y-1">
+                  <Text variant="small" className="!m-0 text-[hsl(var(--text-primary))]">
+                    Enable hover sound
+                  </Text>
+                  <Text variant="help" className="!m-0">
+                    Plays when the cursor enters this channel; fades out on leave. Pick a library sound or upload your own.
+                  </Text>
+                </div>
+              }
+              descriptionClassName=""
+            >
               <div
                 data-wee-card-toggle-guard
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <WToggle checked={hoverSoundEnabled} onChange={(checked) => setHoverSoundEnabled(checked)} />
+                <WToggle checked={hoverSoundEnabled} onChange={setHoverSoundEnabled} disableLabelClick />
               </div>
             </WeeDescriptionToggleRow>
-          </WeeModalFieldCard>
-        </div>
 
-        <Card
-          className="!mt-0 !rounded-[var(--wee-radius-card)] !border-2 !border-[hsl(var(--wee-border-card))] !bg-[hsl(var(--wee-surface-card))] !shadow-[var(--shadow-card)]"
-          title="Custom Hover Sound"
-          separator
-          desc="Set a custom sound to play when hovering over this channel."
-          onClick={(e) => {
-            if (
-              e.target.closest(
-                'button, input, textarea, select, a, [role="slider"], [data-wee-card-toggle-guard], .channel-sound-card, label'
-              )
-            ) {
-              return;
-            }
-            setHoverSoundEnabled(!hoverSoundEnabled);
-          }}
-        >
-          {hoverSoundEnabled && (
-            <div className="rounded-[2rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.65)] p-5 md:p-6">
-              {renderHoverSoundSection()}
-            </div>
-          )}
-          {!hoverSoundEnabled && (
-            <span className="channel-inline-help">Set a custom sound to play when hovering over this channel.</span>
-          )}
-        </Card>
+            <AnimatePresence mode="wait" initial={false}>
+              {hoverSoundEnabled ? (
+                <m.div
+                  key="hover-sound-body"
+                  initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0.12 }
+                      : { type: 'spring', stiffness: 380, damping: 28, mass: 0.82 }
+                  }
+                  className="rounded-[2rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.65)] p-5 md:p-6"
+                >
+                  {renderHoverSoundSection()}
+                </m.div>
+              ) : (
+                <m.div
+                  key="hover-sound-off"
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.15 }}
+                >
+                  <Text variant="help" className="!m-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-5">
+                    Turn on the toggle above to choose a sound, adjust volume, and test playback.
+                  </Text>
+                </m.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </WeeSettingsCollapsibleSection>
       </section>
 
       <section className="space-y-6">

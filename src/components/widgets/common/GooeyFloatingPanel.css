@@ -1,0 +1,81 @@
+/**
+ * Gooey floating panel — shell only; album colors via --spotify-gooey-* on ancestor.
+ */
+.gooey-floating-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 3.5rem;
+  border-width: 8px;
+  border-style: solid;
+  /* Hub: border-[#1a1a1a] */
+  border-color: hsl(var(--widget-gooey-frame-border));
+  /* Fallback when caller does not set inline `background` */
+  background: var(--spotify-gooey-bg, hsl(var(--widget-gooey-inner-bg)));
+  box-shadow: var(--widget-gooey-frame-shadow);
+  color: var(--spotify-gooey-text, hsl(var(--color-pure-white)));
+  transition:
+    background-color 0.7s ease,
+    color 0.7s ease,
+    border-color 0.7s ease;
+}
+
+.gooey-floating-panel--dragging {
+  opacity: 0.97;
+}
+
+.gooey-floating-panel--resizing {
+  opacity: 0.98;
+}
+
+.gooey-floating-panel__ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.gooey-floating-panel__ambient-orb {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  opacity: var(--widget-gooey-ambient-opacity);
+  filter: blur(120px);
+  background-color: var(--spotify-gooey-primary, rgb(var(--spotify-green-rgb)));
+}
+
+.gooey-floating-panel__ambient-orb--static {
+  animation: none;
+}
+
+.gooey-floating-panel__inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.gooey-floating-panel__scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--spotify-gooey-surface, hsl(var(--color-pure-white) / 0.08)) transparent;
+}
+
+.gooey-floating-panel__scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.gooey-floating-panel__scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gooey-floating-panel__scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 20px;
+  background: var(--spotify-gooey-surface, hsl(var(--color-pure-white) / 0.12));
+}

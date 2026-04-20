@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
+import React, { useState, useMemo, useEffect, forwardRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Clapperboard,
   Film,
@@ -15,352 +15,500 @@ import {
   Maximize2,
   Volume2,
   Settings,
-  RotateCcw
+  RotateCcw,
+  Link as LinkIcon,
+  Folder,
+  FileVideo,
+  ChevronLeft,
+  MoreVertical,
+  LayoutGrid,
+  List,
+  Star,
+  Zap,
+  ShieldCheck,
+  Cpu,
+  Users,
+  Copy,
+  Check
 } from 'lucide-react';
 
 /**
- * MOCK DATA & CONSTANTS
+ * API CONSTANTS (Stremio Ecosystem)
  */
+const CINEMETA_URL = "https://v3-cinemeta.strem.io";
+const TORRENTIO_URL = "https://torrentio.strem.fun";
 const GENRES = ['All', 'Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Animation'];
 const SPRING_CONFIG = { type: "spring", stiffness: 350, damping: 28, mass: 1 };
 
-const MOCK_ITEMS = [
-  { id: 'm1', name: 'Interstellar', year: '2014', poster: 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?auto=format&fit=crop&q=80&w=1000', type: 'movie', genre: 'Sci-Fi', description: 'When mankind is facing extinction, a group of astronauts travel through a wormhole in search of a new home.', streamUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' },
-  { id: 'm2', name: 'The Dark Knight', year: '2008', poster: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=80&w=1000', type: 'movie', genre: 'Action', description: 'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham.', streamUrl: 'https://www.w3schools.com/html/movie.mp4' },
-  { id: 'm3', name: 'Cyberpunk Edgerunners', year: '2022', poster: 'https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&q=80&w=1000', type: 'series', genre: 'Animation', description: 'A street kid trying to survive in a technology and body modification-obsessed city of the future.', streamUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' },
-  { id: 'm4', name: 'Inception', year: '2010', poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=1000', type: 'movie', genre: 'Sci-Fi', description: 'A thief who steals corporate secrets through the use of dream-sharing technology.', streamUrl: 'https://www.w3schools.com/html/movie.mp4' },
-];
+const MOCK_FILESYSTEM = {
+  id: 'root',
+  name: 'Videos',
+  type: 'folder',
+  children: [
+    {
+      id: 'f1',
+      name: 'Movies',
+      type: 'folder',
+      children: [
+        { id: 'vid1', name: 'Family_Vacation_2023.mp4', type: 'file', size: '1.2 GB', date: '2023-08-12' },
+        { id: 'vid2', name: 'Interstellar_4K.mkv', type: 'file', size: '14.5 GB', date: '2024-01-05' },
+      ]
+    },
+    { id: 'vid5', name: 'Tutorial_Draft.mov', type: 'file', size: '450 MB', date: '2024-03-15' },
+  ]
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('discover');
   const [contentMode, setContentMode] = useState('movie');
   const [activeGenre, setActiveGenre] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Dynamic Data States
+  const [discoveryItems, setDiscoveryItems] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [activeStream, setActiveStream] = useState(null);
+  const [magnetInput, setMagnetInput] = useState('');
+  const [isCopied, setIsCopied] = useState(null); // ID of copied link
+  
+  // Engine States
+  const [isFetchingCatalog, setIsFetchingCatalog] = useState(false);
+  const [isFetchingSources, setIsFetchingSources] = useState(false);
+  const [foundSources, setFoundSources] = useState([]);
+
+  // File Explorer State
+  const [currentFolder, setCurrentFolder] = useState(MOCK_FILESYSTEM);
+  const [history, setHistory] = useState([]);
+
+  // 1. CINIMETA: Fetch Top Catalog
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      setIsFetchingCatalog(true);
+      try {
+        // Fetching top movies from Cinimeta
+        const response = await fetch(`${CINEMETA_URL}/catalog/${contentMode}/top.json`);
+        const data = await response.json();
+        // Transform Stremio format to our UI format
+        const items = data.metas.map(m => ({
+          id: m.imdb_id || m.id,
+          name: m.name,
+          year: m.year || m.releaseInfo,
+          rating: m.imdbRating || 'N/A',
+          poster: m.poster,
+          type: m.type,
+          genre: m.genres?.[0] || 'Unknown',
+          description: m.description
+        }));
+        setDiscoveryItems(items);
+      } catch (err) {
+        console.error("Failed to fetch Cinimeta catalog", err);
+      } finally {
+        setIsFetchingCatalog(false);
+      }
+    };
+
+    if (activeTab === 'discover') fetchCatalog();
+  }, [contentMode, activeTab]);
+
+  // 2. TORRENTIO: Fetch Streams for selected Item
+  useEffect(() => {
+    const fetchStreams = async () => {
+      if (!selectedItemId) return;
+      setIsFetchingSources(true);
+      setFoundSources([]);
+      
+      try {
+        // Querying Torrentio for actual stream links/magnets
+        const response = await fetch(`${TORRENTIO_URL}/stream/${contentMode}/${selectedItemId}.json`);
+        const data = await response.json();
+        
+        if (data.streams) {
+          setFoundSources(data.streams.map((s, idx) => ({
+            id: `stream-${idx}`,
+            provider: s.name.split('\n')[0], // Extract provider name
+            quality: s.title.split('\n')[0], // Quality usually in first line of title
+            seeds: s.title.match(/👤 (\d+)/)?.[1] || '?',
+            size: s.title.match(/💾 ([\d.]+ [G|M]B)/)?.[1] || 'Unknown',
+            magnet: s.infoHash ? `magnet:?xt=urn:btih:${s.infoHash}` : s.url,
+            raw: s
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch Torrentio streams", err);
+      } finally {
+        setIsFetchingSources(false);
+      }
+    };
+
+    fetchStreams();
+  }, [selectedItemId, contentMode]);
 
   const filteredItems = useMemo(() => {
-    return MOCK_ITEMS.filter(item => {
-      const matchesType = item.type === contentMode;
+    return discoveryItems.filter(item => {
       const matchesGenre = activeGenre === 'All' || item.genre === activeGenre;
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesType && matchesGenre && matchesSearch;
+      return matchesGenre && matchesSearch;
     });
-  }, [contentMode, activeGenre, searchQuery]);
+  }, [discoveryItems, activeGenre, searchQuery]);
 
-  const selectedItem = MOCK_ITEMS.find(i => i.id === selectedItemId);
+  const selectedItem = discoveryItems.find(i => i.id === selectedItemId);
   const backdropImage = selectedItem?.poster || filteredItems[0]?.poster;
 
+  const copyToClipboard = (text, id) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setIsCopied(id);
+      setTimeout(() => setIsCopied(null), 2000);
+    } catch (err) {
+      console.error('Copy failed', err);
+    }
+    document.body.removeChild(textArea);
+  };
+
+  const navigateToFolder = (folder) => {
+    setHistory(prev => [...prev, currentFolder]);
+    setCurrentFolder(folder);
+  };
+
+  const navigateBack = () => {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    setHistory(prev => prev.slice(0, -1));
+    setCurrentFolder(prev);
+  };
+
   return (
-    <div className="relative h-screen w-full bg-[#050505] text-zinc-100 overflow-hidden font-sans selection:bg-blue-500/30">
+    <div className="relative h-screen w-full bg-[#020202] text-zinc-100 overflow-hidden font-sans selection:bg-blue-500/30">
       
-      {/* AMBIENT BACKDROP */}
+      {/* IMMERSIVE AMBIENT BACKGROUND */}
       <AnimatePresence mode="wait">
         <motion.div
           key={backdropImage}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.2 }}
+          animate={{ opacity: 0.15 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.2 }}
-          className="absolute inset-0 pointer-events-none"
+          transition={{ duration: 1.5 }}
+          className="absolute inset-0 pointer-events-none scale-110"
           style={{
             backgroundImage: `url(${backdropImage})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(120px) saturate(1.8)',
+            filter: 'blur(120px) saturate(2)',
           }}
         />
       </AnimatePresence>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#050505]/90 to-[#050505] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/90 to-transparent pointer-events-none" />
 
-      {/* VIDEO PLAYER OVERLAY */}
+      {/* VIDEO PLAYER */}
       <AnimatePresence>
-        {activeStream && (
-          <VideoPlayer 
-            item={activeStream} 
-            onClose={() => setActiveStream(null)} 
-          />
-        )}
+        {activeStream && <VideoPlayer item={activeStream} onClose={() => setActiveStream(null)} />}
       </AnimatePresence>
 
-      <div className="relative z-10 flex h-full p-6 gap-6">
-        {/* BROWSER SECTION */}
-        <section className="flex-1 flex flex-col min-w-0">
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-            <motion.div initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={SPRING_CONFIG}>
-              <div className="flex items-center gap-2 mb-1">
-                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500/80">Cinematic Hub</span>
-              </div>
-              <h1 className="text-5xl font-black italic tracking-tighter uppercase flex items-center gap-3 leading-none">
-                EXPLORE<span className="text-blue-500 not-italic font-light">MEDIA</span>
+      <div className="relative z-10 h-full flex flex-col">
+        {/* TOP NAVIGATION BAR */}
+        <header className="px-10 py-8 flex items-center justify-between border-b border-white/5 backdrop-blur-xl bg-black/40">
+          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex items-center gap-12">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-black italic tracking-tighter uppercase leading-none">
+                SPOTLIGHT<span className="text-blue-500 not-italic font-thin">UI</span>
               </h1>
-              
-              <div className="flex gap-2 mt-6 p-1 bg-white/5 rounded-full w-fit border border-white/10 backdrop-blur-md">
-                <TabButton active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} icon={<Clapperboard size={14}/>} label="Discover" />
-                <TabButton active={activeTab === 'local'} onClick={() => setActiveTab('local')} icon={<HardDrive size={14}/>} label="Local" />
-              </div>
-            </motion.div>
+              <span className="bg-blue-600/20 text-blue-500 text-[8px] px-2 py-0.5 rounded-full font-black tracking-widest uppercase border border-blue-500/20">Stremio Engine</span>
+            </div>
+            <nav className="flex items-center gap-6">
+              <NavButton active={activeTab === 'discover'} onClick={() => setActiveTab('discover')} label="Discover" />
+              <NavButton active={activeTab === 'local'} onClick={() => setActiveTab('local')} label="My Files" />
+            </nav>
+          </motion.div>
 
-            <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10 backdrop-blur-xl">
-              <div className="flex gap-1 p-1 bg-black/20 rounded-xl">
-                <ModeToggle active={contentMode === 'movie'} onClick={() => setContentMode('movie')} icon={<Film size={14}/>} label="Movies" />
-                <ModeToggle active={contentMode === 'series'} onClick={() => setContentMode('series')} icon={<Tv size={14}/>} label="Series" />
-              </div>
-              <div className="h-8 w-px bg-white/10 mx-1" />
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors" size={16} />
-                <input 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search titles..."
-                  className="bg-black/20 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm w-48 placeholder:text-zinc-600 outline-none focus:border-blue-500/50 transition-all"
-                />
-              </div>
-              <GenreSelector activeGenre={activeGenre} onChange={setActiveGenre} />
-            </motion.div>
-          </header>
+          <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex items-center gap-4">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-500 transition-colors" size={16} />
+              <input 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search Cinimeta..."
+                className="bg-white/5 border border-white/5 rounded-full pl-10 pr-6 py-2.5 text-xs w-64 placeholder:text-zinc-600 outline-none focus:bg-white/10 focus:border-blue-500/30 transition-all"
+              />
+            </div>
+            <div className="h-8 w-px bg-white/10" />
+            <button className="p-2.5 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><Settings size={18} /></button>
+          </motion.div>
+        </header>
 
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            <LayoutGroup>
-              <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-24">
-                <AnimatePresence mode='popLayout'>
-                  {filteredItems.map((item, idx) => (
-                    <MediaCard key={item.id} item={item} isSelected={selectedItemId === item.id} onClick={() => setSelectedItemId(item.id)} delay={idx * 0.03} />
-                  ))}
-                </AnimatePresence>
-              </motion.div>
-            </LayoutGroup>
-          </div>
-        </section>
-
-        {/* DETAIL PANEL */}
-        <aside className="hidden lg:flex w-[420px] flex-col">
-          <AnimatePresence mode="wait">
-            {selectedItem ? (
-              <motion.div
-                key={selectedItem.id}
-                initial={{ x: 60, opacity: 0, scale: 0.9 }}
-                animate={{ x: 0, opacity: 1, scale: 1 }}
-                exit={{ x: 30, opacity: 0, scale: 0.95 }}
-                transition={SPRING_CONFIG}
-                className="flex-1 bg-white/[0.03] border border-white/10 rounded-[3rem] overflow-hidden backdrop-blur-2xl flex flex-col shadow-2xl shadow-black/50"
-              >
-                <div className="h-80 relative overflow-hidden group">
-                  <motion.img layoutId={`img-${selectedItem.id}`} src={selectedItem.poster} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/20 to-transparent" />
-                  <div className="absolute top-6 right-6 flex gap-2">
-                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setSelectedItemId(null)} className="p-3 bg-black/40 rounded-full border border-white/10 backdrop-blur-md text-white"><X size={18} /></motion.button>
-                  </div>
-                  <div className="absolute bottom-6 left-8 right-8">
-                     <h2 className="text-4xl font-black uppercase italic leading-none mb-2 tracking-tighter">{selectedItem.name}</h2>
-                     <div className="flex items-center gap-4 text-blue-400 font-bold text-[10px] tracking-widest uppercase">
-                        <span>{selectedItem.genre}</span>
-                        <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                        <span>{selectedItem.type}</span>
-                     </div>
-                  </div>
+        <main className="flex-1 flex overflow-hidden">
+          {/* MAIN GRID SECTION */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
+            {activeTab === 'discover' ? (
+              <div className="max-w-[1600px] mx-auto">
+                <div className="flex items-center justify-between mb-10">
+                   <div>
+                     <h2 className="text-xs font-black uppercase tracking-[0.4em] text-blue-500 mb-2">Discovery Mode</h2>
+                     <p className="text-3xl font-light italic">Cinimeta Top Picks</p>
+                   </div>
+                   <div className="flex gap-2">
+                     {GENRES.map(g => (
+                       <button 
+                         key={g} 
+                         onClick={() => setActiveGenre(g)}
+                         className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeGenre === g ? 'bg-blue-600 text-white' : 'bg-white/5 text-zinc-500 hover:text-white'}`}
+                       >
+                         {g}
+                       </button>
+                     ))}
+                   </div>
                 </div>
 
-                <div className="p-8 pt-4 flex-1 flex flex-col">
-                  <div className="flex gap-3 mb-8">
-                    <Badge icon={<Calendar size={12}/>} text={selectedItem.year} />
-                    <Badge icon={<Video size={12}/>} text="4K HDR" />
-                    <Badge icon={<Info size={12}/>} text="8.9 IMDb" />
+                {isFetchingCatalog && discoveryItems.length === 0 ? (
+                  <div className="grid grid-cols-4 gap-10">
+                    {[1,2,3,4].map(i => <div key={i} className="aspect-[3/4.5] bg-white/5 rounded-[2.5rem] animate-pulse" />)}
                   </div>
-                  <p className="text-zinc-300 text-sm leading-relaxed font-medium mb-8">{selectedItem.description}</p>
-                  
-                  <div className="pt-4">
-                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-4">Available Sources</h3>
-                    <div className="space-y-2">
-                      <SourceItem label="Torrentio (1080p)" quality="4.2 GB" onClick={() => setActiveStream(selectedItem)} />
-                      <SourceItem label="Cinemeta Mirror" quality="2.1 GB" onClick={() => setActiveStream(selectedItem)} />
+                ) : (
+                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+                    <AnimatePresence mode='popLayout'>
+                      {filteredItems.map((item) => (
+                        <SpotlightCard 
+                          key={item.id} 
+                          item={item} 
+                          isSelected={selectedItemId === item.id} 
+                          onClick={() => setSelectedItemId(item.id)} 
+                          onPlay={() => { setSelectedItemId(item.id); setActiveStream(item); }}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="max-w-[1200px] mx-auto h-full flex flex-col">
+                 <div className="flex items-center gap-4 mb-8">
+                    <button onClick={navigateBack} disabled={history.length === 0} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 disabled:opacity-20 transition-all">
+                      <ChevronLeft size={20} />
+                    </button>
+                    <div>
+                      <h2 className="text-2xl font-black italic uppercase tracking-tighter">{currentFolder.name}</h2>
+                      <p className="text-[10px] font-bold text-zinc-500 tracking-widest uppercase mt-1">Local Library</p>
+                    </div>
+                 </div>
+                 <div className="flex-1 bg-white/[0.02] rounded-[3rem] border border-white/5 p-10 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 content-start overflow-y-auto">
+                    {currentFolder.children.map(child => (
+                      <FolderCard 
+                        key={child.id} 
+                        item={child} 
+                        onClick={() => child.type === 'folder' ? navigateToFolder(child) : setActiveStream({ name: child.name, streamUrl: '#' })} 
+                      />
+                    ))}
+                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* ENGINE MONITOR SIDEBAR */}
+          <AnimatePresence>
+            {selectedItemId && activeTab === 'discover' && (
+              <motion.aside
+                initial={{ x: 450, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 450, opacity: 0 }}
+                transition={SPRING_CONFIG}
+                className="w-[450px] bg-black/60 backdrop-blur-3xl border-l border-white/5 flex flex-col"
+              >
+                <div className="p-10 flex-1 overflow-y-auto custom-scrollbar">
+                  <div className="flex justify-between items-start mb-12">
+                    <button onClick={() => setSelectedItemId(null)} className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><X size={20}/></button>
+                    <div className="flex gap-2">
+                       <Badge text={selectedItem?.rating} icon={<Star size={12} fill="currentColor"/>} />
+                       <Badge text={selectedItem?.year} />
                     </div>
                   </div>
 
-                  <div className="mt-auto pt-8">
-                    <ActionButton 
-                      primary 
-                      icon={<Play size={18} fill="currentColor" />} 
-                      label="Watch Now" 
-                      onClick={() => setActiveStream(selectedItem)}
-                    />
+                  <h3 className="text-5xl font-black italic uppercase tracking-tighter leading-[0.9] mb-4 break-words">{selectedItem?.name}</h3>
+                  <p className="text-zinc-500 font-bold text-[10px] tracking-widest uppercase mb-8 line-clamp-3 leading-relaxed">{selectedItem?.description}</p>
+                  
+                  {/* TORRENTIO ENGINE STATUS */}
+                  <div className="mb-10 p-6 bg-blue-600/5 border border-blue-500/20 rounded-[2rem]">
+                    <div className="flex items-center justify-between mb-6">
+                       <div className="flex items-center gap-2">
+                         <Cpu size={14} className="text-blue-500" />
+                         <span className="text-[10px] font-black uppercase tracking-widest">Torrentio Engine</span>
+                       </div>
+                       <span className="text-[8px] font-bold text-blue-500/60 uppercase">Magnet Scraper</span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600">Available Links</h4>
+                        {isFetchingSources && <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />}
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <AnimatePresence mode="wait">
+                          {isFetchingSources ? (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                              {[1, 2, 3].map(i => (
+                                <div key={i} className="h-16 w-full bg-white/[0.02] border border-white/5 rounded-2xl animate-pulse" />
+                              ))}
+                            </motion.div>
+                          ) : foundSources.length === 0 ? (
+                            <div className="py-10 text-center border border-dashed border-white/10 rounded-3xl">
+                               <p className="text-[9px] font-black uppercase tracking-widest text-zinc-700">No active peers found</p>
+                            </div>
+                          ) : (
+                            foundSources.map((source, idx) => (
+                              <motion.div 
+                                key={source.id}
+                                initial={{ x: 20, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: idx * 0.05 }}
+                                onClick={() => copyToClipboard(source.magnet, source.id)}
+                                className="group p-4 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-blue-600/10 hover:border-blue-500/50 transition-all cursor-pointer flex items-center justify-between"
+                              >
+                                <div className="flex items-center gap-4">
+                                   <div className={`p-2 rounded-lg transition-colors ${isCopied === source.id ? 'bg-emerald-500/20 text-emerald-500' : 'bg-black/40 text-blue-500'}`}>
+                                      {isCopied === source.id ? <Check size={14}/> : <Zap size={14} fill="currentColor"/>}
+                                   </div>
+                                   <div>
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-200 group-hover:text-blue-400">
+                                        {source.quality}
+                                      </p>
+                                      <p className="text-[8px] font-bold text-zinc-600 uppercase mt-0.5">{source.seeds} Peers • {source.size}</p>
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                   <span className="text-[8px] font-black uppercase tracking-widest text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity">Copy Magnet</span>
+                                   <Copy size={12} className="text-zinc-800 group-hover:text-blue-500" />
+                                </div>
+                              </motion.div>
+                            ))
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8">
+                    <div className="pt-4 border-t border-white/5">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 mb-4">Quick Paste Magnet</h4>
+                      <div className="flex gap-2 p-2 bg-white/5 rounded-2xl border border-white/5 focus-within:border-blue-500/50 transition-all">
+                         <input 
+                           value={magnetInput}
+                           onChange={(e) => setMagnetInput(e.target.value)}
+                           placeholder="Paste magnet:?xt=urn:btih:..." 
+                           className="bg-transparent border-none outline-none text-[10px] flex-1 px-4 text-blue-400 placeholder:text-zinc-800" 
+                         />
+                         <button className="p-3 bg-white/10 rounded-xl text-white hover:bg-white/20 transition-all"><LinkIcon size={16}/></button>
+                      </div>
+                    </div>
+
+                    <button className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.3em] text-[10px] rounded-2xl flex items-center justify-center gap-3 hover:bg-blue-500 hover:text-white transition-all shadow-2xl shadow-white/5">
+                       <Play size={16} fill="currentColor"/> Open In External Player
+                    </button>
                   </div>
                 </div>
-              </motion.div>
-            ) : (
-              <EmptyPanel />
+              </motion.aside>
             )}
           </AnimatePresence>
-        </aside>
+        </main>
       </div>
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
       `}</style>
     </div>
   );
 }
 
 /**
- * PLAYER COMPONENT
- * Implements the actual video logic.
+ * COMPONENTS
  */
-function VideoPlayer({ item, onClose }) {
-  const [isPlaying, setIsPlaying] = useState(true);
-  const videoRef = React.useRef(null);
 
-  const togglePlay = () => {
-    if (videoRef.current.paused) {
-      videoRef.current.play();
-      setIsPlaying(true);
-    } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-black flex flex-col"
-    >
-      {/* Top Bar Controls */}
-      <motion.div 
-        initial={{ y: -50 }} animate={{ y: 0 }}
-        className="absolute top-0 left-0 right-0 p-8 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent z-10 opacity-0 hover:opacity-100 transition-opacity duration-500"
-      >
-        <div className="flex items-center gap-4">
-          <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full transition-colors">
-            <X size={24} />
-          </button>
-          <div>
-            <h4 className="text-sm font-black uppercase tracking-widest">{item.name}</h4>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Streaming 1080p via Torrentio</p>
-          </div>
-        </div>
-        <div className="flex gap-4">
-          <Settings size={20} className="text-zinc-400 cursor-pointer" />
-        </div>
-      </motion.div>
-
-      {/* Main Video Viewport */}
-      <div className="flex-1 relative flex items-center justify-center group" onClick={togglePlay}>
-        <video 
-          ref={videoRef}
-          src={item.streamUrl}
-          autoPlay 
-          className="w-full h-full object-contain"
-          onEnded={onClose}
-        />
-        
-        {/* Play/Pause Overlay Icon */}
-        <AnimatePresence>
-          {!isPlaying && (
-            <motion.div 
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0 }}
-              className="absolute pointer-events-none p-10 bg-blue-600/20 backdrop-blur-xl rounded-full border border-blue-500/50"
-            >
-              <Play size={48} fill="white" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Bottom Progress Bar (Mock) */}
-      <motion.div 
-        initial={{ y: 50 }} animate={{ y: 0 }}
-        className="absolute bottom-0 left-0 right-0 p-8 pt-20 bg-gradient-to-t from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500"
-      >
-        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mb-6 group cursor-pointer">
-          <div className="h-full w-1/3 bg-blue-600 relative">
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-0 group-hover:scale-100 transition-transform" />
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <button onClick={togglePlay} className="text-white hover:text-blue-400 transition-colors">
-              {isPlaying ? <RotateCcw size={22} className="rotate-90"/> : <Play size={22} fill="white"/>}
-            </button>
-            <div className="flex items-center gap-3">
-               <Volume2 size={20} />
-               <div className="w-24 h-1 bg-white/20 rounded-full"><div className="w-2/3 h-full bg-white rounded-full"/></div>
-            </div>
-            <span className="text-xs font-mono text-zinc-400">00:42:15 / 02:29:00</span>
-          </div>
-          <button className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Subtitles: English (CC)</button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// --- HELPERS & STYLES ---
-
-const MediaCard = ({ item, isSelected, onClick, delay }) => (
+const SpotlightCard = forwardRef(({ item, isSelected, onClick, onPlay }, ref) => (
   <motion.div
+    ref={ref}
     layout
-    variants={{ hidden: { opacity: 0, scale: 0.8 }, show: { opacity: 1, scale: 1 } }}
-    initial="hidden" animate="show"
-    whileHover={{ y: -12, scale: 1.04 }}
-    whileTap={{ scale: 0.94 }}
+    whileHover={{ y: -20 }}
+    className={`group relative aspect-[3/4.5] rounded-[2.5rem] overflow-hidden cursor-pointer transition-all duration-700 ${isSelected ? 'ring-4 ring-blue-600 shadow-[0_0_80px_rgba(37,99,235,0.3)]' : 'shadow-2xl shadow-black'}`}
     onClick={onClick}
-    className={`group relative cursor-pointer rounded-3xl overflow-hidden transition-all duration-500 ${isSelected ? 'ring-4 ring-blue-500 shadow-2xl' : 'hover:shadow-2xl'}`}
   >
-    <div className="aspect-[2/3] bg-zinc-900 relative">
-      <motion.img layoutId={`img-${item.id}`} src={item.poster} className="w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-transparent" />
-      <div className="absolute inset-0 flex flex-col justify-end p-5 translate-y-2 group-hover:translate-y-0 transition-transform">
-         <h3 className="text-lg font-black text-white leading-none tracking-tight">{item.name}</h3>
-      </div>
+    <motion.img 
+      src={item.poster} 
+      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+      loading="lazy"
+    />
+    
+    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
+
+    <div className="absolute inset-0 p-8 flex flex-col justify-end translate-y-8 group-hover:translate-y-0 transition-transform duration-500">
+       <div className="flex items-center gap-2 mb-3">
+         <span className="px-2 py-1 rounded-lg bg-blue-600 text-[8px] font-black uppercase tracking-widest text-white">{item.genre}</span>
+         <span className="text-[10px] font-black text-zinc-400">{item.year}</span>
+       </div>
+       <h3 className="text-3xl font-black italic uppercase tracking-tighter leading-none mb-6 group-hover:text-blue-400 transition-colors line-clamp-2">{item.name}</h3>
+       
+       <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity delay-100">
+         <button 
+           onClick={(e) => { e.stopPropagation(); onPlay(); }}
+           className="flex-1 py-3 bg-white text-black rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-500 hover:text-white transition-all"
+         >
+           <Play size={14} fill="currentColor"/> Details
+         </button>
+         <button className="p-3 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all">
+           <Info size={16}/>
+         </button>
+       </div>
     </div>
   </motion.div>
-);
+));
 
-const TabButton = ({ active, onClick, icon, label }) => (
-  <button onClick={onClick} className={`relative px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all ${active ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-    <span className="relative z-10 flex items-center gap-2">{icon} {label}</span>
-    {active && <motion.div layoutId="tab-bg" className="absolute inset-0 bg-blue-600 rounded-full" transition={SPRING_CONFIG}/>}
+const FolderCard = forwardRef(({ item, onClick }, ref) => (
+  <motion.div
+    ref={ref}
+    whileHover={{ scale: 1.05, y: -5 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className="group flex flex-col items-center gap-4 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-blue-500/30 transition-all cursor-pointer"
+  >
+    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center ${item.type === 'folder' ? 'text-blue-500 bg-blue-500/10' : 'text-zinc-500 bg-white/5 group-hover:text-white'}`}>
+      {item.type === 'folder' ? <Folder size={40} fill="currentColor" fillOpacity={0.2}/> : <FileVideo size={40}/>}
+    </div>
+    <div className="text-center">
+      <p className="text-xs font-black uppercase tracking-widest mb-1 truncate w-32">{item.name}</p>
+      {item.size && <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">{item.size}</p>}
+    </div>
+  </motion.div>
+));
+
+const NavButton = ({ active, onClick, label }) => (
+  <button onClick={onClick} className="relative py-2 group">
+    <span className={`text-[10px] font-black uppercase tracking-[0.3em] transition-colors ${active ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>{label}</span>
+    {active && <motion.div layoutId="nav-line" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
   </button>
 );
 
-const ModeToggle = ({ active, onClick, icon, label }) => (
-  <button onClick={onClick} className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${active ? 'bg-white/10 text-white shadow-inner' : 'text-zinc-600 hover:text-zinc-400'}`}>{icon} {label}</button>
+const Badge = ({ text, icon }) => (
+  <div className="px-4 py-2 bg-white/5 rounded-full border border-white/5 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+    {icon && <span className="text-yellow-500">{icon}</span>}
+    {text}
+  </div>
 );
 
-const GenreSelector = ({ activeGenre, onChange }) => (
-  <select value={activeGenre} onChange={(e) => onChange(e.target.value)} className="bg-transparent text-[10px] font-black uppercase text-zinc-500 outline-none appearance-none pr-4">
-    {GENRES.map(g => <option key={g} value={g} className="bg-black">{g}</option>)}
-  </select>
-);
-
-const Badge = ({ icon, text }) => (
-  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/[0.04] border border-white/5 text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]"><span className="text-blue-500">{icon}</span> {text}</div>
-);
-
-const SourceItem = ({ label, quality, onClick }) => (
-  <motion.div whileHover={{ x: 6, backgroundColor: 'rgba(255,255,255,0.03)' }} onClick={onClick} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/[0.03] cursor-pointer group">
-    <span className="text-xs font-bold text-zinc-300 group-hover:text-white">{label}</span>
-    <span className="text-[10px] font-black text-zinc-600 group-hover:text-blue-500 uppercase tracking-widest">{quality}</span>
-  </motion.div>
-);
-
-const ActionButton = ({ primary, icon, label, onClick }) => (
-  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onClick}
-    className={`w-full py-5 rounded-[1.5rem] flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.25em] border transition-all ${primary ? 'bg-blue-600 border-blue-500 text-white shadow-2xl shadow-blue-600/30' : 'bg-white/[0.02] border-white/5 text-zinc-400'}`}>
-    {icon} {label}
-  </motion.button>
-);
-
-const EmptyPanel = () => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 border border-white/5 rounded-[3rem] flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
-    <div className="w-20 h-20 rounded-full bg-white/[0.03] flex items-center justify-center mb-6"><ChevronRight size={32} className="text-zinc-800" /></div>
-    <h3 className="text-zinc-500 font-black uppercase tracking-[0.2em] text-[10px] mb-2">Theater Mode</h3>
-    <p className="text-zinc-700 text-sm max-w-[200px]">Select a title to start watching.</p>
-  </motion.div>
-);
+function VideoPlayer({ item, onClose }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-3xl flex flex-col items-center justify-center"
+    >
+      <div className="text-center p-10 max-w-lg">
+        <div className="w-24 h-24 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-10" />
+        <h4 className="text-2xl font-black italic uppercase tracking-tighter mb-4">Initializing {item.name}</h4>
+        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.3em] mb-12">Waiting for external application signal...</p>
+        <button onClick={onClose} className="px-8 py-4 bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Cancel Stream</button>
+      </div>
+    </motion.div>
+  );
+}

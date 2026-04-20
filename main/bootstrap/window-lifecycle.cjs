@@ -33,6 +33,20 @@ function createWindowLifecycle({
     mainWindow.webContents.send('frame-state', isFrameless);
   }
 
+  /** Renderer uses this to align pause/gating with minimize/focus beyond document visibility alone. */
+  function sendAppWindowActivity() {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    try {
+      mainWindow.webContents.send('app-window-activity', {
+        isMinimized: mainWindow.isMinimized(),
+        isFocused: mainWindow.isFocused(),
+        isVisible: mainWindow.isVisible(),
+      });
+    } catch {
+      // ignore
+    }
+  }
+
   function openDevToolsSafe(options) {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     try {
@@ -127,7 +141,15 @@ function createWindowLifecycle({
     });
     mainWindow.once('ready-to-show', () => {
       sendWindowState();
+      sendAppWindowActivity();
     });
+
+    mainWindow.on('focus', sendAppWindowActivity);
+    mainWindow.on('blur', sendAppWindowActivity);
+    mainWindow.on('minimize', sendAppWindowActivity);
+    mainWindow.on('restore', sendAppWindowActivity);
+    mainWindow.on('show', sendAppWindowActivity);
+    mainWindow.on('hide', sendAppWindowActivity);
 
     registerDevtoolsMenu();
     registerDevShortcuts();

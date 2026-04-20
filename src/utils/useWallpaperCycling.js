@@ -1,32 +1,66 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { useAppActivity } from '../hooks/useAppActivity';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from './wallpaperShape';
 
 const useWallpaperCycling = () => {
-  const { wallpaper } = useConsolidatedAppStore();
-  const { setWallpaperState } = useConsolidatedAppStore(state => state.actions);
-  const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
-  const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
+  const { wallpaper, setWallpaperState, lowPowerMode, activeSpaceId } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      wallpaper: state.wallpaper,
+      setWallpaperState: state.actions.setWallpaperState,
+      lowPowerMode: state.ui.lowPowerMode,
+      activeSpaceId: state.spaces.activeSpaceId,
+    }))
+  );
   const { isAppActive } = useAppActivity();
+  const isAppActiveRef = useRef(isAppActive);
   const prevSpaceIdRef = useRef(activeSpaceId);
   const intervalRef = useRef(null);
   const isTransitioningRef = useRef(false);
-  
+  const cycleRafRef = useRef(null);
+
   // Use refs to avoid triggering re-renders during transitions
   const currentWallpaperRef = useRef(wallpaper.current);
   const nextWallpaperRef = useRef(null);
-  
+
   // Local state for transitions to avoid triggering store re-renders
   const [localTransitionState, setLocalTransitionState] = useState({
     isTransitioning: false,
     progress: 0, // Unified progress for all animations
     slideDirection: 'right',
-    nextWallpaper: null
+    nextWallpaper: null,
   });
 
   // Force update counter to ensure isolated component re-renders
   const [forceUpdate, setForceUpdate] = useState(0);
+
+  useEffect(() => {
+    isAppActiveRef.current = isAppActive;
+  }, [isAppActive]);
+
+  const abortCycleTransition = useCallback(() => {
+    if (cycleRafRef.current != null) {
+      cancelAnimationFrame(cycleRafRef.current);
+      cycleRafRef.current = null;
+    }
+    if (!isTransitioningRef.current) return;
+    isTransitioningRef.current = false;
+    nextWallpaperRef.current = null;
+    setLocalTransitionState({
+      isTransitioning: false,
+      progress: 0,
+      slideDirection: 'right',
+      nextWallpaper: null,
+    });
+    setForceUpdate((n) => n + 1);
+  }, []);
+
+  useEffect(() => {
+    if (isAppActive) return undefined;
+    abortCycleTransition();
+    return undefined;
+  }, [isAppActive, abortCycleTransition]);
 
   // Update refs when store changes — normalize strings so layers always get `.url`
   useEffect(() => {
@@ -40,16 +74,8 @@ const useWallpaperCycling = () => {
   useEffect(() => {
     if (prevSpaceIdRef.current === activeSpaceId) return;
     prevSpaceIdRef.current = activeSpaceId;
-    isTransitioningRef.current = false;
-    nextWallpaperRef.current = null;
-    setLocalTransitionState({
-      isTransitioning: false,
-      progress: 0,
-      slideDirection: 'right',
-      nextWallpaper: null,
-    });
-    setForceUpdate((n) => n + 1);
-  }, [activeSpaceId]);
+    abortCycleTransition();
+  }, [activeSpaceId, abortCycleTransition]);
 
   const {
     cycleWallpapers,
@@ -63,7 +89,7 @@ const useWallpaperCycling = () => {
     slideDirection,
     likedWallpapers,
     savedWallpapers,
-    current
+    current,
   } = wallpaper;
   const effectiveCycleInterval = lowPowerMode ? Math.max(cycleInterval, 60) : cycleInterval;
 
@@ -91,133 +117,144 @@ const useWallpaperCycling = () => {
   }, [likedWallpapers, current, savedWallpapers]);
 
   // Enhanced transition function with animation-specific behavior
-  const transitionToWallpaper = useCallback(async (nextWallpaper) => {
-    const normalized = normalizeWallpaperForStore(nextWallpaper, { savedWallpapers });
-    if (!normalized?.url || isTransitioningRef.current) {
-      return;
-    }
+  const transitionToWallpaper = useCallback(
+    async (nextWallpaper) => {
+      const normalized = normalizeWallpaperForStore(nextWallpaper, { savedWallpapers });
+      if (!normalized?.url || isTransitioningRef.current) {
+        return;
+      }
 
-    isTransitioningRef.current = true;
-    nextWallpaperRef.current = normalized;
+      isTransitioningRef.current = true;
+      nextWallpaperRef.current = normalized;
 
-    // Use local state for transition properties to avoid triggering other components
-    setLocalTransitionState({
-      isTransitioning: true,
-      progress: 0, // Reset progress for new transition
-      slideDirection: slideRandomDirection 
-        ? ['left', 'right', 'up', 'down'][Math.floor(Math.random() * 4)]
-        : slideDirection,
-      nextWallpaper: normalized
-    });
+      // Use local state for transition properties to avoid triggering other components
+      setLocalTransitionState({
+        isTransitioning: true,
+        progress: 0, // Reset progress for new transition
+        slideDirection: slideRandomDirection
+          ? ['left', 'right', 'up', 'down'][Math.floor(Math.random() * 4)]
+          : slideDirection,
+        nextWallpaper: normalized,
+      });
 
-    // Animation-specific duration and easing
-    let duration;
-    let easing;
-    
-    switch (cycleAnimation) {
-      case 'slide':
-        duration = slideDuration;
-        easing = slideEasing;
-        break;
-      case 'zoom':
-        duration = crossfadeDuration * 0.8; // Faster for zoom effect
-        easing = crossfadeEasing;
-        break;
-      case 'ken-burns':
-        duration = crossfadeDuration * 1.4; // Slower for cinematic effect
-        easing = crossfadeEasing;
-        break;
-      case 'morph':
-        duration = crossfadeDuration * 1.2; // Medium for morphing
-        easing = crossfadeEasing;
-        break;
-      case 'blur':
-        duration = crossfadeDuration * 0.7; // Quick blur transition
-        easing = crossfadeEasing;
-        break;
-      case 'fade':
-      default:
-        duration = crossfadeDuration;
-        easing = crossfadeEasing;
-        break;
-    }
+      // Animation-specific duration and easing
+      let duration;
+      let easing;
 
-    const startTime = Date.now();
-
-    // Enhanced animation with improved easing functions
-    const animate = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Apply enhanced easing functions
-      let easedProgress = progress;
-      
-      switch (easing) {
-        case 'ease-out':
-          // Smooth deceleration - most natural for wallpaper transitions
-          easedProgress = 1 - Math.pow(1 - progress, 3);
+      switch (cycleAnimation) {
+        case 'slide':
+          duration = slideDuration;
+          easing = slideEasing;
           break;
-        case 'ease-in':
-          // Gradual acceleration
-          easedProgress = Math.pow(progress, 3);
+        case 'zoom':
+          duration = crossfadeDuration * 0.8; // Faster for zoom effect
+          easing = crossfadeEasing;
           break;
-        case 'ease-in-out':
-          // Smooth acceleration and deceleration
-          easedProgress = progress < 0.5 
-            ? 4 * progress * progress * progress 
-            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        case 'ken-burns':
+          duration = crossfadeDuration * 1.4; // Slower for cinematic effect
+          easing = crossfadeEasing;
           break;
-        case 'cubic-bezier':
-          // Custom cubic-bezier curve for professional feel
-          easedProgress = progress * progress * (3 - 2 * progress);
+        case 'morph':
+          duration = crossfadeDuration * 1.2; // Medium for morphing
+          easing = crossfadeEasing;
           break;
-        case 'linear':
+        case 'blur':
+          duration = crossfadeDuration * 0.7; // Quick blur transition
+          easing = crossfadeEasing;
+          break;
+        case 'fade':
         default:
-          easedProgress = progress;
+          duration = crossfadeDuration;
+          easing = crossfadeEasing;
           break;
       }
 
-      // Update progress with local state only
-      setLocalTransitionState(prev => ({ ...prev, progress: easedProgress }));
-      setForceUpdate(prev => prev + 1); // Force isolated component to re-render
+      const startTime = Date.now();
 
-      // Continue or complete
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        // Complete transition - update refs and store (always `{ url }`, never bare URL string)
-        currentWallpaperRef.current = normalized;
-        nextWallpaperRef.current = null;
-        
-        // Only update the store ONCE at the very end
-        setWallpaperState({
-          current: normalized,
-        });
-        
-        // Reset local transition state
-        setLocalTransitionState({
-          isTransitioning: false,
-          progress: 0,
-          slideDirection: 'right',
-          nextWallpaper: null
-        });
-        
-        isTransitioningRef.current = false;
-      }
-    };
+      // Enhanced animation with improved easing functions
+      const animate = () => {
+        if (!isAppActiveRef.current) {
+          abortCycleTransition();
+          return;
+        }
 
-    requestAnimationFrame(animate);
-  }, [
-    setWallpaperState,
-    cycleAnimation,
-    slideRandomDirection,
-    slideDirection,
-    slideDuration,
-    crossfadeDuration,
-    slideEasing,
-    crossfadeEasing,
-    savedWallpapers,
-  ]);
+        const elapsed = (Date.now() - startTime) / 1000;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Apply enhanced easing functions
+        let easedProgress = progress;
+
+        switch (easing) {
+          case 'ease-out':
+            // Smooth deceleration - most natural for wallpaper transitions
+            easedProgress = 1 - Math.pow(1 - progress, 3);
+            break;
+          case 'ease-in':
+            // Gradual acceleration
+            easedProgress = Math.pow(progress, 3);
+            break;
+          case 'ease-in-out':
+            // Smooth acceleration and deceleration
+            easedProgress =
+              progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+            break;
+          case 'cubic-bezier':
+            // Custom cubic-bezier curve for professional feel
+            easedProgress = progress * progress * (3 - 2 * progress);
+            break;
+          case 'linear':
+          default:
+            easedProgress = progress;
+            break;
+        }
+
+        // Update progress with local state only
+        setLocalTransitionState((prev) => ({ ...prev, progress: easedProgress }));
+        setForceUpdate((prev) => prev + 1); // Force isolated component to re-render
+
+        // Continue or complete
+        if (progress < 1) {
+          cycleRafRef.current = requestAnimationFrame(animate);
+        } else {
+          cycleRafRef.current = null;
+          // Complete transition - update refs and store (always `{ url }`, never bare URL string)
+          currentWallpaperRef.current = normalized;
+          nextWallpaperRef.current = null;
+
+          // Only update the store ONCE at the very end
+          setWallpaperState({
+            current: normalized,
+          });
+
+          // Reset local transition state
+          setLocalTransitionState({
+            isTransitioning: false,
+            progress: 0,
+            slideDirection: 'right',
+            nextWallpaper: null,
+          });
+
+          isTransitioningRef.current = false;
+        }
+      };
+
+      cycleRafRef.current = requestAnimationFrame(animate);
+    },
+    [
+      setWallpaperState,
+      cycleAnimation,
+      slideRandomDirection,
+      slideDirection,
+      slideDuration,
+      crossfadeDuration,
+      slideEasing,
+      crossfadeEasing,
+      savedWallpapers,
+      abortCycleTransition,
+    ]
+  );
 
   // Simple cycle function
   const cycleToNext = useCallback(() => {
@@ -226,7 +263,7 @@ const useWallpaperCycling = () => {
     }
 
     const nextWallpaper = getNextWallpaper();
-    
+
     if (nextWallpaper) {
       transitionToWallpaper(nextWallpaper);
     }
@@ -283,8 +320,8 @@ const useWallpaperCycling = () => {
       lowPowerMode,
       likedWallpapersCount: likedWallpapers?.length,
       savedWallpapersCount: savedWallpapers?.length,
-      hasMultipleLiked: likedWallpapers && likedWallpapers.length > 1
-    }
+      hasMultipleLiked: likedWallpapers && likedWallpapers.length > 1,
+    },
   };
 };
 

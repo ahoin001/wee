@@ -132,7 +132,11 @@ const Channel = React.memo(({
   const effectiveMedia = useMemo(() => storeChannelConfig?.media || media, [storeChannelConfig?.media, media]);
   const effectivePath = useMemo(() => storeChannelConfig?.path || path, [storeChannelConfig?.path, path]);
   const effectiveType = useMemo(() => storeChannelConfig?.type || type, [storeChannelConfig?.type, type]);
-  const effectiveAsAdmin = useMemo(() => storeChannelConfig?.asAdmin || asAdmin, [storeChannelConfig?.asAdmin, asAdmin]);
+  /** Use nullish coalescing: saved `false` must win over truthy grid props. */
+  const effectiveAsAdmin = useMemo(
+    () => storeChannelConfig?.asAdmin ?? asAdmin ?? false,
+    [storeChannelConfig, asAdmin]
+  );
   const effectiveHoverSound = useMemo(() => storeChannelConfig?.hoverSound || hoverSound, [storeChannelConfig?.hoverSound, hoverSound]);
   const launchLabel = useMemo(() => {
     const cfgTitle = String(effectiveConfig?.title || '').trim();

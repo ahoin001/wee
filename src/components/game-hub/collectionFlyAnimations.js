@@ -38,16 +38,21 @@ export function stackBrightnessForFlyIndex(i) {
   return 1;
 }
 
-function flyLayerParent() {
-  return document.querySelector('.aura-hub-space') ?? document.body;
+function defaultFlyLayerParent() {
+  return (
+    document.querySelector('.aura-hub-space') ??
+    document.querySelector('.media-hub-space') ??
+    document.body
+  );
 }
 
 /**
  * @param {string | undefined} imageUrl
  * @param {'in' | 'out'} mode
  * @param {number} flyIndex stack slot index for brightness matching
+ * @param {(() => HTMLElement | null) | undefined} getFlyLayerParent
  */
-function mountFlyer(imageUrl, mode = 'in', flyIndex = 0) {
+function mountFlyer(imageUrl, mode = 'in', flyIndex = 0, getFlyLayerParent) {
   const el = document.createElement('div');
   el.setAttribute('aria-hidden', 'true');
   el.className = 'aura-hub-flyer';
@@ -69,7 +74,9 @@ function mountFlyer(imageUrl, mode = 'in', flyIndex = 0) {
     filter: `brightness(${b0})`,
     transition,
   });
-  flyLayerParent().appendChild(el);
+  const parent =
+    (typeof getFlyLayerParent === 'function' ? getFlyLayerParent() : null) || defaultFlyLayerParent();
+  parent.appendChild(el);
   return el;
 }
 
@@ -87,16 +94,16 @@ function waitMs(ms) {
 }
 
 /**
- * @param {{ games: { imageUrl?: string }[], fromRect: DOMRect, getToRect: (i: number) => DOMRect | null, onHandoffStart?: () => void, prepareHandoff?: () => void | Promise<void> }} opts
+ * @param {{ games: { imageUrl?: string }[], fromRect: DOMRect, getToRect: (i: number) => DOMRect | null, onHandoffStart?: () => void, prepareHandoff?: () => void | Promise<void>, getFlyLayerParent?: () => HTMLElement | null }} opts
  * @returns {Promise<{ didFly: boolean }>}
  */
-export async function runFlyInAnimations({ games, fromRect, getToRect, onHandoffStart, prepareHandoff }) {
+export async function runFlyInAnimations({ games, fromRect, getToRect, onHandoffStart, prepareHandoff, getFlyLayerParent }) {
   const moves = [];
   try {
     for (let i = 0; i < games.length; i += 1) {
       const toRect = getToRect(i);
       if (!toRect || toRect.width < 4 || toRect.height < 4) continue;
-      const el = mountFlyer(games[i]?.imageUrl, 'in', i);
+      const el = mountFlyer(games[i]?.imageUrl, 'in', i, getFlyLayerParent);
       setFlyerRect(el, fromRect);
       moves.push({ el, i });
     }
@@ -135,13 +142,13 @@ export async function runFlyInAnimations({ games, fromRect, getToRect, onHandoff
   }
 }
 
-export async function runFlyOutAnimations({ games, fromRects, toRect }) {
+export async function runFlyOutAnimations({ games, fromRects, toRect, getFlyLayerParent }) {
   const flyers = [];
   try {
     for (let i = 0; i < games.length; i += 1) {
       const fromRect = fromRects[i];
       if (!fromRect || fromRect.width < 4 || fromRect.height < 4) continue;
-      const el = mountFlyer(games[i]?.imageUrl, 'out', i);
+      const el = mountFlyer(games[i]?.imageUrl, 'out', i, getFlyLayerParent);
       setFlyerRect(el, fromRect);
       flyers.push(el);
     }

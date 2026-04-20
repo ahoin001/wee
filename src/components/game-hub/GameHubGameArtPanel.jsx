@@ -17,6 +17,7 @@ import {
   isSupportedImageOrVideoUpload,
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../utils/supportedUploadMedia';
+import { useRendererMediaPowerState } from '../../hooks/useRendererMediaPowerState';
 import '../channels/ChannelModal.css';
 
 const ART_SUBTAB_KEY = 'wee.gameHubArt.subtab';
@@ -74,10 +75,24 @@ function GameHubGameArtPanel({ game, enabled, customEntry, onApplyArt }) {
   const uploadPreviewRef = useRef(null);
   const prevResolvedMediaUrlRef = useRef(null);
   const reduceMotion = useReducedMotion();
+  const { shouldPauseDecorativeVideo } = useRendererMediaPowerState();
+  const decorativeVideoRef = useRef(null);
+  const uploadPreviewVideoRef = useRef(null);
   const { tabTransition } = useWeeMotion();
   const uploadFieldId = useId();
   const [mediaUploadHint, setMediaUploadHint] = useState('');
   const [libraryUploading, setLibraryUploading] = useState(false);
+
+  useEffect(() => {
+    const nodes = [decorativeVideoRef.current, uploadPreviewVideoRef.current].filter(Boolean);
+    for (const el of nodes) {
+      if (shouldPauseDecorativeVideo) {
+        el.pause();
+      } else {
+        el.play?.().catch(() => {});
+      }
+    }
+  }, [shouldPauseDecorativeVideo]);
 
   const uploadInputClass =
     'w-full rounded-2xl border border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-4 py-3 font-[family-name:var(--font-ui)] text-sm font-bold italic text-[hsl(var(--text-primary))] outline-none shadow-[var(--wee-shadow-field)] transition-[border-color,box-shadow] placeholder:font-[family-name:var(--font-ui)] placeholder:font-normal placeholder:not-italic placeholder:text-[hsl(var(--text-tertiary))] focus:border-[hsl(var(--border-accent))] focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.12)] hover:border-[hsl(var(--wee-border-field-hover))]';
@@ -264,7 +279,15 @@ function GameHubGameArtPanel({ game, enabled, customEntry, onApplyArt }) {
                 ) : displayMedia.type?.startsWith?.('video/') ||
                   displayMedia.type === 'video' ||
                   displayMedia.type === 'gif' ? (
-                  <video src={displayMedia.url} className="h-full w-full object-cover" autoPlay loop muted playsInline />
+                  <video
+                    ref={decorativeVideoRef}
+                    src={displayMedia.url}
+                    className="h-full w-full object-cover"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
                 ) : null}
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">
@@ -434,6 +457,7 @@ function GameHubGameArtPanel({ game, enabled, customEntry, onApplyArt }) {
                           <div className="flex max-h-[220px] justify-center p-4">
                             {uploadFile.type.startsWith('video/') || /\.mp4$/i.test(uploadFile.name) ? (
                               <video
+                                ref={uploadPreviewVideoRef}
                                 src={uploadPreviewUrl}
                                 className="max-h-[200px] max-w-full rounded-xl object-contain"
                                 controls
