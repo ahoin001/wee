@@ -8,9 +8,13 @@ export const SETTINGS_TAB_ID = {
   API_INTEGRATIONS: 'api-integrations',
   CHANNELS: 'channels',
   DOCK: 'dock',
+  COLORS: 'colors',
   GENERAL: 'general',
   GAMEHUB: 'gamehub',
   SOUNDS: 'sounds',
+  /** Presets tab route id. */
+  PRESETS: 'themes',
+  /** Back-compat alias retained for older callsites. */
   THEMES: 'themes',
   UPDATES: 'updates',
   WALLPAPER: 'wallpaper',
@@ -19,6 +23,7 @@ export const SETTINGS_TAB_ID = {
   MONITOR: 'monitor',
   MOTION: 'motion',
   NAVIGATION: 'navigation',
+  /** Home Profiles tab id (kept as `workspaces` for route stability). */
   WORKSPACES: 'workspaces',
 };
 

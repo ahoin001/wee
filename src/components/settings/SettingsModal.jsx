@@ -14,6 +14,7 @@ import { weeMarkSettingsTab } from '../../utils/weePerformanceMarks';
 import {
   ChannelsLayoutSettingsTab,
   UnifiedDockSettingsTab,
+  ColorsSettingsTab,
   WallpaperSettingsTab,
   TimeSettingsTab,
   SoundsSettingsTab,
@@ -57,6 +58,14 @@ const SETTINGS_TABS_MAIN = [
     color: 'hsl(var(--settings-tab-dock))',
     description: 'Classic & Ribbon dock settings',
     component: UnifiedDockSettingsTab,
+  },
+  {
+    id: 'colors',
+    label: 'Colors',
+    icon: '🌈',
+    color: 'hsl(var(--settings-tab-colors))',
+    description: 'Discover and route color controls',
+    component: ColorsSettingsTab,
   },
   {
     id: 'gamehub',
@@ -124,10 +133,10 @@ const SETTINGS_TABS_MAIN = [
   },
   {
     id: 'workspaces',
-    label: 'Workspaces',
+    label: 'Home Profiles',
     icon: '🧩',
     color: 'hsl(var(--settings-tab-workspaces))',
-    description: 'Create and switch full app environments',
+    description: 'Create and switch Home mode setups',
     component: WorkspacesSettingsTab,
   },
 ];
@@ -162,6 +171,13 @@ const SETTINGS_TAB_BETA = [
 /** Flat order for keyboard nav and lookups: main first, then beta. */
 const SETTINGS_TABS = [...SETTINGS_TABS_MAIN, ...SETTINGS_TAB_BETA];
 
+function normalizeSettingsTabId(tabId) {
+  if (!tabId) return tabId;
+  if (tabId === 'layout') return 'channels';
+  if (tabId === 'presets') return 'themes';
+  return tabId;
+}
+
 function tabMatchesQuery(tab, query) {
   const q = query.toLowerCase();
   return (
@@ -178,7 +194,7 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
   const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
   const effectiveInitialTab = useMemo(() => {
     const raw = ui.settingsActiveTab || initialActiveTab;
-    return raw === 'layout' ? 'channels' : raw;
+    return normalizeSettingsTabId(raw);
   }, [ui.settingsActiveTab, initialActiveTab]);
 
   const [activeTab, setActiveTab] = useState(effectiveInitialTab);

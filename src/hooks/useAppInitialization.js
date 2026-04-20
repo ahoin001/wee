@@ -7,7 +7,10 @@ import {
 } from '../utils/store/settingsPersistenceContract';
 import { normalizeShellSpaceOrder } from '../utils/channelSpaces';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { createSeededWorkspaceState } from '../utils/workspaces/workspaceState';
 import { weeMeasureAsync, weeMarkStartupHydrationCommitted } from '../utils/weePerformanceMarks';
+
+const CLEAN_FOUNDATION_VERSION = 1;
 
 function buildChannelPatchFromNormalized(normalized) {
   if (!normalized) return null;
@@ -46,6 +49,8 @@ export const useAppInitialization = () => {
         const resolvedSettings = normalizeUnifiedSettingsSnapshot(unifiedData?.settings || {});
         const resolvedWallpaperData = unifiedData?.wallpapers || wallpaperData;
         const resolvedChannelData = unifiedData?.channels;
+        const shouldHardResetLegacySavedModes =
+          Number(unifiedData?.meta?.cleanFoundationVersion || 0) < CLEAN_FOUNDATION_VERSION;
 
         const { channels: initialChannels } = useConsolidatedAppStore.getState();
         let mergedChannels = initialChannels;
@@ -61,6 +66,7 @@ export const useAppInitialization = () => {
           app: {
             appReady: true,
             isLoading: false,
+            startupHydrationCommitted: true,
             splashFading: false,
           },
         };
@@ -120,8 +126,12 @@ export const useAppInitialization = () => {
           if (resolvedSettings.floatingWidgets) slices.floatingWidgets = resolvedSettings.floatingWidgets;
           if (resolvedSettings.monitors) slices.monitors = resolvedSettings.monitors;
           if (resolvedSettings.spotify) slices.spotify = resolvedSettings.spotify;
-          if (resolvedSettings.presets) slices.presets = resolvedSettings.presets;
-          if (resolvedSettings.workspaces) slices.workspaces = resolvedSettings.workspaces;
+          if (!shouldHardResetLegacySavedModes && resolvedSettings.presets) {
+            slices.presets = resolvedSettings.presets;
+          }
+          if (!shouldHardResetLegacySavedModes && resolvedSettings.workspaces) {
+            slices.workspaces = resolvedSettings.workspaces;
+          }
           if (resolvedSettings.spaces) {
             slices.spaces = {
               ...resolvedSettings.spaces,
@@ -140,15 +150,37 @@ export const useAppInitialization = () => {
           slices.channelsSnapshot = mergedChannels;
         }
 
-        /* Never cold-start on hub spaces: restore last home/work panel (persisted in lastChannelSpaceId). */
+        if (shouldHardResetLegacySavedModes) {
+          slices.presets = [];
+          slices.workspaces = createSeededWorkspaceState();
+        }
+
+        /* Never cold-start on hub spaces: restore Home (persisted in lastChannelSpaceId). */
         if (!cancelled && slices.spaces && ['gamehub', 'mediahub'].includes(slices.spaces.activeSpaceId)) {
-          const last = slices.spaces.lastChannelSpaceId;
-          const fallback = last === 'workspaces' ? 'workspaces' : 'home';
-          slices.spaces = { ...slices.spaces, activeSpaceId: fallback };
+          slices.spaces = { ...slices.spaces, activeSpaceId: 'home', lastChannelSpaceId: 'home' };
         }
 
         if (!cancelled) {
           useConsolidatedAppStore.getState().actions.applyStartupHydration(slices);
+          if (
+            shouldHardResetLegacySavedModes &&
+            typeof window !== 'undefined' &&
+            window.api?.data?.get &&
+            window.api?.data?.set
+          ) {
+            try {
+              const latestUnified = await window.api.data.get();
+              await window.api.data.set({
+                ...(latestUnified || {}),
+                meta: {
+                  ...(latestUnified?.meta || {}),
+                  cleanFoundationVersion: CLEAN_FOUNDATION_VERSION,
+                },
+              });
+            } catch (metaError) {
+              console.warn('[AppInitialization] Failed to persist clean foundation marker:', metaError);
+            }
+          }
           weeMarkStartupHydrationCommitted();
         }
       } catch (error) {
@@ -157,6 +189,7 @@ export const useAppInitialization = () => {
           useConsolidatedAppStore.getState().actions.setAppState({
             appReady: true,
             isLoading: false,
+            startupHydrationCommitted: true,
             splashFading: false,
           });
         }

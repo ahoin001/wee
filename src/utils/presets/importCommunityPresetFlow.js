@@ -1,4 +1,6 @@
 import { SPOTIFY_MATCH_PRESET_NAME } from './spotifyMatchPreset';
+import { PRESET_SCOPE_VISUAL } from './presetScopes';
+import { createPresetId } from './presetIds';
 
 function normalizeCommunitySettings(presetSettings) {
   if (!presetSettings || typeof presetSettings !== 'object') return presetSettings;
@@ -115,8 +117,12 @@ export async function importCommunityPresetFlow(presetData, { getPresets, setPre
     }
 
     const convertedPreset = {
+      id: createPresetId(),
       name: preset.name,
       data: presetSettings,
+      captureScope: PRESET_SCOPE_VISUAL,
+      includesHomeChannels: false,
+      shareable: true,
       timestamp: new Date().toISOString(),
       isCommunity: true,
       communityId: preset.id,

@@ -6,14 +6,14 @@ const root = process.cwd();
 const checks = [
   {
     file: 'src/hooks/useAppInitialization.js',
-    mustContain: ['electronApi.getUnifiedData', 'setDockState', 'setSoundsState'],
+    mustContain: ['electronApi.getUnifiedData', 'if (resolvedSettings.dock)', 'if (resolvedSettings.sounds)'],
   },
   {
     file: 'src/utils/useConsolidatedAppStore.js',
     mustContain: ['setUIState: (updates)', 'setChannelState: (updates)'],
   },
   {
-    file: 'src/components/IsolatedWallpaperBackground.jsx',
+    file: 'src/components/overlays/IsolatedWallpaperBackground.jsx',
     mustContain: ['const IsolatedWallpaperBackground = React.memo', 'useWallpaperCycling'],
   },
   {

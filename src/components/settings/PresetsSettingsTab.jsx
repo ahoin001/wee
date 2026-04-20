@@ -17,12 +17,17 @@ import {
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { buildPresetDataFromStore } from '../../utils/presets/buildPresetSnapshot';
 import { applyPresetData } from '../../utils/presets/applyPresetData';
-import { sanitizePresetCollection, toThemeOnlyPreset } from '../../utils/presets/presetThemeData';
+import { normalizePresetRecord, sanitizePresetCollection, toVisualOnlyPreset } from '../../utils/presets/presetThemeData';
 import { createDefaultSpotifyMatchPreset, SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
 import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
 import { buildWorkspaceDataFromStore } from '../../utils/workspaces/buildWorkspaceSnapshot';
 import { normalizeWorkspacesState } from '../../utils/workspaces/workspaceState';
+import { createPresetId } from '../../utils/presets/presetIds';
+import {
+  PRESET_SCOPE_VISUAL,
+  PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+} from '../../utils/presets/presetScopes';
 import {
   isSupportedPresetCoverImageUpload,
   SUPPORTED_GALLERY_HINT,
@@ -37,6 +42,7 @@ import { WeeModalFieldCard, WeeSectionEyebrow, WeeSettingsCollapsibleSection } f
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 
 const MAX_CUSTOM_PRESETS = 5;
+const normalizePresetName = (value) => value.trim().toLowerCase();
 
 const PresetsSettingsTab = React.memo(() => {
   const { presets, spotifyMatchEnabled, workspaces } = useConsolidatedAppStore(
@@ -76,7 +82,7 @@ const PresetsSettingsTab = React.memo(() => {
     custom_image_name: null,
     selectedPreset: null,
   });
-  const [includeSounds, setIncludeSounds] = useState(false);
+  const [includeHomeChannels, setIncludeHomeChannels] = useState(false);
   const [immersiveModeState, setImmersiveModeState] = useState({});
 
   const savePresetsToBackend = useCallback(async (updatedPresets) => {
@@ -122,7 +128,7 @@ const PresetsSettingsTab = React.memo(() => {
       const communityPresets = presets
         .filter((preset) => preset.name !== SPOTIFY_MATCH_PRESET_NAME && (preset.communityId || preset.communityRootId))
         .map((preset) => ({
-          localKey: preset.name,
+          localKey: preset.id,
           rootPresetId: preset.communityRootId || preset.communityId,
           installedVersion: Number(preset.communityVersion) || 1,
         }));
@@ -149,26 +155,40 @@ const PresetsSettingsTab = React.memo(() => {
   }, []);
 
   const customPresetCount = presets.filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
-  const normalizedWorkspaces = normalizeWorkspacesState(workspaces);
-  const hasActiveWorkspace = Boolean(normalizedWorkspaces.activeWorkspaceId);
+  const normalizedProfiles = normalizeWorkspacesState(workspaces);
+  const hasActiveProfile = Boolean(normalizedProfiles.activeWorkspaceId);
+  const selectedCaptureScope = includeHomeChannels
+    ? PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
+    : PRESET_SCOPE_VISUAL;
+  const hasPresetName = useCallback(
+    (name, excludeId = null) => {
+      const normalized = normalizePresetName(name);
+      if (!normalized) return false;
+      return presets.some((preset) => {
+        const presetKey = preset.id || preset.name;
+        return normalizePresetName(preset.name || '') === normalized && presetKey !== excludeId;
+      });
+    },
+    [presets]
+  );
 
-  const handleDragStart = (e, presetName) => {
-    setDraggingPreset(presetName);
+  const handleDragStart = (e, presetId) => {
+    setDraggingPreset(presetId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.target.outerHTML);
   };
 
-  const handleDragOver = (e, presetName) => {
+  const handleDragOver = (e, presetId) => {
     if (!draggingPreset) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDropTarget(presetName);
+    setDropTarget(presetId);
   };
 
-  const handleDragEnter = (e, presetName) => {
+  const handleDragEnter = (e, presetId) => {
     if (!draggingPreset) return;
     e.preventDefault();
-    setDropTarget(presetName);
+    setDropTarget(presetId);
   };
 
   const handleDragLeave = (e) => {
@@ -176,16 +196,16 @@ const PresetsSettingsTab = React.memo(() => {
     setDropTarget(null);
   };
 
-  const handleDrop = (e, targetPresetName) => {
-    if (!draggingPreset || draggingPreset === targetPresetName) {
+  const handleDrop = (e, targetPresetId) => {
+    if (!draggingPreset || draggingPreset === targetPresetId) {
       setDraggingPreset(null);
       setDropTarget(null);
       return;
     }
     e.preventDefault();
     const currentPresets = [...presets];
-    const draggedIndex = currentPresets.findIndex((p) => p.name === draggingPreset);
-    const targetIndex = currentPresets.findIndex((p) => p.name === targetPresetName);
+    const draggedIndex = currentPresets.findIndex((p) => p.id === draggingPreset);
+    const targetIndex = currentPresets.findIndex((p) => p.id === targetPresetId);
     if (draggedIndex !== -1 && targetIndex !== -1) {
       const [draggedPreset] = currentPresets.splice(draggedIndex, 1);
       currentPresets.splice(targetIndex, 0, draggedPreset);
@@ -206,13 +226,13 @@ const PresetsSettingsTab = React.memo(() => {
       setError('Please enter a name for the preset.');
       return;
     }
-    if (presets.some((p) => p.name === newPresetName.trim())) {
+    if (hasPresetName(newPresetName)) {
       setError('A preset with this name already exists.');
       return;
     }
     if (customPresetCount >= MAX_CUSTOM_PRESETS) return;
 
-    const presetData = buildPresetDataFromStore({ includeSounds });
+    const presetData = buildPresetDataFromStore({ captureScope: selectedCaptureScope });
     const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
     if (thumbnailDataUrl) {
       setCaptureNotice({ type: 'success', text: 'Captured preset preview ✨' });
@@ -221,8 +241,12 @@ const PresetsSettingsTab = React.memo(() => {
     }
 
     const newPreset = {
+      id: createPresetId(),
       name: newPresetName.trim(),
       data: presetData,
+      captureScope: selectedCaptureScope,
+      includesHomeChannels: selectedCaptureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+      shareable: selectedCaptureScope === PRESET_SCOPE_VISUAL,
       timestamp: new Date().toISOString(),
       thumbnailDataUrl: thumbnailDataUrl || null,
     };
@@ -235,8 +259,24 @@ const PresetsSettingsTab = React.memo(() => {
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
   };
 
-  const handleUpdate = async (name) => {
-    const presetData = buildPresetDataFromStore({ includeSounds });
+  const resolveUpdateScope = (preset) => {
+    if (preset?.captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS) {
+      const keepChannels = window.confirm(
+        'This preset currently includes Home channels.\n\nPress OK to update visuals + Home channels.\nPress Cancel to update visuals only and remove channel data.'
+      );
+      return keepChannels ? PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS : PRESET_SCOPE_VISUAL;
+    }
+    const keepVisualOnly = window.confirm(
+      'This preset is visual-only.\n\nPress OK to keep visual-only.\nPress Cancel to include Home channels in this update.'
+    );
+    return keepVisualOnly ? PRESET_SCOPE_VISUAL : PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS;
+  };
+
+  const handleUpdate = async (presetId) => {
+    const targetPreset = presets.find((p) => p.id === presetId);
+    if (!targetPreset) return;
+    const updateScope = resolveUpdateScope(targetPreset);
+    const presetData = buildPresetDataFromStore({ captureScope: updateScope });
     const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
     if (thumbnailDataUrl) {
       setCaptureNotice({ type: 'success', text: 'Updated preset preview ✨' });
@@ -245,10 +285,13 @@ const PresetsSettingsTab = React.memo(() => {
     }
 
     const updatedPresets = presets.map((p) =>
-      p.name === name
+      p.id === presetId
         ? {
             ...p,
             data: presetData,
+            captureScope: updateScope,
+            includesHomeChannels: updateScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+            shareable: updateScope === PRESET_SCOPE_VISUAL,
             timestamp: new Date().toISOString(),
             thumbnailDataUrl: thumbnailDataUrl || p.thumbnailDataUrl || null,
           }
@@ -256,13 +299,13 @@ const PresetsSettingsTab = React.memo(() => {
     );
     setPresets(updatedPresets);
     await savePresetsToBackend(updatedPresets);
-    setJustUpdated(name);
+    setJustUpdated(presetId);
     setTimeout(() => setJustUpdated(null), 1500);
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
   };
 
   const handleStartEdit = (preset) => {
-    setEditingPreset(preset.name);
+    setEditingPreset(preset.id);
     setEditName(preset.name);
   };
 
@@ -273,9 +316,12 @@ const PresetsSettingsTab = React.memo(() => {
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) return;
-    if (presets.some((p) => p.name === editName.trim() && p.name !== editingPreset)) return;
+    if (hasPresetName(editName, editingPreset)) return;
 
-    const updatedPresets = presets.map((p) => (p.name === editingPreset ? { ...p, name: editName.trim() } : p));
+    const updatedPresets = presets.map((preset) => {
+      const presetKey = preset.id || preset.name;
+      return presetKey === editingPreset ? { ...preset, name: editName.trim() } : preset;
+    });
     setPresets(updatedPresets);
     await savePresetsToBackend(updatedPresets);
     setEditingPreset(null);
@@ -287,40 +333,45 @@ const PresetsSettingsTab = React.memo(() => {
     else if (e.key === 'Escape') handleCancelEdit();
   };
 
-  const handleDeletePreset = async (name) => {
-    const updatedPresets = presets.filter((p) => p.name !== name);
+  const handleDeletePreset = async (presetId) => {
+    const target = presets.find((preset) => (preset.id || preset.name) === presetId);
+    if (!target) return;
+    const confirmed = window.confirm(`Delete preset "${target.name}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    const updatedPresets = presets.filter((preset) => (preset.id || preset.name) !== presetId);
     setPresets(updatedPresets);
     await savePresetsToBackend(updatedPresets);
   };
 
   const handleApplyPreset = async (preset) => {
-    const themeOnlyPreset = toThemeOnlyPreset(preset);
-    if (!themeOnlyPreset) return;
+    const normalizedPreset = normalizePresetRecord(preset);
+    if (!normalizedPreset) return;
     await runSceneTransition(`Applying preset: ${preset?.name || 'Theme'}`, async () => {
-      await applyPresetData(themeOnlyPreset);
+      await applyPresetData(normalizedPreset);
     });
   };
 
-  const handleApplyPresetToActiveWorkspace = async (preset) => {
-    const themeOnlyPreset = toThemeOnlyPreset(preset);
-    if (!themeOnlyPreset || !normalizedWorkspaces.activeWorkspaceId) return;
+  const handleApplyPresetToActiveProfile = async (preset) => {
+    const normalizedPreset = normalizePresetRecord(preset);
+    if (!normalizedPreset || !normalizedProfiles.activeWorkspaceId) return;
 
-    await runSceneTransition(`Applying ${preset?.name || 'preset'} to active workspace`, async () => {
-      await applyPresetData(themeOnlyPreset);
+    await runSceneTransition(`Applying ${preset?.name || 'preset'} to active profile`, async () => {
+      await applyPresetData(normalizedPreset);
     });
 
-    const nextItems = normalizedWorkspaces.items.map((workspace) =>
-      workspace.id === normalizedWorkspaces.activeWorkspaceId
+    const nextItems = normalizedProfiles.items.map((profile) =>
+      profile.id === normalizedProfiles.activeWorkspaceId
         ? {
-            ...workspace,
+            ...profile,
             data: buildWorkspaceDataFromStore(),
             timestamp: new Date().toISOString(),
           }
-        : workspace
+        : profile
     );
     setWorkspacesState({
       items: nextItems,
-      activeWorkspaceId: normalizedWorkspaces.activeWorkspaceId,
+      activeWorkspaceId: normalizedProfiles.activeWorkspaceId,
     });
   };
 
@@ -370,14 +421,18 @@ const PresetsSettingsTab = React.memo(() => {
     }
 
     const presetData = buildPresetDataFromStore({
-      includeSounds: false,
+      captureScope: PRESET_SCOPE_VISUAL,
       includeSpotifyPalette: true,
     });
 
     const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
     const newPreset = {
+      id: createPresetId(),
       name: name.trim(),
       data: presetData,
+      captureScope: PRESET_SCOPE_VISUAL,
+      includesHomeChannels: false,
+      shareable: true,
       timestamp: new Date().toISOString(),
       thumbnailDataUrl: thumbnailDataUrl || null,
       frozenSpotifyLook: true,
@@ -446,6 +501,14 @@ const PresetsSettingsTab = React.memo(() => {
       setUploadMessage({ type: 'error', text: 'Please select a preset to share' });
       return;
     }
+    const selectedScope = uploadFormData.selectedPreset.captureScope || PRESET_SCOPE_VISUAL;
+    if (selectedScope !== PRESET_SCOPE_VISUAL) {
+      setUploadMessage({
+        type: 'error',
+        text: 'Only visual presets can be shared. Update this preset as visual-only first.',
+      });
+      return;
+    }
 
     try {
       setUploading(true);
@@ -484,7 +547,7 @@ const PresetsSettingsTab = React.memo(() => {
       if (result) {
         if (uploadFormData.selectedPreset?.name) {
           const updatedPresets = presets.map((preset) =>
-            preset.name === uploadFormData.selectedPreset.name
+            preset.id === uploadFormData.selectedPreset.id
               ? {
                   ...preset,
                   isCommunity: true,
@@ -528,8 +591,8 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   const onUploadField = (field, value) => {
-    if (field === 'presetName') {
-      const selected = presets.find((p) => p.name === value);
+    if (field === 'presetId') {
+      const selected = presets.find((p) => (p.id || p.name) === value);
       setUploadFormData((prev) => ({
         ...prev,
         name: selected?.name || '',
@@ -569,6 +632,56 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   const showSpotifySection = presets.some((p) => p.name === SPOTIFY_MATCH_PRESET_NAME);
+  const selectedPresetNeedsShareableCopy = Boolean(
+    uploadFormData.selectedPreset?.captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
+  );
+
+  const handleCreateShareableVisualCopy = async () => {
+    const selected = uploadFormData.selectedPreset;
+    if (!selected) return;
+    if (customPresetCount >= MAX_CUSTOM_PRESETS) {
+      setUploadMessage({
+        type: 'error',
+        text: `You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one before creating a shareable copy.`,
+      });
+      return;
+    }
+    const visualCopy = toVisualOnlyPreset(selected);
+    if (!visualCopy) return;
+
+    const baseName = `${selected.name} (Visual)`;
+    let nextName = baseName;
+    let suffix = 2;
+    const hasName = (name) => hasPresetName(name);
+    while (hasName(nextName)) {
+      nextName = `${baseName} ${suffix}`;
+      suffix += 1;
+    }
+
+    const nextPreset = {
+      ...visualCopy,
+      id: createPresetId(),
+      name: nextName,
+      timestamp: new Date().toISOString(),
+      communityId: undefined,
+      communityRootId: undefined,
+      communityVersion: undefined,
+      isCommunity: false,
+    };
+
+    const updatedPresets = [...presets, nextPreset];
+    setPresets(updatedPresets);
+    await savePresetsToBackend(updatedPresets);
+    setUploadFormData((prev) => ({
+      ...prev,
+      name: nextPreset.name,
+      selectedPreset: nextPreset,
+    }));
+    setUploadMessage({
+      type: 'success',
+      text: `Created "${nextPreset.name}". You can share this visual-only copy now.`,
+    });
+  };
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
@@ -577,7 +690,7 @@ const PresetsSettingsTab = React.memo(() => {
       <WeeSettingsCollapsibleSection
         icon={Bookmark}
         title="Save current look"
-        description="Capture the active appearance as a named preset (theme-focused)."
+        description="Capture the active appearance as a named preset."
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
@@ -590,9 +703,9 @@ const PresetsSettingsTab = React.memo(() => {
             onSave={handleSave}
             error={error}
             captureNotice={captureNotice}
-            includeSounds={includeSounds}
-            onIncludeSoundsChange={setIncludeSounds}
-            onOpenWorkspaces={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'workspaces' })}
+            includeHomeChannels={includeHomeChannels}
+            onIncludeHomeChannelsChange={setIncludeHomeChannels}
+            onOpenHomeProfiles={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'workspaces' })}
             customPresetCount={customPresetCount}
             maxCustomPresets={MAX_CUSTOM_PRESETS}
           />
@@ -626,7 +739,7 @@ const PresetsSettingsTab = React.memo(() => {
       <WeeSettingsCollapsibleSection
         icon={Library}
         title="Saved presets"
-        description="Drag the ⋮⋮ handle to reorder. Presets change look only — use Workspaces for layouts."
+        description="Drag the ⋮⋮ handle to reorder. Visual presets are shareable; channel presets are local."
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
@@ -653,8 +766,8 @@ const PresetsSettingsTab = React.memo(() => {
             onCancelEdit={handleCancelEdit}
             onEditNameChange={(e) => setEditName(e.target.value)}
             onKeyPress={handleKeyPress}
-            onApplyToActiveWorkspace={handleApplyPresetToActiveWorkspace}
-            hasActiveWorkspace={hasActiveWorkspace}
+            onApplyToActiveProfile={handleApplyPresetToActiveProfile}
+            hasActiveProfile={hasActiveProfile}
           />
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
@@ -702,6 +815,8 @@ const PresetsSettingsTab = React.memo(() => {
             }}
             onUploadField={onUploadField}
             onUpload={handleUpload}
+            selectedPresetNeedsShareableCopy={selectedPresetNeedsShareableCopy}
+            onCreateShareableVisualCopy={handleCreateShareableVisualCopy}
             onImportCommunityPreset={handleImportCommunityPreset}
           />
         </WeeModalFieldCard>

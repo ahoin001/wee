@@ -22,16 +22,26 @@ function spaceParallaxBackgroundYPercent(spaceIndex) {
 function IsolatedWallpaperBackgroundInner({
   shellTransitionMs = SPACE_SHELL_TRANSITION_MS_DEFAULT,
 }) {
-  const { wallpaper, activeSpaceId, spaceOrder } = useConsolidatedAppStore(
+  const { wallpaper, activeSpaceId, spaceOrder, appearanceBySpace } = useConsolidatedAppStore(
     useShallow((state) => ({
       wallpaper: state.wallpaper,
       activeSpaceId: state.spaces.activeSpaceId,
       spaceOrder: state.spaces.order,
+      appearanceBySpace: state.appearanceBySpace,
     }))
   );
-  const displayWallpaperUrl = wallpaper.current
-    ? wallpaperEntryUrlKey(wallpaper.current) || null
-    : null;
+  const activeSpaceAppearance = appearanceBySpace?.[activeSpaceId]?.wallpaper || null;
+  const useGlobalWallpaper = activeSpaceAppearance?.useGlobalWallpaper !== false;
+  /** Home always uses the global active wallpaper (`wallpaper.current`); ignore stale per-space override rows. */
+  const isHomeShellSpace = activeSpaceId === 'home';
+  const spaceWallpaperUrl =
+    isHomeShellSpace
+      ? null
+      : !useGlobalWallpaper && typeof activeSpaceAppearance?.spaceWallpaperUrl === 'string'
+        ? activeSpaceAppearance.spaceWallpaperUrl
+        : null;
+  const globalWallpaperUrl = wallpaper.current ? wallpaperEntryUrlKey(wallpaper.current) || null : null;
+  const displayWallpaperUrl = spaceWallpaperUrl || globalWallpaperUrl;
 
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
@@ -51,13 +61,22 @@ function IsolatedWallpaperBackgroundInner({
 
   const applySpaceWallpaperTone = useMemo(() => {
     const isHubSpace = activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub';
-    const b = isHubSpace ? gameHubBrightness : workspaceBrightness;
-    const s = isHubSpace ? gameHubSaturate : workspaceSaturate;
+    const legacyB = isHubSpace ? gameHubBrightness : workspaceBrightness;
+    const legacyS = isHubSpace ? gameHubSaturate : workspaceSaturate;
+    const spaceB = activeSpaceAppearance?.spaceBrightness;
+    const spaceS = activeSpaceAppearance?.spaceSaturate;
+    const b = typeof spaceB === 'number' && Number.isFinite(spaceB) ? spaceB : legacyB;
+    const s = typeof spaceS === 'number' && Number.isFinite(spaceS) ? spaceS : legacyS;
     const bb = typeof b === 'number' && !Number.isNaN(b) ? b : isHubSpace ? 0.78 : 1;
     const ss = typeof s === 'number' && !Number.isNaN(s) ? s : 1;
-    return (filterCss) => `${filterCss} brightness(${bb}) saturate(${ss})`;
+    return (filterCss = '') => {
+      const base = typeof filterCss === 'string' ? filterCss.trim() : '';
+      const tone = `brightness(${bb}) saturate(${ss})`;
+      return base ? `${base} ${tone}` : tone;
+    };
   }, [
     activeSpaceId,
+    activeSpaceAppearance,
     workspaceBrightness,
     workspaceSaturate,
     gameHubBrightness,
@@ -68,7 +87,7 @@ function IsolatedWallpaperBackgroundInner({
   const toneBlurPx = useCallback(
     (px) => {
       const n = typeof px === 'number' && Number.isFinite(px) ? px : 0;
-      return applySpaceWallpaperTone(n > 0 ? `blur(${n}px)` : 'none');
+      return applySpaceWallpaperTone(n > 0 ? `blur(${n}px)` : '');
     },
     [applySpaceWallpaperTone]
   );
@@ -81,40 +100,58 @@ function IsolatedWallpaperBackgroundInner({
     slideDirection: cyclingSlideDirection,
     forceUpdate,
   } = useWallpaperCycling();
+  const hasSpaceWallpaperOverride = Boolean(spaceWallpaperUrl);
+  const { opacity, blur, cycleAnimation } = wallpaper;
+  const effectiveSpaceBlur =
+    typeof activeSpaceAppearance?.spaceBlur === 'number'
+      ? activeSpaceAppearance.spaceBlur
+      : blur;
+  const canCycleCurrentSpace = !hasSpaceWallpaperOverride;
+  const effectiveCyclingTransitioning = canCycleCurrentSpace && cyclingTransitioning;
+  const transitionCurrentWallpaperUrl = canCycleCurrentSpace
+    ? wallpaperEntryUrlKey(currentWallpaper) || null
+    : null;
+  const effectiveCurrentWallpaperUrl = effectiveCyclingTransitioning
+    ? transitionCurrentWallpaperUrl || displayWallpaperUrl
+    : displayWallpaperUrl;
+  const effectiveNextWallpaperUrl = canCycleCurrentSpace
+    ? wallpaperEntryUrlKey(nextWallpaper) || null
+    : null;
+  const effectiveCyclingProgress = canCycleCurrentSpace ? cyclingProgress : 0;
+  const effectiveCyclingSlideDirection = canCycleCurrentSpace ? cyclingSlideDirection : 'right';
+  const effectiveCycleAnimation = canCycleCurrentSpace ? cycleAnimation : 'fade';
 
   const spaceFade = useSpaceWallpaperCrossfade({
     displayUrl: displayWallpaperUrl,
     activeSpaceId,
-    cyclingTransitioning,
+    cyclingTransitioning: effectiveCyclingTransitioning,
     transitionsEnabled: !reducedMotion,
     transitionMs: shellTransitionMs,
   });
 
-  const { opacity, blur, cycleAnimation } = wallpaper;
-
   const getCurrentWallpaperStyle = useCallback(() => {
-    if (!cyclingTransitioning || !currentWallpaper?.url) {
+    if (!effectiveCyclingTransitioning || !transitionCurrentWallpaperUrl) {
       return {
         opacity,
         transform: 'none',
-        filter: toneBlurPx(blur),
+        filter: toneBlurPx(effectiveSpaceBlur),
       };
     }
 
-    const progress = cyclingProgress;
+    const progress = effectiveCyclingProgress;
 
-    switch (cycleAnimation) {
+    switch (effectiveCycleAnimation) {
       case 'fade':
         return {
           opacity: opacity * (1 - progress),
           transform: 'none',
-          filter: toneBlurPx(blur),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       case 'slide': {
         const slideOffset = progress * 100;
         let slideTransform = 'none';
 
-        switch (cyclingSlideDirection) {
+        switch (effectiveCyclingSlideDirection) {
           case 'left':
             slideTransform = `translateX(-${slideOffset}%)`;
             break;
@@ -134,7 +171,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity,
           transform: slideTransform,
-          filter: toneBlurPx(blur),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       case 'zoom': {
@@ -142,7 +179,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.5),
           transform: `scale(${zoomScale})`,
-          filter: toneBlurPx(blur + progress * 2),
+          filter: toneBlurPx(effectiveSpaceBlur + progress * 2),
         };
       }
       case 'ken-burns': {
@@ -152,7 +189,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.3),
           transform: `scale(${kenBurnsScale}) translateX(${kenBurnsX}%) translateY(${kenBurnsY}%)`,
-          filter: toneBlurPx(blur),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       case 'morph': {
@@ -162,11 +199,11 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * (1 - progress * 0.7),
           transform: `scale(${morphScale}) rotate(${morphRotate}deg) skew(${morphSkew}deg)`,
-          filter: toneBlurPx(blur + progress),
+          filter: toneBlurPx(effectiveSpaceBlur + progress),
         };
       }
       case 'blur': {
-        const blurIntensity = blur + (progress * 10);
+        const blurIntensity = effectiveSpaceBlur + (progress * 10);
         return {
           opacity: opacity * (1 - progress * 0.8),
           transform: 'none',
@@ -177,43 +214,43 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity,
           transform: 'none',
-          filter: toneBlurPx(blur),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
     }
   }, [
     toneBlurPx,
-    cyclingTransitioning,
-    currentWallpaper?.url,
+    effectiveCyclingTransitioning,
+    transitionCurrentWallpaperUrl,
     opacity,
-    blur,
-    cycleAnimation,
-    cyclingProgress,
-    cyclingSlideDirection,
+    effectiveSpaceBlur,
+    effectiveCycleAnimation,
+    effectiveCyclingProgress,
+    effectiveCyclingSlideDirection,
   ]);
 
   const getNextWallpaperStyle = useCallback(() => {
-    if (!cyclingTransitioning || !nextWallpaper?.url) {
+    if (!effectiveCyclingTransitioning || !effectiveNextWallpaperUrl) {
       return {
         opacity: 0,
         transform: 'none',
-        filter: toneBlurPx(blur),
+        filter: toneBlurPx(effectiveSpaceBlur),
       };
     }
 
-    const progress = cyclingProgress;
+    const progress = effectiveCyclingProgress;
 
-    switch (cycleAnimation) {
+    switch (effectiveCycleAnimation) {
       case 'fade':
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: toneBlurPx(blur),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       case 'slide': {
         const slideOffset = (1 - progress) * 100;
         let slideTransform = 'none';
 
-        switch (cyclingSlideDirection) {
+        switch (effectiveCyclingSlideDirection) {
           case 'left':
             slideTransform = `translateX(${slideOffset}%)`;
             break;
@@ -233,7 +270,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity,
           transform: slideTransform,
-          filter: toneBlurPx(blur),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       case 'zoom': {
@@ -241,7 +278,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: `scale(${zoomScale})`,
-          filter: toneBlurPx(blur + (1 - progress) * 2),
+          filter: toneBlurPx(effectiveSpaceBlur + (1 - progress) * 2),
         };
       }
       case 'ken-burns': {
@@ -251,7 +288,7 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: `scale(${kenBurnsScale}) translateX(-${kenBurnsX}%) translateY(-${kenBurnsY}%)`,
-          filter: toneBlurPx(blur),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
       }
       case 'morph': {
@@ -261,11 +298,11 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: `scale(${morphScale}) rotate(-${morphRotate}deg) skew(-${morphSkew}deg)`,
-          filter: toneBlurPx(blur + (1 - progress) * 1),
+          filter: toneBlurPx(effectiveSpaceBlur + (1 - progress) * 1),
         };
       }
       case 'blur': {
-        const blurIntensity = blur + (1 - progress) * 10;
+        const blurIntensity = effectiveSpaceBlur + (1 - progress) * 10;
         return {
           opacity: opacity * progress,
           transform: 'none',
@@ -276,21 +313,21 @@ function IsolatedWallpaperBackgroundInner({
         return {
           opacity: opacity * progress,
           transform: 'none',
-          filter: toneBlurPx(blur),
+          filter: toneBlurPx(effectiveSpaceBlur),
         };
     }
   }, [
     toneBlurPx,
-    cyclingTransitioning,
-    nextWallpaper?.url,
+    effectiveCyclingTransitioning,
+    effectiveNextWallpaperUrl,
     opacity,
-    blur,
-    cycleAnimation,
-    cyclingProgress,
-    cyclingSlideDirection,
+    effectiveSpaceBlur,
+    effectiveCycleAnimation,
+    effectiveCyclingProgress,
+    effectiveCyclingSlideDirection,
   ]);
 
-  const transitionKey = `${cyclingTransitioning}-${cyclingProgress}-${cyclingSlideProgress}-${cyclingSlideDirection}-${forceUpdate}`;
+  const transitionKey = `${effectiveCyclingTransitioning}-${effectiveCyclingProgress}-${cyclingSlideProgress}-${effectiveCyclingSlideDirection}-${forceUpdate}`;
 
   const resolvedSpaceOrder = useMemo(
     () =>
@@ -308,19 +345,19 @@ function IsolatedWallpaperBackgroundInner({
 
   const idleWallpaperTransition = useMemo(
     () =>
-      cyclingTransitioning
+      effectiveCyclingTransitioning
         ? 'none'
         : `opacity 0.35s ease-out, transform 0.35s ease-out, filter 0.45s ease-out, background-position ${shellTransitionMs}ms ${SPACE_SHELL_EASE_CSS}`,
-    [cyclingTransitioning, shellTransitionMs]
+    [effectiveCyclingTransitioning, shellTransitionMs]
   );
 
   const idleLayerStyle = useMemo(
     () => ({
       opacity,
       transform: 'none',
-      filter: toneBlurPx(blur),
+      filter: toneBlurPx(effectiveSpaceBlur),
     }),
-    [toneBlurPx, opacity, blur]
+    [toneBlurPx, opacity, effectiveSpaceBlur]
   );
 
   const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
@@ -372,7 +409,7 @@ function IsolatedWallpaperBackgroundInner({
                 backgroundPosition: `center ${parallaxBgY}%`,
                 backgroundRepeat: 'no-repeat',
                 opacity: opacity * spaceFade.overlayOpacity,
-                filter: toneBlurPx(blur),
+                filter: toneBlurPx(effectiveSpaceBlur),
                 transition: spaceOverlayTransition,
               }}
               onTransitionEnd={spaceFade.onOverlayTransitionEnd}
@@ -381,7 +418,7 @@ function IsolatedWallpaperBackgroundInner({
         </>
       ) : (
         <>
-          {currentWallpaper && currentWallpaper.url && (
+          {effectiveCurrentWallpaperUrl ? (
             <div
               className="wallpaper-bg"
               style={{
@@ -392,7 +429,7 @@ function IsolatedWallpaperBackgroundInner({
                 height: '100vh',
                 zIndex: 0,
                 pointerEvents: 'none',
-                backgroundImage: `url('${currentWallpaper.url}')`,
+                backgroundImage: `url('${effectiveCurrentWallpaperUrl}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: `center ${parallaxBgY}%`,
                 backgroundRepeat: 'no-repeat',
@@ -400,9 +437,9 @@ function IsolatedWallpaperBackgroundInner({
                 transition: idleWallpaperTransition,
               }}
             />
-          )}
+          ) : null}
 
-          {cyclingTransitioning && nextWallpaper && nextWallpaper.url && (
+          {effectiveCyclingTransitioning && effectiveNextWallpaperUrl ? (
             <div
               className="wallpaper-bg-next"
               style={{
@@ -413,7 +450,7 @@ function IsolatedWallpaperBackgroundInner({
                 height: '100vh',
                 zIndex: 1,
                 pointerEvents: 'none',
-                backgroundImage: `url('${nextWallpaper.url}')`,
+                backgroundImage: `url('${effectiveNextWallpaperUrl}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: `center ${parallaxBgY}%`,
                 backgroundRepeat: 'no-repeat',
@@ -421,7 +458,7 @@ function IsolatedWallpaperBackgroundInner({
                 transition: 'none',
               }}
             />
-          )}
+          ) : null}
         </>
       )}
     </div>

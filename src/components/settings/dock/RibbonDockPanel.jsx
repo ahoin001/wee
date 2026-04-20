@@ -225,12 +225,14 @@ function RibbonDockPanel({
   ribbon,
   onGlassWiiRibbonChange,
   onRibbonHoverAnimationChange,
+  onDynamicRibbonColorEnabledChange,
   onRibbonColorChange,
   onRibbonDockOpacityChange,
   onRibbonGlowColorChange,
   onRibbonGlowStrengthChange,
   onRibbonGlowStrengthHoverChange,
   hoverAnimationEnabled,
+  dynamicRibbonColorEnabled,
   onGlassOpacityChange,
   onGlassBlurChange,
   onGlassBorderOpacityChange,
@@ -281,6 +283,19 @@ function RibbonDockPanel({
                 <WToggle
                   checked={hoverAnimationEnabled}
                   onChange={onRibbonHoverAnimationChange}
+                  disableLabelClick
+                />
+              </ToggleRow>
+            </div>
+
+            <div className="border-t border-[hsl(var(--border-primary)/0.35)] pt-5">
+              <ToggleRow
+                title="Dynamic color from ribbon"
+                description="When on, ribbon glow drives dynamic accents in supported UI areas."
+              >
+                <WToggle
+                  checked={dynamicRibbonColorEnabled}
+                  onChange={onDynamicRibbonColorEnabledChange}
                   disableLabelClick
                 />
               </ToggleRow>
@@ -445,12 +460,14 @@ RibbonDockPanel.propTypes = {
   glassWiiRibbon: PropTypes.bool,
   onGlassWiiRibbonChange: PropTypes.func.isRequired,
   onRibbonHoverAnimationChange: PropTypes.func.isRequired,
+  onDynamicRibbonColorEnabledChange: PropTypes.func.isRequired,
   onRibbonColorChange: PropTypes.func.isRequired,
   onRibbonDockOpacityChange: PropTypes.func.isRequired,
   onRibbonGlowColorChange: PropTypes.func.isRequired,
   onRibbonGlowStrengthChange: PropTypes.func.isRequired,
   onRibbonGlowStrengthHoverChange: PropTypes.func.isRequired,
   hoverAnimationEnabled: PropTypes.bool.isRequired,
+  dynamicRibbonColorEnabled: PropTypes.bool.isRequired,
   onGlassOpacityChange: PropTypes.func.isRequired,
   onGlassBlurChange: PropTypes.func.isRequired,
   onGlassBorderOpacityChange: PropTypes.func.isRequired,

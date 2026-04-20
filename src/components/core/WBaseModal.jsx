@@ -17,7 +17,8 @@ function WBaseModal({
   footerContent,
   className = '',
   maxWidth = '1200px',
-  isOpen = true,
+  /** Default closed so callers that omit `isOpen` do not flash an open modal. */
+  isOpen = false,
 }) {
   const sharedPlayfulSpring = PLAYFUL_SPRINGS.navLayout;
   const { modalSpringTransitions, modalStaggeredEntrance } = useMotionFeedback();

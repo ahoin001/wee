@@ -4,7 +4,7 @@ import Card from '../../ui/Card';
 import WButton from '../../ui/WButton';
 import WInput from '../../ui/WInput';
 import { applyPresetData } from '../../utils/presets/applyPresetData';
-import { toThemeOnlyPreset } from '../../utils/presets/presetThemeData';
+import { normalizePresetRecord } from '../../utils/presets/presetThemeData';
 import {
   buildWorkspaceDataFromStore,
   createWorkspaceFromCurrentState,
@@ -33,13 +33,13 @@ const WorkspacesSettingsTab = React.memo(() => {
     () => (Array.isArray(presets) ? presets.filter((preset) => preset?.data) : []),
     [presets]
   );
-  const activeWorkspace = useMemo(
-    () => normalized.items.find((workspace) => workspace.id === normalized.activeWorkspaceId) || null,
+  const activeProfile = useMemo(
+    () => normalized.items.find((profile) => profile.id === normalized.activeWorkspaceId) || null,
     [normalized.activeWorkspaceId, normalized.items]
   );
-  const [newWorkspaceName, setNewWorkspaceName] = useState('');
-  const [selectedPresetName, setSelectedPresetName] = useState('');
-  const [editingWorkspaceId, setEditingWorkspaceId] = useState(null);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+  const [editingProfileId, setEditingProfileId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [statusText, setStatusText] = useState('');
 
@@ -50,44 +50,53 @@ const WorkspacesSettingsTab = React.memo(() => {
   }, [normalized.activeWorkspaceId, normalized.items, setWorkspacesState]);
 
   useEffect(() => {
-    if (!selectedPresetName && availablePresets.length > 0) {
-      setSelectedPresetName(availablePresets[0].name);
+    if (!selectedPresetId && availablePresets.length > 0) {
+      setSelectedPresetId(availablePresets[0].id);
     }
-  }, [availablePresets, selectedPresetName]);
+  }, [availablePresets, selectedPresetId]);
 
-  const handleCreateWorkspace = () => {
+  const handleCreateProfile = () => {
     if (normalized.items.length >= MAX_SAVED_WORKSPACES) {
-      setStatusText(`You can save up to ${MAX_SAVED_WORKSPACES} workspaces. Delete one to add another.`);
+      setStatusText(`You can save up to ${MAX_SAVED_WORKSPACES} profiles. Delete one to add another.`);
       return;
     }
-    const trimmed = newWorkspaceName.trim();
-    const nameToUse = trimmed || 'New Workspace';
+    const trimmed = newProfileName.trim();
+    const nameToUse = trimmed || 'New Profile';
     if (
       normalized.items.some(
         (w) => w.name.trim().toLowerCase() === nameToUse.toLowerCase()
       )
     ) {
-      setStatusText('A workspace with this name already exists.');
+      setStatusText('A profile with this name already exists.');
       return;
     }
-    const workspace = createWorkspaceFromCurrentState(newWorkspaceName);
+    const profile = createWorkspaceFromCurrentState(newProfileName);
     setWorkspacesState({
-      items: [...normalized.items, workspace],
-      activeWorkspaceId: workspace.id,
+      items: [...normalized.items, profile],
+      activeWorkspaceId: profile.id,
     });
-    setNewWorkspaceName('');
-    setStatusText(`Created "${workspace.name}".`);
+    setNewProfileName('');
+    setStatusText(`Created profile "${profile.name}".`);
   };
 
-  const handleApplyWorkspace = async (workspace) => {
-    await applyWorkspaceSnapshot(workspace);
-    setWorkspacesState({ activeWorkspaceId: workspace.id });
-    setStatusText(`Switched to "${workspace.name}".`);
-  };
-
-  const handleUpdateFromCurrent = (workspace) => {
+  const handleApplyProfile = async (profile) => {
+    const resolvedData = await applyWorkspaceSnapshot(profile);
     const nextItems = normalized.items.map((item) =>
-      item.id === workspace.id
+      item.id === profile.id
+        ? {
+            ...item,
+            data: item.data || resolvedData || null,
+            timestamp: new Date().toISOString(),
+          }
+        : item
+    );
+    setWorkspacesState({ items: nextItems, activeWorkspaceId: profile.id });
+    setStatusText(`Switched to profile "${profile.name}".`);
+  };
+
+  const handleUpdateProfileFromCurrent = (profile) => {
+    const nextItems = normalized.items.map((item) =>
+      item.id === profile.id
         ? {
             ...item,
             data: buildWorkspaceDataFromStore(),
@@ -96,54 +105,55 @@ const WorkspacesSettingsTab = React.memo(() => {
         : item
     );
     setWorkspacesState({ items: nextItems });
-    setStatusText(`Updated "${workspace.name}" from current app state.`);
+    setStatusText(`Updated profile "${profile.name}" from current app state.`);
   };
 
-  const handleDeleteWorkspace = (workspace) => {
-    const nextState = removeWorkspaceById(normalized, workspace.id);
+  const handleDeleteProfile = (profile) => {
+    const nextState = removeWorkspaceById(normalized, profile.id);
     setWorkspacesState(nextState);
-    setStatusText(`Deleted "${workspace.name}".`);
+    setStatusText(`Deleted profile "${profile.name}".`);
   };
 
-  const handleApplyPresetToActiveWorkspace = async () => {
-    if (!activeWorkspace) return;
-    const selectedPreset = availablePresets.find((preset) => preset.name === selectedPresetName);
-    const themeOnlyPreset = toThemeOnlyPreset(selectedPreset);
-    if (!themeOnlyPreset) return;
+  const handleApplyPresetToActiveProfile = async () => {
+    if (!activeProfile) return;
+    const selectedPreset = availablePresets.find((preset) => preset.id === selectedPresetId);
+    if (!selectedPreset) return;
+    const normalizedPreset = normalizePresetRecord(selectedPreset);
+    if (!normalizedPreset) return;
 
-    await runSceneTransition(`Applying ${selectedPreset.name} to ${activeWorkspace.name}`, async () => {
-      await applyPresetData(themeOnlyPreset);
+    await runSceneTransition(`Applying ${selectedPreset.name} to ${activeProfile.name}`, async () => {
+      await applyPresetData(normalizedPreset);
     });
 
-    const nextItems = normalized.items.map((workspace) =>
-      workspace.id === activeWorkspace.id
+    const nextItems = normalized.items.map((profile) =>
+      profile.id === activeProfile.id
         ? {
-            ...workspace,
+            ...profile,
             data: buildWorkspaceDataFromStore(),
             timestamp: new Date().toISOString(),
           }
-        : workspace
+        : profile
     );
     setWorkspacesState({
       items: nextItems,
-      activeWorkspaceId: activeWorkspace.id,
+      activeWorkspaceId: activeProfile.id,
     });
-    setStatusText(`Applied preset "${selectedPreset.name}" and saved it into "${activeWorkspace.name}".`);
+    setStatusText(`Applied preset "${selectedPreset.name}" and saved it into profile "${activeProfile.name}".`);
   };
 
-  const startEditingName = (workspace) => {
-    setEditingWorkspaceId(workspace.id);
-    setEditingName(workspace.name);
+  const startEditingName = (profile) => {
+    setEditingProfileId(profile.id);
+    setEditingName(profile.name);
   };
 
   const saveEditingName = () => {
-    if (!editingWorkspaceId) return;
+    if (!editingProfileId) return;
     const trimmed = editingName.trim();
     if (!trimmed) return;
     if (
       normalized.items.some(
         (w) =>
-          w.id !== editingWorkspaceId &&
+          w.id !== editingProfileId &&
           w.name.trim().toLowerCase() === trimmed.toLowerCase()
       )
     ) {
@@ -151,58 +161,58 @@ const WorkspacesSettingsTab = React.memo(() => {
       return;
     }
     const nextItems = normalized.items.map((item) =>
-      item.id === editingWorkspaceId ? { ...item, name: trimmed } : item
+      item.id === editingProfileId ? { ...item, name: trimmed } : item
     );
     setWorkspacesState({ items: nextItems });
-    setEditingWorkspaceId(null);
+    setEditingProfileId(null);
     setEditingName('');
-    setStatusText('Workspace name updated.');
+    setStatusText('Profile name updated.');
   };
 
   return (
     <div className="surface-stack mx-auto flex max-w-4xl flex-col space-y-8 pb-12">
       <SettingsTabPageHeader
-        title="Workspaces"
-        subtitle="Create and switch full app environments"
+        title="Home Profiles"
+        subtitle="Create and switch Home mode setups manually"
       />
 
       <SecondaryChannelProfilesCard />
 
       <SettingsWeeSection eyebrow="Create">
       <Card
-        title="Workspace manager"
-        desc="Save complete environments (wallpaper, colors, channels, and sounds) and swap instantly."
+        title="Profile manager"
+        desc="Save complete Home setups (wallpaper, colors, and Home channels) and switch anytime."
       >
         <div className="surface-controls">
           <div className="surface-row">
             <WInput
-              value={newWorkspaceName}
-              onChange={(e) => setNewWorkspaceName(e.target.value)}
-              placeholder="Workspace name (e.g. Work, Gaming, Focus)"
+              value={newProfileName}
+              onChange={(e) => setNewProfileName(e.target.value)}
+              placeholder="Profile name (e.g. Work, Hobby, Focus)"
             />
             <WButton
               variant="primary"
-              onClick={handleCreateWorkspace}
+              onClick={handleCreateProfile}
               disabled={normalized.items.length >= MAX_SAVED_WORKSPACES}
             >
               Create from Current
             </WButton>
           </div>
           <p className="surface-help">
-            Tip: Create one workspace per mode (up to {MAX_SAVED_WORKSPACES}). Changes sync automatically while a workspace is active.
+            Tip: Profiles do not auto-save. Use Update when you want to capture current changes.
           </p>
         </div>
       </Card>
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Saved">
-      <Card title="Saved workspaces" desc="Apply, update, rename, and delete your workspace modes.">
+      <Card title="Saved profiles" desc="Apply, update, rename, and delete your Home mode profiles.">
         <div className="grid gap-3 md:grid-cols-2">
-          {normalized.items.map((workspace) => {
-            const isActive = workspace.id === normalized.activeWorkspaceId;
+          {normalized.items.map((profile) => {
+            const isActive = profile.id === normalized.activeWorkspaceId;
             return (
               <div
-                key={workspace.id}
+                key={profile.id}
                 className={`rounded-lg border p-4 transition-all ${
                   isActive
                     ? 'border-[hsl(var(--wii-blue))] bg-[hsl(var(--wii-blue)/0.09)] shadow-[0_0_22px_hsl(var(--wii-blue)/0.26)]'
@@ -210,41 +220,41 @@ const WorkspacesSettingsTab = React.memo(() => {
                 }`}
               >
                 <div className="surface-row-between mb-3">
-                  {editingWorkspaceId === workspace.id ? (
+                  {editingProfileId === profile.id ? (
                     <WInput
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') saveEditingName();
-                        if (e.key === 'Escape') setEditingWorkspaceId(null);
+                        if (e.key === 'Escape') setEditingProfileId(null);
                       }}
                     />
                   ) : (
                     <h4 className="m-0 text-[hsl(var(--text-primary))]">
-                      {workspace.name} {isActive ? '• Active' : ''}
+                      {profile.name} {isActive ? '• Active' : ''}
                     </h4>
                   )}
                 </div>
                 <p className="surface-help mb-4">
-                  Updated {workspace.timestamp ? new Date(workspace.timestamp).toLocaleString() : 'just now'}
+                  Updated {profile.timestamp ? new Date(profile.timestamp).toLocaleString() : 'just now'}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <WButton size="sm" variant={isActive ? 'secondary' : 'primary'} onClick={() => handleApplyWorkspace(workspace)}>
+                  <WButton size="sm" variant={isActive ? 'secondary' : 'primary'} onClick={() => handleApplyProfile(profile)}>
                     Apply
                   </WButton>
-                  <WButton size="sm" variant="secondary" onClick={() => handleUpdateFromCurrent(workspace)}>
+                  <WButton size="sm" variant="secondary" onClick={() => handleUpdateProfileFromCurrent(profile)}>
                     Update
                   </WButton>
-                  {editingWorkspaceId === workspace.id ? (
+                  {editingProfileId === profile.id ? (
                     <WButton size="sm" variant="secondary" onClick={saveEditingName}>
                       Save Name
                     </WButton>
                   ) : (
-                    <WButton size="sm" variant="tertiary" onClick={() => startEditingName(workspace)}>
+                    <WButton size="sm" variant="tertiary" onClick={() => startEditingName(profile)}>
                       Rename
                     </WButton>
                   )}
-                  <WButton size="sm" variant="danger-secondary" onClick={() => handleDeleteWorkspace(workspace)}>
+                  <WButton size="sm" variant="danger-secondary" onClick={() => handleDeleteProfile(profile)}>
                     Delete
                   </WButton>
                 </div>
@@ -253,7 +263,7 @@ const WorkspacesSettingsTab = React.memo(() => {
           })}
           {normalized.items.length === 0 && (
             <div className="rounded-lg border border-dashed border-[hsl(var(--border-primary))] p-6 text-sm text-[hsl(var(--text-secondary))]">
-              No workspaces yet. Create one from your current setup to start switching modes.
+              No profiles yet. Create one from your current setup to start switching modes.
             </div>
           )}
         </div>
@@ -262,29 +272,29 @@ const WorkspacesSettingsTab = React.memo(() => {
 
       <SettingsWeeSection eyebrow="Presets">
       <Card
-        title="Preset to workspace"
-        desc="Apply a preset look and immediately save that look into your active workspace."
+        title="Preset to profile"
+        desc="Apply a preset and then save that result into your active profile."
       >
         <div className="surface-controls">
           <div className="surface-row">
-            <select value={selectedPresetName} onChange={(e) => setSelectedPresetName(e.target.value)} className="surface-select">
+            <select value={selectedPresetId} onChange={(e) => setSelectedPresetId(e.target.value)} className="surface-select">
               {availablePresets.length === 0 && <option value="">No presets available</option>}
               {availablePresets.map((preset) => (
-                <option key={preset.name} value={preset.name}>
+                <option key={preset.id || preset.name} value={preset.id}>
                   {preset.name}
                 </option>
               ))}
             </select>
             <WButton
               variant="primary"
-              onClick={handleApplyPresetToActiveWorkspace}
-              disabled={!activeWorkspace || !selectedPresetName || availablePresets.length === 0}
+              onClick={handleApplyPresetToActiveProfile}
+              disabled={!activeProfile || !selectedPresetId || availablePresets.length === 0}
             >
-              Apply to Active Workspace
+              Apply to Active Profile
             </WButton>
           </div>
           <p className="surface-help">
-            Active workspace: {activeWorkspace ? activeWorkspace.name : 'None selected'}.
+            Active profile: {activeProfile ? activeProfile.name : 'None selected'}.
           </p>
         </div>
       </Card>

@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
-import { Clapperboard, Gamepad2, Home, Layers2, Wand2 } from 'lucide-react';
+import { Clapperboard, Gamepad2, Home, Wand2 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   DEFAULT_SHELL_SPACE_ORDER,
@@ -38,7 +38,6 @@ const MotionButton = m.button;
 
 const SPACE_META = {
   home: { label: 'Home', Icon: Home },
-  workspaces: { label: 'Second', Icon: Layers2 },
   mediahub: { label: 'Media', Icon: Clapperboard },
   gamehub: { label: 'Games', Icon: Gamepad2 },
 };
@@ -126,16 +125,12 @@ export default function WeeGooeySpacePill() {
     activeSpaceId,
     railVisible,
     order,
-    secondaryChannelProfiles,
-    activeSecondaryChannelProfileId,
     setSpacesState,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       activeSpaceId: state.spaces.activeSpaceId,
       railVisible: state.spaces.railVisible,
       order: state.spaces.order,
-      secondaryChannelProfiles: state.channels.secondaryChannelProfiles,
-      activeSecondaryChannelProfileId: state.channels.activeSecondaryChannelProfileId,
       setSpacesState: state.actions.setSpacesState,
     }))
   );
@@ -203,20 +198,14 @@ export default function WeeGooeySpacePill() {
     [order]
   );
 
-  const orderedSpaces = useMemo(() => {
-    const secondaryName =
-      secondaryChannelProfiles?.[activeSecondaryChannelProfileId]?.name?.trim() ||
-      SPACE_META.workspaces.label;
-    return spaceOrder.map((id) => {
-      const base = SPACE_META[id] || { label: id, Icon: Home };
-      if (id === 'workspaces') {
-        const label =
-          secondaryName.length > 14 ? `${secondaryName.slice(0, 13)}…` : secondaryName;
-        return { id, label, Icon: base.Icon };
-      }
-      return { id, label: base.label, Icon: base.Icon };
-    });
-  }, [spaceOrder, secondaryChannelProfiles, activeSecondaryChannelProfileId]);
+  const orderedSpaces = useMemo(
+    () =>
+      spaceOrder.map((id) => {
+        const base = SPACE_META[id] || { label: id, Icon: Home };
+        return { id, label: base.label, Icon: base.Icon };
+      }),
+    [spaceOrder]
+  );
 
   const activeSpaceIndex = useMemo(
     () => Math.max(0, orderedSpaces.findIndex((space) => space.id === activeSpaceId)),

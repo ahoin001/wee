@@ -30,8 +30,8 @@ const PresetsSavedListCard = React.memo(
     onCancelEdit,
     onEditNameChange,
     onKeyPress,
-    onApplyToActiveWorkspace,
-    hasActiveWorkspace,
+    onApplyToActiveProfile,
+    hasActiveProfile,
   }) => {
     const filtered = useMemo(
       () => presets.filter((preset) => preset.name !== excludeName),
@@ -50,8 +50,9 @@ const PresetsSavedListCard = React.memo(
     const useVirtual = filtered.length >= VIRTUALIZE_THRESHOLD;
 
     const renderItem = (preset) => {
-      const isDragging = draggingPreset === preset.name;
-      const isDropTarget = dropTarget === preset.name;
+      const presetId = preset.id || preset.name;
+      const isDragging = draggingPreset === presetId;
+      const isDropTarget = dropTarget === presetId;
 
       return (
         <PresetListItem
@@ -78,9 +79,9 @@ const PresetsSavedListCard = React.memo(
           onCancelEdit={onCancelEdit}
           onEditNameChange={onEditNameChange}
           onKeyPress={onKeyPress}
-          onApplyToActiveWorkspace={onApplyToActiveWorkspace}
-          hasActiveWorkspace={hasActiveWorkspace}
-          hasCommunityUpdate={Boolean(communityUpdateMap[preset.name]?.hasUpdate)}
+          onApplyToActiveProfile={onApplyToActiveProfile}
+          hasActiveProfile={hasActiveProfile}
+          hasCommunityUpdate={Boolean(communityUpdateMap[preset.id || preset.name]?.hasUpdate)}
         />
       );
     };
@@ -89,7 +90,7 @@ const PresetsSavedListCard = React.memo(
       return (
         <ul className="m-0 mb-0 list-none p-0">
           {filtered.map((preset) => (
-            <React.Fragment key={preset.name}>{renderItem(preset)}</React.Fragment>
+            <React.Fragment key={preset.id || preset.name}>{renderItem(preset)}</React.Fragment>
           ))}
         </ul>
       );
@@ -117,7 +118,7 @@ const PresetsSavedListCard = React.memo(
             if (!preset) return null;
             return (
               <PresetListItem
-                key={preset.name}
+                key={preset.id || preset.name}
                 ref={virtualizer.measureElement}
                 dataIndex={vi.index}
                 style={{
@@ -128,8 +129,8 @@ const PresetsSavedListCard = React.memo(
                   transform: `translateY(${vi.start}px)`,
                 }}
                 preset={preset}
-                isDragging={draggingPreset === preset.name}
-                isDropTarget={dropTarget === preset.name}
+                isDragging={draggingPreset === (preset.id || preset.name)}
+                isDropTarget={dropTarget === (preset.id || preset.name)}
                 isSelected={false}
                 selectMode={false}
                 editingPreset={editingPreset}
@@ -150,9 +151,9 @@ const PresetsSavedListCard = React.memo(
                 onCancelEdit={onCancelEdit}
                 onEditNameChange={onEditNameChange}
                 onKeyPress={onKeyPress}
-                onApplyToActiveWorkspace={onApplyToActiveWorkspace}
-                hasActiveWorkspace={hasActiveWorkspace}
-                hasCommunityUpdate={Boolean(communityUpdateMap[preset.name]?.hasUpdate)}
+                onApplyToActiveProfile={onApplyToActiveProfile}
+                hasActiveProfile={hasActiveProfile}
+                hasCommunityUpdate={Boolean(communityUpdateMap[preset.id || preset.name]?.hasUpdate)}
               />
             );
           })}

@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { m, useReducedMotion } from 'framer-motion';
 import {
   DndContext,
   DragOverlay,
@@ -24,8 +25,13 @@ import {
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../utils/supportedUploadMedia';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { createHomeChannelEntranceBandVariants, createHubEntranceBandVariants } from '../../design/weeMotion';
+import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
+import { useAppActivity } from '../../hooks/useAppActivity';
 import { weeMarkChannelPage } from '../../utils/weePerformanceMarks';
 import './PaginatedChannels.css';
+
+const MotionDiv = m.div;
 
 const PaginatedChannelsInner = React.memo(() => {
   // ✅ DATA LAYER: Use the new channel operations hook
@@ -44,8 +50,24 @@ const PaginatedChannelsInner = React.memo(() => {
   } = useChannelOperations(undefined, { enableGlobalPageShortcuts: true });
 
   const isSpaceTransitioning = useConsolidatedAppStore((s) => s.spaces.isTransitioning);
+  const activeSpaceId = useConsolidatedAppStore((s) => s.spaces.activeSpaceId);
   const channelConfigureModalOpen = useConsolidatedAppStore((s) => s.ui.channelConfigureModalOpen);
   const mf = useMotionFeedback();
+  const { isAppActive } = useAppActivity();
+  const reducedMotion = useReducedMotion();
+  const {
+    entranceKey,
+    tier: channelEntranceTier,
+    animateState: channelEntranceState,
+    onEntranceComplete,
+  } = useHubSpaceEntrance(channelSpaceKey, reducedMotion);
+  const channelReturnVariants = useMemo(
+    () =>
+      channelSpaceKey === 'home'
+        ? createHomeChannelEntranceBandVariants(channelEntranceTier, reducedMotion)
+        : createHubEntranceBandVariants(channelEntranceTier, reducedMotion),
+    [channelEntranceTier, reducedMotion, channelSpaceKey]
+  );
 
   /** Prefer pointer-occupied cell, then nearest corner — more reliable than rectIntersection on transformed grids. */
   const channelGridCollisionDetection = useCallback((args) => {
@@ -112,11 +134,13 @@ const PaginatedChannelsInner = React.memo(() => {
   }), [channelSettings]);
 
   // Grid-level auto-fade: fade after `autoFadeTimeout` seconds of *no* pointer activity on the grid
-  // (idle), not only after mouseleave — so it works while focused on Home / Workspaces.
+  // (idle), not only after mouseleave — so it works while focused on Home.
   const [isGridFaded, setIsGridFaded] = useState(false);
   const idleFadeTimerRef = useRef(null);
   const lastPointerThrottleRef = useRef(0);
   const autoFadeTimeout = effectiveSettings.autoFadeTimeout;
+  const isHomeSpace = channelSpaceKey === 'home';
+  const isHomeActive = isHomeSpace && activeSpaceId === 'home';
 
   const clearIdleFadeTimer = useCallback(() => {
     if (idleFadeTimerRef.current) {
@@ -127,17 +151,19 @@ const PaginatedChannelsInner = React.memo(() => {
 
   const scheduleIdleFade = useCallback(() => {
     clearIdleFadeTimer();
+    if (!isHomeActive) return;
     if (autoFadeTimeout <= 0) return;
     idleFadeTimerRef.current = window.setTimeout(() => {
       idleFadeTimerRef.current = null;
       setIsGridFaded(true);
     }, autoFadeTimeout * 1000);
-  }, [autoFadeTimeout, clearIdleFadeTimer]);
+  }, [autoFadeTimeout, clearIdleFadeTimer, isHomeActive]);
 
   const bumpGridActivity = useCallback(() => {
+    if (!isHomeActive) return;
     setIsGridFaded(false);
     scheduleIdleFade();
-  }, [scheduleIdleFade]);
+  }, [scheduleIdleFade, isHomeActive]);
 
   /** Throttle move so we don’t reset the idle timer every frame. */
   const handleGridPointerMove = useCallback(() => {
@@ -166,16 +192,46 @@ const PaginatedChannelsInner = React.memo(() => {
     };
   }, []);
 
-  // (Re)start idle countdown when the setting changes; disable clears fade.
+  // Home-only auto-fade lifecycle policy:
+  // - Returning to Home always resets to visible and starts a fresh timer
+  // - Inactive app while in Home is allowed to fade
+  // - Regaining app activity in Home resets to visible and restarts timer
   useEffect(() => {
+    clearIdleFadeTimer();
+
+    if (!isHomeSpace) {
+      setIsGridFaded(false);
+      return undefined;
+    }
+
+    if (!isHomeActive) {
+      setIsGridFaded(false);
+      return undefined;
+    }
+
     if (autoFadeTimeout <= 0) {
       clearIdleFadeTimer();
       setIsGridFaded(false);
       return undefined;
     }
+
+    if (isAppActive) {
+      setIsGridFaded(false);
+      scheduleIdleFade();
+      return () => clearIdleFadeTimer();
+    }
+
+    // App inactive while Home is active: fade is allowed from current visual state.
     scheduleIdleFade();
     return () => clearIdleFadeTimer();
-  }, [autoFadeTimeout, clearIdleFadeTimer, scheduleIdleFade]);
+  }, [
+    autoFadeTimeout,
+    clearIdleFadeTimer,
+    scheduleIdleFade,
+    isHomeSpace,
+    isHomeActive,
+    isAppActive,
+  ]);
 
   /** Wii strip: drive peek + layout math via inherited custom properties */
   const wiiStripCssVars = useMemo(() => {
@@ -404,6 +460,8 @@ const PaginatedChannelsInner = React.memo(() => {
           onGridPointerDown={bumpGridActivity}
           onGridWheel={bumpGridActivity}
           renderChannelAtIndex={renderChannelAtIndex}
+          hubEntranceKey={entranceKey}
+          hubEntranceTier={channelEntranceTier}
         />
       </div>
     );
@@ -415,6 +473,8 @@ const PaginatedChannelsInner = React.memo(() => {
     handleGridPointerMove,
     bumpGridActivity,
     renderChannelAtIndex,
+    entranceKey,
+    channelEntranceTier,
   ]);
 
   return (
@@ -434,13 +494,19 @@ const PaginatedChannelsInner = React.memo(() => {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div
+        <MotionDiv
+          variants={channelReturnVariants}
+          initial={false}
+          animate={channelEntranceState}
+          onAnimationComplete={
+            channelEntranceState === 'show' ? () => onEntranceComplete(entranceKey) : undefined
+          }
           className="channels-content"
           style={wiiStripCssVars}
           data-channel-space={channelSpaceKey}
         >
           {renderContent}
-        </div>
+        </MotionDiv>
 
         <DragOverlay dropAnimation={null}>
           {activeDragIndex !== null ? (

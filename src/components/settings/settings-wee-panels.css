@@ -13,6 +13,19 @@
   margin-top: 1.5rem;
 }
 
+.settings-wee-sticky-step-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin-bottom: 1rem;
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--border-primary) / 0.6);
+  background: hsl(var(--surface-primary) / 0.82);
+  padding: 0.75rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 16px hsl(var(--color-pure-black) / 0.08);
+}
+
 .settings-wee-intro {
   margin-bottom: 0.5rem;
 }

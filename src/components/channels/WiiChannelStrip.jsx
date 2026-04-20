@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { m } from 'framer-motion';
 import { useWeeMotion, createWeeChannelTileItemVariants } from '../../design/weeMotion';
+import { SPACE_SHELL_ENTRANCE_TIERS } from '../../design/spaceShellMotion';
 
 /**
  * Single continuous 4×N column grid (Option A): one uniform gap everywhere,
@@ -21,12 +22,16 @@ const WiiChannelStrip = ({
   onGridPointerDown,
   onGridWheel,
   renderChannelAtIndex,
+  hubEntranceKey = 0,
+  hubEntranceTier = SPACE_SHELL_ENTRANCE_TIERS.firstVisitPlayful,
 }) => {
   const { pillOpen, reducedMotion } = useWeeMotion();
   const tileItemVariants = useMemo(
     () => createWeeChannelTileItemVariants(pillOpen, reducedMotion),
     [pillOpen, reducedMotion]
   );
+  const tileAnimate =
+    hubEntranceTier === SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey ? 'revisit' : 'open';
 
   const safeTotalPages = Math.max(1, Number(totalPages) || 1);
   const safeColumns = Math.max(1, Number(columns) || 1);
@@ -66,7 +71,7 @@ const WiiChannelStrip = ({
             const col = (idxInPage % safeColumns) + page * safeColumns;
             return (
               <m.div
-                key={`wii-cell-${i}`}
+                key={`tile-${hubEntranceKey}-${i}`}
                 className="wii-strip-channel-cell"
                 style={{
                   gridColumn: col + 1,
@@ -75,7 +80,7 @@ const WiiChannelStrip = ({
                 variants={tileItemVariants}
                 custom={idxInPage}
                 initial="closed"
-                animate="open"
+                animate={tileAnimate}
               >
                 {renderChannelAtIndex(i, true)}
               </m.div>
@@ -99,6 +104,8 @@ WiiChannelStrip.propTypes = {
   onGridPointerDown: PropTypes.func,
   onGridWheel: PropTypes.func,
   renderChannelAtIndex: PropTypes.func.isRequired,
+  hubEntranceKey: PropTypes.number,
+  hubEntranceTier: PropTypes.oneOf(Object.values(SPACE_SHELL_ENTRANCE_TIERS)),
 };
 
 export default React.memo(WiiChannelStrip);

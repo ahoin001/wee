@@ -1,4 +1,5 @@
 import { useReducedMotion } from 'framer-motion';
+import { SPACE_SHELL_ENTRANCE_TIERS } from './spaceShellMotion';
 
 /**
  * spring presets for Wee modal shell + gooey space pill (see src/dev/hub-modal-overhaul-reference.jsx).
@@ -78,19 +79,33 @@ export const WEE_SPRINGS = {
     damping: 28,
     mass: 1,
   },
-  /** First visit per session — soft, long settle (~1.8–2.2s perceived) */
+  /** First visit per session — playful soft settle (~2.2–2.8s perceived) */
   hubSpaceEntranceFull: {
     type: 'spring',
-    stiffness: 170,
-    damping: 20,
-    mass: 1.05,
+    stiffness: 150,
+    damping: 18,
+    mass: 1.12,
   },
-  /** Return visit same session — quicker, still springy (~0.45–0.7s) */
+  /** Return visit same session — short but playful (~0.6–0.8s) */
   hubSpaceEntranceSubtle: {
     type: 'spring',
-    stiffness: 360,
-    damping: 30,
-    mass: 0.92,
+    stiffness: 285,
+    damping: 26,
+    mass: 0.96,
+  },
+  /** Revisit assembly — gooey stagger between full first visit and subtle; welcoming motion */
+  hubSpaceEntranceRevisitGooey: {
+    type: 'spring',
+    stiffness: 220,
+    damping: 24,
+    mass: 1,
+  },
+  /** Home channel grid first visit — overshoot then settle (space rail / pill family, slightly softer damping) */
+  homeSpaceEntranceOvershoot: {
+    type: 'spring',
+    stiffness: 300,
+    damping: 19,
+    mass: 0.88,
   },
 };
 
@@ -103,6 +118,13 @@ export const WEE_EASING = {
 export const MEDIA_HUB_STAGGER = {
   listItem: 0.05,
 };
+
+function isFirstVisitTier(tier) {
+  return (
+    tier === SPACE_SHELL_ENTRANCE_TIERS.firstVisitPlayful ||
+    tier === 'full'
+  );
+}
 
 export const WEE_VARIANTS = {
   modalBackdropInitial: { opacity: 0 },
@@ -160,11 +182,13 @@ export function createWeeShellRailItemVariants(pillOpen, reducedMotion) {
  * Channel grid tiles — softer than rail icons (closer to legacy CSS tile enter).
  */
 export function createWeeChannelTileItemVariants(pillOpen, reducedMotion) {
+  const playfulFull = WEE_SPRINGS.hubSpaceEntranceFull;
+  const revisitGooey = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
   return {
     closed: {
       opacity: 0,
-      scale: 0.94,
-      y: 14,
+      scale: 0.92,
+      y: 18,
       transition: reducedMotion ? { duration: 0.08 } : { duration: 0.1 },
     },
     open: (i) => ({
@@ -173,7 +197,22 @@ export function createWeeChannelTileItemVariants(pillOpen, reducedMotion) {
       y: 0,
       transition: reducedMotion
         ? { duration: 0.12 }
-        : { delay: Math.min(i * 0.024, 0.26), ...pillOpen },
+        : {
+            ...playfulFull,
+            delay: 0.08 + Math.min(i * 0.036, 0.5),
+          },
+    }),
+    /** Welcome-back stagger — gooey spring, slightly longer wave than legacy subtle */
+    revisit: (i) => ({
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: reducedMotion
+        ? { duration: 0.1 }
+        : {
+            ...revisitGooey,
+            delay: 0.04 + Math.min(i * 0.024, 0.32),
+          },
     }),
   };
 }
@@ -258,7 +297,7 @@ export function getMediaHubOverlayPanelMotion(reducedMotion) {
 
 /**
  * Game Hub / Media Hub: staggered band entrance (toolbar, hero, content, …).
- * @param {'full' | 'subtle'} tier
+ * @param {'firstVisitPlayful' | 'revisitSubtleGooey' | 'full' | 'subtle'} tier
  * @param {boolean} reducedMotion
  */
 export function createHubEntranceBandVariants(tier, reducedMotion) {
@@ -271,22 +310,156 @@ export function createHubEntranceBandVariants(tier, reducedMotion) {
       },
     };
   }
-  const isFull = tier === 'full';
-  const spring = isFull ? WEE_SPRINGS.hubSpaceEntranceFull : WEE_SPRINGS.hubSpaceEntranceSubtle;
-  const y = isFull ? 26 : 11;
+  const isFull = isFirstVisitTier(tier);
+  const springFull = WEE_SPRINGS.hubSpaceEntranceFull;
+  const springRevisit = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
+  if (isFull) {
+    return {
+      hidden: { opacity: 0, y: 30 },
+      show: {
+        opacity: 1,
+        y: 0,
+        transition: springFull,
+      },
+    };
+  }
   return {
-    hidden: { opacity: 0, y },
+    hidden: { opacity: 0.94, y: 14, scale: 0.992 },
     show: {
       opacity: 1,
       y: 0,
-      transition: spring,
+      scale: 1,
+      transition: springRevisit,
+    },
+  };
+}
+
+/**
+ * Home channel grid only: first session visit uses rail-like overshoot spring; revisit matches subtle hub band.
+ */
+export function createHomeChannelEntranceBandVariants(tier, reducedMotion) {
+  if (reducedMotion) {
+    return {
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: { duration: 0.16 },
+      },
+    };
+  }
+  const isFull = isFirstVisitTier(tier);
+  const springFull = WEE_SPRINGS.homeSpaceEntranceOvershoot;
+  const springRevisit = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
+  if (isFull) {
+    return {
+      hidden: { opacity: 0, y: 36 },
+      show: {
+        opacity: 1,
+        y: 0,
+        transition: springFull,
+      },
+    };
+  }
+  return {
+    hidden: { opacity: 0.94, y: 14, scale: 0.992 },
+    show: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: springRevisit,
+    },
+  };
+}
+
+/**
+ * Game Hub dock morph: library column follows the dock lane — subtle horizontal nudge + fade after delay
+ * (dock rail keeps scroll-linked opacity; no duplicate Y on the whole column band).
+ */
+export function createGameHubMorphLibraryFollowVariants(tier, reducedMotion) {
+  if (reducedMotion) {
+    return {
+      hidden: { opacity: 0 },
+      show: { opacity: 1, transition: { duration: 0.14 } },
+    };
+  }
+  const isFull = isFirstVisitTier(tier);
+  const revisitSpring = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
+  if (isFull) {
+    return {
+      hidden: { opacity: 0.82, x: -14 },
+      show: {
+        opacity: 1,
+        x: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 270,
+          damping: 28,
+          mass: 0.9,
+          delay: 0.16,
+        },
+      },
+    };
+  }
+  return {
+    hidden: { opacity: 0.9, x: -9 },
+    show: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        ...revisitSpring,
+        delay: 0.08,
+      },
+    },
+  };
+}
+
+/**
+ * Media Hub shell/header controls: slightly slower than generic hub bands so toolbar controls
+ * do not outpace the list/body reveal.
+ */
+export function createMediaHubShellBandVariants(tier, reducedMotion) {
+  if (reducedMotion) {
+    return {
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: { duration: 0.18 },
+      },
+    };
+  }
+  const isFull = isFirstVisitTier(tier);
+  const springFull = WEE_SPRINGS.hubSpaceEntranceFull;
+  const springRevisit = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
+  if (isFull) {
+    return {
+      hidden: { opacity: 0, y: 34 },
+      show: {
+        opacity: 1,
+        y: 0,
+        transition: {
+          ...springFull,
+          delay: 0.08,
+        },
+      },
+    };
+  }
+  return {
+    hidden: { opacity: 0.94, y: 14, scale: 0.993 },
+    show: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        ...springRevisit,
+        delay: 0.04,
+      },
     },
   };
 }
 
 /**
  * Parent orchestrator: stagger children after optional shell delay.
- * @param {'full' | 'subtle'} tier
+ * @param {'firstVisitPlayful' | 'revisitSubtleGooey' | 'full' | 'subtle'} tier
  * @param {boolean} reducedMotion
  */
 export function createHubEntranceOrchestratorVariants(tier, reducedMotion) {
@@ -298,13 +471,27 @@ export function createHubEntranceOrchestratorVariants(tier, reducedMotion) {
       },
     };
   }
-  const isFull = tier === 'full';
+  const isFull = isFirstVisitTier(tier);
+  if (isFull) {
+    return {
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.19,
+          delayChildren: 0.2,
+        },
+      },
+    };
+  }
+  /** Revisit: parent stays visible so bands can read “mid-assemble”; stagger drives the wave */
   return {
-    hidden: {},
+    hidden: { opacity: 1 },
     show: {
+      opacity: 1,
       transition: {
-        staggerChildren: isFull ? 0.14 : 0.055,
-        delayChildren: isFull ? 0.1 : 0.04,
+        staggerChildren: 0.11,
+        delayChildren: 0.1,
       },
     },
   };
@@ -312,24 +499,36 @@ export function createHubEntranceOrchestratorVariants(tier, reducedMotion) {
 
 /**
  * Backdrop / chrome: opacity-only entrance (avoid scale on full-bleed layers).
+ * Revisit keeps hero visible during assembly (mid-fade) so the strip never reads empty.
  */
-export function createHubEntranceFadeVariants(reducedMotion) {
+export function createHubEntranceFadeVariants(reducedMotion, tier) {
   if (reducedMotion) {
     return {
       hidden: { opacity: 0 },
       show: { opacity: 1, transition: { duration: 0.14 } },
     };
   }
+  const isFull = isFirstVisitTier(tier);
+  if (isFull) {
+    return {
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+      },
+    };
+  }
   return {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0.88 },
     show: {
       opacity: 1,
-      transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+      transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
     },
   };
 }
 
-const MEDIA_HUB_GRID_STAGGER_CAP = 15;
+/** Cap poster stagger index so large libraries do not trail forever; tighter than Game Hub stagger feel. */
+const MEDIA_HUB_GRID_STAGGER_CAP = 10;
 
 /**
  * Media Hub poster grid container (opacity + light rise; per-item delay uses custom index).
@@ -341,12 +540,23 @@ export function createMediaHubGridContainerVariants(tier, reducedMotion) {
       show: { opacity: 1, transition: { duration: 0.16 } },
     };
   }
+  const isFull = isFirstVisitTier(tier);
+  if (isFull) {
+    return {
+      hidden: { opacity: 0, y: 6 },
+      show: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.56, ease: [0.22, 1, 0.36, 1] },
+      },
+    };
+  }
   return {
-    hidden: { opacity: 0, y: 6 },
+    hidden: { opacity: 0.96, y: 5 },
     show: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+      transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] },
     },
   };
 }
@@ -362,12 +572,30 @@ export function createMediaHubGridItemVariants(tier, reducedMotion) {
       show: { opacity: 1, y: 0, transition: { duration: 0.14 } },
     };
   }
-  const isFull = tier === 'full';
-  const spring = isFull ? WEE_SPRINGS.hubSpaceEntranceFull : WEE_SPRINGS.hubSpaceEntranceSubtle;
-  const baseDelay = isFull ? 0.14 : 0.06;
-  const perItem = isFull ? 0.038 : 0.022;
+  const isFull = isFirstVisitTier(tier);
+  const springFull = WEE_SPRINGS.hubSpaceEntranceFull;
+  const springRevisit = WEE_SPRINGS.hubSpaceEntranceRevisitGooey;
+  const baseDelay = isFull ? 0.18 : 0.1;
+  const perItem = isFull ? 0.068 : 0.034;
+  if (isFull) {
+    return {
+      hidden: { opacity: 0, y: 11, scale: 0.986 },
+      show: (i) => {
+        const idx = typeof i === 'number' && Number.isFinite(i) ? i : 0;
+        return {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          transition: {
+            ...springFull,
+            delay: baseDelay + Math.min(idx, MEDIA_HUB_GRID_STAGGER_CAP) * perItem,
+          },
+        };
+      },
+    };
+  }
   return {
-    hidden: { opacity: 0, y: 11, scale: 0.986 },
+    hidden: { opacity: 0.9, y: 9, scale: 0.988 },
     show: (i) => {
       const idx = typeof i === 'number' && Number.isFinite(i) ? i : 0;
       return {
@@ -375,7 +603,7 @@ export function createMediaHubGridItemVariants(tier, reducedMotion) {
         y: 0,
         scale: 1,
         transition: {
-          ...spring,
+          ...springRevisit,
           delay: baseDelay + Math.min(idx, MEDIA_HUB_GRID_STAGGER_CAP) * perItem,
         },
       };

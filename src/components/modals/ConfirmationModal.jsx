@@ -45,46 +45,50 @@ const ConfirmationModal = () => {
     confirmationModalData, 
     closeConfirmationModal 
   } = useUIState();
+  const modalData = confirmationModalData || {};
+  const title = modalData.title || 'Confirm action';
+  const message = modalData.message || 'Are you sure you want to continue?';
+  const cancelText = modalData.cancelText || 'Cancel';
+  const confirmText = modalData.confirmText || 'Confirm';
+  const confirmVariant = modalData.confirmVariant || 'primary';
 
   const handleConfirm = () => {
-    if (confirmationModalData.onConfirm) {
-      confirmationModalData.onConfirm();
+    if (modalData.onConfirm) {
+      modalData.onConfirm();
     }
     closeConfirmationModal();
   };
 
   const handleCancel = () => {
-    if (confirmationModalData.onCancel) {
-      confirmationModalData.onCancel();
+    if (modalData.onCancel) {
+      modalData.onCancel();
     }
     closeConfirmationModal();
   };
 
-  if (!showConfirmationModal) return null;
-
   return (
     <WBaseModal
       isOpen={showConfirmationModal}
-      title={confirmationModalData.title}
+      title={title}
       onClose={handleCancel}
       maxWidth="600px"
       footerContent={() => (
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={handleCancel}>
-            {confirmationModalData.cancelText}
+            {cancelText}
           </Button>
           <Button 
-            variant={confirmationModalData.confirmVariant} 
+            variant={confirmVariant} 
             onClick={handleConfirm}
           >
-            {confirmationModalData.confirmText}
+            {confirmText}
           </Button>
         </div>
       )}
     >
       <div className="py-5">
         <div 
-          dangerouslySetInnerHTML={{ __html: confirmationModalData.message }}
+          dangerouslySetInnerHTML={{ __html: message }}
           className="mb-4 leading-relaxed text-[hsl(var(--text-primary))]"
         />
       </div>

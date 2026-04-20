@@ -65,6 +65,7 @@ export function useWallpaperDataFileSync() {
 
   useEffect(() => {
     const unsubscribe = useConsolidatedAppStore.subscribe((state) => {
+      if (!state.app?.startupHydrationCommitted) return;
       const fp = pickWallpaperFileSlice(state);
       if (isEqual(fp, lastFingerprintRef.current)) {
         return;

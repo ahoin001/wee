@@ -465,10 +465,8 @@ function UpdateModal({ isOpen, onClose }) {
     );
   };
 
-  if (!isOpen) return null;
-
   return (
-    <WBaseModal onClose={onClose} title="Check for Updates">
+    <WBaseModal isOpen={isOpen} onClose={onClose} title="Check for Updates">
       <div className="min-h-[200px]">
         {renderStatusContent()}
         {showFullChangelog && renderFullChangelog()}

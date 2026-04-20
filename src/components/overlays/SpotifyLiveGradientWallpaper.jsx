@@ -185,6 +185,11 @@ const SpotifyLiveGradientWallpaper = () => {
 
   // Track current gradient file for cleanup
   const currentGradientFile = useRef(null);
+  const latestImmersiveModeRef = useRef(immersiveMode);
+
+  useEffect(() => {
+    latestImmersiveModeRef.current = immersiveMode;
+  }, [immersiveMode]);
 
   // Set wallpaper overlay when gradient changes
   useEffect(() => {
@@ -301,10 +306,26 @@ const SpotifyLiveGradientWallpaper = () => {
   const cleanupCurrentGradient = async () => {
     if (currentGradientFile.current) {
       try {
+        const currentGradientUrl = currentGradientFile.current;
+
         // Remove from wallpapers list
         const wallpaperData = await window.api.wallpapers.get();
+        const matchedWallpaper = (wallpaperData.savedWallpapers || []).find(
+          (wp) => wp.url === currentGradientUrl
+        );
+
+        // User saved this gradient permanently; do not delete it as temp cleanup.
+        if (matchedWallpaper?.isPermanent) {
+          currentGradientFile.current = null;
+          return;
+        }
+
+        if (window.api?.wallpapers?.delete) {
+          await window.api.wallpapers.delete({ url: currentGradientUrl });
+        }
+
         const updatedWallpapers = (wallpaperData.savedWallpapers || []).filter(
-          wp => wp.url !== currentGradientFile.current
+          wp => wp.url !== currentGradientUrl
         );
         
         const updatedData = {
@@ -315,7 +336,7 @@ const SpotifyLiveGradientWallpaper = () => {
         await window.api.wallpapers.set(updatedData);
 
         // If we're in overlay mode, restore original wallpaper
-        if (immersiveMode.overlayMode && lastWallpaperUrl.current) {
+        if (latestImmersiveModeRef.current?.overlayMode && lastWallpaperUrl.current) {
           const { setWallpaperState } = useConsolidatedAppStore.getState().actions;
           setWallpaperState({
             current: {
@@ -375,6 +396,8 @@ const SpotifyLiveGradientWallpaper = () => {
         ...wallpaperData,
         savedWallpapers: updatedWallpapers,
       });
+      // Mark as retained so live-mode cleanup does not delete it later.
+      currentGradientFile.current = null;
       alert('Current Spotify look saved! You can find it in your wallpaper collection.');
     } catch (error) {
       logError('LiveGradientWallpaper', 'Failed to save current look', error);

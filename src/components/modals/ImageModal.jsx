@@ -5,10 +5,8 @@ import Button from '../../ui/WButton';
 import './ImageModal.css';
 
 const ImageModal = ({ isOpen, onClose, imageUrl, title }) => {
-  if (!isOpen || !imageUrl) return null;
-
   return (
-    <WBaseModal isOpen={isOpen} onClose={onClose} size="large">
+    <WBaseModal isOpen={isOpen && Boolean(imageUrl)} onClose={onClose} title={title || 'Image Preview'} maxWidth="980px">
       <div className="image-modal-content">
         <div className="image-modal-header">
           <h3 style={{ 
@@ -36,18 +34,20 @@ const ImageModal = ({ isOpen, onClose, imageUrl, title }) => {
         </div>
         
         <div className="image-modal-body">
-          <img
-            src={imageUrl}
-            alt={title || 'Preview'}
-            className="image-modal-image"
-            style={{
-              maxWidth: '100%',
-              maxHeight: '70vh',
-              objectFit: 'contain',
-              borderRadius: '8px',
-              boxShadow: 'var(--shadow-lg)'
-            }}
-          />
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={title || 'Preview'}
+              className="image-modal-image"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                boxShadow: 'var(--shadow-lg)'
+              }}
+            />
+          ) : null}
         </div>
       </div>
     </WBaseModal>

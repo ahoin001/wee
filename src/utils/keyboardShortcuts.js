@@ -1,5 +1,28 @@
 import { logWarn } from './logger';
 
+const MODIFIER_ORDER = ['ctrl', 'alt', 'shift', 'meta'];
+
+export const normalizeModifier = (modifier) => {
+  if (!modifier || modifier === 'none') return 'none';
+  const rawParts = String(modifier)
+    .toLowerCase()
+    .split('+')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const uniqueParts = [...new Set(rawParts)];
+  const orderedParts = MODIFIER_ORDER.filter((part) => uniqueParts.includes(part));
+  return orderedParts.length > 0 ? orderedParts.join('+') : 'none';
+};
+
+export const getModifierFromKeyboardEvent = (event) => {
+  const parts = [];
+  if (event.ctrlKey) parts.push('ctrl');
+  if (event.altKey) parts.push('alt');
+  if (event.shiftKey) parts.push('shift');
+  if (event.metaKey) parts.push('meta');
+  return normalizeModifier(parts.join('+'));
+};
+
 // Default keyboard shortcuts configuration
 export const DEFAULT_SHORTCUTS = [
   {
@@ -194,16 +217,16 @@ export const DEFAULT_SHORTCUTS = [
 // Helper function to format shortcut display
 export const formatShortcut = (shortcut) => {
   const { key, modifier } = shortcut;
-  
-  if (modifier === 'none') {
+
+  const normalizedModifier = normalizeModifier(modifier);
+  if (normalizedModifier === 'none') {
     return key;
   }
-  
-  const modifierText = modifier === 'ctrl' ? 'Ctrl' : 
-                       modifier === 'alt' ? 'Alt' : 
-                       modifier === 'shift' ? 'Shift' : 
-                       modifier === 'meta' ? 'Meta' : '';
-  
+
+  const modifierText = normalizedModifier
+    .split('+')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('+');
   return `${modifierText}+${key.toUpperCase()}`;
 };
 
@@ -217,21 +240,23 @@ export const parseShortcut = (shortcutString) => {
     return { key: parts[0], modifier: 'none' };
   }
   
-  const modifier = parts[0];
-  const key = parts[1];
+  const modifier = normalizeModifier(parts.slice(0, parts.length - 1).join('+'));
+  const key = parts[parts.length - 1];
   
   return { key, modifier };
 };
 
 // Helper function to validate shortcut
 export const validateShortcut = (shortcut) => {
-  const { key, modifier } = shortcut;
+  const { key } = shortcut;
+  const modifier = normalizeModifier(shortcut.modifier);
   
   if (!key) return { valid: false, error: 'Key is required' };
   
   // Valid modifiers
-  const validModifiers = ['none', 'ctrl', 'alt', 'shift', 'meta'];
-  if (!validModifiers.includes(modifier)) {
+  const validModifierParts = ['ctrl', 'alt', 'shift', 'meta'];
+  const modifierParts = modifier === 'none' ? [] : modifier.split('+');
+  if (modifierParts.some((part) => !validModifierParts.includes(part))) {
     return { valid: false, error: 'Invalid modifier' };
   }
   
@@ -255,12 +280,13 @@ export const validateShortcut = (shortcut) => {
 
 // Helper function to check for shortcut conflicts
 export const checkShortcutConflict = (shortcut, existingShortcuts) => {
-  const { key, modifier } = shortcut;
+  const { key } = shortcut;
+  const modifier = normalizeModifier(shortcut.modifier);
   
   const conflict = existingShortcuts.find(existing => 
-    existing.id !== shortcut.id && 
-    existing.key === key && 
-    existing.modifier === modifier
+    existing.id !== shortcut.id &&
+    String(existing.key).toLowerCase() === String(key).toLowerCase() &&
+    normalizeModifier(existing.modifier) === modifier
   );
   
   if (conflict) {
@@ -413,8 +439,8 @@ export const handleGlobalShortcut = (key, modifier, shortcuts) => {
   // Find the shortcut that matches the key combination
   const shortcut = shortcuts.find(s => 
     s.enabled && 
-    s.key === key && 
-    s.modifier === modifier
+    String(s.key).toLowerCase() === String(key).toLowerCase() &&
+    normalizeModifier(s.modifier) === normalizeModifier(modifier)
   );
   
   if (shortcut) {

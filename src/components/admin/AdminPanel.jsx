@@ -249,10 +249,9 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
     setCustomActionError('');
   };
 
-  if (!isOpen) return null;
-
   return (
     <WBaseModal
+      isOpen={isOpen}
       title="Admin Panel"
       onClose={onClose}
       maxWidth="1400px"

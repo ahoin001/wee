@@ -55,10 +55,12 @@ const AuthModal = () => {
     toggleAuthModalMode();
   };
 
-  if (!isAuthModalOpen) return null;
-
   return (
-    <WBaseModal onClose={closeAuthModal} title={authModalMode === 'signup' ? 'Create Account' : 'Sign In'}>
+    <WBaseModal
+      isOpen={isAuthModalOpen}
+      onClose={closeAuthModal}
+      title={authModalMode === 'signup' ? 'Create Account' : 'Sign In'}
+    >
       <Card>
         <Text className="mb-4 block">
           {authModalMode === 'signup' 

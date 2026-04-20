@@ -1,4 +1,14 @@
-const COMMUNITY_BLOCKED_KEYS = ['channels', 'channelData', 'soundLibrary']
+const COMMUNITY_BLOCKED_KEYS = [
+  'channels',
+  'channelData',
+  'homeChannels',
+  'sounds',
+  'soundLibrary',
+  'captureScope',
+  'includesHomeChannels',
+  'shareable',
+]
+const COMMUNITY_ALLOWED_KEYS = ['wallpaper', 'ribbon', 'time', 'overlay', 'ui', 'capturedSpotifyPalette']
 
 const isPlainObject = (value) => value && typeof value === 'object' && !Array.isArray(value)
 
@@ -54,10 +64,14 @@ const normalizeWallpaperCollections = (settings) => {
 }
 
 export const sanitizePresetSettingsForCommunity = (settingsInput, options = {}) => {
-  const settings = cloneJson(settingsInput)
+  const rawSettings = cloneJson(settingsInput)
   const wallpaperPublicUrl = options.wallpaperPublicUrl || null
 
-  removeBlockedKeys(settings)
+  removeBlockedKeys(rawSettings)
+  const settings = {}
+  for (const key of COMMUNITY_ALLOWED_KEYS) {
+    if (rawSettings[key] !== undefined) settings[key] = rawSettings[key]
+  }
 
   if (isPlainObject(settings.wallpaper)) {
     if (wallpaperPublicUrl) {

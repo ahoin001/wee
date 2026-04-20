@@ -1,6 +1,7 @@
 export { default as ChannelsLayoutSettingsTab } from './ChannelsLayoutSettingsTab';
 export { default as ChannelsSettingsTab } from './ChannelsLayoutSettingsTab';
 export { default as UnifiedDockSettingsTab } from './UnifiedDockSettingsTab';
+export { default as ColorsSettingsTab } from './ColorsSettingsTab';
 export { default as WallpaperSettingsTab } from './WallpaperSettingsTab';
 export { default as TimeSettingsTab } from './TimeSettingsTab';
 export { default as SoundsSettingsTab } from './SoundsSettingsTab';

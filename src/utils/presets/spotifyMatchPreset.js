@@ -2,18 +2,21 @@ import {
   DEFAULT_RIBBON_GLOW_HEX,
   INPUT_COLOR_DEFAULT_HEX,
 } from '../../design/runtimeColorStrings.js';
+import { PRESET_SCOPE_VISUAL } from './presetScopes';
 
 /** Reserved preset used for Spotify Match defaults and migration. */
 export const SPOTIFY_MATCH_PRESET_NAME = 'Spotify Match';
 
 export function createDefaultSpotifyMatchPreset() {
   return {
+    id: 'preset-spotify-match',
     name: SPOTIFY_MATCH_PRESET_NAME,
     data: {
       ui: {
         spotifyMatchEnabled: false,
       },
       ribbon: {
+        dynamicRibbonColorEnabled: false,
         ribbonColor: DEFAULT_RIBBON_GLOW_HEX,
         ribbonGlowColor: DEFAULT_RIBBON_GLOW_HEX,
         ribbonGlowStrength: 20,
@@ -33,6 +36,9 @@ export function createDefaultSpotifyMatchPreset() {
         font: 'digital',
       },
     },
+    captureScope: PRESET_SCOPE_VISUAL,
+    includesHomeChannels: false,
+    shareable: true,
     timestamp: new Date().toISOString(),
     isSpotifyMatch: true,
   };

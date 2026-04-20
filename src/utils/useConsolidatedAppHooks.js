@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 
 // Optimized hooks for selective state access
@@ -15,13 +16,89 @@ export const useAppState = () => {
 };
 
 export const useUIState = () => {
-  // ✅ DATA LAYER: Use separate selectors to prevent infinite loops
   const ui = useConsolidatedAppStore((state) => state.ui);
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
-  
+
+  const isAuthModalOpen = ui.isAuthModalOpen === true;
+  const authModalMode = ui.authModalMode === 'signup' ? 'signup' : 'signin';
+  const showConfirmationModal = ui.showConfirmationModal === true;
+  const confirmationModalData = ui.confirmationModalData;
+
+  const openAuthModal = useCallback(
+    (mode = 'signin') => {
+      setUIState({
+        isAuthModalOpen: true,
+        authModalMode: mode === 'signup' ? 'signup' : 'signin',
+      });
+    },
+    [setUIState]
+  );
+
+  const closeAuthModal = useCallback(() => {
+    setUIState({ isAuthModalOpen: false });
+  }, [setUIState]);
+
+  const toggleAuthModalMode = useCallback(() => {
+    setUIState((prev) => ({
+      authModalMode: prev.authModalMode === 'signup' ? 'signin' : 'signup',
+    }));
+  }, [setUIState]);
+
+  const openConfirmationModal = useCallback(
+    (data) => {
+      setUIState({
+        showConfirmationModal: true,
+        confirmationModalData: data && typeof data === 'object' ? data : {},
+      });
+    },
+    [setUIState]
+  );
+
+  const closeConfirmationModal = useCallback(() => {
+    setUIState({ showConfirmationModal: false, confirmationModalData: null });
+  }, [setUIState]);
+
+  const confirmDelete = useCallback(
+    (itemName, onConfirm) => {
+      openConfirmationModal({
+        title: `Delete ${itemName}`,
+        message: `Are you sure you want to delete <strong>${String(itemName)}</strong>? This cannot be undone.`,
+        confirmText: 'Delete',
+        confirmVariant: 'danger-primary',
+        onConfirm,
+      });
+    },
+    [openConfirmationModal]
+  );
+
+  const confirmAction = useCallback(
+    (title, message, onConfirm, onCancel, confirmText, confirmVariant) => {
+      openConfirmationModal({
+        title,
+        message,
+        onConfirm,
+        onCancel: onCancel || null,
+        confirmText: confirmText || 'Confirm',
+        confirmVariant: confirmVariant || 'primary',
+      });
+    },
+    [openConfirmationModal]
+  );
+
   return {
     ui,
     setUIState,
+    isAuthModalOpen,
+    authModalMode,
+    showConfirmationModal,
+    confirmationModalData,
+    openAuthModal,
+    closeAuthModal,
+    toggleAuthModalMode,
+    openConfirmationModal,
+    closeConfirmationModal,
+    confirmDelete,
+    confirmAction,
   };
 };
 

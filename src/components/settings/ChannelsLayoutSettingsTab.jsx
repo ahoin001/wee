@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Activity, Aperture, Home, Info, LayoutGrid, Monitor, PanelsTopLeft } from 'lucide-react';
+import { Activity, Aperture, Home, Info, LayoutGrid, Monitor } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import {
@@ -51,17 +51,11 @@ const CHANNEL_SPACE_OPTIONS = [
     subtitle: 'Main Wii board',
     Icon: Home,
   },
-  {
-    id: 'workspaces',
-    label: 'Workspaces',
-    subtitle: 'Secondary profiles',
-    Icon: PanelsTopLeft,
-  },
 ];
 
 function ChannelSpacePicker({ value, onChange, idPrefix = 'channel-space' }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="group" aria-label="Channel board to preview">
+    <div className="grid grid-cols-1 gap-3" role="group" aria-label="Channel board to preview">
       {CHANNEL_SPACE_OPTIONS.map((opt) => {
         const selected = value === opt.id;
         const Icon = opt.Icon;
@@ -110,8 +104,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   const channels = useConsolidatedAppStore((state) => state.channels);
   const ribbon = useConsolidatedAppStore((state) => state.ribbon);
   const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
-  const lastChannelSpaceId = useConsolidatedAppStore((state) => state.spaces.lastChannelSpaceId);
-
   const actions = useConsolidatedAppStore(
     useShallow((state) => ({
       setChannelSettings: state.actions.setChannelSettings,
@@ -123,10 +115,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   const ribbonSettings = ribbon || {};
 
   /** Which channel grid slice to show for page/status (independent of shell when previewing). */
-  const layoutSpaceKey = useMemo(
-    () => (lastChannelSpaceId === 'workspaces' ? 'workspaces' : 'home'),
-    [lastChannelSpaceId]
-  );
+  const layoutSpaceKey = 'home';
 
   const handleSpacePreviewChange = useCallback(
     (spaceId) => {
@@ -155,21 +144,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
       boxShadow: `0 0 0 2px color-mix(in srgb, transparent 72%, ${accentColor} 28%) inset`,
     };
   }, [ribbonSettings?.ribbonColor, ribbonSettings?.ribbonGlowColor]);
-
-  const shellLabel = useMemo(() => {
-    if (activeSpaceId === 'gamehub') return 'Game Hub';
-    if (activeSpaceId === 'mediahub') return 'Media Hub';
-    if (activeSpaceId === 'workspaces') return 'Workspaces';
-    return 'Home';
-  }, [activeSpaceId]);
-
-  const previewDiffersFromShell = useMemo(() => {
-    if (activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub') return false;
-    const shellChannel =
-      activeSpaceId === 'workspaces' ? 'workspaces' : activeSpaceId === 'home' ? 'home' : null;
-    if (!shellChannel) return false;
-    return layoutSpaceKey !== shellChannel;
-  }, [activeSpaceId, layoutSpaceKey]);
 
   const handleAnimatedOnHoverChange = useCallback((checked) => {
     actions.setChannelSettings({ animatedOnHover: checked });
@@ -278,12 +252,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             </Text>
             {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
               <Text variant="caption" className="!mb-4 block text-[hsl(var(--text-tertiary))]">
-                You&apos;re in a Hub space — pick which Wii board&apos;s strip status to mirror here.
-              </Text>
-            ) : null}
-            {previewDiffersFromShell ? (
-              <Text variant="caption" className="!mb-4 block text-[hsl(var(--state-warning))]">
-                Previewing the other board&apos;s status while your shell is on {shellLabel}.
+                You&apos;re in a Hub space — this mirrors Home board strip status.
               </Text>
             ) : null}
             <ChannelSpacePicker value={layoutSpaceKey} onChange={handleSpacePreviewChange} />
@@ -297,7 +266,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               Page {String(currentPage + 1).padStart(2, '0')}
             </Text>
             <Text variant="caption" className="!mt-2 text-[hsl(var(--text-tertiary))]">
-              Of {WII_LAYOUT_PRESET.totalPages} total pages · {layoutSpaceKey === 'workspaces' ? 'Workspaces' : 'Home'}
+              Of {WII_LAYOUT_PRESET.totalPages} total pages · Home
             </Text>
           </WeeModalFieldCard>
 

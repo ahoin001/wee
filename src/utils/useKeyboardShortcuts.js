@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
-import { handleGlobalShortcut } from './keyboardShortcuts';
+import { getModifierFromKeyboardEvent, handleGlobalShortcut } from './keyboardShortcuts';
 import { openSettingsToTab } from './settingsNavigation';
 import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
 
@@ -28,17 +28,12 @@ const useKeyboardShortcuts = () => {
       if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
         return;
       }
+      if (event.repeat) {
+        return;
+      }
 
       const key = event.key.toLowerCase();
-      const modifier = event.ctrlKey
-        ? 'ctrl'
-        : event.altKey
-          ? 'alt'
-          : event.shiftKey
-            ? 'shift'
-            : event.metaKey
-              ? 'meta'
-              : 'none';
+      const modifier = getModifierFromKeyboardEvent(event);
 
       if (handleGlobalShortcut(key, modifier, keyboardShortcuts)) {
         event.preventDefault();
@@ -89,26 +84,58 @@ const useKeyboardShortcuts = () => {
     window.nextPage = () => {
       const state = getState();
       const { channels, spaces } = state;
+      const activeSpaceId = spaces?.activeSpaceId;
+      if (activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub') return;
       const key = resolveActiveChannelSpaceKey(spaces?.activeSpaceId);
       const nav = getChannelDataSlice(channels, key).navigation || {};
       const currentPage = Number(nav.currentPage) || 0;
       const totalPages = Math.max(1, Number(nav.totalPages) || 1);
       if (currentPage >= totalPages - 1) return;
+      if (nav.isAnimating) return;
 
       const { setChannelNavigationForSpace } = getState().actions;
-      setChannelNavigationForSpace?.(key, { currentPage: currentPage + 1 });
+      setChannelNavigationForSpace?.(key, {
+        currentPage: currentPage + 1,
+        isAnimating: true,
+        animationDirection: 'right',
+      });
+      window.setTimeout(() => {
+        const latest = getState();
+        const latestSpaceKey = resolveActiveChannelSpaceKey(latest.spaces?.activeSpaceId);
+        if (latestSpaceKey !== key) return;
+        latest.actions.setChannelNavigationForSpace?.(key, {
+          isAnimating: false,
+          animationDirection: 'none',
+        });
+      }, 500);
     };
 
     window.prevPage = () => {
       const state = getState();
       const { channels, spaces } = state;
+      const activeSpaceId = spaces?.activeSpaceId;
+      if (activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub') return;
       const key = resolveActiveChannelSpaceKey(spaces?.activeSpaceId);
       const nav = getChannelDataSlice(channels, key).navigation || {};
       const currentPage = Number(nav.currentPage) || 0;
       if (currentPage <= 0) return;
+      if (nav.isAnimating) return;
 
       const { setChannelNavigationForSpace } = getState().actions;
-      setChannelNavigationForSpace?.(key, { currentPage: currentPage - 1 });
+      setChannelNavigationForSpace?.(key, {
+        currentPage: currentPage - 1,
+        isAnimating: true,
+        animationDirection: 'left',
+      });
+      window.setTimeout(() => {
+        const latest = getState();
+        const latestSpaceKey = resolveActiveChannelSpaceKey(latest.spaces?.activeSpaceId);
+        if (latestSpaceKey !== key) return;
+        latest.actions.setChannelNavigationForSpace?.(key, {
+          isAnimating: false,
+          animationDirection: 'none',
+        });
+      }, 500);
     };
 
     window.toggleDock = () => {

@@ -1,16 +1,25 @@
 import useConsolidatedAppStore from '../useConsolidatedAppStore';
+import { PRESET_SCOPE_VISUAL, PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS } from './presetScopes';
+
+function cloneSafe(value, fallback = null) {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return fallback;
+  }
+}
 
 /**
  * Build preset `data` payload from the consolidated store.
  * @param {object} opts
- * @param {boolean} [opts.includeSounds]
+ * @param {'visual' | 'visual+homeChannels'} [opts.captureScope]
  * @param {boolean} [opts.includeSpotifyPalette] — freeze current `spotify.extractedColors` into the preset
  */
 export function buildPresetDataFromStore({
-  includeSounds = false,
+  captureScope = PRESET_SCOPE_VISUAL,
   includeSpotifyPalette = false,
 } = {}) {
-  const { wallpaper, ribbon, time, overlay, ui, sounds, spotify } =
+  const { wallpaper, ribbon, time, overlay, ui, channels, spotify } =
     useConsolidatedAppStore.getState();
 
   const presetData = {
@@ -35,6 +44,7 @@ export function buildPresetDataFromStore({
       slideEasing: wallpaper.slideEasing,
     },
     ribbon: {
+      dynamicRibbonColorEnabled: ribbon.dynamicRibbonColorEnabled ?? false,
       ribbonColor: ribbon.ribbonColor,
       ribbonGlowColor: ribbon.ribbonGlowColor,
       ribbonGlowStrength: ribbon.ribbonGlowStrength,
@@ -69,12 +79,8 @@ export function buildPresetDataFromStore({
     },
   };
 
-  if (includeSounds) {
-    try {
-      presetData.sounds = sounds ? JSON.parse(JSON.stringify(sounds)) : null;
-    } catch {
-      presetData.sounds = null;
-    }
+  if (captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS) {
+    presetData.homeChannels = cloneSafe(channels?.dataBySpace?.home, null);
   }
 
   if (includeSpotifyPalette && spotify?.extractedColors) {
@@ -82,4 +88,20 @@ export function buildPresetDataFromStore({
   }
 
   return presetData;
+}
+
+export function buildPresetFromCurrentStore({
+  name,
+  captureScope = PRESET_SCOPE_VISUAL,
+  includeSpotifyPalette = false,
+  timestamp = new Date().toISOString(),
+} = {}) {
+  return {
+    name,
+    data: buildPresetDataFromStore({ captureScope, includeSpotifyPalette }),
+    captureScope,
+    includesHomeChannels: captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+    shareable: captureScope === PRESET_SCOPE_VISUAL,
+    timestamp,
+  };
 }

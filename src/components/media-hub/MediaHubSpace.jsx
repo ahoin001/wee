@@ -27,10 +27,10 @@ import MediaHubDiscoverGrid, { MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD } from './Me
 import { buildStremioDetailUrl } from '../../utils/mediaHubStremio';
 import {
   WEE_EASING,
-  createHubEntranceBandVariants,
   createHubEntranceOrchestratorVariants,
   createMediaHubGridContainerVariants,
   createMediaHubGridItemVariants,
+  createMediaHubShellBandVariants,
   getMediaHubAsideMotion,
   getMediaHubOverlayPanelMotion,
 } from '../../design/weeMotion';
@@ -260,7 +260,7 @@ function MediaHubItemDetail({
                   <select
                     value={selectedSeason != null ? String(selectedSeason) : ''}
                     onChange={(e) => onSeasonChange?.(Number(e.target.value))}
-                    className="media-hub-tray-select w-full min-w-0 rounded-xl border border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-primary)/0.5)] px-3 py-2 text-[12px] font-bold text-[hsl(var(--text-primary))]"
+                    className="media-hub-tray-select w-full min-w-0 px-3 py-2 text-[12px] font-bold"
                   >
                     {(seasonOptions || []).map((s) => (
                       <option key={s} value={String(s)}>
@@ -276,7 +276,7 @@ function MediaHubItemDetail({
                   <select
                     value={selectedEpisode != null ? String(selectedEpisode) : ''}
                     onChange={(e) => onEpisodeChange?.(Number(e.target.value))}
-                    className="media-hub-tray-select w-full min-w-0 rounded-xl border border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-primary)/0.5)] px-3 py-2 text-[12px] font-bold text-[hsl(var(--text-primary))]"
+                    className="media-hub-tray-select w-full min-w-0 px-3 py-2 text-[12px] font-bold"
                   >
                     {(episodeOptions || []).map((ep) => (
                       <option key={ep} value={String(ep)}>
@@ -342,7 +342,6 @@ export default function MediaHubSpace() {
     launchFallbackMessageRaw,
     frostedTrayEnabledRaw,
     cinemetaStateRaw,
-    catalogCacheRaw,
     localStateRaw,
     seriesMetaByIdRaw,
     libraryRaw,
@@ -364,7 +363,6 @@ export default function MediaHubSpace() {
       selectedSeriesSeasonRaw: state.mediaHub?.ui?.selectedSeriesSeason,
       selectedSeriesEpisodeRaw: state.mediaHub?.ui?.selectedSeriesEpisode,
       cinemetaStateRaw: state.mediaHub?.sources?.cinemeta,
-      catalogCacheRaw: state.mediaHub?.sources?.catalogCache,
       localStateRaw: state.mediaHub?.sources?.local,
       seriesMetaByIdRaw: state.mediaHub?.sources?.seriesMetaById,
       libraryRaw: state.mediaHub?.library,
@@ -387,7 +385,7 @@ export default function MediaHubSpace() {
     () => getMediaHubOverlayPanelMotion(reducedMotion),
     [reducedMotion]
   );
-  const { entranceKey, tier: hubEntranceTier, canStart, onEntranceComplete } = useHubSpaceEntrance(
+  const { entranceKey, tier: hubEntranceTier, animateState: hubEntranceState, onEntranceComplete } = useHubSpaceEntrance(
     'mediahub',
     reducedMotion
   );
@@ -395,8 +393,8 @@ export default function MediaHubSpace() {
     () => createHubEntranceOrchestratorVariants(hubEntranceTier, reducedMotion),
     [hubEntranceTier, reducedMotion]
   );
-  const hubHeaderBandVariants = useMemo(
-    () => createHubEntranceBandVariants(hubEntranceTier, reducedMotion),
+  const mediaHubShellBandVariants = useMemo(
+    () => createMediaHubShellBandVariants(hubEntranceTier, reducedMotion),
     [hubEntranceTier, reducedMotion]
   );
   const mediaHubGridContainerVariants = useMemo(
@@ -425,7 +423,6 @@ export default function MediaHubSpace() {
       ? Number(selectedSeriesEpisodeRaw)
       : null;
   const cinemetaState = cinemetaStateRaw || EMPTY_OBJECT;
-  const catalogCache = catalogCacheRaw || EMPTY_OBJECT;
   const localState = localStateRaw || EMPTY_OBJECT;
   const seriesMetaById = seriesMetaByIdRaw || EMPTY_OBJECT;
   const library = libraryRaw || EMPTY_OBJECT;
@@ -658,46 +655,56 @@ export default function MediaHubSpace() {
   useEffect(() => {
     if (activeSpaceId !== 'mediahub' || activeTab !== 'discover') return undefined;
     const cacheKey = `${contentMode}:${activeGenre}`;
-    const cached = catalogCache?.[cacheKey];
-    if (cached?.items?.length) {
-      const alreadyAppliedCache =
-        cinemetaState.items === cached.items &&
-        cinemetaState.loading === false &&
-        !cinemetaState.error;
-      if (alreadyAppliedCache) return undefined;
-      setMediaHubState({
-        sources: {
-          cinemeta: {
-            items: cached.items,
-            fetchedAt: cached.fetchedAt || Date.now(),
-            loading: false,
-            error: null,
+    const state = useConsolidatedAppStore.getState();
+    const liveCinemeta = state.mediaHub?.sources?.cinemeta || EMPTY_OBJECT;
+    const catalogCache = state.mediaHub?.sources?.catalogCache || EMPTY_OBJECT;
+    const cached = catalogCache[cacheKey];
+    const cacheHasItems = Array.isArray(cached?.items) && cached.items.length > 0;
+    const liveHasItems = Array.isArray(liveCinemeta?.items) && liveCinemeta.items.length > 0;
+
+    if (cacheHasItems) {
+      const cacheAlreadyApplied =
+        liveCinemeta.fetchedAt === cached.fetchedAt &&
+        liveCinemeta.loading === false &&
+        !liveCinemeta.error;
+      if (!cacheAlreadyApplied) {
+        setMediaHubState({
+          sources: {
+            cinemeta: {
+              items: cached.items,
+              fetchedAt: cached.fetchedAt || Date.now(),
+              loading: false,
+              error: null,
+            },
           },
-        },
-      });
-      return undefined;
+        });
+      }
     }
+
     if (discoverAbortRef.current) discoverAbortRef.current.abort();
     const controller = new AbortController();
     discoverAbortRef.current = controller;
-    if (!(cinemetaState.loading && !cinemetaState.error)) {
+
+    if (!liveHasItems && !cacheHasItems) {
       setMediaHubState({ sources: { cinemeta: { loading: true, error: null } } });
     }
+
     const genrePart = activeGenre === 'All' ? '' : `genre=${encodeURIComponent(activeGenre)}`;
     fetch(`${CINEMETA_URL}/catalog/${contentMode}/top.json?${genrePart}`, { signal: controller.signal })
       .then((response) => response.json())
       .then((data) => {
         const items = Array.isArray(data?.metas) ? data.metas : [];
+        const fetchedAt = Date.now();
         setMediaHubState({
           sources: {
             cinemeta: {
               items,
-              fetchedAt: Date.now(),
+              fetchedAt,
               loading: false,
               error: null,
             },
             catalogCache: {
-              [cacheKey]: { items, fetchedAt: Date.now() },
+              [cacheKey]: { items, fetchedAt },
             },
           },
         });
@@ -711,7 +718,7 @@ export default function MediaHubSpace() {
         });
       });
     return () => controller.abort();
-  }, [activeGenre, activeSpaceId, activeTab, catalogCache, cinemetaState.error, cinemetaState.items, cinemetaState.loading, contentMode, setMediaHubState]);
+  }, [activeGenre, activeSpaceId, activeTab, contentMode, setMediaHubState]);
 
   useEffect(() => {
     if (activeSpaceId !== 'mediahub' || activeTab !== 'local') return;
@@ -915,19 +922,19 @@ export default function MediaHubSpace() {
           layout={false}
           className={mainPanelClass}
           variants={hubOrchestratorVariants}
-          initial={canStart ? 'hidden' : false}
-          animate={!canStart ? 'show' : entranceKey > 0 ? 'show' : 'hidden'}
+          initial={false}
+          animate={hubEntranceState}
           onAnimationComplete={
-            entranceKey > 0 && canStart ? () => onEntranceComplete(entranceKey) : undefined
+            hubEntranceState === 'show' ? () => onEntranceComplete(entranceKey) : undefined
           }
         >
-          <MotionHeader className="media-hub-header mb-3 flex flex-col gap-3" variants={hubHeaderBandVariants}>
+          <MotionHeader className="media-hub-header mb-3 flex flex-col gap-3" variants={mediaHubShellBandVariants}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="media-hub-brand-eyebrow m-0 text-[10px] font-black uppercase tracking-[0.18em] text-[hsl(var(--text-secondary))]">
+                <p className="media-hub-brand-eyebrow m-0 text-[10px] font-black uppercase tracking-[0.18em]">
                   Media Hub
                 </p>
-                <h1 className="media-hub-brand-title m-0 text-3xl font-black uppercase italic tracking-tight text-[hsl(var(--text-primary))]">
+                <h1 className="media-hub-brand-title m-0 text-3xl font-black uppercase italic tracking-tight">
                   See What People Are Watching
                 </h1>
               </div>
@@ -961,13 +968,13 @@ export default function MediaHubSpace() {
 
             <div className="media-hub-tray-settings-row">
               <div className="min-w-0 flex-1">
-                <p className="m-0 text-[10px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">Preferred player</p>
-                <p className="m-0 mt-0.5 truncate text-[11px] font-bold text-[hsl(var(--text-primary))]">{preferredPlayerPath || 'System default'}</p>
+                <p className="media-hub-tray-label m-0 text-[10px] font-black uppercase tracking-[0.14em]">Preferred player</p>
+                <p className="media-hub-tray-value m-0 mt-0.5 truncate text-[11px] font-bold">{preferredPlayerPath || 'System default'}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={choosePreferredPlayer}
-                    className="inline-flex h-8 items-center gap-2 rounded-lg border border-[hsl(var(--border-primary)/0.75)] px-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-primary))]"
+                    className="media-hub-tray-action-btn media-hub-tray-action-btn--sm"
                   >
                     <ExternalLink size={12} />
                     Choose
@@ -976,7 +983,7 @@ export default function MediaHubSpace() {
                     <button
                       type="button"
                       onClick={() => updateUi({ preferredPlayerPath: '', preferredPlayerArgs: '' })}
-                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-[hsl(var(--border-primary)/0.75)] px-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]"
+                      className="media-hub-tray-action-btn media-hub-tray-action-btn--sm"
                     >
                       <X size={12} />
                       Clear
@@ -1077,8 +1084,8 @@ export default function MediaHubSpace() {
               <MotionDiv
                 key={`${activeTab}:${contentMode}:${activeGenre}:${searchQuery ? 'search' : 'base'}`}
                 variants={GRID_LIST_PARENT_VARIANTS}
-                initial="hidden"
-                animate="show"
+                initial={false}
+                animate={hubEntranceState}
                 className={
                   filteredDiscovery.length > MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD
                     ? 'flex w-full min-h-0 flex-1 flex-col'
@@ -1131,8 +1138,8 @@ export default function MediaHubSpace() {
               <MotionDiv
                 key={`local:${localState.folderPath || 'none'}:${searchQuery ? 'q' : 'all'}`}
                 variants={GRID_LIST_PARENT_VARIANTS}
-                initial="hidden"
-                animate="show"
+                initial={false}
+                animate={hubEntranceState}
                 className="media-hub-local-groups"
               >
                 <MediaHubLocalShelfSection

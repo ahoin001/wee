@@ -1,6 +1,7 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { SPACE_SHELL_ENTRANCE_TIERS } from '../design/spaceShellMotion';
 
 const STORAGE_PREFIX = 'wee.hubEntrance.';
 
@@ -9,18 +10,18 @@ export function hubEntranceStorageKey(spaceId) {
   return `${STORAGE_PREFIX}${spaceId}`;
 }
 
-const memoryFullComplete = { gamehub: false, mediahub: false };
+const memoryFullComplete = new Map();
 
 function readTier(spaceId) {
   try {
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(hubEntranceStorageKey(spaceId)) === '1') {
-      return 'subtle';
+      return SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey;
     }
   } catch {
     /* ignore */
   }
-  if (memoryFullComplete[spaceId]) return 'subtle';
-  return 'full';
+  if (memoryFullComplete.get(spaceId) === true) return SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey;
+  return SPACE_SHELL_ENTRANCE_TIERS.firstVisitPlayful;
 }
 
 function writeFullComplete(spaceId) {
@@ -29,70 +30,117 @@ function writeFullComplete(spaceId) {
   } catch {
     /* ignore */
   }
-  memoryFullComplete[spaceId] = true;
+  memoryFullComplete.set(spaceId, true);
 }
 
 /**
- * Session-aware hub entrance: full spring (~2s feel) first visit per session per hub,
- * subtle stagger on return. Animations start when the space is active and space-world transition finished.
+ * Session-aware shell-space entrance: playful spring first visit per session per space;
+ * revisit runs a visible hidden→show assembly (stagger) on each landing.
+ * First visit waits until the shell world transition finishes so the entrance does not fight the shell.
  *
- * @param {'gamehub' | 'mediahub'} spaceId
+ * @param {string} spaceId
  * @param {boolean} reducedMotion
  */
 export function useHubSpaceEntrance(spaceId, reducedMotion) {
   const { activeSpaceId, isSpaceTransitioning } = useConsolidatedAppStore(
     useShallow((s) => ({
       activeSpaceId: s.spaces?.activeSpaceId,
-      isSpaceTransitioning: Boolean(s.spaces?.isTransitioning),
+      isSpaceTransitioning: s.spaces?.isTransitioning ?? false,
     }))
   );
 
   const isActive = activeSpaceId === spaceId;
   const canStart = isActive && !isSpaceTransitioning;
 
-  /**
-   * Bump entrance key during render when we *land* on this hub (canStart flips false → true).
-   * Doing this only in useLayoutEffect left one committed frame with initial={false} and full
-   * opacity, then a remount/half-animation — bad flash. React 18 re-renders synchronously when
-   * setState runs during render, before paint.
-   */
+  /** Start false so first paint with `isActive` still runs the activation effect. */
+  const prevIsActiveRef = useRef(false);
   const prevCanStartRef = useRef(false);
+  const runCounterRef = useRef(0);
   const [entranceKey, setEntranceKey] = useState(0);
-  /** Snapshot of full vs subtle for this entrance run only (bumped with `entranceKey`). */
-  const [runTier, setRunTier] = useState('full');
-
-  if (canStart && !prevCanStartRef.current) {
-    prevCanStartRef.current = true;
-    setEntranceKey((k) => k + 1);
-  } else if (!canStart) {
-    prevCanStartRef.current = false;
-  }
-
+  const [runTier, setRunTier] = useState(() =>
+    reducedMotion ? SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey : readTier(spaceId)
+  );
   const tierByEntranceKeyRef = useRef(new Map());
+  const completedRunRef = useRef(0);
+
+  /** Revisit: second rAF flips to `show` so Framer sees a real hidden→show edge. */
+  const [revisitToShow, setRevisitToShow] = useState(false);
+
+  const isRevisitTier = runTier === SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey;
+
+  useEffect(() => {
+    if (isActive && !prevIsActiveRef.current) {
+      const nextTier = reducedMotion
+        ? SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey
+        : readTier(spaceId);
+      setRunTier(nextTier);
+      if (nextTier === SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey) {
+        runCounterRef.current += 1;
+        const nextKey = runCounterRef.current;
+        tierByEntranceKeyRef.current.set(nextKey, nextTier);
+        setEntranceKey(nextKey);
+      }
+    }
+    prevIsActiveRef.current = isActive;
+  }, [isActive, reducedMotion, spaceId]);
+
+  useEffect(() => {
+    if (runTier !== SPACE_SHELL_ENTRANCE_TIERS.firstVisitPlayful) {
+      prevCanStartRef.current = canStart;
+      return;
+    }
+    if (canStart && !prevCanStartRef.current) {
+      runCounterRef.current += 1;
+      const nextKey = runCounterRef.current;
+      tierByEntranceKeyRef.current.set(nextKey, runTier);
+      setEntranceKey(nextKey);
+    }
+    prevCanStartRef.current = canStart;
+  }, [canStart, runTier]);
 
   useLayoutEffect(() => {
-    if (entranceKey === 0) return;
-    const t = readTier(spaceId);
-    setRunTier(t);
-    tierByEntranceKeyRef.current.set(entranceKey, t);
-  }, [entranceKey, spaceId]);
+    if (!isActive || !isRevisitTier) {
+      setRevisitToShow(false);
+      return undefined;
+    }
+    setRevisitToShow(false);
+    let cancelled = false;
+    let id2 = 0;
+    const id1 = requestAnimationFrame(() => {
+      id2 = requestAnimationFrame(() => {
+        if (!cancelled) setRevisitToShow(true);
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(id1);
+      if (id2) cancelAnimationFrame(id2);
+    };
+  }, [isActive, isRevisitTier, entranceKey]);
 
-  /** Pass the `entranceKey` of the orchestrator that finished (avoid stale closure if user switches fast). */
   const onEntranceComplete = useCallback(
-    (completedKey) => {
+    (completedKey = entranceKey) => {
+      if (!completedKey || completedRunRef.current === completedKey) return;
+      completedRunRef.current = completedKey;
       const t = tierByEntranceKeyRef.current.get(completedKey);
-      if (t === 'full') {
+      if (t === SPACE_SHELL_ENTRANCE_TIERS.firstVisitPlayful) {
         writeFullComplete(spaceId);
       }
     },
-    [spaceId]
+    [entranceKey, spaceId]
   );
+
+  const animateState = (() => {
+    if (!isActive) return 'hidden';
+    if (isRevisitTier) return revisitToShow ? 'show' : 'hidden';
+    return canStart ? 'show' : 'hidden';
+  })();
 
   return {
     entranceKey,
-    /** Tier for the current entrance animation (stable for the whole run). */
     tier: runTier,
     canStart,
+    animateState,
     onEntranceComplete,
   };
 }

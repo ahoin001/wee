@@ -5,10 +5,9 @@ import SoundManagementContent from './SoundManagementContent';
 import './SoundModal.css';
 
 function SoundModal({ isOpen, onClose, onSettingsChange }) {
-  if (!isOpen) return null;
-
   return (
     <WBaseModal
+      isOpen={isOpen}
       title="🎵 Sound Studio - Manage App Sounds"
       onClose={onClose}
       className="sound-modal"

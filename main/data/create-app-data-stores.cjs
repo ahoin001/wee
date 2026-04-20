@@ -237,6 +237,7 @@ function createAppDataStores({
               glassBlur: 2.5,
               glassBorderOpacity: 0.5,
               glassShineOpacity: 0.7,
+              dynamicRibbonColorEnabled: false,
               ribbonColor: '#e0e6ef',
               recentRibbonColors: [],
               ribbonGlowColor: '#0099ff',

@@ -18,6 +18,7 @@ import {
   createHubEntranceBandVariants,
   createHubEntranceFadeVariants,
   createHubEntranceOrchestratorVariants,
+  createGameHubMorphLibraryFollowVariants,
 } from '../../design/weeMotion';
 import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
 import { weeMarkGameHubLibrary } from '../../utils/weePerformanceMarks';
@@ -60,7 +61,7 @@ const HEAVY_MIN_HOLD_MS = 380;
 const COLLECTION_CHROME_BUSY_MIN_HOLD_MS = 520;
 
 export default function GameHubSpace() {
-  const { appLibrary, gameHub, setGameHubState, patchGameHubLastLaunch, appLibraryManager, showDock, isSpaceTransitioning } =
+  const { appLibrary, gameHub, setGameHubState, patchGameHubLastLaunch, appLibraryManager, showDock, isSpaceTransitioning, activeSpaceId } =
     useConsolidatedAppStore(
       useShallow((state) => ({
         appLibrary: state.appLibrary,
@@ -70,6 +71,7 @@ export default function GameHubSpace() {
         appLibraryManager: state.appLibraryManager,
         showDock: state.ui.showDock ?? true,
         isSpaceTransitioning: state.spaces.isTransitioning,
+        activeSpaceId: state.spaces.activeSpaceId,
       }))
     );
 
@@ -107,7 +109,7 @@ export default function GameHubSpace() {
   const hubDockScrollMorphEnabled = gameHub.ui?.hubDockScrollMorphEnabled ?? true;
   const useDockMorphLayout = dockMorphEnabled && hubDockScrollMorphEnabled;
   const reducedMotion = useReducedMotion();
-  const { entranceKey, tier: hubEntranceTier, canStart, onEntranceComplete } = useHubSpaceEntrance(
+  const { entranceKey, tier: hubEntranceTier, animateState: hubEntranceState, onEntranceComplete } = useHubSpaceEntrance(
     'gamehub',
     reducedMotion
   );
@@ -120,7 +122,14 @@ export default function GameHubSpace() {
     () => createHubEntranceBandVariants(hubEntranceTier, reducedMotion),
     [hubEntranceTier, reducedMotion]
   );
-  const hubFadeVariants = useMemo(() => createHubEntranceFadeVariants(reducedMotion), [reducedMotion]);
+  const hubFadeVariants = useMemo(
+    () => createHubEntranceFadeVariants(reducedMotion, hubEntranceTier),
+    [reducedMotion, hubEntranceTier]
+  );
+  const hubMorphLibraryVariants = useMemo(
+    () => createGameHubMorphLibraryFollowVariants(hubEntranceTier, reducedMotion),
+    [hubEntranceTier, reducedMotion]
+  );
 
   const scrollY = useMotionValue(0);
   /** Drives dock-morph transforms; frozen while collection shelf animates (scrollY still tracks DOM). */
@@ -286,6 +295,7 @@ export default function GameHubSpace() {
   );
 
   useEffect(() => {
+    if (activeSpaceId !== 'gamehub') return undefined;
     if (isSpaceTransitioning) return undefined;
 
     let cancelled = false;
@@ -416,6 +426,7 @@ export default function GameHubSpace() {
       cancelled = true;
     };
   }, [
+    activeSpaceId,
     appLibraryManager,
     gameHub.profile?.steamId,
     gameHub.profile?.useSteamWebApi,
@@ -460,6 +471,7 @@ export default function GameHubSpace() {
   });
 
   useEffect(() => {
+    if (activeSpaceId !== 'gamehub') return undefined;
     if (isSpaceTransitioning) return undefined;
 
     const steamId = gameHub.profile?.steamId;
@@ -492,7 +504,7 @@ export default function GameHubSpace() {
     return () => {
       cancelled = true;
     };
-  }, [gameHub.profile?.steamId, isSpaceTransitioning]);
+  }, [activeSpaceId, gameHub.profile?.steamId, isSpaceTransitioning]);
 
   const showHubBackdrop = gameHub.ui?.showHubBackdrop ?? false;
   const hubSteamOnlyGames = gameHub.ui?.hubSteamOnlyGames ?? true;
@@ -787,10 +799,10 @@ export default function GameHubSpace() {
           layout={false}
           className="flex min-h-0 flex-1 flex-col"
           variants={hubOrchestratorVariants}
-          initial={canStart ? 'hidden' : false}
-          animate={!canStart ? 'show' : entranceKey > 0 ? 'show' : 'hidden'}
+          initial={false}
+          animate={hubEntranceState}
           onAnimationComplete={
-            entranceKey > 0 && canStart ? () => onEntranceComplete(entranceKey) : undefined
+            hubEntranceState === 'show' ? () => onEntranceComplete(entranceKey) : undefined
           }
         >
         {showHubBackdrop && (heroMediaBaseUrl || heroMediaOverlayUrl) ? (
@@ -865,7 +877,13 @@ export default function GameHubSpace() {
 
             <main ref={setScrollRef} className="aura-hub-content aura-hub-content--dock-morph">
               <div className="aura-hub-morph-stack">
-                <MotionDiv className="aura-hub-morph-main" style={{ maxWidth: gridMaxWidth, width: '100%' }}>
+                <MotionDiv
+                  className="aura-hub-morph-main"
+                  style={{ maxWidth: gridMaxWidth, width: '100%' }}
+                  variants={hubMorphLibraryVariants}
+                  initial={false}
+                  animate={hubEntranceState}
+                >
                   {hubSections}
                 </MotionDiv>
                 <MotionDiv

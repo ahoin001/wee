@@ -36,11 +36,7 @@ WiiSideNavIconPress.propTypes = {
 };
 
 const WiiSideNavigation = () => {
-  const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
-  const channelSpaceKey = useMemo(
-    () => (activeSpaceId === 'workspaces' ? 'workspaces' : 'home'),
-    [activeSpaceId]
-  );
+  const channelSpaceKey = useMemo(() => 'home', []);
 
   const {
     navigation,
@@ -53,6 +49,10 @@ const WiiSideNavigation = () => {
   // Get Spotify colors from store
   const spotifyColors = useConsolidatedAppStore(state => state.spotify.extractedColors);
   const spotifyEnabled = useConsolidatedAppStore(state => state.ui.spotifyMatchEnabled);
+  const dynamicRibbonColorEnabled = useConsolidatedAppStore(
+    (state) => state.ribbon.dynamicRibbonColorEnabled ?? false
+  );
+  const shouldUseDynamicNavColors = spotifyEnabled && dynamicRibbonColorEnabled;
 
   // Get sound manager for click sounds
   const { playChannelClickSound } = useSoundManager();
@@ -106,7 +106,7 @@ const WiiSideNavigation = () => {
     let border = `rgba(255, 255, 255, ${glassSettings.borderOpacity})`;
     let glow = `rgba(31, 38, 135, 0.37)`;
     
-    if (spotifyEnabled && navigationSpotifyIntegration && spotifyColors) {
+    if (shouldUseDynamicNavColors && navigationSpotifyIntegration && spotifyColors) {
       const primaryColor = spotifyColors.primary;
       const secondaryColor = spotifyColors.secondary;
       const accentColor = spotifyColors.accent;
@@ -157,7 +157,10 @@ const WiiSideNavigation = () => {
   // Icon renderer with fallback
   const renderIcon = (customIcon, DefaultIcon, _side = 'left') => {
     // Apply Spotify text color if enabled
-    const textColor = spotifyEnabled && navigationSpotifyIntegration && spotifyColors?.text ? spotifyColors.text : 'currentColor';
+    const textColor =
+      shouldUseDynamicNavColors && navigationSpotifyIntegration && spotifyColors?.text
+        ? spotifyColors.text
+        : 'currentColor';
     
     if (customIcon) {
       return (
@@ -165,7 +168,10 @@ const WiiSideNavigation = () => {
           src={customIcon} 
           alt="navigation icon" 
           style={{ 
-            filter: spotifyEnabled && navigationSpotifyIntegration && spotifyColors?.text ? 'brightness(0) saturate(100%) invert(1)' : 'none'
+            filter:
+              shouldUseDynamicNavColors && navigationSpotifyIntegration && spotifyColors?.text
+                ? 'brightness(0) saturate(100%) invert(1)'
+                : 'none'
           }}
           className="wii-side-nav-icon"
           onError={(e) => {

@@ -1,19 +1,14 @@
 import { buildPresetDataFromStore } from '../presets/buildPresetSnapshot';
-import useConsolidatedAppStore from '../useConsolidatedAppStore';
+import { PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS } from '../presets/presetScopes';
 
 export function createWorkspaceId() {
   return `workspace-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function buildWorkspaceDataFromStore() {
-  const base = buildPresetDataFromStore({
-    includeSounds: true,
+  return buildPresetDataFromStore({
+    captureScope: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
   });
-  const { channels } = useConsolidatedAppStore.getState();
-  return {
-    ...base,
-    channels,
-  };
 }
 
 export function createWorkspaceFromCurrentState(name) {

@@ -30,14 +30,16 @@ const PresetListItem = React.forwardRef(function PresetListItem(
     onCancelEdit,
     onEditNameChange,
     onKeyPress,
-    onApplyToActiveWorkspace,
-    hasActiveWorkspace,
+    onApplyToActiveProfile,
+    hasActiveProfile,
     hasCommunityUpdate,
     style,
     dataIndex,
   },
   ref
 ) {
+  const presetKey = preset.id || preset.name;
+
   return (
     <li
       ref={ref}
@@ -55,13 +57,13 @@ const PresetListItem = React.forwardRef(function PresetListItem(
         ],
       )}
       draggable={!selectMode}
-      onDragStart={(e) => onDragStart(e, preset.name)}
-      onDragOver={(e) => onDragOver(e, preset.name)}
-      onDragEnter={(e) => onDragEnter(e, preset.name)}
+      onDragStart={(e) => onDragStart(e, presetKey)}
+      onDragOver={(e) => onDragOver(e, presetKey)}
+      onDragEnter={(e) => onDragEnter(e, presetKey)}
       onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, preset.name)}
+      onDrop={(e) => onDrop(e, presetKey)}
       onDragEnd={onDragEnd}
-      onClick={selectMode ? () => onToggleSelect(preset.name) : undefined}
+      onClick={selectMode ? () => onToggleSelect(presetKey) : undefined}
     >
       <div className="flex min-w-0 items-start gap-3">
         {!selectMode && (
@@ -69,12 +71,13 @@ const PresetListItem = React.forwardRef(function PresetListItem(
             variant="small"
             className="mt-0.5 shrink-0 cursor-grab select-none text-[hsl(var(--text-tertiary))]"
             title="Drag to reorder"
+              aria-label="Drag preset to reorder"
           >
             ⋮⋮
           </Text>
         )}
         <div className="min-w-0 flex-1">
-          {editingPreset === preset.name ? (
+          {editingPreset === preset.id ? (
             <input
               type="text"
               value={editName}
@@ -88,6 +91,9 @@ const PresetListItem = React.forwardRef(function PresetListItem(
               <WeeEmphasisText as="span" size="md" className="break-words">
                 {preset.name}
               </WeeEmphasisText>
+              <span className="inline-flex shrink-0 rounded-md bg-[hsl(var(--surface-secondary))] px-1.5 py-0.5 text-[10px] font-semibold text-[hsl(var(--text-secondary))]">
+                {preset.captureScope === 'visual+homeChannels' ? 'Visual + Home channels' : 'Visual'}
+              </span>
               {hasCommunityUpdate && (
                 <span
                   className="inline-flex shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-[hsl(var(--state-warning))] bg-[hsl(var(--state-warning)/0.18)]"
@@ -108,7 +114,7 @@ const PresetListItem = React.forwardRef(function PresetListItem(
           selectMode && 'justify-end'
         )}
       >
-        {editingPreset === preset.name ? (
+        {editingPreset === preset.id ? (
           <>
             <Button className="min-w-[4.5rem]" onClick={onSaveEdit}>
               Save
@@ -131,32 +137,34 @@ const PresetListItem = React.forwardRef(function PresetListItem(
             <Button
               className="max-w-full min-w-0 shrink sm:max-w-[min(100%,14rem)]"
               variant="secondary"
-              disabled={!hasActiveWorkspace}
+              disabled={!hasActiveProfile}
               title={
-                hasActiveWorkspace
-                  ? 'Apply preset look and save into active workspace'
-                  : 'No active workspace set'
+                hasActiveProfile
+                  ? 'Apply preset to active Home profile and save it'
+                  : 'No active Home profile set'
               }
               onClick={(e) => {
                 e.stopPropagation();
-                onApplyToActiveWorkspace(preset);
+                onApplyToActiveProfile(preset);
               }}
             >
               <span className="whitespace-normal text-center leading-tight sm:whitespace-nowrap">
-                Apply to workspace
+                Apply to profile
               </span>
             </Button>
             <Button
               className="min-w-[4.5rem] shrink-0"
+              variant="secondary"
               onClick={(e) => {
                 e.stopPropagation();
-                onUpdate(preset.name);
+                onUpdate(presetKey);
               }}
             >
-              {justUpdated === preset.name ? 'Updated!' : 'Update'}
+              {justUpdated === presetKey ? 'Updated!' : 'Update'}
             </Button>
             <Button
               className="min-w-[4.5rem] shrink-0"
+              variant="secondary"
               onClick={(e) => {
                 e.stopPropagation();
                 onStartEdit(preset);
@@ -170,7 +178,7 @@ const PresetListItem = React.forwardRef(function PresetListItem(
               className="shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(preset.name);
+                onDelete(presetKey);
               }}
               title="Delete this preset (requires confirmation)"
             >
@@ -185,6 +193,7 @@ const PresetListItem = React.forwardRef(function PresetListItem(
 
 PresetListItem.propTypes = {
   preset: PropTypes.shape({
+    id: PropTypes.string,
     name: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
   }).isRequired,
@@ -210,8 +219,8 @@ PresetListItem.propTypes = {
   onCancelEdit: PropTypes.func.isRequired,
   onEditNameChange: PropTypes.func.isRequired,
   onKeyPress: PropTypes.func.isRequired,
-  onApplyToActiveWorkspace: PropTypes.func.isRequired,
-  hasActiveWorkspace: PropTypes.bool.isRequired,
+  onApplyToActiveProfile: PropTypes.func.isRequired,
+  hasActiveProfile: PropTypes.bool.isRequired,
   hasCommunityUpdate: PropTypes.bool,
   style: PropTypes.object,
   dataIndex: PropTypes.number,

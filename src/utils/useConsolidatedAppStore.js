@@ -24,6 +24,8 @@ import {
   captureSpaceAppearanceFromState,
   mergeLiveStateFromSpaceAppearance,
 } from './appearance/spaceAppearance';
+import { createSeededWorkspaceState } from './workspaces/workspaceState';
+import { sanitizePresetCollection } from './presets/presetThemeData';
 
 /**
  * Read/write the second shell space’s channel grid via `secondaryChannelProfiles[activeId].channelSpace`
@@ -85,6 +87,8 @@ useConsolidatedAppStore = create(
           version: '2.9.4',
           isInitialized: false,
           isLoading: true,
+          /** True once startup IPC hydration has been committed to the store. */
+          startupHydrationCommitted: false,
           splashFading: false,
           appReady: false,
           hasInitialized: false,
@@ -126,6 +130,12 @@ useConsolidatedAppStore = create(
           // Modal states
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
+          /** Community preset auth (upload/manage). Not persisted. */
+          isAuthModalOpen: false,
+          authModalMode: 'signin',
+          /** Global confirmation dialog. Not persisted. */
+          showConfirmationModal: false,
+          confirmationModalData: null,
           showWorkspaceSwitcher: false,
           /** True while any Configure Channel modal is open — disables grid drag/drop. Not persisted. */
           channelConfigureModalOpen: false,
@@ -163,6 +173,7 @@ useConsolidatedAppStore = create(
           glassBlur: 2.5,
           glassBorderOpacity: 0.5,
           glassShineOpacity: 0.7,
+          dynamicRibbonColorEnabled: false,
           ribbonColor: DEFAULT_RIBBON_SURFACE_HEX,
           recentRibbonColors: [],
           ribbonGlowColor: DEFAULT_RIBBON_GLOW_HEX,
@@ -551,18 +562,15 @@ useConsolidatedAppStore = create(
         presets: [],
 
         // Workspaces
-        workspaces: {
-          items: [],
-          activeWorkspaceId: null,
-        },
+        workspaces: createSeededWorkspaceState(),
 
         // Top-level shell spaces
         spaces: {
           activeSpaceId: 'home',
-          /** Last non–Game Hub panel (home vs work) — used to restore on launch (never cold-start on gamehub). */
+          /** Last non-hub panel (Home) — used to restore on launch (never cold-start on hubs). */
           lastChannelSpaceId: 'home',
-          /** Vertical rail: secondary channel slot → Home → Media Hub → Game Hub. */
-          order: ['workspaces', 'home', 'mediahub', 'gamehub'],
+          /** Vertical rail: Home → Media Hub → Game Hub. */
+          order: ['home', 'mediahub', 'gamehub'],
           /** True while the space-world slide is animating — channel drag should be disabled. */
           isTransitioning: false,
           autoHideRail: true,
@@ -649,6 +657,7 @@ useConsolidatedAppStore = create(
               loading: false,
               error: null,
             },
+            catalogCache: {},
             streamsById: {},
             /** @type {Record<string, { loading?: boolean, error?: string|null, meta?: object, videos?: object[] }>} */
             seriesMetaById: {},
@@ -1111,7 +1120,11 @@ useConsolidatedAppStore = create(
           })),
 
           // Preset actions
-          setPresets: (presets) => set({ presets }),
+          setPresets: (presets) => {
+            const incoming = Array.isArray(presets) ? presets : [];
+            const { presets: sanitized } = sanitizePresetCollection(incoming);
+            set({ presets: sanitized });
+          },
 
           // Workspace actions
           setWorkspacesState: (updates) => set((state) => ({
@@ -1123,11 +1136,19 @@ useConsolidatedAppStore = create(
 
           setSpacesState: (updates) => set((state) => {
             const nextSpaces = { ...state.spaces, ...updates };
+            if (
+              updates.activeSpaceId !== undefined &&
+              updates.activeSpaceId !== state.spaces.activeSpaceId &&
+              updates.isTransitioning === undefined
+            ) {
+              // Atomic space switch gate: avoid one-frame false-ready hub entrances.
+              nextSpaces.isTransitioning = true;
+            }
             // Sync last Wii board when shell space changes — not when only `lastChannelSpaceId` is updated
             // (e.g. Channels & layout tab previewing the other board while staying on Home).
             if (
               updates.activeSpaceId !== undefined &&
-              (nextSpaces.activeSpaceId === 'home' || nextSpaces.activeSpaceId === 'workspaces')
+              nextSpaces.activeSpaceId === 'home'
             ) {
               nextSpaces.lastChannelSpaceId = nextSpaces.activeSpaceId;
             }
@@ -1141,26 +1162,17 @@ useConsolidatedAppStore = create(
                 ...state.appearanceBySpace,
                 [prevId]: liveCapture,
               };
-              let incoming = appearanceBySpace[nextId];
-              // First visit to a shell space: no saved snapshot yet — seed from current live look
-              // so persist/reload keeps per-space appearance instead of leaving `null` forever.
-              if (incoming == null) {
-                incoming = liveCapture;
-                appearanceBySpace = {
-                  ...appearanceBySpace,
-                  [nextId]: liveCapture,
-                };
-              }
-              const merged = mergeLiveStateFromSpaceAppearance(state, incoming);
+              const incoming = appearanceBySpace[nextId];
+              const merged = incoming == null ? null : mergeLiveStateFromSpaceAppearance(state, incoming);
 
               return {
                 spaces: nextSpaces,
                 appearanceBySpace,
-                ...(merged.wallpaper ? { wallpaper: merged.wallpaper } : {}),
-                ...(merged.ribbon ? { ribbon: merged.ribbon } : {}),
-                ...(merged.time ? { time: merged.time } : {}),
-                ...(merged.overlay ? { overlay: merged.overlay } : {}),
-                ...(merged.ui ? { ui: merged.ui } : {}),
+                ...(merged?.wallpaper ? { wallpaper: merged.wallpaper } : {}),
+                ...(merged?.ribbon ? { ribbon: merged.ribbon } : {}),
+                ...(merged?.time ? { time: merged.time } : {}),
+                ...(merged?.overlay ? { overlay: merged.overlay } : {}),
+                ...(merged?.ui ? { ui: merged.ui } : {}),
               };
             }
 
@@ -1224,7 +1236,7 @@ useConsolidatedAppStore = create(
               let sourcesChanged = false;
               if (sourcesPatch && typeof sourcesPatch === 'object') {
                 const mergedSources = { ...prevMediaHub.sources };
-                const { cinemeta, local, streamsById, seriesMetaById, ...sourceRootPatch } = sourcesPatch;
+                const { cinemeta, local, streamsById, seriesMetaById, catalogCache, ...sourceRootPatch } = sourcesPatch;
 
                 for (const key of Object.keys(sourceRootPatch)) {
                   if (!Object.is(prevMediaHub.sources[key], sourceRootPatch[key])) {
@@ -1267,6 +1279,17 @@ useConsolidatedAppStore = create(
                   };
                   if (!shallowEqualObjects(prevMediaHub.sources.streamsById, mergedStreamsById)) {
                     mergedSources.streamsById = mergedStreamsById;
+                    sourcesChanged = true;
+                  }
+                }
+
+                if (Object.prototype.hasOwnProperty.call(sourcesPatch, 'catalogCache')) {
+                  const mergedCatalogCache = {
+                    ...(prevMediaHub.sources.catalogCache || {}),
+                    ...(catalogCache || {}),
+                  };
+                  if (!shallowEqualObjects(prevMediaHub.sources.catalogCache || {}, mergedCatalogCache)) {
+                    mergedSources.catalogCache = mergedCatalogCache;
                     sourcesChanged = true;
                   }
                 }
@@ -1336,7 +1359,11 @@ useConsolidatedAppStore = create(
               if (slices.time) next.time = { ...state.time, ...slices.time };
               if (slices.dock) next.dock = { ...state.dock, ...slices.dock };
               if (slices.sounds) next.sounds = { ...state.sounds, ...slices.sounds };
-              if (slices.presets !== undefined) next.presets = slices.presets;
+              if (slices.presets !== undefined) {
+                const incoming = Array.isArray(slices.presets) ? slices.presets : [];
+                const { presets: sanitizedPresets } = sanitizePresetCollection(incoming);
+                next.presets = sanitizedPresets;
+              }
               if (slices.workspaces) next.workspaces = { ...state.workspaces, ...slices.workspaces };
               if (slices.spaces) {
                 next.spaces = {
@@ -1384,6 +1411,10 @@ useConsolidatedAppStore = create(
                       ...state.mediaHub.sources.cinemeta,
                       ...(slices.mediaHub.sources?.cinemeta || {}),
                     },
+                    catalogCache: {
+                      ...(state.mediaHub.sources.catalogCache || {}),
+                      ...(slices.mediaHub.sources?.catalogCache || {}),
+                    },
                     local: {
                       ...state.mediaHub.sources.local,
                       ...(slices.mediaHub.sources?.local || {}),
@@ -1417,6 +1448,16 @@ useConsolidatedAppStore = create(
                   ...state.appearanceBySpace,
                   ...slices.appearanceBySpace,
                 };
+              }
+
+              const activeAppearance = next.appearanceBySpace?.[next.spaces?.activeSpaceId];
+              if (activeAppearance != null) {
+                const merged = mergeLiveStateFromSpaceAppearance(next, activeAppearance);
+                if (merged.wallpaper) next.wallpaper = merged.wallpaper;
+                if (merged.ribbon) next.ribbon = merged.ribbon;
+                if (merged.time) next.time = merged.time;
+                if (merged.overlay) next.overlay = merged.overlay;
+                if (merged.ui) next.ui = merged.ui;
               }
 
               return next;
@@ -1569,6 +1610,7 @@ useConsolidatedAppStore = create(
               version: '2.9.4',
               isInitialized: false,
               isLoading: true,
+              startupHydrationCommitted: false,
               splashFading: false,
               appReady: false,
               hasInitialized: false,
@@ -1593,6 +1635,10 @@ useConsolidatedAppStore = create(
               spotifyMatchEnabled: false,
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),
+              isAuthModalOpen: false,
+              authModalMode: 'signin',
+              showConfirmationModal: false,
+              confirmationModalData: null,
               showWorkspaceSwitcher: false,
               channelOpenHints: {},
               sceneTransition: {
@@ -1613,6 +1659,7 @@ useConsolidatedAppStore = create(
               glassBlur: 2.5,
               glassBorderOpacity: 0.5,
               glassShineOpacity: 0.7,
+              dynamicRibbonColorEnabled: false,
               ribbonColor: DEFAULT_RIBBON_SURFACE_HEX,
               recentRibbonColors: [],
               ribbonGlowColor: DEFAULT_RIBBON_GLOW_HEX,
@@ -1774,14 +1821,11 @@ useConsolidatedAppStore = create(
               channelHoverVolume: 0.5,
             },
             presets: [],
-            workspaces: {
-              items: [],
-              activeWorkspaceId: null,
-            },
+            workspaces: createSeededWorkspaceState(),
             spaces: {
               activeSpaceId: 'home',
               lastChannelSpaceId: 'home',
-              order: ['workspaces', 'home', 'mediahub', 'gamehub'],
+              order: ['home', 'mediahub', 'gamehub'],
               isTransitioning: false,
               autoHideRail: true,
               railPinned: false,
@@ -1853,6 +1897,7 @@ useConsolidatedAppStore = create(
                   loading: false,
                   error: null,
                 },
+                catalogCache: {},
                 streamsById: {},
                 local: {
                   folderPath: '',

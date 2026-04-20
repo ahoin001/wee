@@ -12,8 +12,8 @@ function SplashScreen({ fadingOut }) {
           <div className="spinner-drop spinner-drop3" />
           <div className="spinner-drop spinner-drop4" />
         </div>
-        <h1 className="splash-title">Wii Desktop Launcher</h1>
-        <div className="splash-subtitle">Loading your Wii experience...</div>
+        <h1 className="splash-title">Wee Desktop Launcher</h1>
+        
       </div>
     </div>
   );

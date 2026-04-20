@@ -12,9 +12,9 @@ const PresetsSaveCurrentCard = React.memo(
     onSave,
     error,
     captureNotice,
-    includeSounds,
-    onIncludeSoundsChange,
-    onOpenWorkspaces,
+    includeHomeChannels,
+    onIncludeHomeChannelsChange,
+    onOpenHomeProfiles,
     customPresetCount,
     maxCustomPresets,
   }) => (
@@ -41,18 +41,23 @@ const PresetsSaveCurrentCard = React.memo(
       </div>
 
       <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
-        Presets save theme and look only. Use Workspaces for app and channel setups.
+        Visual-only presets are shareable. Home channel presets are local-only.
       </Text>
 
       <div className="flex flex-col gap-3 border-t border-[hsl(var(--border-primary)/0.35)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
-        <Button variant="tertiary" size="sm" onClick={onOpenWorkspaces} className="w-fit">
-          Open Workspaces
+        <Button variant="tertiary" size="sm" onClick={onOpenHomeProfiles} className="w-fit">
+          Open Home Profiles
         </Button>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:ml-auto">
           <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))] sm:text-right">
-            Save sound library and audio preferences
+            Include Home channels and positions (local only)
           </Text>
-          <WToggle checked={includeSounds} onChange={onIncludeSoundsChange} label="Include sounds" disableLabelClick />
+          <WToggle
+            checked={includeHomeChannels}
+            onChange={onIncludeHomeChannelsChange}
+            label="Include Home channels"
+            disableLabelClick
+          />
         </div>
       </div>
 

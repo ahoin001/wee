@@ -306,6 +306,7 @@
   /* Settings modal — sidebar tab accent dots (HSL components, use hsl(var(--settings-tab-*))) */
   --settings-tab-api: 142 72% 45%;
   --settings-tab-channels: 195 75% 60%;
+  --settings-tab-colors: 226 86% 68%;
   --settings-tab-dock: 45 99% 66%;
   --settings-tab-general: 252 67% 64%;
   --settings-tab-layout: 168 100% 36%;

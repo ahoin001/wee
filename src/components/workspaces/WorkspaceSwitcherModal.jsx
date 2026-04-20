@@ -17,13 +17,22 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
   );
   const normalized = useMemo(() => normalizeWorkspacesState(workspaces), [workspaces]);
 
-  const handleApplyWorkspace = async (workspace, handleClose) => {
-    await applyWorkspaceSnapshot(workspace);
-    setWorkspacesState({ activeWorkspaceId: workspace.id });
+  const handleApplyProfile = async (profile, handleClose) => {
+    const resolvedData = await applyWorkspaceSnapshot(profile);
+    const nextItems = normalized.items.map((item) =>
+      item.id === profile.id
+        ? {
+            ...item,
+            data: item.data || resolvedData || null,
+            timestamp: new Date().toISOString(),
+          }
+        : item
+    );
+    setWorkspacesState({ items: nextItems, activeWorkspaceId: profile.id });
     handleClose();
   };
 
-  const openWorkspaceSettings = (handleClose) => {
+  const openHomeProfilesSettings = (handleClose) => {
     setUIState({
       showSettingsModal: true,
       settingsActiveTab: 'workspaces',
@@ -31,28 +40,26 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
     handleClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <WBaseModal title="Workspace Switcher" isOpen={isOpen} onClose={onClose} maxWidth="860px">
+    <WBaseModal title="Home Profile Switcher" isOpen={isOpen} onClose={onClose} maxWidth="860px">
       <div className="space-y-5">
         <p className="text-sm text-[hsl(var(--text-secondary))]">
-          Switch entire setups with one click — channels, wallpaper, colors, and sound profile.
+          Switch Home profiles with one click — channels and visuals move together.
         </p>
 
         <div className="grid gap-3 md:grid-cols-2">
-          {normalized.items.map((workspace, index) => {
-            const isActive = workspace.id === normalized.activeWorkspaceId;
+          {normalized.items.map((profile, index) => {
+            const isActive = profile.id === normalized.activeWorkspaceId;
             return (
               <button
                 type="button"
-                key={workspace.id}
+                key={profile.id}
                 onClick={({ currentTarget }) => {
                   const handleClose = () => {
                     currentTarget.blur();
                     onClose();
                   };
-                  handleApplyWorkspace(workspace, handleClose);
+                  handleApplyProfile(profile, handleClose);
                 }}
                 className={`group relative overflow-hidden rounded-xl border p-4 text-left transition-all duration-300 ${
                   isActive
@@ -65,7 +72,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
                   style={{ transform: `scaleX(${Math.max(0.16, ((index % 4) + 1) / 4)})`, transformOrigin: 'left' }}
                 />
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="m-0 text-base font-semibold text-[hsl(var(--text-primary))]">{workspace.name}</h3>
+                  <h3 className="m-0 text-base font-semibold text-[hsl(var(--text-primary))]">{profile.name}</h3>
                   {isActive && (
                     <span className="rounded-full bg-[hsl(var(--wii-blue)/0.2)] px-2 py-0.5 text-xs font-medium text-[hsl(var(--wii-blue))]">
                       Active
@@ -73,10 +80,10 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
                   )}
                 </div>
                 <p className="mt-2 text-xs text-[hsl(var(--text-secondary))]">
-                  Updated {workspace.timestamp ? new Date(workspace.timestamp).toLocaleString() : 'just now'}
+                  Updated {profile.timestamp ? new Date(profile.timestamp).toLocaleString() : 'just now'}
                 </p>
                 <p className="mt-3 text-sm text-[hsl(var(--text-secondary))]">
-                  Click to transition into this workspace.
+                  Click to switch into this profile.
                 </p>
               </button>
             );
@@ -84,7 +91,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
 
           {normalized.items.length === 0 && (
             <div className="rounded-xl border border-dashed border-[hsl(var(--border-primary))] p-6 text-sm text-[hsl(var(--text-secondary))]">
-              No workspaces yet. Create one in Settings → Workspaces.
+              No profiles yet. Create one in Settings → Home Profiles.
             </div>
           )}
         </div>
@@ -97,10 +104,10 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
         <WButton
           variant="primary"
           onClick={() => {
-            openWorkspaceSettings(onClose);
+            openHomeProfilesSettings(onClose);
           }}
         >
-          Manage Workspaces
+          Manage Home Profiles
         </WButton>
       </div>
     </WBaseModal>

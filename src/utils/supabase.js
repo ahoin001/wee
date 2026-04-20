@@ -2,8 +2,6 @@ import { createClient } from '@supabase/supabase-js'
 import { sanitizePresetSettingsForCommunity } from './presetSharing'
 import { logError, logWarn } from './logger'
 import {
-  CANVAS_AVATAR_FALLBACK_BG,
-  CANVAS_AVATAR_FALLBACK_FG,
   CANVAS_PLACEHOLDER_ACCENT,
   CANVAS_PLACEHOLDER_BG,
   CANVAS_PLACEHOLDER_GRADIENT_END,
@@ -377,7 +375,7 @@ export const generatePresetThumbnail = async (presetData) => {
     ctx.fillText(presetData.name || 'Preset', 150, 80);
     
     // Add channel count
-    const channelCount = presetData.channels?.length || 0;
+    const channelCount = presetData.captureScope === 'visual+homeChannels' ? 1 : 0;
     ctx.font = '14px Arial';
     ctx.fillStyle = CANVAS_PLACEHOLDER_TEXT_MUTED;
     ctx.fillText(`${channelCount} channels`, 150, 110);
@@ -477,7 +475,7 @@ export const uploadPreset = async (presetData, formData) => {
     // Generate thumbnail from preset data
     const thumbnailBlob = await generatePresetThumbnail({
       name: formData.name,
-      channels: presetData.settings?.channels || [],
+      captureScope: presetData.settings?.captureScope || 'visual',
       creator_name: formData.creator_name
     });
     
@@ -803,78 +801,4 @@ export const getPopularMedia = async (options = {}) => {
   )
 }
 
-// =====================================================
-// LEGACY COMPATIBILITY (for existing code)
-// =====================================================
-
-// Helper function to generate thumbnail from preset data
-export const generateThumbnail = async (presetData) => {
-  // Create a canvas to generate thumbnail
-  const canvas = document.createElement('canvas')
-  const ctx = canvas.getContext('2d')
-  canvas.width = 300
-  canvas.height = 200
-  
-  // Draw a simple thumbnail based on preset data
-  ctx.fillStyle = CANVAS_AVATAR_FALLBACK_BG
-  ctx.fillRect(0, 0, 300, 200)
-  
-  // Add preset name
-  ctx.fillStyle = CANVAS_AVATAR_FALLBACK_FG
-  ctx.font = 'bold 16px Arial'
-  ctx.textAlign = 'center'
-  ctx.fillText(presetData.name, 150, 100)
-  
-  // Add channel count
-  ctx.font = '12px Arial'
-  ctx.fillText(`${presetData.channels?.length || 0} channels`, 150, 120)
-  
-  return new Promise((resolve) => {
-    canvas.toBlob(resolve, 'image/png', 0.8)
-  })
-}
-
-// Legacy function for backward compatibility
-export const downloadPresetLegacy = async (preset) => {
-  try {
-    if (!supabase) {
-      return { success: false, error: 'Supabase not configured' }
-    }
-
-    // Download the preset file
-    const { data: fileData, error: fileError } = await supabase.storage
-      .from('presets')
-      .download(preset.preset_file_url)
-
-    if (fileError) {
-      logError('SUPABASE', 'Error downloading preset file', fileError);
-      return { success: false, error: fileError.message };
-    }
-
-    // Convert the file data to text
-    const presetText = await fileData.text();
-    const presetData = JSON.parse(presetText);
-
-    // Increment download count
-    const currentDownloads = preset.downloads || 0;
-    const { error: updateError } = await spokeClient
-      .from('presets')
-      .update({ downloads: currentDownloads + 1 })
-      .eq('id', preset.id);
-
-    if (updateError) {
-      logError('SUPABASE', 'Error updating download count', updateError, { 
-        presetId: preset.id, 
-        currentDownloads, 
-        newDownloads: currentDownloads + 1 
-      });
-      // Don't fail the download if the count update fails
-    }
-
-    return { success: true, data: presetData };
-  } catch (error) {
-    logError('SUPABASE', 'Error downloading preset', error);
-    return { success: false, error: error.message };
-  }
-} 
  

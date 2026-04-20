@@ -1,6 +1,11 @@
 import { saveUnifiedSettingsSnapshot, saveUnifiedSoundSettings } from '../electronApi';
 import { normalizePresetSoundsSnapshot } from '../presetSoundSettings';
 import useConsolidatedAppStore from '../useConsolidatedAppStore';
+import {
+  PRESET_SCOPE_VISUAL,
+  isPresetScopeWithHomeChannels,
+  normalizePresetScope,
+} from './presetScopes';
 
 function normalizeSettingsShape(settingsToApply) {
   const hasOldStructure =
@@ -22,6 +27,7 @@ function normalizeSettingsShape(settingsToApply) {
       font: settingsToApply.timeFont,
     },
     ribbon: {
+      dynamicRibbonColorEnabled: settingsToApply.dynamicRibbonColorEnabled,
       ribbonColor: settingsToApply.ribbonColor,
       ribbonGlowColor: settingsToApply.ribbonGlowColor,
       ribbonGlowStrength: settingsToApply.ribbonGlowStrength,
@@ -72,6 +78,7 @@ export async function applyPresetData(preset) {
   }
 
   settingsToApply = normalizeSettingsShape(settingsToApply);
+  const captureScope = normalizePresetScope(preset.captureScope);
 
   if (!settingsToApply || typeof settingsToApply !== 'object') {
     console.error('[applyPresetData] Invalid settings structure');
@@ -112,12 +119,26 @@ export async function applyPresetData(preset) {
     setUIState(settingsToApply.ui);
   }
 
-  if (settingsToApply.channels) {
-    const { setChannelState } = useConsolidatedAppStore.getState().actions;
-    setChannelState(settingsToApply.channels);
+  if (isPresetScopeWithHomeChannels(captureScope)) {
+    const { setChannelDataForSpace, setChannelState } = useConsolidatedAppStore.getState().actions;
+    if (settingsToApply.homeChannels) {
+      setChannelDataForSpace('home', settingsToApply.homeChannels);
+    } else if (settingsToApply.channels) {
+      setChannelState(settingsToApply.channels);
+    }
   }
+  const channelsPatchForPersist =
+    isPresetScopeWithHomeChannels(captureScope) && settingsToApply.homeChannels
+      ? {
+          dataBySpace: {
+            home: settingsToApply.homeChannels,
+          },
+        }
+      : settingsToApply.channels;
 
-  const normalizedSounds = normalizePresetSoundsSnapshot(settingsToApply.sounds);
+  const normalizedSounds = captureScope === PRESET_SCOPE_VISUAL
+    ? null
+    : normalizePresetSoundsSnapshot(settingsToApply.sounds);
   if (normalizedSounds) {
     setSoundsState(normalizedSounds);
     try {
@@ -148,7 +169,9 @@ export async function applyPresetData(preset) {
       ...(settingsToApply.ui ? { ui: settingsToApply.ui } : {}),
       ...(settingsToApply.ribbon ? { ribbon: settingsToApply.ribbon } : {}),
       ...(settingsToApply.time ? { time: settingsToApply.time } : {}),
-      ...(settingsToApply.channels ? { channels: settingsToApply.channels } : {}),
+      ...(isPresetScopeWithHomeChannels(captureScope) && channelsPatchForPersist
+        ? { channels: channelsPatchForPersist }
+        : {}),
       ...(settingsToApply.wallpaper ? { wallpaper: settingsToApply.wallpaper } : {}),
       ...(settingsToApply.overlay ? { overlay: settingsToApply.overlay } : {}),
       ...(normalizedSounds ? { sounds: normalizedSounds } : {}),

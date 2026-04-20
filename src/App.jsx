@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Suspense, useMemo } from 'react';
 import { m } from 'framer-motion';
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -17,7 +17,6 @@ import {
 import { useAppInitialization } from './hooks/useAppInitialization';
 import { useUnifiedSettingsPersistence } from './hooks/useUnifiedSettingsPersistence';
 import { useWallpaperDataFileSync } from './hooks/useWallpaperDataFileSync';
-import { useActiveWorkspaceAutoSync } from './hooks/useActiveWorkspaceAutoSync';
 import { 
   useTimeColor, 
   useEnableTimePill, 
@@ -28,7 +27,7 @@ import {
 import { ErrorBoundary, SplashScreen, SpaceBootLoader } from './components/core';
 import { LaunchFeedbackProvider } from './contexts/LaunchFeedbackContext';
 import { WallpaperOverlay, IsolatedWallpaperBackground } from './components/overlays';
-import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
+import { DEFAULT_RIBBON_GLOW_HEX, DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 import GameHubMinimalDock from './components/game-hub/GameHubMinimalDock';
 import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from './utils/channelSpaces';
 import {
@@ -87,6 +86,7 @@ function App() {
     showSettingsActionMenu,
     ribbonColor,
     ribbonGlowColor,
+    dynamicRibbonColorEnabled,
     ribbonGlowStrength,
     ribbonGlowStrengthHover,
     ribbonDockOpacity,
@@ -126,6 +126,7 @@ function App() {
       showSettingsActionMenu: state.ui.showSettingsActionMenu,
       ribbonColor: state.ribbon.ribbonColor,
       ribbonGlowColor: state.ribbon.ribbonGlowColor,
+      dynamicRibbonColorEnabled: state.ribbon.dynamicRibbonColorEnabled ?? false,
       ribbonGlowStrength: state.ribbon.ribbonGlowStrength,
       ribbonGlowStrengthHover: state.ribbon.ribbonGlowStrengthHover,
       ribbonDockOpacity: state.ribbon.ribbonDockOpacity,
@@ -178,7 +179,6 @@ function App() {
   useKeyboardShortcuts();
   useUnifiedSettingsPersistence();
   useWallpaperDataFileSync();
-  useActiveWorkspaceAutoSync();
 
   useEffect(() => {
     if (!IS_DEV) return;
@@ -260,17 +260,27 @@ function App() {
     const i = resolvedSpaceOrder.indexOf(activeSpaceId);
     return i >= 0 ? i : 0;
   }, [resolvedSpaceOrder, activeSpaceId]);
+  const spaceWorldTrackRef = useRef(null);
   const lastSpaceSwitchAtRef = useRef(Date.now());
+  const prevActiveSpaceIdRef = useRef(null);
+  const [spaceSwitchSeq, setSpaceSwitchSeq] = useState(0);
   const [spaceWorldDurationMs, setSpaceWorldDurationMs] = useState(SPACE_SHELL_TRANSITION_MS_DEFAULT);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (prevActiveSpaceIdRef.current === null) {
+      prevActiveSpaceIdRef.current = activeSpaceId;
+      return;
+    }
+    if (prevActiveSpaceIdRef.current === activeSpaceId) return;
+    prevActiveSpaceIdRef.current = activeSpaceId;
     const now = Date.now();
     const elapsed = now - lastSpaceSwitchAtRef.current;
     lastSpaceSwitchAtRef.current = now;
-    if (elapsed > 0 && elapsed < SPACE_SHELL_RAPID_WINDOW_MS) {
-      setSpaceWorldDurationMs(SPACE_SHELL_TRANSITION_MS_RAPID);
-    } else {
-      setSpaceWorldDurationMs(SPACE_SHELL_TRANSITION_MS_DEFAULT);
-    }
+    const nextDurationMs =
+      elapsed > 0 && elapsed < SPACE_SHELL_RAPID_WINDOW_MS
+        ? SPACE_SHELL_TRANSITION_MS_RAPID
+        : SPACE_SHELL_TRANSITION_MS_DEFAULT;
+    setSpaceWorldDurationMs(nextDurationMs);
+    setSpaceSwitchSeq((s) => s + 1);
   }, [activeSpaceId]);
 
   useEffect(() => {
@@ -279,24 +289,30 @@ function App() {
     root.style.setProperty('--space-shell-ease', SPACE_SHELL_EASE_CSS);
   }, [spaceWorldDurationMs]);
 
-  const prevActiveSpaceIdRef = useRef(null);
   useEffect(() => {
-    if (prevActiveSpaceIdRef.current === null) {
-      prevActiveSpaceIdRef.current = activeSpaceId;
-      return;
-    }
-    if (prevActiveSpaceIdRef.current === activeSpaceId) return;
-    prevActiveSpaceIdRef.current = activeSpaceId;
-    setSpacesState({ isTransitioning: true });
-    const t = setTimeout(() => {
-      setSpacesState({ isTransitioning: false });
-    }, spaceWorldDurationMs);
-    return () => {
-      clearTimeout(t);
-      // If the timeout was cleared before it fired (e.g. rapid space switches), avoid leaving drag disabled forever.
+    if (spaceSwitchSeq === 0) return undefined;
+    const node = spaceWorldTrackRef.current;
+    let settled = false;
+    const settleTransition = () => {
+      if (settled) return;
+      settled = true;
       setSpacesState({ isTransitioning: false });
     };
-  }, [activeSpaceId, spaceWorldDurationMs, setSpacesState]);
+    if (reducedMotion || spaceWorldDurationMs <= 0 || !node) {
+      const raf = window.requestAnimationFrame(settleTransition);
+      return () => window.cancelAnimationFrame(raf);
+    }
+    const onTrackTransitionEnd = (event) => {
+      if (event.target !== node || event.propertyName !== 'transform') return;
+      settleTransition();
+    };
+    node.addEventListener('transitionend', onTrackTransitionEnd);
+    const t = window.setTimeout(settleTransition, spaceWorldDurationMs + 96);
+    return () => {
+      node.removeEventListener('transitionend', onTrackTransitionEnd);
+      window.clearTimeout(t);
+    };
+  }, [spaceSwitchSeq, reducedMotion, spaceWorldDurationMs, setSpacesState]);
 
   const spaceWorldTrackStyle = useMemo(() => {
     const n = resolvedSpaceOrder.length || 1;
@@ -352,6 +368,7 @@ function App() {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const enableDeferredMounts = appReady && hasUserInteracted;
   const settingsPrefetchPromiseRef = useRef(null);
+  const [settingsActionMenuMounted, setSettingsActionMenuMounted] = useState(false);
   const prefetchSettingsUI = useCallback(() => {
     if (!settingsPrefetchPromiseRef.current) {
       settingsPrefetchPromiseRef.current = weeMeasureAsync('settings-bundle-prefetch', () =>
@@ -372,10 +389,17 @@ function App() {
   // Handle settings action menu positioning
   const handleSettingsActionMenuOpen = useCallback(() => {
     prefetchSettingsUI();
+    setSettingsActionMenuMounted(true);
     // Use modal-style centering - no need to calculate position manually
     setSettingsMenuPosition({ x: 0, y: 0 }); // Will be centered by CSS
     setUIState({ showSettingsActionMenu: true });
   }, [prefetchSettingsUI, setUIState]);
+
+  useEffect(() => {
+    if (showSettingsActionMenu && !settingsActionMenuMounted) {
+      setSettingsActionMenuMounted(true);
+    }
+  }, [showSettingsActionMenu, settingsActionMenuMounted]);
 
   // Debug function to open developer tools
   const openDevTools = useCallback(() => {
@@ -396,7 +420,10 @@ function App() {
 
   useCursorEffect(useCustomCursor, cursorStyle);
   useThemeEffect(isDarkMode);
-  usePrimaryAccentThemeEffect(ribbonGlowColor, isDarkMode);
+  usePrimaryAccentThemeEffect(
+    dynamicRibbonColorEnabled ? ribbonGlowColor : DEFAULT_RIBBON_GLOW_HEX,
+    isDarkMode
+  );
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -519,8 +546,7 @@ function App() {
     if (spaceId === 'mediahub') {
       return <LazyMediaHubSpace />;
     }
-    const channelSpaceKey = spaceId === 'workspaces' ? 'workspaces' : 'home';
-    return <LazyPaginatedChannels channelSpaceKey={channelSpaceKey} />;
+    return <LazyPaginatedChannels channelSpaceKey="home" />;
   }, []);
 
   // Debug wallpaper cycling isolation
@@ -579,6 +605,7 @@ function App() {
         <div className={mainContentClassName}>
           <Suspense fallback={<SpaceBootLoader />}>
             <div
+              ref={spaceWorldTrackRef}
               className="space-world__track"
               style={spaceWorldTrackStyle}
             >
@@ -654,6 +681,7 @@ function App() {
                   <LazyWiiRibbon
                     ribbonColor={ribbonColor}
                     ribbonGlowColor={ribbonGlowColor}
+                    dynamicRibbonColorEnabled={dynamicRibbonColorEnabled}
                     ribbonGlowStrength={ribbonGlowStrength}
                     ribbonGlowStrengthHover={ribbonGlowStrengthHover}
                     ribbonDockOpacity={ribbonDockOpacity}
@@ -782,9 +810,15 @@ function App() {
           </Suspense>
         ) : null}
 
-        {/* Settings Action Menu - Independent of dock visibility */}
-        <Suspense fallback={null}>
-          {showSettingsActionMenu && (
+        {/* Settings Action Menu - Keep mounted once visited so close animation always runs. */}
+        <Suspense
+          fallback={
+            showSettingsActionMenu ? (
+              <div className="pointer-events-none fixed inset-0 z-[100000] bg-[hsl(var(--wee-overlay-backdrop)/0.55)] backdrop-blur-[8px]" />
+            ) : null
+          }
+        >
+          {settingsActionMenuMounted && (
             <LazySettingsActionMenu
               ref={settingsActionMenuRef}
               isOpen={showSettingsActionMenu}

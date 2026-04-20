@@ -64,6 +64,7 @@
     "release:local": "node scripts/release.cjs",
     "test-installer": "node scripts/test-installer.cjs",
     "test-updates": "node scripts/test/test-update-check.js",
+    "test:invariants": "node scripts/test/preset-profile-invariants.mjs",
     "test:smoke": "node scripts/smoke-check.cjs",
     "migrate:media": "node scripts/migrate-media-from-legacy-supabase.cjs",
     "seed:media": "node scripts/seed-media-library-from-folder.cjs",

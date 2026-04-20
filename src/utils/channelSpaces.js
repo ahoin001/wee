@@ -1,18 +1,16 @@
 import { clampPageIndex, DEFAULT_CHANNEL_NAVIGATION, WII_LAYOUT_PRESET } from './channelLayoutSystem';
 
 /**
- * Channel grid data is scoped per shell space: `home` vs `workspaces` (not Game Hub).
- * Home lives in `dataBySpace.home`.
- * The second shell space (`workspaces` rail id) uses **secondary channel profiles**:
- * `secondaryChannelProfiles[id].channelSpace` — only one profile is active at a time
- * (`activeSecondaryChannelProfileId`). `dataBySpace.workspaces` is kept in sync as a mirror
- * of the active profile for persistence merges.
+ * Channel grid data is scoped per shell space profile layer:
+ * - `dataBySpace.home` is the live Home board.
+ * - `secondaryChannelProfiles[id].channelSpace` stores Home Profile channel layouts.
+ * - `dataBySpace.workspaces` remains a persistence mirror of the active Home Profile.
  */
 
 export const CHANNEL_SPACE_KEYS = ['home', 'workspaces'];
 
-/** Vertical shell rail order: second channel slot → Home → Media Hub → Game Hub (Home is near middle). */
-export const DEFAULT_SHELL_SPACE_ORDER = ['workspaces', 'home', 'mediahub', 'gamehub'];
+/** Vertical shell rail order: Home → Media Hub → Game Hub. */
+export const DEFAULT_SHELL_SPACE_ORDER = ['home', 'mediahub', 'gamehub'];
 
 /** Migrate legacy orders and any invalid order to the canonical rail. */
 export function normalizeShellSpaceOrder(order) {
@@ -20,12 +18,15 @@ export function normalizeShellSpaceOrder(order) {
   const want = new Set(canonical);
   if (!Array.isArray(order)) return canonical;
 
+  // Legacy order with secondary shell space.
+  if (order.includes('workspaces')) {
+    const withoutSecondary = order.filter((id) => id !== 'workspaces');
+    return normalizeShellSpaceOrder(withoutSecondary);
+  }
+
   // Legacy persisted order before Media Hub existed.
-  if (order.length === 3 && order.includes('home') && order.includes('workspaces') && order.includes('gamehub')) {
-    const next = [...order];
-    const gameHubIndex = next.indexOf('gamehub');
-    next.splice(gameHubIndex >= 0 ? gameHubIndex : next.length, 0, 'mediahub');
-    return normalizeShellSpaceOrder(next);
+  if (order.length === 2 && order.includes('home') && order.includes('gamehub')) {
+    return ['home', 'mediahub', 'gamehub'];
   }
 
   if (order.length !== canonical.length) return canonical;
@@ -50,7 +51,6 @@ export function normalizeChannelSpaceKey(spaceId) {
  * When Game Hub is active, channel nav is hidden — use `home` for any fallback reads.
  */
 export function resolveActiveChannelSpaceKey(activeSpaceId) {
-  if (activeSpaceId === 'workspaces') return 'workspaces';
   return 'home';
 }
 

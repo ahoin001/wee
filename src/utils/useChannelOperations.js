@@ -173,7 +173,6 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
       const activeSpaceId = useConsolidatedAppStore.getState().spaces.activeSpaceId;
       if (activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub') return false;
       if (activeSpaceId === 'home' && spaceKey === 'home') return true;
-      if (activeSpaceId === 'workspaces' && spaceKey === 'workspaces') return true;
       return false;
     };
 
@@ -181,6 +180,9 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     const AUX_DEBOUNCE_MS = 120;
 
     const handleKeyDown = (event) => {
+      if (event.defaultPrevented) {
+        return;
+      }
       if (!shellMatchesActiveChannelSpace()) {
         return;
       }

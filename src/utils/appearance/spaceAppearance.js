@@ -5,10 +5,25 @@
 
 /** Keys on `wallpaper` that must not be persisted per space (runtime / transition). */
 const WALLPAPER_TRANSIENT_KEYS = new Set([
+  // Runtime-only transition fields.
   'next',
   'isTransitioning',
   'crossfadeProgress',
   'slideProgress',
+  // Global wallpaper identity and library state should never be space-scoped.
+  'current',
+  'savedWallpapers',
+  'likedWallpapers',
+  // Cycling is global behavior; avoid per-space toggles/drift on space switch.
+  'cycleWallpapers',
+  'cycleInterval',
+  'cycleAnimation',
+  'slideDirection',
+  'crossfadeDuration',
+  'crossfadeEasing',
+  'slideRandomDirection',
+  'slideDuration',
+  'slideEasing',
 ]);
 
 const SPACE_IDS = ['home', 'workspaces', 'mediahub', 'gamehub'];
@@ -20,6 +35,9 @@ export function captureSpaceAppearanceFromState(storeState) {
   WALLPAPER_TRANSIENT_KEYS.forEach((k) => {
     delete wp[k];
   });
+  if (typeof wp.useGlobalWallpaper !== 'boolean') {
+    wp.useGlobalWallpaper = true;
+  }
 
   return {
     wallpaper: wp,
@@ -49,6 +67,9 @@ export function mergeLiveStateFromSpaceAppearance(currentState, incoming) {
         w[k] = currentState.wallpaper[k];
       }
     });
+    if (typeof w.useGlobalWallpaper !== 'boolean') {
+      w.useGlobalWallpaper = true;
+    }
     out.wallpaper = w;
   }
   if (incoming.ribbon) {

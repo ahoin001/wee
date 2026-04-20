@@ -15,10 +15,12 @@ import WButton from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
+  getModifierFromKeyboardEvent,
   formatShortcut,
   validateShortcut,
   checkShortcutConflict,
   getShortcutsByCategory,
+  normalizeModifier,
   DEFAULT_SHORTCUTS,
 } from '../../utils/keyboardShortcuts';
 import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
@@ -56,10 +58,10 @@ const ShortcutsSettingsTab = React.memo(() => {
     }));
 
   const RESERVED_SHORTCUTS = [
-    { key: 'Ctrl+Shift+I', label: 'Developer Tools', description: 'Open browser developer tools' },
-    { key: 'Ctrl+Shift+F', label: 'Force Developer Tools', description: 'Force open dev tools (development only)' },
-    { key: 'F11', label: 'Toggle Fullscreen', description: 'Switch between windowed and fullscreen' },
-    { key: 'Escape', label: 'Settings Action Menu', description: 'Quick settings access' },
+    { key: 'i', modifier: 'ctrl+shift', label: 'Developer Tools', description: 'Open browser developer tools' },
+    { key: 'f', modifier: 'ctrl+shift', label: 'Force Developer Tools', description: 'Force open dev tools (development only)' },
+    { key: 'f11', modifier: 'none', label: 'Toggle Fullscreen', description: 'Switch between windowed and fullscreen' },
+    { key: 'escape', modifier: 'none', label: 'Settings Action Menu', description: 'Quick settings access' },
   ];
 
   const updateKeyboardShortcut = useCallback(
@@ -93,7 +95,7 @@ const ShortcutsSettingsTab = React.memo(() => {
         return;
       }
 
-      const conflict = checkShortcutConflict(updates, keyboardShortcuts);
+      const conflict = checkShortcutConflict({ ...updates, id: shortcutId }, keyboardShortcuts);
       if (conflict.hasConflict) {
         setShortcutError(`Conflict with “${conflict.conflictingShortcut.name}”`);
         return;
@@ -125,6 +127,16 @@ const ShortcutsSettingsTab = React.memo(() => {
     [keyboardShortcuts, updateKeyboardShortcut]
   );
 
+  const handleClearShortcut = useCallback(
+    (shortcutId) => {
+      updateKeyboardShortcut(shortcutId, { key: '', modifier: 'none', enabled: false });
+      if (editingShortcut?.id === shortcutId) {
+        handleCancelEditShortcut();
+      }
+    },
+    [editingShortcut?.id, handleCancelEditShortcut, updateKeyboardShortcut]
+  );
+
   useEffect(() => {
     if (!recordingShortcut) return;
 
@@ -132,18 +144,19 @@ const ShortcutsSettingsTab = React.memo(() => {
       event.preventDefault();
 
       const key = event.key.toLowerCase();
-      const modifier = event.ctrlKey
-        ? 'ctrl'
-        : event.altKey
-          ? 'alt'
-          : event.shiftKey
-            ? 'shift'
-            : event.metaKey
-              ? 'meta'
-              : 'none';
+      if (key === 'escape') {
+        handleCancelEditShortcut();
+        return;
+      }
+      const modifier = getModifierFromKeyboardEvent(event);
 
       const shortcutString = formatShortcut({ key, modifier });
-      if (RESERVED_SHORTCUTS.some((reserved) => reserved.key === shortcutString)) {
+      const isReserved = RESERVED_SHORTCUTS.some(
+        (reserved) =>
+          reserved.key === key &&
+          normalizeModifier(reserved.modifier) === normalizeModifier(modifier)
+      );
+      if (isReserved) {
         setCurrentShortcut('Reserved — cannot use');
         setTimeout(() => {
           setRecordingShortcut(false);
@@ -154,12 +167,9 @@ const ShortcutsSettingsTab = React.memo(() => {
       }
 
       setCurrentShortcut(shortcutString);
-
-      setTimeout(() => {
-        if (editingShortcut) {
-          handleSaveShortcut(editingShortcut.id, { key, modifier });
-        }
-      }, 500);
+      if (editingShortcut) {
+        handleSaveShortcut(editingShortcut.id, { key, modifier });
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -287,6 +297,12 @@ const ShortcutsSettingsTab = React.memo(() => {
                               <div className="rounded-lg border border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.12)] px-2 py-1 font-mono text-[11px] font-bold text-[hsl(var(--primary))] animate-pulse">
                                 {currentShortcut || 'Press keys…'}
                               </div>
+                              <Text
+                                variant="caption"
+                                className="text-[10px] uppercase tracking-[0.08em] text-[hsl(var(--text-tertiary))]"
+                              >
+                                Press key combo to save, Esc to cancel
+                              </Text>
                             </div>
                           ) : null}
                         </div>
@@ -305,6 +321,13 @@ const ShortcutsSettingsTab = React.memo(() => {
                                 disabled={!shortcut.enabled}
                               >
                                 Edit
+                              </WButton>
+                              <WButton
+                                variant="tertiary"
+                                size="sm"
+                                onClick={() => handleClearShortcut(shortcut.id)}
+                              >
+                                Clear
                               </WButton>
                               <WToggle
                                 checked={shortcut.enabled}
@@ -352,7 +375,7 @@ const ShortcutsSettingsTab = React.memo(() => {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                  {renderReservedKeyChips(shortcut.key)}
+                  {renderReservedKeyChips(formatShortcut(shortcut))}
                   <span className="rounded-full border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary))] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--wee-text-rail-muted))]">
                     Reserved
                   </span>

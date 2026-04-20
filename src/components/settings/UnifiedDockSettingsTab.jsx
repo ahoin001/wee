@@ -8,6 +8,7 @@ import { findDockThemePath, getDockThemeByPath } from '../../utils/dockThemeUtil
 import { CLASSIC_DOCK_THEME_GROUPS as THEME_GROUPS } from '../../data/dock/classicDockThemeGroups';
 import { CLASSIC_DOCK_DEFAULT_COLORS as DOCK_DEFAULT } from '../../design/classicDockThemeDefaults.js';
 import { useWeeMotion } from '../../design/weeMotion';
+import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { WeeDockSettingsSubtabs } from '../../ui/wee';
 import DockTypePanel from './dock/DockTypePanel';
 import ClassicDockPanel from './dock/ClassicDockPanel';
@@ -67,6 +68,16 @@ const UnifiedDockSettingsTab = React.memo(() => {
         if (category === 'dock') setDockState({ [key]: value });
         else if (category === 'ribbon') setRibbonState({ [key]: value });
         else if (category === 'ui') setUIState({ [key]: value });
+
+        // Persist explicit settings edits immediately (writer remains debounced/merged),
+        // so close/reopen reloads the latest chosen value.
+        if (value !== undefined) {
+          await saveUnifiedSettingsSnapshot({
+            [category]: {
+              [key]: value,
+            },
+          });
+        }
       } catch (error) {
         console.error(`[UnifiedDockSettingsTab] Failed to save ${category}.${key}:`, error);
       }
@@ -189,6 +200,14 @@ const UnifiedDockSettingsTab = React.memo(() => {
     (checked) => {
       setRibbonState({ ribbonHoverAnimationEnabled: checked });
       saveSetting('ribbon', 'ribbonHoverAnimationEnabled', checked);
+    },
+    [saveSetting, setRibbonState]
+  );
+
+  const handleDynamicRibbonColorEnabledChange = useCallback(
+    (checked) => {
+      setRibbonState({ dynamicRibbonColorEnabled: checked });
+      saveSetting('ribbon', 'dynamicRibbonColorEnabled', checked);
     },
     [saveSetting, setRibbonState]
   );
@@ -405,12 +424,14 @@ const UnifiedDockSettingsTab = React.memo(() => {
             glassWiiRibbon={ribbon?.glassWiiRibbon ?? false}
             onGlassWiiRibbonChange={handleGlassWiiRibbonChange}
             onRibbonHoverAnimationChange={handleRibbonHoverAnimationChange}
+            onDynamicRibbonColorEnabledChange={handleDynamicRibbonColorEnabledChange}
             onRibbonColorChange={handleRibbonColorChange}
             onRibbonDockOpacityChange={handleRibbonDockOpacityChange}
             onRibbonGlowColorChange={handleRibbonGlowColorChange}
             onRibbonGlowStrengthChange={handleRibbonGlowStrengthChange}
             onRibbonGlowStrengthHoverChange={handleRibbonGlowStrengthHoverChange}
             hoverAnimationEnabled={ribbon?.ribbonHoverAnimationEnabled ?? true}
+            dynamicRibbonColorEnabled={ribbon?.dynamicRibbonColorEnabled ?? false}
             onGlassOpacityChange={handleGlassOpacityChange}
             onGlassBlurChange={handleGlassBlurChange}
             onGlassBorderOpacityChange={handleGlassBorderOpacityChange}
