@@ -174,6 +174,9 @@ const GameHubSettingsTab = React.memo(() => {
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
                 17-digit ID from your Steam community XML — saved in unified app settings.
               </Text>
+              <Text variant="caption" className="!m-0 mt-1 text-[hsl(var(--text-tertiary))]">
+                Quick tip: sign in on Steam, open your profile page, and copy the ID from the profile URL.
+              </Text>
             </div>
             <WInput
               variant="wee"

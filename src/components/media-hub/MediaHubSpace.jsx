@@ -18,11 +18,8 @@ import {
   X,
 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { groupLocalFilesByFolder } from './mediaHubLocalUtils';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
-import WToggle from '../../ui/WToggle';
-import MediaHubLocalShelfSection from './MediaHubLocalShelfSection';
 import MediaHubDiscoverGrid, { MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD } from './MediaHubDiscoverGrid';
 import { buildStremioDetailUrl } from '../../utils/mediaHubStremio';
 import {
@@ -41,7 +38,6 @@ const MotionDiv = m.div;
 const MotionButton = m.button;
 const MotionHeader = m.header;
 const CINEMETA_URL = 'https://v3-cinemeta.strem.io';
-const GENRES = ['All', 'Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Animation'];
 const LOCAL_MEDIA_LIMIT = 350;
 const CARD_EASE = WEE_EASING.mediaHubCard;
 const EMPTY_OBJECT = Object.freeze({});
@@ -334,13 +330,11 @@ export default function MediaHubSpace() {
   const {
     activeTabRaw,
     contentModeRaw,
-    activeGenreRaw,
     searchQueryRaw,
     selectedItemIdRaw,
     preferredPlayerPathRaw,
     preferredPlayerArgsRaw,
     launchFallbackMessageRaw,
-    frostedTrayEnabledRaw,
     cinemetaStateRaw,
     localStateRaw,
     seriesMetaByIdRaw,
@@ -353,13 +347,11 @@ export default function MediaHubSpace() {
     useShallow((state) => ({
       activeTabRaw: state.mediaHub?.ui?.activeTab,
       contentModeRaw: state.mediaHub?.ui?.contentMode,
-      activeGenreRaw: state.mediaHub?.ui?.activeGenre,
       searchQueryRaw: state.mediaHub?.ui?.searchQuery,
       selectedItemIdRaw: state.mediaHub?.ui?.selectedItemId,
       preferredPlayerPathRaw: state.mediaHub?.ui?.preferredPlayerPath,
       preferredPlayerArgsRaw: state.mediaHub?.ui?.preferredPlayerArgs,
       launchFallbackMessageRaw: state.mediaHub?.ui?.launchFallbackMessage,
-      frostedTrayEnabledRaw: state.mediaHub?.ui?.frostedTrayEnabled,
       selectedSeriesSeasonRaw: state.mediaHub?.ui?.selectedSeriesSeason,
       selectedSeriesEpisodeRaw: state.mediaHub?.ui?.selectedSeriesEpisode,
       cinemetaStateRaw: state.mediaHub?.sources?.cinemeta,
@@ -407,13 +399,11 @@ export default function MediaHubSpace() {
   );
   const activeTab = activeTabRaw || 'discover';
   const contentMode = contentModeRaw || 'movie';
-  const activeGenre = activeGenreRaw || 'All';
   const searchQuery = searchQueryRaw || '';
   const selectedItemId = selectedItemIdRaw || null;
   const preferredPlayerPath = preferredPlayerPathRaw || '';
   const preferredPlayerArgs = preferredPlayerArgsRaw || '';
   const launchFallbackMessage = launchFallbackMessageRaw || '';
-  const frostedTrayEnabled = frostedTrayEnabledRaw !== false;
   const selectedSeriesSeason =
     selectedSeriesSeasonRaw != null && Number.isFinite(Number(selectedSeriesSeasonRaw))
       ? Number(selectedSeriesSeasonRaw)
@@ -473,12 +463,6 @@ export default function MediaHubSpace() {
     if (!q) return localFiles;
     return localFiles.filter((item) => String(item.name || '').toLowerCase().includes(q));
   }, [localFiles, searchQuery]);
-
-  const localFolderGroups = useMemo(() => {
-    const root = localState.folderPath;
-    if (!root || activeTab !== 'local') return [];
-    return groupLocalFilesByFolder(root, filteredLocal);
-  }, [activeTab, filteredLocal, localState.folderPath]);
 
   const localFilesThumbSignature = useMemo(
     () => filteredLocal.map((f) => `${f.path}\0${f.modifiedAt || ''}`).join('|'),
@@ -654,7 +638,7 @@ export default function MediaHubSpace() {
 
   useEffect(() => {
     if (activeSpaceId !== 'mediahub' || activeTab !== 'discover') return undefined;
-    const cacheKey = `${contentMode}:${activeGenre}`;
+    const cacheKey = `${contentMode}`;
     const state = useConsolidatedAppStore.getState();
     const liveCinemeta = state.mediaHub?.sources?.cinemeta || EMPTY_OBJECT;
     const catalogCache = state.mediaHub?.sources?.catalogCache || EMPTY_OBJECT;
@@ -689,8 +673,7 @@ export default function MediaHubSpace() {
       setMediaHubState({ sources: { cinemeta: { loading: true, error: null } } });
     }
 
-    const genrePart = activeGenre === 'All' ? '' : `genre=${encodeURIComponent(activeGenre)}`;
-    fetch(`${CINEMETA_URL}/catalog/${contentMode}/top.json?${genrePart}`, { signal: controller.signal })
+    fetch(`${CINEMETA_URL}/catalog/${contentMode}/top.json`, { signal: controller.signal })
       .then((response) => response.json())
       .then((data) => {
         const items = Array.isArray(data?.metas) ? data.metas : [];
@@ -718,7 +701,7 @@ export default function MediaHubSpace() {
         });
       });
     return () => controller.abort();
-  }, [activeGenre, activeSpaceId, activeTab, contentMode, setMediaHubState]);
+  }, [activeSpaceId, activeTab, contentMode, setMediaHubState]);
 
   useEffect(() => {
     if (activeSpaceId !== 'mediahub' || activeTab !== 'local') return;
@@ -878,7 +861,14 @@ export default function MediaHubSpace() {
     }
     const api = window.api;
     let result;
-    if (api?.openExternalWithResult) {
+    if (api?.launchApp) {
+      result = await api.launchApp({
+        type: 'url',
+        path: stremioDetailUrl,
+        asAdmin: false,
+        foregroundProcessName: 'stremio',
+      });
+    } else if (api?.openExternalWithResult) {
       result = await api.openExternalWithResult(stremioDetailUrl);
     } else {
       try {
@@ -901,26 +891,18 @@ export default function MediaHubSpace() {
     updateUi({ preferredPlayerPath: result.file.path, preferredPlayerArgs: result.file.args || '' });
   }, [updateUi]);
 
-  const mainPanelClass = [
-    'media-hub-panel',
-    'flex',
-    'min-h-0',
-    'flex-col',
-    'p-4',
-    'md:p-5',
-    frostedTrayEnabled ? 'media-hub-panel--tray-frosted-on' : 'media-hub-panel--tray-frosted-off',
-  ].join(' ');
+  const shellClass = ['media-hub-demo-shell', showDetailAside ? 'media-hub-demo-shell--detail-open' : '']
+    .filter(Boolean)
+    .join(' ');
 
-  const shellClass = ['media-hub-shell', showDetailAside ? 'media-hub-shell--detail-open' : ''].filter(Boolean).join(' ');
-
-  const spaceSectionClass = ['media-hub-space', !frostedTrayEnabled ? 'media-hub-space--tray-airy' : ''].filter(Boolean).join(' ');
+  const contentFilterMode = contentMode === 'series' ? 'Series' : 'Movie';
 
   return (
-    <section className={spaceSectionClass}>
+    <section className="media-hub-space">
       <div className={shellClass}>
         <MotionDiv
           layout={false}
-          className={mainPanelClass}
+          className="media-hub-demo-main"
           variants={hubOrchestratorVariants}
           initial={false}
           animate={hubEntranceState}
@@ -928,161 +910,108 @@ export default function MediaHubSpace() {
             hubEntranceState === 'show' ? () => onEntranceComplete(entranceKey) : undefined
           }
         >
-          <MotionHeader className="media-hub-header mb-3 flex flex-col gap-3" variants={mediaHubShellBandVariants}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="media-hub-brand-eyebrow m-0 text-[10px] font-black uppercase tracking-[0.18em]">
-                  Media Hub
-                </p>
-                <h1 className="media-hub-brand-title m-0 text-3xl font-black uppercase italic tracking-tight">
-                  See What People Are Watching
-                </h1>
-              </div>
-              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-                <div className="media-hub-tray-segment">
-                  {[
-                    { id: 'discover', label: 'Discover', Icon: Clapperboard },
-                    { id: 'local', label: 'Local', Icon: HardDrive },
-                  ].map(({ id, label, Icon }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() =>
-                    updateUi({
-                      activeTab: id,
-                      selectedItemId: null,
-                      launchFallbackMessage: '',
-                      selectedSeriesSeason: null,
-                      selectedSeriesEpisode: null,
-                    })
-                  }
-                      className={`media-hub-tray-tab rounded-full px-3 py-2 ${activeTab === id ? 'media-hub-tray-tab--active' : ''}`}
-                    >
-                      <Icon size={13} />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="media-hub-tray-settings-row">
-              <div className="min-w-0 flex-1">
-                <p className="media-hub-tray-label m-0 text-[10px] font-black uppercase tracking-[0.14em]">Preferred player</p>
-                <p className="media-hub-tray-value m-0 mt-0.5 truncate text-[11px] font-bold">{preferredPlayerPath || 'System default'}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+          <MotionHeader className="media-hub-demo-header" variants={mediaHubShellBandVariants}>
+            <div className="media-hub-demo-topbar">
+              <div className="media-hub-demo-pill-group">
+                {[
+                  { id: 'discover', label: 'Discover', Icon: Clapperboard },
+                  { id: 'local', label: 'Local', Icon: HardDrive },
+                ].map(({ id, label, Icon }) => (
                   <button
+                    key={id}
                     type="button"
-                    onClick={choosePreferredPlayer}
-                    className="media-hub-tray-action-btn media-hub-tray-action-btn--sm"
-                  >
-                    <ExternalLink size={12} />
-                    Choose
-                  </button>
-                  {preferredPlayerPath ? (
-                    <button
-                      type="button"
-                      onClick={() => updateUi({ preferredPlayerPath: '', preferredPlayerArgs: '' })}
-                      className="media-hub-tray-action-btn media-hub-tray-action-btn--sm"
-                    >
-                      <X size={12} />
-                      Clear
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              <WToggle
-                checked={frostedTrayEnabled}
-                onChange={(next) => updateUi({ frostedTrayEnabled: next })}
-                label="Frosted tray"
-                containerClassName="shrink-0 lg:flex-col lg:items-end"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="relative min-w-[220px] flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--text-tertiary))]" size={16} />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => updateUi({ searchQuery: e.target.value })}
-                  placeholder={activeTab === 'discover' ? 'Search catalog...' : 'Search local files...'}
-                  className="media-hub-tray-input w-full min-w-0"
-                />
-              </label>
-              {activeTab === 'discover' ? (
-                <>
-                  <div className="media-hub-tray-segment-bar">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateUi({
-                          contentMode: 'movie',
-                          selectedItemId: null,
-                          selectedSeriesSeason: null,
-                          selectedSeriesEpisode: null,
-                        })
-                      }
-                      className={`media-hub-tray-tab ${contentMode === 'movie' ? 'media-hub-tray-tab--active' : ''}`}
-                    >
-                      <Film size={13} />
-                      Movies
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateUi({
-                          contentMode: 'series',
-                          selectedItemId: null,
-                          selectedSeriesSeason: null,
-                          selectedSeriesEpisode: null,
-                        })
-                      }
-                      className={`media-hub-tray-tab ${contentMode === 'series' ? 'media-hub-tray-tab--active' : ''}`}
-                    >
-                      <Tv size={13} />
-                      Series
-                    </button>
-                  </div>
-                  <select
-                    value={activeGenre}
-                    onChange={(e) =>
+                    onClick={() =>
                       updateUi({
-                        activeGenre: e.target.value,
+                        activeTab: id,
                         selectedItemId: null,
+                        launchFallbackMessage: '',
                         selectedSeriesSeason: null,
                         selectedSeriesEpisode: null,
                       })
                     }
-                    className="media-hub-tray-select w-auto min-w-[8.5rem]"
+                    className={`media-hub-demo-pill ${activeTab === id ? 'media-hub-demo-pill--active' : ''}`}
                   >
-                    {GENRES.map((genre) => (
-                      <option key={genre} value={genre}>{genre}</option>
+                    <Icon size={12} />
+                    {label}
+                  </button>
+                ))}
+                {activeTab === 'discover' ? (
+                  <>
+                    <div className="media-hub-demo-pill__divider" />
+                    {['Movie', 'Series'].map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() =>
+                          updateUi({
+                            contentMode: mode.toLowerCase(),
+                            selectedItemId: null,
+                            selectedSeriesSeason: null,
+                            selectedSeriesEpisode: null,
+                          })
+                        }
+                        className={`media-hub-demo-pill ${contentFilterMode === mode ? 'media-hub-demo-pill--active' : ''}`}
+                      >
+                        {mode === 'Movie' ? <Film size={12} /> : <Tv size={12} />}
+                        {mode}
+                      </button>
                     ))}
-                  </select>
-                </>
-              ) : (
-                <>
-                  <button type="button" onClick={pickFolder} className="media-hub-tray-action-btn">
-                    <FolderSearch size={14} />
-                    Pick Folder
-                  </button>
-                  <button type="button" onClick={() => scanFolder(undefined, { force: true })} disabled={!localState.folderPath || localState.loading} className="media-hub-tray-action-btn">
-                    <RefreshCcw size={14} />
-                    Rescan
-                  </button>
-                </>
-              )}
+                  </>
+                ) : null}
+              </div>
+
+              <label className="media-hub-demo-search-wrap">
+                <Search className="media-hub-demo-search-icon" size={16} />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => updateUi({ searchQuery: e.target.value })}
+                  placeholder={activeTab === 'discover' ? 'Search catalog...' : 'Search local files...'}
+                  className="media-hub-demo-search-input"
+                />
+              </label>
             </div>
+
+            {activeTab === 'local' ? (
+              <div className="media-hub-demo-toolbar">
+                <button type="button" onClick={pickFolder} className="media-hub-demo-action">
+                  <FolderSearch size={14} />
+                  Pick Folder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scanFolder(undefined, { force: true })}
+                  disabled={!localState.folderPath || localState.loading}
+                  className="media-hub-demo-action"
+                >
+                  <RefreshCcw size={14} />
+                  Rescan
+                </button>
+                <button type="button" onClick={choosePreferredPlayer} className="media-hub-demo-action">
+                  <ExternalLink size={14} />
+                  Preferred Player
+                </button>
+                {preferredPlayerPath ? (
+                  <button
+                    type="button"
+                    onClick={() => updateUi({ preferredPlayerPath: '', preferredPlayerArgs: '' })}
+                    className="media-hub-demo-action media-hub-demo-action--ghost"
+                  >
+                    <X size={14} />
+                    Clear Player
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </MotionHeader>
 
           <MotionDiv
             ref={hubScrollRef}
-            className="media-hub-grid-scroll flex-1 pr-1"
+            className="media-hub-demo-grid-scroll"
             variants={mediaHubGridContainerVariants}
           >
             {activeTab === 'discover' ? (
               <MotionDiv
-                key={`${activeTab}:${contentMode}:${activeGenre}:${searchQuery ? 'search' : 'base'}`}
+                key={`${activeTab}:${contentMode}:${searchQuery ? 'search' : 'base'}`}
                 variants={GRID_LIST_PARENT_VARIANTS}
                 initial={false}
                 animate={hubEntranceState}
@@ -1102,33 +1031,38 @@ export default function MediaHubSpace() {
                       custom={index}
                       layout
                       onClick={() => openDiscoverItem(item)}
-                      whileHover={{ y: -20 }}
-                      whileTap={{ scale: 0.985 }}
+                      whileHover={{ y: -12, scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
                       transition={{ duration: 0.22, ease: CARD_EASE }}
                       variants={mediaHubGridItemVariants}
-                      className={`media-hub-card media-hub-card--interactive p-2 text-left ${selectedItemId === item.id ? 'media-hub-card--selected' : ''}`}
+                      className={`media-hub-demo-card ${selectedItemId === item.id ? 'media-hub-demo-card--selected' : ''}`}
                     >
                       {getPosterUrl(item) ? (
-                        <MotionDiv className="relative overflow-hidden rounded-[0.95rem]">
+                        <MotionDiv className="media-hub-demo-card__media">
                           <img src={getPosterUrl(item)} alt={item.name} className="media-hub-poster" loading="lazy" />
-                          <div className="media-hub-card__veil absolute inset-0" aria-hidden />
-                          <div className="media-hub-card__cta absolute bottom-2 left-2 right-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-on-accent))]">
-                            <Play size={13} />
-                            Details
-                          </div>
+                          <div className="media-hub-demo-card__veil" aria-hidden />
                         </MotionDiv>
                       ) : (
-                        <div className="media-hub-poster flex items-center justify-center text-[hsl(var(--text-tertiary))]">
+                        <div className="media-hub-poster media-hub-demo-card__media flex items-center justify-center text-[hsl(var(--text-tertiary))]">
                           <Video size={28} />
                         </div>
                       )}
-                      <div className="px-1 pb-1 pt-2">
-                        <p className="media-hub-card__title m-0 truncate text-[11px] font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
+                      <div className="media-hub-demo-card__body">
+                        <p className="media-hub-demo-card__title">
                           {item.name}
                         </p>
-                        <p className="media-hub-card__meta m-0 mt-1 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                        <p className="media-hub-demo-card__meta">
                           {item.year || 'Unknown year'}
                         </p>
+                      </div>
+                      <div className="media-hub-demo-card__rating-chip">
+                        {item.imdbRating ? Number(item.imdbRating).toFixed(1) : 'NR'}
+                      </div>
+                      <div className="media-hub-demo-card__hover-strip">
+                        <span className="media-hub-demo-card__hover-title">{item.name}</span>
+                        <span className="media-hub-demo-card__hover-meta">
+                          {item.year || 'Unknown year'} · {item.imdbRating ? `${Number(item.imdbRating).toFixed(1)} IMDb` : 'No rating'}
+                        </span>
                       </div>
                     </MotionButton>
                   )}
@@ -1140,17 +1074,52 @@ export default function MediaHubSpace() {
                 variants={GRID_LIST_PARENT_VARIANTS}
                 initial={false}
                 animate={hubEntranceState}
-                className="media-hub-local-groups"
+                className="media-hub-demo-grid"
               >
-                <MediaHubLocalShelfSection
-                  localFolderGroups={localFolderGroups}
-                  thumbnailByPath={thumbnailByPath}
-                  onSelectItem={(id) => updateUi({ selectedItemId: id, launchFallbackMessage: '' })}
-                  onLaunchLocal={handlePlayLocal}
-                  hubScrollContainerRef={hubScrollRef}
-                />
+                {filteredLocal.map((item, index) => {
+                  const thumb = thumbnailByPath[item.path] || '';
+                  return (
+                    <MotionButton
+                      key={item.id}
+                      type="button"
+                      custom={index}
+                      layout
+                      onClick={() =>
+                        updateUi({
+                          selectedItemId: item.id,
+                          launchFallbackMessage: '',
+                        })
+                      }
+                      whileHover={{ y: -10, scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      transition={{ duration: 0.22, ease: CARD_EASE }}
+                      variants={mediaHubGridItemVariants}
+                      className={`media-hub-demo-card ${selectedItemId === item.id ? 'media-hub-demo-card--selected' : ''}`}
+                    >
+                      {thumb ? (
+                        <MotionDiv className="media-hub-demo-card__media">
+                          <img src={thumb} alt={item.name} className="media-hub-poster" loading="lazy" />
+                          <div className="media-hub-demo-card__veil" aria-hidden />
+                        </MotionDiv>
+                      ) : (
+                        <div className="media-hub-poster media-hub-demo-card__media flex items-center justify-center text-[hsl(var(--text-tertiary))]">
+                          <Video size={28} />
+                        </div>
+                      )}
+                      <div className="media-hub-demo-card__body">
+                        <p className="media-hub-demo-card__title">{item.name}</p>
+                        <p className="media-hub-demo-card__meta">
+                          {item.extension || 'File'} · {formatBytes(item.size)}
+                        </p>
+                      </div>
+                      <div className="media-hub-demo-card__rating-chip">
+                        {item.modifiedAt ? new Date(item.modifiedAt).getFullYear() : '--'}
+                      </div>
+                    </MotionButton>
+                  );
+                })}
                 {searchQuery.trim() && filteredLocal.length === 0 && localFiles.length > 0 ? (
-                  <p className="m-0 mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                  <p className="media-hub-demo-status">
                     No files match your search.
                   </p>
                 ) : null}
@@ -1159,33 +1128,33 @@ export default function MediaHubSpace() {
                 localState.folderPath &&
                 !searchQuery.trim() &&
                 localFiles.length === 0 ? (
-                  <p className="m-0 mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                  <p className="media-hub-demo-status">
                     No supported media files in this folder. Try Pick Folder or add videos (mp4, mkv, …), then Rescan.
                   </p>
                 ) : null}
               </MotionDiv>
             )}
             {(activeTab === 'discover' && cinemetaState.loading) || (activeTab === 'local' && localState.loading) ? (
-              <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">Loading...</p>
+              <p className="media-hub-demo-status">Loading...</p>
             ) : null}
           </MotionDiv>
 
           {activeTab === 'discover' && cinemetaState.error ? (
-            <p className="m-0 mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--state-error))]">{cinemetaState.error}</p>
+            <p className="media-hub-demo-status media-hub-demo-status--error">{cinemetaState.error}</p>
           ) : null}
           {activeTab === 'local' && localState.error ? (
-            <p className="m-0 mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--state-error))]">{localState.error}</p>
+            <p className="media-hub-demo-status media-hub-demo-status--error">{localState.error}</p>
           ) : null}
           {launchFallbackMessage ? (
-            <p className="m-0 mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--state-warning))]">{launchFallbackMessage}</p>
+            <p className="media-hub-demo-status media-hub-demo-status--warning">{launchFallbackMessage}</p>
           ) : null}
           {activeTab === 'local' ? (
-            <div className="mt-2 space-y-1">
-              <p className="m-0 text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+            <div className="media-hub-demo-folder-meta">
+              <p className="m-0">
                 Library folder:{' '}
-                <span className="text-[hsl(var(--text-primary))]">{localState.folderPath || 'Not set — resolving default…'}</span>
+                <span>{localState.folderPath || 'Not set — resolving default…'}</span>
               </p>
-              <p className="m-0 text-[10px] font-normal normal-case tracking-normal text-[hsl(var(--text-tertiary))]">
+              <p className="m-0">
                 On first launch, Local uses your system Videos folder. Use Pick Folder to point elsewhere.
               </p>
             </div>
@@ -1227,7 +1196,7 @@ export default function MediaHubSpace() {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {showDetailOverlay && selectedItem ? (
           <MotionDiv
             className="media-hub-detail-overlay"
@@ -1246,6 +1215,7 @@ export default function MediaHubSpace() {
             />
             <div className="media-hub-detail-overlay__center pointer-events-none">
               <MotionDiv
+                key={`detail-overlay:${selectedItem.id}`}
                 initial={mediaHubOverlayPanelMotion.initial}
                 animate={mediaHubOverlayPanelMotion.animate}
                 exit={mediaHubOverlayPanelMotion.exit}

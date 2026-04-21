@@ -90,10 +90,75 @@ async function checkAndBringToForeground(executablePath, args = []) {
   }
 }
 
-async function launchViaOpenExternal(uri) {
+async function bringProcessNameToForeground(processName) {
+  try {
+    const normalized = String(processName || '').trim().replace(/\.exe$/i, '');
+    if (!normalized) return false;
+    const psCommand = `
+      Add-Type -TypeDefinition @"
+        using System;
+        using System.Runtime.InteropServices;
+        public class Win32 {
+          [DllImport("user32.dll")]
+          [return: MarshalAs(UnmanagedType.Bool)]
+          public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+          [DllImport("user32.dll")]
+          [return: MarshalAs(UnmanagedType.Bool)]
+          public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        }
+"@
+      $processes = Get-Process -Name "${normalized}" -ErrorAction SilentlyContinue
+      if ($processes) {
+        foreach ($process in $processes) {
+          try {
+            $hwnd = $process.MainWindowHandle
+            if ($hwnd -ne [System.IntPtr]::Zero) {
+              [Win32]::SetForegroundWindow($hwnd)
+              [Win32]::ShowWindow($hwnd, 9)
+              exit 0
+            }
+          } catch {}
+        }
+      }
+      exit 1
+    `;
+    const result = await new Promise((resolve) => {
+      const child = spawn('powershell', ['-Command', psCommand], { stdio: ['pipe', 'pipe', 'pipe'] });
+      child.on('close', (code) => resolve(code === 0));
+      child.on('error', () => resolve(false));
+    });
+    return result;
+  } catch {
+    return false;
+  }
+}
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function runPostOpenExternalForegroundHint(processName) {
+  const normalized = String(processName || '').trim();
+  if (!normalized) return false;
+  // URI handlers can bounce to an existing instance; stagger retries to catch late window activation.
+  const retryDelays = [140, 420];
+  for (const ms of retryDelays) {
+    await delay(ms);
+    // eslint-disable-next-line no-await-in-loop
+    const ok = await bringProcessNameToForeground(normalized);
+    if (ok) return true;
+  }
+  return false;
+}
+
+async function launchViaOpenExternal(uri, options = {}) {
+  const foregroundProcessName = options?.foregroundProcessName;
   try {
     await shell.openExternal(uri.trim());
-    return { ok: true };
+    let foreground = false;
+    if (foregroundProcessName) {
+      foreground = await runPostOpenExternalForegroundHint(foregroundProcessName);
+    }
+    return foreground ? { ok: true, foreground: true } : { ok: true };
   } catch (err) {
     console.error('[launchApp] openExternal failed:', err);
     return { ok: false, error: err.message || String(err) };
@@ -217,11 +282,11 @@ async function launchWin32Exe(appPathStr, asAdmin) {
 }
 
 /**
- * @param {{ type?: string, path: string, asAdmin?: boolean }} payload
+ * @param {{ type?: string, path: string, asAdmin?: boolean, foregroundProcessName?: string }} payload
  * @returns {Promise<{ ok: boolean, error?: string, foreground?: boolean }>}
  */
 async function launchChannelApp(payload) {
-  const { type: launchType = 'exe', path: rawPath, asAdmin } = payload || {};
+  const { type: launchType = 'exe', path: rawPath, asAdmin, foregroundProcessName } = payload || {};
   if (!rawPath || typeof rawPath !== 'string') {
     return { ok: false, error: 'No path provided' };
   }
@@ -231,28 +296,28 @@ async function launchChannelApp(payload) {
 
   // Magnet URIs use magnet:?… not magnet:// — handle before generic scheme regex.
   if (/^magnet:/i.test(trimmed)) {
-    return launchViaOpenExternal(trimmed);
+    return launchViaOpenExternal(trimmed, { foregroundProcessName });
   }
 
   // 1) Well-known URI schemes → OS default handler (browser, Steam, Epic, etc.)
   if (/^https?:\/\//i.test(trimmed)) {
-    return launchViaOpenExternal(trimmed);
+    return launchViaOpenExternal(trimmed, { foregroundProcessName });
   }
   if (/^steam:\/\//i.test(trimmed)) {
-    return launchViaOpenExternal(trimmed);
+    return launchViaOpenExternal(trimmed, { foregroundProcessName });
   }
   if (/^com\.epicgames\.launcher:\/\//i.test(trimmed)) {
-    return launchViaOpenExternal(trimmed);
+    return launchViaOpenExternal(trimmed, { foregroundProcessName });
   }
 
   // Steam numeric App ID (may be stored without steam:// prefix)
   if (launchType === 'steam' && /^\d+$/.test(trimmed)) {
-    return launchViaOpenExternal(`steam://rungameid/${trimmed}`);
+    return launchViaOpenExternal(`steam://rungameid/${trimmed}`, { foregroundProcessName });
   }
 
   // Other registered schemes for URL channels (mailto:, etc.)
   if (launchType === 'url' && /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
-    return launchViaOpenExternal(trimmed);
+    return launchViaOpenExternal(trimmed, { foregroundProcessName });
   }
 
   // 2) Microsoft Store / UWP by AUMID

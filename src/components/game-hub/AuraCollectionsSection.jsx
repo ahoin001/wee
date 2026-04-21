@@ -65,7 +65,6 @@ export default function AuraCollectionsSection({
   onShelfOrderModeChange,
   hubCollectionGamesSort = 'default',
   onHubCollectionGamesSortChange,
-  onReorderCollectionShelves,
   /** When true: shelf fly, collapse, or grid height transition is in progress — parent may freeze scroll-linked hero morph. */
   onCollectionChromeBusyChange,
   /** Hub `main` scroll root — used to nudge scroll when an opened shelf is mostly off-screen. */
@@ -85,8 +84,6 @@ export default function AuraCollectionsSection({
   activeCollectionIdRef.current = activeCollectionId;
   /** Last collection id requested while stacks were busy — applied once in finally. */
   const pendingOpenCollectionIdRef = useRef(null);
-  /** After HTML5 drag-drop, the same element can receive an extra click — ignore one open/close. */
-  const shelfDragSuppressClickRef = useRef(false);
 
   const [cardsRevealed, setCardsRevealed] = useState(true);
   const [flyInProgress, setFlyInProgress] = useState(false);
@@ -101,7 +98,6 @@ export default function AuraCollectionsSection({
       renameWeeCollection: state.actions.renameWeeCollection,
     }))
   );
-  const [shelvesReorderEnabled, setShelvesReorderEnabled] = useState(false);
   /** After fly-out (or when closing without fly): delay clearing collection so grid animates 1fr → 0fr. */
   const [shelfClosing, setShelfClosing] = useState(false);
   /** Covers CSS grid row expansion/collapse tail after fly completes (or full duration when reduced-motion / no-fly). */
@@ -114,12 +110,6 @@ export default function AuraCollectionsSection({
     () => (typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false),
     []
   );
-
-  useEffect(() => {
-    if (shelfOrderMode === 'alphabetical') {
-      setShelvesReorderEnabled(false);
-    }
-  }, [shelfOrderMode]);
 
   const flyAllowed = Boolean(effectsEnabled) && !reducedMotion;
 
@@ -360,11 +350,6 @@ export default function AuraCollectionsSection({
     async (e, collection) => {
       e.stopPropagation();
 
-      if (shelfDragSuppressClickRef.current) {
-        shelfDragSuppressClickRef.current = false;
-        return;
-      }
-
       if (uiLockedRef.current || shelfClosingRef.current) {
         if (collection.id !== activeCollectionId) {
           pendingOpenCollectionIdRef.current = collection.id;
@@ -392,45 +377,6 @@ export default function AuraCollectionsSection({
       }
     },
     [activeCollectionId, animateClose, flushPendingOpen, onSetCollection]
-  );
-
-  const handleShelfDragStart = useCallback(
-    (e, collectionId) => {
-      if (!shelvesReorderEnabled || shelfOrderMode !== 'custom') return;
-      e.dataTransfer.setData('text/plain', collectionId);
-      e.dataTransfer.effectAllowed = 'move';
-    },
-    [shelvesReorderEnabled, shelfOrderMode]
-  );
-
-  const handleShelfDragOver = useCallback(
-    (e) => {
-      if (!shelvesReorderEnabled || shelfOrderMode !== 'custom') return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    },
-    [shelvesReorderEnabled, shelfOrderMode]
-  );
-
-  const handleShelfDrop = useCallback(
-    (e, targetId) => {
-      e.preventDefault();
-      if (!shelvesReorderEnabled || shelfOrderMode !== 'custom') return;
-      const sourceId = e.dataTransfer.getData('text/plain');
-      if (!sourceId || sourceId === targetId) return;
-      const ids = collections.map((c) => c.id);
-      const from = ids.indexOf(sourceId);
-      const to = ids.indexOf(targetId);
-      if (from < 0 || to < 0) return;
-      const next = [...ids];
-      const [m] = next.splice(from, 1);
-      next.splice(to, 0, m);
-      if (from !== to) {
-        shelfDragSuppressClickRef.current = true;
-        onReorderCollectionShelves?.(next);
-      }
-    },
-    [shelvesReorderEnabled, shelfOrderMode, collections, onReorderCollectionShelves]
   );
 
   useEffect(() => {
@@ -536,19 +482,6 @@ export default function AuraCollectionsSection({
               <option value="alphabetical">Games: A–Z</option>
             </select>
           </label>
-          {shelfOrderMode === 'custom' ? (
-            <button
-              type="button"
-              className="aura-hub-section__reorder"
-              aria-pressed={shelvesReorderEnabled}
-              onClick={() => setShelvesReorderEnabled((v) => !v)}
-            >
-              {shelvesReorderEnabled ? 'Done reordering' : 'Reorder shelves'}
-            </button>
-          ) : null}
-          <button type="button" className="aura-hub-section__manage" onClick={() => setManageCollectionsOpen(true)}>
-            Manage collections
-          </button>
         </div>
       </div>
       <GameHubManageCollectionsDialog open={manageCollectionsOpen} onOpenChange={setManageCollectionsOpen} />
@@ -578,11 +511,7 @@ export default function AuraCollectionsSection({
                     ref={assignStackRef(collection.id)}
                     role="button"
                     tabIndex={0}
-                    className={`aura-hub-stack ${isActive ? 'aura-hub-stack--active' : ''} ${shelvesReorderEnabled && shelfOrderMode === 'custom' ? 'aura-hub-stack--reorder' : ''}`}
-                    draggable={Boolean(shelvesReorderEnabled && shelfOrderMode === 'custom')}
-                    onDragStart={(e) => handleShelfDragStart(e, collection.id)}
-                    onDragOver={handleShelfDragOver}
-                    onDrop={(e) => handleShelfDrop(e, collection.id)}
+                    className={`aura-hub-stack ${isActive ? 'aura-hub-stack--active' : ''}`}
                     onClick={(e) => handleStackClick(e, collection)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -654,7 +583,7 @@ export default function AuraCollectionsSection({
       ) : (
         <div className="aura-hub-empty">
           No shelves yet. Add Wee favorites from the right-click menu, connect Steam for playtime-based shelves and
-          client tags, or create Wee collections from Manage collections.
+          client tags, or create Wee collections from a shelf context menu action.
         </div>
       )}
     </section>

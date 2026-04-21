@@ -96,9 +96,9 @@ export const WEE_SPRINGS = {
   /** Revisit assembly — gooey stagger between full first visit and subtle; welcoming motion */
   hubSpaceEntranceRevisitGooey: {
     type: 'spring',
-    stiffness: 220,
-    damping: 24,
-    mass: 1,
+    stiffness: 205,
+    damping: 22,
+    mass: 1.03,
   },
   /** Home channel grid first visit — overshoot then settle (space rail / pill family, slightly softer damping) */
   homeSpaceEntranceOvershoot: {
@@ -275,7 +275,7 @@ export function getMediaHubAsideMotion(reducedMotion) {
 }
 
 /**
- * Media Hub: small-viewport overlay panel — same spring family; vertical slide (no aside in hub-stremio).
+ * Media Hub: small-viewport overlay panel — use the same right-origin swap language as desktop sidebar.
  */
 export function getMediaHubOverlayPanelMotion(reducedMotion) {
   const spring = WEE_SPRINGS.mediaHubDetailAside;
@@ -288,9 +288,9 @@ export function getMediaHubOverlayPanelMotion(reducedMotion) {
     };
   }
   return {
-    initial: { y: 48, opacity: 0 },
-    animate: { y: 0, opacity: 1 },
-    exit: { y: 28, opacity: 0 },
+    initial: { x: 84, opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: 84, opacity: 0 },
     transition: spring,
   };
 }
@@ -324,7 +324,7 @@ export function createHubEntranceBandVariants(tier, reducedMotion) {
     };
   }
   return {
-    hidden: { opacity: 0.94, y: 14, scale: 0.992 },
+    hidden: { opacity: 1, y: 16, scale: 0.992 },
     show: {
       opacity: 1,
       y: 0,
@@ -361,7 +361,7 @@ export function createHomeChannelEntranceBandVariants(tier, reducedMotion) {
     };
   }
   return {
-    hidden: { opacity: 0.94, y: 14, scale: 0.992 },
+    hidden: { opacity: 1, y: 14, scale: 0.992 },
     show: {
       opacity: 1,
       y: 0,

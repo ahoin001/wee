@@ -753,9 +753,6 @@ export default function GameHubSpace() {
       onHubCollectionGamesSortChange={(sort) =>
         setGameHubState({ ui: { hubCollectionGamesSort: sort } })
       }
-      onReorderCollectionShelves={(ids) =>
-        setGameHubState({ ui: { hubShelfOrderMode: 'custom', collectionShelfOrder: ids } })
-      }
       onSetCollection={(collectionId) => setGameHubState({ ui: { activeCollectionId: collectionId } })}
       onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
       onLaunchGame={handleLaunchGame}

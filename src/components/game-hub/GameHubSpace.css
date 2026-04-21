@@ -1124,7 +1124,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
-  column-gap: clamp(1.5rem, 3.5vw, 2.75rem);
+  column-gap: calc(var(--hub-game-grid-gap, clamp(1rem, 2.4vw, 1.45rem)) * 4);
   row-gap: clamp(1.25rem, 2.8vw, 2rem);
   margin-top: 0.35rem;
 }

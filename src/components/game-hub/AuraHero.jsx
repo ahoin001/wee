@@ -86,6 +86,8 @@ export default function AuraHero({
 
   const statItems = useMemo(() => buildHeroStats(heroGame), [heroGame]);
   const dockStatItems = useMemo(() => statItems.slice(0, 4), [statItems]);
+  const showSteamApiKeyHint =
+    typeof heroNotice === 'string' && heroNotice.toLowerCase().includes('steam web api key is not configured');
 
   const morphFallback = useMotionValue(0);
   const mp = morphProgress ?? morphFallback;
@@ -106,6 +108,11 @@ export default function AuraHero({
       {heroNotice ? (
         <p className="aura-hub-hero__notice" role="status">
           {heroNotice}
+        </p>
+      ) : null}
+      {showSteamApiKeyHint ? (
+        <p className="aura-hub-hero__subline">
+          Sign in on Steam, open your profile page, and copy the ID from the URL.
         </p>
       ) : null}
       <div className="aura-hub-hero__headline-wrap">
@@ -130,13 +137,13 @@ export default function AuraHero({
           {heroGame.source === 'steam' ? ` · ${heroGame.installed ? 'Installed' : 'Not installed'}` : null}
         </p>
       ) : null}
-      {!hasSteamId ? (
+      {!hasSteamId || showSteamApiKeyHint ? (
         <button
           type="button"
           className="aura-hub-btn aura-hub-btn--ghost aura-hub-hero__settings-btn"
           onClick={() => openSettingsToTab(SETTINGS_TAB_ID.GAMEHUB)}
         >
-          Connect Steam in Settings
+          Open Game Hub Settings
         </button>
       ) : null}
     </>
