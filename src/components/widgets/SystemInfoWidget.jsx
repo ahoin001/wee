@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
@@ -6,6 +6,7 @@ import Slider from '../../ui/Slider';
 import { useFloatingWidgetsState } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { CSS_COLOR_PURE_WHITE } from '../../design/runtimeColorStrings.js';
+import { useActivityInterval } from '../../hooks/useActivityInterval';
 
 const GLASS_TEST_BTN_STYLE = {
   background: 'hsl(var(--color-pure-white) / 0.2)',
@@ -28,8 +29,6 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
     activeFps: 30,
     lowPowerFps: 15,
   });
-
-  const intervalRef = useRef(null);
 
   // Get system info widget state from floating widgets
   const systemInfoWidget = floatingWidgets.systemInfo;
@@ -117,24 +116,12 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
     }
   }, [isVisible, isAppActive]);
 
-  // Set up interval for automatic updates
-  useEffect(() => {
-    if (updateInterval > 0 && isVisible && isAppActive) {
-      const baseIntervalMs = Math.max(5, updateInterval) * 1000;
-      const lowPowerFactor = isLowPowerMode ? 1.25 : 1;
-      const effectiveIntervalMs = Math.round(baseIntervalMs * pollIntervalMultiplier * lowPowerFactor);
-      intervalRef.current = setInterval(fetchSystemInfo, effectiveIntervalMs);
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-      };
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    }
-  }, [updateInterval, isVisible, isAppActive, fetchSystemInfo, pollIntervalMultiplier, isLowPowerMode]);
+  const baseIntervalMs = Math.max(5, updateInterval) * 1000;
+  const lowPowerFactor = isLowPowerMode ? 1.25 : 1;
+  const effectiveIntervalMs = Math.round(baseIntervalMs * pollIntervalMultiplier * lowPowerFactor);
+  useActivityInterval(fetchSystemInfo, effectiveIntervalMs, {
+    enabled: updateInterval > 0 && isVisible && isAppActive,
+  });
 
   // Initial fetch when widget becomes visible
   useEffect(() => {

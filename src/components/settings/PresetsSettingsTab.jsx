@@ -38,7 +38,13 @@ import PresetsSaveCurrentCard from './presets/PresetsSaveCurrentCard';
 import PresetsSpotifyMatchSection from './presets/PresetsSpotifyMatchSection';
 import PresetsSavedListCard from './presets/PresetsSavedListCard';
 import PresetsCommunityCard from './presets/PresetsCommunityCard';
-import { WeeModalFieldCard, WeeSectionEyebrow, WeeSettingsCollapsibleSection } from '../../ui/wee';
+import {
+  WeeButton,
+  WeeModalFieldCard,
+  WeeModalShell,
+  WeeSectionEyebrow,
+  WeeSettingsCollapsibleSection,
+} from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 
 const MAX_CUSTOM_PRESETS = 5;
@@ -84,6 +90,7 @@ const PresetsSettingsTab = React.memo(() => {
   });
   const [includeHomeChannels, setIncludeHomeChannels] = useState(false);
   const [immersiveModeState, setImmersiveModeState] = useState({});
+  const [updateScopeDialog, setUpdateScopeDialog] = useState(null);
 
   const savePresetsToBackend = useCallback(async (updatedPresets) => {
     try {
@@ -147,9 +154,12 @@ const PresetsSettingsTab = React.memo(() => {
   }, [presets]);
 
   useEffect(() => {
-    const unsubscribe = useConsolidatedAppStore.subscribe((state) => {
-      setImmersiveModeState(state.spotify.immersiveMode || {});
-    });
+    const unsubscribe = useConsolidatedAppStore.subscribe(
+      (state) => state.spotify?.immersiveMode,
+      (immersive) => {
+        setImmersiveModeState(immersive || {});
+      }
+    );
     setImmersiveModeState(useConsolidatedAppStore.getState().spotify.immersiveMode || {});
     return unsubscribe;
   }, []);
@@ -259,23 +269,7 @@ const PresetsSettingsTab = React.memo(() => {
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
   };
 
-  const resolveUpdateScope = (preset) => {
-    if (preset?.captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS) {
-      const keepChannels = window.confirm(
-        'This preset currently includes Home channels.\n\nPress OK to update visuals + Home channels.\nPress Cancel to update visuals only and remove channel data.'
-      );
-      return keepChannels ? PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS : PRESET_SCOPE_VISUAL;
-    }
-    const keepVisualOnly = window.confirm(
-      'This preset is visual-only.\n\nPress OK to keep visual-only.\nPress Cancel to include Home channels in this update.'
-    );
-    return keepVisualOnly ? PRESET_SCOPE_VISUAL : PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS;
-  };
-
-  const handleUpdate = async (presetId) => {
-    const targetPreset = presets.find((p) => p.id === presetId);
-    if (!targetPreset) return;
-    const updateScope = resolveUpdateScope(targetPreset);
+  const commitPresetUpdate = async (presetId, updateScope) => {
     const presetData = buildPresetDataFromStore({ captureScope: updateScope });
     const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
     if (thumbnailDataUrl) {
@@ -303,6 +297,33 @@ const PresetsSettingsTab = React.memo(() => {
     setTimeout(() => setJustUpdated(null), 1500);
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
   };
+
+  const handleUpdate = (presetId) => {
+    const targetPreset = presets.find((p) => p.id === presetId);
+    if (!targetPreset) return;
+    setUpdateScopeDialog({
+      presetId,
+      presetName: targetPreset.name || 'Preset',
+      currentScope:
+        targetPreset.captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
+          ? PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
+          : PRESET_SCOPE_VISUAL,
+    });
+  };
+
+  const handleCloseUpdateScopeDialog = useCallback(() => {
+    setUpdateScopeDialog(null);
+  }, []);
+
+  const handleConfirmUpdateScope = useCallback(
+    async (nextScope) => {
+      if (!updateScopeDialog?.presetId) return;
+      const targetPresetId = updateScopeDialog.presetId;
+      setUpdateScopeDialog(null);
+      await commitPresetUpdate(targetPresetId, nextScope);
+    },
+    [updateScopeDialog, presets]
+  );
 
   const handleStartEdit = (preset) => {
     setEditingPreset(preset.id);
@@ -823,6 +844,61 @@ const PresetsSettingsTab = React.memo(() => {
       </WeeSettingsCollapsibleSection>
 
       <AuthModal />
+
+      {updateScopeDialog ? (
+        <WeeModalShell
+          isOpen={Boolean(updateScopeDialog)}
+          onClose={handleCloseUpdateScopeDialog}
+          headerTitle="Update Preset Scope"
+          showRail={false}
+          maxWidth="min(860px, 94vw)"
+        >
+          <div className="space-y-5">
+            <WeeSectionEyebrow>Preset update</WeeSectionEyebrow>
+            <h3 className="m-0 text-xl font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
+              {updateScopeDialog.presetName}
+            </h3>
+            <p className="m-0 text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
+              Choose what this update should capture. Wee recommends visual-only for shareable presets and
+              visuals + Home channels when you want a full snapshot.
+            </p>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => handleConfirmUpdateScope(PRESET_SCOPE_VISUAL)}
+                className="rounded-2xl border border-[hsl(var(--border-primary)/0.6)] bg-[hsl(var(--surface-secondary)/0.55)] p-4 text-left transition hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-secondary)/0.75)]"
+              >
+                <p className="m-0 text-[11px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-primary))]">
+                  Visual-only
+                </p>
+                <p className="m-0 mt-2 text-[12px] font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
+                  Save colors, layout, and styling. Home channels are excluded.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleConfirmUpdateScope(PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS)}
+                className="rounded-2xl border border-[hsl(var(--border-primary)/0.6)] bg-[hsl(var(--surface-secondary)/0.55)] p-4 text-left transition hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-secondary)/0.75)]"
+              >
+                <p className="m-0 text-[11px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-primary))]">
+                  Visuals + Home channels
+                </p>
+                <p className="m-0 mt-2 text-[12px] font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
+                  Save visuals and the current Home channel setup as one snapshot.
+                </p>
+              </button>
+            </div>
+
+            <div className="flex justify-end">
+              <WeeButton variant="secondary" onClick={handleCloseUpdateScopeDialog}>
+                Cancel
+              </WeeButton>
+            </div>
+          </div>
+        </WeeModalShell>
+      ) : null}
     </div>
   );
 });

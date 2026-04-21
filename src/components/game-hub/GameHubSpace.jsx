@@ -61,11 +61,24 @@ const HEAVY_MIN_HOLD_MS = 380;
 const COLLECTION_CHROME_BUSY_MIN_HOLD_MS = 520;
 
 export default function GameHubSpace() {
-  const { appLibrary, gameHub, setGameHubState, patchGameHubLastLaunch, appLibraryManager, showDock, isSpaceTransitioning, activeSpaceId } =
+  const {
+    appLibrary,
+    gameHub,
+    wallpaper,
+    appearanceBySpace,
+    setGameHubState,
+    patchGameHubLastLaunch,
+    appLibraryManager,
+    showDock,
+    isSpaceTransitioning,
+    activeSpaceId,
+  } =
     useConsolidatedAppStore(
       useShallow((state) => ({
         appLibrary: state.appLibrary,
         gameHub: state.gameHub,
+        wallpaper: state.wallpaper,
+        appearanceBySpace: state.appearanceBySpace,
         setGameHubState: state.actions.setGameHubState,
         patchGameHubLastLaunch: state.actions.patchGameHubLastLaunch,
         appLibraryManager: state.appLibraryManager,
@@ -701,6 +714,15 @@ export default function GameHubSpace() {
   };
 
   const floatingUi = !showHubBackdrop;
+  const gameHubAppearance = appearanceBySpace?.gamehub?.wallpaper || null;
+  const gameHubWallpaperBrightness =
+    typeof gameHubAppearance?.spaceBrightness === 'number' && Number.isFinite(gameHubAppearance.spaceBrightness)
+      ? gameHubAppearance.spaceBrightness
+      : (wallpaper?.gameHubBrightness ?? 0.78);
+  const gameHubWallpaperSaturation =
+    typeof gameHubAppearance?.spaceSaturate === 'number' && Number.isFinite(gameHubAppearance.spaceSaturate)
+      ? gameHubAppearance.spaceSaturate
+      : (wallpaper?.gameHubSaturate ?? 1);
 
   const hubHeroNotice =
     gameHub.library?.syncStatus === 'error'
@@ -786,6 +808,10 @@ export default function GameHubSpace() {
     <GameHubTileDialogsProvider>
     <section
       className={`aura-hub-space ${floatingUi ? 'aura-hub-space--floating' : ''} ${effectsEnabled ? 'aura-hub-space--effects' : 'aura-hub-space--static'} ${isLaunching ? 'aura-hub-space--launching' : ''}`}
+      style={{
+        '--aura-hub-wallpaper-brightness': gameHubWallpaperBrightness,
+        '--aura-hub-wallpaper-saturation': gameHubWallpaperSaturation,
+      }}
     >
       <div
         ref={stageRef}

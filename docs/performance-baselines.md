@@ -27,6 +27,27 @@ These are **starting targets**, not guarantees:
 - **Occluded / minimized**: CPU near idle for the process; no sustained main-thread work in Performance.
 - **Foreground hub**: Avoid unnecessary full-store React subscriptions in always-mounted shells; long lists should window when item count is large.
 
+### Baseline capture template (fill before/after each phase)
+
+| Scenario | Metric | Baseline (before) | Candidate (after) | Pass threshold |
+|----------|--------|-------------------|-------------------|----------------|
+| Cold start | Time to interactive | | | No regression > 10% |
+| Home active | Main-thread long tasks (10–20s trace) | | | Equal or fewer long tasks |
+| Hub switch (home/game/media) | Visible jank / dropped frames | | | Equal or better |
+| Media local scroll | Scripting + rendering cost | | | Equal or better |
+| Idle occluded | CPU trend | | | Equal or lower |
+| Idle occluded | GPU trend | | | Equal or lower |
+| 5 min idle | Heap growth | | | No unbounded growth |
+
+## Motion guardrails (non-negotiable)
+
+- Keep current choreography and spring personality (gooey, playful motion language remains intact).
+- Do not remove entrance/exit animations; optimize implementation cost only.
+- Avoid replacing shared modal/shell orchestration with one-off timing logic.
+- Validate rapid state changes (`home ↔ mediahub ↔ gamehub`) for no half-entry flashes.
+- Validate repeated open/close cycles for settings/menus/modals to ensure exits always render.
+- Validate reduced-motion paths continue to enter/exit cleanly with no lingering overlays.
+
 ## Native wallpaper helper (decision)
 
 After **renderer/store tuning**, **visibility-aware pause**, and **wallpaper path** optimizations:
@@ -36,3 +57,12 @@ After **renderer/store tuning**, **visibility-aware pause**, and **wallpaper pat
 - **Not recommended as a first step**: Rewriting the whole shell in C++/Qt or swapping to Tauri solely for efficiency — integration cost is high and does not automatically match Wallpaper Engine–class idle behavior.
 
 Revisit this decision when Phases 1–3 are measured against the baselines above.
+
+## Baseline session log
+
+- Use this section to log each profiling run before/after a perf phase.
+- Recommended fields per entry:
+  - Date/time + branch/commit
+  - Scenario measured
+  - Key numbers (CPU, GPU, long tasks, commit counts, memory trend)
+  - Pass/fail against threshold

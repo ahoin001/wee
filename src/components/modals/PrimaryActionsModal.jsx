@@ -15,6 +15,7 @@ import {
 } from '../../ui/wee';
 import WInput from '../../ui/WInput';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { parseColorToRgb, tintImageWithOverwrite } from '../../utils/iconTinting';
 import {
   CSS_STATE_ERROR,
   DEFAULT_RIBBON_GLOW_HEX,
@@ -51,6 +52,7 @@ function PrimaryActionsModalComponent({
   const [glassShineOpacity, setGlassShineOpacity] = useState(config?.glassShineOpacity || 0.7);
   const [textFont, setTextFont] = useState(config?.textFont || 'default');
   const [tintedImages, setTintedImages] = useState({});
+  const [iconsUploadWarning, setIconsUploadWarning] = useState('');
 
   // Granular store subscriptions (avoid re-rendering on unrelated appLibrary / icons fields)
   const {
@@ -137,7 +139,7 @@ function PrimaryActionsModalComponent({
     if (useAdaptiveColor && savedIcons.length > 0) {
       // Use the same color logic as WiiRibbon for consistency
       const colorToUse = ribbonGlowColor;
-      const rgbColor = hexToRgb(colorToUse);
+      const rgbColor = parseColorToRgb(colorToUse);
       const newTintedImages = {};
 
       savedIcons.forEach(icon => {
@@ -145,7 +147,7 @@ function PrimaryActionsModalComponent({
         img.crossOrigin = 'anonymous';
         img.onload = async () => {
           try {
-            const tintedUrl = await tintImage(img, rgbColor);
+          const tintedUrl = await tintImageWithOverwrite(img, rgbColor);
             newTintedImages[icon.url] = tintedUrl;
             setTintedImages(prev => ({ ...prev, ...newTintedImages }));
                   } catch (error) {
@@ -195,72 +197,6 @@ function PrimaryActionsModalComponent({
     return originalUrl;
   };
 
-  // Helper function to convert hex or RGB color to RGB array
-  const hexToRgb = (color) => {
-    // Handle undefined or null values
-    if (!color || typeof color !== 'string') {
-      return [0, 153, 255]; // Default blue color
-    }
-    
-    // Handle RGB format (e.g., "rgb(255, 0, 0)")
-    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (rgbMatch) {
-      const [, r, g, b] = rgbMatch;
-      return [parseInt(r, 10), parseInt(g, 10), parseInt(b, 10)];
-    }
-    
-    // Handle hex format
-    const hex = color.replace('#', '');
-    
-    // Validate hex format
-    if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
-      return [0, 153, 255]; // Default blue color
-    }
-    
-    // Convert hex to RGB
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    
-    return [r, g, b];
-  };
-
-  // Helper function to tint an image with a specific color
-  const tintImage = (imageElement, rgbColor) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      // Set canvas size to match image
-      canvas.width = imageElement.naturalWidth || imageElement.width;
-      canvas.height = imageElement.naturalHeight || imageElement.height;
-      
-      // Draw the image to get the alpha mask
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      
-      // Replace all non-transparent pixels with the tint color
-      for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3];
-        if (alpha !== 0) {
-          data[i]     = rgbColor[0]; // R
-          data[i + 1] = rgbColor[1]; // G
-          data[i + 2] = rgbColor[2]; // B
-          // Keep original alpha
-        }
-      }
-      
-      ctx.putImageData(imageData, 0, 0);
-      
-      // Convert canvas to data URL
-      const tintedImageUrl = canvas.toDataURL('image/png');
-      resolve(tintedImageUrl);
-    });
-  };
-
   // Handle Wii gray filter toggle with mutual exclusivity
   const handleWiiGrayFilterToggle = (checked) => {
     setUseWiiGrayFilter(checked);
@@ -279,7 +215,7 @@ function PrimaryActionsModalComponent({
     // Generate tinted images for all saved icons when adaptive color is enabled
     if (checked && savedIcons.length > 0) {
       const colorToUse = ribbonGlowColor;
-      const rgbColor = hexToRgb(colorToUse);
+      const rgbColor = parseColorToRgb(colorToUse);
       const newTintedImages = {};
       
       for (const icon of savedIcons) {
@@ -287,7 +223,7 @@ function PrimaryActionsModalComponent({
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = async () => {
-            const tintedUrl = await tintImage(img, rgbColor);
+            const tintedUrl = await tintImageWithOverwrite(img, rgbColor);
             newTintedImages[icon.url] = tintedUrl;
             setTintedImages(prev => ({ ...prev, ...newTintedImages }));
           };
@@ -304,9 +240,13 @@ function PrimaryActionsModalComponent({
 
   // Upload and save icon immediately
   const handleUploadIcon = async () => {
+    setIconsUploadWarning('');
     const result = await uploadIcon();
     if (result.success) {
       setIcon(result.icon.url);
+      if (result.warning) {
+        setIconsUploadWarning(result.warning);
+      }
     }
   };
 
@@ -542,6 +482,11 @@ function PrimaryActionsModalComponent({
             {iconsUploadError ? (
               <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--state-error))]">
                 {iconsUploadError}
+              </p>
+            ) : null}
+            {iconsUploadWarning ? (
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[hsl(var(--state-warning))]">
+                {iconsUploadWarning}
               </p>
             ) : null}
             {/* Saved Icons Section */}

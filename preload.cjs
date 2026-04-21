@@ -1,8 +1,33 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const appWindowActivityListenerMap = new WeakMap();
+const updateStatusListenerMap = new WeakMap();
+const updateNotificationAvailableListenerMap = new WeakMap();
+const updateNotificationNotAvailableListenerMap = new WeakMap();
+const updateNotificationDismissedListenerMap = new WeakMap();
+const updateNotificationInstallListenerMap = new WeakMap();
+
+const addMappedListener = (channel, cb, listenerMap, wrap) => {
+  if (typeof cb !== 'function') return;
+  const existing = listenerMap.get(cb);
+  if (existing) {
+    ipcRenderer.removeListener(channel, existing);
+  }
+  const wrapped = wrap(cb);
+  listenerMap.set(cb, wrapped);
+  ipcRenderer.on(channel, wrapped);
+};
+
+const removeMappedListener = (channel, cb, listenerMap) => {
+  const wrapped = listenerMap.get(cb);
+  if (!wrapped) return;
+  ipcRenderer.removeListener(channel, wrapped);
+  listenerMap.delete(cb);
+};
 const IPC_CHANNELS = {
   data: {
     get: 'data:get',
     set: 'data:set',
+    patchSettings: 'data:patch-settings',
   },
   wallpapers: {
     get: 'wallpapers:get',
@@ -39,6 +64,12 @@ contextBridge.exposeInMainWorld('api', {
   data: {
     get: () => ipcRenderer.invoke(IPC_CHANNELS.data.get),
     set: (data) => ipcRenderer.invoke(IPC_CHANNELS.data.set, data),
+    /**
+     * Patch-based settings write. Sends only the canonical settings delta to main;
+     * main-process store merges + batches writes to `unified-data.json`.
+     * Avoids the full read-merge-write round-trip on the renderer side.
+     */
+    patchSettings: (patch) => ipcRenderer.invoke(IPC_CHANNELS.data.patchSettings, patch),
   },
   channels: {
     get: () => ipcRenderer.invoke(IPC_CHANNELS.channels.get),
@@ -104,8 +135,12 @@ contextBridge.exposeInMainWorld('api', {
   minimize: () => ipcRenderer.send('minimize-window'),
   onFullscreenState: (cb) => ipcRenderer.on('fullscreen-state', (e, val) => cb(val)),
   onFrameState: (cb) => ipcRenderer.on('frame-state', (e, val) => cb(val)),
-  onAppWindowActivity: (cb) => ipcRenderer.on('app-window-activity', (_e, payload) => cb(payload)),
-  offAppWindowActivity: (cb) => ipcRenderer.removeListener('app-window-activity', cb),
+  onAppWindowActivity: (cb) => {
+    addMappedListener('app-window-activity', cb, appWindowActivityListenerMap, (listener) => (_e, payload) => listener(payload));
+  },
+  offAppWindowActivity: (cb) => {
+    removeMappedListener('app-window-activity', cb, appWindowActivityListenerMap);
+  },
   openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
   openExternal: (url) => ipcRenderer.send('open-external-url', url),
   /** @returns {Promise<{ ok: boolean, error?: string }>} */
@@ -127,22 +162,31 @@ contextBridge.exposeInMainWorld('api', {
     dismissUpdateNotification: () => ipcRenderer.invoke(IPC_CHANNELS.updateNotification.dismiss),
     downloadUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updater.downloadUpdate),
     installUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updater.installUpdate),
-    onUpdateStatus: (cb) => ipcRenderer.on(IPC_CHANNELS.updater.statusEvent, (e, data) => cb(data)),
-    offUpdateStatus: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updater.statusEvent, cb),
+    onUpdateStatus: (cb) =>
+      addMappedListener(IPC_CHANNELS.updater.statusEvent, cb, updateStatusListenerMap, (listener) => (_e, data) => listener(data)),
+    offUpdateStatus: (cb) => removeMappedListener(IPC_CHANNELS.updater.statusEvent, cb, updateStatusListenerMap),
   },
   // Top-level updater aliases for legacy settings tabs
   checkForUpdates: () => ipcRenderer.invoke(IPC_CHANNELS.updater.checkForUpdates),
   downloadUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updater.downloadUpdate),
   installUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updater.installUpdate),
   // Update notification event listeners
-  onUpdateNotificationAvailable: (cb) => ipcRenderer.on(IPC_CHANNELS.updater.updateAvailableEvent, (e, data) => cb(data)),
-  offUpdateNotificationAvailable: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updater.updateAvailableEvent, cb),
-  onUpdateNotificationNotAvailable: (cb) => ipcRenderer.on(IPC_CHANNELS.updater.updateNotAvailableEvent, (e) => cb()),
-  offUpdateNotificationNotAvailable: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updater.updateNotAvailableEvent, cb),
-  onUpdateNotificationDismissed: (cb) => ipcRenderer.on(IPC_CHANNELS.updateNotification.dismissedEvent, (e) => cb()),
-  offUpdateNotificationDismissed: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updateNotification.dismissedEvent, cb),
-  onUpdateNotificationInstall: (cb) => ipcRenderer.on(IPC_CHANNELS.updateNotification.installEvent, (e) => cb()),
-  offUpdateNotificationInstall: (cb) => ipcRenderer.removeListener(IPC_CHANNELS.updateNotification.installEvent, cb),
+  onUpdateNotificationAvailable: (cb) =>
+    addMappedListener(IPC_CHANNELS.updater.updateAvailableEvent, cb, updateNotificationAvailableListenerMap, (listener) => (_e, data) => listener(data)),
+  offUpdateNotificationAvailable: (cb) =>
+    removeMappedListener(IPC_CHANNELS.updater.updateAvailableEvent, cb, updateNotificationAvailableListenerMap),
+  onUpdateNotificationNotAvailable: (cb) =>
+    addMappedListener(IPC_CHANNELS.updater.updateNotAvailableEvent, cb, updateNotificationNotAvailableListenerMap, (listener) => () => listener()),
+  offUpdateNotificationNotAvailable: (cb) =>
+    removeMappedListener(IPC_CHANNELS.updater.updateNotAvailableEvent, cb, updateNotificationNotAvailableListenerMap),
+  onUpdateNotificationDismissed: (cb) =>
+    addMappedListener(IPC_CHANNELS.updateNotification.dismissedEvent, cb, updateNotificationDismissedListenerMap, (listener) => () => listener()),
+  offUpdateNotificationDismissed: (cb) =>
+    removeMappedListener(IPC_CHANNELS.updateNotification.dismissedEvent, cb, updateNotificationDismissedListenerMap),
+  onUpdateNotificationInstall: (cb) =>
+    addMappedListener(IPC_CHANNELS.updateNotification.installEvent, cb, updateNotificationInstallListenerMap, (listener) => () => listener()),
+  offUpdateNotificationInstall: (cb) =>
+    removeMappedListener(IPC_CHANNELS.updateNotification.installEvent, cb, updateNotificationInstallListenerMap),
   getFullscreenState: () => ipcRenderer.invoke('get-fullscreen-state'),
   // Spotify OAuth APIs
   onSpotifyAuthSuccess: (cb) => ipcRenderer.on('spotify-auth-success', (e, data) => cb(data)),

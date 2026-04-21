@@ -35,7 +35,7 @@ const CATEGORY_ICONS = {
 };
 
 const ShortcutsSettingsTab = React.memo(() => {
-  const ui = useConsolidatedAppStore((state) => state.ui);
+  const keyboardShortcutsFromStore = useConsolidatedAppStore((state) => state.ui?.keyboardShortcuts);
   const actions = useConsolidatedAppStore(
     useShallow((state) => ({
       setUIState: state.actions.setUIState,
@@ -49,7 +49,7 @@ const ShortcutsSettingsTab = React.memo(() => {
   const [currentShortcut, setCurrentShortcut] = useState('');
 
   const keyboardShortcuts =
-    ui?.keyboardShortcuts ||
+    keyboardShortcutsFromStore ||
     DEFAULT_SHORTCUTS.map((shortcut) => ({
       ...shortcut,
       key: shortcut.defaultKey,

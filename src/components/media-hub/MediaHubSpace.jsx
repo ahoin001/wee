@@ -13,6 +13,7 @@ import {
   Play,
   RefreshCcw,
   Search,
+  Star,
   Tv,
   Video,
   X,
@@ -21,6 +22,8 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import MediaHubDiscoverGrid, { MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD } from './MediaHubDiscoverGrid';
+import useMediaHubController from './useMediaHubController';
+import useMediaHubLocalThumbnails from './useMediaHubLocalThumbnails';
 import { buildStremioDetailUrl } from '../../utils/mediaHubStremio';
 import {
   WEE_EASING,
@@ -43,8 +46,15 @@ const CARD_EASE = WEE_EASING.mediaHubCard;
 const EMPTY_OBJECT = Object.freeze({});
 /** Parent list for poster grid — item delays come from `createMediaHubGridItemVariants` + `custom` index. */
 const GRID_LIST_PARENT_VARIANTS = {
-  hidden: {},
+  hidden: {
+    opacity: 0,
+    y: 14,
+    scale: 0.995,
+  },
   show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
     transition: { staggerChildren: 0, delayChildren: 0 },
   },
 };
@@ -65,6 +75,13 @@ function useMinWidth1024() {
 function getPosterUrl(item) {
   if (!item) return '';
   return item.poster || item.logo || '';
+}
+
+function formatImdbRating(value) {
+  if (value === undefined || value === null) return 'NR';
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 'NR';
+  return numericValue.toFixed(1);
 }
 
 function formatBytes(size) {
@@ -135,6 +152,7 @@ function MediaHubItemDetail({
   onSeasonChange,
   onEpisodeChange,
 }) {
+  const reducedMotion = useReducedMotion();
   const isDiscover = activeTab === 'discover';
   const posterUrl = getPosterUrl(selectedItem);
   const description = isDiscover ? String(selectedItem.description || '').trim() : '';
@@ -161,68 +179,81 @@ function MediaHubItemDetail({
 
   return (
     <div className={shellClass}>
-      <div className="media-hub-detail__hero relative min-h-[220px] shrink-0 overflow-hidden sm:min-h-[280px]">
-        {posterUrl ? (
-          <img src={posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-        ) : (
-          <div className="flex h-full min-h-[220px] items-center justify-center bg-[hsl(var(--surface-tertiary))] sm:min-h-[280px]">
-            <Video className="text-[hsl(var(--text-tertiary))]" size={48} strokeWidth={1.25} />
+      <AnimatePresence mode="wait" initial={false}>
+        <MotionDiv
+          key={`detail-content:${selectedItem.id}`}
+          initial={variant === 'overlay' ? { opacity: 0, y: 18, scale: 0.985 } : { opacity: 0, x: 56, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+          exit={variant === 'overlay' ? { opacity: 0, y: -14, scale: 0.988 } : { opacity: 0, x: 56, scale: 0.97 }}
+          transition={
+            reducedMotion
+              ? { duration: 0.14 }
+              : { type: 'spring', stiffness: 420, damping: 32, mass: 0.86 }
+          }
+          className="flex h-full min-h-0 flex-col"
+        >
+          <div className="media-hub-detail__hero relative min-h-[220px] shrink-0 overflow-hidden sm:min-h-[280px]">
+            {posterUrl ? (
+              <img src={posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+            ) : (
+              <div className="flex h-full min-h-[220px] items-center justify-center bg-[hsl(var(--surface-tertiary))] sm:min-h-[280px]">
+                <Video className="text-[hsl(var(--text-tertiary))]" size={48} strokeWidth={1.25} />
+              </div>
+            )}
+            <div className="media-hub-detail__hero-scrim absolute inset-0" aria-hidden />
+            <div className="absolute right-4 top-4 z-[2]">
+              <MotionButton
+                type="button"
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                transition={{ duration: 0.15 }}
+                onClick={onClose}
+                className="media-hub-detail-close-btn"
+                aria-label="Close details"
+              >
+                <X size={18} />
+              </MotionButton>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 z-[1] px-6 pb-6 pt-12 sm:px-8">
+              <h2 className="m-0 text-2xl font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--text-primary))] sm:text-3xl">
+                {selectedItem.name}
+              </h2>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--primary))]">
+                {genreLabel ? <span>{genreLabel}</span> : null}
+                {genreLabel && (isDiscover || yearLabel) ? (
+                  <span className="h-1 w-1 rounded-full bg-[hsl(var(--text-tertiary)/0.6)]" aria-hidden />
+                ) : null}
+                {isDiscover ? <span>{typeLabel}</span> : <span>{selectedItem.extension || 'File'}</span>}
+              </div>
+            </div>
           </div>
-        )}
-        <div className="media-hub-detail__hero-scrim absolute inset-0" aria-hidden />
-        <div className="absolute right-4 top-4 z-[2]">
-          <MotionButton
-            type="button"
-            whileHover={{ scale: 1.06 }}
-            whileTap={{ scale: 0.94 }}
-            transition={{ duration: 0.15 }}
-            onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[hsl(var(--border-primary)/0.65)] bg-[hsl(var(--color-pure-black)/0.45)] text-[hsl(var(--text-primary))] backdrop-blur-md"
-            aria-label="Close details"
-          >
-            <X size={18} />
-          </MotionButton>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 z-[1] px-6 pb-6 pt-12 sm:px-8">
-          <h2 className="m-0 text-2xl font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--text-primary))] sm:text-3xl">
-            {selectedItem.name}
-          </h2>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[hsl(var(--primary))]">
-            {genreLabel ? <span>{genreLabel}</span> : null}
-            {genreLabel && (isDiscover || yearLabel) ? (
-              <span className="h-1 w-1 rounded-full bg-[hsl(var(--text-tertiary)/0.6)]" aria-hidden />
-            ) : null}
-            {isDiscover ? <span>{typeLabel}</span> : <span>{selectedItem.extension || 'File'}</span>}
-          </div>
-        </div>
-      </div>
 
-      <div className="media-hub-detail__body flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
-        <div className="flex flex-wrap gap-2">
-          {isDiscover && yearLabel ? (
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-secondary))]">
-              <Calendar className="text-[hsl(var(--primary))]" size={12} aria-hidden />
-              {yearLabel}
+          <div className="media-hub-detail__body flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
+            <div className="flex flex-wrap gap-2">
+              {isDiscover && yearLabel ? (
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-secondary))]">
+                  <Calendar className="text-[hsl(var(--primary))]" size={12} aria-hidden />
+                  {yearLabel}
+                </div>
+              ) : null}
+              {isDiscover ? (
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-secondary))]">
+                  <Film className="text-[hsl(var(--primary))]" size={12} aria-hidden />
+                  {typeLabel}
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-secondary))]">
+                  <Video className="text-[hsl(var(--primary))]" size={12} aria-hidden />
+                  {fmtBytes(selectedItem.size)}
+                </div>
+              )}
+              {rating !== null ? (
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--color-pure-white))]">
+                  <Info className="text-[hsl(var(--primary))]" size={12} aria-hidden />
+                  {rating.toFixed(1)}
+                </div>
+              ) : null}
             </div>
-          ) : null}
-          {isDiscover ? (
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-secondary))]">
-              <Film className="text-[hsl(var(--primary))]" size={12} aria-hidden />
-              {typeLabel}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-secondary))]">
-              <Video className="text-[hsl(var(--primary))]" size={12} aria-hidden />
-              {fmtBytes(selectedItem.size)}
-            </div>
-          )}
-          {rating !== null ? (
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-secondary))]">
-              <Info className="text-[hsl(var(--primary))]" size={12} aria-hidden />
-              {rating.toFixed(1)} IMDb
-            </div>
-          ) : null}
-        </div>
 
         {description ? (
           <p className="m-0 text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">{description}</p>
@@ -287,7 +318,7 @@ function MediaHubItemDetail({
         ) : null}
 
         {isDiscover ? (
-          <div className="mt-auto border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
+          <div className="media-hub-detail__footer border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
             <p className="m-0 mb-3 text-[11px] font-bold uppercase tracking-[0.11em] leading-relaxed text-[hsl(var(--text-secondary))]">
               Opens this title in the Stremio app using the catalog.
             </p>
@@ -304,7 +335,7 @@ function MediaHubItemDetail({
             </MotionButton>
           </div>
         ) : (
-          <div className="mt-auto border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
+          <div className="media-hub-detail__footer border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
             <p className="m-0 mb-3 text-[11px] font-bold uppercase tracking-[0.11em] text-[hsl(var(--text-secondary))]">
               {fmtBytes(selectedItem.size)}
               {selectedItem.modifiedAt ? ` · ${new Date(selectedItem.modifiedAt).toLocaleDateString()}` : ''}
@@ -321,7 +352,9 @@ function MediaHubItemDetail({
             </MotionButton>
           </div>
         )}
-      </div>
+          </div>
+        </MotionDiv>
+      </AnimatePresence>
     </div>
   );
 }
@@ -367,9 +400,6 @@ export default function MediaHubSpace() {
   const seriesMetaAbortRef = useRef(null);
   const autoScannedFolderKeysRef = useRef(new Set());
   const hubScrollRef = useRef(null);
-  const thumbMtimeRef = useRef(new Map());
-  const thumbnailByPathRef = useRef({});
-  const [thumbnailByPath, setThumbnailByPath] = useState({});
   const isLgUp = useMinWidth1024();
   const reducedMotion = useReducedMotion();
   const mediaHubAsideMotion = useMemo(() => getMediaHubAsideMotion(reducedMotion), [reducedMotion]);
@@ -463,91 +493,12 @@ export default function MediaHubSpace() {
     if (!q) return localFiles;
     return localFiles.filter((item) => String(item.name || '').toLowerCase().includes(q));
   }, [localFiles, searchQuery]);
-
-  const localFilesThumbSignature = useMemo(
-    () => filteredLocal.map((f) => `${f.path}\0${f.modifiedAt || ''}`).join('|'),
-    [filteredLocal]
-  );
-
-  useEffect(() => {
-    thumbnailByPathRef.current = thumbnailByPath;
-  }, [thumbnailByPath]);
-
-  useEffect(() => {
-    if (activeSpaceId !== 'mediahub' || activeTab !== 'local') return undefined;
-    const api = window.api?.mediaHub?.getFileThumbnail;
-    if (typeof api !== 'function') return undefined;
-
-    const paths = new Set(filteredLocal.map((f) => f.path).filter(Boolean));
-    for (const p of thumbMtimeRef.current.keys()) {
-      if (!paths.has(p)) thumbMtimeRef.current.delete(p);
-    }
-    setThumbnailByPath((prev) => {
-      const next = { ...prev };
-      for (const k of Object.keys(next)) {
-        if (!paths.has(k)) delete next[k];
-      }
-      return next;
-    });
-
-    let cancelled = false;
-    const queue = [];
-    for (const file of filteredLocal) {
-      if (!file?.path) continue;
-      const m = file.modifiedAt || '';
-      if (
-        thumbMtimeRef.current.get(file.path) === m &&
-        thumbnailByPathRef.current[file.path]
-      ) {
-        continue;
-      }
-      queue.push(file);
-    }
-
-    let active = 0;
-    const maxConcurrent = 3;
-
-    const pump = () => {
-      if (cancelled) return;
-      while (active < maxConcurrent && queue.length > 0) {
-        const file = queue.shift();
-        if (!file?.path) continue;
-        active += 1;
-        api({ filePath: file.path, maxWidth: 400, maxHeight: 400 })
-          .then((res) => {
-            if (cancelled) return;
-            if (res?.success && res?.fileUrl) {
-              thumbMtimeRef.current.set(file.path, file.modifiedAt || '');
-              setThumbnailByPath((prev) => {
-                if (prev[file.path] === res.fileUrl) return prev;
-                return { ...prev, [file.path]: res.fileUrl };
-              });
-            }
-          })
-          .finally(() => {
-            active -= 1;
-            if (!cancelled) pump();
-          });
-      }
-    };
-
-    pump();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSpaceId, activeTab, localFilesThumbSignature]);
-  const updateUi = useCallback((patch) => {
-    setMediaHubState({ ui: patch });
-  }, [setMediaHubState]);
-
-  const clearSelection = useCallback(() => {
-    updateUi({
-      selectedItemId: null,
-      launchFallbackMessage: '',
-      selectedSeriesSeason: null,
-      selectedSeriesEpisode: null,
-    });
-  }, [updateUi]);
+  const { thumbnailByPath, handleLocalVisibleRangeChange } = useMediaHubLocalThumbnails({
+    activeSpaceId,
+    activeTab,
+    filteredLocal,
+  });
+  const { updateUi, clearSelection, selectLocalItem } = useMediaHubController(setMediaHubState);
 
   const showDetailAside = Boolean(selectedItem && isLgUp);
   const showDetailOverlay = Boolean(selectedItem && !isLgUp);
@@ -899,25 +850,31 @@ export default function MediaHubSpace() {
 
   return (
     <section className="media-hub-space">
-      <div className={shellClass}>
+      <MotionDiv
+        layout
+        transition={reducedMotion ? { duration: 0.16 } : { type: 'spring', stiffness: 280, damping: 30, mass: 0.95 }}
+        className={shellClass}
+      >
         <MotionDiv
-          layout={false}
+          layout
           className="media-hub-demo-main"
           variants={hubOrchestratorVariants}
           initial={false}
           animate={hubEntranceState}
+          transition={reducedMotion ? { duration: 0.16 } : { type: 'spring', stiffness: 290, damping: 30, mass: 0.92 }}
           onAnimationComplete={
             hubEntranceState === 'show' ? () => onEntranceComplete(entranceKey) : undefined
           }
         >
           <MotionHeader className="media-hub-demo-header" variants={mediaHubShellBandVariants}>
             <div className="media-hub-demo-topbar">
-              <div className="media-hub-demo-pill-group">
+              <div className="media-hub-demo-controls">
+                <div className="media-hub-demo-pill-group">
                 {[
                   { id: 'discover', label: 'Discover', Icon: Clapperboard },
                   { id: 'local', label: 'Local', Icon: HardDrive },
                 ].map(({ id, label, Icon }) => (
-                  <button
+                  <MotionButton
                     key={id}
                     type="button"
                     onClick={() =>
@@ -930,16 +887,19 @@ export default function MediaHubSpace() {
                       })
                     }
                     className={`media-hub-demo-pill ${activeTab === id ? 'media-hub-demo-pill--active' : ''}`}
+                    whileHover={reducedMotion ? undefined : { y: -2, scale: 1.01 }}
+                    whileTap={reducedMotion ? undefined : { scale: 0.985 }}
+                    transition={reducedMotion ? { duration: 0.08 } : { type: 'spring', stiffness: 420, damping: 25, mass: 0.84 }}
                   >
                     <Icon size={12} />
                     {label}
-                  </button>
+                  </MotionButton>
                 ))}
+                </div>
                 {activeTab === 'discover' ? (
-                  <>
-                    <div className="media-hub-demo-pill__divider" />
+                  <div className="media-hub-demo-pill-group media-hub-demo-pill-group--discover-filter">
                     {['Movie', 'Series'].map((mode) => (
-                      <button
+                      <MotionButton
                         key={mode}
                         type="button"
                         onClick={() =>
@@ -951,12 +911,15 @@ export default function MediaHubSpace() {
                           })
                         }
                         className={`media-hub-demo-pill ${contentFilterMode === mode ? 'media-hub-demo-pill--active' : ''}`}
+                        whileHover={reducedMotion ? undefined : { y: -2, scale: 1.01 }}
+                        whileTap={reducedMotion ? undefined : { scale: 0.985 }}
+                        transition={reducedMotion ? { duration: 0.08 } : { type: 'spring', stiffness: 420, damping: 25, mass: 0.84 }}
                       >
                         {mode === 'Movie' ? <Film size={12} /> : <Tv size={12} />}
                         {mode}
-                      </button>
+                      </MotionButton>
                     ))}
-                  </>
+                  </div>
                 ) : null}
               </div>
 
@@ -1008,13 +971,18 @@ export default function MediaHubSpace() {
             ref={hubScrollRef}
             className="media-hub-demo-grid-scroll"
             variants={mediaHubGridContainerVariants}
+            layout
+            transition={reducedMotion ? { duration: 0.14 } : { type: 'spring', stiffness: 280, damping: 30, mass: 0.94 }}
           >
+            <AnimatePresence mode="popLayout" initial={false}>
             {activeTab === 'discover' ? (
               <MotionDiv
-                key={`${activeTab}:${contentMode}:${searchQuery ? 'search' : 'base'}`}
+                key={`${activeTab}:${contentMode}`}
                 variants={GRID_LIST_PARENT_VARIANTS}
-                initial={false}
+                initial="hidden"
                 animate={hubEntranceState}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.993 }}
+                transition={reducedMotion ? { duration: 0.12 } : { type: 'spring', stiffness: 250, damping: 28, mass: 0.9 }}
                 className={
                   filteredDiscovery.length > MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD
                     ? 'flex w-full min-h-0 flex-1 flex-col'
@@ -1041,28 +1009,21 @@ export default function MediaHubSpace() {
                         <MotionDiv className="media-hub-demo-card__media">
                           <img src={getPosterUrl(item)} alt={item.name} className="media-hub-poster" loading="lazy" />
                           <div className="media-hub-demo-card__veil" aria-hidden />
+                          <div className="media-hub-demo-card__title-overlay">
+                            <p className="media-hub-demo-card__title-overlay-text">{item.name}</p>
+                          </div>
                         </MotionDiv>
                       ) : (
                         <div className="media-hub-poster media-hub-demo-card__media flex items-center justify-center text-[hsl(var(--text-tertiary))]">
                           <Video size={28} />
+                          <div className="media-hub-demo-card__title-overlay">
+                            <p className="media-hub-demo-card__title-overlay-text">{item.name}</p>
+                          </div>
                         </div>
                       )}
-                      <div className="media-hub-demo-card__body">
-                        <p className="media-hub-demo-card__title">
-                          {item.name}
-                        </p>
-                        <p className="media-hub-demo-card__meta">
-                          {item.year || 'Unknown year'}
-                        </p>
-                      </div>
                       <div className="media-hub-demo-card__rating-chip">
-                        {item.imdbRating ? Number(item.imdbRating).toFixed(1) : 'NR'}
-                      </div>
-                      <div className="media-hub-demo-card__hover-strip">
-                        <span className="media-hub-demo-card__hover-title">{item.name}</span>
-                        <span className="media-hub-demo-card__hover-meta">
-                          {item.year || 'Unknown year'} · {item.imdbRating ? `${Number(item.imdbRating).toFixed(1)} IMDb` : 'No rating'}
-                        </span>
+                        <Star size={11} className="media-hub-demo-card__rating-star" fill="currentColor" />
+                        {formatImdbRating(item.imdbRating)}
                       </div>
                     </MotionButton>
                   )}
@@ -1070,54 +1031,60 @@ export default function MediaHubSpace() {
               </MotionDiv>
             ) : (
               <MotionDiv
-                key={`local:${localState.folderPath || 'none'}:${searchQuery ? 'q' : 'all'}`}
+                key={`local:${localState.folderPath || 'none'}`}
                 variants={GRID_LIST_PARENT_VARIANTS}
-                initial={false}
+                initial="hidden"
                 animate={hubEntranceState}
-                className="media-hub-demo-grid"
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.993 }}
+                transition={reducedMotion ? { duration: 0.12 } : { type: 'spring', stiffness: 250, damping: 28, mass: 0.9 }}
+                className={
+                  filteredLocal.length > MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD
+                    ? 'flex w-full min-h-0 flex-1 flex-col'
+                    : 'w-full'
+                }
               >
-                {filteredLocal.map((item, index) => {
-                  const thumb = thumbnailByPath[item.path] || '';
-                  return (
-                    <MotionButton
-                      key={item.id}
-                      type="button"
-                      custom={index}
-                      layout
-                      onClick={() =>
-                        updateUi({
-                          selectedItemId: item.id,
-                          launchFallbackMessage: '',
-                        })
-                      }
-                      whileHover={{ y: -10, scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                      transition={{ duration: 0.22, ease: CARD_EASE }}
-                      variants={mediaHubGridItemVariants}
-                      className={`media-hub-demo-card ${selectedItemId === item.id ? 'media-hub-demo-card--selected' : ''}`}
-                    >
-                      {thumb ? (
-                        <MotionDiv className="media-hub-demo-card__media">
-                          <img src={thumb} alt={item.name} className="media-hub-poster" loading="lazy" />
-                          <div className="media-hub-demo-card__veil" aria-hidden />
-                        </MotionDiv>
-                      ) : (
-                        <div className="media-hub-poster media-hub-demo-card__media flex items-center justify-center text-[hsl(var(--text-tertiary))]">
-                          <Video size={28} />
-                        </div>
-                      )}
-                      <div className="media-hub-demo-card__body">
-                        <p className="media-hub-demo-card__title">{item.name}</p>
-                        <p className="media-hub-demo-card__meta">
-                          {item.extension || 'File'} · {formatBytes(item.size)}
-                        </p>
-                      </div>
-                      <div className="media-hub-demo-card__rating-chip">
-                        {item.modifiedAt ? new Date(item.modifiedAt).getFullYear() : '--'}
-                      </div>
-                    </MotionButton>
-                  );
-                })}
+                {filteredLocal.length > 0 ? (
+                  <MediaHubDiscoverGrid
+                    items={filteredLocal}
+                    scrollRef={hubScrollRef}
+                    onVisibleRangeChange={handleLocalVisibleRangeChange}
+                    className="media-hub-demo-grid"
+                    renderItem={(item, index) => {
+                      const thumb = thumbnailByPath[item.path] || '';
+                      return (
+                        <MotionButton
+                          key={item.id}
+                          type="button"
+                          custom={index}
+                          layout
+                          onClick={() => selectLocalItem(item.id)}
+                          whileHover={{ y: -10, scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                          transition={{ duration: 0.22, ease: CARD_EASE }}
+                          variants={mediaHubGridItemVariants}
+                          className={`media-hub-demo-card ${selectedItemId === item.id ? 'media-hub-demo-card--selected' : ''}`}
+                        >
+                          {thumb ? (
+                            <MotionDiv className="media-hub-demo-card__media">
+                              <img src={thumb} alt={item.name} className="media-hub-poster" loading="lazy" />
+                              <div className="media-hub-demo-card__veil" aria-hidden />
+                              <div className="media-hub-demo-card__title-overlay">
+                                <p className="media-hub-demo-card__title-overlay-text">{item.name}</p>
+                              </div>
+                            </MotionDiv>
+                          ) : (
+                            <div className="media-hub-poster media-hub-demo-card__media flex items-center justify-center text-[hsl(var(--text-tertiary))]">
+                              <Video size={28} />
+                              <div className="media-hub-demo-card__title-overlay">
+                                <p className="media-hub-demo-card__title-overlay-text">{item.name}</p>
+                              </div>
+                            </div>
+                          )}
+                        </MotionButton>
+                      );
+                    }}
+                  />
+                ) : null}
                 {searchQuery.trim() && filteredLocal.length === 0 && localFiles.length > 0 ? (
                   <p className="media-hub-demo-status">
                     No files match your search.
@@ -1137,6 +1104,7 @@ export default function MediaHubSpace() {
             {(activeTab === 'discover' && cinemetaState.loading) || (activeTab === 'local' && localState.loading) ? (
               <p className="media-hub-demo-status">Loading...</p>
             ) : null}
+            </AnimatePresence>
           </MotionDiv>
 
           {activeTab === 'discover' && cinemetaState.error ? (
@@ -1161,14 +1129,14 @@ export default function MediaHubSpace() {
           ) : null}
         </MotionDiv>
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {showDetailAside && selectedItem ? (
             <MotionDiv
-              key={`detail-aside:${selectedItem.id}`}
               initial={mediaHubAsideMotion.initial}
               animate={mediaHubAsideMotion.animate}
               exit={mediaHubAsideMotion.exit}
               transition={mediaHubAsideMotion.transition}
+              layout
               className="media-hub-detail-aside-wrap min-h-0"
             >
               <MediaHubItemDetail
@@ -1194,7 +1162,7 @@ export default function MediaHubSpace() {
             </MotionDiv>
           ) : null}
         </AnimatePresence>
-      </div>
+      </MotionDiv>
 
       <AnimatePresence mode="wait">
         {showDetailOverlay && selectedItem ? (

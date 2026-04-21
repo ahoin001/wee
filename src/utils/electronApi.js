@@ -25,6 +25,20 @@ function flushDebouncedSettingsWrites() {
     waiters.forEach((w) => w.resolve(true));
     return;
   }
+
+  // Fast path: main-process batched patch handler. Avoids the renderer-side
+  // full read → deep-merge → write round-trip and lets main coalesce writes
+  // across burst changes.
+  if (api?.data?.patchSettings) {
+    settingsWriteQueue
+      .add(() => safeCall(() => api.data.patchSettings(patch), false))
+      .then(
+        (r) => waiters.forEach((w) => w.resolve(r)),
+        (e) => waiters.forEach((w) => w.reject(e))
+      );
+    return;
+  }
+
   if (!api?.data?.get || !api?.data?.set) {
     waiters.forEach((w) => w.resolve(false));
     return;

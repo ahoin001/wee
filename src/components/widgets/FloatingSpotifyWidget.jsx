@@ -5,6 +5,7 @@ import { useSpotifyState, useFloatingWidgetsState, useIsDarkMode } from '../../u
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 import { useFloatingWidgetFrame } from '../../hooks/useFloatingWidgetFrame';
 import { usePlaybackSeek } from '../../hooks/usePlaybackSeek';
+import { useActivityInterval } from '../../hooks/useActivityInterval';
 import { useWeeMotion } from '../../design/weeMotion';
 import { buildSpotifyGooeyStyleVars, getSpotifyGooeyShellBackground } from '../../design/spotifyGooeyTokens';
 import './FloatingSpotifyWidget.css';
@@ -194,29 +195,18 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
     }
   }, [albumArtUrl, spotifySettings.dynamicColors, currentPage, setSpotifyState]);
 
-  useEffect(() => {
-    if (!isVisible || !isAppActive) return;
-
-    const basePlaybackPollIntervalMs = playerWebApiForbidden
-      ? 120000
-      : isLowPowerMode
-        ? 6000
-        : 2000;
-    const playbackPollIntervalMs = Math.round(basePlaybackPollIntervalMs * pollIntervalMultiplier);
-
-    const interval = setInterval(() => {
-      spotifyManager.refreshPlaybackState();
-    }, playbackPollIntervalMs);
-
-    return () => clearInterval(interval);
-  }, [
-    isVisible,
-    isAppActive,
-    isLowPowerMode,
-    pollIntervalMultiplier,
-    playerWebApiForbidden,
-    spotifyManager,
-  ]);
+  const basePlaybackPollIntervalMs = playerWebApiForbidden
+    ? 120000
+    : isLowPowerMode
+      ? 6000
+      : 2000;
+  const playbackPollIntervalMs = Math.round(basePlaybackPollIntervalMs * pollIntervalMultiplier);
+  const refreshPlaybackState = useCallback(() => {
+    spotifyManager?.refreshPlaybackState?.();
+  }, [spotifyManager]);
+  useActivityInterval(refreshPlaybackState, playbackPollIntervalMs, {
+    enabled: isVisible && isAppActive,
+  });
 
   useEffect(() => {
     if (isVisible && currentPage === 'browse') {

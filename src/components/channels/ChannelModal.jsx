@@ -279,13 +279,14 @@ function ChannelModal({
 
     const persistedPath = trimmed ? normalizeChannelPath(trimmed, type) : null;
 
+    const resolvedAnimatedOnHover = animatedOnHover === 'global' ? undefined : animatedOnHover;
     const newChannel = {
       media,
       path: persistedPath || null,
       type: persistedPath ? type : null,
       asAdmin,
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
-      animatedOnHover: animatedOnHover !== 'global' ? animatedOnHover : undefined
+      animatedOnHover: resolvedAnimatedOnHover,
     };
     
     // Save channel data to consolidated store
@@ -294,9 +295,11 @@ function ChannelModal({
     }
     
     // Save Ken Burns settings to channel configs
+    const resolvedKenBurnsEnabled = kenBurnsEnabled === 'global' ? undefined : kenBurnsEnabled;
+    const resolvedKenBurnsMode = kenBurnsMode === 'global' ? undefined : kenBurnsMode;
     const kenBurnsConfig = {
-      kenBurnsEnabled: kenBurnsEnabled !== 'global' ? kenBurnsEnabled : undefined,
-      kenBurnsMode: kenBurnsMode !== 'global' ? kenBurnsMode : undefined,
+      kenBurnsEnabled: resolvedKenBurnsEnabled,
+      kenBurnsMode: resolvedKenBurnsMode,
       kenBurnsHoverScale,
       kenBurnsAutoplayScale,
       kenBurnsHoverDuration,

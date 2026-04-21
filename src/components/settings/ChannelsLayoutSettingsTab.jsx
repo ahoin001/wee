@@ -102,7 +102,12 @@ function ChannelSpacePicker({ value, onChange, idPrefix = 'channel-space' }) {
 
 const ChannelsLayoutSettingsTab = React.memo(() => {
   const channels = useConsolidatedAppStore((state) => state.channels);
-  const ribbon = useConsolidatedAppStore((state) => state.ribbon);
+  const ribbonColors = useConsolidatedAppStore(
+    useShallow((state) => ({
+      ribbonColor: state.ribbon?.ribbonColor,
+      ribbonGlowColor: state.ribbon?.ribbonGlowColor,
+    }))
+  );
   const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
   const actions = useConsolidatedAppStore(
     useShallow((state) => ({
@@ -112,8 +117,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   );
 
   const settings = channels?.settings || {};
-  const ribbonSettings = ribbon || {};
-
   /** Which channel grid slice to show for page/status (independent of shell when previewing). */
   const layoutSpaceKey = 'home';
 
@@ -136,14 +139,14 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
 
   const adaptivePreviewStyle = useMemo(() => {
     const accentColor =
-      ribbonSettings?.ribbonGlowColor || ribbonSettings?.ribbonColor || 'hsl(var(--primary))';
+      ribbonColors?.ribbonGlowColor || ribbonColors?.ribbonColor || 'hsl(var(--primary))';
 
     return {
       background: `color-mix(in srgb, hsl(var(--surface-secondary)) 76%, ${accentColor} 24%)`,
       borderColor: `color-mix(in srgb, hsl(var(--border-primary)) 58%, ${accentColor} 42%)`,
       boxShadow: `0 0 0 2px color-mix(in srgb, transparent 72%, ${accentColor} 28%) inset`,
     };
-  }, [ribbonSettings?.ribbonColor, ribbonSettings?.ribbonGlowColor]);
+  }, [ribbonColors?.ribbonColor, ribbonColors?.ribbonGlowColor]);
 
   const handleAnimatedOnHoverChange = useCallback((checked) => {
     actions.setChannelSettings({ animatedOnHover: checked });

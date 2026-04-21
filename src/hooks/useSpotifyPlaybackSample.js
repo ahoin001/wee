@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
+import { useActivityInterval } from './useActivityInterval';
 
 /**
  * Samples Spotify progress/duration at a low rate while playing to avoid re-rendering
  * immersive overlays on every high-frequency Web API tick (~progress updates).
+ *
+ * Automatically pauses when the app window is hidden/unfocused via the shared activity
+ * interval policy, so off-screen work doesn't continue to mutate overlay state.
  */
 export function useSpotifyPlaybackSample(intervalMs = 200) {
   const isPlaying = useConsolidatedAppStore((s) => s.spotify.isPlaying);
@@ -13,16 +17,17 @@ export function useSpotifyPlaybackSample(intervalMs = 200) {
     return { progress: s.progress || 0, duration: s.duration || 1 };
   });
 
+  const sync = useCallback(() => {
+    const s = useConsolidatedAppStore.getState().spotify;
+    setPlayback({ progress: s.progress || 0, duration: s.duration || 1 });
+  }, []);
+
+  // Always sync once when playing toggles on so UI reflects fresh values.
   useEffect(() => {
-    const sync = () => {
-      const s = useConsolidatedAppStore.getState().spotify;
-      setPlayback({ progress: s.progress || 0, duration: s.duration || 1 });
-    };
-    sync();
-    if (!isPlaying) return undefined;
-    const id = window.setInterval(sync, intervalMs);
-    return () => window.clearInterval(id);
-  }, [isPlaying, intervalMs]);
+    if (isPlaying) sync();
+  }, [isPlaying, sync]);
+
+  useActivityInterval(sync, intervalMs, { enabled: isPlaying });
 
   return playback;
 }

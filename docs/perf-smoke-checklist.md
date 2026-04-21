@@ -21,3 +21,11 @@ Run this checklist after changes to app shell, wallpaper transitions, ribbon, or
 
 - Run `npm run test:smoke`.
 - Run `npm run build`.
+- Run `npm run test:settings-patch-merge`.
+
+## PR smell checklist
+
+- No new broad store subscriptions to full slices when only a few fields are needed.
+- No new ad-hoc `setInterval` loops for UI polling; use `useActivityInterval`.
+- No render-adjacent `getState()` loops when a selector-based subscription is expected.
+- Large feature components move domain logic to focused hooks/components instead of growing monoliths.

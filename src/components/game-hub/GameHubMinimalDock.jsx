@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useActivityInterval } from '../../hooks/useActivityInterval';
 import './GameHubMinimalDock.css';
 
 /**
@@ -8,12 +9,11 @@ import './GameHubMinimalDock.css';
 export default function GameHubMinimalDock({ onSettingsClick, timeColor = '#e8e8ea' }) {
   const [now, setNow] = useState(() => new Date());
 
+  const tick = useCallback(() => setNow(new Date()), []);
   useEffect(() => {
-    const tick = () => setNow(new Date());
-    const t = window.setInterval(tick, 30000);
     tick();
-    return () => window.clearInterval(t);
-  }, []);
+  }, [tick]);
+  useActivityInterval(tick, 30000, { fireOnResume: true });
 
   const timeLine = `${now.toLocaleTimeString('en-US', {
     hour: 'numeric',

@@ -67,6 +67,23 @@ function shallowEqualObjects(a, b) {
   return true;
 }
 
+/**
+ * Merge patch into an object while treating `undefined` as explicit key removal.
+ * Used for per-channel overrides so selecting "global" can truly clear stored keys.
+ */
+function mergeWithUndefinedDeletes(existingValue, patchValue) {
+  const base = existingValue && typeof existingValue === 'object' ? { ...existingValue } : {};
+  if (!patchValue || typeof patchValue !== 'object') return base;
+  Object.entries(patchValue).forEach(([key, value]) => {
+    if (value === undefined) {
+      delete base[key];
+    } else {
+      base[key] = value;
+    }
+  });
+  return base;
+}
+
 let useConsolidatedAppStore;
 const {
   appLibraryManager,
@@ -771,10 +788,7 @@ useConsolidatedAppStore = create(
                       ...configuredChannels,
                       [channelId]: channelData === null
                         ? undefined
-                        : {
-                            ...configuredChannels[channelId],
-                            ...channelData,
-                          },
+                        : mergeWithUndefinedDeletes(configuredChannels[channelId], channelData),
                     },
                   };
                 }),
@@ -794,10 +808,7 @@ useConsolidatedAppStore = create(
                       ...configuredChannels,
                       [channelId]: channelData === null
                         ? undefined
-                        : {
-                            ...configuredChannels[channelId],
-                            ...channelData,
-                          },
+                        : mergeWithUndefinedDeletes(configuredChannels[channelId], channelData),
                     },
                   },
                 },
@@ -817,10 +828,7 @@ useConsolidatedAppStore = create(
                       ...channelConfigs,
                       [channelId]: configData === null
                         ? undefined
-                        : {
-                            ...channelConfigs[channelId],
-                            ...configData,
-                          },
+                        : mergeWithUndefinedDeletes(channelConfigs[channelId], configData),
                     },
                   };
                 }),
@@ -840,10 +848,7 @@ useConsolidatedAppStore = create(
                       ...channelConfigs,
                       [channelId]: configData === null
                         ? undefined
-                        : {
-                            ...channelConfigs[channelId],
-                            ...configData,
-                          },
+                        : mergeWithUndefinedDeletes(channelConfigs[channelId], configData),
                     },
                   },
                 },

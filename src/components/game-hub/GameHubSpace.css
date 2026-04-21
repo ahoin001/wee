@@ -7,6 +7,10 @@
 .aura-hub-space {
   /* Matches collection flyers (collectionFlyAnimations mountFlyer) for no shadow pop at handoff */
   --aura-game-card-elev-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  --aura-hub-wallpaper-saturation: 1.06;
+  --aura-hub-wallpaper-brightness: 1;
+  --aura-hub-wallpaper-scrim-bottom: 0.38;
+  --aura-hub-wallpaper-scrim-top-stop: 48%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -323,7 +327,7 @@
   inset: 0;
   background-size: cover;
   background-position: center;
-  filter: brightness(0.92) saturate(1.08);
+  filter: saturate(var(--aura-hub-wallpaper-saturation)) brightness(var(--aura-hub-wallpaper-brightness));
 }
 
 .aura-hub-backdrop__layer--base {
@@ -475,7 +479,7 @@
   inset: 0;
   background-size: cover;
   background-position: center 24%;
-  filter: saturate(1.06);
+  filter: saturate(var(--aura-hub-wallpaper-saturation)) brightness(var(--aura-hub-wallpaper-brightness));
 }
 
 .aura-hub-hero__media-layer--overlay {
@@ -502,7 +506,25 @@
 }
 
 .aura-hub-hero--floating .aura-hub-hero__media-stack::after {
-  background: linear-gradient(to top, hsl(0 0% 0% / 0.38) 0%, transparent 48%);
+  background: linear-gradient(
+    to top,
+    hsl(0 0% 0% / var(--aura-hub-wallpaper-scrim-bottom)) 0%,
+    transparent var(--aura-hub-wallpaper-scrim-top-stop)
+  );
+}
+
+/* Backdrop on: keep dock-morph back card wallpaper treatment aligned with backdrop-off wallpaper. */
+.aura-hub-space:not(.aura-hub-space--floating) .aura-hub-hero-shell--morph .aura-hub-hero__media-layer--base,
+.aura-hub-space:not(.aura-hub-space--floating) .aura-hub-hero-shell--morph .aura-hub-hero__media-layer--overlay {
+  filter: saturate(var(--aura-hub-wallpaper-saturation)) brightness(var(--aura-hub-wallpaper-brightness));
+}
+
+.aura-hub-space:not(.aura-hub-space--floating) .aura-hub-hero-shell--morph .aura-hub-hero__media-stack::after {
+  background: linear-gradient(
+    to top,
+    hsl(0 0% 0% / var(--aura-hub-wallpaper-scrim-bottom)) 0%,
+    transparent var(--aura-hub-wallpaper-scrim-top-stop)
+  );
 }
 
 /* Typography block: no glass — spacing only; legibility comes from ::after dimming */
@@ -1703,6 +1725,11 @@
   -webkit-backdrop-filter: blur(20px);
   box-sizing: border-box;
   transform-origin: var(--radix-context-menu-content-transform-origin, center);
+  scrollbar-width: none;
+}
+
+.aura-hub-context-menu::-webkit-scrollbar {
+  display: none;
 }
 
 .aura-hub-context-menu[data-state='open'] {
@@ -1812,6 +1839,11 @@
   border: 1px solid hsl(var(--border-primary));
   background: hsl(var(--surface-primary));
   box-shadow: var(--shadow-lg);
+  scrollbar-width: none;
+}
+
+.aura-hub-modal::-webkit-scrollbar {
+  display: none;
 }
 
 .aura-hub-modal__header {

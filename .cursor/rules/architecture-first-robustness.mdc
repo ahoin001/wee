@@ -1,0 +1,30 @@
+---
+description: Architecture-first decisions to prevent drift and preserve performance
+alwaysApply: true
+---
+
+# Architecture-First Robustness (Wee)
+
+## Decision Standard
+
+- Before coding, identify the existing system that already owns the concern (store slice, shared hook, motion factory, UI primitive, persistence path).
+- Prefer extending that system over adding parallel state, one-off logic, or duplicated behavior.
+- For legacy behavior changes, fix root causes in shared layers so future features inherit the fix automatically.
+
+## Anti-Drift Rules
+
+- Do not introduce ad hoc fallbacks that bypass canonical contracts (`useConsolidatedAppStore`, `appearanceBySpace`, unified settings persistence, shared motion tokens/variants).
+- Avoid feature-local constants when an existing token/config domain exists; promote reusable tokens/config instead.
+- Keep one source of truth for each domain (state, persistence, animation lifecycle, UI styling).
+
+## Performance + Scalability
+
+- Design for long-running Electron sessions: minimize churn, avoid unnecessary subscriptions/re-renders, and debounce/batch persistence or expensive work.
+- Reuse memoized selectors and shared hooks before creating new reactive pathways.
+- Prefer predictable lifecycle-safe flows (mount/animate/unmount, persist/flush/reload) over opportunistic patching.
+
+## Required Validation
+
+- Verify both behavior and architecture: ensure the change works and does not create a parallel subsystem.
+- For settings or appearance changes, verify restart persistence behavior.
+- For animation/motion changes, verify rapid interaction paths (toggle/switch/select repeatedly) without visual regressions.

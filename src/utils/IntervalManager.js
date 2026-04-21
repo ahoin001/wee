@@ -1,5 +1,10 @@
 class IntervalManager {
   constructor() {
+    /**
+     * @deprecated New code should prefer `useActivityInterval` so timer policy
+     * is visibility/focus/low-power aware and consistent across the app.
+     * This manager remains for legacy consumers still being migrated.
+     */
     this.masterInterval = null;
     this.tasks = new Map(); // Map of task IDs to their functions
     this.lastRunTimes = new Map(); // Track when each task last ran

@@ -19,6 +19,7 @@ import { hexAlpha } from '../../utils/colorHex';
 import { extractColorsFromAlbumArt } from '../../utils/extractColorsFromAlbumArt';
 import { loadUnifiedSettingsSnapshot, saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { logError } from '../../utils/logger';
+import { parseColorToRgb, tintImageWithOverwrite } from '../../utils/iconTinting';
 import isEqual from 'fast-deep-equal';
 import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
@@ -347,7 +348,7 @@ const WiiRibbonComponent = ({
         return;
       }
       
-      const rgbColor = hexToRgb(colorToUse);
+      const rgbColor = parseColorToRgb(colorToUse);
 
       // Check all button configs for adaptive color and custom icons
       const allConfigs = [...(buttonConfigs || [])];
@@ -375,7 +376,7 @@ const WiiRibbonComponent = ({
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = async () => {
-            const tintedUrl = await tintImage(img, rgbColor);
+            const tintedUrl = await tintImageWithOverwrite(img, rgbColor);
             setTintedImages(prev => ({ ...prev, [iconUrl]: tintedUrl }));
           };
           img.src = iconUrl;
@@ -417,74 +418,6 @@ const WiiRibbonComponent = ({
       month: '2-digit',
       day: '2-digit'
     }).replace(',', '');
-  };
-
-  // Helper function to convert hex or RGB color to RGB array
-  const hexToRgb = (color) => {
-    // Handle undefined or null values
-    if (!color || typeof color !== 'string') {
-      logError('WiiRibbon', 'hexToRgb invalid color provided', undefined, { color });
-      return [0, 153, 255]; // Default blue color
-    }
-    
-    // Handle RGB format (e.g., "rgb(255, 0, 0)")
-    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (rgbMatch) {
-      const [, r, g, b] = rgbMatch;
-      return [parseInt(r, 10), parseInt(g, 10), parseInt(b, 10)];
-    }
-    
-    // Handle hex format
-    const hex = color.replace('#', '');
-    
-    // Validate hex format
-    if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
-      logError('WiiRibbon', 'hexToRgb invalid color format', undefined, { color });
-      return [0, 153, 255]; // Default blue color
-    }
-    
-    // Convert hex to RGB
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    
-    return [r, g, b];
-  };
-
-  // Helper function to tint an image with a specific color
-  const tintImage = (imageElement, rgbColor) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      // Set canvas size to match image
-      canvas.width = imageElement.naturalWidth || imageElement.width;
-      canvas.height = imageElement.naturalHeight || imageElement.height;
-      
-      // Draw the image to get the alpha mask
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      
-      // Replace all non-transparent pixels with the tint color
-      for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3];
-        if (alpha !== 0) {
-          data[i]     = rgbColor[0]; // R
-          data[i + 1] = rgbColor[1]; // G
-          data[i + 2] = rgbColor[2]; // B
-          // Keep original alpha
-        }
-      }
-      
-      ctx.putImageData(imageData, 0, 0);
-      
-      // Convert canvas to data URL
-      const tintedImageUrl = canvas.toDataURL('image/png');
-      resolve(tintedImageUrl);
-    });
   };
 
   // Helper function to get the appropriate image source for adaptive color
@@ -848,7 +781,7 @@ const WiiRibbonComponent = ({
                     {buttonConfigs[0].text || 'Wii'}
                   </span>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'palette' ? (
-                  <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="palette-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="13.5" cy="6.5" r="2.5"/>
                     <circle cx="17.5" cy="10.5" r="2.5"/>
                     <circle cx="8.5" cy="7.5" r="2.5"/>
@@ -856,18 +789,18 @@ const WiiRibbonComponent = ({
                     <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'star' ? (
-                  <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="star-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon === 'heart' ? (
-                  <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="heart-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                   </svg>
                 ) : buttonConfigs[0] && buttonConfigs[0].icon ? (
                   <img 
                     src={getImageSource(buttonConfigs[0].icon, buttonConfigs[0].useAdaptiveColor)} 
                     alt="icon" 
-                    className="ribbon-icon-img"
+                    className="ribbon-icon-img ribbon-icon-img--primary-action"
                     style={{ ['--ribbon-icon-filter']: getIconFilter(buttonConfigs[0].useWiiGrayFilter) }} 
                   />
                 ) : (
@@ -998,7 +931,7 @@ const WiiRibbonComponent = ({
                           {buttonConfigs[1].text || ''}
                         </span>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon === 'palette' ? (
-                        <svg className="palette-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="palette-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="13.5" cy="6.5" r="2.5"/>
                           <circle cx="17.5" cy="10.5" r="2.5"/>
                           <circle cx="8.5" cy="7.5" r="2.5"/>
@@ -1006,18 +939,18 @@ const WiiRibbonComponent = ({
                           <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
                         </svg>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon === 'star' ? (
-                        <svg className="star-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="star-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
                         </svg>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon === 'heart' ? (
-                        <svg className="heart-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="heart-icon ribbon-primary-action-icon" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={(shouldUseDynamicRibbonColor && spotifyColors?.accent) ? spotifyColors.accent : CSS_WII_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                         </svg>
                       ) : buttonConfigs[1] && buttonConfigs[1].icon ? (
                         <img 
                           src={getImageSource(buttonConfigs[1].icon, buttonConfigs[1].useAdaptiveColor)} 
                           alt="icon" 
-                          className="ribbon-icon-img"
+                          className="ribbon-icon-img ribbon-icon-img--primary-action"
                           style={{ ['--ribbon-icon-filter']: getIconFilter(buttonConfigs[1].useWiiGrayFilter) }} 
                         />
                       ) : (

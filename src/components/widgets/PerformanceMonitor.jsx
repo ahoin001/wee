@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { usePerformanceState } from '../../utils/useConsolidatedAppHooks';
+import { useShallow } from 'zustand/react/shallow';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { IS_DEV } from '../../utils/env';
+import { useAppActivity } from '../../hooks/useAppActivity';
+import { useActivityInterval } from '../../hooks/useActivityInterval';
 import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
 
 const PerformanceMonitor = ({ isVisible, onClose }) => {
-  const { performance, performanceManager } = usePerformanceState();
+  const { performance, performanceManager } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      performance: state.performance,
+      performanceManager: state.performanceManager,
+    }))
+  );
   const {
     isMonitoring,
     metrics,
@@ -16,18 +24,16 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
   } = performance;
 
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const { isAppActive } = useAppActivity();
 
-  // Auto-refresh performance data
-  useEffect(() => {
-    if (isVisible && autoRefresh && isMonitoring) {
-      const interval = setInterval(() => {
-        // Force re-render to show updated metrics
-        performanceManager.getPerformanceReport();
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isVisible, autoRefresh, isMonitoring, performanceManager]);
+  // Auto-refresh performance data (activity-aware to avoid background churn).
+  useActivityInterval(
+    () => {
+      performanceManager.getPerformanceReport();
+    },
+    1000,
+    { enabled: isVisible && autoRefresh && isMonitoring && isAppActive }
+  );
 
   const handleToggleMonitoring = useCallback(() => {
     if (isMonitoring) {

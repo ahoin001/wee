@@ -582,7 +582,7 @@ function App() {
     <ErrorBoundary>
       <LaunchFeedbackProvider>
       <m.div
-        className={`app-container ${useCustomCursor ? 'custom-cursor' : ''} ${isDarkMode ? 'dark-mode' : ''}`}
+        className={`app-container ${useCustomCursor ? 'custom-cursor' : ''} ${isDarkMode ? 'dark-mode' : ''} ${lowPowerMode ? 'low-power-mode' : ''}`}
         onContextMenu={handleGlobalRightClick}
         initial={shouldPlayStartupGooey ? { opacity: 0, scale: 0.992, y: 10 } : false}
         animate={shouldPlayStartupGooey ? { opacity: 1, scale: 1, y: 0 } : undefined}

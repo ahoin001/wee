@@ -6,6 +6,7 @@ import { collectWarmMediaUrlsFromStore } from '../mediaWarmCache.js';
 import { scheduleMediaWarmPass } from '../mediaWarmScheduler.js';
 import { markAppLibraryBackgroundPrefetchScheduled } from '../appLibraryStartupCoordinator.js';
 import { weeMarkAppLibraryPrefetchScheduled } from '../weePerformanceMarks.js';
+import { analyzeIconTransparency, loadImageElement } from '../iconTinting.js';
 
 export const createStoreManagers = (getStore) => {
   const setAppLibraryPatch = (store, patch, silent) => {
@@ -915,6 +916,17 @@ export const createStoreManagers = (getStore) => {
           const currentIcons = Array.isArray(store.icons.savedIcons) ? store.icons.savedIcons : [];
           const newIcons = [...currentIcons, result.icon];
           store.actions.setIconState({ savedIcons: newIcons, uploading: false });
+          let warning = '';
+          try {
+            const img = await loadImageElement(result?.icon?.url);
+            const transparency = analyzeIconTransparency(img, { sampleSize: 128 });
+            if (!transparency.hasTransparency) {
+              warning = 'This icon appears fully opaque. Adaptive tint looks best on transparent PNGs.';
+            }
+          } catch {
+            // Best-effort transparency scan; upload remains successful even if analysis fails.
+          }
+          return { ...result, warning };
         } else {
           store.actions.setIconState({ uploading: false, uploadError: result.error });
         }

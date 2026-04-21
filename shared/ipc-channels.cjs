@@ -2,6 +2,7 @@ const IPC_CHANNELS = {
   data: {
     get: 'data:get',
     set: 'data:set',
+    patchSettings: 'data:patch-settings',
   },
   wallpapers: {
     get: 'wallpapers:get',
