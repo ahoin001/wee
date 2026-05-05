@@ -123,6 +123,7 @@ function SortableSpaceRow({
 export default function WeeGooeySpacePill() {
   const {
     activeSpaceId,
+    railEnabled,
     autoHideRail,
     railPinned,
     railVisible,
@@ -132,6 +133,7 @@ export default function WeeGooeySpacePill() {
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       activeSpaceId: state.spaces.activeSpaceId,
+      railEnabled: state.spaces.railEnabled ?? true,
       autoHideRail: state.spaces.autoHideRail,
       railPinned: state.spaces.railPinned,
       railVisible: state.spaces.railVisible,
@@ -401,6 +403,10 @@ export default function WeeGooeySpacePill() {
       clearHideTimer();
     }
   }, [clearHideTimer, railPinned, scheduleHideIfEligible, setSpacesState]);
+
+  if (!railEnabled) {
+    return null;
+  }
 
   return (
     <>

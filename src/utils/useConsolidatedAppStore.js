@@ -590,6 +590,7 @@ useConsolidatedAppStore = create(
           order: ['home', 'mediahub', 'gamehub'],
           /** True while the space-world slide is animating — channel drag should be disabled. */
           isTransitioning: false,
+          railEnabled: true,
           autoHideRail: true,
           railPinned: false,
           railVisible: false,
@@ -1832,6 +1833,7 @@ useConsolidatedAppStore = create(
               lastChannelSpaceId: 'home',
               order: ['home', 'mediahub', 'gamehub'],
               isTransitioning: false,
+              railEnabled: true,
               autoHideRail: true,
               railPinned: false,
               railVisible: false,

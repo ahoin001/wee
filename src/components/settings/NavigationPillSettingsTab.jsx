@@ -30,12 +30,23 @@ function PillToggleRow({ title, description, checked, onChange }) {
 }
 
 const NavigationPillSettingsTab = React.memo(() => {
-  const { autoHideRail, railPinned, setSpacesState } = useConsolidatedAppStore(
+  const { railEnabled, autoHideRail, railPinned, setSpacesState } = useConsolidatedAppStore(
     useShallow((state) => ({
+      railEnabled: state.spaces.railEnabled ?? true,
       autoHideRail: state.spaces.autoHideRail,
       railPinned: state.spaces.railPinned,
       setSpacesState: state.actions.setSpacesState,
     }))
+  );
+
+  const setRailEnabled = useCallback(
+    (checked) => {
+      setSpacesState({
+        railEnabled: checked,
+        railVisible: checked ? true : false,
+      });
+    },
+    [setSpacesState]
   );
 
   const setAutoHideRail = useCallback(
@@ -72,6 +83,12 @@ const NavigationPillSettingsTab = React.memo(() => {
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <PillToggleRow
+            title="Show navigation pill"
+            description="Turn the space rail on or off completely."
+            checked={railEnabled}
+            onChange={setRailEnabled}
+          />
           <PillToggleRow
             title="Auto-hide rail"
             description="Hide when idle and reveal from the left edge hotspot."
