@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
-import { Clapperboard, Gamepad2, Home, Wand2 } from 'lucide-react';
+import { Clapperboard, Gamepad2, Home, Pin, PinOff, Wand2 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   DEFAULT_SHELL_SPACE_ORDER,
@@ -123,13 +123,19 @@ function SortableSpaceRow({
 export default function WeeGooeySpacePill() {
   const {
     activeSpaceId,
+    autoHideRail,
+    railPinned,
     railVisible,
+    isTransitioning,
     order,
     setSpacesState,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       activeSpaceId: state.spaces.activeSpaceId,
+      autoHideRail: state.spaces.autoHideRail,
+      railPinned: state.spaces.railPinned,
       railVisible: state.spaces.railVisible,
+      isTransitioning: state.spaces.isTransitioning,
       order: state.spaces.order,
       setSpacesState: state.actions.setSpacesState,
     }))
@@ -151,8 +157,28 @@ export default function WeeGooeySpacePill() {
 
   const [hovered, setHovered] = useState(false);
   const [compactDirection, setCompactDirection] = useState(1);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const hideTimeoutRef = useRef(null);
+  const draggingRef = useRef(false);
+  const rootRef = useRef(null);
   const previousIndexRef = useRef(0);
   const { pillOpen, pillClose, pillFloor, reducedMotion } = useWeeMotion();
+  const hideDelayMs = 900;
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimeoutRef.current) {
+      window.clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleHideIfEligible = useCallback(() => {
+    clearHideTimer();
+    if (railPinned || !autoHideRail || draggingRef.current || isTransitioning) return;
+    hideTimeoutRef.current = window.setTimeout(() => {
+      setSpacesState({ railVisible: false });
+    }, hideDelayMs);
+  }, [autoHideRail, clearHideTimer, isTransitioning, railPinned, setSpacesState]);
 
   const channelKey = resolveActiveChannelSpaceKey(activeSpaceId);
   const { navigation } = useChannelOperations(channelKey);
@@ -240,27 +266,48 @@ export default function WeeGooeySpacePill() {
     [setSpacesState]
   );
 
+  const onDragStart = useCallback(() => {
+    draggingRef.current = true;
+    clearHideTimer();
+    setSpacesState({ railVisible: true });
+  }, [clearHideTimer, setSpacesState]);
+
   const onDragEnd = useCallback(
     (event) => {
+      draggingRef.current = false;
       const { active, over } = event;
-      if (!over || active.id === over.id) return;
+      if (!over || active.id === over.id) {
+        scheduleHideIfEligible();
+        return;
+      }
       const oldIndex = spaceOrder.indexOf(active.id);
       const newIndex = spaceOrder.indexOf(over.id);
-      if (oldIndex < 0 || newIndex < 0) return;
+      if (oldIndex < 0 || newIndex < 0) {
+        scheduleHideIfEligible();
+        return;
+      }
       const next = arrayMove(spaceOrder, oldIndex, newIndex);
       setSpacesState({ order: normalizeShellSpaceOrder(next) });
+      scheduleHideIfEligible();
     },
-    [spaceOrder, setSpacesState]
+    [scheduleHideIfEligible, setSpacesState, spaceOrder]
   );
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-      const delta = event.key === 'ArrowDown' ? 1 : -1;
-      const nextSpaceId = getNextSpace(spaceOrder, activeSpaceId, delta);
-      if (nextSpaceId !== activeSpaceId) {
-        event.preventDefault();
-        setSpacesState({ activeSpaceId: nextSpaceId, railVisible: true });
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        const delta = event.key === 'ArrowDown' ? 1 : -1;
+        const nextSpaceId = getNextSpace(spaceOrder, activeSpaceId, delta);
+        if (nextSpaceId !== activeSpaceId) {
+          event.preventDefault();
+          setSpacesState({ activeSpaceId: nextSpaceId, railVisible: true });
+        }
+        return;
+      }
+      if (event.key === 'Escape' && !railPinned && autoHideRail) {
+        setHovered(false);
+        setFocusWithin(false);
+        setSpacesState({ railVisible: false });
       }
     };
 
@@ -268,13 +315,7 @@ export default function WeeGooeySpacePill() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activeSpaceId, setSpacesState, spaceOrder]);
-
-  useEffect(() => {
-    if (!railVisible) {
-      setSpacesState({ railVisible: true });
-    }
-  }, [railVisible, setSpacesState]);
+  }, [activeSpaceId, autoHideRail, railPinned, setSpacesState, spaceOrder]);
 
   useEffect(() => {
     const prev = previousIndexRef.current;
@@ -284,10 +325,19 @@ export default function WeeGooeySpacePill() {
     }
   }, [activeSpaceIndex]);
 
+  useEffect(
+    () => () => {
+      clearHideTimer();
+    },
+    [clearHideTimer]
+  );
+
   const activeSpace = orderedSpaces[activeSpaceIndex] || orderedSpaces[0];
   const ActiveIcon = activeSpace?.Icon || Home;
 
-  const railClassName = `space-rail space-rail--visible ${hovered ? 'space-rail--expanded' : 'space-rail--compact'}`;
+  const isExpanded = hovered || focusWithin;
+  const shouldShowRail = railPinned || !autoHideRail || railVisible || isExpanded;
+  const railClassName = `space-rail ${shouldShowRail ? 'space-rail--visible' : 'space-rail--hidden'} ${isExpanded ? 'space-rail--expanded' : 'space-rail--compact'}`;
 
   const handleWand = () => {
     openSettingsToTab(SETTINGS_TAB_ID.CHANNELS);
@@ -295,18 +345,81 @@ export default function WeeGooeySpacePill() {
   };
 
   const onPillHoverEnter = useCallback(() => {
+    clearHideTimer();
     setHovered(true);
     if (!railVisible) {
       setSpacesState({ railVisible: true });
     }
-  }, [railVisible, setSpacesState]);
+  }, [clearHideTimer, railVisible, setSpacesState]);
 
   const onPillHoverLeave = useCallback(() => {
     setHovered(false);
-  }, []);
+    if (!focusWithin) {
+      scheduleHideIfEligible();
+    }
+  }, [focusWithin, scheduleHideIfEligible]);
+
+  const onHotspotEnter = useCallback(() => {
+    clearHideTimer();
+    if (!railVisible) {
+      setSpacesState({ railVisible: true });
+    }
+  }, [clearHideTimer, railVisible, setSpacesState]);
+
+  const onHotspotLeave = useCallback(() => {
+    if (!hovered && !focusWithin) {
+      scheduleHideIfEligible();
+    }
+  }, [focusWithin, hovered, scheduleHideIfEligible]);
+
+  const onPillFocusCapture = useCallback(() => {
+    clearHideTimer();
+    setFocusWithin(true);
+    setSpacesState({ railVisible: true });
+  }, [clearHideTimer, setSpacesState]);
+
+  const onPillBlurCapture = useCallback(
+    (event) => {
+      const nextFocusTarget = event.relatedTarget;
+      if (rootRef.current?.contains(nextFocusTarget)) return;
+      setFocusWithin(false);
+      setHovered(false);
+      scheduleHideIfEligible();
+    },
+    [scheduleHideIfEligible]
+  );
+
+  const handlePinToggle = useCallback(() => {
+    const nextPinned = !railPinned;
+    setSpacesState({
+      railPinned: nextPinned,
+      railVisible: true,
+    });
+    if (!nextPinned) {
+      scheduleHideIfEligible();
+    } else {
+      clearHideTimer();
+    }
+  }, [clearHideTimer, railPinned, scheduleHideIfEligible, setSpacesState]);
 
   return (
-    <aside className={`${railClassName} relative`} aria-label="Space navigation">
+    <>
+      <div
+        className={`space-rail__hotspot ${shouldShowRail ? 'space-rail__hotspot--active' : ''}`}
+        onMouseEnter={onHotspotEnter}
+        onMouseLeave={onHotspotLeave}
+        onFocus={onHotspotEnter}
+        onBlur={onHotspotLeave}
+        tabIndex={0}
+        aria-label="Reveal space navigation"
+      />
+      <aside
+        ref={rootRef}
+        className={`${railClassName} relative`}
+        aria-label="Space navigation"
+        onFocusCapture={onPillFocusCapture}
+        onBlurCapture={onPillBlurCapture}
+      >
       <m.div {...shellChromeEntrance} className="pointer-events-none relative flex flex-col items-center">
         <m.div
           className="pointer-events-none relative flex flex-col items-center"
@@ -366,6 +479,7 @@ export default function WeeGooeySpacePill() {
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
+                    onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
                   >
                     <SortableContext items={spaceOrder} strategy={verticalListSortingStrategy}>
@@ -414,6 +528,31 @@ export default function WeeGooeySpacePill() {
                   >
                     <Wand2 size={22} strokeWidth={2} className="relative z-10" aria-hidden />
                   </MotionButton>
+
+                  <MotionButton
+                    type="button"
+                    custom={orderedSpaces.length + 2}
+                    variants={itemVariants}
+                    initial="closed"
+                    animate="open"
+                    exit="closed"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePinToggle();
+                    }}
+                    whileHover={reducedMotion ? {} : { scale: 1.08 }}
+                    whileTap={reducedMotion ? {} : { scale: 0.94 }}
+                    title={railPinned ? 'Unpin space rail' : 'Pin space rail'}
+                    aria-label={railPinned ? 'Unpin space rail' : 'Pin space rail'}
+                    aria-pressed={railPinned}
+                    className="relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-primary))] shadow-[var(--shadow-card)]"
+                  >
+                    {railPinned ? (
+                      <PinOff size={18} strokeWidth={2.25} className="relative z-10" aria-hidden />
+                    ) : (
+                      <Pin size={18} strokeWidth={2.25} className="relative z-10" aria-hidden />
+                    )}
+                  </MotionButton>
                 </MotionDiv>
               )}
             </AnimatePresence>
@@ -431,6 +570,7 @@ export default function WeeGooeySpacePill() {
         </LayoutGroup>
         </m.div>
       </m.div>
-    </aside>
+      </aside>
+    </>
   );
 }

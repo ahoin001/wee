@@ -6,11 +6,12 @@ import { openSettingsToTab } from './settingsNavigation';
 import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
 
 const useKeyboardShortcuts = () => {
-  const { keyboardShortcuts, setUIState, setFloatingWidgetsState } = useConsolidatedAppStore(
+  const { keyboardShortcuts, setUIState, setFloatingWidgetsState, setSpacesState } = useConsolidatedAppStore(
     useShallow((state) => ({
       keyboardShortcuts: state.ui?.keyboardShortcuts || [],
       setUIState: state.actions?.setUIState,
       setFloatingWidgetsState: state.actions?.setFloatingWidgetsState,
+      setSpacesState: state.actions?.setSpacesState,
     }))
   );
 
@@ -158,6 +159,15 @@ const useKeyboardShortcuts = () => {
       setUIState?.({ showSettingsActionMenu: !state.ui.showSettingsActionMenu });
     };
 
+    window.toggleSpaceRailPin = () => {
+      const state = getState();
+      const currentPinned = Boolean(state.spaces?.railPinned);
+      setSpacesState?.({
+        railPinned: !currentPinned,
+        railVisible: true,
+      });
+    };
+
     return () => {
       delete window.handleGlobalShortcut;
       delete window.openSettingsModal;
@@ -171,8 +181,9 @@ const useKeyboardShortcuts = () => {
       delete window.toggleDarkMode;
       delete window.toggleCustomCursor;
       delete window.toggleSettingsMenu;
+      delete window.toggleSpaceRailPin;
     };
-  }, [keyboardShortcuts, setFloatingWidgetsState, setUIState]);
+  }, [keyboardShortcuts, setFloatingWidgetsState, setSpacesState, setUIState]);
 
   return {
     keyboardShortcuts,

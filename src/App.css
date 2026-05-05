@@ -277,6 +277,27 @@ body, #root {
   pointer-events: auto;
 }
 
+.space-rail__hotspot {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: clamp(0.6rem, 1vw, 0.85rem);
+  z-index: 2190;
+  pointer-events: auto;
+  background: transparent;
+  border: 0;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.space-rail__hotspot:focus-visible,
+.space-rail__hotspot--active {
+  opacity: 1;
+  outline: none;
+  box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.55);
+}
+
 .space-rail--hidden {
   opacity: 0;
   transform: translateY(-50%) translateX(-22px);

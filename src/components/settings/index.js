@@ -14,6 +14,7 @@ export { default as AdvancedSettingsTab } from './AdvancedSettingsTab';
 export { default as ShortcutsSettingsTab } from './ShortcutsSettingsTab';
 export { default as UpdatesSettingsTab } from './UpdatesSettingsTab';
 export { default as NavigationSettingsTab } from './NavigationSettingsTab';
+export { default as NavigationPillSettingsTab } from './NavigationPillSettingsTab';
 export { default as MotionFeedbackSettingsTab } from './MotionFeedbackSettingsTab';
 export { default as WorkspacesSettingsTab } from './WorkspacesSettingsTab';
 export { default as SettingsTabPageHeader } from './SettingsTabPageHeader';

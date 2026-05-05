@@ -173,6 +173,16 @@ export const DEFAULT_SHORTCUTS = [
     icon: '⬅️'
   },
   {
+    id: 'toggle-space-rail-pin',
+    name: 'Toggle Space Rail Pin',
+    description: 'Pin or unpin the space rail visibility',
+    defaultKey: 'r',
+    defaultModifier: 'ctrl+shift',
+    action: 'toggleSpaceRailPin',
+    category: 'Interface',
+    icon: '📌'
+  },
+  {
     id: 'toggle-dock',
     name: 'Toggle Dock',
     description: 'Show or hide the dock/ribbon',
@@ -422,6 +432,14 @@ export const executeShortcutAction = (action, actionParams = {}) => {
         window.toggleSettingsMenu();
       } else {
         logWarn('ShortcutHandler', 'toggleSettingsMenu function not available');
+      }
+      break;
+
+    case 'toggleSpaceRailPin':
+      if (window.toggleSpaceRailPin) {
+        window.toggleSpaceRailPin();
+      } else {
+        logWarn('ShortcutHandler', 'toggleSpaceRailPin function not available');
       }
       break;
       

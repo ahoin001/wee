@@ -27,6 +27,7 @@ import {
   ShortcutsSettingsTab,
   UpdatesSettingsTab,
   NavigationSettingsTab,
+  NavigationPillSettingsTab,
   MotionFeedbackSettingsTab,
   WorkspacesSettingsTab,
 } from './index';
@@ -90,6 +91,14 @@ const SETTINGS_TABS_MAIN = [
     color: 'hsl(var(--settings-tab-motion))',
     description: 'Press, drag & reorder feedback',
     component: MotionFeedbackSettingsTab,
+  },
+  {
+    id: 'navigation-pill',
+    label: 'Navigation Pill',
+    icon: '📍',
+    color: 'hsl(var(--settings-tab-navigation))',
+    description: 'Space rail visibility & pinning',
+    component: NavigationPillSettingsTab,
   },
   {
     id: 'themes',
