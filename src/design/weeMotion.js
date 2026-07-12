@@ -109,6 +109,59 @@ export const WEE_SPRINGS = {
   },
 };
 
+/**
+ * Intent → spring key map for uniform transitions across surfaces.
+ * Prefer `createWeeTransition(intent)` over ad-hoc spring literals.
+ *
+ * Apple-aligned guidance:
+ * - Default UI intents use near-critically-damped WEE_SPRINGS (settle without wild bounce).
+ * - Momentum / flick settle can use slightly under-damped keys (entrance / pillOpen family).
+ */
+export const WEE_MOTION_INTENTS = Object.freeze({
+  press: 'pillSurfacePress',
+  hover: 'pillSurfacePress',
+  modalPanel: 'modalPanel',
+  modalBackdrop: 'modalBackdrop',
+  sheet: 'gooeyPanel',
+  tab: 'tabBody',
+  pillOpen: 'pillOpen',
+  pillClose: 'pillClose',
+  channelDrag: 'channelDragOverlay',
+  channelDrop: 'channelDropCelebrate',
+  hubEntrance: 'hubSpaceEntranceFull',
+  hubRevisit: 'hubSpaceEntranceRevisitGooey',
+  homeEntrance: 'homeSpaceEntranceOvershoot',
+});
+
+const REDUCED_MOTION_BY_INTENT = Object.freeze({
+  press: { duration: 0.1 },
+  hover: { duration: 0.1 },
+  modalPanel: { duration: 0.18 },
+  modalBackdrop: { duration: 0.12 },
+  sheet: { duration: 0.16 },
+  tab: { duration: 0.12 },
+  pillOpen: { duration: 0.15 },
+  pillClose: { duration: 0.15 },
+  channelDrag: { duration: 0.14 },
+  channelDrop: { duration: 0.14 },
+  hubEntrance: { duration: 0.16 },
+  hubRevisit: { duration: 0.14 },
+  homeEntrance: { duration: 0.16 },
+});
+
+/**
+ * Resolve a shared Framer Motion transition from a semantic intent.
+ * @param {keyof typeof WEE_MOTION_INTENTS | string} intent
+ * @param {{ reducedMotion?: boolean }} [options]
+ */
+export function createWeeTransition(intent, { reducedMotion = false } = {}) {
+  if (reducedMotion) {
+    return REDUCED_MOTION_BY_INTENT[intent] || { duration: 0.12 };
+  }
+  const springKey = WEE_MOTION_INTENTS[intent] || intent;
+  return WEE_SPRINGS[springKey] || WEE_SPRINGS.pillSurfacePress;
+}
+
 /** Easing curves shared by Media Hub grid (matches former CARD_EASE in MediaHubSpace). */
 export const WEE_EASING = {
   mediaHubCard: [0.22, 1, 0.36, 1],
@@ -612,7 +665,17 @@ export function createMediaHubGridItemVariants(tier, reducedMotion) {
 }
 
 /**
- * @returns {{ reducedMotion: boolean, backdropTransition: object, modalTransition: object, pillOpen: object, pillClose: object, pillFloor: object, pillSurfacePress: object, tabTransition: object }}
+ * @returns {{
+ *   reducedMotion: boolean,
+ *   backdropTransition: object,
+ *   modalTransition: object,
+ *   pillOpen: object,
+ *   pillClose: object,
+ *   pillFloor: object,
+ *   pillSurfacePress: object,
+ *   tabTransition: object,
+ *   createTransition: (intent: string) => object,
+ * }}
  */
 export function useWeeMotion() {
   const reducedMotion = useReducedMotion();
@@ -628,6 +691,7 @@ export function useWeeMotion() {
       pillFloor: fast,
       pillSurfacePress: fast,
       tabTransition: { duration: 0.12 },
+      createTransition: (intent) => createWeeTransition(intent, { reducedMotion: true }),
     };
   }
 
@@ -640,5 +704,6 @@ export function useWeeMotion() {
     pillFloor: WEE_SPRINGS.pillFloor,
     pillSurfacePress: WEE_SPRINGS.pillSurfacePress,
     tabTransition: WEE_SPRINGS.tabBody,
+    createTransition: (intent) => createWeeTransition(intent, { reducedMotion: false }),
   };
 }

@@ -240,15 +240,10 @@
   animation: fadeOut 0.3s ease-out;
 }
 
-/* Auto-fade effect */
+/* Auto-fade effect — restore via JS activity, not :hover */
 .channel.auto-fade {
   opacity: 0.3;
   transition: opacity 0.5s ease-out;
-}
-
-.channel.auto-fade:hover {
-  opacity: 1;
-  transition: opacity 0.2s ease-in;
 }
 
 @keyframes fadeIn {

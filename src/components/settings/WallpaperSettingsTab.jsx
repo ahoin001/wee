@@ -116,10 +116,6 @@ function useWallpaperSettingsController() {
     setWallpaperState({ opacity: value });
   }, [setWallpaperState]);
 
-  const handleWallpaperBlurChange = useCallback((value) => {
-    setWallpaperState({ blur: value });
-  }, [setWallpaperState]);
-
   const updateSpaceWallpaperAppearance = useCallback((spaceId, patch) => {
     const state = useConsolidatedAppStore.getState();
     const currentSnapshot = state.appearanceBySpace?.[spaceId] ?? captureSpaceAppearanceFromState(state);
@@ -192,6 +188,7 @@ function useWallpaperSettingsController() {
     setWallpaperState({
       workspaceBrightness: resetBrightness,
       workspaceSaturate: resetSaturate,
+      blur: 0,
     });
   }, [selectedSpaceId, setWallpaperState, updateSpaceWallpaperAppearance]);
 
@@ -549,7 +546,6 @@ function useWallpaperSettingsController() {
     wallpaperOpacity,
     wallpaperBlur,
     handleWallpaperOpacityChange,
-    handleWallpaperBlurChange,
     selectedSpaceId,
     setSelectedSpaceId,
     selectedSpaceLabel,
@@ -622,7 +618,6 @@ const WallpaperSettingsTab = React.memo(() => {
     wallpaperOpacity,
     wallpaperBlur,
     handleWallpaperOpacityChange,
-    handleWallpaperBlurChange,
     selectedSpaceId,
     setSelectedSpaceId,
     selectedSpaceLabel,
@@ -746,9 +741,7 @@ const WallpaperSettingsTab = React.memo(() => {
 
       <SpaceWallpaperAppearanceSection
         wallpaperOpacity={wallpaperOpacity}
-        wallpaperBlur={wallpaperBlur}
         handleWallpaperOpacityChange={handleWallpaperOpacityChange}
-        handleWallpaperBlurChange={handleWallpaperBlurChange}
         selectedSpaceId={selectedSpaceId}
         setSelectedSpaceId={setSelectedSpaceId}
         reduceMotion={reduceMotion}

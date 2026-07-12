@@ -1,28 +1,23 @@
+import { WEE_SPRINGS } from './weeMotion';
+
+/**
+ * Amplitude / variant helpers for playful press + modal motion.
+ * Spring *timing* for shared intents is owned by `WEE_SPRINGS` / `createWeeTransition`
+ * in weeMotion.js — keep PLAYFUL_SPRINGS aliased so legacy imports stay in sync.
+ */
 export const PLAYFUL_SPRINGS = {
-  press: {
-    type: 'spring',
-    stiffness: 620,
-    damping: 30,
-    mass: 0.52,
-  },
+  /** @deprecated Prefer createWeeTransition('press') / WEE_SPRINGS.pillSurfacePress */
+  press: WEE_SPRINGS.pillSurfacePress,
   hoverLift: {
     type: 'spring',
     stiffness: 420,
     damping: 28,
     mass: 0.7,
   },
-  modalEnter: {
-    type: 'spring',
-    stiffness: 460,
-    damping: 30,
-    mass: 0.8,
-  },
-  modalExit: {
-    type: 'spring',
-    stiffness: 380,
-    damping: 34,
-    mass: 0.9,
-  },
+  /** @deprecated Prefer createWeeTransition('modalPanel') / WEE_SPRINGS.modalPanel */
+  modalEnter: WEE_SPRINGS.modalPanel,
+  /** @deprecated Prefer createWeeTransition('modalPanel') / WEE_SPRINGS.modalPanel */
+  modalExit: WEE_SPRINGS.modalPanel,
   toggleSnap: {
     type: 'spring',
     stiffness: 700,

@@ -27,6 +27,8 @@ This project uses **Cursor rules** in `.cursor/rules/` as the source of truth fo
 - Do not add `if (!isOpen) return null` in animated modal/dialog components; pass `isOpen` to the shared shell and let deferred unmount handle exits.
 - Do not parent-unmount animated overlays/menus while they are closing; keep them mounted and toggle `isOpen`.
 - Do not introduce parallel timing clocks for the same transition domain (shell switch, hub entrance, modal close). Extend existing orchestrators instead.
+- Prefer `createWeeTransition(intent)` / `useWeeMotion().createTransition(intent)` from `src/design/weeMotion.js` over ad-hoc spring literals. Amplitudes stay in `src/design/playfulMotion.js`; spring timing for shared intents lives in `WEE_SPRINGS`.
+- Gate playful motion with `useMotionFeedback` (respects OS reduced-motion + `ui.motionFeedback`).
 
 ## Motion QA checklist
 

@@ -9,9 +9,7 @@ import { SPACE_WALLPAPER_OPTIONS } from './wallpaperSettingsConstants';
 
 function SpaceWallpaperAppearanceSection({
   wallpaperOpacity,
-  wallpaperBlur,
   handleWallpaperOpacityChange,
-  handleWallpaperBlurChange,
   selectedSpaceId,
   setSelectedSpaceId,
   reduceMotion,
@@ -42,8 +40,8 @@ function SpaceWallpaperAppearanceSection({
           3. Tune controls
         </Text>
         <Text variant="desc" className="mb-4">
-          Opacity and blur apply everywhere. Brightness and saturation are per space so you can dim Game Hub /
-          Media Hub and tune Home independently.
+          Opacity applies everywhere. Blur, brightness, and saturation are per space so you can soften Home
+          independently from Game Hub / Media Hub.
         </Text>
         <p className="mt-0 mb-3 text-[13px] text-[hsl(var(--text-secondary))]">
           These settings affect the desktop wallpaper layer behind channels, Game Hub, and Media Hub.
@@ -71,34 +69,11 @@ function SpaceWallpaperAppearanceSection({
               </div>
               <span className="settings-wee-slider-row__value">{Math.round(wallpaperOpacity * 100)}%</span>
             </div>
-            <p className="settings-wee-help mb-4 pl-[156px] max-md:pl-0">
+            <p className="settings-wee-help mb-5 pl-[156px] max-md:pl-0">
               100% = fully opaque image; lower values let more of the default background show through.
             </p>
           </>
         ) : null}
-
-        <div className="settings-wee-slider-row">
-          <label className="settings-wee-slider-row__label" htmlFor="wallpaper-blur-range">
-            Background blur
-          </label>
-          <div className="flex-1 min-w-0">
-            <Slider
-              id="wallpaper-blur-range"
-              aria-label="Background blur"
-              min={0}
-              max={24}
-              step={0.5}
-              value={wallpaperBlur}
-              onChange={handleWallpaperBlurChange}
-              containerClassName="!mb-0"
-              hideValue
-            />
-          </div>
-          <span className="settings-wee-slider-row__value">{wallpaperBlur}px</span>
-        </div>
-        <p className="settings-wee-help mb-5 pl-[156px] max-md:pl-0">
-          Gaussian blur on the wallpaper only (not UI). 0 = sharp, higher = softer.
-        </p>
 
         <h4 className="settings-wee-subhead">Per-space appearance</h4>
         {showSpaceSelector ? (
@@ -212,7 +187,7 @@ function SpaceWallpaperAppearanceSection({
               <span className="settings-wee-slider-row__value">{selectedSpaceBlur.toFixed(1)}px</span>
             </div>
             <p className="settings-wee-help mb-3 pl-[156px] max-md:pl-0">
-              Blur softens busy images behind cards and widgets for the selected space.
+              Softens the wallpaper behind channels and widgets for this space only. 0 = sharp.
             </p>
 
             <div className="settings-wee-slider-row">

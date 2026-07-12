@@ -134,7 +134,8 @@ const PaginatedChannelsInner = React.memo(() => {
   }), [channelSettings]);
 
   // Grid-level auto-fade: fade after `autoFadeTimeout` seconds of *no* pointer activity on the grid
-  // (idle), not only after mouseleave — so it works while focused on Home.
+  // (idle). Restore via bumpGridActivity on pointer move/enter — not CSS :hover (parked cursor
+  // over tiles must still allow fade).
   const [isGridFaded, setIsGridFaded] = useState(false);
   const idleFadeTimerRef = useRef(null);
   const lastPointerThrottleRef = useRef(0);

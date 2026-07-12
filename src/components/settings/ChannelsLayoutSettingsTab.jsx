@@ -338,7 +338,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             hoverAccent="none"
             titleClassName={TOGGLE_TITLE}
             title="Channel auto-fade"
-            desc="After this many seconds with no pointer movement on the channel grid, tile opacity eases down so the wallpaper can show through. Moving over the grid or interacting restores full opacity."
+            desc="After this many seconds with no pointer movement on the channel grid, tile opacity eases down so the wallpaper can show through. Moving the pointer on the grid or interacting again restores full opacity (a parked cursor alone will not keep tiles bright)."
             checked={(settings.autoFadeTimeout ?? 5) > 0}
             onChange={(checked) => {
               const value = checked ? 5 : 0;

@@ -109,11 +109,6 @@
   opacity: 0.3;
 }
 
-.channel-page.auto-fade:hover {
-  opacity: 1;
-  transition: opacity 0.2s ease-in;
-}
-
 /* ===== WII MODE CONTAINER ===== */
 .wii-mode-container {
   position: relative;
@@ -201,11 +196,8 @@
 
 .wii-mode-grid.auto-fade {
   opacity: 0.3;
-}
-
-.wii-mode-grid.auto-fade:hover {
-  opacity: 1;
-  transition: opacity 0.2s ease-in;
+  /* Restore via JS activity (pointer move / enter), not :hover —
+     otherwise a parked cursor over the grid cancels idle fade forever. */
 }
 
 /* Ensure channels maintain rectangular aspect ratio */
