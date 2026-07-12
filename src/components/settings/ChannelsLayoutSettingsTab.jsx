@@ -1,9 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Activity, Aperture, EyeOff, Home, Info, LayoutGrid, Monitor } from 'lucide-react';
+import { m, useReducedMotion } from 'framer-motion';
+import { Activity, Aperture, EyeOff, Info, LayoutGrid, Minus, Monitor, Plus } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import {
+  WeeGlassPill,
   WeeHelpLinkButton,
   WeeModalFieldCard,
   WeeSegmentedControl,
@@ -24,6 +26,7 @@ import { getChannelDataSlice } from '../../utils/channelSpaces';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
+import { createWeeTransition } from '../../design/weeMotion';
 
 /** Board-style toggle titles: bold all-caps (matches Wii engine field cards). */
 const TOGGLE_TITLE =
@@ -51,59 +54,178 @@ const KEN_BURNS_EASING_OPTIONS = [
   { value: 'linear', label: 'Linear' },
 ];
 
-const CHANNEL_SPACE_OPTIONS = [
-  {
-    id: 'home',
-    label: 'Home',
-    subtitle: 'Main Wii board',
-    Icon: Home,
-  },
-];
+function LayoutStepper({ label, value, min, max, onChange, ariaLabel }) {
+  const reduceMotion = useReducedMotion();
+  const press = createWeeTransition('press', { reducedMotion: reduceMotion });
+  const atMin = value <= min;
+  const atMax = value >= max;
 
-function ChannelSpacePicker({ value, onChange, idPrefix = 'channel-space' }) {
+  const bump = useCallback(
+    (delta) => {
+      const next = Math.max(min, Math.min(max, value + delta));
+      if (next !== value) onChange(next);
+    },
+    [max, min, onChange, value]
+  );
+
   return (
-    <div className="grid grid-cols-1 gap-3" role="group" aria-label="Channel board to preview">
-      {CHANNEL_SPACE_OPTIONS.map((opt) => {
-        const selected = value === opt.id;
-        const Icon = opt.Icon;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            id={`${idPrefix}-${opt.id}`}
-            aria-pressed={selected}
-            onClick={() => onChange(opt.id)}
-            className={`flex flex-col items-start gap-3 rounded-[2rem] border-4 p-5 text-left transition-all md:p-6 ${
-              selected
-                ? 'border-[hsl(var(--primary))] bg-[hsl(var(--surface-wii-tint)/0.65)] shadow-[var(--shadow-sm)]'
-                : 'border-[hsl(var(--wee-border-card))] bg-[hsl(var(--surface-primary))] hover:border-[hsl(var(--border-secondary))]'
-            }`}
-          >
-            <div
-              className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
-                selected
-                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                  : 'bg-[hsl(var(--surface-tertiary))] text-[hsl(var(--text-tertiary))]'
-              }`}
-            >
-              <Icon size={28} strokeWidth={2} aria-hidden />
-            </div>
-            <div>
-              <p
-                className={`m-0 font-black uppercase italic tracking-tight ${
-                  selected ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--text-primary))]'
+    <div className="flex flex-col gap-2">
+      <WeeSectionEyebrow className="block" trackingClassName="tracking-[0.14em]">
+        {label}
+      </WeeSectionEyebrow>
+      <div className="flex items-center justify-between gap-2 rounded-[1.75rem] border-2 border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated)/0.65)] p-1.5 backdrop-blur-md">
+        <m.button
+          type="button"
+          aria-label={`Decrease ${ariaLabel || label}`}
+          disabled={atMin}
+          onClick={() => bump(-1)}
+          whileHover={reduceMotion || atMin ? undefined : { scale: 1.08 }}
+          whileTap={reduceMotion || atMin ? undefined : { scale: 0.9 }}
+          transition={press}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-primary))] shadow-[var(--shadow-sm)] disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          <Minus size={18} strokeWidth={3} aria-hidden />
+        </m.button>
+        <m.span
+          key={value}
+          initial={reduceMotion ? false : { scale: 0.86, opacity: 0.5 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={press}
+          className="min-w-[2.5rem] text-center text-2xl font-black italic tabular-nums tracking-tight text-[hsl(var(--text-primary))]"
+          aria-live="polite"
+        >
+          {value}
+        </m.span>
+        <m.button
+          type="button"
+          aria-label={`Increase ${ariaLabel || label}`}
+          disabled={atMax}
+          onClick={() => bump(1)}
+          whileHover={reduceMotion || atMax ? undefined : { scale: 1.08 }}
+          whileTap={reduceMotion || atMax ? undefined : { scale: 0.9 }}
+          transition={press}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)] disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          <Plus size={18} strokeWidth={3} aria-hidden />
+        </m.button>
+      </div>
+    </div>
+  );
+}
+
+function BoardLivePreview({
+  layout,
+  slotMeta,
+  pageSlotIndices,
+  punchHoleMode,
+  onToggleSlot,
+  safePreviewPage,
+  totalPages,
+  onPreviewPage,
+  currentPage,
+}) {
+  const reduceMotion = useReducedMotion();
+  const press = createWeeTransition('press', { reducedMotion: reduceMotion });
+  const hiddenCount = pageSlotIndices.filter((i) => isSlotHidden(slotMeta, i)).length;
+
+  return (
+    <WeeGlassPill className="overflow-hidden rounded-[2.5rem] p-5 md:p-6">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+            Live board
+          </WeeSectionEyebrow>
+          <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+            {punchHoleMode
+              ? 'Tap a tile to punch a wallpaper hole — holes stay put when you reorder.'
+              : 'Preview updates as you change size. Turn on Punch holes to edit.'}
+          </Text>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
+          <span className="rounded-full bg-[hsl(var(--surface-secondary))] px-3 py-1">
+            Home page {String(currentPage + 1).padStart(2, '0')}
+          </span>
+          {hiddenCount > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--surface-wii-tint))] px-3 py-1 text-[hsl(var(--primary))]">
+              <EyeOff size={12} aria-hidden /> {hiddenCount} hole{hiddenCount === 1 ? '' : 's'}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {totalPages > 1 ? (
+        <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Preview page">
+          {Array.from({ length: totalPages }, (_, page) => {
+            const selected = safePreviewPage === page;
+            return (
+              <m.button
+                key={`preview-page-${page}`}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => onPreviewPage(page)}
+                whileHover={reduceMotion ? undefined : { scale: 1.06 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+                transition={press}
+                className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ${
+                  selected
+                    ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+                    : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
                 }`}
               >
-                {opt.label}
-              </p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
-                {opt.subtitle}
-              </p>
-            </div>
-          </button>
-        );
-      })}
-    </div>
+                Page {page + 1}
+              </m.button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Fixed frame height so grid geometry changes don’t jitter the scroll parent */}
+      <div className="relative min-h-[11.5rem] rounded-[1.75rem] border-2 border-dashed border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-tertiary)/0.55)] p-3 md:min-h-[13rem] md:p-4">
+        <div
+          className="mx-auto grid h-full w-full max-w-xl gap-2"
+          style={{
+            gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${layout.rows}, minmax(2.4rem, 1fr))`,
+          }}
+          role="group"
+          aria-label="Channel board preview"
+        >
+          {pageSlotIndices.map((slotIndex) => {
+            const hidden = isSlotHidden(slotMeta, slotIndex);
+            return (
+              <m.button
+                key={`preview-slot-${slotIndex}`}
+                type="button"
+                disabled={!punchHoleMode}
+                onClick={() => onToggleSlot(slotIndex)}
+                whileHover={
+                  reduceMotion || !punchHoleMode
+                    ? undefined
+                    : { scale: 1.05, y: -1 }
+                }
+                whileTap={reduceMotion || !punchHoleMode ? undefined : { scale: 0.92 }}
+                transition={press}
+                title={
+                  punchHoleMode
+                    ? hidden
+                      ? 'Show this slot'
+                      : 'Hide this slot'
+                    : `Slot ${slotIndex + 1}`
+                }
+                className={`relative flex min-h-[2.4rem] items-center justify-center rounded-xl border-2 text-[10px] font-bold uppercase tracking-wide ${
+                  hidden
+                    ? 'border-dashed border-[hsl(var(--border-secondary))] bg-transparent text-[hsl(var(--text-tertiary))]'
+                    : 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)]'
+                } ${punchHoleMode ? 'cursor-pointer' : 'cursor-default'}`}
+              >
+                {hidden ? <EyeOff size={14} aria-hidden /> : slotIndex + 1}
+              </m.button>
+            );
+          })}
+        </div>
+      </div>
+    </WeeGlassPill>
   );
 }
 
@@ -119,7 +241,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   const actions = useConsolidatedAppStore(
     useShallow((state) => ({
       setChannelSettings: state.actions.setChannelSettings,
-      setSpacesState: state.actions.setSpacesState,
       setUIState: state.actions.setUIState,
       setChannelLayoutForSpace: state.actions.setChannelLayoutForSpace,
       setChannelSlotHiddenForSpace: state.actions.setChannelSlotHiddenForSpace,
@@ -127,18 +248,23 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   );
   const motionFeedback = useConsolidatedAppStore((state) => state.ui.motionFeedback);
   const gooeyPrefs = useMemo(() => mergeMotionFeedback(motionFeedback).gooey, [motionFeedback]);
+  const reduceMotion = useReducedMotion();
+  const press = useMemo(
+    () => createWeeTransition('press', { reducedMotion: reduceMotion }),
+    [reduceMotion]
+  );
   const [punchHoleMode, setPunchHoleMode] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
 
   const handleChannelHoverModeChange = useCallback(
     (mode) => {
       actions.setUIState((prev) => {
-        const m = mergeMotionFeedback(prev.motionFeedback);
+        const mFeedback = mergeMotionFeedback(prev.motionFeedback);
         return {
           motionFeedback: mergeMotionFeedback({
-            ...m,
+            ...mFeedback,
             gooey: {
-              ...m.gooey,
+              ...mFeedback.gooey,
               channelHoverMode: mode,
             },
           }),
@@ -149,15 +275,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   );
 
   const settings = channels?.settings || {};
-  /** Which channel grid slice to show for page/status (independent of shell when previewing). */
   const layoutSpaceKey = 'home';
-
-  const handleSpacePreviewChange = useCallback(
-    (spaceId) => {
-      actions.setSpacesState({ lastChannelSpaceId: spaceId });
-    },
-    [actions]
-  );
 
   const currentData = useMemo(
     () => getChannelDataSlice(channels, layoutSpaceKey),
@@ -269,186 +387,125 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   const idleSelected = settings.idleAnimationTypes || ['pulse', 'bounce', 'glow'];
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col pb-12">
+    <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
       <SettingsTabPageHeader
         title="Channel & layout"
-        subtitle="Structure, status, and tile motion"
+        subtitle="Shape your Home board, punch wallpaper holes, and tune tile motion"
       />
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
         <WeeSettingsCollapsibleSection
           icon={LayoutGrid}
-          title="Layout & spaces"
-          description="Grid size, wallpaper holes, which board you preview, and related settings links."
+          title="Board studio"
+          description="Size the grid, peek at pages, and punch wallpaper holes."
           defaultOpen
         >
-          <div className="relative overflow-hidden rounded-[2.5rem] border-2 border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-tertiary))] p-8 text-[hsl(var(--text-primary))]">
-            <div className="relative z-[1]">
-              <span className="inline-flex rounded-full bg-[hsl(var(--primary))] px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-on-accent))]">
-                Live layout
-              </span>
-              <h2 className="m-0 mt-3 text-[clamp(1.75rem,4vw,2.25rem)] font-black uppercase italic leading-none tracking-tighter">
-                {layout.columns} × {layout.rows} × {layout.totalPages}
-              </h2>
-              <p className="mt-2 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--text-secondary))]">
-                {totalChannels} slots · default {WII_LAYOUT_PRESET.columns}×{WII_LAYOUT_PRESET.rows}×
-                {WII_LAYOUT_PRESET.totalPages}
-              </p>
+          <WeeGlassPill className="relative overflow-hidden rounded-[2.5rem] p-6 md:p-7">
+            <div className="relative z-[1] flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <span className="inline-flex rounded-full bg-[hsl(var(--primary))] px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-on-accent))]">
+                  Home board
+                </span>
+                <m.h2
+                  key={`${layout.columns}-${layout.rows}-${layout.totalPages}`}
+                  initial={reduceMotion ? false : { y: 8, opacity: 0.4 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={press}
+                  className="m-0 mt-3 text-[clamp(1.85rem,4vw,2.4rem)] font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--text-primary))]"
+                >
+                  {layout.columns} × {layout.rows} × {layout.totalPages}
+                </m.h2>
+                <p className="mt-2 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--text-secondary))]">
+                  {totalChannels} slots · classic default {WII_LAYOUT_PRESET.columns}×
+                  {WII_LAYOUT_PRESET.rows}×{WII_LAYOUT_PRESET.totalPages}
+                </p>
+              </div>
+              {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
+                <Text variant="caption" className="!m-0 max-w-[14rem] text-[hsl(var(--text-tertiary))]">
+                  You’re in a Hub — edits still apply to the Home board.
+                </Text>
+              ) : null}
             </div>
             <LayoutGrid
-              className="pointer-events-none absolute -bottom-6 -right-4 h-40 w-40 rotate-12 text-[hsl(var(--text-primary))] opacity-[0.07]"
+              className="pointer-events-none absolute -bottom-8 -right-4 h-36 w-36 rotate-12 text-[hsl(var(--text-primary))] opacity-[0.06]"
               strokeWidth={1.25}
               aria-hidden
             />
+          </WeeGlassPill>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <LayoutStepper
+              label="Columns"
+              value={layout.columns}
+              min={CHANNEL_LAYOUT_LIMITS.columns.min}
+              max={CHANNEL_LAYOUT_LIMITS.columns.max}
+              onChange={(v) => handleLayoutFieldChange('columns', v)}
+              ariaLabel="columns"
+            />
+            <LayoutStepper
+              label="Rows"
+              value={layout.rows}
+              min={CHANNEL_LAYOUT_LIMITS.rows.min}
+              max={CHANNEL_LAYOUT_LIMITS.rows.max}
+              onChange={(v) => handleLayoutFieldChange('rows', v)}
+              ariaLabel="rows"
+            />
+            <LayoutStepper
+              label="Pages"
+              value={layout.totalPages}
+              min={CHANNEL_LAYOUT_LIMITS.totalPages.min}
+              max={CHANNEL_LAYOUT_LIMITS.totalPages.max}
+              onChange={(v) => handleLayoutFieldChange('totalPages', v)}
+              ariaLabel="pages"
+            />
           </div>
+          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+            Shrinking the board keeps channels that still fit; extras are cleared. Growing adds empty slots.
+          </Text>
 
-          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-5 md:p-6">
-            <WeeSectionEyebrow className="mb-3 block" trackingClassName="tracking-[0.14em]">
-              Grid geometry
-            </WeeSectionEyebrow>
-            <Text variant="desc" className="!mb-4 !mt-0 text-[hsl(var(--text-secondary))]">
-              Changing size migrates channel keys (extra slots are dropped; new slots start empty).
-            </Text>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4">
-              <Slider
-                label="Columns"
-                value={layout.columns}
-                min={CHANNEL_LAYOUT_LIMITS.columns.min}
-                max={CHANNEL_LAYOUT_LIMITS.columns.max}
-                step={1}
-                onChange={(v) => handleLayoutFieldChange('columns', v)}
-                aria-label="Channel grid columns"
-              />
-              <Slider
-                label="Rows"
-                value={layout.rows}
-                min={CHANNEL_LAYOUT_LIMITS.rows.min}
-                max={CHANNEL_LAYOUT_LIMITS.rows.max}
-                step={1}
-                onChange={(v) => handleLayoutFieldChange('rows', v)}
-                aria-label="Channel grid rows"
-              />
-              <Slider
-                label="Pages"
-                value={layout.totalPages}
-                min={CHANNEL_LAYOUT_LIMITS.totalPages.min}
-                max={CHANNEL_LAYOUT_LIMITS.totalPages.max}
-                step={1}
-                onChange={(v) => handleLayoutFieldChange('totalPages', v)}
-                aria-label="Channel grid pages"
-              />
-            </div>
-          </WeeModalFieldCard>
-
-          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-5 md:p-6">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                  Punch holes
-                </WeeSectionEyebrow>
-                <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-                  Hide slots so wallpaper shows through. Holes stay at absolute indices.
-                </Text>
-              </div>
-              <button
-                type="button"
-                aria-pressed={punchHoleMode}
-                onClick={() => setPunchHoleMode((v) => !v)}
-                className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide ${
-                  punchHoleMode
-                    ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                    : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
-                }`}
-              >
-                {punchHoleMode ? 'Editing holes' : 'Edit holes'}
-              </button>
-            </div>
-            {layout.totalPages > 1 ? (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {Array.from({ length: layout.totalPages }, (_, page) => (
-                  <button
-                    key={`layout-page-${page}`}
-                    type="button"
-                    onClick={() => setPreviewPage(page)}
-                    className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
-                      safePreviewPage === page
-                        ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                        : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
-                    }`}
-                  >
-                    Page {page + 1}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            <div
-              className="grid gap-2"
-              style={{
-                gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-              }}
-              role="group"
-              aria-label="Channel slot punch-hole preview"
-            >
-              {pageSlotIndices.map((slotIndex) => {
-                const hidden = isSlotHidden(slotMeta, slotIndex);
-                return (
-                  <button
-                    key={`punch-${slotIndex}`}
-                    type="button"
-                    disabled={!punchHoleMode}
-                    onClick={() => handleToggleSlotHidden(slotIndex)}
-                    title={
-                      punchHoleMode
-                        ? hidden
-                          ? 'Show slot'
-                          : 'Hide slot (wallpaper hole)'
-                        : `Slot ${slotIndex + 1}`
-                    }
-                    className={`relative flex aspect-[4/3] items-center justify-center rounded-xl border-2 text-[10px] font-bold uppercase tracking-wide transition-colors ${
-                      hidden
-                        ? 'border-dashed border-[hsl(var(--border-secondary))] bg-transparent text-[hsl(var(--text-tertiary))]'
-                        : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-secondary))]'
-                    } ${punchHoleMode ? 'cursor-pointer hover:border-[hsl(var(--primary))]' : 'cursor-default opacity-90'}`}
-                  >
-                    {hidden ? <EyeOff size={14} aria-hidden /> : slotIndex + 1}
-                  </button>
-                );
-              })}
-            </div>
-          </WeeModalFieldCard>
-
-          <div>
-            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-              Board to preview
-            </WeeSectionEyebrow>
-            <Text variant="desc" className="!mb-3 !mt-0 text-[hsl(var(--text-secondary))]">
-              Tile defaults below apply everywhere. This only chooses which board&apos;s page status you see.
-            </Text>
-            {activeSpaceId === 'gamehub' || activeSpaceId === 'mediahub' ? (
-              <Text variant="caption" className="!mb-4 block text-[hsl(var(--text-tertiary))]">
-                You&apos;re in a Hub space — this mirrors Home board strip status.
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+                Punch holes
+              </WeeSectionEyebrow>
+              <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+                Let wallpaper show through selected slots.
               </Text>
-            ) : null}
-            <ChannelSpacePicker value={layoutSpaceKey} onChange={handleSpacePreviewChange} />
+            </div>
+            <m.button
+              type="button"
+              aria-pressed={punchHoleMode}
+              onClick={() => setPunchHoleMode((v) => !v)}
+              whileHover={reduceMotion ? undefined : { scale: 1.04 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.95 }}
+              transition={press}
+              className={`rounded-full px-4 py-2.5 text-[10px] font-black uppercase tracking-wide ${
+                punchHoleMode
+                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
+                  : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
+              }`}
+            >
+              {punchHoleMode ? 'Done editing' : 'Edit holes'}
+            </m.button>
           </div>
 
-          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-5 md:p-6">
-            <Text variant="caption" className="!mt-0 text-[hsl(var(--text-secondary))]">
-              Current page (preview board)
-            </Text>
-            <Text variant="p" className="!mb-0 !mt-2 text-2xl font-black uppercase italic leading-none tracking-tight text-[hsl(var(--text-primary))]">
-              Page {String(currentPage + 1).padStart(2, '0')}
-            </Text>
-            <Text variant="caption" className="!mt-2 text-[hsl(var(--text-tertiary))]">
-              Of {layout.totalPages} total pages · Home
-            </Text>
-          </WeeModalFieldCard>
+          <BoardLivePreview
+            layout={layout}
+            slotMeta={slotMeta}
+            pageSlotIndices={pageSlotIndices}
+            punchHoleMode={punchHoleMode}
+            onToggleSlot={handleToggleSlotHidden}
+            safePreviewPage={safePreviewPage}
+            totalPages={layout.totalPages}
+            onPreviewPage={setPreviewPage}
+            currentPage={currentPage}
+          />
 
           <div className="flex flex-col gap-3 rounded-[2rem] border-2 border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--surface-wii-tint)/0.45)] p-5 md:flex-row md:items-start md:gap-4">
             <Info className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--primary))]" aria-hidden />
             <div className="min-w-0">
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
-                This tab: Wii board and global channel tile defaults. Styling for side nav and reorder motion lives in{' '}
+                Side nav &amp; reorder feel live under{' '}
                 <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.NAVIGATION)}>
                   Navigation
                 </WeeHelpLinkButton>{' '}
@@ -456,11 +513,11 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                 <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}>
                   Motion
                 </WeeHelpLinkButton>
-                . Global sounds:{' '}
+                . Sounds:{' '}
                 <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToTab(SETTINGS_TAB_ID.SOUNDS)}>
                   Sounds
                 </WeeHelpLinkButton>
-                ; per-channel overrides in Configure Channel.
+                .
               </Text>
             </div>
           </div>
@@ -470,7 +527,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
           icon={Monitor}
           title="Visibility & playback"
           description="Empty-slot look, animated art, and grid auto-fade."
-          defaultOpen
+          defaultOpen={false}
         >
           <div className="flex flex-col gap-3">
             <SettingsToggleFieldCard

@@ -511,7 +511,11 @@ useConsolidatedAppStore = create(
               shineOpacity: 0.7
             }
           },
-          spotifyIntegration: false
+          spotifyIntegration: false,
+          /** Vertical mouse wheel switches Home / Media / Games spaces */
+          wheelSwitchSpaces: false,
+          /** Horizontal wheel tilt navigates channel pages on Home */
+          wheelHomePageTilt: true,
         },
 
         // Performance monitoring state

@@ -1,13 +1,15 @@
 import React, { useCallback, useId, useState } from 'react';
 import PropTypes from 'prop-types';
-import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { m, useReducedMotion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import Text from '../Text';
 import { createWeeTransition } from '../../design/weeMotion';
+import WeeGlassPill from './WeeGlassPill';
 
 /**
- * Chunky collapsible block for settings tab content (icon tile + title + chevron, spring panel).
- * Aligned with prototype `tabseries-channel.html`; uses design tokens only.
+ * Settings collapsible — space-rail glass pill chrome + gooey header press.
+ * Panel open/close uses CSS grid 0fr→1fr (no Framer height:auto) so the modal
+ * shell stays stable and only the inner scroll region absorbs height change.
  */
 function WeeSettingsCollapsibleSection({
   icon: Icon,
@@ -24,36 +26,48 @@ function WeeSettingsCollapsibleSection({
 
   const toggle = useCallback(() => setOpen((o) => !o), []);
 
-  const spring = createWeeTransition('pillOpen', { reducedMotion: reduceMotion });
-  const chevronSpring = createWeeTransition('press', { reducedMotion: reduceMotion });
+  const pressSpring = createWeeTransition('press', { reducedMotion: reduceMotion });
+  const panelEase = reduceMotion
+    ? 'duration-100 ease-out'
+    : 'duration-[420ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]';
 
   return (
-    <div
-      className={`overflow-hidden rounded-[2.5rem] border-2 transition-[border-color,box-shadow,background-color] duration-300 ${
-        open
-          ? 'border-[hsl(var(--primary))] bg-[hsl(var(--surface-primary))] shadow-[var(--shadow-md)]'
-          : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] hover:border-[hsl(var(--border-secondary))]'
+    <WeeGlassPill
+      className={`wee-settings-collapsible relative isolate w-full overflow-hidden rounded-[2.75rem] ${
+        open ? 'wee-settings-collapsible--open' : ''
       } ${className}`.trim()}
     >
-      <button
+      <m.button
         type="button"
         id={headingId}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={toggle}
-        className="flex w-full items-start justify-between gap-4 p-5 text-left transition-colors md:p-6"
+        whileHover={reduceMotion ? undefined : { scale: 1.008 }}
+        whileTap={reduceMotion ? undefined : { scale: 0.985 }}
+        transition={pressSpring}
+        className="flex w-full items-start justify-between gap-4 px-5 py-5 text-left md:px-6 md:py-5"
       >
         <div className="flex min-w-0 flex-1 items-start gap-4">
-          <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-[var(--shadow-sm)] transition-colors ${
+          <m.span
+            aria-hidden
+            animate={
+              reduceMotion
+                ? undefined
+                : open
+                  ? { scale: 1.06, rotate: 0 }
+                  : { scale: 1, rotate: 0 }
+            }
+            transition={pressSpring}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-[var(--shadow-card)] ${
               open
                 ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                : 'bg-[hsl(var(--surface-tertiary))] text-[hsl(var(--text-primary))]'
+                : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-primary))]'
             }`}
           >
-            {Icon ? <Icon size={24} strokeWidth={2.35} aria-hidden /> : null}
-          </div>
-          <span className="min-w-0">
+            {Icon ? <Icon size={22} strokeWidth={2.35} /> : null}
+          </m.span>
+          <span className="min-w-0 pt-0.5">
             <Text
               as="span"
               variant="h3"
@@ -70,34 +84,37 @@ function WeeSettingsCollapsibleSection({
         </div>
         <m.span
           animate={{ rotate: open ? 180 : 0 }}
-          transition={chevronSpring}
-          className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-            open ? 'bg-[hsl(var(--surface-wii-tint))] text-[hsl(var(--primary))]' : 'bg-[hsl(var(--surface-tertiary))] text-[hsl(var(--text-tertiary))]'
+          transition={pressSpring}
+          className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 backdrop-blur-md ${
+            open
+              ? 'border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--surface-wii-tint)/0.85)] text-[hsl(var(--primary))]'
+              : 'border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated)/0.7)] text-[hsl(var(--text-tertiary))]'
           }`}
         >
           <ChevronDown size={20} strokeWidth={3} aria-hidden />
         </m.span>
-      </button>
+      </m.button>
 
-      <AnimatePresence initial={false}>
-        {open ? (
-          <m.div
-            id={panelId}
-            role="region"
-            aria-labelledby={headingId}
-            initial={reduceMotion ? false : { height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
-            transition={spring}
-            className="overflow-hidden"
+      <div
+        id={panelId}
+        role="region"
+        aria-labelledby={headingId}
+        aria-hidden={!open}
+        className={`grid min-h-0 transition-[grid-template-rows,opacity] ${panelEase} ${
+          open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-80'
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div
+            className={`space-y-6 border-t border-[hsl(var(--border-primary)/0.28)] px-5 pb-7 pt-5 md:px-7 md:pb-8 ${
+              open ? 'pointer-events-auto' : 'pointer-events-none'
+            }`}
           >
-            <div className="space-y-6 border-t border-[hsl(var(--border-primary)/0.35)] px-5 pb-8 pt-6 md:px-8 md:pb-10">
-              {children}
-            </div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
+            {children}
+          </div>
+        </div>
+      </div>
+    </WeeGlassPill>
   );
 }
 

@@ -27,6 +27,8 @@ function WeeModalShell({
   showRail = true,
   className = '',
   panelClassName = '',
+  /** When true, panel uses a fixed viewport height so inner content growth doesn’t resize the shell. */
+  stableHeight = false,
   onExitAnimationComplete,
 }) {
   const { backdropTransition } = useWeeMotion();
@@ -41,6 +43,9 @@ function WeeModalShell({
     maxWidth ?? (showRail ? 'min(1160px, 95vw)' : 'min(1280px, 96vw)');
 
   const panelLayoutClass = showRail && rail ? 'md:flex-row' : 'flex-col';
+  const heightClass = stableHeight
+    ? 'h-[min(88dvh,920px)] max-h-[min(88dvh,920px)]'
+    : 'min-h-0 max-h-[min(88dvh,920px)]';
 
   const backdropVariants = useMemo(
     () => ({
@@ -90,9 +95,9 @@ function WeeModalShell({
           >
             {/* Plain Panel + inner motion.div: Framer completion/variants on a real motion node (not Headless `as={motion}`). */}
             <MotionDiv
-              layout
               className={`
-                  flex w-full min-h-0 max-h-[min(88dvh,920px)] overflow-hidden flex-col
+                  flex w-full min-h-0 overflow-hidden flex-col
+                  ${heightClass}
                   border-[length:var(--wee-modal-shell-border)] border-[hsl(var(--wee-border-outer))]
                   rounded-[var(--wee-radius-shell)] bg-[hsl(var(--wee-surface-shell))]
                   shadow-[var(--wee-shadow-modal)]
@@ -124,12 +129,9 @@ function WeeModalShell({
                   </button>
                 </div>
 
-                <m.div
-                  layout
-                  className="wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-[hsl(var(--wee-surface-well))] px-8 py-8 md:px-12 md:py-10"
-                >
+                <div className="wee-modal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain bg-[hsl(var(--wee-surface-well))] px-8 py-8 md:px-12 md:py-10 [contain:layout]">
                   {children}
-                </m.div>
+                </div>
 
                 {footerContent && (
                   <div className="shrink-0 border-t-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--wee-surface-input))] px-8 py-5 md:px-10">
@@ -158,6 +160,7 @@ WeeModalShell.propTypes = {
   showRail: PropTypes.bool,
   className: PropTypes.string,
   panelClassName: PropTypes.string,
+  stableHeight: PropTypes.bool,
   onExitAnimationComplete: PropTypes.func,
 };
 
@@ -169,6 +172,7 @@ WeeModalShell.defaultProps = {
   showRail: true,
   className: '',
   panelClassName: '',
+  stableHeight: false,
   onExitAnimationComplete: undefined,
 };
 

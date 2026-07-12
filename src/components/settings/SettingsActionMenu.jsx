@@ -11,9 +11,11 @@ import {
   Moon,
   Mouse,
   Music,
+  PanelsTopLeft,
   RefreshCw,
   Settings,
   Square,
+  StretchHorizontal,
   X,
 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -93,7 +95,16 @@ ActionButtonRow.propTypes = {
 };
 
 const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
-  const { isDarkMode, useCustomCursor, cursorStyle, showDock, classicMode, updateAvailable } = useConsolidatedAppStore(
+  const {
+    isDarkMode,
+    useCustomCursor,
+    cursorStyle,
+    showDock,
+    classicMode,
+    updateAvailable,
+    wheelSwitchSpaces,
+    wheelHomePageTilt,
+  } = useConsolidatedAppStore(
     useShallow((state) => ({
       isDarkMode: state.ui.isDarkMode,
       useCustomCursor: state.ui.useCustomCursor,
@@ -101,9 +112,12 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
       showDock: state.ui.showDock,
       classicMode: state.ui.classicMode,
       updateAvailable: state.app.updateAvailable,
+      wheelSwitchSpaces: Boolean(state.navigation?.wheelSwitchSpaces),
+      wheelHomePageTilt: state.navigation?.wheelHomePageTilt !== false,
     }))
   );
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
+  const setNavigationState = useConsolidatedAppStore((state) => state.actions.setNavigationState);
   const { backdropTransition, modalTransition } = useWeeMotion();
 
   useEffect(() => {
@@ -173,6 +187,14 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
   const toggleDockMode = useCallback(() => {
     setUIState({ classicMode: !classicMode });
   }, [classicMode, setUIState]);
+
+  const toggleWheelSwitchSpaces = useCallback(() => {
+    setNavigationState({ wheelSwitchSpaces: !wheelSwitchSpaces });
+  }, [setNavigationState, wheelSwitchSpaces]);
+
+  const toggleWheelHomePageTilt = useCallback(() => {
+    setNavigationState({ wheelHomePageTilt: !wheelHomePageTilt });
+  }, [setNavigationState, wheelHomePageTilt]);
 
   const toggleFullscreen = useCallback(() => {
     if (window.api?.toggleFullscreen) {
@@ -297,6 +319,18 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
                     onToggle={toggleCustomCursor}
                   />
                   <QuickToggleRow label="Show dock" icon={Layers} active={showDock} onToggle={toggleDock} />
+                  <QuickToggleRow
+                    label="Wheel switches spaces"
+                    icon={PanelsTopLeft}
+                    active={wheelSwitchSpaces}
+                    onToggle={toggleWheelSwitchSpaces}
+                  />
+                  <QuickToggleRow
+                    label="Tilt wheel for pages"
+                    icon={StretchHorizontal}
+                    active={wheelHomePageTilt}
+                    onToggle={toggleWheelHomePageTilt}
+                  />
                 </div>
               </section>
 

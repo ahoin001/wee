@@ -1,4 +1,4 @@
-/* Viewport-capped shell: content scrolls inside .wee-modal-scroll (no forced empty height). */
+/* Viewport-capped shell: content scrolls inside .wee-modal-scroll. */
 .wee-modal-panel {
   width: 100%;
   min-height: 0;
@@ -11,6 +11,7 @@
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
+  overscroll-behavior: contain;
 }
 
 .wee-modal-scroll::-webkit-scrollbar {

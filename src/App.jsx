@@ -4,6 +4,7 @@ import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 import { useShallow } from 'zustand/react/shallow';
 import useWallpaperCycling from './utils/useWallpaperCycling';
 import useKeyboardShortcuts from './utils/useKeyboardShortcuts';
+import useWheelNavigation from './hooks/useWheelNavigation';
 import { electronApi } from './utils/electronApi';
 import useBackgroundMusicLifecycle from './utils/useBackgroundMusicLifecycle';
 import {
@@ -176,6 +177,7 @@ function App() {
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
+  useWheelNavigation();
   useUnifiedSettingsPersistence();
   useWallpaperDataFileSync();
 

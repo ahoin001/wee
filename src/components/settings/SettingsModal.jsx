@@ -389,6 +389,7 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
       rail={rail}
       maxWidth="min(1400px, 95vw)"
       showRail
+      stableHeight
       panelClassName="min-h-0"
       footerContent={({ handleClose }) => (
         <div className="flex justify-end">
@@ -405,7 +406,7 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
           animate={WEE_VARIANTS.tabBodyAnimate}
           exit={WEE_VARIANTS.tabBodyExit}
           transition={tabTransition}
-          className="min-h-0 flex-1"
+          className="min-h-0 flex-1 [contain:layout]"
         >
           {renderTabContent}
         </TabPanel>
