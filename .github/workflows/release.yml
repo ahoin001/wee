@@ -78,7 +78,8 @@ jobs:
       shell: pwsh
       run: |
         $tag = "${{ steps.release_ref.outputs.tag }}"
-        $pkgVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+        # Use Node — PowerShell ConvertFrom-Json fails on case-colliding keys (release:m / release:M).
+        $pkgVersion = (node -p "require('./package.json').version").Trim()
         $expected = "v$pkgVersion"
         if ($tag -ne $expected) {
           throw "Tag/version mismatch: tag=$tag package.json=$pkgVersion (expected $expected)"
