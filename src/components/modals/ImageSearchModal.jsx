@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { WBaseModal } from '../core';
-import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
+import { WeeCard, WeeModalShell } from '../../ui/wee';
 import MediaLibraryBrowser from '../media/MediaLibraryBrowser';
 import { uploadMedia } from '../../utils/supabase';
 import { clearMediaLibraryCache } from '../../utils/mediaLibraryCache';
@@ -140,12 +139,12 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
   );
 
   return (
-    <WBaseModal
+    <WeeModalShell
       isOpen={isOpen}
-      title="Media Library"
+      headerTitle="Media Library"
       onClose={onClose}
+      showRail={false}
       maxWidth="1400px"
-      maxHeight="80vh"
       footerContent={null}
     >
       {uploadError && mode === 'upload' ? (
@@ -195,8 +194,7 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
           compact={false}
         />
       ) : (
-        <Card className="image-search-modal__upload-card">
-          <div className="p-4">
+        <WeeCard className="image-search-modal__upload-card" paddingClassName="p-4">
             <Text variant="label" className="mb-2 playful-system-label">
               Title *
             </Text>
@@ -271,10 +269,9 @@ function ImageSearchModal({ isOpen, onClose, onSelect, onUploadClick }) {
                 {uploading ? 'Uploading...' : 'Upload'}
               </Button>
             </div>
-          </div>
-        </Card>
+        </WeeCard>
       )}
-    </WBaseModal>
+    </WeeModalShell>
   );
 }
 

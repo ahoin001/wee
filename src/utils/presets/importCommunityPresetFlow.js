@@ -1,6 +1,9 @@
 import { SPOTIFY_MATCH_PRESET_NAME } from './spotifyMatchPreset';
 import { PRESET_SCOPE_VISUAL } from './presetScopes';
 import { createPresetId } from './presetIds';
+import { normalizeWallpaperCurrentShape } from '../presetSharing';
+
+export const PRESET_IMPORT_MAX_CUSTOM = 5;
 
 function normalizeCommunitySettings(presetSettings) {
   if (!presetSettings || typeof presetSettings !== 'object') return presetSettings;
@@ -59,11 +62,20 @@ function normalizeCommunitySettings(presetSettings) {
 
   if (!presetSettings.wallpaper && presetSettings.current) {
     return {
-      wallpaper: presetSettings,
+      wallpaper: normalizeWallpaperCurrentShape(presetSettings),
       ribbon: presetSettings.ribbon || {},
       time: presetSettings.time || {},
       overlay: presetSettings.overlay || {},
       ui: presetSettings.ui || {},
+      dock: presetSettings.dock,
+      appearanceBySpace: presetSettings.appearanceBySpace,
+    };
+  }
+
+  if (presetSettings.wallpaper) {
+    presetSettings = {
+      ...presetSettings,
+      wallpaper: normalizeWallpaperCurrentShape(presetSettings.wallpaper),
     };
   }
 
@@ -72,14 +84,17 @@ function normalizeCommunitySettings(presetSettings) {
 
 /**
  * Import downloaded community preset(s) into local storage.
+ * @returns {Promise<{ imported: number, errors: string[], skippedMax?: boolean }>}
  */
 export async function importCommunityPresetFlow(presetData, { getPresets, setPresets, savePresetsToBackend }) {
   const presetsToImport = Array.isArray(presetData) ? presetData : [presetData];
+  const result = { imported: 0, errors: [], skippedMax: false };
 
   for (let index = 0; index < presetsToImport.length; index++) {
     const preset = presetsToImport[index];
     if (!preset?.settings) {
       console.warn('[importCommunityPresetFlow] Skipping preset without settings:', preset?.name);
+      result.errors.push(`Skipped “${preset?.name || 'preset'}”: missing settings.`);
       continue;
     }
     let presetSettings = preset.settings;
@@ -105,15 +120,35 @@ export async function importCommunityPresetFlow(presetData, { getPresets, setPre
               mimeType,
             });
 
-            if (saveResult.success && presetSettings?.wallpaper) {
-              presetSettings.wallpaper.url = saveResult.url;
-              presetSettings.wallpaper.name = fileName;
+            if (saveResult.success && presetSettings) {
+              if (!presetSettings.wallpaper || typeof presetSettings.wallpaper !== 'object') {
+                presetSettings.wallpaper = {};
+              }
+              presetSettings.wallpaper = normalizeWallpaperCurrentShape(presetSettings.wallpaper, {
+                url: saveResult.url,
+                name: fileName,
+                mimeType,
+                source: 'community',
+              });
             }
           }
         }
       } catch (error) {
         console.error(`[importCommunityPresetFlow] Wallpaper error preset ${index}:`, error);
+        result.errors.push(`Wallpaper save failed for “${preset.name}”.`);
       }
+    } else if (presetSettings?.wallpaper) {
+      presetSettings.wallpaper = normalizeWallpaperCurrentShape(presetSettings.wallpaper);
+    }
+
+    const customCount = getPresets().filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
+    if (customCount >= PRESET_IMPORT_MAX_CUSTOM) {
+      console.warn('[importCommunityPresetFlow] Max custom presets reached');
+      result.skippedMax = true;
+      result.errors.push(
+        `You’ve reached the ${PRESET_IMPORT_MAX_CUSTOM} custom preset limit. Delete or replace one, then try again.`
+      );
+      return result;
     }
 
     const convertedPreset = {
@@ -130,14 +165,11 @@ export async function importCommunityPresetFlow(presetData, { getPresets, setPre
       communityVersion: preset.version || 1,
     };
 
-    const customCount = getPresets().filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
-    if (customCount >= 5) {
-      console.warn('[importCommunityPresetFlow] Max custom presets reached');
-      return;
-    }
-
     const updated = [...getPresets(), convertedPreset];
     setPresets(updated);
     await savePresetsToBackend(updated);
+    result.imported += 1;
   }
+
+  return result;
 }

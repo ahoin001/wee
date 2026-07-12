@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
-import { PlayfulPressSurface } from '../navigation/PlayfulInteractionMotion';
+import { WeePressSurface } from '../../ui/wee';
 import './WiiStyleButton.css';
 
 const WiiStyleButton = ({ 
@@ -87,31 +87,15 @@ const WiiStyleButton = ({
       }
     : legacyBaseStyle;
 
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = (e) => {
-    setIsHovered(false);
-    onMouseLeave?.(e);
-  };
-
   return (
-    <PlayfulPressSurface
+    <WeePressSurface
       variant="ribbon"
-      enableHover={false}
+      enableHover
       className={`wii-style-button ${useSpaceRailChrome ? 'wii-style-button--wee-rail' : ''} ${className}`.trim()}
-      style={{
-        ...baseStyle,
-        /* Wee-rail uses CSS spring hover on `.wii-style-button--wee-rail`; skip JS-driven scale to avoid fighting transforms. */
-        '--wii-style-is-hovered': useSpaceRailChrome ? 0 : isHovered ? 1 : 0,
-      }}
+      style={baseStyle}
       onClick={onClick}
       onContextMenu={onContextMenu}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseLeave={onMouseLeave}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       title={title}
@@ -131,7 +115,7 @@ const WiiStyleButton = ({
       <div className="wii-style-button-content">
         {children}
       </div>
-    </PlayfulPressSurface>
+    </WeePressSurface>
   );
 };
 

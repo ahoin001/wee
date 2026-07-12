@@ -1,10 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { m } from 'framer-motion';
-import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
-import { WeeSegmentedControl } from '../../ui/wee';
+import { WeeCard, WeeSegmentedControl } from '../../ui/wee';
 import { downloadMedia, getStoragePublicObjectUrl } from '../../utils/supabase';
 import {
   MEDIA_LIBRARY_FILETYPE_OPTIONS,
@@ -186,11 +185,11 @@ function MediaLibraryBrowser({
           {toolbarInner}
         </m.div>
       ) : (
-        <Card
+        <WeeCard
           className={`mb-3 image-search-modal__toolbar-card ${compact ? '!mt-0' : 'mb-4'}`}
         >
           <div className={`image-search-modal__toolbar ${compact ? '!mb-2' : ''}`}>{toolbarInner}</div>
-        </Card>
+        </WeeCard>
       )}
 
       {isInitialLoad ? (
@@ -299,12 +298,16 @@ function MediaItem({
   }
 
   return (
-    <div className="image-search-modal__card" style={{ '--stagger': Math.min(index, 60) }}>
-      <Card
-        className={`!mt-0 cursor-pointer p-3 transition-all duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:shadow-[var(--playful-shadow-elevated)] hover:-translate-y-[2px] hover:scale-[1.012] ${
+    <div
+      className="image-search-modal__card"
+      style={{ '--stagger': Math.min(index, 60) }}
+      onClick={() => onSelect(item)}
+    >
+      <WeeCard
+        paddingClassName="p-3"
+        className={`!mt-0 cursor-pointer transition-all duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:shadow-[var(--playful-shadow-elevated)] hover:-translate-y-[2px] hover:scale-[1.012] ${
           viewMode === 'list' ? '!flex flex-row items-center gap-4' : ''
         }`}
-        onClick={() => onSelect(item)}
       >
         <div className={`relative mb-2 shrink-0 ${viewMode === 'list' ? 'w-36' : ''}`}>
           {isVideo ? (
@@ -376,7 +379,7 @@ function MediaItem({
             </Button>
           </div>
         ) : null}
-      </Card>
+      </WeeCard>
     </div>
   );
 }
@@ -397,7 +400,10 @@ function SkeletonMediaItem({ index, viewMode, channelPicker = false }) {
 
   return (
     <div className="image-search-modal__card" style={{ '--stagger': Math.min(index, 24) }}>
-      <Card className={`!mt-0 p-3 ${viewMode === 'list' ? '!flex flex-row items-center gap-4' : ''}`}>
+      <WeeCard
+        paddingClassName="p-3"
+        className={`!mt-0 ${viewMode === 'list' ? '!flex flex-row items-center gap-4' : ''}`}
+      >
         <div
           className={`image-search-modal__skeleton image-search-modal__skeleton-media ${
             viewMode === 'grid' ? 'h-[120px]' : 'h-[88px] w-36'
@@ -411,7 +417,7 @@ function SkeletonMediaItem({ index, viewMode, channelPicker = false }) {
           <div className="image-search-modal__skeleton image-search-modal__skeleton-meta" />
           <div className="image-search-modal__skeleton image-search-modal__skeleton-button" />
         </div>
-      </Card>
+      </WeeCard>
     </div>
   );
 }

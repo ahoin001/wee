@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Bookmark, Home, Library, Music, Palette, Users } from 'lucide-react';
-import { AuthModal } from '../modals';
-import { getCommunityPresetUpdates, uploadPreset } from '../../utils/supabase';
+import { getCommunityPresetUpdates, uploadPreset, downloadPreset } from '../../utils/supabase';
 import {
   capturePresetThumbnailDataUrl,
   parseTags,
@@ -41,12 +40,12 @@ import PresetsSavedListCard from './presets/PresetsSavedListCard';
 import PresetsCommunityCard from './presets/PresetsCommunityCard';
 import {
   WeeButton,
-  WeeModalFieldCard,
   WeeModalShell,
   WeeSectionEyebrow,
   WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
+import WInput from '../../ui/WInput';
 
 const MAX_CUSTOM_PRESETS = 5;
 const normalizePresetName = (value) => value.trim().toLowerCase();
@@ -89,8 +88,8 @@ const PresetsSettingsTab = React.memo(() => {
   const [editingPreset, setEditingPreset] = useState(null);
   const [editName, setEditName] = useState('');
   const [justUpdated, setJustUpdated] = useState(null);
-  const [showCommunitySection, setShowCommunitySection] = useState(false);
-  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [justApplied, setJustApplied] = useState(null);
+  const [communityMode, setCommunityMode] = useState('browse');
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState({ type: '', text: '' });
   const [communityUpdateMap, setCommunityUpdateMap] = useState({});
@@ -105,12 +104,16 @@ const PresetsSettingsTab = React.memo(() => {
     selectedPreset: null,
   });
   const [includeHomeChannels, setIncludeHomeChannels] = useState(false);
-  const [immersiveModeState, setImmersiveModeState] = useState({});
   const [updateScopeDialog, setUpdateScopeDialog] = useState(null);
   const [updateScopeModalOpen, setUpdateScopeModalOpen] = useState(false);
   const [updateScopeModalMounted, setUpdateScopeModalMounted] = useState(false);
   const [selectedUpdateScope, setSelectedUpdateScope] = useState(PRESET_SCOPE_VISUAL);
   const [isUpdatingPreset, setIsUpdatingPreset] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [spotifyNameModalOpen, setSpotifyNameModalOpen] = useState(false);
+  const [spotifyNameInput, setSpotifyNameInput] = useState('');
+  const saveSectionRef = useRef(null);
 
   const savePresetsToBackend = useCallback(async (updatedPresets) => {
     try {
@@ -172,17 +175,6 @@ const PresetsSettingsTab = React.memo(() => {
     };
     loadCommunityUpdates();
   }, [presets]);
-
-  useEffect(() => {
-    const unsubscribe = useConsolidatedAppStore.subscribe(
-      (state) => state.spotify?.immersiveMode,
-      (immersive) => {
-        setImmersiveModeState(immersive || {});
-      }
-    );
-    setImmersiveModeState(useConsolidatedAppStore.getState().spotify.immersiveMode || {});
-    return unsubscribe;
-  }, []);
 
   const customPresetCount = presets.filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
   const normalizedProfiles = normalizeWorkspacesState(workspaces);
@@ -260,7 +252,10 @@ const PresetsSettingsTab = React.memo(() => {
       setError('A preset with this name already exists.');
       return;
     }
-    if (customPresetCount >= MAX_CUSTOM_PRESETS) return;
+    if (customPresetCount >= MAX_CUSTOM_PRESETS) {
+      setError(`You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one first.`);
+      return;
+    }
 
     const presetData = buildPresetDataFromStore({ captureScope: selectedCaptureScope });
     const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
@@ -418,20 +413,28 @@ const PresetsSettingsTab = React.memo(() => {
   const handleDeletePreset = async (presetId) => {
     const target = presets.find((preset) => (preset.id || preset.name) === presetId);
     if (!target) return;
-    const confirmed = window.confirm(`Delete preset "${target.name}"? This cannot be undone.`);
-    if (!confirmed) return;
+    setDeleteDialog({ id: presetId, name: target.name });
+    setDeleteModalOpen(true);
+  };
 
-    const updatedPresets = presets.filter((preset) => (preset.id || preset.name) !== presetId);
+  const handleConfirmDelete = async () => {
+    if (!deleteDialog?.id) return;
+    const updatedPresets = presets.filter((preset) => (preset.id || preset.name) !== deleteDialog.id);
     setPresets(updatedPresets);
     await savePresetsToBackend(updatedPresets);
+    setDeleteModalOpen(false);
+    setDeleteDialog(null);
   };
 
   const handleApplyPreset = async (preset) => {
     const normalizedPreset = normalizePresetRecord(preset);
     if (!normalizedPreset) return;
+    const key = preset.id || preset.name;
     await runSceneTransition(`Applying preset: ${preset?.name || 'Theme'}`, async () => {
       await applyPresetData(normalizedPreset);
     });
+    setJustApplied(key);
+    setTimeout(() => setJustApplied(null), 900);
   };
 
   const handleApplyPresetToActiveProfile = async (preset) => {
@@ -489,18 +492,30 @@ const PresetsSettingsTab = React.memo(() => {
 
   const handleSaveSpotifyLookAsPreset = async () => {
     if (customPresetCount >= MAX_CUSTOM_PRESETS) {
-      alert(`You can save up to ${MAX_CUSTOM_PRESETS} custom presets.`);
+      setCaptureNotice({
+        type: 'warning',
+        text: `You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one first.`,
+      });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
       return;
     }
-    const suggested = `Spotify look ${new Date().toLocaleString()}`;
-    const name = window.prompt('Name this preset (saves frozen colors + layout)', suggested);
-    if (!name?.trim()) return;
-
     const extracted = useConsolidatedAppStore.getState().spotify?.extractedColors;
     if (!extracted) {
-      alert('No album colors yet. Start playback or enable Spotify Match until colors appear.');
+      setCaptureNotice({
+        type: 'warning',
+        text: 'No album colors yet. Start playback or enable Spotify Match until colors appear.',
+      });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
       return;
     }
+
+    setSpotifyNameInput(`Spotify look ${new Date().toLocaleString()}`);
+    setSpotifyNameModalOpen(true);
+  };
+
+  const handleConfirmSpotifyNameSave = async () => {
+    const name = spotifyNameInput.trim();
+    if (!name) return;
 
     const presetData = buildPresetDataFromStore({
       captureScope: PRESET_SCOPE_VISUAL,
@@ -510,7 +525,7 @@ const PresetsSettingsTab = React.memo(() => {
     const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
     const newPreset = {
       id: createPresetId(),
-      name: name.trim(),
+      name,
       data: presetData,
       captureScope: PRESET_SCOPE_VISUAL,
       includesHomeChannels: false,
@@ -523,59 +538,129 @@ const PresetsSettingsTab = React.memo(() => {
     const updatedPresets = [...presets, newPreset];
     setPresets(updatedPresets);
     await savePresetsToBackend(updatedPresets);
-    setCaptureNotice({ type: 'success', text: `Saved preset "${name.trim()}" with frozen colors.` });
+    setSpotifyNameModalOpen(false);
+    setCaptureNotice({ type: 'success', text: `Saved preset "${name}" with frozen colors.` });
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2500);
   };
 
-  const handleImmersiveModeToggle = (enabled) => {
-    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-    setSpotifyState({
-      immersiveMode: {
-        ...currentImmersiveMode,
-        enabled,
-      },
-    });
-  };
-
-  const handleAmbientLightingToggle = (enabled) => {
-    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-    setSpotifyState({
-      immersiveMode: { ...currentImmersiveMode, ambientLighting: enabled },
-    });
-  };
-
-  const handlePulseEffectsToggle = (enabled) => {
-    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-    setSpotifyState({
-      immersiveMode: { ...currentImmersiveMode, pulseEffects: enabled },
-    });
-  };
-
-  const handleLiveGradientWallpaperToggle = (enabled) => {
-    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-    setSpotifyState({
-      immersiveMode: { ...currentImmersiveMode, liveGradientWallpaper: enabled },
-    });
-  };
-
-  const handleImmersiveModeSettingChange = (setting, value) => {
-    const { setSpotifyState } = useConsolidatedAppStore.getState().actions;
-    const currentImmersiveMode = useConsolidatedAppStore.getState().spotify.immersiveMode || {};
-    setSpotifyState({
-      immersiveMode: { ...currentImmersiveMode, [setting]: value },
-    });
-  };
-
   const handleImportCommunityPreset = async (presetData) => {
-    await importCommunityPresetFlow(presetData, {
+    const result = await importCommunityPresetFlow(presetData, {
       getPresets: () => useConsolidatedAppStore.getState().presets,
       setPresets,
       savePresetsToBackend,
     });
+    if (result?.skippedMax || result?.errors?.length) {
+      setCaptureNotice({
+        type: result.skippedMax || !result.imported ? 'warning' : 'success',
+        text: result.errors?.[0] || 'Import finished with notes.',
+      });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 4200);
+    } else if (result?.imported) {
+      setCaptureNotice({ type: 'success', text: 'Community look installed.' });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
+    }
+    return result;
+  };
+
+  const handleApplyCommunityUpdate = async (localPreset) => {
+    const updateInfo = communityUpdateMap[localPreset.id || localPreset.name];
+    const latestId = updateInfo?.latestPresetId;
+    if (!latestId) return;
+    try {
+      const result = await downloadPreset(latestId);
+      if (!result.success || !result.data) {
+        setCaptureNotice({ type: 'warning', text: result.error || 'Could not download update.' });
+        setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
+        return;
+      }
+      const presetData = result.data;
+      const importData = {
+        name: localPreset.name,
+        settings: presetData.settings,
+        id: presetData.id,
+        wallpaper: presetData.wallpaper,
+        version: presetData.version || updateInfo.latestVersion || 1,
+        rootPresetId: presetData.rootPresetId || localPreset.communityRootId || presetData.id,
+        parentPresetId: presetData.parentPresetId || null,
+      };
+
+      // Replace in place instead of appending a duplicate.
+      let presetSettings = importData.settings;
+      const { normalizeWallpaperCurrentShape } = await import('../../utils/presetSharing');
+      if (importData.wallpaper?.data && window.api?.wallpapers?.saveFile) {
+        try {
+          const wd = importData.wallpaper.data;
+          const uint8Array = new Uint8Array(wd);
+          const binaryString = Array.from(uint8Array, (byte) => String.fromCharCode(byte)).join('');
+          const base64Data = btoa(binaryString);
+          const fileName = importData.wallpaper.fileName || `community-wallpaper-${Date.now()}.jpg`;
+          const mimeType = importData.wallpaper.mimeType || 'image/jpeg';
+          const saveResult = await window.api.wallpapers.saveFile({
+            filename: fileName,
+            data: base64Data,
+            mimeType,
+          });
+          if (saveResult.success) {
+            if (!presetSettings.wallpaper || typeof presetSettings.wallpaper !== 'object') {
+              presetSettings.wallpaper = {};
+            }
+            presetSettings.wallpaper = normalizeWallpaperCurrentShape(presetSettings.wallpaper, {
+              url: saveResult.url,
+              name: fileName,
+              mimeType,
+              source: 'community',
+            });
+          }
+        } catch (e) {
+          console.warn('[PresetsSettingsTab] Community update wallpaper save failed', e);
+        }
+      } else if (presetSettings?.wallpaper) {
+        presetSettings = {
+          ...presetSettings,
+          wallpaper: normalizeWallpaperCurrentShape(presetSettings.wallpaper),
+        };
+      }
+
+      const localKey = localPreset.id || localPreset.name;
+      const updatedPresets = presets.map((p) =>
+        (p.id || p.name) === localKey
+          ? {
+              ...p,
+              data: presetSettings,
+              captureScope: PRESET_SCOPE_VISUAL,
+              includesHomeChannels: false,
+              shareable: true,
+              timestamp: new Date().toISOString(),
+              isCommunity: true,
+              communityId: importData.id,
+              communityRootId: importData.rootPresetId,
+              communityVersion: importData.version,
+            }
+          : p
+      );
+      setPresets(updatedPresets);
+      await savePresetsToBackend(updatedPresets);
+      setCaptureNotice({ type: 'success', text: `Updated “${localPreset.name}” from community.` });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2600);
+    } catch (e) {
+      console.error('[PresetsSettingsTab] Community update failed', e);
+      setCaptureNotice({ type: 'warning', text: 'Community update failed.' });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
+    }
+  };
+
+  const handleSharePreset = (preset) => {
+    setUploadFormData({
+      name: preset.name || '',
+      description: '',
+      creator_name: '',
+      tags: '',
+      custom_image: null,
+      custom_image_name: null,
+      selectedPreset: preset,
+    });
+    setCommunityMode('share');
+    setUploadMessage({ type: '', text: '' });
   };
 
   const handleUpload = async () => {
@@ -644,12 +729,15 @@ const PresetsSettingsTab = React.memo(() => {
         }
         const allWarnings = [...warnings, ...(result.warnings || [])];
         if (allWarnings.length > 0) {
-          setUploadMessage({ type: 'success', text: `Preset uploaded with notes: ${allWarnings.join(' ')}` });
+          setUploadMessage({
+            type: 'warning',
+            text: `Shared with notes: ${allWarnings.join(' ')}`,
+          });
         } else {
           setUploadMessage({ type: 'success', text: 'Preset uploaded successfully!' });
         }
         setTimeout(() => {
-          setShowUploadForm(false);
+          setCommunityMode('browse');
           setUploadFormData({
             name: '',
             description: '',
@@ -660,7 +748,7 @@ const PresetsSettingsTab = React.memo(() => {
             selectedPreset: null,
           });
           setUploadMessage({ type: '', text: '' });
-        }, 1500);
+        }, 1800);
       } else {
         setUploadMessage({ type: 'error', text: 'Failed to upload preset' });
       }
@@ -767,15 +855,27 @@ const PresetsSettingsTab = React.memo(() => {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
-      <SettingsTabPageHeader title="Presets" subtitle="Preset themes & customization" />
+      <SettingsTabPageHeader title="Presets" subtitle="Save looks, apply themes, and share with the community" />
 
-      <WeeSettingsCollapsibleSection
-        icon={Bookmark}
-        title="Save current look"
-        description="Capture the active appearance as a named preset."
-        defaultOpen
-      >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+      {captureNotice.text ? (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+            captureNotice.type === 'success'
+              ? 'border-[hsl(var(--state-success))] bg-[hsl(var(--state-success-light))] text-[hsl(var(--state-success))]'
+              : 'border-[hsl(var(--state-warning))] bg-[hsl(var(--state-warning)/0.14)] text-[hsl(var(--state-warning))]'
+          }`}
+        >
+          {captureNotice.text}
+        </div>
+      ) : null}
+
+      <div ref={saveSectionRef}>
+        <WeeSettingsCollapsibleSection
+          icon={Bookmark}
+          title="Save current look"
+          description="Capture wallpaper, colors, dock, and Home appearance as a named preset."
+          defaultOpen
+        >
           <PresetsSaveCurrentCard
             newPresetName={newPresetName}
             onNewPresetNameChange={(v) => {
@@ -791,120 +891,104 @@ const PresetsSettingsTab = React.memo(() => {
             customPresetCount={customPresetCount}
             maxCustomPresets={MAX_CUSTOM_PRESETS}
           />
-        </WeeModalFieldCard>
-      </WeeSettingsCollapsibleSection>
+        </WeeSettingsCollapsibleSection>
+      </div>
 
       {showSpotifySection ? (
         <WeeSettingsCollapsibleSection
           icon={Music}
           title="Spotify Match"
-          description="Album-driven colors, immersive mode, and gradient tools."
-          defaultOpen
+          description="Album-driven colors for your look."
+          defaultOpen={false}
         >
-          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-            <PresetsSpotifyMatchSection
-              show={showSpotifySection}
-              spotifyMatchEnabled={spotifyMatchEnabled}
-              onSpotifyMatchToggle={handleSpotifyMatchToggle}
-              immersiveModeState={immersiveModeState}
-              onImmersiveModeToggle={handleImmersiveModeToggle}
-              onLiveGradientWallpaperToggle={handleLiveGradientWallpaperToggle}
-              onAmbientLightingToggle={handleAmbientLightingToggle}
-              onPulseEffectsToggle={handlePulseEffectsToggle}
-              onImmersiveModeSettingChange={handleImmersiveModeSettingChange}
-              onSaveLookAsPreset={handleSaveSpotifyLookAsPreset}
-            />
-          </WeeModalFieldCard>
+          <PresetsSpotifyMatchSection
+            show={showSpotifySection}
+            spotifyMatchEnabled={spotifyMatchEnabled}
+            onSpotifyMatchToggle={handleSpotifyMatchToggle}
+            onSaveLookAsPreset={handleSaveSpotifyLookAsPreset}
+            onOpenSpotifySettings={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'api-integrations' })}
+          />
         </WeeSettingsCollapsibleSection>
       ) : null}
 
       <WeeSettingsCollapsibleSection
         icon={Library}
-        title="Saved presets"
-        description="Drag the ⋮⋮ handle to reorder. Visual presets are shareable; channel presets are local."
+        title="Saved looks"
+        description="Thumbnail previews · Apply is primary · More for update, share, rename"
         defaultOpen
       >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-          <PresetsSavedListCard
-            presets={presets}
-            excludeName={SPOTIFY_MATCH_PRESET_NAME}
-            draggingPreset={draggingPreset}
-            dropTarget={dropTarget}
-            editingPreset={editingPreset}
-            editName={editName}
-            justUpdated={justUpdated}
-            communityUpdateMap={communityUpdateMap}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onDragEnd={handleDragEnd}
-            onApply={handleApplyPreset}
-            onUpdate={handleUpdate}
-            onStartEdit={handleStartEdit}
-            onDelete={handleDeletePreset}
-            onSaveEdit={handleSaveEdit}
-            onCancelEdit={handleCancelEdit}
-            onEditNameChange={(e) => setEditName(e.target.value)}
-            onKeyPress={handleKeyPress}
-            onApplyToActiveProfile={handleApplyPresetToActiveProfile}
-            hasActiveProfile={hasActiveProfile}
-          />
-        </WeeModalFieldCard>
+        <PresetsSavedListCard
+          presets={presets}
+          excludeName={SPOTIFY_MATCH_PRESET_NAME}
+          draggingPreset={draggingPreset}
+          dropTarget={dropTarget}
+          editingPreset={editingPreset}
+          editName={editName}
+          justUpdated={justUpdated}
+          justApplied={justApplied}
+          communityUpdateMap={communityUpdateMap}
+          customPresetCount={customPresetCount}
+          maxCustomPresets={MAX_CUSTOM_PRESETS}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onDragEnd={handleDragEnd}
+          onApply={handleApplyPreset}
+          onUpdate={handleUpdate}
+          onStartEdit={handleStartEdit}
+          onDelete={handleDeletePreset}
+          onSaveEdit={handleSaveEdit}
+          onCancelEdit={handleCancelEdit}
+          onEditNameChange={(e) => setEditName(e.target.value)}
+          onKeyPress={handleKeyPress}
+          onApplyToActiveProfile={handleApplyPresetToActiveProfile}
+          hasActiveProfile={hasActiveProfile}
+          onApplyCommunityUpdate={handleApplyCommunityUpdate}
+          onShare={handleSharePreset}
+          onFocusSaveSection={() => saveSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        />
       </WeeSettingsCollapsibleSection>
 
       <WeeSettingsCollapsibleSection
         icon={Users}
         title="Community"
-        description="Browse shared presets or upload your own."
+        description="Browse shared looks or upload yours (wallpaper + colors included)."
         defaultOpen={false}
       >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-          <PresetsCommunityCard
-            showCommunitySection={showCommunitySection}
-            onToggleCommunitySection={() => setShowCommunitySection((s) => !s)}
-            presets={presets}
-            showUploadForm={showUploadForm}
-            uploadFormData={uploadFormData}
-            uploadMessage={uploadMessage}
-            uploading={uploading}
-            onOpenUploadForm={() => {
-              setUploadFormData({
-                name: '',
-                description: '',
-                creator_name: '',
-                tags: '',
-                custom_image: null,
-                custom_image_name: null,
-                selectedPreset: null,
-              });
-              setShowUploadForm(true);
+        <PresetsCommunityCard
+          communityMode={communityMode}
+          onCommunityModeChange={(mode) => {
+            setCommunityMode(mode);
+            if (mode === 'share' && !uploadFormData.selectedPreset) {
               setUploadMessage({ type: '', text: '' });
-            }}
-            onCloseUploadForm={() => {
-              setShowUploadForm(false);
-              setUploadFormData({
-                name: '',
-                description: '',
-                creator_name: '',
-                tags: '',
-                custom_image: null,
-                custom_image_name: null,
-                selectedPreset: null,
-              });
-              setUploadMessage({ type: '', text: '' });
-            }}
-            onUploadField={onUploadField}
-            onUpload={handleUpload}
-            selectedPresetNeedsShareableCopy={selectedPresetNeedsShareableCopy}
-            onCreateShareableVisualCopy={handleCreateShareableVisualCopy}
-            onImportCommunityPreset={handleImportCommunityPreset}
-          />
-        </WeeModalFieldCard>
+            }
+          }}
+          presets={presets}
+          uploadFormData={uploadFormData}
+          uploadMessage={uploadMessage}
+          uploading={uploading}
+          onUploadField={onUploadField}
+          onUpload={handleUpload}
+          selectedPresetNeedsShareableCopy={selectedPresetNeedsShareableCopy}
+          onCreateShareableVisualCopy={handleCreateShareableVisualCopy}
+          onImportCommunityPreset={handleImportCommunityPreset}
+          onCloseUploadForm={() => {
+            setCommunityMode('browse');
+            setUploadFormData({
+              name: '',
+              description: '',
+              creator_name: '',
+              tags: '',
+              custom_image: null,
+              custom_image_name: null,
+              selectedPreset: null,
+            });
+            setUploadMessage({ type: '', text: '' });
+          }}
+        />
       </WeeSettingsCollapsibleSection>
-
-      <AuthModal />
 
       {updateScopeModalMounted ? (
         <WeeModalShell
@@ -999,6 +1083,74 @@ const PresetsSettingsTab = React.memo(() => {
           </div>
         </WeeModalShell>
       ) : null}
+
+      <WeeModalShell
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDeleteDialog(null);
+        }}
+        headerTitle="Delete preset"
+        showRail={false}
+        maxWidth="min(480px, 94vw)"
+        footerContent={() => (
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <WeeButton
+              variant="secondary"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setDeleteDialog(null);
+              }}
+            >
+              Cancel
+            </WeeButton>
+            <WeeButton variant="primary" onClick={handleConfirmDelete}>
+              Delete
+            </WeeButton>
+          </div>
+        )}
+      >
+        <p className="m-0 text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
+          Delete “{deleteDialog?.name}”? This cannot be undone.
+        </p>
+      </WeeModalShell>
+
+      <WeeModalShell
+        isOpen={spotifyNameModalOpen}
+        onClose={() => {
+          setSpotifyNameModalOpen(false);
+        }}
+        headerTitle="Freeze Spotify look"
+        showRail={false}
+        maxWidth="min(480px, 94vw)"
+        footerContent={() => (
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <WeeButton
+              variant="secondary"
+              onClick={() => {
+                setSpotifyNameModalOpen(false);
+              }}
+            >
+              Cancel
+            </WeeButton>
+            <WeeButton variant="primary" onClick={handleConfirmSpotifyNameSave} disabled={!spotifyNameInput.trim()}>
+              Save preset
+            </WeeButton>
+          </div>
+        )}
+      >
+        <div className="space-y-3">
+          <p className="m-0 text-sm font-medium text-[hsl(var(--text-secondary))]">
+            Saves frozen album colors with your current visual look.
+          </p>
+          <WInput
+            variant="wee"
+            value={spotifyNameInput}
+            onChange={(e) => setSpotifyNameInput(e.target.value)}
+            placeholder="Preset name"
+          />
+        </div>
+      </WeeModalShell>
     </div>
   );
 });

@@ -1,6 +1,7 @@
 import { saveUnifiedSettingsSnapshot, saveUnifiedSoundSettings } from '../electronApi';
 import { normalizePresetSoundsSnapshot } from '../presetSoundSettings';
 import useConsolidatedAppStore from '../useConsolidatedAppStore';
+import { normalizeWallpaperCurrentShape } from '../presetSharing';
 import {
   PRESET_SCOPE_VISUAL,
   isPresetScopeWithHomeChannels,
@@ -16,7 +17,15 @@ function normalizeSettingsShape(settingsToApply) {
       settingsToApply.glassWiiRibbon !== undefined ||
       settingsToApply.wallpaperOpacity !== undefined);
 
-  if (!hasOldStructure) return settingsToApply;
+  if (!hasOldStructure) {
+    if (settingsToApply?.wallpaper) {
+      return {
+        ...settingsToApply,
+        wallpaper: normalizeWallpaperCurrentShape(settingsToApply.wallpaper),
+      };
+    }
+    return settingsToApply;
+  }
 
   return {
     time: {
@@ -41,7 +50,7 @@ function normalizeSettingsShape(settingsToApply) {
       recentRibbonColors: settingsToApply.recentRibbonColors,
       recentRibbonGlowColors: settingsToApply.recentRibbonGlowColors,
     },
-    wallpaper: {
+    wallpaper: normalizeWallpaperCurrentShape({
       current: settingsToApply.wallpaper,
       opacity: settingsToApply.wallpaperOpacity,
       blur: settingsToApply.wallpaperBlur,
@@ -56,10 +65,14 @@ function normalizeSettingsShape(settingsToApply) {
       slideRandomDirection: settingsToApply.slideRandomDirection,
       crossfadeDuration: settingsToApply.crossfadeDuration,
       crossfadeEasing: settingsToApply.crossfadeEasing,
-    },
+    }),
     ui: {
       presetsButtonConfig: settingsToApply.presetsButtonConfig,
     },
+    ...(settingsToApply.dock ? { dock: settingsToApply.dock } : {}),
+    ...(settingsToApply.appearanceBySpace
+      ? { appearanceBySpace: settingsToApply.appearanceBySpace }
+      : {}),
   };
 }
 
@@ -85,7 +98,7 @@ export async function applyPresetData(preset) {
     return;
   }
 
-  const { setWallpaperState, setRibbonState, setTimeState, setOverlayState, setUIState, setSoundsState } =
+  const { setWallpaperState, setRibbonState, setTimeState, setOverlayState, setUIState, setSoundsState, setDockState, setAppearanceBySpaceState } =
     useConsolidatedAppStore.getState().actions;
 
   if (settingsToApply.wallpaper) {
@@ -117,6 +130,18 @@ export async function applyPresetData(preset) {
 
   if (settingsToApply.ui) {
     setUIState(settingsToApply.ui);
+  }
+
+  if (settingsToApply.dock && typeof setDockState === 'function') {
+    setDockState(settingsToApply.dock);
+  }
+
+  if (settingsToApply.appearanceBySpace && typeof setAppearanceBySpaceState === 'function') {
+    const homeOnly =
+      settingsToApply.appearanceBySpace.home !== undefined
+        ? { home: settingsToApply.appearanceBySpace.home }
+        : settingsToApply.appearanceBySpace;
+    setAppearanceBySpaceState(homeOnly);
   }
 
   if (isPresetScopeWithHomeChannels(captureScope)) {
@@ -174,6 +199,10 @@ export async function applyPresetData(preset) {
         : {}),
       ...(settingsToApply.wallpaper ? { wallpaper: settingsToApply.wallpaper } : {}),
       ...(settingsToApply.overlay ? { overlay: settingsToApply.overlay } : {}),
+      ...(settingsToApply.dock ? { dock: settingsToApply.dock } : {}),
+      ...(settingsToApply.appearanceBySpace
+        ? { appearanceBySpace: { home: settingsToApply.appearanceBySpace.home ?? null } }
+        : {}),
       ...(normalizedSounds ? { sounds: normalizedSounds } : {}),
     });
 
@@ -181,8 +210,19 @@ export async function applyPresetData(preset) {
       try {
         const currentWallpaperData = await window.api.wallpapers.get();
         const updatedWallpaperData = { ...currentWallpaperData };
-        if (settingsToApply.wallpaper.current !== undefined) {
-          updatedWallpaperData.wallpaper = settingsToApply.wallpaper.current;
+        const activeWallpaper =
+          settingsToApply.wallpaper.current !== undefined
+            ? settingsToApply.wallpaper.current
+            : typeof settingsToApply.wallpaper.url === 'string'
+              ? {
+                  url: settingsToApply.wallpaper.url,
+                  name: settingsToApply.wallpaper.name,
+                  mimeType: settingsToApply.wallpaper.mimeType,
+                  source: settingsToApply.wallpaper.source,
+                }
+              : undefined;
+        if (activeWallpaper !== undefined) {
+          updatedWallpaperData.wallpaper = activeWallpaper;
         }
         if (settingsToApply.wallpaper.opacity !== undefined) {
           updatedWallpaperData.wallpaperOpacity = settingsToApply.wallpaper.opacity;

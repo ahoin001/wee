@@ -1,11 +1,13 @@
 import React, { useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { PresetListItem } from '../../app-library';
+import Text from '../../../ui/Text';
+import Button from '../../../ui/WButton';
 
-const ROW_ESTIMATE_PX = 88;
+const ROW_ESTIMATE_PX = 96;
 const VIRTUALIZE_THRESHOLD = 18;
 
-/** Saved preset list — body only (parent provides wee shell + description). */
+/** Saved preset list — thumbnail rows; parent provides wee shell. */
 const PresetsSavedListCard = React.memo(
   ({
     presets,
@@ -15,7 +17,10 @@ const PresetsSavedListCard = React.memo(
     editingPreset,
     editName,
     justUpdated,
+    justApplied,
     communityUpdateMap,
+    customPresetCount,
+    maxCustomPresets,
     onDragStart,
     onDragOver,
     onDragEnter,
@@ -32,6 +37,9 @@ const PresetsSavedListCard = React.memo(
     onKeyPress,
     onApplyToActiveProfile,
     hasActiveProfile,
+    onApplyCommunityUpdate,
+    onShare,
+    onFocusSaveSection,
   }) => {
     const filtered = useMemo(
       () => presets.filter((preset) => preset.name !== excludeName),
@@ -49,50 +57,74 @@ const PresetsSavedListCard = React.memo(
 
     const useVirtual = filtered.length >= VIRTUALIZE_THRESHOLD;
 
-    const renderItem = (preset) => {
-      const presetId = preset.id || preset.name;
-      const isDragging = draggingPreset === presetId;
-      const isDropTarget = dropTarget === presetId;
-
+    if (filtered.length === 0) {
       return (
-        <PresetListItem
-          preset={preset}
-          isDragging={isDragging}
-          isDropTarget={isDropTarget}
-          isSelected={false}
-          selectMode={false}
-          editingPreset={editingPreset}
-          editName={editName}
-          justUpdated={justUpdated}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDragEnter={onDragEnter}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-          onDragEnd={onDragEnd}
-          onToggleSelect={() => {}}
-          onApply={onApply}
-          onUpdate={onUpdate}
-          onStartEdit={onStartEdit}
-          onDelete={onDelete}
-          onSaveEdit={onSaveEdit}
-          onCancelEdit={onCancelEdit}
-          onEditNameChange={onEditNameChange}
-          onKeyPress={onKeyPress}
-          onApplyToActiveProfile={onApplyToActiveProfile}
-          hasActiveProfile={hasActiveProfile}
-          hasCommunityUpdate={Boolean(communityUpdateMap[preset.id || preset.name]?.hasUpdate)}
-        />
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-dashed border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.45)] px-5 py-8 text-center">
+            <Text variant="body" className="!m-0 font-semibold text-[hsl(var(--text-primary))]">
+              No saved looks yet
+            </Text>
+            <Text variant="caption" className="!mt-2 !mb-4 block text-[hsl(var(--text-tertiary))]">
+              Capture your current wallpaper and colors as a named preset.
+            </Text>
+            {onFocusSaveSection ? (
+              <Button variant="primary" onClick={onFocusSaveSection}>
+                Save current look
+              </Button>
+            ) : null}
+          </div>
+        </div>
       );
+    }
+
+    const meter = (
+      <Text variant="caption" className="!mb-3 !mt-0 block text-[hsl(var(--text-tertiary))]">
+        {customPresetCount} / {maxCustomPresets} custom looks saved · Drag ⋮⋮ to reorder
+      </Text>
+    );
+
+    const itemProps = (preset) => {
+      const presetId = preset.id || preset.name;
+      return {
+        preset,
+        isDragging: draggingPreset === presetId,
+        isDropTarget: dropTarget === presetId,
+        editingPreset,
+        editName,
+        justUpdated,
+        justApplied,
+        onDragStart,
+        onDragOver,
+        onDragEnter,
+        onDragLeave,
+        onDrop,
+        onDragEnd,
+        onApply,
+        onUpdate,
+        onStartEdit,
+        onDelete,
+        onSaveEdit,
+        onCancelEdit,
+        onEditNameChange,
+        onKeyPress,
+        onApplyToActiveProfile,
+        hasActiveProfile,
+        hasCommunityUpdate: Boolean(communityUpdateMap[preset.id || preset.name]?.hasUpdate),
+        onApplyCommunityUpdate,
+        onShare,
+      };
     };
 
     if (!useVirtual) {
       return (
-        <ul className="m-0 mb-0 list-none p-0">
-          {filtered.map((preset) => (
-            <React.Fragment key={preset.id || preset.name}>{renderItem(preset)}</React.Fragment>
-          ))}
-        </ul>
+        <div>
+          {meter}
+          <ul className="m-0 mb-0 list-none p-0">
+            {filtered.map((preset) => (
+              <PresetListItem key={preset.id || preset.name} {...itemProps(preset)} />
+            ))}
+          </ul>
+        </div>
       );
     }
 
@@ -100,64 +132,42 @@ const PresetsSavedListCard = React.memo(
     const totalSize = virtualizer.getTotalSize();
 
     return (
-      <div
-        ref={parentRef}
-        className="max-h-[min(55vh,520px)] overflow-y-auto pr-1"
-        style={{ contain: 'strict' }}
-      >
-        <ul
-          className="m-0 mb-0 list-none p-0"
-          style={{
-            height: `${totalSize}px`,
-            width: '100%',
-            position: 'relative',
-          }}
+      <div>
+        {meter}
+        <div
+          ref={parentRef}
+          className="max-h-[min(55vh,520px)] overflow-y-auto pr-1"
+          style={{ contain: 'strict' }}
         >
-          {items.map((vi) => {
-            const preset = filtered[vi.index];
-            if (!preset) return null;
-            return (
-              <PresetListItem
-                key={preset.id || preset.name}
-                ref={virtualizer.measureElement}
-                dataIndex={vi.index}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${vi.start}px)`,
-                }}
-                preset={preset}
-                isDragging={draggingPreset === (preset.id || preset.name)}
-                isDropTarget={dropTarget === (preset.id || preset.name)}
-                isSelected={false}
-                selectMode={false}
-                editingPreset={editingPreset}
-                editName={editName}
-                justUpdated={justUpdated}
-                onDragStart={onDragStart}
-                onDragOver={onDragOver}
-                onDragEnter={onDragEnter}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-                onDragEnd={onDragEnd}
-                onToggleSelect={() => {}}
-                onApply={onApply}
-                onUpdate={onUpdate}
-                onStartEdit={onStartEdit}
-                onDelete={onDelete}
-                onSaveEdit={onSaveEdit}
-                onCancelEdit={onCancelEdit}
-                onEditNameChange={onEditNameChange}
-                onKeyPress={onKeyPress}
-                onApplyToActiveProfile={onApplyToActiveProfile}
-                hasActiveProfile={hasActiveProfile}
-                hasCommunityUpdate={Boolean(communityUpdateMap[preset.id || preset.name]?.hasUpdate)}
-              />
-            );
-          })}
-        </ul>
+          <ul
+            className="m-0 mb-0 list-none p-0"
+            style={{
+              height: `${totalSize}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {items.map((vi) => {
+              const preset = filtered[vi.index];
+              if (!preset) return null;
+              return (
+                <PresetListItem
+                  key={preset.id || preset.name}
+                  ref={virtualizer.measureElement}
+                  dataIndex={vi.index}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${vi.start}px)`,
+                  }}
+                  {...itemProps(preset)}
+                />
+              );
+            })}
+          </ul>
+        </div>
       </div>
     );
   }

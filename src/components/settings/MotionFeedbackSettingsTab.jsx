@@ -347,7 +347,7 @@ const MotionFeedbackSettingsTab = React.memo(() => {
       <WeeSettingsCollapsibleSection
         icon={Anchor}
         title="Gooey physics"
-        description="Space-pill expand/shrink springs for modals, channels, and ribbon — bounce amount per surface."
+        description="Space-pill expand/shrink springs for modals, channels, ribbon, and Media Hub — bounce amount per surface."
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6 space-y-5">
@@ -412,6 +412,21 @@ const MotionFeedbackSettingsTab = React.memo(() => {
               disabled={!master || !mf.effects.gooeyHighlights}
               aria-label="Ribbon gooey intensity"
               onChange={(v) => setGooey({ surfaces: { ribbon: v / 100 } })}
+            />
+          </div>
+          <div>
+            <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+              Media Hub: {Math.round((mf.gooey?.surfaces?.mediaHub ?? 1) * 100)}%
+            </Text>
+            <Slider
+              value={Math.round((mf.gooey?.surfaces?.mediaHub ?? 1) * 100)}
+              min={0}
+              max={100}
+              step={5}
+              hideValue
+              disabled={!master || !mf.effects.gooeyHighlights}
+              aria-label="Media Hub gooey intensity"
+              onChange={(v) => setGooey({ surfaces: { mediaHub: v / 100 } })}
             />
           </div>
           <div>

@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { sanitizePresetSettingsForCommunity } from '../../src/utils/presetSharing.js';
+import {
+  sanitizePresetSettingsForCommunity,
+  getPresetWallpaperUrl,
+  normalizeWallpaperCurrentShape,
+} from '../../src/utils/presetSharing.js';
 import {
   PRESET_SCOPE_VISUAL,
   PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
@@ -121,7 +125,49 @@ test('community sanitize keeps visual allowlist and strips private data', () => 
   assert.ok(!('sounds' in sanitized));
   assert.ok(!('extraPrivateSlice' in sanitized));
   assert.equal(sanitized.wallpaper.url, undefined);
-  assert.deepEqual(sanitized.wallpaper.savedWallpapers, [{ url: 'https://cdn.example.com/a.jpg' }]);
+  assert.equal(sanitized.wallpaper.savedWallpapers, undefined);
+});
+
+test('community sanitize promotes current.url and public wallpaper URL', () => {
+  const sanitized = sanitizePresetSettingsForCommunity(
+    {
+      wallpaper: {
+        current: { url: 'userdata://icons/bg.jpg', name: 'bg.jpg' },
+        opacity: 0.9,
+        blur: 2,
+      },
+      ribbon: { ribbonColor: '#112233' },
+      time: { color: '#ffffff' },
+      dock: { classicThemeId: 'wii-blue' },
+      appearanceBySpace: {
+        home: { blur: 4 },
+        workspaces: { blur: 9 },
+      },
+    },
+    { wallpaperPublicUrl: 'https://cdn.example.com/shared-bg.jpg' }
+  );
+
+  assert.equal(sanitized.wallpaper.current.url, 'https://cdn.example.com/shared-bg.jpg');
+  assert.equal(sanitized.wallpaper.url, 'https://cdn.example.com/shared-bg.jpg');
+  assert.equal(sanitized.wallpaper.source, 'community');
+  assert.equal(sanitized.ribbon.ribbonColor, '#112233');
+  assert.equal(sanitized.time.color, '#ffffff');
+  assert.equal(sanitized.dock.classicThemeId, 'wii-blue');
+  assert.deepEqual(sanitized.appearanceBySpace, { home: { blur: 4 } });
+});
+
+test('getPresetWallpaperUrl prefers current.url', () => {
+  assert.equal(
+    getPresetWallpaperUrl({
+      current: { url: 'userdata://a' },
+      url: 'https://cdn.example.com/legacy.jpg',
+    }),
+    'userdata://a'
+  );
+  assert.equal(getPresetWallpaperUrl({ url: 'https://cdn.example.com/legacy.jpg' }), 'https://cdn.example.com/legacy.jpg');
+  const normalized = normalizeWallpaperCurrentShape({ url: 'https://cdn.example.com/only.jpg', opacity: 1 });
+  assert.equal(normalized.current.url, 'https://cdn.example.com/only.jpg');
+  assert.equal(normalized.url, 'https://cdn.example.com/only.jpg');
 });
 
 test('workspace state seeding and normalization keep default profiles', () => {

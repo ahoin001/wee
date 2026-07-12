@@ -1,15 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import WBaseModal from '../core/WBaseModal';
+import { WeeModalShell } from '../../ui/wee';
 import SoundManagementContent from './SoundManagementContent';
 import './SoundModal.css';
 
 function SoundModal({ isOpen, onClose, onSettingsChange }) {
   return (
-    <WBaseModal
+    <WeeModalShell
       isOpen={isOpen}
-      title="🎵 Sound Studio - Manage App Sounds"
+      headerTitle="Sound Studio — Manage App Sounds"
       onClose={onClose}
+      showRail={false}
       className="sound-modal"
       maxWidth="1200px"
       footerContent={({ handleClose }) => (
@@ -57,7 +58,7 @@ function SoundModal({ isOpen, onClose, onSettingsChange }) {
         onSettingsChange={onSettingsChange}
         showHeader={false} // Don't show header since we have the modal title
       />
-    </WBaseModal>
+    </WeeModalShell>
   );
 }
 

@@ -113,6 +113,136 @@ export const DEFAULT_SHORTCUTS = [
     icon: '⌨️'
   },
   {
+    id: 'open-settings-general-tab',
+    name: 'Open General Settings',
+    description: 'Open settings modal to general tab',
+    defaultKey: 'g',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'general' },
+    category: 'Settings',
+    icon: '🛠️'
+  },
+  {
+    id: 'open-settings-colors-tab',
+    name: 'Open Colors Settings',
+    description: 'Open settings modal to colors tab',
+    defaultKey: 'c',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'colors' },
+    category: 'Settings',
+    icon: '🎨'
+  },
+  {
+    id: 'open-settings-motion-tab',
+    name: 'Open Motion Settings',
+    description: 'Open settings modal to motion tab',
+    defaultKey: 'm',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'motion' },
+    category: 'Settings',
+    icon: '✨'
+  },
+  {
+    id: 'open-settings-navigation-pill-tab',
+    name: 'Open Space Rail Settings',
+    description: 'Open settings modal to space rail / navigation pill tab',
+    defaultKey: 'e',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'navigation-pill' },
+    category: 'Settings',
+    icon: '🧭'
+  },
+  {
+    id: 'open-settings-gamehub-tab',
+    name: 'Open Game Hub Settings',
+    description: 'Open settings modal to Game Hub tab',
+    defaultKey: 'h',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'gamehub' },
+    category: 'Settings',
+    icon: '🎮'
+  },
+  {
+    id: 'open-settings-api-integrations-tab',
+    name: 'Open API & Widgets Settings',
+    description: 'Open settings modal to API & Widgets tab',
+    defaultKey: 'a',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'api-integrations' },
+    category: 'Settings',
+    icon: '🔌'
+  },
+  {
+    id: 'open-settings-updates-tab',
+    name: 'Open Updates Settings',
+    description: 'Open settings modal to updates tab',
+    defaultKey: 'u',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'updates' },
+    category: 'Settings',
+    icon: '⬆️'
+  },
+  {
+    id: 'open-settings-monitor-tab',
+    name: 'Open Monitor Settings',
+    description: 'Open settings modal to monitor tab',
+    defaultKey: 'y',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'monitor' },
+    category: 'Settings',
+    icon: '🖥️'
+  },
+  {
+    id: 'open-settings-navigation-tab',
+    name: 'Open Navigation Settings',
+    description: 'Open settings modal to navigation tab',
+    defaultKey: 'v',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'navigation' },
+    category: 'Settings',
+    icon: '↔️'
+  },
+  {
+    id: 'open-settings-workspaces-tab',
+    name: 'Open Home Profiles Settings',
+    description: 'Open settings modal to Home Profiles tab',
+    defaultKey: 'w',
+    defaultModifier: 'ctrl+shift',
+    action: 'openSettingsModal',
+    actionParams: { tab: 'workspaces' },
+    category: 'Settings',
+    icon: '🏠'
+  },
+  {
+    id: 'open-workspace-switcher',
+    name: 'Open Workspace Switcher',
+    description: 'Open the workspace / home profile switcher',
+    defaultKey: 'j',
+    defaultModifier: 'ctrl',
+    action: 'openWorkspaceSwitcher',
+    category: 'Navigation',
+    icon: '🪟'
+  },
+  {
+    id: 'open-update-modal',
+    name: 'Open Update Modal',
+    description: 'Open the app update dialog',
+    defaultKey: 'u',
+    defaultModifier: 'ctrl+alt',
+    action: 'openUpdateModal',
+    category: 'Navigation',
+    icon: '📦'
+  },
+  {
     id: 'toggle-spotify-widget',
     name: 'Toggle Spotify Widget',
     description: 'Show or hide the Spotify floating widget',
@@ -214,8 +344,8 @@ export const DEFAULT_SHORTCUTS = [
   },
   {
     id: 'toggle-settings-menu',
-    name: 'Toggle Settings Menu',
-    description: 'Open or close the settings action menu',
+    name: 'Toggle Quick Menu',
+    description: 'Open or close the Quick Menu (settings action menu)',
     defaultKey: 'Escape',
     defaultModifier: 'none',
     action: 'toggleSettingsMenu',
@@ -223,6 +353,43 @@ export const DEFAULT_SHORTCUTS = [
     icon: '⚙️'
   }
 ];
+
+/** Build runtime shortcut entries from defaults (key/modifier/enabled). */
+export const createDefaultKeyboardShortcuts = () =>
+  DEFAULT_SHORTCUTS.map((shortcut) => ({
+    ...shortcut,
+    key: shortcut.defaultKey,
+    modifier: shortcut.defaultModifier,
+    enabled: true,
+  }));
+
+/**
+ * Merge persisted shortcuts with DEFAULT_SHORTCUTS by id so new defaults appear
+ * without wiping user remaps. Drop unknown stale ids only when empty list.
+ */
+export const mergeKeyboardShortcutsWithDefaults = (persisted) => {
+  const defaults = createDefaultKeyboardShortcuts();
+  if (!Array.isArray(persisted) || persisted.length === 0) {
+    return defaults;
+  }
+
+  const byId = new Map(
+    persisted
+      .filter((s) => s && typeof s === 'object' && s.id)
+      .map((s) => [s.id, s])
+  );
+
+  return defaults.map((def) => {
+    const saved = byId.get(def.id);
+    if (!saved) return def;
+    return {
+      ...def,
+      key: saved.key !== undefined && saved.key !== null ? saved.key : def.key,
+      modifier: saved.modifier !== undefined ? normalizeModifier(saved.modifier) : def.modifier,
+      enabled: typeof saved.enabled === 'boolean' ? saved.enabled : def.enabled,
+    };
+  });
+};
 
 // Helper function to format shortcut display
 export const formatShortcut = (shortcut) => {
@@ -440,6 +607,22 @@ export const executeShortcutAction = (action, actionParams = {}) => {
         window.toggleSpaceRailPin();
       } else {
         logWarn('ShortcutHandler', 'toggleSpaceRailPin function not available');
+      }
+      break;
+
+    case 'openWorkspaceSwitcher':
+      if (window.openWorkspaceSwitcher) {
+        window.openWorkspaceSwitcher();
+      } else {
+        logWarn('ShortcutHandler', 'openWorkspaceSwitcher function not available');
+      }
+      break;
+
+    case 'openUpdateModal':
+      if (window.openUpdateModal) {
+        window.openUpdateModal();
+      } else {
+        logWarn('ShortcutHandler', 'openUpdateModal function not available');
       }
       break;
       

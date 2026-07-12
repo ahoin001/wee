@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import Card from '../../ui/Card';
 import WButton from '../../ui/WButton';
+import { WeeCard } from '../../ui/wee';
 import WInput from '../../ui/WInput';
 import { applyPresetData } from '../../utils/presets/applyPresetData';
 import { normalizePresetRecord } from '../../utils/presets/presetThemeData';
@@ -179,7 +179,7 @@ const WorkspacesSettingsTab = React.memo(() => {
       <SecondaryChannelProfilesCard />
 
       <SettingsWeeSection eyebrow="Create">
-      <Card
+      <WeeCard
         title="Profile manager"
         desc="Save complete Home setups (wallpaper, colors, and Home channels) and switch anytime."
       >
@@ -202,11 +202,11 @@ const WorkspacesSettingsTab = React.memo(() => {
             Tip: Profiles do not auto-save. Use Update when you want to capture current changes.
           </p>
         </div>
-      </Card>
+      </WeeCard>
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Saved">
-      <Card title="Saved profiles" desc="Apply, update, rename, and delete your Home mode profiles.">
+      <WeeCard title="Saved profiles" desc="Apply, update, rename, and delete your Home mode profiles.">
         <div className="grid gap-3 md:grid-cols-2">
           {normalized.items.map((profile) => {
             const isActive = profile.id === normalized.activeWorkspaceId;
@@ -267,11 +267,11 @@ const WorkspacesSettingsTab = React.memo(() => {
             </div>
           )}
         </div>
-      </Card>
+      </WeeCard>
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Presets">
-      <Card
+      <WeeCard
         title="Preset to profile"
         desc="Apply a preset and then save that result into your active profile."
       >
@@ -297,7 +297,7 @@ const WorkspacesSettingsTab = React.memo(() => {
             Active profile: {activeProfile ? activeProfile.name : 'None selected'}.
           </p>
         </div>
-      </Card>
+      </WeeCard>
       </SettingsWeeSection>
 
       {statusText && <p className="text-sm text-[hsl(var(--text-secondary))]">{statusText}</p>}

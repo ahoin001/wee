@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
-import { WBaseModal } from '../core';
 import WButton from '../../ui/WButton';
+import { WeeModalShell } from '../../ui/wee';
 import { applyWorkspaceSnapshot } from '../../utils/workspaces/applyWorkspace';
 import { normalizeWorkspacesState } from '../../utils/workspaces/workspaceState';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -41,7 +41,13 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
   };
 
   return (
-    <WBaseModal title="Home Profile Switcher" isOpen={isOpen} onClose={onClose} maxWidth="860px">
+    <WeeModalShell
+      headerTitle="Home Profile Switcher"
+      isOpen={isOpen}
+      onClose={onClose}
+      showRail={false}
+      maxWidth="860px"
+    >
       <div className="space-y-5">
         <p className="text-sm text-[hsl(var(--text-secondary))]">
           Switch Home profiles with one click — channels and visuals move together.
@@ -110,7 +116,7 @@ function WorkspaceSwitcherModal({ isOpen, onClose }) {
           Manage Home Profiles
         </WButton>
       </div>
-    </WBaseModal>
+    </WeeModalShell>
   );
 }
 

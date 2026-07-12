@@ -18,6 +18,7 @@ import { useAppInitialization } from './hooks/useAppInitialization';
 import { useAppUpdater } from './hooks/useAppUpdater';
 import { useUnifiedSettingsPersistence } from './hooks/useUnifiedSettingsPersistence';
 import { useWallpaperDataFileSync } from './hooks/useWallpaperDataFileSync';
+import { useFloatingWidgetMountGate } from './hooks/useFloatingWidgetMountGate';
 import { 
   useTimeColor, 
   useEnableTimePill, 
@@ -371,6 +372,10 @@ function App() {
   const isHubSpace = isGameHubSpace || isMediaHubSpace;
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const enableDeferredMounts = appReady && hasUserInteracted;
+  const spotifyWidgetGate = useFloatingWidgetMountGate(floatingWidgets.spotify.visible);
+  const systemInfoWidgetGate = useFloatingWidgetMountGate(floatingWidgets.systemInfo.visible);
+  const adminPanelWidgetGate = useFloatingWidgetMountGate(floatingWidgets.adminPanel.visible);
+  const performanceMonitorGate = useFloatingWidgetMountGate(floatingWidgets.performanceMonitor.visible);
   const settingsPrefetchPromiseRef = useRef(null);
   const [settingsActionMenuMounted, setSettingsActionMenuMounted] = useState(false);
   const prefetchSettingsUI = useCallback(() => {
@@ -847,49 +852,48 @@ function App() {
 
         {/* Floating Widgets */}
         <Suspense fallback={null}>
-          {/* Spotify Widget */}
-          {enableDeferredMounts && floatingWidgets.spotify.visible && (
-            <LazyFloatingSpotifyWidget 
+          {enableDeferredMounts && spotifyWidgetGate.shouldMount ? (
+            <LazyFloatingSpotifyWidget
               isVisible={floatingWidgets.spotify.visible}
+              onExitAnimationComplete={spotifyWidgetGate.onExitAnimationComplete}
               onClose={() => {
                 const { actions } = useConsolidatedAppStore.getState();
                 actions.toggleSpotifyWidget();
               }}
             />
-          )}
-          
-          {/* System Info Widget */}
-          {enableDeferredMounts && floatingWidgets.systemInfo.visible && (
-            <LazySystemInfoWidget 
+          ) : null}
+
+          {enableDeferredMounts && systemInfoWidgetGate.shouldMount ? (
+            <LazySystemInfoWidget
               isVisible={floatingWidgets.systemInfo.visible}
+              onExitAnimationComplete={systemInfoWidgetGate.onExitAnimationComplete}
               onClose={() => {
                 const { actions } = useConsolidatedAppStore.getState();
                 actions.toggleSystemInfoWidget();
               }}
             />
-          )}
-          
-          {/* Admin Panel Widget */}
-          {enableDeferredMounts && floatingWidgets.adminPanel.visible && (
-            <LazyAdminPanelWidget 
+          ) : null}
+
+          {enableDeferredMounts && adminPanelWidgetGate.shouldMount ? (
+            <LazyAdminPanelWidget
               isVisible={floatingWidgets.adminPanel.visible}
+              onExitAnimationComplete={adminPanelWidgetGate.onExitAnimationComplete}
               onClose={() => {
                 const { actions } = useConsolidatedAppStore.getState();
                 actions.toggleAdminPanelWidget();
               }}
             />
-          )}
-          
-          {/* Performance Monitor Widget — dev builds only (intervals + RAF in performanceManager) */}
-          {IS_DEV && enableDeferredMounts && floatingWidgets.performanceMonitor.visible && (
-            <LazyPerformanceMonitor 
+          ) : null}
+
+          {IS_DEV && enableDeferredMounts && performanceMonitorGate.shouldMount ? (
+            <LazyPerformanceMonitor
               isVisible={floatingWidgets.performanceMonitor.visible}
               onClose={() => {
                 const { actions } = useConsolidatedAppStore.getState();
                 actions.togglePerformanceMonitorWidget();
               }}
             />
-          )}
+          ) : null}
         </Suspense>
 
 

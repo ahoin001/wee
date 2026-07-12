@@ -4,8 +4,8 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { IS_DEV } from '../../utils/env';
 import { useAppActivity } from '../../hooks/useAppActivity';
 import { useActivityInterval } from '../../hooks/useActivityInterval';
-import Card from '../../ui/Card';
 import Text from '../../ui/Text';
+import { WeeCard } from '../../ui/wee';
 import Button from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
 
@@ -68,7 +68,7 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
         </div>
 
         {/* Controls */}
-        <Card className="mb-6 p-4">
+        <WeeCard className="mb-6" paddingClassName="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <WToggle
@@ -86,11 +86,11 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
               Clear Alerts
             </Button>
           </div>
-        </Card>
+        </WeeCard>
 
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4">
+          <WeeCard paddingClassName="p-4">
             <Text variant="caption" className="text-gray-400">
               Average FPS
             </Text>
@@ -100,9 +100,9 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
             <Text variant="caption" className="text-gray-400">
               Target: {thresholds.minFps}+
             </Text>
-          </Card>
+          </WeeCard>
 
-          <Card className="p-4">
+          <WeeCard paddingClassName="p-4">
             <Text variant="caption" className="text-gray-400">
               Memory Usage
             </Text>
@@ -112,9 +112,9 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
             <Text variant="caption" className="text-gray-400">
               Limit: {Math.round(thresholds.maxMemoryUsage / 1024 / 1024)}MB
             </Text>
-          </Card>
+          </WeeCard>
 
-          <Card className="p-4">
+          <WeeCard paddingClassName="p-4">
             <Text variant="caption" className="text-gray-400">
               Active Alerts
             </Text>
@@ -124,9 +124,9 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
             <Text variant="caption" className="text-gray-400">
               Performance Issues
             </Text>
-          </Card>
+          </WeeCard>
 
-          <Card className="p-4">
+          <WeeCard paddingClassName="p-4">
             <Text variant="caption" className="text-gray-400">
               Slowest Component
             </Text>
@@ -136,14 +136,14 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
             <Text variant="caption" className="text-gray-400">
               Render Time
             </Text>
-          </Card>
+          </WeeCard>
         </div>
 
         {/* Real-time Metrics */}
         {isMonitoring && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* FPS Chart */}
-            <Card className="p-4">
+            <WeeCard paddingClassName="p-4">
               <Text variant="h4" className="text-white mb-4">
                 FPS Over Time
               </Text>
@@ -165,10 +165,10 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
               <Text variant="caption" className="text-gray-400 mt-2">
                 Last 30 samples
               </Text>
-            </Card>
+            </WeeCard>
 
             {/* Memory Chart */}
-            <Card className="p-4">
+            <WeeCard paddingClassName="p-4">
               <Text variant="h4" className="text-white mb-4">
                 Memory Usage
               </Text>
@@ -190,13 +190,13 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
               <Text variant="caption" className="text-gray-400 mt-2">
                 Last 30 samples
               </Text>
-            </Card>
+            </WeeCard>
           </div>
         )}
 
         {/* Alerts */}
         {alerts.length > 0 && (
-          <Card className="p-4">
+          <WeeCard paddingClassName="p-4">
             <Text variant="h4" className="text-white mb-4">
               Performance Alerts
             </Text>
@@ -224,12 +224,12 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
                 </div>
               ))}
             </div>
-          </Card>
+          </WeeCard>
         )}
 
         {/* Component Performance */}
         {Object.keys(metrics.renderTimes).length > 0 && (
-          <Card className="p-4 mt-6">
+          <WeeCard className="mt-6" paddingClassName="p-4">
             <Text variant="h4" className="text-white mb-4">
               Component Render Times
             </Text>
@@ -251,7 +251,7 @@ const PerformanceMonitor = ({ isVisible, onClose }) => {
                   </div>
                 ))}
             </div>
-          </Card>
+          </WeeCard>
         )}
       </div>
     </div>

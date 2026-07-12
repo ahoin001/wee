@@ -13,7 +13,7 @@
   transition: all var(--nav-duration-base) var(--nav-ease-standard);
   outline: none;
   position: relative;
-  transform: scale(calc(1 + (var(--wii-style-is-hovered, 0) * 0.05)));
+  transform: none;
 }
 
 .wii-style-button:hover:not(.wii-style-button--wee-rail) {

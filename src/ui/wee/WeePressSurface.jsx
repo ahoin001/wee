@@ -3,51 +3,77 @@ import PropTypes from 'prop-types';
 import { m, useReducedMotion } from 'framer-motion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
-import { useWeeMotion } from '../../design/weeMotion';
+import { createWeeTransition, useWeeMotion } from '../../design/weeMotion';
+import { WEE_GOOEY_ICON_PRESS } from './WeeGooeyIconButton';
 
-/** Matches WeeGooeySpacePill row buttons (whileTap / whileHover scale). */
-const PILL_ROW_PRESS_SCALE = 0.92;
-const PILL_ROW_HOVER_SCALE = 1.12;
-
-/** Inner tap under `.channel` — CSS keeps hover scale on the outer shell; subtler than full chrome. */
+/** Inner tap under `.channel` — CSS keeps hover scale on the outer shell. */
 const CHANNEL_TAP = { scale: 0.95, rotate: -0.75 };
 
 const PRESS_VARIANT = {
   dockButton: {
-    tap: { scale: PILL_ROW_PRESS_SCALE, rotate: PLAYFUL_AMPLITUDE.pressRotate },
-    hover: { scale: PILL_ROW_HOVER_SCALE, rotate: 0.35, y: PLAYFUL_AMPLITUDE.hoverLiftY },
+    tap: { scale: WEE_GOOEY_ICON_PRESS.tapScale, rotate: PLAYFUL_AMPLITUDE.pressRotate },
+    hover: {
+      scale: WEE_GOOEY_ICON_PRESS.hoverScale,
+      rotate: 0.35,
+      y: PLAYFUL_AMPLITUDE.hoverLiftY,
+    },
   },
   dockAccessory: {
-    tap: { scale: PILL_ROW_PRESS_SCALE, rotate: -2 },
-    hover: { scale: PILL_ROW_HOVER_SCALE, rotate: 0, y: PLAYFUL_AMPLITUDE.hoverLiftY },
+    tap: { scale: WEE_GOOEY_ICON_PRESS.tapScale, rotate: -2 },
+    hover: {
+      scale: WEE_GOOEY_ICON_PRESS.hoverScale,
+      rotate: 0,
+      y: PLAYFUL_AMPLITUDE.hoverLiftY,
+    },
   },
   ribbon: {
-    tap: { scale: PILL_ROW_PRESS_SCALE, rotate: -0.65 },
+    tap: { scale: WEE_GOOEY_ICON_PRESS.tapScale, rotate: -0.65 },
+  },
+  mediaHub: {
+    tap: { scale: 0.985 },
+    hover: { y: -2, scale: 1.01 },
   },
 };
 
 /**
- * Full-surface press + optional hover (dock). Use `enableHover={false}` when CSS owns hover.
+ * Full-surface press + optional hover. Canonical press layer for dock, ribbon, media hub.
+ * Use `enableHover={false}` when CSS owns hover (legacy ribbon glass).
  */
-export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
+export const WeePressSurface = forwardRef(function WeePressSurface(
   { as = 'div', variant = 'dockButton', enableHover = true, className, style, children, ...rest },
   ref
 ) {
   const osReduced = useReducedMotion();
   const mf = useMotionFeedback();
   const { pillSurfacePress } = useWeeMotion();
-  const allowDock = variant === 'dockButton' || variant === 'dockAccessory' ? mf.dockPress : mf.ribbonTap;
+  const allowDock =
+    variant === 'dockButton' || variant === 'dockAccessory'
+      ? mf.dockPress
+      : variant === 'mediaHub'
+        ? mf.gooey.enabled
+        : mf.ribbonTap;
   const reduced = osReduced || !allowDock;
   const v = PRESS_VARIANT[variant] || PRESS_VARIANT.dockButton;
   const Comp = as === 'button' ? m.button : m.div;
   const ribbonGooey = variant === 'ribbon' && mf.gooey.ribbonHover.enabled;
+  const mediaHubGooey = variant === 'mediaHub' && mf.gooey.mediaHubHover?.enabled;
   const ribbonHoverTarget = ribbonGooey
     ? {
         ...(mf.gooey.ribbonHover.whileHover || {}),
         y: PLAYFUL_AMPLITUDE.hoverLiftY * mf.gooey.ribbonIntensity,
       }
     : v.hover;
-  const hoverTransition = ribbonGooey ? mf.gooey.ribbonHover.transition : pillSurfacePress;
+  const mediaHubHoverTarget = mediaHubGooey
+    ? {
+        ...(mf.gooey.mediaHubHover.whileHover || {}),
+        y: -2 * (mf.gooey.mediaHubIntensity ?? 1),
+      }
+    : v.hover;
+  const hoverTransition = ribbonGooey
+    ? mf.gooey.ribbonHover.transition
+    : mediaHubGooey
+      ? mf.gooey.mediaHubHover.transition
+      : pillSurfacePress || createWeeTransition('press');
 
   if (reduced) {
     const Plain = as === 'button' ? 'button' : 'div';
@@ -58,7 +84,9 @@ export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
     );
   }
 
-  const hoverEnabled = enableHover || ribbonGooey;
+  const hoverEnabled = enableHover || ribbonGooey || mediaHubGooey;
+  const hoverTarget =
+    variant === 'mediaHub' ? mediaHubHoverTarget : ribbonGooey ? ribbonHoverTarget : v.hover;
 
   return (
     <Comp
@@ -67,7 +95,7 @@ export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
       className={`${className || ''}${ribbonGooey ? ' playful-press--gooey-ribbon' : ''}${ribbonGooey && mf.gooey.ribbonHover.includeGlow ? ' playful-press--gooey-glow' : ''}`.trim()}
       style={{ transformOrigin: 'center center', ...style }}
       whileTap={v.tap}
-      whileHover={hoverEnabled && ribbonHoverTarget ? ribbonHoverTarget : undefined}
+      whileHover={hoverEnabled && hoverTarget ? hoverTarget : undefined}
       transition={hoverTransition}
       {...rest}
     >
@@ -76,35 +104,26 @@ export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
   );
 });
 
-PlayfulPressSurface.displayName = 'PlayfulPressSurface';
+WeePressSurface.displayName = 'WeePressSurface';
 
-PlayfulPressSurface.propTypes = {
+WeePressSurface.propTypes = {
   as: PropTypes.oneOf(['div', 'button']),
-  variant: PropTypes.oneOf(['dockButton', 'dockAccessory', 'ribbon']),
+  variant: PropTypes.oneOf(['dockButton', 'dockAccessory', 'ribbon', 'mediaHub']),
   enableHover: PropTypes.bool,
   className: PropTypes.string,
   style: PropTypes.object,
   children: PropTypes.node.isRequired,
 };
 
-PlayfulPressSurface.defaultProps = {
-  as: 'div',
-  variant: 'dockButton',
-  enableHover: true,
-  className: '',
-  style: undefined,
-};
-
 /**
  * Tap-only layer (e.g. inside `.channel` so outer CSS hover transform stays intact).
  */
-export const PlayfulTapLayer = forwardRef(function PlayfulTapLayer(
+export const WeeTapLayer = forwardRef(function WeeTapLayer(
   { className, style, children, ...rest },
   ref
 ) {
   const osReduced = useReducedMotion();
   const { channelTap } = useMotionFeedback();
-  const { pillSurfacePress } = useWeeMotion();
   const reduced = osReduced || !channelTap;
   if (reduced) {
     return (
@@ -120,7 +139,7 @@ export const PlayfulTapLayer = forwardRef(function PlayfulTapLayer(
       className={className}
       style={{ transformOrigin: 'center center', ...style }}
       whileTap={CHANNEL_TAP}
-      transition={pillSurfacePress}
+      transition={createWeeTransition('press')}
       {...rest}
     >
       {children}
@@ -128,9 +147,9 @@ export const PlayfulTapLayer = forwardRef(function PlayfulTapLayer(
   );
 });
 
-PlayfulTapLayer.displayName = 'PlayfulTapLayer';
+WeeTapLayer.displayName = 'WeeTapLayer';
 
-PlayfulTapLayer.propTypes = {
+WeeTapLayer.propTypes = {
   className: PropTypes.string,
   style: PropTypes.object,
   children: PropTypes.node.isRequired,

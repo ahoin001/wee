@@ -11,6 +11,11 @@ function WeeModalFieldCard({
   className = '',
   paddingClassName,
   tone = 'panel',
+  title,
+  description,
+  desc,
+  headerActions,
+  separator = false,
 }) {
   const hover =
     hoverAccent === 'primary'
@@ -20,7 +25,16 @@ function WeeModalFieldCard({
         : '';
 
   return (
-    <WeeCard tone={tone} paddingClassName={paddingClassName} className={`${hover} ${className}`.trim()}>
+    <WeeCard
+      tone={tone}
+      title={title}
+      description={description}
+      desc={desc}
+      headerActions={headerActions}
+      separator={separator}
+      paddingClassName={paddingClassName}
+      className={`${hover} ${className}`.trim()}
+    >
       {children}
     </WeeCard>
   );
@@ -32,6 +46,11 @@ WeeModalFieldCard.propTypes = {
   className: PropTypes.string,
   paddingClassName: PropTypes.string,
   tone: PropTypes.oneOf(['panel', 'well']),
+  title: PropTypes.node,
+  description: PropTypes.string,
+  desc: PropTypes.string,
+  headerActions: PropTypes.node,
+  separator: PropTypes.bool,
 };
 
 WeeModalFieldCard.defaultProps = {
@@ -39,6 +58,11 @@ WeeModalFieldCard.defaultProps = {
   className: '',
   paddingClassName: 'p-8 md:p-10',
   tone: 'panel',
+  title: undefined,
+  description: undefined,
+  desc: undefined,
+  headerActions: undefined,
+  separator: false,
 };
 
 export default WeeModalFieldCard;

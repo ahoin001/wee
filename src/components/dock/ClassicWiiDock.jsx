@@ -3,7 +3,7 @@ import { m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import './ClassicWiiDock.css';
 import DockParticleSystem from './DockParticleSystem';
-import { PlayfulPressSurface } from '../navigation/PlayfulInteractionMotion';
+import { WeePressSurface } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { CLASSIC_DOCK_DEFAULT_COLORS as DEFAULT_DOCK_COLORS } from '../../design/classicDockThemeDefaults.js';
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
@@ -213,7 +213,7 @@ const WiiDock = ({
         </svg>
 
         {/* Overlaid SVG elements, positioned absolutely */}
-        <PlayfulPressSurface
+        <WeePressSurface
           variant="dockAccessory"
           className="wii-sd-card"
           onClick={() => onAccessoryButtonClick && onAccessoryButtonClick()}
@@ -242,7 +242,7 @@ const WiiDock = ({
               className="wii-sd-card-custom-icon"
             />
           )}
-        </PlayfulPressSurface>
+        </WeePressSurface>
         
         {/* Left Button Pod and Button */}
         <div className="wii-left-pod">
@@ -252,7 +252,7 @@ const WiiDock = ({
               <path d="M567.5 218.317C567.5 174.355 556.315 141.313 539.783 116.396C523.225 91.4392 501.101 74.333 478.81 62.6045C456.502 50.8674 434.134 44.5743 417.302 41.2227C408.898 39.5493 401.907 38.6161 397.038 38.1016C394.605 37.8444 392.704 37.6919 391.425 37.6045C390.786 37.5608 390.302 37.5329 389.985 37.5166C389.827 37.5085 389.709 37.5032 389.636 37.5H26V26.5H389.84L389.938 26.5039L389.742 32C389.938 26.5035 389.941 26.5038 389.945 26.5039C389.948 26.504 389.952 26.5038 389.956 26.5039C389.965 26.5042 389.978 26.5053 389.992 26.5059C390.021 26.507 390.062 26.5085 390.113 26.5107C390.216 26.5152 390.362 26.5216 390.55 26.5312C390.926 26.5506 391.472 26.5819 392.175 26.6299C393.58 26.7259 395.617 26.8897 398.194 27.1621C403.348 27.7067 410.674 28.687 419.45 30.4346C436.979 33.9249 460.425 40.501 483.932 52.8691C507.455 65.246 531.147 83.4818 548.949 110.314C566.779 137.187 578.5 172.384 578.5 218.317C578.5 310.596 530.625 361.154 482.862 388.359C459.087 401.902 435.364 409.666 417.617 414.048C408.733 416.241 401.317 417.594 396.101 418.401C393.492 418.805 391.431 419.073 390.009 419.24C389.298 419.324 388.747 419.382 388.366 419.421C388.176 419.44 388.028 419.454 387.925 419.464C387.873 419.469 387.832 419.473 387.803 419.476L387.756 419.479C387.752 419.48 387.748 419.48 387.279 414L387.748 419.479L387.515 419.5H26.4844V408.5H387.021C387.086 408.494 387.165 408.486 387.259 408.477C387.581 408.444 388.073 408.392 388.722 408.315C390.02 408.162 391.95 407.912 394.419 407.53C399.359 406.766 406.453 405.474 414.979 403.368C432.056 399.152 454.764 391.706 477.418 378.802C522.516 353.114 567.5 305.83 567.5 218.317Z" fill={colors.leftPodDetailColor}/>
           </svg>
           
-          <PlayfulPressSurface
+          <WeePressSurface
               as="button"
               variant="dockButton"
               onClick={() => onButtonClick && onButtonClick(0)}
@@ -309,7 +309,7 @@ const WiiDock = ({
                      </svg>
                   </div>
               </div>
-          </PlayfulPressSurface>
+          </WeePressSurface>
         </div>
 
         {/* Right Button Pod and Button */}
@@ -321,7 +321,7 @@ const WiiDock = ({
           </svg>
           {(() => {
               return (
-                  <PlayfulPressSurface
+                  <WeePressSurface
                       as="button"
                       variant="dockButton"
                       onClick={() => onButtonClick && onButtonClick(1)}
@@ -375,7 +375,7 @@ const WiiDock = ({
                              </svg>
                           </div>
                       </div>
-                  </PlayfulPressSurface>
+                  </WeePressSurface>
               )
           })()}
         </div>

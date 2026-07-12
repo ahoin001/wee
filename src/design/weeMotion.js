@@ -93,6 +93,27 @@ export const WEE_SPRINGS = {
     damping: 28,
     mass: 1,
   },
+  /** Media Hub card / shell layout settle — pillClose family */
+  mediaHubShell: {
+    type: 'spring',
+    stiffness: 280,
+    damping: 30,
+    mass: 0.95,
+  },
+  /** Media Hub pill / card press — pillSurfacePress family */
+  mediaHubPress: {
+    type: 'spring',
+    stiffness: 380,
+    damping: 24,
+    mass: 0.85,
+  },
+  /** Space rail nudge when Wii side nav peeks */
+  railNudge: {
+    type: 'spring',
+    stiffness: 320,
+    damping: 28,
+    mass: 0.85,
+  },
   /** First visit per session — playful soft settle (~2.2–2.8s perceived) */
   hubSpaceEntranceFull: {
     type: 'spring',
@@ -147,6 +168,10 @@ export const WEE_MOTION_INTENTS = Object.freeze({
   hubEntrance: 'hubSpaceEntranceFull',
   hubRevisit: 'hubSpaceEntranceRevisitGooey',
   homeEntrance: 'homeSpaceEntranceOvershoot',
+  mediaHubAside: 'mediaHubDetailAside',
+  mediaHubShell: 'mediaHubShell',
+  mediaHubPress: 'mediaHubPress',
+  railNudge: 'railNudge',
 });
 
 const REDUCED_MOTION_BY_INTENT = Object.freeze({
@@ -165,6 +190,10 @@ const REDUCED_MOTION_BY_INTENT = Object.freeze({
   hubEntrance: { duration: 0.16 },
   hubRevisit: { duration: 0.14 },
   homeEntrance: { duration: 0.16 },
+  mediaHubAside: { duration: 0.14 },
+  mediaHubShell: { duration: 0.16 },
+  mediaHubPress: { duration: 0.1 },
+  railNudge: { duration: 0.15 },
 });
 
 /**

@@ -1,7 +1,7 @@
 import React from 'react';
-import { WBaseModal } from '../core';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
+import { WeeModalShell } from '../../ui/wee';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
 
 /**
@@ -67,10 +67,11 @@ const ConfirmationModal = () => {
   };
 
   return (
-    <WBaseModal
+    <WeeModalShell
       isOpen={showConfirmationModal}
-      title={title}
+      headerTitle={title}
       onClose={handleCancel}
+      showRail={false}
       maxWidth="600px"
       footerContent={() => (
         <div className="flex justify-end gap-3">
@@ -92,7 +93,7 @@ const ConfirmationModal = () => {
           className="mb-4 leading-relaxed text-[hsl(var(--text-primary))]"
         />
       </div>
-    </WBaseModal>
+    </WeeModalShell>
   );
 };
 

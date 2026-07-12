@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { WBaseModal } from '../core';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
-import Card from '../../ui/Card';
+import { WeeCard, WeeModalShell } from '../../ui/wee';
 import { PARTICLE_TYPES } from './DockParticleSystem';
 import { DEFAULT_RIBBON_GLOW_HEX, INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings.js';
 import './DockEffectsModal.css';
@@ -94,16 +93,17 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
   };
 
   return (
-    <WBaseModal
+    <WeeModalShell
       isOpen={isOpen}
       onClose={handleCancel}
-      title="Dock Effects Settings"
-      size="lg"
+      headerTitle="Dock Effects Settings"
+      showRail={false}
+      maxWidth="900px"
     >
       <div className="space-y-6">
         {/* Enable/Disable Effect */}
-        <Card>
-          <div className="flex items-center justify-between p-4">
+        <WeeCard paddingClassName="p-4">
+          <div className="flex items-center justify-between">
             <div>
               <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))]">
                 Enable Dock Effects
@@ -124,13 +124,13 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
               onChange={(checked) => updateSetting('enabled', checked)}
             />
           </div>
-        </Card>
+        </WeeCard>
 
         {localSettings.enabled && (
           <>
             {/* Effect Type Selection */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))] mb-4">
                   Effect Type
                 </Text>
@@ -155,11 +155,11 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   ))}
                 </div>
               </div>
-            </Card>
+            </WeeCard>
 
             {/* Direction Selection */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))] mb-4">
                   Particle Direction
                 </Text>
@@ -184,11 +184,11 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   ))}
                 </div>
               </div>
-            </Card>
+            </WeeCard>
 
             {/* Clip Path Follow Toggle */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))]">
@@ -211,11 +211,11 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   </div>
                 )}
               </div>
-            </Card>
+            </WeeCard>
 
             {/* Speed Control */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <div className="flex items-center justify-between mb-2">
                   <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))]">
                     Particle Speed
@@ -238,11 +238,11 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   <span>Fast</span>
                 </div>
               </div>
-            </Card>
+            </WeeCard>
 
             {/* Particle Count */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <div className="flex items-center justify-between mb-2">
                   <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))]">
                     Particle Count
@@ -265,11 +265,11 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   <span>Many</span>
                 </div>
               </div>
-            </Card>
+            </WeeCard>
 
             {/* Spawn Rate */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <div className="flex items-center justify-between mb-2">
                   <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))]">
                     Spawn Rate
@@ -292,11 +292,11 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   <span>Fast</span>
                 </div>
               </div>
-            </Card>
+            </WeeCard>
 
             {/* Preview Section */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))] mb-4">
                   Preview
                 </Text>
@@ -319,11 +319,11 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   </Text>
                 </div>
               </div>
-            </Card>
+            </WeeCard>
 
             {/* Color Settings */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))] mb-4">
                   Color Settings
                 </Text>
@@ -429,11 +429,11 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   </div>
                 </div>
               </div>
-            </Card>
+            </WeeCard>
 
             {/* Advanced Settings */}
-            <Card>
-              <div className="p-4">
+            <WeeCard paddingClassName="p-4">
+              <div>
                 <Text size="lg" weight={600} className="text-[hsl(var(--text-primary))] mb-4">
                   Advanced Settings
                 </Text>
@@ -564,7 +564,7 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
                   />
                 </div>
               </div>
-            </Card>
+            </WeeCard>
           </>
         )}
 
@@ -578,7 +578,7 @@ function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ri
           </Button>
         </div>
       </div>
-    </WBaseModal>
+    </WeeModalShell>
   );
 }
 

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import Text from '../Text';
+import { createWeeTransition } from '../../design/weeMotion';
 
 /**
  * Chunky collapsible block for settings tab content (icon tile + title + chevron, spring panel).
@@ -23,8 +24,8 @@ function WeeSettingsCollapsibleSection({
 
   const toggle = useCallback(() => setOpen((o) => !o), []);
 
-  /** Slightly bouncier panel — Wee “gooey” feel (tabBody-adjacent). */
-  const spring = reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 360, damping: 24, mass: 0.78 };
+  const spring = createWeeTransition('pillOpen', { reducedMotion: reduceMotion });
+  const chevronSpring = createWeeTransition('press', { reducedMotion: reduceMotion });
 
   return (
     <div
@@ -69,7 +70,7 @@ function WeeSettingsCollapsibleSection({
         </div>
         <m.span
           animate={{ rotate: open ? 180 : 0 }}
-          transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 28 }}
+          transition={chevronSpring}
           className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
             open ? 'bg-[hsl(var(--surface-wii-tint))] text-[hsl(var(--primary))]' : 'bg-[hsl(var(--surface-tertiary))] text-[hsl(var(--text-tertiary))]'
           }`}

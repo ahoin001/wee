@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { DEFAULT_SHORTCUTS } from './keyboardShortcuts';
+import { createDefaultKeyboardShortcuts, mergeKeyboardShortcutsWithDefaults } from './keyboardShortcuts';
+import { normalizeAdminPanelConfig } from './adminPanelCommands';
 import { createStoreManagers } from './store/managers';
 import { CLASSIC_DOCK_DEFAULT_COLORS } from '../design/classicDockThemeDefaults.js';
 import {
@@ -172,12 +173,7 @@ useConsolidatedAppStore = create(
           channelOpenHints: {},
           settingsActiveTab: 'channels', // Default active tab for settings modal
           // Keyboard shortcuts
-          keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
-            ...shortcut,
-            key: shortcut.defaultKey,
-            modifier: shortcut.defaultModifier,
-            enabled: true
-          })),
+          keyboardShortcuts: createDefaultKeyboardShortcuts(),
           motionFeedback: mergeMotionFeedback(DEFAULT_MOTION_FEEDBACK),
           spaceRailAutoHide: true,
           spaceRailPinned: false,
@@ -1117,12 +1113,7 @@ useConsolidatedAppStore = create(
           resetKeyboardShortcuts: () => set((state) => ({
             ui: {
               ...state.ui,
-              keyboardShortcuts: DEFAULT_SHORTCUTS.map(shortcut => ({
-                ...shortcut,
-                key: shortcut.defaultKey,
-                modifier: shortcut.defaultModifier,
-                enabled: true
-              }))
+              keyboardShortcuts: createDefaultKeyboardShortcuts(),
             }
           })),
 
@@ -1354,11 +1345,17 @@ useConsolidatedAppStore = create(
                 next.channels = mergeChannelsSlice(state.channels, slices.channels);
               }
               if (slices.ui) {
+                const incomingUi = { ...slices.ui };
+                if (Array.isArray(incomingUi.keyboardShortcuts)) {
+                  incomingUi.keyboardShortcuts = mergeKeyboardShortcutsWithDefaults(
+                    incomingUi.keyboardShortcuts
+                  );
+                }
                 next.ui = {
                   ...state.ui,
-                  ...slices.ui,
+                  ...incomingUi,
                   motionFeedback: mergeMotionFeedback(
-                    slices.ui.motionFeedback ?? state.ui.motionFeedback
+                    incomingUi.motionFeedback ?? state.ui.motionFeedback
                   ),
                 };
               }
@@ -1443,10 +1440,21 @@ useConsolidatedAppStore = create(
               }
               if (slices.navigation) next.navigation = { ...state.navigation, ...slices.navigation };
               if (slices.floatingWidgets) {
-                next.floatingWidgets = {
+                const nextFw = {
                   ...state.floatingWidgets,
                   ...slices.floatingWidgets,
                 };
+                if (slices.floatingWidgets.adminPanel || nextFw.adminPanel) {
+                  const ap = {
+                    ...state.floatingWidgets.adminPanel,
+                    ...(slices.floatingWidgets.adminPanel || {}),
+                  };
+                  nextFw.adminPanel = {
+                    ...ap,
+                    config: normalizeAdminPanelConfig(ap.config),
+                  };
+                }
+                next.floatingWidgets = nextFw;
               }
               if (slices.monitors) next.monitors = { ...state.monitors, ...slices.monitors };
               if (slices.spotify) next.spotify = { ...state.spotify, ...slices.spotify };

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import Card from '../../ui/Card';
 import WButton from '../../ui/WButton';
+import { WeeCard } from '../../ui/wee';
 import WInput from '../../ui/WInput';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { MAX_SAVED_WORKSPACES } from '../../utils/workspaces/workspaceConstants';
@@ -65,7 +65,7 @@ const SecondaryChannelProfilesCard = React.memo(() => {
   };
 
   return (
-    <Card
+    <WeeCard
       title="Second space channel layouts"
       desc="The left rail slot (before Home) shows one of these grids at a time — like a second phone. Home stays in the middle; Game Hub is unchanged."
     >
@@ -158,7 +158,7 @@ const SecondaryChannelProfilesCard = React.memo(() => {
           {status}
         </p>
       ) : null}
-    </Card>
+    </WeeCard>
   );
 });
 

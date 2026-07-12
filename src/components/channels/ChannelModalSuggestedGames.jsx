@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import Card from '../../ui/Card';
 import Text from '../../ui/Text';
+import { WeeCard } from '../../ui/wee';
 import WButton from '../../ui/WButton';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { getAllMatchingMedia } from '../../utils/mediaLibraryCache';
@@ -212,7 +212,7 @@ export default function ChannelModalSuggestedGames({
   }
 
   return (
-  <Card
+  <WeeCard
     title="From your PC & game libraries"
     separator
     desc="Tap a tile to fill this channel’s launch target and art."
@@ -936,7 +936,7 @@ export default function ChannelModalSuggestedGames({
     )}
 
 
-  </Card>
+  </WeeCard>
 );
 }
 

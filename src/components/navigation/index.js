@@ -6,7 +6,4 @@ export { default as WiiSideNavigation } from './WiiSideNavigation';
 export { default as ChannelSlotDnd, parseChannelDnDId, channelDragId, channelSlotId } from './ChannelSlotDnd';
 export { ChannelDragOverlayFrame, ChannelDropTargetMotion, channelDragSpring } from './ChannelDragMotion';
 export { ChannelReorderVfxPortal, measureChannelSlotCenter } from './ChannelReorderVfx';
-export {
-  PlayfulPressSurface,
-  PlayfulTapLayer,
-} from './PlayfulInteractionMotion';
+export { WeePressSurface, WeeTapLayer } from '../../ui/wee/WeePressSurface';

@@ -8,7 +8,20 @@ const COMMUNITY_BLOCKED_KEYS = [
   'includesHomeChannels',
   'shareable',
 ]
-const COMMUNITY_ALLOWED_KEYS = ['wallpaper', 'ribbon', 'time', 'overlay', 'ui', 'capturedSpotifyPalette']
+/** Visual community allowlist — channels/sounds stay local-only. */
+export const COMMUNITY_ALLOWED_KEYS = [
+  'wallpaper',
+  'ribbon',
+  'time',
+  'overlay',
+  'ui',
+  'capturedSpotifyPalette',
+  'dock',
+  'appearanceBySpace',
+]
+
+/** Soft cap for remote wallpaper fetch during share (bytes). */
+export const COMMUNITY_WALLPAPER_MAX_BYTES = 12 * 1024 * 1024
 
 const isPlainObject = (value) => value && typeof value === 'object' && !Array.isArray(value)
 
@@ -18,6 +31,75 @@ const cloneJson = (value) => {
     return JSON.parse(JSON.stringify(value))
   } catch {
     return {}
+  }
+}
+
+const isHttpUrl = (url) => typeof url === 'string' && /^https?:\/\//i.test(url)
+const isUserdataUrl = (url) => typeof url === 'string' && url.startsWith('userdata://')
+
+/**
+ * Canonical active wallpaper URL: prefer `wallpaper.current.url`, fall back to legacy `wallpaper.url`.
+ */
+export const getPresetWallpaperUrl = (wallpaper) => {
+  if (!isPlainObject(wallpaper)) return null
+  const currentUrl = wallpaper.current?.url
+  if (typeof currentUrl === 'string' && currentUrl) return currentUrl
+  if (typeof wallpaper.url === 'string' && wallpaper.url) return wallpaper.url
+  return null
+}
+
+/**
+ * Ensure wallpaper uses `current` for the active image; mirror legacy `url` when useful.
+ * @param {Record<string, unknown>} wallpaper
+ * @param {{ url?: string, name?: string, mimeType?: string, source?: string } | null} [active]
+ */
+export const normalizeWallpaperCurrentShape = (wallpaper, active = null) => {
+  if (!isPlainObject(wallpaper)) return wallpaper
+  const next = { ...wallpaper }
+  const fromActive =
+    active && typeof active.url === 'string' && active.url
+      ? {
+          ...(isPlainObject(next.current) ? next.current : {}),
+          ...active,
+          url: active.url,
+        }
+      : null
+
+  if (fromActive) {
+    next.current = fromActive
+  } else if (!isPlainObject(next.current) && typeof next.url === 'string' && next.url) {
+    next.current = {
+      url: next.url,
+      ...(typeof next.name === 'string' ? { name: next.name } : {}),
+      ...(typeof next.mimeType === 'string' ? { mimeType: next.mimeType } : {}),
+      ...(typeof next.source === 'string' ? { source: next.source } : {}),
+    }
+  }
+
+  if (isPlainObject(next.current) && typeof next.current.url === 'string') {
+    next.url = next.current.url
+  }
+  return next
+}
+
+const scrubPrivateUrl = (url) => {
+  if (typeof url !== 'string') return null
+  if (isUserdataUrl(url)) return null
+  if (isHttpUrl(url)) return url
+  return null
+}
+
+const scrubWallpaperObjectUrls = (wallpaper) => {
+  if (!isPlainObject(wallpaper)) return
+  if (isPlainObject(wallpaper.current)) {
+    const scrubbed = scrubPrivateUrl(wallpaper.current.url)
+    if (scrubbed) wallpaper.current = { ...wallpaper.current, url: scrubbed }
+    else delete wallpaper.current.url
+  }
+  if (typeof wallpaper.url === 'string') {
+    const scrubbed = scrubPrivateUrl(wallpaper.url)
+    if (scrubbed) wallpaper.url = scrubbed
+    else delete wallpaper.url
   }
 }
 
@@ -51,6 +133,7 @@ const normalizeWallpaperCollections = (settings) => {
       if (!item || typeof item !== 'object') return false
       const url = typeof item.url === 'string' ? item.url : ''
       if (!url || url.startsWith('userdata://')) return false
+      if (!isHttpUrl(url)) return false
       if (seen.has(url)) return false
       seen.add(url)
       return true
@@ -63,6 +146,15 @@ const normalizeWallpaperCollections = (settings) => {
   }
 }
 
+/**
+ * Community share: Home appearance only (never other spaces / channels).
+ */
+const sanitizeAppearanceBySpaceForCommunity = (appearanceBySpace) => {
+  if (!isPlainObject(appearanceBySpace)) return undefined
+  if (!isPlainObject(appearanceBySpace.home)) return { home: null }
+  return { home: cloneJson(appearanceBySpace.home) }
+}
+
 export const sanitizePresetSettingsForCommunity = (settingsInput, options = {}) => {
   const rawSettings = cloneJson(settingsInput)
   const wallpaperPublicUrl = options.wallpaperPublicUrl || null
@@ -73,16 +165,35 @@ export const sanitizePresetSettingsForCommunity = (settingsInput, options = {}) 
     if (rawSettings[key] !== undefined) settings[key] = rawSettings[key]
   }
 
+  if (settings.appearanceBySpace !== undefined) {
+    settings.appearanceBySpace = sanitizeAppearanceBySpaceForCommunity(settings.appearanceBySpace)
+  }
+
   if (isPlainObject(settings.wallpaper)) {
+    settings.wallpaper = normalizeWallpaperCurrentShape(settings.wallpaper)
+    scrubWallpaperObjectUrls(settings.wallpaper)
+
     if (wallpaperPublicUrl) {
-      settings.wallpaper.url = wallpaperPublicUrl
+      settings.wallpaper = normalizeWallpaperCurrentShape(settings.wallpaper, {
+        url: wallpaperPublicUrl,
+        source: 'community',
+        ...(typeof settings.wallpaper.current?.name === 'string'
+          ? { name: settings.wallpaper.current.name }
+          : {}),
+      })
       settings.wallpaper.source = 'community'
-    } else if (typeof settings.wallpaper.url === 'string' && settings.wallpaper.url.startsWith('userdata://')) {
-      delete settings.wallpaper.url
     }
+
+    scrubWallpaperObjectUrls(settings.wallpaper)
+    // Community shares active wallpaper only — drop private libraries from public payload.
+    delete settings.wallpaper.savedWallpapers
+    delete settings.wallpaper.likedWallpapers
   }
 
   normalizeWallpaperCollections(settings)
+  delete settings.savedWallpapers
+  delete settings.likedWallpapers
+
   return settings
 }
 
@@ -97,11 +208,18 @@ const fileFromBase64 = (base64Data, filename, mimeType) => {
 
 export const resolveWallpaperFileForShare = async (selectedPreset) => {
   const wallpaperRef = selectedPreset?.data?.wallpaper
-  const wallpaperUrl = wallpaperRef?.url
-  if (!wallpaperUrl) return { file: null, warning: null }
+  const wallpaperUrl = getPresetWallpaperUrl(wallpaperRef)
+  if (!wallpaperUrl) {
+    return { file: null, warning: 'No wallpaper on this preset; shared look will use colors only.' }
+  }
+
+  const mimeHint =
+    wallpaperRef?.current?.mimeType || wallpaperRef?.mimeType || 'image/jpeg'
+  const nameHint =
+    wallpaperRef?.current?.name || wallpaperRef?.name || `wallpaper-${Date.now()}.jpg`
 
   try {
-    if (wallpaperUrl.startsWith('userdata://')) {
+    if (isUserdataUrl(wallpaperUrl)) {
       if (!window.api?.wallpapers?.getFile) {
         return { file: null, warning: 'Wallpaper API unavailable; shared preset will not include wallpaper.' }
       }
@@ -111,19 +229,33 @@ export const resolveWallpaperFileForShare = async (selectedPreset) => {
       }
       const file = fileFromBase64(
         wallpaperResult.data,
-        wallpaperResult.filename || `wallpaper-${Date.now()}.jpg`,
-        wallpaperRef?.mimeType || 'image/jpeg'
+        wallpaperResult.filename || nameHint,
+        mimeHint
       )
+      if (file.size > COMMUNITY_WALLPAPER_MAX_BYTES) {
+        return {
+          file: null,
+          warning: 'Wallpaper is too large to upload; shared preset will not include wallpaper.',
+        }
+      }
       return { file, warning: null }
     }
 
-    if (/^https?:\/\//i.test(wallpaperUrl)) {
+    if (isHttpUrl(wallpaperUrl)) {
       const response = await fetch(wallpaperUrl)
       if (!response.ok) {
         return { file: null, warning: 'Could not fetch remote wallpaper; shared preset will not include wallpaper.' }
       }
       const blob = await response.blob()
-      const file = new File([blob], 'wallpaper.jpg', { type: blob.type || wallpaperRef?.mimeType || 'image/jpeg' })
+      if (blob.size > COMMUNITY_WALLPAPER_MAX_BYTES) {
+        return {
+          file: null,
+          warning: 'Wallpaper is too large to upload; shared preset will not include wallpaper.',
+        }
+      }
+      const file = new File([blob], nameHint.endsWith('.jpg') ? nameHint : 'wallpaper.jpg', {
+        type: blob.type || mimeHint,
+      })
       return { file, warning: null }
     }
 

@@ -1,27 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import Card from '../../ui/Card';
+import { Music, Activity, Settings2 } from 'lucide-react';
 import Text from '../../ui/Text';
-import CollapsibleSection from '../../ui/CollapsibleSection';
-import SaveButton from './SaveButton';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
+import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
 import { AdminPanel } from '../admin';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { applyAdminPanelPowerActions, normalizeAdminPanelConfig } from '../../utils/adminPanelCommands';
 import { logError } from '../../utils/logger';
-import {
-  ADMIN_WIDGET_CARD_SHADOW,
-  ADMIN_WIDGET_GRADIENT,
-  CSS_COLOR_PURE_BLACK,
-  CSS_COLOR_PURE_WHITE,
-  CSS_SPOTIFY_PRIMARY,
-  INTEGRATION_PANEL_INSET_BG,
-  SPOTIFY_CARD_SHADOW_SOFT,
-  SPOTIFY_DEFAULT_GRADIENT,
-  SPOTIFY_ICON_FILL,
-  SYSTEM_INFO_CARD_SHADOW,
-  SYSTEM_INFO_GRADIENT,
-} from '../../design/runtimeColorStrings.js';
+import ShortcutCaptureControl from './ShortcutCaptureControl';
 import './api-integrations-settings.css';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 
@@ -32,11 +20,7 @@ const spotifyBtnClass = (active, isGreen = true) =>
       ? '!bg-[rgb(var(--spotify-green-rgb))] !border-[rgb(var(--spotify-green-rgb))] hover:!brightness-110 text-white border-solid'
       : '!bg-[hsl(var(--link))] !border-[hsl(var(--link))] hover:!brightness-110 text-white border-solid';
 
-const adminOrangeBtn =
-  '!bg-[hsl(var(--state-warning))] !border-[hsl(var(--state-warning))] hover:!brightness-110 text-white border-solid';
-
 const ApiIntegrationsSettingsTab = () => {
-  // Use consolidated store
   const { spotify, floatingWidgets } = useConsolidatedAppStore(
     useShallow((state) => ({
       spotify: state.spotify,
@@ -44,14 +28,14 @@ const ApiIntegrationsSettingsTab = () => {
     }))
   );
   const actions = useConsolidatedAppStore(useShallow((state) => state.actions));
-  
-  // Local state for admin panel modal
+
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // Get admin panel config from store
-  const adminPanelConfig = floatingWidgets.adminPanel.config || { powerActions: [] };
+  const adminPanelConfig = useMemo(
+    () => normalizeAdminPanelConfig(floatingWidgets.adminPanel?.config),
+    [floatingWidgets.adminPanel?.config]
+  );
 
-  // Spotify connection handlers
   const handleSpotifyConnect = useCallback(async () => {
     try {
       await actions.spotifyManager.connect();
@@ -68,7 +52,6 @@ const ApiIntegrationsSettingsTab = () => {
     }
   }, [actions]);
 
-  // Widget toggle handlers
   const handleToggleSpotifyWidget = useCallback(() => {
     actions.toggleSpotifyWidget();
   }, [actions]);
@@ -76,42 +59,49 @@ const ApiIntegrationsSettingsTab = () => {
   const handleToggleSystemInfoWidget = useCallback(() => {
     const isVisible = floatingWidgets.systemInfo.visible;
     actions.setFloatingWidgetsState({
-      systemInfo: { ...floatingWidgets.systemInfo, visible: !isVisible }
+      systemInfo: { ...floatingWidgets.systemInfo, visible: !isVisible },
     });
   }, [actions, floatingWidgets.systemInfo]);
 
   const handleToggleAdminPanelWidget = useCallback(() => {
     const isVisible = floatingWidgets.adminPanel.visible;
     actions.setFloatingWidgetsState({
-      adminPanel: { ...floatingWidgets.adminPanel, visible: !isVisible }
+      adminPanel: { ...floatingWidgets.adminPanel, visible: !isVisible },
     });
   }, [actions, floatingWidgets.adminPanel]);
 
-  const handleUpdateSystemInfoInterval = useCallback((interval) => {
-    actions.setFloatingWidgetsState({
-      systemInfo: { ...floatingWidgets.systemInfo, updateInterval: interval }
-    });
-  }, [actions, floatingWidgets.systemInfo]);
+  const handleUpdateSystemInfoInterval = useCallback(
+    (interval) => {
+      actions.setFloatingWidgetsState({
+        systemInfo: { ...floatingWidgets.systemInfo, updateInterval: interval },
+      });
+    },
+    [actions, floatingWidgets.systemInfo]
+  );
 
-  const handleUpdateSpotifySettings = useCallback((settings) => {
-    actions.setFloatingWidgetsState({
-      spotify: { 
-        ...floatingWidgets.spotify, 
-        settings: { ...floatingWidgets.spotify.settings, ...settings }
-      }
-    });
-  }, [actions, floatingWidgets.spotify]);
+  const handleUpdateSpotifySettings = useCallback(
+    (settings) => {
+      actions.setFloatingWidgetsState({
+        spotify: {
+          ...floatingWidgets.spotify,
+          settings: { ...floatingWidgets.spotify.settings, ...settings },
+        },
+      });
+    },
+    [actions, floatingWidgets.spotify]
+  );
 
-  // Handle admin panel save
-  const handleAdminPanelSave = useCallback((config) => {
-    // Use the direct setFloatingWidgetsState action instead of floatingWidgetManager
-    actions.setFloatingWidgetsState({
-      adminPanel: { 
-        ...floatingWidgets.adminPanel, 
-        config
-      }
-    });
-  }, [actions, floatingWidgets.adminPanel]);
+  const handleAdminPanelSave = useCallback(
+    (powerActionsOrConfig) => {
+      actions.setFloatingWidgetsState({
+        adminPanel: applyAdminPanelPowerActions(
+          floatingWidgets.adminPanel,
+          powerActionsOrConfig
+        ),
+      });
+    },
+    [actions, floatingWidgets.adminPanel]
+  );
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
@@ -121,414 +111,334 @@ const ApiIntegrationsSettingsTab = () => {
       />
 
       {/* Spotify Integration */}
-      <CollapsibleSection
+      <WeeSettingsCollapsibleSection
+        icon={Music}
         title="Spotify Integration"
         description="Connect to Spotify and configure the floating widget"
-        icon={
-          <svg width="28" height="28" viewBox="0 0 24 24" fill={SPOTIFY_ICON_FILL}>
-            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-          </svg>
-        }
-        iconBgColor={CSS_COLOR_PURE_BLACK}
-        gradientBg={SPOTIFY_DEFAULT_GRADIENT}
-        borderColor={CSS_SPOTIFY_PRIMARY}
-        shadowColor={SPOTIFY_CARD_SHADOW_SOFT}
-        defaultCollapsed={true}
+        defaultOpen={false}
       >
-        <Card className="mb-6 api-integ-glass-card">
-          <div className="p-6">
-            {/* Widget Enable/Disable Control */}
-            <div
-              className="flex items-center justify-between mb-6 p-4 rounded-lg"
-              style={{ background: INTEGRATION_PANEL_INSET_BG }}
-            >
-              <div>
-                <Text variant="body" className="text-white font-semibold text-sm">
-                  Spotify Widget
-                </Text>
-                <Text variant="caption" className="text-white opacity-70 text-xs">
-                  Display current Spotify playback in a floating widget
-                </Text>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Text variant="caption" className="text-white">
-                  {floatingWidgets.spotify.visible ? 'Enabled' : 'Disabled'}
-                </Text>
-                <WButton
-                  onClick={handleToggleSpotifyWidget}
-                  size="sm"
-                  variant="primary"
-                  className={spotifyBtnClass(floatingWidgets.spotify.visible, true)}
-                >
-                  {floatingWidgets.spotify.visible ? 'Disable' : 'Enable'}
-                </WButton>
-              </div>
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
+          {/* Widget Enable/Disable Control */}
+          <div className="mb-6 flex items-center justify-between rounded-lg bg-[hsl(var(--surface-tertiary))] p-4">
+            <div>
+              <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
+                Spotify Widget
+              </Text>
+              <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
+                Display current Spotify playback in a floating widget
+              </Text>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
+                {floatingWidgets.spotify.visible ? 'Enabled' : 'Disabled'}
+              </Text>
+              <WButton
+                onClick={handleToggleSpotifyWidget}
+                size="sm"
+                variant="primary"
+                className={spotifyBtnClass(floatingWidgets.spotify.visible, true)}
+              >
+                {floatingWidgets.spotify.visible ? 'Disable' : 'Enable'}
+              </WButton>
+            </div>
           </div>
 
-            <Text variant="body" className="mb-6 text-white font-semibold text-sm">
-              Widget Settings
-            </Text>
+          <Text variant="body" className="mb-6 text-sm font-semibold text-[hsl(var(--text-primary))]">
+            Widget Settings
+          </Text>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
-                  Connection Status
-                </Text>
-                <div className="space-y-2">
-                  <div className={`px-3 py-2 rounded-md text-sm ${
-                    spotify.isConnected 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-red-500 text-white'
-                  }`}>
-                    {spotify.isConnected ? 'Connected' : 'Disconnected'}
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
+                Connection Status
+              </Text>
+              <div className="space-y-2">
+                <div
+                  className={`rounded-md px-3 py-2 text-sm text-white ${
+                    spotify.isConnected ? 'bg-green-500' : 'bg-red-500'
+                  }`}
+                >
+                  {spotify.isConnected ? 'Connected' : 'Disconnected'}
+                </div>
+                {spotify.error && (
+                  <div className="rounded-md bg-red-600 px-3 py-2 text-sm text-white">
+                    Error: {spotify.error}
                   </div>
-                  {spotify.error && (
-                    <div className="px-3 py-2 rounded-md text-sm bg-red-600 text-white">
-                      Error: {spotify.error}
-                    </div>
-                  )}
+                )}
+                <WButton
+                  onClick={spotify.isConnected ? handleSpotifyDisconnect : handleSpotifyConnect}
+                  size="sm"
+                  disabled={spotify.loading}
+                  variant="primary"
+                  fullWidth
+                  className={spotifyBtnClass(spotify.isConnected, true)}
+                >
+                  {spotify.loading ? 'Connecting...' : (spotify.isConnected ? 'Disconnect' : 'Connect to Spotify')}
+                </WButton>
+                {!spotify.isConnected && !spotify.loading && (
+                  <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
+                    Click to authorize with Spotify. You'll be redirected to Spotify to grant permissions.
+                  </Text>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
+                Widget Status
+              </Text>
+              <div className="space-y-2">
+                <div
+                  className={`rounded-md px-3 py-2 text-sm text-white ${
+                    floatingWidgets.spotify.visible ? 'bg-blue-500' : 'bg-gray-500'
+                  }`}
+                >
+                  {floatingWidgets.spotify.visible ? 'Visible' : 'Hidden'}
+                </div>
+                {spotify.isConnected && (
                   <WButton
-                    onClick={spotify.isConnected ? handleSpotifyDisconnect : handleSpotifyConnect}
+                    onClick={handleToggleSpotifyWidget}
                     size="sm"
-                    disabled={spotify.loading}
                     variant="primary"
                     fullWidth
-                    className={spotifyBtnClass(spotify.isConnected, true)}
+                    className={spotifyBtnClass(floatingWidgets.spotify.visible, true)}
                   >
-                    {spotify.loading ? 'Connecting...' : (spotify.isConnected ? 'Disconnect' : 'Connect to Spotify')}
+                    {floatingWidgets.spotify.visible ? 'Hide Widget' : 'Show Widget'}
                   </WButton>
-                  {!spotify.isConnected && !spotify.loading && (
-                    <Text variant="caption" className="text-white opacity-70 text-xs">
-                      Click to authorize with Spotify. You'll be redirected to Spotify to grant permissions.
-                    </Text>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
-                  Widget Status
-                </Text>
-                <div className="space-y-2">
-                  <div className={`px-3 py-2 rounded-md text-sm ${
-                    floatingWidgets.spotify.visible 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-500 text-white'
-                  }`}>
-                    {floatingWidgets.spotify.visible ? 'Visible' : 'Hidden'}
-                  </div>
-                  {spotify.isConnected && (
-                    <WButton
-                      onClick={handleToggleSpotifyWidget}
-                      size="sm"
-                      variant="primary"
-                      fullWidth
-                      className={spotifyBtnClass(floatingWidgets.spotify.visible, true)}
-                    >
-                      {floatingWidgets.spotify.visible ? 'Hide Widget' : 'Show Widget'}
-                    </WButton>
-                  )}
-                </div>
+                )}
               </div>
             </div>
+          </div>
 
-            <div className="mb-6">
-              <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
-                Features
-              </Text>
-              <div className="space-y-3">
-                <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-                  <div className="flex items-center">
-                    <span className="text-sm mr-2">🎵</span>
-                    <Text variant="caption" className="text-white text-xs font-medium">
-                      Auto-show widget on playback
-                    </Text>
-                  </div>
-                  <WToggle
-                    checked={floatingWidgets.spotify.settings.autoShowWidget}
-                    onChange={(checked) => handleUpdateSpotifySettings({ autoShowWidget: checked })}
-                    containerClassName="wii-toggle-spotify-accent"
-                  />
+          <div className="mb-6">
+            <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
+              Features
+            </Text>
+            <div className="space-y-3">
+              <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
+                <div className="flex items-center">
+                  <span className="mr-2 text-sm">🎵</span>
+                  <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
+                    Auto-show widget on playback
+                  </Text>
                 </div>
+                <WToggle
+                  checked={floatingWidgets.spotify.settings.autoShowWidget}
+                  onChange={(checked) => handleUpdateSpotifySettings({ autoShowWidget: checked })}
+                  containerClassName="wii-toggle-spotify-accent"
+                />
+              </div>
 
-                <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-                  <div className="flex items-center">
-                    <span className="text-sm mr-2">👁️</span>
-                    <Text variant="caption" className="text-white text-xs font-medium">
-                      Auto-hide widget when stopped
+              <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
+                <div className="flex items-center">
+                  <span className="mr-2 text-sm">👁️</span>
+                  <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
+                    Auto-hide widget when stopped
+                  </Text>
+                </div>
+                <WToggle
+                  checked={floatingWidgets.spotify.settings.autoHideWidget}
+                  onChange={(checked) => handleUpdateSpotifySettings({ autoHideWidget: checked })}
+                  containerClassName="wii-toggle-spotify-accent"
+                />
+              </div>
+
+              <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
+                <div className="flex items-center">
+                  <span className="mr-2 text-sm">🎨</span>
+                  <Text variant="caption" className="text-xs font-medium text-[hsl(var(--text-primary))]">
+                    Dynamic colors
+                  </Text>
+                </div>
+                <WToggle
+                  checked={floatingWidgets.spotify.settings.dynamicColors}
+                  onChange={(checked) => handleUpdateSpotifySettings({ dynamicColors: checked })}
+                  containerClassName="wii-toggle-spotify-accent"
+                />
+              </div>
+            </div>
+            <Text variant="caption" className="mt-3 text-[11px] text-[hsl(var(--text-tertiary))]">
+              Configure how the Spotify widget behaves and displays
             </Text>
           </div>
-          <WToggle
-                    checked={floatingWidgets.spotify.settings.autoHideWidget}
-                    onChange={(checked) => handleUpdateSpotifySettings({ autoHideWidget: checked })}
-                    containerClassName="wii-toggle-spotify-accent"
-          />
-        </div>
-
-                <div className="api-integ-feature-row flex items-center justify-between rounded-md p-3">
-                  <div className="flex items-center">
-                    <span className="text-sm mr-2">🎨</span>
-                    <Text variant="caption" className="text-white text-xs font-medium">
-                      Dynamic colors
-                    </Text>
-                  </div>
-                  <WToggle
-                    checked={floatingWidgets.spotify.settings.dynamicColors}
-                    onChange={(checked) => handleUpdateSpotifySettings({ dynamicColors: checked })}
-                    containerClassName="wii-toggle-spotify-accent"
-                  />
-                </div>
-              </div>
-              <Text variant="caption" className="opacity-70 text-white text-[11px] mt-3">
-                Configure how the Spotify widget behaves and displays
-              </Text>
-            </div>
-          </div>
-        </Card>
-      </CollapsibleSection>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
 
       {/* System Info Widget */}
-      <CollapsibleSection
+      <WeeSettingsCollapsibleSection
+        icon={Activity}
         title="System Info Widget"
         description="Real-time system monitoring and performance metrics"
-        icon="📊"
-        iconBgColor={CSS_COLOR_PURE_WHITE}
-        gradientBg={SYSTEM_INFO_GRADIENT}
-        borderColor="hsl(var(--link))"
-        shadowColor={SYSTEM_INFO_CARD_SHADOW}
-        defaultCollapsed={true}
+        defaultOpen={false}
       >
-        <Card className="mb-6 api-integ-glass-card">
-          <div className="p-6">
-            {/* Widget Enable/Disable Control */}
-            <div
-              className="flex items-center justify-between mb-6 p-4 rounded-lg"
-              style={{ background: INTEGRATION_PANEL_INSET_BG }}
-            >
-              <div>
-                <Text variant="body" className="text-white font-semibold text-sm">
-                  System Info Widget
-                   </Text>
-                <Text variant="caption" className="text-white opacity-70 text-xs">
-                  Display real-time system information in a floating widget
-                   </Text>
-                 </div>
-              <div className="flex items-center space-x-3">
-                <Text variant="caption" className="text-white">
-                  {floatingWidgets.systemInfo.visible ? 'Enabled' : 'Disabled'}
-                </Text>
-                 <WButton
-                  onClick={handleToggleSystemInfoWidget}
-                   size="sm"
-                   variant="primary"
-                   className={spotifyBtnClass(floatingWidgets.systemInfo.visible, false)}
-                >
-                                      {floatingWidgets.systemInfo.visible ? 'Disable' : 'Enable'}
-                 </WButton>
-              </div>
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
+          {/* Widget Enable/Disable Control */}
+          <div className="mb-6 flex items-center justify-between rounded-lg bg-[hsl(var(--surface-tertiary))] p-4">
+            <div>
+              <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
+                System Info Widget
+              </Text>
+              <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
+                Display real-time system information in a floating widget
+              </Text>
             </div>
+            <div className="flex items-center space-x-3">
+              <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
+                {floatingWidgets.systemInfo.visible ? 'Enabled' : 'Disabled'}
+              </Text>
+              <WButton
+                onClick={handleToggleSystemInfoWidget}
+                size="sm"
+                variant="primary"
+                className={spotifyBtnClass(floatingWidgets.systemInfo.visible, false)}
+              >
+                {floatingWidgets.systemInfo.visible ? 'Disable' : 'Enable'}
+              </WButton>
+            </div>
+          </div>
 
-            <Text variant="body" className="mb-6 text-white font-semibold text-sm">
-              Widget Settings
+          <Text variant="body" className="mb-6 text-sm font-semibold text-[hsl(var(--text-primary))]">
+            Widget Settings
+          </Text>
+
+          <div className="mb-6">
+            <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
+              Update Interval
             </Text>
-            
-            <div className="mb-6">
-              <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
-                Update Interval
-              </Text>
-              <input
-                type="range"
-                min="0"
-                max="60"
-                                  value={floatingWidgets.systemInfo.updateInterval || 0}
-                                  onChange={(e) => handleUpdateSystemInfoInterval(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <Text variant="caption" className="opacity-70 mt-1 text-white text-[11px]">
-                                  {floatingWidgets.systemInfo.updateInterval === 0 ? 'Off' : `${floatingWidgets.systemInfo.updateInterval} seconds`}
-              </Text>
-              <Text variant="caption" className="opacity-70 mt-1 text-white text-[11px]">
-                Set to 0 to disable automatic updates
-              </Text>
-            </div>
-
-            <div className="mb-6">
-              <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
-                Features
-              </Text>
-              <div className="mb-2 grid gap-2 api-integ-grid-features">
-                <div className="api-integ-pill rounded-md p-2">
-                  <Text variant="caption" className="text-white text-[11px] font-semibold">
-                    📊 CPU & Memory
-                  </Text>
-                </div>
-                <div className="api-integ-pill rounded-md p-2">
-                  <Text variant="caption" className="text-white text-[11px] font-semibold">
-                    🎮 GPU & Storage
-                  </Text>
-                </div>
-                <div className="api-integ-pill rounded-md p-2">
-                  <Text variant="caption" className="text-white text-[11px] font-semibold">
-                    🔋 Battery & Power
-                  </Text>
-                </div>
-                <div className="api-integ-pill rounded-md p-2">
-                  <Text variant="caption" className="text-white text-[11px] font-semibold">
-                    🖥️ Task Manager
-                  </Text>
-                </div>
-              </div>
-              <Text variant="caption" className="opacity-70 text-white text-[11px]">
-                Click on metrics to open relevant system applications
-              </Text>
-            </div>
-               </div>
-             </Card>
-      </CollapsibleSection>
-
-      {/* Admin Panel Widget */}
-      <CollapsibleSection
-        title="Admin Panel Widget"
-        description="Windows system actions and quick access menu"
-        icon="⚙️"
-        iconBgColor={CSS_COLOR_PURE_WHITE}
-        gradientBg={ADMIN_WIDGET_GRADIENT}
-        borderColor="hsl(var(--state-warning))"
-        shadowColor={ADMIN_WIDGET_CARD_SHADOW}
-        defaultCollapsed={true}
-      >
-        <Card className="mb-6 api-integ-glass-card">
-          <div className="p-6">
-            {/* Widget Enable/Disable Control */}
-            <div
-              className="flex items-center justify-between mb-6 p-4 rounded-lg"
-              style={{ background: INTEGRATION_PANEL_INSET_BG }}
-            >
-              <div>
-                <Text variant="body" className="text-white font-semibold text-sm">
-                  Admin Panel Widget
-                </Text>
-                <Text variant="caption" className="text-white opacity-70 text-xs">
-                  Quick access to Windows system tools and settings
-                    </Text>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Text variant="caption" className="text-white">
-                  {floatingWidgets.adminPanel.visible ? 'Enabled' : 'Disabled'}
-                      </Text>
-                        <WButton
-                  onClick={handleToggleAdminPanelWidget}
-                          size="sm"
-                          variant="primary"
-                          className={
-                            floatingWidgets.adminPanel.visible
-                              ? '!bg-red-600 !border-red-600 hover:!bg-red-700 text-white border-solid'
-                              : adminOrangeBtn
-                          }
-                >
-                                      {floatingWidgets.adminPanel.visible ? 'Disable' : 'Enable'}
-                        </WButton>
-                      </div>
-                    </div>
-                    
-            <Text variant="body" className="mb-6 text-white font-semibold text-sm">
-              Admin Panel Configuration
+            <input
+              type="range"
+              min="0"
+              max="60"
+              value={floatingWidgets.systemInfo.updateInterval || 0}
+              onChange={(e) => handleUpdateSystemInfoInterval(parseInt(e.target.value))}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200"
+            />
+            <Text variant="caption" className="mt-1 text-[11px] text-[hsl(var(--text-tertiary))]">
+              {floatingWidgets.systemInfo.updateInterval === 0 ? 'Off' : `${floatingWidgets.systemInfo.updateInterval} seconds`}
             </Text>
-            
-            <div className="mb-6">
-              <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
-                Quick Access Menu
-              </Text>
-              <div className="api-integ-admin-inner mb-4 rounded-lg border p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <Text variant="caption" className="text-white font-semibold text-sm">
-                      Selected Actions
-                      </Text>
-                    <Text variant="caption" className="text-white opacity-70 text-xs">
-                      {adminPanelConfig.powerActions?.length || 0} actions configured
-                              </Text>
-                           </div>
-                           <WButton
-                    onClick={() => setShowAdminPanel(true)}
-                             size="sm"
-                             variant="primary"
-                             className={adminOrangeBtn}
-                  >
-                    Configure Actions
-                           </WButton>
-                         </div>
-                         
-                {adminPanelConfig.powerActions && adminPanelConfig.powerActions.length > 0 ? (
-                  <div className="grid gap-2 api-integ-grid-actions">
-                    {adminPanelConfig.powerActions.slice(0, 6).map((action) => (
-                      <div key={action.id} className="api-integ-feature-row rounded-md p-3">
-                        <div className="flex items-center">
-                          <span className="text-sm mr-2">{action.icon}</span>
-                          <Text variant="caption" className="text-white text-xs font-medium">
-                            {action.name}
-                          </Text>
-                                    </div>
-                                </div>
-                              ))}
-                    {adminPanelConfig.powerActions.length > 6 && (
-                      <div className="api-integ-feature-row rounded-md p-3">
-                        <Text variant="caption" className="text-white text-xs font-medium">
-                          +{adminPanelConfig.powerActions.length - 6} more actions
-                        </Text>
-                       </div>
-                     )}
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <Text variant="caption" className="text-white opacity-70 text-sm">
-                      No actions configured yet
-                 </Text>
-                    <Text variant="caption" className="text-white opacity-50 text-xs mt-1">
-                      Click "Configure Actions" to add Windows system actions
-                     </Text>
-                   </div>
-                 )}
-              </div>
-                 </div>
-
-            <div className="mb-6">
-              <Text variant="caption" className="mb-1 text-white font-semibold text-xs">
-                Features
-                   </Text>
-              <div className="mb-2 grid gap-2 api-integ-grid-features">
-                <div className="api-integ-pill rounded-md p-2">
-                  <Text variant="caption" className="text-white text-[11px] font-semibold">
-                    🔌 Power Management
-                   </Text>
-                 </div>
-                <div className="api-integ-pill rounded-md p-2">
-                  <Text variant="caption" className="text-white text-[11px] font-semibold">
-                    🛠️ System Tools
-                     </Text>
-                   </div>
-                <div className="api-integ-pill rounded-md p-2">
-                  <Text variant="caption" className="text-white text-[11px] font-semibold">
-                    🎛️ Settings
-                     </Text>
-                   </div>
-                <div className="api-integ-pill rounded-md p-2">
-                  <Text variant="caption" className="text-white text-[11px] font-semibold">
-                    📁 File Management
-                   </Text>
-                 </div>
-               </div>
-              <Text variant="caption" className="opacity-70 text-white text-[11px]">
-                Access Windows system tools and settings through the admin panel
+            <Text variant="caption" className="mt-1 text-[11px] text-[hsl(var(--text-tertiary))]">
+              Set to 0 to disable automatic updates
             </Text>
           </div>
-        </div>
-      </Card>
-      </CollapsibleSection>
 
+          <div className="mb-6">
+            <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
+              Features
+            </Text>
+            <div className="api-integ-grid-features mb-2 grid gap-2">
+              <div className="api-integ-pill rounded-md bg-[hsl(var(--surface-tertiary))] p-2">
+                <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
+                  📊 CPU & Memory
+                </Text>
+              </div>
+              <div className="api-integ-pill rounded-md bg-[hsl(var(--surface-tertiary))] p-2">
+                <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
+                  🎮 GPU & Storage
+                </Text>
+              </div>
+              <div className="api-integ-pill rounded-md bg-[hsl(var(--surface-tertiary))] p-2">
+                <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
+                  🔋 Battery & Power
+                </Text>
+              </div>
+              <div className="api-integ-pill rounded-md bg-[hsl(var(--surface-tertiary))] p-2">
+                <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
+                  🖥️ Task Manager
+                </Text>
+              </div>
+            </div>
+            <Text variant="caption" className="text-[11px] text-[hsl(var(--text-tertiary))]">
+              Click on metrics to open relevant system applications
+            </Text>
+          </div>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
 
+      {/* Admin Panel Widget */}
+      <WeeSettingsCollapsibleSection
+        icon={Settings2}
+        title="Admin Panel Widget"
+        description="Quick Access floating menu for Windows tools"
+        defaultOpen={false}
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
+          <div className="mb-5 flex items-center justify-between gap-4 rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.55)] p-4">
+            <div className="min-w-0">
+              <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
+                Show floating widget
+              </Text>
+              <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
+                Pin a Quick Access menu on your desktop for system tools and power actions
+              </Text>
+            </div>
+            <WToggle
+              checked={Boolean(floatingWidgets.adminPanel.visible)}
+              onChange={handleToggleAdminPanelWidget}
+              disableLabelClick
+            />
+          </div>
 
-      {/* Admin Panel Modal */}
+          <div className="mb-5 rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.45)] p-4">
+            <Text variant="body" className="mb-1 text-sm font-semibold text-[hsl(var(--text-primary))]">
+              Toggle shortcut
+            </Text>
+            <Text variant="caption" className="mb-3 block text-xs text-[hsl(var(--text-tertiary))]">
+              Same binding as Shortcuts → Widgets. Changes sync both ways.
+            </Text>
+            <ShortcutCaptureControl shortcutId="toggle-admin-panel-widget" showLabel={false} />
+          </div>
+
+          <div className="rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.45)] p-4">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
+                  Quick Access actions
+                </Text>
+                <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
+                  {adminPanelConfig.powerActions.length} configured
+                </Text>
+              </div>
+              <WButton onClick={() => setShowAdminPanel(true)} size="sm" variant="primary">
+                Configure actions
+              </WButton>
+            </div>
+
+            {adminPanelConfig.powerActions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {adminPanelConfig.powerActions.slice(0, 8).map((action) => (
+                  <div
+                    key={action.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary)/0.65)] px-2.5 py-1.5"
+                  >
+                    <span className="text-sm" aria-hidden>
+                      {action.icon}
+                    </span>
+                    <Text variant="caption" className="text-[11px] font-semibold text-[hsl(var(--text-primary))]">
+                      {action.name}
+                    </Text>
+                  </div>
+                ))}
+                {adminPanelConfig.powerActions.length > 8 ? (
+                  <div className="inline-flex items-center rounded-full border border-[hsl(var(--border-primary)/0.35)] px-2.5 py-1.5">
+                    <Text variant="caption" className="text-[11px] text-[hsl(var(--text-secondary))]">
+                      +{adminPanelConfig.powerActions.length - 8} more
+                    </Text>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <Text variant="caption" className="text-sm text-[hsl(var(--text-tertiary))]">
+                No actions yet — configure a short list of tools you use often.
+              </Text>
+            )}
+
+            <Text variant="caption" className="mt-4 block text-[11px] text-[hsl(var(--text-tertiary))]">
+              Power actions like Shut Down ask for confirmation before running.
+            </Text>
+          </div>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
       <AdminPanel
         isOpen={showAdminPanel}
         onClose={() => setShowAdminPanel(false)}
@@ -539,4 +449,4 @@ const ApiIntegrationsSettingsTab = () => {
   );
 };
 
-export default ApiIntegrationsSettingsTab; 
+export default ApiIntegrationsSettingsTab;

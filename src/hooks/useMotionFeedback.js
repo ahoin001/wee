@@ -27,6 +27,7 @@ export function useMotionFeedback() {
     const modalIntensity = resolveSurfaceIntensity(prefs.gooey, 'modals');
     const channelIntensity = resolveSurfaceIntensity(prefs.gooey, 'channels');
     const ribbonIntensity = resolveSurfaceIntensity(prefs.gooey, 'ribbon');
+    const mediaHubIntensity = resolveSurfaceIntensity(prefs.gooey, 'mediaHub');
 
     const channelHover = resolveGooeyHoverMotion(prefs.gooey.channelHoverMode, channelIntensity, {
       baseScale: 1.06,
@@ -34,6 +35,11 @@ export function useMotionFeedback() {
     const ribbonHover = resolveGooeyHoverMotion(prefs.gooey.ribbonHoverMode, ribbonIntensity, {
       baseScale: 1.12,
     });
+    const mediaHubHover = resolveGooeyHoverMotion(
+      prefs.gooey.mediaHubHoverMode,
+      mediaHubIntensity,
+      { baseScale: 1.01 }
+    );
 
     return {
       osReduced,
@@ -56,6 +62,7 @@ export function useMotionFeedback() {
         modalIntensity,
         channelIntensity,
         ribbonIntensity,
+        mediaHubIntensity,
         modalPanelVariants: createGooeyModalPanelVariants(modalIntensity),
         modalOpenSpring: createGooeyOpenSpring(modalIntensity),
         modalCloseSpring: createGooeyCloseSpring(modalIntensity),
@@ -72,6 +79,13 @@ export function useMotionFeedback() {
           intensity: ribbonIntensity,
           ...ribbonHover,
           transition: createGooeyOpenSpring(ribbonIntensity),
+        },
+        mediaHubHover: {
+          enabled: gooeyEnabled,
+          mode: prefs.gooey.mediaHubHoverMode,
+          intensity: mediaHubIntensity,
+          ...mediaHubHover,
+          transition: createGooeyOpenSpring(mediaHubIntensity),
         },
       },
     };

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
+import { WeeModalFieldCard } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { logError } from '../../utils/logger';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
@@ -227,7 +227,12 @@ const NavigationSettingsTab = () => {
       </div>
 
       <SettingsWeeSection eyebrow="Spotify">
-      <Card variant="wii-feature" color="green" icon="🎵" title="Spotify Integration" subtitle="Dynamic color matching" noHover={true}>
+      <WeeModalFieldCard
+        hoverAccent="none"
+        paddingClassName="p-5 md:p-6"
+        title="Spotify Integration"
+        description="Dynamic color matching"
+      >
         <div className="space-y-4">
           <WToggle
             label="Enable Spotify Dynamic Colors"
@@ -244,11 +249,16 @@ const NavigationSettingsTab = () => {
             </div>
           )}
         </div>
-      </Card>
+      </WeeModalFieldCard>
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Icons">
-      <Card variant="wii-feature" color="blue" icon="🎨" title="Icon Management" subtitle="Upload and manage custom icons" noHover={true}>
+      <WeeModalFieldCard
+        hoverAccent="none"
+        paddingClassName="p-5 md:p-6"
+        title="Icon Management"
+        description="Upload and manage custom icons"
+      >
         <div className="space-y-6">
           {/* Upload Section */}
           <div className="space-y-3">
@@ -330,11 +340,16 @@ const NavigationSettingsTab = () => {
             )}
           </div>
         </div>
-      </Card>
+      </WeeModalFieldCard>
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Selection">
-      <Card variant="wii-feature" color="purple" icon="🎯" title="Icon Selection" subtitle="Choose icons for each button" noHover={true}>
+      <WeeModalFieldCard
+        hoverAccent="none"
+        paddingClassName="p-5 md:p-6"
+        title="Icon Selection"
+        description="Choose icons for each button"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left Button Icon */}
           <div className="space-y-3">
@@ -464,11 +479,16 @@ const NavigationSettingsTab = () => {
             ))}
           </div>
         </div>
-      </Card>
+      </WeeModalFieldCard>
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Glass">
-      <Card variant="wii-feature" color="purple" icon="✨" title="Glass Effect" subtitle="Customize the glass morphism effect" noHover={true}>
+      <WeeModalFieldCard
+        hoverAccent="none"
+        paddingClassName="p-5 md:p-6"
+        title="Glass Effect"
+        description="Customize the glass morphism effect"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Button Glass Settings */}
           <div className="space-y-4">
@@ -604,11 +624,16 @@ const NavigationSettingsTab = () => {
             )}
           </div>
         </div>
-      </Card>
+      </WeeModalFieldCard>
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Preview">
-      <Card variant="wii-stats" color="gray" icon="👁️" title="Preview" subtitle="See how your navigation will look" noHover={true}>
+      <WeeModalFieldCard
+        hoverAccent="none"
+        paddingClassName="p-5 md:p-6"
+        title="Preview"
+        description="See how your navigation will look"
+      >
         <div className="flex justify-center items-center gap-8 p-6 bg-[hsl(var(--surface-secondary))] rounded-lg">
           <div className="text-center">
             <div className="w-12 h-12 bg-[hsl(var(--surface-primary))] rounded-lg border border-[hsl(var(--border-primary))] flex items-center justify-center mb-2">
@@ -626,7 +651,7 @@ const NavigationSettingsTab = () => {
         <Text variant="caption" className="mt-4 text-center text-[hsl(var(--text-secondary))]">
           Note: The actual appearance will depend on your current wallpaper and Spotify track (if enabled)
         </Text>
-      </Card>
+      </WeeModalFieldCard>
       </SettingsWeeSection>
     </div>
   );

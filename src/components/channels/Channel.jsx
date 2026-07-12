@@ -6,7 +6,7 @@ import { getStoragePublicObjectUrl } from '../../utils/supabase';
 import { isVideoMediaType } from '../../utils/channelMediaType';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { useChannelSpaceKey } from '../../contexts/ChannelSpaceContext';
-import { PlayfulTapLayer } from '../navigation/PlayfulInteractionMotion';
+import { WeeTapLayer } from '../../ui/wee';
 import { useRendererMediaPowerState } from '../../hooks/useRendererMediaPowerState';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import useChannelEffectiveState from './hooks/useChannelEffectiveState';
@@ -255,7 +255,7 @@ const Channel = React.memo(({
       whileHover={channelGooeyHover.enabled ? channelGooeyHover.whileHover : undefined}
       transition={channelGooeyHover.enabled ? channelGooeyHover.transition : undefined}
     >
-      <PlayfulTapLayer className="channel-tap-layer h-full w-full min-h-0 min-w-0">
+      <WeeTapLayer className="channel-tap-layer h-full w-full min-h-0 min-w-0">
         <ChannelMediaPreview
           effectiveMedia={effectiveMedia}
           effectiveAnimatedOnHover={effectiveAnimatedOnHover}
@@ -274,7 +274,7 @@ const Channel = React.memo(({
           fallbackIcon={fallbackIcon}
           setFallbackIcon={setFallbackIcon}
         />
-      </PlayfulTapLayer>
+      </WeeTapLayer>
       {showRecentLaunchHint ? (
         <>
           <span className="channel-recent-hint-ring" aria-hidden />

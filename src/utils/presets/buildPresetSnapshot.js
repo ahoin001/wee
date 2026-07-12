@@ -19,7 +19,7 @@ export function buildPresetDataFromStore({
   captureScope = PRESET_SCOPE_VISUAL,
   includeSpotifyPalette = false,
 } = {}) {
-  const { wallpaper, ribbon, time, overlay, ui, channels, spotify } =
+  const { wallpaper, ribbon, time, overlay, ui, channels, spotify, dock, appearanceBySpace } =
     useConsolidatedAppStore.getState();
 
   const presetData = {
@@ -76,6 +76,10 @@ export function buildPresetDataFromStore({
       useCustomCursor: ui.useCustomCursor,
       classicMode: ui.classicMode,
       spotifyMatchEnabled: includeSpotifyPalette ? false : (ui.spotifyMatchEnabled ?? false),
+    },
+    dock: cloneSafe(dock, {}),
+    appearanceBySpace: {
+      home: cloneSafe(appearanceBySpace?.home, null),
     },
   };
 

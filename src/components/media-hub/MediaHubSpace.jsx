@@ -27,6 +27,7 @@ import useMediaHubLocalThumbnails from './useMediaHubLocalThumbnails';
 import { buildStremioDetailUrl } from '../../utils/mediaHubStremio';
 import {
   WEE_EASING,
+  createWeeTransition,
   createHubEntranceOrchestratorVariants,
   createMediaHubGridContainerVariants,
   createMediaHubGridItemVariants,
@@ -34,6 +35,7 @@ import {
   getMediaHubAsideMotion,
   getMediaHubOverlayPanelMotion,
 } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
 import './MediaHubSpace.css';
 
@@ -153,6 +155,8 @@ function MediaHubItemDetail({
   onEpisodeChange,
 }) {
   const reducedMotion = useReducedMotion();
+  const detailTransition = createWeeTransition('mediaHubAside', { reducedMotion });
+  const pressTransition = createWeeTransition('mediaHubPress', { reducedMotion });
   const isDiscover = activeTab === 'discover';
   const posterUrl = getPosterUrl(selectedItem);
   const description = isDiscover ? String(selectedItem.description || '').trim() : '';
@@ -174,7 +178,7 @@ function MediaHubItemDetail({
 
   const shellClass =
     variant === 'overlay'
-      ? 'media-hub-detail-surface media-hub-detail-surface--overlay flex max-h-[min(92vh,880px)] min-h-0 w-full max-w-lg flex-col overflow-hidden sm:max-w-xl'
+      ? 'media-hub-detail-surface media-hub-detail-surface--overlay mx-auto flex max-h-[min(92vh,920px)] min-h-0 w-full max-w-xl flex-col overflow-hidden sm:max-w-2xl'
       : 'media-hub-detail-surface media-hub-detail-surface--aside flex h-full min-h-0 flex-col overflow-hidden';
 
   return (
@@ -185,11 +189,7 @@ function MediaHubItemDetail({
           initial={variant === 'overlay' ? { opacity: 0, y: 18, scale: 0.985 } : { opacity: 0, x: 56, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
           exit={variant === 'overlay' ? { opacity: 0, y: -14, scale: 0.988 } : { opacity: 0, x: 56, scale: 0.97 }}
-          transition={
-            reducedMotion
-              ? { duration: 0.14 }
-              : { type: 'spring', stiffness: 420, damping: 32, mass: 0.86 }
-          }
+          transition={detailTransition}
           className="flex h-full min-h-0 flex-col"
         >
           <div className="media-hub-detail__hero relative min-h-[220px] shrink-0 overflow-hidden sm:min-h-[280px]">
@@ -204,9 +204,9 @@ function MediaHubItemDetail({
             <div className="absolute right-4 top-4 z-[2]">
               <MotionButton
                 type="button"
-                whileHover={{ scale: 1.06 }}
-                whileTap={{ scale: 0.94 }}
-                transition={{ duration: 0.15 }}
+                whileHover={reducedMotion ? undefined : { scale: 1.06 }}
+                whileTap={reducedMotion ? undefined : { scale: 0.94 }}
+                transition={pressTransition}
                 onClick={onClose}
                 className="media-hub-detail-close-btn"
                 aria-label="Close details"
@@ -228,7 +228,7 @@ function MediaHubItemDetail({
             </div>
           </div>
 
-          <div className="media-hub-detail__body flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
+          <div className="media-hub-detail__body flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overscroll-contain px-6 py-5 sm:px-8 sm:py-6">
             <div className="flex flex-wrap gap-2">
               {isDiscover && yearLabel ? (
                 <div className="inline-flex items-center gap-2 rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-secondary))]">
@@ -255,104 +255,106 @@ function MediaHubItemDetail({
               ) : null}
             </div>
 
-        {description ? (
-          <p className="m-0 text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">{description}</p>
-        ) : null}
-        {!isDiscover ? (
-          <p className="m-0 break-all font-mono text-[11px] leading-relaxed text-[hsl(var(--text-tertiary))]">
-            {selectedItem.path}
-          </p>
-        ) : null}
+            {description ? (
+              <p className="m-0 text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">{description}</p>
+            ) : null}
+            {!isDiscover ? (
+              <p className="m-0 break-all font-mono text-[11px] leading-relaxed text-[hsl(var(--text-tertiary))]">
+                {selectedItem.path}
+              </p>
+            ) : null}
 
-        {showEpisodePicker ? (
-          <div className="rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.4)] p-4">
-            <h3 className="m-0 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-tertiary))]">
-              <ListVideo size={14} className="text-[hsl(var(--primary))]" aria-hidden />
-              Episode
-            </h3>
-            {seriesMetaLoading ? (
-              <p className="m-0 mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                Loading episodes…
-              </p>
-            ) : seriesMetaError ? (
-              <p className="m-0 mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--state-error))]">
-                {seriesMetaError}
-              </p>
-            ) : (
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-                <label className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
-                    Season
-                  </span>
-                  <select
-                    value={selectedSeason != null ? String(selectedSeason) : ''}
-                    onChange={(e) => onSeasonChange?.(Number(e.target.value))}
-                    className="media-hub-tray-select w-full min-w-0 px-3 py-2 text-[12px] font-bold"
-                  >
-                    {(seasonOptions || []).map((s) => (
-                      <option key={s} value={String(s)}>
-                        Season {s}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
-                    Episode
-                  </span>
-                  <select
-                    value={selectedEpisode != null ? String(selectedEpisode) : ''}
-                    onChange={(e) => onEpisodeChange?.(Number(e.target.value))}
-                    className="media-hub-tray-select w-full min-w-0 px-3 py-2 text-[12px] font-bold"
-                  >
-                    {(episodeOptions || []).map((ep) => (
-                      <option key={ep} value={String(ep)}>
-                        Episode {ep}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            {showEpisodePicker ? (
+              <div className="rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.4)] p-4">
+                <h3 className="m-0 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-tertiary))]">
+                  <ListVideo size={14} className="text-[hsl(var(--primary))]" aria-hidden />
+                  Episode
+                </h3>
+                {seriesMetaLoading ? (
+                  <p className="m-0 mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                    Loading episodes…
+                  </p>
+                ) : seriesMetaError ? (
+                  <p className="m-0 mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--state-error))]">
+                    {seriesMetaError}
+                  </p>
+                ) : (
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                    <label className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
+                        Season
+                      </span>
+                      <select
+                        value={selectedSeason != null ? String(selectedSeason) : ''}
+                        onChange={(e) => onSeasonChange?.(Number(e.target.value))}
+                        className="media-hub-tray-select w-full min-w-0 px-3 py-2 text-[12px] font-bold"
+                      >
+                        {(seasonOptions || []).map((s) => (
+                          <option key={s} value={String(s)}>
+                            Season {s}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
+                        Episode
+                      </span>
+                      <select
+                        value={selectedEpisode != null ? String(selectedEpisode) : ''}
+                        onChange={(e) => onEpisodeChange?.(Number(e.target.value))}
+                        className="media-hub-tray-select w-full min-w-0 px-3 py-2 text-[12px] font-bold"
+                      >
+                        {(episodeOptions || []).map((ep) => (
+                          <option key={ep} value={String(ep)}>
+                            Episode {ep}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
               </div>
-            )}
+            ) : null}
           </div>
-        ) : null}
 
-        {isDiscover ? (
-          <div className="media-hub-detail__footer border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
-            <p className="m-0 mb-3 text-[11px] font-bold uppercase tracking-[0.11em] leading-relaxed text-[hsl(var(--text-secondary))]">
-              Opens this title in the Stremio app using the catalog.
-            </p>
-            <MotionButton
-              type="button"
-              disabled={stremioOpenDisabled}
-              whileHover={!stremioOpenDisabled ? { scale: 1.01 } : undefined}
-              whileTap={!stremioOpenDisabled ? { scale: 0.99 } : undefined}
-              onClick={() => onOpenStremioDetail?.()}
-              className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] border border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary))] py-4 text-[10px] font-black uppercase tracking-[0.25em] text-[hsl(var(--text-on-accent))] shadow-[0_12px_28px_-12px_hsl(var(--primary)/0.55)] disabled:cursor-not-allowed disabled:border-[hsl(var(--border-primary)/0.6)] disabled:bg-[hsl(var(--surface-tertiary)/0.8)] disabled:text-[hsl(var(--text-tertiary))] disabled:shadow-none"
-            >
-              <Clapperboard size={18} aria-hidden />
-              Open in Stremio
-            </MotionButton>
-          </div>
-        ) : (
-          <div className="media-hub-detail__footer border-t border-[hsl(var(--border-primary)/0.35)] pt-4">
-            <p className="m-0 mb-3 text-[11px] font-bold uppercase tracking-[0.11em] text-[hsl(var(--text-secondary))]">
-              {fmtBytes(selectedItem.size)}
-              {selectedItem.modifiedAt ? ` · ${new Date(selectedItem.modifiedAt).toLocaleDateString()}` : ''}
-            </p>
-            <MotionButton
-              type="button"
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              onClick={() => onPlayLocal(selectedItem)}
-              className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] border border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary))] py-4 text-[10px] font-black uppercase tracking-[0.25em] text-[hsl(var(--text-on-accent))] shadow-[0_12px_28px_-12px_hsl(var(--primary)/0.55)]"
-            >
-              <Play size={18} fill="currentColor" />
-              Open file
-            </MotionButton>
-          </div>
-        )}
-          </div>
+          {isDiscover ? (
+            <div className="media-hub-detail__footer shrink-0 border-t border-[hsl(var(--border-primary)/0.35)] px-6 pb-5 pt-4 sm:px-8 sm:pb-6">
+              <p className="m-0 mb-3 text-[11px] font-bold uppercase tracking-[0.11em] leading-relaxed text-[hsl(var(--text-secondary))]">
+                Opens this title in the Stremio app using the catalog.
+              </p>
+              <MotionButton
+                type="button"
+                disabled={stremioOpenDisabled}
+                whileHover={!stremioOpenDisabled && !reducedMotion ? { scale: 1.01 } : undefined}
+                whileTap={!stremioOpenDisabled && !reducedMotion ? { scale: 0.99 } : undefined}
+                transition={pressTransition}
+                onClick={() => onOpenStremioDetail?.()}
+                className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] border border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary))] py-4 text-[10px] font-black uppercase tracking-[0.25em] text-[hsl(var(--text-on-accent))] shadow-[0_12px_28px_-12px_hsl(var(--primary)/0.55)] disabled:cursor-not-allowed disabled:border-[hsl(var(--border-primary)/0.6)] disabled:bg-[hsl(var(--surface-tertiary)/0.8)] disabled:text-[hsl(var(--text-tertiary))] disabled:shadow-none"
+              >
+                <Clapperboard size={18} aria-hidden />
+                Open in Stremio
+              </MotionButton>
+            </div>
+          ) : (
+            <div className="media-hub-detail__footer shrink-0 border-t border-[hsl(var(--border-primary)/0.35)] px-6 pb-5 pt-4 sm:px-8 sm:pb-6">
+              <p className="m-0 mb-3 text-[11px] font-bold uppercase tracking-[0.11em] text-[hsl(var(--text-secondary))]">
+                {fmtBytes(selectedItem.size)}
+                {selectedItem.modifiedAt ? ` · ${new Date(selectedItem.modifiedAt).toLocaleDateString()}` : ''}
+              </p>
+              <MotionButton
+                type="button"
+                whileHover={reducedMotion ? undefined : { scale: 1.01 }}
+                whileTap={reducedMotion ? undefined : { scale: 0.99 }}
+                transition={pressTransition}
+                onClick={() => onPlayLocal(selectedItem)}
+                className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] border border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary))] py-4 text-[10px] font-black uppercase tracking-[0.25em] text-[hsl(var(--text-on-accent))] shadow-[0_12px_28px_-12px_hsl(var(--primary)/0.55)]"
+              >
+                <Play size={18} fill="currentColor" />
+                Open file
+              </MotionButton>
+            </div>
+          )}
         </MotionDiv>
       </AnimatePresence>
     </div>
@@ -402,6 +404,28 @@ export default function MediaHubSpace() {
   const hubScrollRef = useRef(null);
   const isLgUp = useMinWidth1024();
   const reducedMotion = useReducedMotion();
+  const { gooey } = useMotionFeedback();
+  const shellTransition = createWeeTransition('mediaHubShell', { reducedMotion });
+  const pressTransition = createWeeTransition('mediaHubPress', { reducedMotion });
+  const mediaHubIntensity = gooey.mediaHubIntensity ?? 1;
+  const cardHoverLift = gooey.mediaHubHover.enabled
+    ? {
+        y: -12 * mediaHubIntensity,
+        ...(gooey.mediaHubHover.whileHover || { scale: 1.01 }),
+      }
+    : undefined;
+  const localCardHoverLift = gooey.mediaHubHover.enabled
+    ? {
+        y: -10 * mediaHubIntensity,
+        ...(gooey.mediaHubHover.whileHover || { scale: 1.01 }),
+      }
+    : undefined;
+  const pillHover = gooey.mediaHubHover.enabled
+    ? {
+        y: -2 * mediaHubIntensity,
+        ...(gooey.mediaHubHover.whileHover || { scale: 1.01 }),
+      }
+    : undefined;
   const mediaHubAsideMotion = useMemo(() => getMediaHubAsideMotion(reducedMotion), [reducedMotion]);
   const mediaHubOverlayPanelMotion = useMemo(
     () => getMediaHubOverlayPanelMotion(reducedMotion),
@@ -852,7 +876,7 @@ export default function MediaHubSpace() {
     <section className="media-hub-space">
       <MotionDiv
         layout
-        transition={reducedMotion ? { duration: 0.16 } : { type: 'spring', stiffness: 280, damping: 30, mass: 0.95 }}
+        transition={shellTransition}
         className={shellClass}
       >
         <MotionDiv
@@ -861,7 +885,7 @@ export default function MediaHubSpace() {
           variants={hubOrchestratorVariants}
           initial={false}
           animate={hubEntranceState}
-          transition={reducedMotion ? { duration: 0.16 } : { type: 'spring', stiffness: 290, damping: 30, mass: 0.92 }}
+          transition={shellTransition}
           onAnimationComplete={
             hubEntranceState === 'show' ? () => onEntranceComplete(entranceKey) : undefined
           }
@@ -887,9 +911,9 @@ export default function MediaHubSpace() {
                       })
                     }
                     className={`media-hub-demo-pill ${activeTab === id ? 'media-hub-demo-pill--active' : ''}`}
-                    whileHover={reducedMotion ? undefined : { y: -2, scale: 1.01 }}
+                    whileHover={reducedMotion ? undefined : pillHover}
                     whileTap={reducedMotion ? undefined : { scale: 0.985 }}
-                    transition={reducedMotion ? { duration: 0.08 } : { type: 'spring', stiffness: 420, damping: 25, mass: 0.84 }}
+                    transition={pressTransition}
                   >
                     <Icon size={12} />
                     {label}
@@ -911,9 +935,9 @@ export default function MediaHubSpace() {
                           })
                         }
                         className={`media-hub-demo-pill ${contentFilterMode === mode ? 'media-hub-demo-pill--active' : ''}`}
-                        whileHover={reducedMotion ? undefined : { y: -2, scale: 1.01 }}
+                        whileHover={reducedMotion ? undefined : pillHover}
                         whileTap={reducedMotion ? undefined : { scale: 0.985 }}
-                        transition={reducedMotion ? { duration: 0.08 } : { type: 'spring', stiffness: 420, damping: 25, mass: 0.84 }}
+                        transition={pressTransition}
                       >
                         {mode === 'Movie' ? <Film size={12} /> : <Tv size={12} />}
                         {mode}
@@ -972,7 +996,7 @@ export default function MediaHubSpace() {
             className="media-hub-demo-grid-scroll"
             variants={mediaHubGridContainerVariants}
             layout
-            transition={reducedMotion ? { duration: 0.14 } : { type: 'spring', stiffness: 280, damping: 30, mass: 0.94 }}
+            transition={shellTransition}
           >
             <AnimatePresence mode="popLayout" initial={false}>
             {activeTab === 'discover' ? (
@@ -982,7 +1006,7 @@ export default function MediaHubSpace() {
                 initial="hidden"
                 animate={hubEntranceState}
                 exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.993 }}
-                transition={reducedMotion ? { duration: 0.12 } : { type: 'spring', stiffness: 250, damping: 28, mass: 0.9 }}
+                transition={shellTransition}
                 className={
                   filteredDiscovery.length > MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD
                     ? 'flex w-full min-h-0 flex-1 flex-col'
@@ -999,9 +1023,13 @@ export default function MediaHubSpace() {
                       custom={index}
                       layout
                       onClick={() => openDiscoverItem(item)}
-                      whileHover={{ y: -12, scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                      transition={{ duration: 0.22, ease: CARD_EASE }}
+                      whileHover={reducedMotion ? undefined : cardHoverLift}
+                      whileTap={reducedMotion ? undefined : { scale: 0.99 }}
+                      transition={
+                        reducedMotion
+                          ? { duration: 0.12 }
+                          : { duration: 0.22, ease: CARD_EASE }
+                      }
                       variants={mediaHubGridItemVariants}
                       className={`media-hub-demo-card ${selectedItemId === item.id ? 'media-hub-demo-card--selected' : ''}`}
                     >
@@ -1036,7 +1064,7 @@ export default function MediaHubSpace() {
                 initial="hidden"
                 animate={hubEntranceState}
                 exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.993 }}
-                transition={reducedMotion ? { duration: 0.12 } : { type: 'spring', stiffness: 250, damping: 28, mass: 0.9 }}
+                transition={shellTransition}
                 className={
                   filteredLocal.length > MEDIA_HUB_DISCOVER_VIRTUAL_THRESHOLD
                     ? 'flex w-full min-h-0 flex-1 flex-col'
@@ -1058,9 +1086,13 @@ export default function MediaHubSpace() {
                           custom={index}
                           layout
                           onClick={() => selectLocalItem(item.id)}
-                          whileHover={{ y: -10, scale: 1.01 }}
-                          whileTap={{ scale: 0.99 }}
-                          transition={{ duration: 0.22, ease: CARD_EASE }}
+                          whileHover={reducedMotion ? undefined : localCardHoverLift}
+                          whileTap={reducedMotion ? undefined : { scale: 0.99 }}
+                          transition={
+                            reducedMotion
+                              ? { duration: 0.12 }
+                              : { duration: 0.22, ease: CARD_EASE }
+                          }
                           variants={mediaHubGridItemVariants}
                           className={`media-hub-demo-card ${selectedItemId === item.id ? 'media-hub-demo-card--selected' : ''}`}
                         >
@@ -1137,7 +1169,7 @@ export default function MediaHubSpace() {
               exit={mediaHubAsideMotion.exit}
               transition={mediaHubAsideMotion.transition}
               layout
-              className="media-hub-detail-aside-wrap min-h-0"
+              className="media-hub-detail-aside-wrap min-h-0 h-full"
             >
               <MediaHubItemDetail
                 variant="aside"

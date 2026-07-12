@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import Card from '../../ui/Card';
+import { m } from 'framer-motion';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
+import WInput from '../../ui/WInput';
+import WSelect from '../../ui/WSelect';
 import { ImageModal } from '../modals';
 import { getSharedPresets, downloadPreset, getStoragePublicObjectUrl } from '../../utils/supabase';
+import { createWeeTransition } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import './community-presets.css';
 
-const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
+const CommunityPresets = ({ onImportPreset }) => {
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,20 +21,20 @@ const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
+  const mf = useMotionFeedback();
+  const cardTransition = createWeeTransition('pillOpen', { reducedMotion: !mf.channelReorderSlotMotion });
 
-  // Get unique tags from all presets
-  const allTags = [...new Set(presets.flatMap(preset => preset.tags || []))].sort();
+  const allTags = [...new Set(presets.flatMap((preset) => preset.tags || []))].sort();
 
-  // Filter presets by search term and selected tag
-  const filteredPresets = presets.filter(preset => {
-    const matchesSearch = !searchTerm || 
+  const filteredPresets = presets.filter((preset) => {
+    const matchesSearch =
+      !searchTerm ||
       preset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       preset.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       preset.creator_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesTag = !selectedTag || 
-      (preset.tags && preset.tags.includes(selectedTag));
-    
+
+    const matchesTag = !selectedTag || (preset.tags && preset.tags.includes(selectedTag));
+
     return matchesSearch && matchesTag;
   });
 
@@ -42,15 +46,16 @@ const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
     try {
       setLoading(true);
       const result = await getSharedPresets(searchTerm, sortBy);
-      
+
       if (result.success) {
         setPresets(result.data);
+      } else if (result.error === 'Supabase not configured') {
+        setMessage({
+          type: 'error',
+          text: 'Community features are not configured. Please check your environment variables.',
+        });
       } else {
-        if (result.error === 'Supabase not configured') {
-          setMessage({ type: 'error', text: 'Community features are not configured. Please check your environment variables.' });
-        } else {
-          setMessage({ type: 'error', text: `Failed to load presets: ${result.error}` });
-        }
+        setMessage({ type: 'error', text: `Failed to load presets: ${result.error}` });
       }
     } catch (error) {
       setMessage({ type: 'error', text: `Error loading presets: ${error.message}` });
@@ -65,33 +70,42 @@ const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
       setMessage({ type: '', text: '' });
 
       const result = await downloadPreset(preset.id);
-      
+
       if (result.success) {
-        // Import the preset - result.data contains { name, settings, id, wallpaper }
         const presetData = result.data;
-        
-        console.log('[CommunityPresets] Downloaded preset data:', presetData);
-        
-        // Ensure the preset has required fields
+
         if (!presetData || !presetData.name || !presetData.settings) {
           throw new Error('Invalid preset data received');
         }
-        
-        // Create the import data structure
+
         const importData = {
           name: presetData.name,
           settings: presetData.settings,
           id: presetData.id,
-          wallpaper: presetData.wallpaper
+          wallpaper: presetData.wallpaper,
+          version: presetData.version || 1,
+          rootPresetId: presetData.rootPresetId || presetData.parentPresetId || presetData.id,
+          parentPresetId: presetData.parentPresetId || null,
         };
-        
-        console.log('[CommunityPresets] Import data structure:', importData);
-        
-        onImportPreset([importData]);
-        setMessage({ type: 'success', text: 'Preset downloaded and installed!' });
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-        
-        // Refresh the presets list to update download counts
+
+        const importResult = await onImportPreset([importData]);
+        if (importResult?.skippedMax) {
+          setMessage({
+            type: 'error',
+            text: importResult.errors?.[0] || 'Preset limit reached. Delete a local look first.',
+          });
+        } else if (importResult?.errors?.length && !importResult.imported) {
+          setMessage({ type: 'error', text: importResult.errors.join(' ') });
+        } else if (importResult?.errors?.length) {
+          setMessage({
+            type: 'success',
+            text: `Installed with notes: ${importResult.errors.join(' ')}`,
+          });
+        } else {
+          setMessage({ type: 'success', text: 'Preset downloaded and installed!' });
+        }
+        setTimeout(() => setMessage({ type: '', text: '' }), 4200);
+
         await loadPresets();
       } else {
         setMessage({ type: 'error', text: `Failed to download: ${result.error}` });
@@ -104,20 +118,26 @@ const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString();
 
   const handleImageClick = (imageUrl, title) => {
     setSelectedImage({ url: imageUrl, title });
     setImageModalOpen(true);
   };
 
+  const tagOptions = [
+    { value: '', label: 'All tags' },
+    ...allTags.map((tag) => ({ value: tag, label: tag })),
+  ];
+  const sortOptions = [
+    { value: 'created_at', label: 'Newest first' },
+    { value: 'downloads', label: 'Most downloaded' },
+    { value: 'name', label: 'Name A–Z' },
+  ];
+
   return (
     <div className="community-presets-root">
-      {message.text && (
+      {message.text ? (
         <div
           className={`community-msg ${
             message.type === 'success' ? 'community-msg--success' : 'community-msg--error'
@@ -125,60 +145,51 @@ const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
         >
           {message.text}
         </div>
-      )}
+      ) : null}
 
-      {/* Search and Sort Controls */}
-      <Card className="mb-4">
-        <div className="community-toolbar">
-          <div className="community-search-grow">
-            <input
-              type="text"
-              placeholder="Search presets..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="community-input"
-            />
-          </div>
-          <select
-            value={selectedTag}
-            onChange={(e) => setSelectedTag(e.target.value)}
-            className="community-select community-select--tags"
-          >
-            <option value="">All Tags</option>
-            {allTags.map(tag => (
-              <option key={tag} value={tag}>{tag}</option>
-            ))}
-          </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="community-select"
-          >
-            <option value="created_at">Newest First</option>
-            <option value="downloads">Most Downloaded</option>
-            <option value="name">Name A-Z</option>
-          </select>
+      <div className="community-toolbar mb-4 rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.55)] p-3">
+        <div className="community-search-grow">
+          <WInput
+            variant="wee"
+            type="text"
+            placeholder="Search presets…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-      </Card>
+        <WSelect value={selectedTag} onChange={setSelectedTag} options={tagOptions} />
+        <WSelect value={sortBy} onChange={setSortBy} options={sortOptions} />
+      </div>
 
-      {/* Presets Grid */}
       {loading ? (
         <div className="community-center-pad">
-          <Text>Loading community presets...</Text>
+          <Text>Loading community presets…</Text>
+        </div>
+      ) : filteredPresets.length === 0 ? (
+        <div className="community-center-pad rounded-2xl border border-dashed border-[hsl(var(--border-primary))] py-10">
+          <Text className="!m-0 text-[hsl(var(--text-tertiary))]">No community presets found</Text>
         </div>
       ) : (
         <div className="community-grid">
-          {filteredPresets.map((preset) => (
-            <Card key={preset.id} className="community-preset-card">
-              {/* Image Section */}
+          {filteredPresets.map((preset, index) => (
+            <m.div
+              key={preset.id}
+              className="community-preset-card rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary))] p-3 shadow-[var(--shadow-sm)]"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...cardTransition, delay: Math.min(index * 0.03, 0.24) }}
+              whileHover={{ y: -2, scale: 1.01 }}
+            >
               <div className="community-mb-8">
                 {preset.display_image_url ? (
-                  <div 
+                  <div
                     className="community-thumb-wrap"
-                    onClick={() => handleImageClick(
-                      getStoragePublicObjectUrl('preset-displays', preset.display_image_url),
-                      preset.name
-                    )}
+                    onClick={() =>
+                      handleImageClick(
+                        getStoragePublicObjectUrl('preset-displays', preset.display_image_url),
+                        preset.name
+                      )
+                    }
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
@@ -191,90 +202,48 @@ const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
                       }
                     }}
                   >
-                    <img 
+                    <img
                       src={getStoragePublicObjectUrl('preset-displays', preset.display_image_url)}
-                      alt="Preset thumbnail"
+                      alt=""
                     />
-                    <div className="community-thumb-badge">
-                      Click to view
-                    </div>
                   </div>
                 ) : (
                   <div className="community-placeholder">
-                    <span className="community-placeholder-emoji" aria-hidden>🎨</span>
+                    <span className="text-xs font-bold uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
+                      Look
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Content Section */}
               <div className="community-mb-8">
                 <Text variant="p" className="community-preset-title">
                   {preset.name}
                 </Text>
                 <Text variant="small" className="community-preset-meta">
-                  by {preset.creator_name || 'Anonymous'}
+                  {preset.creator_name ? `by ${preset.creator_name}` : 'Community'} ·{' '}
+                  {formatDate(preset.created_at)}
                 </Text>
-                <br />
-                {preset.description && (
+                {preset.description ? (
                   <Text variant="small" className="community-preset-desc">
                     {preset.description}
                   </Text>
-                )}
-                
-                {/* Tags Section */}
-                {preset.tags && preset.tags.length > 0 && (
-                  <div className="community-tags">
-                    {preset.tags.map(tag => (
-                      <span
-                        key={tag}
-                        className={`community-tag ${selectedTag === tag ? '' : 'community-tag--dim'}`}
-                        onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
-                        title={`Filter by ${tag}`}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                ) : null}
               </div>
 
-              {/* Stats and Actions */}
-              <div className="community-footer-row">
-                <div className="community-stat-group">
-                  <Text variant="small" className="community-stat">
-                    ⬇️ {preset.downloads || 0}
-                  </Text>
-                  <Text variant="small" className="community-stat">
-                    📅 {formatDate(preset.created_at)}
-                  </Text>
-                </div>
-                <div className="community-actions">
-                  <Button 
-                    variant="primary"
-                    onClick={() => handleDownload(preset)}
-                    disabled={downloading === preset.id}
-                    size="sm"
-                    className="community-btn-download"
-                  >
-                    {downloading === preset.id ? 'Downloading...' : 'Download'}
-                  </Button>
-                </div>
-              </div>
-            </Card>
+              <Button
+                variant="primary"
+                className="w-full"
+                disabled={downloading === preset.id}
+                onClick={() => handleDownload(preset)}
+              >
+                {downloading === preset.id ? 'Installing…' : 'Download'}
+              </Button>
+            </m.div>
           ))}
         </div>
       )}
 
-      {!loading && filteredPresets.length === 0 && (
-        <div className="community-center-pad">
-          <Text>No community presets found.</Text>
-          <Text variant="small" className="community-empty-sub">
-            Be the first to share a preset!
-          </Text>
-        </div>
-      )}
-
-      {/* Image Modal */}
       <ImageModal
         isOpen={imageModalOpen}
         onClose={() => setImageModalOpen(false)}
@@ -287,8 +256,6 @@ const CommunityPresets = ({ onImportPreset, onClose: _onClose }) => {
 
 CommunityPresets.propTypes = {
   onImportPreset: PropTypes.func.isRequired,
-  onClose: PropTypes.func.isRequired
 };
 
-export default CommunityPresets; 
- 
+export default CommunityPresets;

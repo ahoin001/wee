@@ -3,21 +3,13 @@ import clsx from 'clsx';
 import Button from '../../ui/WButton';
 import '../../styles/admin-panels.css';
 
-const QuickAccessItem = ({ 
-  action, 
-  index, 
-  onRemove, 
-  onMoveAction 
-}) => {
+const QuickAccessItem = ({ action, index, onRemove, onMoveAction, onEdit }) => {
   const [dropBefore, setDropBefore] = useState(false);
 
   return (
     <div
       draggable
-      className={clsx(
-        'quick-access-row',
-        dropBefore && 'quick-access-row--drop-before'
-      )}
+      className={clsx('quick-access-row', dropBefore && 'quick-access-row--drop-before')}
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', index.toString());
       }}
@@ -37,26 +29,30 @@ const QuickAccessItem = ({
         }
       }}
     >
-      <span className="quick-access-icon">{action.icon}</span>
+      <span className="quick-access-icon" aria-hidden>
+        {action.icon}
+      </span>
       <div className="quick-access-body">
-        <div className="quick-access-name">
-          {action.name}
-        </div>
-        <div className="quick-access-cmd">
-          {action.command}
-        </div>
+        <div className="quick-access-name">{action.name}</div>
+        <div className="quick-access-cmd">{action.command}</div>
       </div>
-      <Button
-        variant="danger-secondary"
-        size="sm"
-        className="min-w-0 shrink-0"
-        onClick={() => onRemove(action.id)}
-      >
-        ✕
-      </Button>
+      <div className="flex shrink-0 items-center gap-1.5">
+        {onEdit ? (
+          <Button variant="tertiary" size="sm" className="min-w-0" onClick={() => onEdit(action)}>
+            Edit
+          </Button>
+        ) : null}
+        <Button
+          variant="danger-secondary"
+          size="sm"
+          className="min-w-0 shrink-0"
+          onClick={() => onRemove(action.id)}
+        >
+          ✕
+        </Button>
+      </div>
     </div>
   );
 };
 
 export default QuickAccessItem;
-

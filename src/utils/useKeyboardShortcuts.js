@@ -168,6 +168,14 @@ const useKeyboardShortcuts = () => {
       });
     };
 
+    window.openWorkspaceSwitcher = () => {
+      setUIState?.({ showWorkspaceSwitcher: true });
+    };
+
+    window.openUpdateModal = () => {
+      setUIState?.({ showUpdateModal: true });
+    };
+
     return () => {
       delete window.handleGlobalShortcut;
       delete window.openSettingsModal;
@@ -182,6 +190,8 @@ const useKeyboardShortcuts = () => {
       delete window.toggleCustomCursor;
       delete window.toggleSettingsMenu;
       delete window.toggleSpaceRailPin;
+      delete window.openWorkspaceSwitcher;
+      delete window.openUpdateModal;
     };
   }, [keyboardShortcuts, setFloatingWidgetsState, setSpacesState, setUIState]);
 

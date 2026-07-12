@@ -2,6 +2,14 @@ export { default as WeeModalShell } from './WeeModalShell';
 export { WeeModalRail, WeeModalRailSection, WeeModalRailItem } from './WeeModalRail';
 export { default as WeeButton } from './WeeButton';
 export { default as WeeSpaceRailPillButton } from './WeeSpaceRailPillButton';
+export { default as WeeGlassPill } from './WeeGlassPill';
+export { default as WeeGooeyIconButton, WEE_GOOEY_ICON_PRESS } from './WeeGooeyIconButton';
+export { default as WeeLayoutActiveDisc } from './WeeLayoutActiveDisc';
+export { default as WeePillFloorShadow } from './WeePillFloorShadow';
+export {
+  WeePressSurface,
+  WeeTapLayer,
+} from './WeePressSurface';
 export { default as WeeCard } from './WeeCard';
 export { default as WeeToggle } from './WeeToggle';
 export { default as WeeSectionHeader } from './WeeSectionHeader';

@@ -1,8 +1,12 @@
 import React, { useId } from 'react';
 import PropTypes from 'prop-types';
+import { LayoutGroup } from 'framer-motion';
+import { useWeeMotion } from '../../design/weeMotion';
+import WeeLayoutActiveDisc from './WeeLayoutActiveDisc';
 
 /**
  * Pill segmented control — `role="group"` with `aria-pressed` per option.
+ * Active option uses shared {@link WeeLayoutActiveDisc} (space-pill selection chrome).
  */
 function WeeSegmentedControl({
   value,
@@ -13,8 +17,10 @@ function WeeSegmentedControl({
   size = 'md',
   wrap = false,
   disabled = false,
+  layoutId = 'weeSegmentedActive',
 }) {
   const baseId = useId();
+  const { reducedMotion } = useWeeMotion();
   const pad = size === 'sm' ? 'px-4 py-2 text-[10px]' : 'px-6 py-2.5 text-[10px] md:px-8';
 
   const trackClass =
@@ -24,34 +30,43 @@ function WeeSegmentedControl({
     : `inline-flex rounded-2xl ${trackClass} p-1.5`;
 
   return (
-    <div
-      role="group"
-      aria-label={ariaLabel}
-      aria-disabled={disabled || undefined}
-      className={`${layoutClass} ${disabled ? 'opacity-50' : ''} ${className}`.trim()}
-    >
-      {options.map((opt) => {
-        const selected = opt.value === value;
-        const id = `${baseId}-${opt.value}`;
-        return (
-          <button
-            key={String(opt.value)}
-            id={id}
-            type="button"
-            aria-pressed={selected}
-            disabled={disabled}
-            onClick={() => onChange(opt.value)}
-            className={`rounded-xl font-black uppercase italic transition-all ${pad} ${
-              selected
-                ? 'bg-[hsl(var(--wee-surface-card))] text-[hsl(var(--wee-text-header))] shadow-[var(--shadow-sm)]'
-                : 'text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-secondary))]'
-            }`}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
+    <LayoutGroup id={layoutId}>
+      <div
+        role="group"
+        aria-label={ariaLabel}
+        aria-disabled={disabled || undefined}
+        className={`${layoutClass} ${disabled ? 'opacity-50' : ''} ${className}`.trim()}
+      >
+        {options.map((opt) => {
+          const selected = opt.value === value;
+          const id = `${baseId}-${opt.value}`;
+          return (
+            <button
+              key={String(opt.value)}
+              id={id}
+              type="button"
+              aria-pressed={selected}
+              disabled={disabled}
+              onClick={() => onChange(opt.value)}
+              className={`relative rounded-xl font-black uppercase italic transition-colors ${pad} ${
+                selected
+                  ? 'text-[hsl(var(--wee-text-header))]'
+                  : 'text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-secondary))]'
+              }`}
+            >
+              {selected ? (
+                <WeeLayoutActiveDisc
+                  layoutId={layoutId}
+                  reducedMotion={reducedMotion}
+                  className="rounded-xl bg-[hsl(var(--wee-surface-card))] shadow-[var(--shadow-sm)]"
+                />
+              ) : null}
+              <span className="relative z-10">{opt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </LayoutGroup>
   );
 }
 
@@ -69,6 +84,7 @@ WeeSegmentedControl.propTypes = {
   size: PropTypes.oneOf(['sm', 'md']),
   wrap: PropTypes.bool,
   disabled: PropTypes.bool,
+  layoutId: PropTypes.string,
 };
 
 WeeSegmentedControl.defaultProps = {
@@ -77,6 +93,7 @@ WeeSegmentedControl.defaultProps = {
   size: 'md',
   wrap: false,
   disabled: false,
+  layoutId: 'weeSegmentedActive',
 };
 
 export default WeeSegmentedControl;

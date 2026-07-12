@@ -1,426 +1,476 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { WBaseModal } from '../core';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Button from '../../ui/WButton';
-import WToggle from '../../ui/WToggle';
 import WInput from '../../ui/WInput';
-import WSelect from '../../ui/WSelect';
-import Card from '../../ui/Card';
+import Text from '../../ui/Text';
+import { WeeCard, WeeModalShell } from '../../ui/wee';
 import { ActionCommand, QuickAccessItem } from '../app-library';
+import {
+  ADMIN_ACTION_CATEGORIES,
+  ADMIN_POWER_ACTIONS_CATALOG,
+  CUSTOM_ACTION_ICONS,
+  executeAdminCommand,
+  isDestructiveAdminAction,
+  normalizeAdminPanelConfig,
+  validateAdminCommand,
+} from '../../utils/adminPanelCommands';
+import { useUIState } from '../../utils/useConsolidatedAppHooks';
 
-// Power Actions Data
-const powerActionsList = [
-  // Power Management
-  { id: 'shutdown', name: 'Shut Down', command: 'shutdown /s /t 0', icon: '🔌', category: 'Power' },
-  { id: 'restart', name: 'Restart', command: 'shutdown /r /t 0', icon: '🔄', category: 'Power' },
-  { id: 'sleep', name: 'Sleep', command: 'rundll32.exe powrprof.dll,SetSuspendState 0,1,0', icon: '😴', category: 'Power' },
-  { id: 'hibernate', name: 'Hibernate', command: 'shutdown /h', icon: '💤', category: 'Power' },
-  { id: 'lock', name: 'Lock Computer', command: 'rundll32.exe user32.dll,LockWorkStation', icon: '🔒', category: 'Power' },
-
-  // System Tools
-  { id: 'taskmgr', name: 'Task Manager', command: 'start taskmgr', icon: '⚙️', category: 'System' },
-  { id: 'control', name: 'Control Panel', command: 'start control', icon: '🎛️', category: 'System' },
-  { id: 'devmgmt', name: 'Device Manager', command: 'start devmgmt.msc', icon: '🔧', category: 'System' },
-  { id: 'services', name: 'Services', command: 'start services.msc', icon: '🛠️', category: 'System' },
-  { id: 'regedit', name: 'Registry Editor', command: 'start regedit', icon: '📝', category: 'System' },
-  { id: 'about', name: 'About Windows', command: 'start ms-settings:about', icon: 'ℹ️', category: 'System' },
-
-  // Command Line Tools
-  { id: 'cmd', name: 'Command Prompt', command: 'start cmd', icon: '💻', category: 'Tools' },
-  { id: 'powershell', name: 'PowerShell', command: 'start powershell', icon: '⚡', category: 'Tools' },
-
-  // File Management
-  { id: 'explorer', name: 'File Explorer', command: 'start explorer', icon: '📁', category: 'File' },
-  { id: 'desktop', name: 'Show Desktop', command: 'start explorer shell:::{3080F90D-D7AD-11D9-BD98-0000947B0257}', icon: '🖥️', category: 'File' },
-  { id: 'recycle', name: 'Recycle Bin', command: 'start explorer shell:::{645FF040-5081-101B-9F08-00AA002F954E}', icon: '🗑️', category: 'File' },
-
-  // Classic Control Panel Items
-  { id: 'network', name: 'Network Connections', command: 'start ncpa.cpl', icon: '🌐', category: 'Settings' },
-  { id: 'sound', name: 'Sound Settings', command: 'start mmsys.cpl', icon: '🔊', category: 'Settings' },
-  { id: 'display', name: 'Display Settings', command: 'start desk.cpl', icon: '🖼️', category: 'Settings' },
-  { id: 'keyboard', name: 'Keyboard Settings', command: 'start main.cpl keyboard', icon: '⌨️', category: 'Settings' },
-  { id: 'mouse', name: 'Mouse Settings', command: 'start main.cpl', icon: '🖱️', category: 'Settings' },
-  { id: 'system', name: 'System Properties', command: 'start sysdm.cpl', icon: '💻', category: 'Settings' },
-  { id: 'users', name: 'User Accounts', command: 'start nusrmgr.cpl', icon: '👤', category: 'Settings' },
-  { id: 'firewall', name: 'Windows Firewall', command: 'start firewall.cpl', icon: '🔥', category: 'Security' },
-
-  // Modern Settings (Windows 10/11)
-  { id: 'volume-mixer', name: 'Volume Settings', command: 'start ms-settings:sound', icon: '🔊', category: 'Settings' },
-  { id: 'update', name: 'Windows Update', command: 'start ms-settings:windowsupdate', icon: '🔄', category: 'Settings' },
-  { id: 'privacy', name: 'Privacy Settings', command: 'start ms-settings:privacy', icon: '🔒', category: 'Settings' },
-  { id: 'accessibility', name: 'Accessibility Settings', command: 'start ms-settings:easeofaccess', icon: '♿', category: 'Settings' },
-  { id: 'gaming', name: 'Gaming Settings', command: 'start ms-settings:gaming-gamebar', icon: '🎮', category: 'Settings' },
-  { id: 'notifications', name: 'Notifications', command: 'start ms-settings:notifications', icon: '🔔', category: 'Settings' },
-  { id: 'focus', name: 'Focus Assist', command: 'start ms-settings:quiethours', icon: '🎯', category: 'Settings' },
-  { id: 'nightlight', name: 'Night Light', command: 'start ms-settings:nightlight', icon: '🌙', category: 'Settings' },
-  { id: 'bluetooth', name: 'Bluetooth Settings', command: 'start ms-settings:bluetooth', icon: '📶', category: 'Settings' },
-  { id: 'wifi', name: 'Wi-Fi Settings', command: 'start ms-settings:network-wifi', icon: '📡', category: 'Settings' },
-  { id: 'storage', name: 'Storage Settings', command: 'start ms-settings:storagesense', icon: '💾', category: 'Settings' },
-  { id: 'apps', name: 'Apps & Features', command: 'start ms-settings:appsfeatures', icon: '📱', category: 'Settings' },
-  { id: 'defaults', name: 'Default Apps', command: 'start ms-settings:defaultapps', icon: '📋', category: 'Settings' },
-  { id: 'language', name: 'Language Settings', command: 'start ms-settings:language', icon: '🌍', category: 'Settings' },
-  { id: 'time', name: 'Time & Language', command: 'start ms-settings:dateandtime', icon: '🕐', category: 'Settings' },
-  { id: 'region', name: 'Region Settings', command: 'start ms-settings:regionlanguage', icon: '🌎', category: 'Settings' },
-  { id: 'search', name: 'Search Settings', command: 'start ms-settings:search', icon: '🔍', category: 'Settings' },
-  { id: 'cortana', name: 'Cortana Settings', command: 'start ms-settings:cortana', icon: '🎤', category: 'Settings' },
-  { id: 'speech', name: 'Speech Settings', command: 'start ms-settings:speech', icon: '🗣️', category: 'Settings' },
-  { id: 'ink', name: 'Pen & Windows Ink', command: 'start ms-settings:pen', icon: '✏️', category: 'Settings' },
-  { id: 'touch', name: 'Touch Settings', command: 'start ms-settings:devices-touch', icon: '👆', category: 'Settings' },
-  { id: 'printers', name: 'Printers & Scanners', command: 'start ms-settings:printers', icon: '🖨️', category: 'Settings' },
-  { id: 'scanners', name: 'Scanners & Cameras', command: 'start ms-settings:scanners', icon: '📷', category: 'Settings' },
-  { id: 'phone', name: 'Phone Settings', command: 'start ms-settings:phone', icon: '📞', category: 'Settings' },
-  { id: 'project', name: 'Project Settings', command: 'start ms-settings:project', icon: '📽️', category: 'Settings' },
-  { id: 'multitask', name: 'Multitasking', command: 'start ms-settings:multitasking', icon: '🔄', category: 'Settings' },
-  { id: 'tablet', name: 'Tablet Mode', command: 'start ms-settings:tabletmode', icon: '📱', category: 'Settings' },
-];
-
-
-const categories = [...new Set(powerActionsList.map(action => action.category)), 'Custom'];
+const EMPTY_CUSTOM = {
+  name: '',
+  command: '',
+  icon: '⚙️',
+  category: 'Custom',
+};
 
 function AdminPanel({ isOpen, onClose, onSave, config }) {
-  const [powerActions, setPowerActions] = useState(config?.powerActions || []);
+  const { confirmAction } = useUIState();
+  const normalized = normalizeAdminPanelConfig(config);
+  const [powerActions, setPowerActions] = useState(normalized.powerActions);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [recentlyAdded, setRecentlyAdded] = useState(null);
-  const [showNotification, setShowNotification] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState('');
+  const [banner, setBanner] = useState(null);
   const [showCustomForm, setShowCustomForm] = useState(false);
-  const [customAction, setCustomAction] = useState({
-    name: '',
-    command: '',
-    icon: '⚙️',
-    category: 'Custom'
-  });
+  const [editingCustomId, setEditingCustomId] = useState(null);
+  const [customAction, setCustomAction] = useState(EMPTY_CUSTOM);
   const [customActionError, setCustomActionError] = useState('');
-  
-  // Use ref to track powerActions to prevent stale closures
+  const [runFeedback, setRunFeedback] = useState(null);
+
   const powerActionsRef = useRef(powerActions);
-  
-  // Keep ref in sync with state
-  useEffect(() => {
-    powerActionsRef.current = powerActions;
-  }, [powerActions]);
-  
-  // Use ref to track if we've initialized from config
   const hasInitializedRef = useRef(false);
 
   useEffect(() => {
-    // Only initialize from config when the modal first opens and we haven't initialized yet
-    if (config && config.powerActions && isOpen && !hasInitializedRef.current) {
-      setPowerActions(config.powerActions);
+    powerActionsRef.current = powerActions;
+  }, [powerActions]);
+
+  useEffect(() => {
+    if (isOpen && !hasInitializedRef.current) {
+      setPowerActions(normalizeAdminPanelConfig(config).powerActions);
       hasInitializedRef.current = true;
+      setBanner(null);
+      setRunFeedback(null);
+      setShowCustomForm(false);
+      setEditingCustomId(null);
+      setCustomAction(EMPTY_CUSTOM);
+      setSearchQuery('');
+      setSelectedCategory('All');
     }
-    
-    // Reset initialization flag when modal closes
     if (!isOpen) {
       hasInitializedRef.current = false;
     }
   }, [config, isOpen]);
 
-  // Get custom actions from powerActions
-  const customActions = powerActions.filter(action => action.category === 'Custom');
-  
-  // Combine built-in actions with custom actions
-  const allActions = [...powerActionsList, ...customActions];
-  
-  const filteredActions = allActions.filter(action => {
-    const matchesSearch = action.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         action.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || action.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const showBanner = useCallback((message, tone = 'success') => {
+    setBanner({ message, tone });
+    window.setTimeout(() => setBanner(null), 2800);
+  }, []);
 
-  const handleAddAction = (action) => {
-    const currentActions = powerActionsRef.current;
-    
-    // For built-in actions, check by ID. For custom actions, check by name to avoid duplicates
-    const existingAction = action.category === 'Custom' 
-      ? currentActions.find(pa => pa.name.toLowerCase() === action.name.toLowerCase())
-      : currentActions.find(pa => pa.id === action.id);
-    
-    if (!existingAction) {
-      const newPowerActions = [...currentActions, action];
-      setPowerActions(newPowerActions);
+  const customActions = useMemo(
+    () => powerActions.filter((action) => action.category === 'Custom'),
+    [powerActions]
+  );
+
+  const allActions = useMemo(
+    () => [...ADMIN_POWER_ACTIONS_CATALOG, ...customActions],
+    [customActions]
+  );
+
+  const filteredActions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return allActions.filter((action) => {
+      const matchesSearch =
+        !q ||
+        action.name.toLowerCase().includes(q) ||
+        action.id.toLowerCase().includes(q) ||
+        String(action.command || '').toLowerCase().includes(q);
+      const matchesCategory = selectedCategory === 'All' || action.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [allActions, searchQuery, selectedCategory]);
+
+  const commandValidation = useMemo(
+    () => validateAdminCommand(customAction.command),
+    [customAction.command]
+  );
+
+  const handleAddAction = useCallback(
+    (action) => {
+      const currentActions = powerActionsRef.current;
+      const existing =
+        action.category === 'Custom'
+          ? currentActions.find((pa) => pa.name.toLowerCase() === action.name.toLowerCase())
+          : currentActions.find((pa) => pa.id === action.id);
+      if (existing) return;
+
+      setPowerActions([...currentActions, action]);
       setRecentlyAdded(action.id);
-      setNotificationMessage(`Added "${action.name}" to quick access menu`);
-      setShowNotification(true);
-      
-      // Clear the highlight after 2 seconds
-      setTimeout(() => {
-        setRecentlyAdded(null);
-      }, 2000);
-      
-      // Clear notification after 3 seconds
-      setTimeout(() => {
-        setShowNotification(false);
-      }, 3000);
-    }
-  };
+      showBanner(`Added “${action.name}”`);
+      window.setTimeout(() => setRecentlyAdded(null), 1800);
+    },
+    [showBanner]
+  );
 
-  const handleRemoveAction = (actionId) => {
-    const currentActions = powerActionsRef.current;
-    setPowerActions(currentActions.filter(pa => pa.id !== actionId));
-  };
+  const handleRemoveAction = useCallback((actionId) => {
+    setPowerActions(powerActionsRef.current.filter((pa) => pa.id !== actionId));
+  }, []);
 
-  const handleMoveAction = (fromIndex, toIndex) => {
+  const handleToggleCatalogAction = useCallback(
+    (action) => {
+      const currentActions = powerActionsRef.current;
+      const existing = currentActions.find((pa) => pa.id === action.id);
+      if (existing) {
+        handleRemoveAction(action.id);
+        showBanner(`Removed “${action.name}”`, 'neutral');
+        return;
+      }
+      handleAddAction(action);
+    },
+    [handleAddAction, handleRemoveAction, showBanner]
+  );
+
+  const handleMoveAction = useCallback((fromIndex, toIndex) => {
     const currentActions = powerActionsRef.current;
     const newActions = [...currentActions];
     const [movedAction] = newActions.splice(fromIndex, 1);
     newActions.splice(toIndex, 0, movedAction);
     setPowerActions(newActions);
-  };
+  }, []);
 
   const handleSave = useCallback(() => {
-    const currentActions = powerActionsRef.current.map(action => ({
-      ...action,
-      enabled: action.enabled || false
-    }));
-
-    onSave(currentActions);
+    onSave(powerActionsRef.current.map((action) => ({ ...action })));
     onClose();
   }, [onSave, onClose]);
 
-  const handleQuickExecute = (action) => {
-    if (window.api && window.api.executeCommand) {
-      window.api.executeCommand(action.command);
-    }
-  };
+  const runCommand = useCallback(
+    async (action) => {
+      setRunFeedback(null);
+      const result = await executeAdminCommand(action.command);
+      if (!result.success) {
+        setRunFeedback({
+          tone: 'error',
+          message: result.error || `Could not run “${action.name}”`,
+        });
+        return false;
+      }
+      setRunFeedback({ tone: 'success', message: `Ran “${action.name}”` });
+      return true;
+    },
+    []
+  );
 
-  const handleAddCustomAction = () => {
+  const handleQuickExecute = useCallback(
+    (action) => {
+      if (isDestructiveAdminAction(action)) {
+        confirmAction(
+          `Run ${action.name}?`,
+          `This will run <strong>${action.name}</strong> on your PC. Continue?`,
+          () => {
+            void runCommand(action);
+          },
+          null,
+          'Run',
+          'danger-primary'
+        );
+        return;
+      }
+      void runCommand(action);
+    },
+    [confirmAction, runCommand]
+  );
+
+  const openEditCustom = useCallback((action) => {
+    setEditingCustomId(action.id);
+    setCustomAction({
+      name: action.name,
+      command: action.command,
+      icon: action.icon || '⚙️',
+      category: 'Custom',
+    });
+    setShowCustomForm(true);
     setCustomActionError('');
-    
+  }, []);
+
+  const handleSubmitCustomAction = useCallback(() => {
+    setCustomActionError('');
     if (!customAction.name.trim()) {
-      setCustomActionError('Please enter a name for the action');
+      setCustomActionError('Give this action a short name');
       return;
     }
-    
     if (!customAction.command.trim()) {
-      setCustomActionError('Please enter a command');
+      setCustomActionError('Enter a command');
       return;
     }
-    
-    // Check if action with same name already exists
-    const existingAction = powerActions.find(pa => pa.name.toLowerCase() === customAction.name.toLowerCase());
-    if (existingAction) {
+    const gate = validateAdminCommand(customAction.command.trim());
+    if (!gate.ok) {
+      setCustomActionError(gate.error || 'Command is not allowlisted');
+      return;
+    }
+
+    const name = customAction.name.trim();
+    const command = customAction.command.trim();
+    const duplicate = powerActionsRef.current.find(
+      (pa) =>
+        pa.name.toLowerCase() === name.toLowerCase() &&
+        pa.id !== editingCustomId
+    );
+    if (duplicate) {
       setCustomActionError('An action with this name already exists');
       return;
     }
-    
-    // Create new custom action with unique ID
-    const newCustomAction = {
-      ...customAction,
-      id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: customAction.name.trim(),
-      command: customAction.command.trim()
-    };
-    
-    // Add to power actions
-    const newPowerActions = [...powerActions, newCustomAction];
-    setPowerActions(newPowerActions);
-    
-    // Reset form
-    setCustomAction({
-      name: '',
-      command: '',
-      icon: '⚙️',
-      category: 'Custom'
-    });
-    setShowCustomForm(false);
-    setCustomActionError('');
-    
-    // Show success notification
-    setNotificationMessage(`Added custom action "${newCustomAction.name}"`);
-    setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
-  };
 
-  const handleCustomActionChange = (field, value) => {
-    setCustomAction(prev => ({ ...prev, [field]: value }));
-    if (customActionError) setCustomActionError('');
-  };
+    if (editingCustomId) {
+      setPowerActions(
+        powerActionsRef.current.map((pa) =>
+          pa.id === editingCustomId
+            ? { ...pa, name, command, icon: customAction.icon, category: 'Custom' }
+            : pa
+        )
+      );
+      showBanner(`Updated “${name}”`);
+    } else {
+      const newCustomAction = {
+        id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        name,
+        command,
+        icon: customAction.icon,
+        category: 'Custom',
+      };
+      setPowerActions([...powerActionsRef.current, newCustomAction]);
+      setRecentlyAdded(newCustomAction.id);
+      showBanner(`Added “${name}”`);
+      window.setTimeout(() => setRecentlyAdded(null), 1800);
+    }
 
-  const handleCancelCustomAction = () => {
-    setCustomAction({
-      name: '',
-      command: '',
-      icon: '⚙️',
-      category: 'Custom'
-    });
+    setCustomAction(EMPTY_CUSTOM);
     setShowCustomForm(false);
+    setEditingCustomId(null);
+  }, [customAction, editingCustomId, showBanner]);
+
+  const handleCancelCustomAction = useCallback(() => {
+    setCustomAction(EMPTY_CUSTOM);
+    setShowCustomForm(false);
+    setEditingCustomId(null);
     setCustomActionError('');
-  };
+  }, []);
 
   return (
-    <WBaseModal
+    <WeeModalShell
       isOpen={isOpen}
-      title="Admin Panel"
+      headerTitle="Configure Quick Access"
       onClose={onClose}
-      maxWidth="1400px"
+      showRail={false}
+      maxWidth="1200px"
       footerContent={({ handleClose }) => (
-        <div className="flex justify-between items-center">
+        <div className="flex w-full items-center justify-between gap-3">
+          <Text variant="caption" className="text-[hsl(var(--text-tertiary))]">
+            {powerActions.length} action{powerActions.length === 1 ? '' : 's'} in your menu
+          </Text>
           <div className="flex gap-2.5">
-            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-            <Button variant="primary" onClick={handleSave}>Save</Button>
+            <Button variant="secondary" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSave}>
+              Save menu
+            </Button>
           </div>
         </div>
       )}
     >
-      {/* Notification */}
-      {showNotification && (
-        <div className="fixed top-5 right-5 bg-green-500 text-white px-4 py-3 rounded-md shadow-lg z-[10000] animate-[slideIn_0.3s_ease-out]">
-          {notificationMessage}
+      {banner ? (
+        <div
+          className={`mb-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            banner.tone === 'success'
+              ? 'border-[hsl(var(--state-success)/0.45)] bg-[hsl(var(--state-success)/0.12)] text-[hsl(var(--state-success))]'
+              : 'border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
+          }`}
+          role="status"
+        >
+          {banner.message}
         </div>
-      )}
+      ) : null}
 
-      <div className="flex gap-5 h-[600px]">
-        {/* Left Panel - Action Browser */}
-        <div className="flex-1 flex flex-col">
-          <Card 
-            title="System Actions"
+      {runFeedback ? (
+        <div
+          className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
+            runFeedback.tone === 'error'
+              ? 'border-[hsl(var(--state-error)/0.45)] bg-[hsl(var(--state-error)/0.1)] text-[hsl(var(--state-error))]'
+              : 'border-[hsl(var(--state-success)/0.45)] bg-[hsl(var(--state-success)/0.12)] text-[hsl(var(--state-success))]'
+          }`}
+          role="status"
+        >
+          {runFeedback.message}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-5 lg:h-[min(620px,70vh)] lg:flex-row">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <WeeCard
+            title="Browse actions"
             separator
-            desc="Browse and add Windows system actions to your quick access menu."
-            className="mb-4"
+            desc="Tap to add or remove. Run to try safely before saving."
+            className="mb-3 shrink-0"
           />
 
-          {/* Search and Category Filter */}
-          <div className="mb-4 space-y-3">
+          <div className="mb-3 space-y-3">
             <WInput
-              placeholder="Search actions..."
+              placeholder="Search by name or command…"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <WSelect
-              placeholder="All Categories"
-              options={[
-                { value: 'All', label: 'All Categories' },
-                ...categories.map(category => ({ value: category, label: category }))
-              ]}
-              value={selectedCategory}
-              onChange={setSelectedCategory}
-            />
+            <div className="flex flex-wrap gap-1.5">
+              {['All', ...ADMIN_ACTION_CATEGORIES].map((category) => {
+                const active = selectedCategory === category;
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setSelectedCategory(category)}
+                    className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition-colors ${
+                      active
+                        ? 'border-[hsl(var(--primary)/0.55)] bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--primary))]'
+                        : 'border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.5)] text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))]'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Add Custom Action Button */}
-          <div className="mb-4">
-            <Button
-              variant="primary"
-              onClick={() => setShowCustomForm(true)}
-              fullWidth
-            >
-              <span>➕</span>
-              Add Custom Action
-            </Button>
-          </div>
-
-          {/* Custom Action Form */}
-          {showCustomForm && (
-            <div className="mb-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
-              <div className="font-semibold mb-3 text-gray-800">
-                Add Custom Action
-              </div>
-              
-              <div className="mb-3">
+          {!showCustomForm ? (
+            <div className="mb-3">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowCustomForm(true);
+                  setEditingCustomId(null);
+                  setCustomAction(EMPTY_CUSTOM);
+                  setCustomActionError('');
+                }}
+                fullWidth
+              >
+                + Custom action
+              </Button>
+            </div>
+          ) : (
+            <div className="mb-3 rounded-2xl border border-[hsl(var(--border-primary)/0.5)] bg-[hsl(var(--surface-secondary)/0.55)] p-4">
+              <Text variant="body" className="mb-3 text-sm font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]">
+                {editingCustomId ? 'Edit custom action' : 'New custom action'}
+              </Text>
+              <div className="mb-3 space-y-3">
                 <WInput
-                  label="Action Name"
-                  placeholder="e.g., Time & Language Settings"
+                  label="Name"
+                  placeholder="e.g. Calculator"
                   value={customAction.name}
-                  onChange={e => handleCustomActionChange('name', e.target.value)}
-                  required
+                  onChange={(e) => setCustomAction((prev) => ({ ...prev, name: e.target.value }))}
                 />
-              </div>
-              
-              <div className="mb-3">
                 <WInput
                   label="Command"
-                  placeholder="e.g., start ms-settings:dateandtime"
+                  placeholder="e.g. start calc"
                   value={customAction.command}
-                  onChange={e => handleCustomActionChange('command', e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setCustomAction((prev) => ({ ...prev, command: e.target.value }));
+                    if (customActionError) setCustomActionError('');
+                  }}
                 />
-                <div className="text-xs text-gray-600 mt-1">
-                  Common commands: <code>start [program]</code>, <code>cmd /c [command]</code>, <code>powershell -Command [script]</code>
-                </div>
-              </div>
-              
-              <div className="mb-3">
-                <label className="block text-sm mb-1 text-gray-600">
-                  Icon
-                </label>
-                <div className="flex gap-2 flex-wrap">
-                  {['⚙️', '🕐', '🔧', '🎛️', '📁', '💻', '🔍', '⚡', '🎮', '🔊', '🌐', '🔒'].map(icon => (
-                    <button
-                      key={icon}
-                      type="button"
-                      onClick={() => handleCustomActionChange('icon', icon)}
-                                              className={`text-xl p-2 rounded-md cursor-pointer transition-all duration-200 ${
-                          customAction.icon === icon 
-                            ? 'border-2 border-blue-500 bg-blue-50' 
-                            : 'border border-gray-300 bg-white'
+                {customAction.command.trim() ? (
+                  <Text
+                    variant="caption"
+                    className={
+                      commandValidation.ok
+                        ? 'text-[hsl(var(--state-success))]'
+                        : 'text-[hsl(var(--state-warning))]'
+                    }
+                  >
+                    {commandValidation.ok
+                      ? commandValidation.destructive
+                        ? 'Will run (asks for confirmation — power action)'
+                        : 'Looks good — this command is allowlisted'
+                      : commandValidation.error}
+                  </Text>
+                ) : (
+                  <Text variant="caption" className="text-[hsl(var(--text-tertiary))]">
+                    Use <code className="font-mono text-[11px]">start notepad</code>,{' '}
+                    <code className="font-mono text-[11px]">start ms-settings:sound</code>, or a{' '}
+                    <code className="font-mono text-[11px]">.cpl</code> /{' '}
+                    <code className="font-mono text-[11px]">.msc</code> tool. Free-form scripts are not allowed.
+                  </Text>
+                )}
+                <div>
+                  <Text variant="caption" className="mb-2 block text-[hsl(var(--text-tertiary))]">
+                    Icon
+                  </Text>
+                  <div className="flex flex-wrap gap-2">
+                    {CUSTOM_ACTION_ICONS.map((icon) => (
+                      <button
+                        key={icon}
+                        type="button"
+                        onClick={() => setCustomAction((prev) => ({ ...prev, icon }))}
+                        className={`rounded-xl px-2.5 py-2 text-xl transition-colors ${
+                          customAction.icon === icon
+                            ? 'border-2 border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.14)]'
+                            : 'border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary))]'
                         }`}
-                    >
-                      {icon}
-                    </button>
-                  ))}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-              
-              {customActionError && (
-                                <div className="text-red-600 text-sm mb-3 p-2 bg-red-50 rounded border border-red-200">
+              {customActionError ? (
+                <div className="mb-3 rounded-xl border border-[hsl(var(--state-error)/0.45)] bg-[hsl(var(--state-error)/0.1)] px-3 py-2 text-sm text-[hsl(var(--state-error))]">
                   {customActionError}
                 </div>
-              )}
-              
+              ) : null}
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddCustomAction}
-                  className="bg-green-600 hover:bg-green-700 text-white border-none rounded px-4 py-2 text-sm cursor-pointer font-medium transition-colors duration-200"
-                >
-                  Add Action
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancelCustomAction}
-                  className="bg-gray-500 hover:bg-gray-600 text-white border-none rounded px-4 py-2 text-sm cursor-pointer transition-colors duration-200"
-                >
+                <Button variant="primary" onClick={handleSubmitCustomAction}>
+                  {editingCustomId ? 'Save changes' : 'Add to menu'}
+                </Button>
+                <Button variant="secondary" onClick={handleCancelCustomAction}>
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
-          {/* Actions List */}
-          <div className="flex-1 overflow-y-auto border border-gray-300 rounded-lg p-2 max-h-[400px]">
-            {filteredActions.map(action => {
-              const isAdded = powerActions.find(pa => pa.id === action.id);
-              const isRecentlyAdded = recentlyAdded === action.id;
-              
-              return (
-                <ActionCommand
-                  key={action.id}
-                  action={action}
-                  isAdded={isAdded}
-                  isRecentlyAdded={isRecentlyAdded}
-                  onAdd={handleAddAction}
-                  onQuickExecute={handleQuickExecute}
-                />
-              );
-            })}
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.35)] p-2">
+            {filteredActions.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-[hsl(var(--text-tertiary))]">
+                No actions match that search.
+              </div>
+            ) : (
+              filteredActions.map((action) => {
+                const isAdded = Boolean(powerActions.find((pa) => pa.id === action.id));
+                return (
+                  <ActionCommand
+                    key={action.id}
+                    action={action}
+                    isAdded={isAdded}
+                    isRecentlyAdded={recentlyAdded === action.id}
+                    onAdd={handleToggleCatalogAction}
+                    onRemove={handleRemoveAction}
+                    onQuickExecute={handleQuickExecute}
+                    onEdit={action.category === 'Custom' ? openEditCustom : undefined}
+                  />
+                );
+              })
+            )}
           </div>
         </div>
 
-        {/* Right Panel - Quick Access */}
-        <div className="flex-1 flex flex-col">
-          <Card 
-            title="Quick Access Menu"
+        <div className="flex min-h-0 flex-1 flex-col">
+          <WeeCard
+            title="Your menu"
             separator
-            desc="Actions that will appear in your quick access menu. Drag to reorder."
-            className="mb-4"
+            desc="Drag to reorder. This is what shows on the floating widget."
+            className="mb-3 shrink-0"
           />
-
-          <div className="flex-1 border border-[hsl(var(--border-primary))] rounded-lg p-2 bg-[hsl(var(--surface-secondary))] overflow-y-auto max-h-[400px]">
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.45)] p-2">
             {powerActions.length === 0 ? (
-              <div className="text-center text-[hsl(var(--text-tertiary))] py-10 px-5 italic">
-                No actions selected. Click on actions from the left panel to add them here.
+              <div className="px-5 py-12 text-center text-sm italic text-[hsl(var(--text-tertiary))]">
+                Pick a few favorites from the left — keep it light and useful.
               </div>
             ) : (
               powerActions.map((action, index) => (
@@ -430,15 +480,15 @@ function AdminPanel({ isOpen, onClose, onSave, config }) {
                   index={index}
                   onRemove={handleRemoveAction}
                   onMoveAction={handleMoveAction}
+                  onEdit={action.category === 'Custom' ? openEditCustom : undefined}
                 />
               ))
             )}
           </div>
         </div>
       </div>
-    </WBaseModal>
+    </WeeModalShell>
   );
 }
 
-export default AdminPanel; 
-
+export default AdminPanel;

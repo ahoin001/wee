@@ -19,11 +19,14 @@ export const DEFAULT_GOOEY_PHYSICS = Object.freeze({
     modals: 1,
     channels: 1,
     ribbon: 1,
+    mediaHub: 1,
   }),
   /** Channel tile hover: squash | glow | both */
   channelHoverMode: GOOEY_HOVER_MODES.both,
   /** Ribbon floating buttons hover: squash | glow | both */
   ribbonHoverMode: GOOEY_HOVER_MODES.both,
+  /** Media Hub cards / pills hover: squash | glow | both */
+  mediaHubHoverMode: GOOEY_HOVER_MODES.both,
 });
 
 function lerp(a, b, t) {
@@ -55,9 +58,13 @@ export function mergeGooeyPhysics(patch) {
       modals: clampGooeyIntensity(surfaces.modals ?? DEFAULT_GOOEY_PHYSICS.surfaces.modals),
       channels: clampGooeyIntensity(surfaces.channels ?? DEFAULT_GOOEY_PHYSICS.surfaces.channels),
       ribbon: clampGooeyIntensity(surfaces.ribbon ?? DEFAULT_GOOEY_PHYSICS.surfaces.ribbon),
+      mediaHub: clampGooeyIntensity(surfaces.mediaHub ?? DEFAULT_GOOEY_PHYSICS.surfaces.mediaHub),
     },
     channelHoverMode: normalizeGooeyHoverMode(p.channelHoverMode ?? DEFAULT_GOOEY_PHYSICS.channelHoverMode),
     ribbonHoverMode: normalizeGooeyHoverMode(p.ribbonHoverMode ?? DEFAULT_GOOEY_PHYSICS.ribbonHoverMode),
+    mediaHubHoverMode: normalizeGooeyHoverMode(
+      p.mediaHubHoverMode ?? DEFAULT_GOOEY_PHYSICS.mediaHubHoverMode
+    ),
   };
 }
 

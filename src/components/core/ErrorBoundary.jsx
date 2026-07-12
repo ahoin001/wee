@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
+import { WeeCard } from '../../ui/wee';
 import Text from '../../ui/Text';
 import '../../styles/error-ui.css';
 import { IS_DEV } from '../../utils/env';
@@ -69,7 +69,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="app-error-fullpage">
-          <Card className="app-error-card-shell">
+          <WeeCard className="app-error-card-shell">
             <div className="app-error-card-inner">
               <div className="app-error-emoji">
                 ⚠️
@@ -128,7 +128,7 @@ class ErrorBoundary extends React.Component {
                 </Text>
               )}
             </div>
-          </Card>
+          </WeeCard>
         </div>
       );
     }

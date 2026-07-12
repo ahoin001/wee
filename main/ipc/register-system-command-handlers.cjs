@@ -1,6 +1,16 @@
+/**
+ * System command IPC — allowlisted Windows tools / power actions only.
+ */
 const { runExclusive } = require('../services/scan-serialization.cjs');
 const { execFile } = require('child_process');
 const { isTrustedMainWindowEvent } = require('./trusted-renderer-utils.cjs');
+const {
+  ALLOWED_SIMPLE_START_TARGETS,
+  SHELL_GUID_PATTERN,
+  SETTINGS_URI_PATTERN,
+  validateAdminCommand,
+  splitCommand,
+} = require('../../shared/admin-command-allowlist.cjs');
 
 function registerSystemCommandHandlers({
   ipcMain,
@@ -8,43 +18,14 @@ function registerSystemCommandHandlers({
   shell,
   getMainWindow,
 }) {
-  const ALLOWED_SIMPLE_START_TARGETS = new Set([
-    'taskmgr',
-    'control',
-    'devmgmt.msc',
-    'services.msc',
-    'regedit',
-    'cmd',
-    'powershell',
-    'explorer',
-    'ncpa.cpl',
-    'mmsys.cpl',
-    'desk.cpl',
-    'sysdm.cpl',
-    'nusrmgr.cpl',
-    'firewall.cpl',
-    'main.cpl',
-  ]);
-  const SHELL_GUID_PATTERN = /^shell:::\{[0-9a-f-]{36}\}$/i;
-  const SETTINGS_URI_PATTERN = /^ms-settings:[a-z0-9-]+$/i;
-
   function isLikelyStoreAppId(appId) {
     if (!appId || typeof appId !== 'string') return false;
     const normalized = appId.trim();
     if (!normalized.includes('!')) return false;
-    // Package-backed AUMID is usually "PackageFamily!AppId"; keep this broad to avoid false negatives.
     if (!/^[^\s!]+![^\s!]+$/.test(normalized)) return false;
-    // Desktop aliases often leak here but are not store identifiers.
     if (/\.exe/i.test(normalized)) return false;
     if (normalized.includes('\\') || normalized.includes('/')) return false;
     return true;
-  }
-
-  function splitCommand(input) {
-    return String(input || '')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
   }
 
   function runExecFile(command, args = []) {
@@ -97,13 +78,12 @@ function registerSystemCommandHandlers({
   });
 
   async function executeApprovedCommand(command) {
+    const gate = validateAdminCommand(command);
+    if (!gate.ok) {
+      return { success: false, error: gate.error || 'Command is not allowlisted' };
+    }
+
     const trimmed = String(command || '').trim();
-    if (!trimmed || trimmed.length > 256) {
-      return { success: false, error: 'Command is empty or too long' };
-    }
-    if (/[\r\n;&|><`]/.test(trimmed)) {
-      return { success: false, error: 'Command contains disallowed characters' };
-    }
 
     if (/^shutdown\s+\/s\s+\/t\s+0$/i.test(trimmed)) return runExecFile('shutdown.exe', ['/s', '/t', '0']);
     if (/^shutdown\s+\/r\s+\/t\s+0$/i.test(trimmed)) return runExecFile('shutdown.exe', ['/r', '/t', '0']);

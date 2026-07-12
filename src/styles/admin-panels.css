@@ -73,6 +73,12 @@
   font-weight: 500;
 }
 
+.action-command-badge--idle {
+  background: hsl(var(--surface-tertiary));
+  color: hsl(var(--text-secondary));
+  border: 1px solid hsl(var(--border-primary) / 0.45);
+}
+
 .quick-access-row {
   display: flex;
   align-items: center;

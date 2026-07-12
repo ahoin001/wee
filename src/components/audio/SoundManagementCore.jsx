@@ -4,7 +4,7 @@ import { ResourceUsageIndicator } from '../widgets';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
-import Card from '../../ui/Card';
+import { WeeCard } from '../../ui/wee';
 import useSoundManager from '../../utils/useSoundManager';
 import './sound-management.css';
 import { IS_DEV } from '../../utils/env';
@@ -544,7 +544,7 @@ const SoundManagementCore = React.memo(({
     // Special handling for background music
     if (cat.key === 'backgroundMusic') {
       return (
-        <Card
+        <WeeCard
           key={cat.key}
           className="sound-settings-card--tight"
           title={
@@ -778,13 +778,13 @@ const SoundManagementCore = React.memo(({
               </Button>
             </div>
           </div>
-        </Card>
+        </WeeCard>
       );
     }
 
     // Regular sound sections for other categories
     return (
-      <Card
+      <WeeCard
         key={cat.key}
         className="sound-settings-card--tight"
         title={
@@ -911,7 +911,7 @@ const SoundManagementCore = React.memo(({
             </Button>
           </div>
         </div>
-      </Card>
+      </WeeCard>
     );
   };
 
@@ -969,7 +969,7 @@ const SoundManagementCore = React.memo(({
 
       {/* Debug Info */}
       {IS_DEV && (
-        <Card
+        <WeeCard
           title="Debug Info"
           separator
           className="sound-settings-card--tight sound-card-pad--debug"
@@ -979,7 +979,7 @@ const SoundManagementCore = React.memo(({
               {JSON.stringify(soundSettings, null, 2)}
             </Text>
           </div>
-        </Card>
+        </WeeCard>
       )}
     </div>
   );

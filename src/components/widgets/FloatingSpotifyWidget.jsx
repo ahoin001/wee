@@ -11,6 +11,7 @@ import { buildSpotifyGooeyStyleVars, getSpotifyGooeyShellBackground } from '../.
 import './FloatingSpotifyWidget.css';
 import './spotify/spotify-gooey-widget.css';
 import GooeyFloatingPanel from './common/GooeyFloatingPanel';
+import FloatingWidgetPresence from './common/FloatingWidgetPresence';
 import SpotifyWidgetChrome from './spotify/SpotifyWidgetChrome';
 import SpotifyPlayerView from './spotify/SpotifyPlayerView';
 import SpotifyBrowseView from './spotify/SpotifyBrowseView';
@@ -33,7 +34,7 @@ import {
   SPOTIFY_WEB_API_PLAYER_DOCS_URL,
 } from '../../utils/spotifyTier';
 
-const FloatingSpotifyWidget = ({ isVisible }) => {
+const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
   const isDarkMode = useIsDarkMode();
   const { spotify, spotifyManager, setSpotifyState } = useSpotifyState();
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
@@ -356,10 +357,10 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
 
   const tierLabel = isPremium ? 'premium' : isConnected && currentUser ? 'free' : null;
 
-  if (!isVisible) return null;
-
   return (
-    <div
+    <FloatingWidgetPresence
+      isOpen={isVisible}
+      onExitAnimationComplete={onExitAnimationComplete}
       className={[
         'floating-spotify-widget floating-spotify-widget--gooey',
         isFreeTierConnected ? 'floating-spotify-widget--free-tier' : '',
@@ -651,7 +652,7 @@ const FloatingSpotifyWidget = ({ isVisible }) => {
       >
         <Maximize2 size={18} strokeWidth={2.5} className="rotate-45" aria-hidden />
       </button>
-    </div>
+    </FloatingWidgetPresence>
   );
 };
 

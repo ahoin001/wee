@@ -14,24 +14,23 @@ const MotionDiv = m.div;
  */
 function AuraHubModalFrame({ open, onOpenChange, ariaLabelledBy, panelClassName = '', children }) {
   const { allowMount, onPanelAnimationComplete } = useDialogExitPresence(open);
-  const { backdropTransition: weeBackdrop, modalTransition: weeModal } = useWeeMotion();
-  const { modalSpringTransitions } = useMotionFeedback();
+  const { backdropTransition } = useWeeMotion();
+  const { modalSpringTransitions, gooey } = useMotionFeedback();
 
-  const backdropTransition = modalSpringTransitions ? weeBackdrop : { duration: 0.12 };
-  const modalTransition = modalSpringTransitions ? weeModal : { duration: 0.18 };
+  const panelVariants = useMemo(() => {
+    if (!modalSpringTransitions) {
+      return {
+        open: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.18 } },
+        closed: { opacity: 0, scale: 0.96, y: 12, transition: { duration: 0.14 } },
+      };
+    }
+    return gooey.modalPanelVariants;
+  }, [gooey.modalPanelVariants, modalSpringTransitions]);
 
   const backdropVariants = useMemo(
     () => ({
       open: { opacity: 1 },
       closed: WEE_VARIANTS.modalBackdropExit,
-    }),
-    []
-  );
-
-  const panelVariants = useMemo(
-    () => ({
-      open: WEE_VARIANTS.modalPanelAnimate,
-      closed: WEE_VARIANTS.modalPanelExit,
     }),
     []
   );
@@ -71,7 +70,6 @@ function AuraHubModalFrame({ open, onOpenChange, ariaLabelledBy, panelClassName 
         variants={panelVariants}
         initial="closed"
         animate={open ? 'open' : 'closed'}
-        transition={modalTransition}
         onAnimationComplete={onPanelAnimationComplete}
         onMouseDown={(e) => e.stopPropagation()}
       >

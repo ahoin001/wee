@@ -1,5 +1,4 @@
 import React, { useEffect, useCallback, useMemo } from 'react';
-import Card from '../../ui/Card';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import Slider from '../../ui/Slider';
@@ -21,9 +20,10 @@ const GLASS_TEST_BTN_STYLE = {
 };
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 import { useFloatingWidgetFrame } from '../../hooks/useFloatingWidgetFrame';
+import FloatingWidgetPresence from './common/FloatingWidgetPresence';
 import './SystemInfoWidget.css';
 
-const SystemInfoWidget = ({ isVisible, onClose }) => {
+const SystemInfoWidget = ({ isVisible, onClose, onExitAnimationComplete }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
   const { isAppActive, isLowPowerMode, pollIntervalMultiplier } = useAnimationActivity({
     activeFps: 30,
@@ -241,10 +241,10 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
     );
   }, []);
 
-  if (!isVisible) return null;
-
   return (
-    <div 
+    <FloatingWidgetPresence
+      isOpen={isVisible}
+      onExitAnimationComplete={onExitAnimationComplete}
       ref={widgetRef}
       className="system-info-widget"
       style={{
@@ -528,7 +528,7 @@ const SystemInfoWidget = ({ isVisible, onClose }) => {
         onMouseEnter={(e) => e.target.style.opacity = '1'}
         onMouseLeave={(e) => e.target.style.opacity = '0.7'}
       />
-    </div>
+    </FloatingWidgetPresence>
   );
 };
 

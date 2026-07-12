@@ -1,60 +1,81 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { LayoutGroup } from 'framer-motion';
+import { useWeeMotion } from '../../design/weeMotion';
+import WeeLayoutActiveDisc from './WeeLayoutActiveDisc';
 
 /**
  * Chunky horizontal sub-tabs for Dock settings (matches Channel board picker / tabseries tactility).
+ * Selected tab uses {@link WeeLayoutActiveDisc} for space-pill selection chrome.
  */
-function WeeDockSettingsSubtabs({ tabs, value, onChange, ariaLabel = 'Dock settings sections' }) {
+function WeeDockSettingsSubtabs({
+  tabs,
+  value,
+  onChange,
+  ariaLabel = 'Dock settings sections',
+  layoutId = 'weeDockSubtabActive',
+}) {
+  const { reducedMotion } = useWeeMotion();
+
   return (
-    <div
-      role="tablist"
-      aria-label={ariaLabel}
-      className="flex flex-wrap gap-3 border-b border-[hsl(var(--border-primary)/0.45)] pb-4"
-    >
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const selected = tab.id === value;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            id={`dock-subtab-${tab.id}`}
-            onClick={() => onChange(tab.id)}
-            className={`flex min-w-[min(100%,11rem)] flex-1 items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left transition-colors md:min-w-[10.5rem] md:px-5 md:py-3.5 ${
-              selected
-                ? 'border-[hsl(var(--primary))] bg-[hsl(var(--surface-wii-tint)/0.55)] shadow-[var(--shadow-sm)]'
-                : 'border-[hsl(var(--wee-border-card))] bg-[hsl(var(--surface-primary))] hover:border-[hsl(var(--border-secondary))]'
-            }`}
-          >
-            <div
-              className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+    <LayoutGroup id={layoutId}>
+      <div
+        role="tablist"
+        aria-label={ariaLabel}
+        className="flex flex-wrap gap-3 border-b border-[hsl(var(--border-primary)/0.45)] pb-4"
+      >
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const selected = tab.id === value;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              id={`dock-subtab-${tab.id}`}
+              onClick={() => onChange(tab.id)}
+              className={`relative flex min-w-[min(100%,11rem)] flex-1 items-start gap-3 rounded-2xl border-2 px-4 py-3 text-left transition-colors md:min-w-[10.5rem] md:px-5 md:py-3.5 ${
                 selected
-                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                  : 'bg-[hsl(var(--surface-tertiary))] text-[hsl(var(--text-tertiary))]'
+                  ? 'border-[hsl(var(--primary))] bg-transparent shadow-none'
+                  : 'border-[hsl(var(--wee-border-card))] bg-[hsl(var(--surface-primary))] hover:border-[hsl(var(--border-secondary))]'
               }`}
             >
-              {Icon ? <Icon size={20} strokeWidth={2.25} aria-hidden /> : null}
-            </div>
-            <span className="min-w-0">
-              <span
-                className={`block text-[11px] font-black uppercase italic leading-tight tracking-tight md:text-xs ${
-                  selected ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--text-primary))]'
+              {selected ? (
+                <WeeLayoutActiveDisc
+                  layoutId={layoutId}
+                  reducedMotion={reducedMotion}
+                  className="rounded-2xl bg-[hsl(var(--surface-wii-tint)/0.55)] shadow-[var(--shadow-sm)]"
+                />
+              ) : null}
+              <div
+                className={`relative z-10 mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                  selected
+                    ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+                    : 'bg-[hsl(var(--surface-tertiary))] text-[hsl(var(--text-tertiary))]'
                 }`}
               >
-                {tab.label}
-              </span>
-              {tab.description ? (
-                <span className="mt-1 block text-[9px] font-bold uppercase leading-snug tracking-wide text-[hsl(var(--text-tertiary))] md:text-[10px]">
-                  {tab.description}
+                {Icon ? <Icon size={20} strokeWidth={2.25} aria-hidden /> : null}
+              </div>
+              <span className="relative z-10 min-w-0">
+                <span
+                  className={`block text-[11px] font-black uppercase italic leading-tight tracking-tight md:text-xs ${
+                    selected ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--text-primary))]'
+                  }`}
+                >
+                  {tab.label}
                 </span>
-              ) : null}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+                {tab.description ? (
+                  <span className="mt-1 block text-[9px] font-bold uppercase leading-snug tracking-wide text-[hsl(var(--text-tertiary))] md:text-[10px]">
+                    {tab.description}
+                  </span>
+                ) : null}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </LayoutGroup>
   );
 }
 
@@ -70,6 +91,7 @@ WeeDockSettingsSubtabs.propTypes = {
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
   ariaLabel: PropTypes.string,
+  layoutId: PropTypes.string,
 };
 
 export default React.memo(WeeDockSettingsSubtabs);

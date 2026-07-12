@@ -30,11 +30,16 @@ import {
   createWeeShellRailContainerVariants,
   createWeeShellRailItemVariants,
   getWeeShellChromeEntrance,
+  createWeeTransition,
 } from '../../design/weeMotion';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
+import {
+  WeeGlassPill,
+  WeeGooeyIconButton,
+  WeePillFloorShadow,
+} from '../../ui/wee';
 
 const MotionDiv = m.div;
-const MotionButton = m.button;
 
 const SPACE_META = {
   home: { label: 'Home', Icon: Home },
@@ -54,7 +59,6 @@ function SortableSpaceRow({
   i,
   activeSpaceId,
   itemVariants,
-  pillOpen,
   reducedMotion,
   onSelectSpace,
   onRailSpacePointerEnter,
@@ -78,8 +82,7 @@ function SortableSpaceRow({
       style={style}
       className="group relative flex w-full max-w-[5.5rem] shrink-0 items-center justify-center"
     >
-      <MotionButton
-        type="button"
+      <WeeGooeyIconButton
         {...listeners}
         {...attributes}
         custom={i}
@@ -87,8 +90,9 @@ function SortableSpaceRow({
         initial="closed"
         animate="open"
         exit="closed"
-        whileHover={reducedMotion ? {} : { scale: 1.12, rotate: [0, -5, 5, 0] }}
-        whileTap={reducedMotion ? {} : { scale: 0.92, rotate: 0 }}
+        active={active}
+        layoutId="pillActive"
+        reducedMotion={reducedMotion}
         onClick={(e) => {
           e.stopPropagation();
           onSelectSpace(space.id);
@@ -96,26 +100,22 @@ function SortableSpaceRow({
         onPointerEnter={() => onRailSpacePointerEnter?.(space.id)}
         title={`${space.label} — click to switch; drag to reorder`}
         aria-label={`${space.label}: switch space or drag to reorder`}
-        aria-pressed={active}
-        className="group/row touch-none relative flex h-14 w-14 shrink-0 cursor-grab items-center justify-center rounded-full transition-colors active:cursor-grabbing"
+        className="group/row touch-none cursor-grab active:cursor-grabbing"
       >
-        {active && (
-          <MotionDiv
-            layoutId="pillActive"
-            className="absolute inset-0 z-0 rounded-full bg-[hsl(var(--surface-elevated))] shadow-[var(--shadow-md)]"
-            transition={pillOpen}
-          />
-        )}
         <Icon
           size={22}
           strokeWidth={2}
-          className={`relative z-10 ${active ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--text-tertiary))] group-hover/row:text-[hsl(var(--text-primary))]'}`}
+          className={`relative z-10 ${
+            active
+              ? 'text-[hsl(var(--primary))]'
+              : 'text-[hsl(var(--text-tertiary))] group-hover/row:text-[hsl(var(--text-primary))]'
+          }`}
           aria-hidden
         />
         <span className="pointer-events-none absolute left-full z-50 ml-4 whitespace-nowrap rounded-xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] px-4 py-2 text-[10px] font-black uppercase italic tracking-widest text-[hsl(var(--text-primary))] opacity-0 shadow-[var(--shadow-xl)] transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100 -translate-x-2">
           {space.label}
         </span>
-      </MotionButton>
+      </WeeGooeyIconButton>
     </div>
   );
 }
@@ -164,7 +164,7 @@ export default function WeeGooeySpacePill() {
   const draggingRef = useRef(false);
   const rootRef = useRef(null);
   const previousIndexRef = useRef(0);
-  const { pillOpen, pillClose, pillFloor, reducedMotion } = useWeeMotion();
+  const { pillOpen, pillClose, reducedMotion } = useWeeMotion();
   const hideDelayMs = 900;
 
   const clearHideTimer = useCallback(() => {
@@ -191,7 +191,7 @@ export default function WeeGooeySpacePill() {
     navigation.totalPages > 1 &&
     navigation.currentPage > 0;
 
-  /** Sit below the peeking prev-page control (~30px extra drop) and shift left so the pill lines up under the chevron (Wii side nav is flush left; rail was too far right). */
+  /** Sit below the peeking prev-page control (~30px extra drop) and shift left so the pill lines up under the chevron. */
   const railNudgeWithLeftNav = useMemo(
     () => ({
       y: 98,
@@ -202,10 +202,7 @@ export default function WeeGooeySpacePill() {
   );
 
   const railNudgeTransition = useMemo(
-    () =>
-      reducedMotion
-        ? { duration: 0.15 }
-        : { type: 'spring', stiffness: 320, damping: 28, mass: 0.85 },
+    () => createWeeTransition('railNudge', { reducedMotion }),
     [reducedMotion]
   );
 
@@ -426,156 +423,148 @@ export default function WeeGooeySpacePill() {
         onFocusCapture={onPillFocusCapture}
         onBlurCapture={onPillBlurCapture}
       >
-      <m.div {...shellChromeEntrance} className="pointer-events-none relative flex flex-col items-center">
-        <m.div
-          className="pointer-events-none relative flex flex-col items-center"
-          animate={{
-            y: showLeftNav ? railNudgeWithLeftNav.y : 0,
-            x: showLeftNav ? railNudgeWithLeftNav.x : 0,
-            scale: reducedMotion ? 1 : showLeftNav ? railNudgeWithLeftNav.scale : 1,
-          }}
-          transition={railNudgeTransition}
-        >
-        <LayoutGroup>
-          <MotionDiv
-            animate={hovered ? 'open' : 'closed'}
-            variants={containerVariants}
-            initial={false}
-            onMouseEnter={onPillHoverEnter}
-            onMouseLeave={onPillHoverLeave}
-            className="space-rail__pill-surface relative z-10 cursor-pointer overflow-hidden border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] shadow-[var(--wee-pill-shadow)] backdrop-blur-xl"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {!hovered ? (
-                <MotionDiv
-                  key="compact"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{
-                    opacity: 1,
-                    scale: 1,
-                    transition: reducedMotion ? { duration: 0.12 } : { delay: 0.12, type: 'spring' },
-                  }}
-                  exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.1 } }}
-                  className="absolute inset-0 flex items-center justify-center text-[hsl(var(--text-primary))]"
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    <MotionDiv
-                      key={activeSpace?.id}
-                      initial={{
-                        opacity: 0,
-                        y: compactDirection * 14,
-                      }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: compactDirection * -14 }}
-                      transition={pillClose}
-                      className="flex items-center justify-center"
-                    >
-                      <ActiveIcon size={28} strokeWidth={2} aria-hidden />
-                    </MotionDiv>
-                  </AnimatePresence>
-                </MotionDiv>
-              ) : (
-                <MotionDiv
-                  key="expanded"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                  className="absolute inset-0 flex w-full flex-col items-center gap-2 pt-5"
-                >
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragStart={onDragStart}
-                    onDragEnd={onDragEnd}
-                  >
-                    <SortableContext items={spaceOrder} strategy={verticalListSortingStrategy}>
-                      {orderedSpaces.map((space, i) => (
-                        <SortableSpaceRow
-                          key={space.id}
-                          space={space}
-                          i={i}
-                          activeSpaceId={activeSpaceId}
-                          itemVariants={itemVariants}
-                          pillOpen={pillOpen}
-                          reducedMotion={reducedMotion}
-                          onSelectSpace={onSelectSpace}
-                          onRailSpacePointerEnter={handleRailSpacePointerEnter}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
-
-                  <MotionDiv
-                    custom={orderedSpaces.length}
-                    variants={itemVariants}
-                    initial="closed"
-                    animate="open"
-                    exit="closed"
-                    className="my-1 h-1 w-8 rounded-full bg-[hsl(var(--border-primary)/0.35)]"
-                    aria-hidden
-                  />
-
-                  <MotionButton
-                    type="button"
-                    custom={orderedSpaces.length + 1}
-                    variants={itemVariants}
-                    initial="closed"
-                    animate="open"
-                    exit="closed"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleWand();
-                    }}
-                    whileHover={reducedMotion ? {} : { scale: 1.12, rotate: 12 }}
-                    whileTap={reducedMotion ? {} : { scale: 0.92 }}
-                    title="Channels & layout"
-                    aria-label="Open channels and layout settings"
-                    className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--text-primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-card)]"
-                  >
-                    <Wand2 size={22} strokeWidth={2} className="relative z-10" aria-hidden />
-                  </MotionButton>
-
-                  <MotionButton
-                    type="button"
-                    custom={orderedSpaces.length + 2}
-                    variants={itemVariants}
-                    initial="closed"
-                    animate="open"
-                    exit="closed"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePinToggle();
-                    }}
-                    whileHover={reducedMotion ? {} : { scale: 1.08 }}
-                    whileTap={reducedMotion ? {} : { scale: 0.94 }}
-                    title={railPinned ? 'Unpin space rail' : 'Pin space rail'}
-                    aria-label={railPinned ? 'Unpin space rail' : 'Pin space rail'}
-                    aria-pressed={railPinned}
-                    className="relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-primary))] shadow-[var(--shadow-card)]"
-                  >
-                    {railPinned ? (
-                      <PinOff size={18} strokeWidth={2.25} className="relative z-10" aria-hidden />
-                    ) : (
-                      <Pin size={18} strokeWidth={2.25} className="relative z-10" aria-hidden />
-                    )}
-                  </MotionButton>
-                </MotionDiv>
-              )}
-            </AnimatePresence>
-          </MotionDiv>
-
-          <MotionDiv
-            className="pointer-events-none absolute -bottom-4 left-1/2 z-0 h-2 w-12 -translate-x-1/2 rounded-full bg-[hsl(var(--wee-pill-floor))] blur-sm"
+        <m.div {...shellChromeEntrance} className="pointer-events-none relative flex flex-col items-center">
+          <m.div
+            className="pointer-events-none relative flex flex-col items-center"
             animate={{
-              scaleX: hovered ? 2.5 : 1,
-              opacity: hovered ? 0.15 : 0.4,
+              y: showLeftNav ? railNudgeWithLeftNav.y : 0,
+              x: showLeftNav ? railNudgeWithLeftNav.x : 0,
+              scale: reducedMotion ? 1 : showLeftNav ? railNudgeWithLeftNav.scale : 1,
             }}
-            transition={pillFloor}
-            aria-hidden
-          />
-        </LayoutGroup>
+            transition={railNudgeTransition}
+          >
+            <LayoutGroup>
+              <WeeGlassPill
+                motion
+                animate={hovered ? 'open' : 'closed'}
+                variants={containerVariants}
+                initial={false}
+                onMouseEnter={onPillHoverEnter}
+                onMouseLeave={onPillHoverLeave}
+                className="space-rail__pill-surface relative z-10 cursor-pointer overflow-hidden"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {!hovered ? (
+                    <MotionDiv
+                      key="compact"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{
+                        opacity: 1,
+                        scale: 1,
+                        transition: reducedMotion
+                          ? { duration: 0.12 }
+                          : { delay: 0.12, ...createWeeTransition('pillOpen') },
+                      }}
+                      exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.1 } }}
+                      className="absolute inset-0 flex items-center justify-center text-[hsl(var(--text-primary))]"
+                    >
+                      <AnimatePresence mode="wait" initial={false}>
+                        <MotionDiv
+                          key={activeSpace?.id}
+                          initial={{
+                            opacity: 0,
+                            y: compactDirection * 14,
+                          }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: compactDirection * -14 }}
+                          transition={pillClose}
+                          className="flex items-center justify-center"
+                        >
+                          <ActiveIcon size={28} strokeWidth={2} aria-hidden />
+                        </MotionDiv>
+                      </AnimatePresence>
+                    </MotionDiv>
+                  ) : (
+                    <MotionDiv
+                      key="expanded"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                      className="absolute inset-0 flex w-full flex-col items-center gap-2 pt-5"
+                    >
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragStart={onDragStart}
+                        onDragEnd={onDragEnd}
+                      >
+                        <SortableContext items={spaceOrder} strategy={verticalListSortingStrategy}>
+                          {orderedSpaces.map((space, i) => (
+                            <SortableSpaceRow
+                              key={space.id}
+                              space={space}
+                              i={i}
+                              activeSpaceId={activeSpaceId}
+                              itemVariants={itemVariants}
+                              reducedMotion={reducedMotion}
+                              onSelectSpace={onSelectSpace}
+                              onRailSpacePointerEnter={handleRailSpacePointerEnter}
+                            />
+                          ))}
+                        </SortableContext>
+                      </DndContext>
+
+                      <MotionDiv
+                        custom={orderedSpaces.length}
+                        variants={itemVariants}
+                        initial="closed"
+                        animate="open"
+                        exit="closed"
+                        className="my-1 h-1 w-8 rounded-full bg-[hsl(var(--border-primary)/0.35)]"
+                        aria-hidden
+                      />
+
+                      <WeeGooeyIconButton
+                        variant="solid"
+                        size="lg"
+                        custom={orderedSpaces.length + 1}
+                        variants={itemVariants}
+                        initial="closed"
+                        animate="open"
+                        exit="closed"
+                        reducedMotion={reducedMotion}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleWand();
+                        }}
+                        title="Channels & layout"
+                        aria-label="Open channels and layout settings"
+                      >
+                        <Wand2 size={22} strokeWidth={2} className="relative z-10" aria-hidden />
+                      </WeeGooeyIconButton>
+
+                      <WeeGooeyIconButton
+                        variant="outline"
+                        size="md"
+                        custom={orderedSpaces.length + 2}
+                        variants={itemVariants}
+                        initial="closed"
+                        animate="open"
+                        exit="closed"
+                        reducedMotion={reducedMotion}
+                        active={railPinned}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePinToggle();
+                        }}
+                        title={railPinned ? 'Unpin space rail' : 'Pin space rail'}
+                        aria-label={railPinned ? 'Unpin space rail' : 'Pin space rail'}
+                      >
+                        {railPinned ? (
+                          <PinOff size={18} strokeWidth={2.25} className="relative z-10" aria-hidden />
+                        ) : (
+                          <Pin size={18} strokeWidth={2.25} className="relative z-10" aria-hidden />
+                        )}
+                      </WeeGooeyIconButton>
+                    </MotionDiv>
+                  )}
+                </AnimatePresence>
+              </WeeGlassPill>
+
+              <WeePillFloorShadow expanded={hovered} reducedMotion={reducedMotion} />
+            </LayoutGroup>
+          </m.div>
         </m.div>
-      </m.div>
       </aside>
     </>
   );

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { WBaseModal } from '../core';
-import Card from '../../ui/Card';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
+import { WeeCard, WeeModalShell } from '../../ui/wee';
 import { authService } from '../../utils/authService';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
 
@@ -56,12 +55,14 @@ const AuthModal = () => {
   };
 
   return (
-    <WBaseModal
+    <WeeModalShell
       isOpen={isAuthModalOpen}
       onClose={closeAuthModal}
-      title={authModalMode === 'signup' ? 'Create Account' : 'Sign In'}
+      headerTitle={authModalMode === 'signup' ? 'Create Account' : 'Sign In'}
+      showRail={false}
+      maxWidth="520px"
     >
-      <Card>
+      <WeeCard>
         <Text className="mb-4 block">
           {authModalMode === 'signup' 
             ? 'Create an account to upload presets to the community and manage your uploads!'
@@ -129,8 +130,8 @@ const AuthModal = () => {
             }
           </Text>
         </form>
-      </Card>
-    </WBaseModal>
+      </WeeCard>
+    </WeeModalShell>
   );
 };
 

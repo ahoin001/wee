@@ -1,21 +1,32 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
-import { useFloatingWidgetsState } from '../../utils/useConsolidatedAppHooks';
+import { useFloatingWidgetsState, useUIState } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useFloatingWidgetFrame } from '../../hooks/useFloatingWidgetFrame';
+import {
+  applyAdminPanelPowerActions,
+  executeAdminCommand,
+  isDestructiveAdminAction,
+  normalizeAdminPanelConfig,
+} from '../../utils/adminPanelCommands';
+import FloatingWidgetPresence from '../widgets/common/FloatingWidgetPresence';
 import AdminPanel from './AdminPanel';
 import './AdminPanelWidget.css';
 
-const AdminPanelWidget = ({ isVisible, onClose }) => {
+const AdminPanelWidget = ({ isVisible, onClose, onExitAnimationComplete }) => {
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
+  const { confirmAction } = useUIState();
 
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [actionError, setActionError] = useState('');
 
-  // Get admin panel widget state from floating widgets
   const adminPanelWidget = floatingWidgets.adminPanel;
   const adminPanelPosition = adminPanelWidget.position;
-  const adminPanelConfig = adminPanelWidget.config || { powerActions: [] };
+  const adminPanelConfig = useMemo(
+    () => normalizeAdminPanelConfig(adminPanelWidget.config),
+    [adminPanelWidget.config]
+  );
 
   const setAdminPanelWidgetPosition = useCallback(
     (position) => {
@@ -39,34 +50,56 @@ const AdminPanelWidget = ({ isVisible, onClose }) => {
       ),
   });
 
-  const handleActionClick = (action) => {
-    if (window.api && window.api.executeCommand) {
-      window.api.executeCommand(action.command);
-    }
-    onClose();
-  };
-
-  const handleAdminPanelSave = useCallback((powerActions) => {
-    const store = useConsolidatedAppStore.getState();
-    
-    // Get current admin panel state from store to avoid stale closure
-    const currentAdminPanel = store.floatingWidgets.adminPanel;
-    
-    // Use the direct setFloatingWidgetsState action instead of floatingWidgetManager
-    store.actions.setFloatingWidgetsState({
-      adminPanel: { 
-        ...currentAdminPanel, 
-        config: { powerActions }
+  const runAction = useCallback(
+    async (action) => {
+      setActionError('');
+      const result = await executeAdminCommand(action.command);
+      if (!result.success) {
+        setActionError(result.error || `Could not run “${action.name}”`);
+        return;
       }
+      onClose?.();
+    },
+    [onClose]
+  );
+
+  const handleActionClick = useCallback(
+    (action) => {
+      if (isDestructiveAdminAction(action)) {
+        confirmAction(
+          `Run ${action.name}?`,
+          `This will run <strong>${action.name}</strong> on your PC. Continue?`,
+          () => {
+            void runAction(action);
+          },
+          null,
+          'Run',
+          'danger-primary'
+        );
+        return;
+      }
+      void runAction(action);
+    },
+    [confirmAction, runAction]
+  );
+
+  const handleAdminPanelSave = useCallback((powerActionsOrConfig) => {
+    const store = useConsolidatedAppStore.getState();
+    const currentAdminPanel = store.floatingWidgets.adminPanel;
+    store.actions.setFloatingWidgetsState({
+      adminPanel: applyAdminPanelPowerActions(currentAdminPanel, powerActionsOrConfig),
     });
-    
     setShowAdminPanel(false);
   }, []);
 
-  if (!isVisible) return null;
+  useEffect(() => {
+    if (!isVisible) setShowAdminPanel(false);
+  }, [isVisible]);
 
   return (
-    <div 
+    <FloatingWidgetPresence
+      isOpen={isVisible}
+      onExitAnimationComplete={onExitAnimationComplete}
       ref={widgetRef}
       className="admin-panel-widget"
       style={{
@@ -80,7 +113,6 @@ const AdminPanelWidget = ({ isVisible, onClose }) => {
       }}
       onPointerDown={handleDragPointerDown}
     >
-      {/* Widget Header */}
       <div className="widget-header">
         <div className="header-content">
           <div className="header-icon">⚙️</div>
@@ -97,19 +129,20 @@ const AdminPanelWidget = ({ isVisible, onClose }) => {
           >
             ⚙️
           </WButton>
-          <WButton
-            variant="tertiary"
-            onClick={onClose}
-            className="close-btn"
-          >
+          <WButton variant="tertiary" onClick={onClose} className="close-btn">
             ✕
           </WButton>
         </div>
       </div>
 
-      {/* Widget Content */}
       <div className="widget-content">
-        {adminPanelConfig.powerActions && adminPanelConfig.powerActions.length > 0 ? (
+        {actionError ? (
+          <div className="mb-3 rounded-xl border border-[hsl(var(--state-error)/0.45)] bg-[hsl(var(--state-error)/0.12)] px-3 py-2 text-[11px] font-semibold text-[hsl(var(--state-error))]">
+            {actionError}
+          </div>
+        ) : null}
+
+        {adminPanelConfig.powerActions.length > 0 ? (
           <div className="actions-grid">
             {adminPanelConfig.powerActions.map((action) => (
               <WButton
@@ -124,11 +157,11 @@ const AdminPanelWidget = ({ isVisible, onClose }) => {
                     <Text variant="body" className="action-name">
                       {action.name}
                     </Text>
-                    {action.description && (
+                    {action.description ? (
                       <Text variant="caption" className="action-description">
                         {action.description}
                       </Text>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </WButton>
@@ -141,22 +174,20 @@ const AdminPanelWidget = ({ isVisible, onClose }) => {
               No actions configured
             </Text>
             <Text variant="caption" className="empty-description">
-              Click the ⚙️ button in the header to configure quick access actions
+              Click the ⚙️ button to add Quick Access actions
             </Text>
           </div>
         )}
       </div>
 
-      {/* Admin Panel Configuration Modal */}
       <AdminPanel
         isOpen={showAdminPanel}
         onClose={() => setShowAdminPanel(false)}
         onSave={handleAdminPanelSave}
         config={adminPanelConfig}
       />
-    </div>
+    </FloatingWidgetPresence>
   );
 };
 
 export default AdminPanelWidget;
-
