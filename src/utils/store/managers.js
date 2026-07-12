@@ -512,17 +512,17 @@ export const createStoreManagers = (getStore) => {
   };
 
   const unifiedAppManager = {
-    async fetchUnifiedApps() {
+    async fetchUnifiedApps(forceRefresh = false) {
       const store = getStore();
       store.actions.setUnifiedAppsState({ loading: true, error: null });
 
       try {
         const allApps = [];
         const [installedResult, steamResult, epicResult, uwpResult] = await Promise.allSettled([
-          appLibraryManager.fetchInstalledApps(),
-          appLibraryManager.fetchSteamGames(),
-          appLibraryManager.fetchEpicGames(),
-          appLibraryManager.fetchUwpApps(),
+          appLibraryManager.fetchInstalledApps(forceRefresh),
+          appLibraryManager.fetchSteamGames(forceRefresh),
+          appLibraryManager.fetchEpicGames(forceRefresh),
+          appLibraryManager.fetchUwpApps(forceRefresh),
         ]);
 
         if (installedResult.status === 'fulfilled' && installedResult.value?.success) {

@@ -4,8 +4,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 // Lazy load modals
 const LazyPrimaryActionsModal = React.lazy(() => import('../modals/PrimaryActionsModal'));
-const LazyUpdateModal = React.lazy(() => import('../modals/UpdateModal'));
 const LazyDockEffectsModal = React.lazy(() => import('./DockEffectsModal'));
+// Update modal is hosted from App.jsx (startup popup + Escape menu).
 
 import WiiStyleButton from './WiiStyleButton';
 import DockParticleSystem from './DockParticleSystem';
@@ -88,7 +88,6 @@ const WiiRibbonComponent = ({
   
   // Use consolidated store for modal states and UI settings
   const { setUIState } = useUIState();
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDockEffectsModal, setShowDockEffectsModal] = useState(false);
   
 
@@ -1000,14 +999,6 @@ const WiiRibbonComponent = ({
             }}
           />
         )}
-
-
-      <Suspense fallback={<div>Loading Update Modal...</div>}>
-        <LazyUpdateModal 
-          isOpen={showUpdateModal}
-          onClose={() => setShowUpdateModal(false)}
-        />
-      </Suspense>
 
 
       {primaryActionsModalMounted && (

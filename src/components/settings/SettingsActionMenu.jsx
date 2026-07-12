@@ -63,7 +63,7 @@ QuickToggleRow.propTypes = {
   onToggle: PropTypes.func.isRequired,
 };
 
-function ActionButtonRow({ label, icon: Icon, onClick }) {
+function ActionButtonRow({ label, icon: Icon, onClick, badge = false }) {
   return (
     <WeeButton
       type="button"
@@ -72,7 +72,15 @@ function ActionButtonRow({ label, icon: Icon, onClick }) {
       onClick={onClick}
     >
       {Icon ? <Icon size={18} strokeWidth={2.2} className="shrink-0 text-[hsl(var(--text-secondary))]" aria-hidden /> : null}
-      <span className="text-sm font-semibold">{label}</span>
+      <span className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-semibold">
+        {label}
+        {badge ? (
+          <span
+            className="inline-block h-2 w-2 shrink-0 rounded-full bg-[hsl(var(--primary))] shadow-[0_0_0_2px_hsl(var(--primary)/0.25)]"
+            aria-label="Update available"
+          />
+        ) : null}
+      </span>
     </WeeButton>
   );
 }
@@ -81,16 +89,18 @@ ActionButtonRow.propTypes = {
   label: PropTypes.string.isRequired,
   icon: PropTypes.elementType,
   onClick: PropTypes.func.isRequired,
+  badge: PropTypes.bool,
 };
 
 const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
-  const { isDarkMode, useCustomCursor, cursorStyle, showDock, classicMode } = useConsolidatedAppStore(
+  const { isDarkMode, useCustomCursor, cursorStyle, showDock, classicMode, updateAvailable } = useConsolidatedAppStore(
     useShallow((state) => ({
       isDarkMode: state.ui.isDarkMode,
       useCustomCursor: state.ui.useCustomCursor,
       cursorStyle: state.ui.cursorStyle,
       showDock: state.ui.showDock,
       classicMode: state.ui.classicMode,
+      updateAvailable: state.app.updateAvailable,
     }))
   );
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
@@ -188,10 +198,9 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
     handleClose();
   }, [handleClose]);
 
-  const openUpdatesTab = useCallback(() => {
-    setUIState({ showSettingsModal: true, settingsActiveTab: 'updates' });
-    handleClose();
-  }, [setUIState, handleClose]);
+  const openUpdatesModal = useCallback(() => {
+    setUIState({ showUpdateModal: true, showSettingsActionMenu: false });
+  }, [setUIState]);
 
   const openSoundModal = useCallback(() => {
     setUIState({ showSettingsModal: true, settingsActiveTab: 'sounds' });
@@ -308,7 +317,12 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
                 <div className="grid grid-cols-1 gap-3">
                   <ActionButtonRow label="Open settings" icon={Settings} onClick={openSettingsModal} />
                   <ActionButtonRow label="Manage sounds" icon={Music} onClick={openSoundModal} />
-                  <ActionButtonRow label="Check for updates" icon={RefreshCw} onClick={openUpdatesTab} />
+                  <ActionButtonRow
+                    label="Check for updates"
+                    icon={RefreshCw}
+                    onClick={openUpdatesModal}
+                    badge={Boolean(updateAvailable)}
+                  />
                 </div>
               </section>
 

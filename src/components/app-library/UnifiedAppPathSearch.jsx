@@ -34,11 +34,11 @@ const UnifiedAppPathSearch = ({
     setUnifiedAppsState({ selectedApp: app });
   }, [setUnifiedAppsState]);
 
-  const fetchUnifiedApps = useCallback(async () => {
+  const fetchUnifiedApps = useCallback(async (forceRefresh = false) => {
     try {
       const store = useConsolidatedAppStore.getState();
 
-      const result = await store.unifiedAppManager.fetchUnifiedApps();
+      const result = await store.unifiedAppManager.fetchUnifiedApps(forceRefresh);
 
       if (!result.success) {
         console.error('[UnifiedAppPathSearch] Failed to fetch unified apps:', result.error);
@@ -49,7 +49,7 @@ const UnifiedAppPathSearch = ({
   }, []);
 
   const rescanUnifiedApps = useCallback(async () => {
-    return fetchUnifiedApps();
+    return fetchUnifiedApps(true);
   }, [fetchUnifiedApps]);
 
   const hasFetchedApps = useRef(false);

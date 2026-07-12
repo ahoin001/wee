@@ -40,6 +40,24 @@ function registerSystemCommandHandlers({
     return true;
   }
 
+  function splitCommand(input) {
+    return String(input || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+  }
+
+  function runExecFile(command, args = []) {
+    return new Promise((resolve) => {
+      execFile(command, args, { windowsHide: true }, (err, stdout, stderr) => {
+        if (err) {
+          return resolve({ success: false, error: err.message, stdout: stdout || '', stderr: stderr || '' });
+        }
+        resolve({ success: true, stdout: stdout || '', stderr: stderr || '' });
+      });
+    });
+  }
+
   ipcMain.handle('uwp:list-apps', async (event) => {
     if (!isTrustedMainWindowEvent(event, getMainWindow)) return [];
     return runExclusive(
@@ -71,35 +89,12 @@ function registerSystemCommandHandlers({
     if (!isTrustedMainWindowEvent(event, getMainWindow)) {
       return { success: false, error: 'Untrusted renderer' };
     }
-    return new Promise((resolve) => {
-      if (!appId) return resolve({ success: false, error: 'No AppID provided' });
-      if (!isLikelyStoreAppId(appId)) {
-        return resolve({ success: false, error: 'Invalid AppID format' });
-      }
-      exec(`start shell:AppsFolder\\${appId}`, (err) => {
-        if (err) return resolve({ success: false, error: err.message });
-        resolve({ success: true });
-      });
-    });
+    if (!appId) return { success: false, error: 'No AppID provided' };
+    if (!isLikelyStoreAppId(appId)) {
+      return { success: false, error: 'Invalid AppID format' };
+    }
+    return runExecFile('cmd.exe', ['/c', 'start', '', `shell:AppsFolder\\${appId}`]);
   });
-
-  function splitCommand(input) {
-    return String(input || '')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-  }
-
-  function runExecFile(command, args = []) {
-    return new Promise((resolve) => {
-      execFile(command, args, { windowsHide: true }, (err, stdout, stderr) => {
-        if (err) {
-          return resolve({ success: false, error: err.message, stdout: stdout || '', stderr: stderr || '' });
-        }
-        resolve({ success: true, stdout: stdout || '', stderr: stderr || '' });
-      });
-    });
-  }
 
   async function executeApprovedCommand(command) {
     const trimmed = String(command || '').trim();

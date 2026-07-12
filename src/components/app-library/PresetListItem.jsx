@@ -155,6 +155,7 @@ const PresetListItem = React.forwardRef(function PresetListItem(
             <Button
               className="min-w-[4.5rem] shrink-0"
               variant="secondary"
+              title="Overwrite this preset with your current look"
               onClick={(e) => {
                 e.stopPropagation();
                 onUpdate(presetKey);

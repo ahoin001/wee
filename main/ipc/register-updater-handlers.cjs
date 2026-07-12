@@ -10,7 +10,7 @@ function registerUpdaterHandlers({ ipcMain, autoUpdater, app }) {
         return {
           success: true,
           status: 'no-update',
-          message: 'Development mode - updates not available',
+          message: 'Development mode — updates are only available in packaged builds.',
         };
       }
 
@@ -78,15 +78,17 @@ function registerUpdaterHandlers({ ipcMain, autoUpdater, app }) {
       console.error('[AUTO-UPDATE] Error checking for updates:', error);
 
       if (error.code === 'ENOENT' && error.message.includes('app-update.yml')) {
-        console.log('[AUTO-UPDATE] app-update.yml not found - likely development build or missing update config');
+        console.log('[AUTO-UPDATE] app-update.yml not found — update config missing');
         return {
-          success: true,
-          status: 'no-update',
-          message: 'No update configuration found',
+          success: false,
+          status: 'error',
+          error: app.isPackaged
+            ? 'Update configuration missing (app-update.yml). Reinstall from a GitHub Release build.'
+            : 'Updates are only available in packaged builds.',
         };
       }
 
-      return { success: false, error: error.message };
+      return { success: false, status: 'error', error: error.message };
     }
   });
 

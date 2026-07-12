@@ -15,6 +15,7 @@ import {
   useGlobalKeyHandlers,
 } from './hooks/useAppShellEffects';
 import { useAppInitialization } from './hooks/useAppInitialization';
+import { useAppUpdater } from './hooks/useAppUpdater';
 import { useUnifiedSettingsPersistence } from './hooks/useUnifiedSettingsPersistence';
 import { useWallpaperDataFileSync } from './hooks/useWallpaperDataFileSync';
 import { 
@@ -56,6 +57,7 @@ const LazyClassicWiiDock = lazyNamedExport(() => import('./components/dock'), 'C
 const LazyWiiSideNavigation = lazyNamedExport(() => import('./components/navigation'), 'WiiSideNavigation');
 const LazySettingsModal = lazyNamedExport(() => import('./components/settings'), 'SettingsModal');
 const LazySettingsActionMenu = lazyNamedExport(() => import('./components/settings'), 'SettingsActionMenu');
+const LazyUpdateModal = React.lazy(() => import('./components/modals/UpdateModal'));
 const LazyFloatingSpotifyWidget = lazyNamedExport(() => import('./components/widgets'), 'FloatingSpotifyWidget');
 const LazySystemInfoWidget = lazyNamedExport(() => import('./components/widgets'), 'SystemInfoWidget');
 const LazyAdminPanelWidget = lazyNamedExport(() => import('./components/admin'), 'AdminPanelWidget');
@@ -84,6 +86,7 @@ function App() {
     showSettingsModal,
     settingsActiveTab,
     showSettingsActionMenu,
+    showUpdateModal,
     ribbonColor,
     ribbonGlowColor,
     dynamicRibbonColorEnabled,
@@ -124,6 +127,7 @@ function App() {
       showSettingsModal: state.ui.showSettingsModal,
       settingsActiveTab: state.ui.settingsActiveTab,
       showSettingsActionMenu: state.ui.showSettingsActionMenu,
+      showUpdateModal: state.ui.showUpdateModal,
       ribbonColor: state.ribbon.ribbonColor,
       ribbonGlowColor: state.ribbon.ribbonGlowColor,
       dynamicRibbonColorEnabled: state.ribbon.dynamicRibbonColorEnabled ?? false,
@@ -450,6 +454,7 @@ function App() {
   }, [openDevTools, wallpaper, isCycling, cycleToNextWallpaper]);
 
   useAppInitialization();
+  const { closeUpdateModal } = useAppUpdater({ enableStartupPopup: true });
 
   useFullscreenEffect({ appReady, startInFullscreen });
 
@@ -809,6 +814,10 @@ function App() {
             />
           </Suspense>
         ) : null}
+
+        <Suspense fallback={null}>
+          <LazyUpdateModal isOpen={Boolean(showUpdateModal)} onClose={closeUpdateModal} />
+        </Suspense>
 
         {/* Settings Action Menu - Keep mounted once visited so close animation always runs. */}
         <Suspense

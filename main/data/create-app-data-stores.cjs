@@ -100,6 +100,10 @@ function createAppDataStores({
         data.savedWallpapers = backfilledWallpapers;
         if (JSON.stringify(originalSavedWallpapers) !== JSON.stringify(backfilledWallpapers)) {
           await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+          const nextStats = await fsPromises.stat(wallpapersFile);
+          wallpapersCache = data;
+          wallpapersCacheMtimeMs = Number(nextStats.mtimeMs || 0);
+          return data;
         }
         wallpapersCache = data;
         wallpapersCacheMtimeMs = mtimeMs;

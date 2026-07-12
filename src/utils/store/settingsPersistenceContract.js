@@ -201,6 +201,7 @@ const selectPersistedUi = (ui = {}) => ({
   spaceRailAutoHide: ui.spaceRailAutoHide ?? true,
   spaceRailPinned: ui.spaceRailPinned ?? false,
   spaceRailRevealWidth: ui.spaceRailRevealWidth ?? 28,
+  updateDismissedVersion: typeof ui.updateDismissedVersion === 'string' ? ui.updateDismissedVersion : '',
 });
 
 export const buildSettingsSnapshotFromStore = (state = {}) => ({

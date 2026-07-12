@@ -1,15 +1,20 @@
 const { IPC_CHANNELS } = require('../../shared/ipc-channels.cjs');
 
+/** First packaged check shortly after ready so startup popup can appear. */
+const FIRST_CHECK_DELAY_MS = 20 * 1000;
+const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
 function setupAutoUpdater({ autoUpdater, app, getMainWindow }) {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
+  // Stable clients only consume non-prerelease GitHub Releases.
+  autoUpdater.allowPrerelease = false;
 
   let lastUpdateCheck = 0;
-  const updateCheckInterval = 24 * 60 * 60 * 1000;
 
-  const checkForUpdatesBackground = async () => {
+  const checkForUpdatesBackground = async ({ force = false } = {}) => {
     const now = Date.now();
-    if (now - lastUpdateCheck < updateCheckInterval) {
+    if (!force && now - lastUpdateCheck < UPDATE_CHECK_INTERVAL_MS) {
       return;
     }
 
@@ -23,8 +28,12 @@ function setupAutoUpdater({ autoUpdater, app, getMainWindow }) {
   };
 
   if (app.isPackaged) {
-    setTimeout(checkForUpdatesBackground, 5 * 60 * 1000);
-    setInterval(checkForUpdatesBackground, updateCheckInterval);
+    setTimeout(() => {
+      checkForUpdatesBackground({ force: true });
+    }, FIRST_CHECK_DELAY_MS);
+    setInterval(() => {
+      checkForUpdatesBackground({ force: false });
+    }, UPDATE_CHECK_INTERVAL_MS);
   } else {
     console.log('[AUTO-UPDATE] Background update checking disabled in development mode');
   }
@@ -33,7 +42,6 @@ function setupAutoUpdater({ autoUpdater, app, getMainWindow }) {
     console.log('[AUTO-UPDATE] Checking for updates...');
     const mainWindow = getMainWindow();
     if (mainWindow) {
-      console.log('[AUTO-UPDATE] Sending checking status to renderer');
       mainWindow.webContents.send(IPC_CHANNELS.updater.statusEvent, { status: 'checking' });
     }
   });
@@ -42,18 +50,14 @@ function setupAutoUpdater({ autoUpdater, app, getMainWindow }) {
     console.log('[AUTO-UPDATE] Update available:', info);
     const mainWindow = getMainWindow();
     if (mainWindow) {
-      mainWindow.webContents.send(IPC_CHANNELS.updater.statusEvent, {
+      const payload = {
         status: 'available',
         version: info.version,
         releaseDate: info.releaseDate,
         releaseNotes: info.releaseNotes,
-      });
-
-      mainWindow.webContents.send(IPC_CHANNELS.updater.updateAvailableEvent, {
-        version: info.version,
-        releaseDate: info.releaseDate,
-        releaseNotes: info.releaseNotes,
-      });
+      };
+      mainWindow.webContents.send(IPC_CHANNELS.updater.statusEvent, payload);
+      mainWindow.webContents.send(IPC_CHANNELS.updater.updateAvailableEvent, payload);
     }
   });
 
@@ -61,7 +65,6 @@ function setupAutoUpdater({ autoUpdater, app, getMainWindow }) {
     console.log('[AUTO-UPDATE] No updates available');
     const mainWindow = getMainWindow();
     if (mainWindow) {
-      console.log('[AUTO-UPDATE] Sending not-available status to renderer');
       mainWindow.webContents.send(IPC_CHANNELS.updater.statusEvent, { status: 'not-available' });
       mainWindow.webContents.send(IPC_CHANNELS.updater.updateNotAvailableEvent);
     }

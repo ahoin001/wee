@@ -1,3 +1,5 @@
+const { isTrustedMainWindowEvent } = require('./trusted-renderer-utils.cjs');
+
 function registerFreshInstallHandlers({
   ipcMain,
   app,
@@ -6,8 +8,12 @@ function registerFreshInstallHandlers({
   fsExtra,
   currentVersion,
   minVersionForFreshStart,
+  getMainWindow,
 }) {
-  ipcMain.handle('get-fresh-install-info', async () => {
+  ipcMain.handle('get-fresh-install-info', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { error: 'Untrusted renderer' };
+    }
     try {
       const userDataPath = app.getPath('userData');
       const versionFile = path.join(userDataPath, 'version.json');
@@ -42,7 +48,10 @@ function registerFreshInstallHandlers({
     }
   });
 
-  ipcMain.handle('trigger-fresh-install', async () => {
+  ipcMain.handle('trigger-fresh-install', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, error: 'Untrusted renderer' };
+    }
     try {
       console.log('[FRESH_INSTALL] Manual fresh install triggered by user');
       const userDataPath = app.getPath('userData');

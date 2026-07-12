@@ -115,6 +115,8 @@ useConsolidatedAppStore = create(
           showCountdown: false,
           isScreenshotInProgress: false,
           updateAvailable: false,
+          /** Runtime updater payload from main-process electron-updater events. */
+          updateInfo: null,
         },
 
         // UI state
@@ -147,6 +149,10 @@ useConsolidatedAppStore = create(
           // Modal states
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
+          /** Unified Wee update modal (not persisted). */
+          showUpdateModal: false,
+          /** Last update version the user dismissed via Later (persisted). */
+          updateDismissedVersion: '',
           /** Community preset auth (upload/manage). Not persisted. */
           isAuthModalOpen: false,
           authModalMode: 'signin',
@@ -1626,6 +1632,7 @@ useConsolidatedAppStore = create(
               showCountdown: false,
               isScreenshotInProgress: false,
               updateAvailable: false,
+              updateInfo: null,
             },
             ui: {
               isDarkMode: false,
@@ -1641,6 +1648,8 @@ useConsolidatedAppStore = create(
               spotifyMatchEnabled: false,
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),
+              showUpdateModal: false,
+              updateDismissedVersion: '',
               isAuthModalOpen: false,
               authModalMode: 'signin',
               showConfirmationModal: false,

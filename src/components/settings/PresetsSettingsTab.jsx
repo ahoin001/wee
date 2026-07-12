@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Bookmark, Library, Music, Users } from 'lucide-react';
+import { Bookmark, Home, Library, Music, Palette, Users } from 'lucide-react';
 import { AuthModal } from '../modals';
 import { getCommunityPresetUpdates, uploadPreset } from '../../utils/supabase';
 import {
@@ -27,6 +27,7 @@ import { createPresetId } from '../../utils/presets/presetIds';
 import {
   PRESET_SCOPE_VISUAL,
   PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+  normalizePresetScope,
 } from '../../utils/presets/presetScopes';
 import {
   isSupportedPresetCoverImageUpload,
@@ -49,6 +50,21 @@ import SettingsTabPageHeader from './SettingsTabPageHeader';
 
 const MAX_CUSTOM_PRESETS = 5;
 const normalizePresetName = (value) => value.trim().toLowerCase();
+
+const PRESET_UPDATE_SCOPE_OPTIONS = [
+  {
+    value: PRESET_SCOPE_VISUAL,
+    title: 'Visual only',
+    subtitle: 'Colors, wallpaper, dock & chrome. Shareable.',
+    Icon: Palette,
+  },
+  {
+    value: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+    title: 'Visuals + Home channels',
+    subtitle: 'Also overwrite this preset’s Home channel layout.',
+    Icon: Home,
+  },
+];
 
 const PresetsSettingsTab = React.memo(() => {
   const { presets, spotifyMatchEnabled, workspaces } = useConsolidatedAppStore(
@@ -91,6 +107,10 @@ const PresetsSettingsTab = React.memo(() => {
   const [includeHomeChannels, setIncludeHomeChannels] = useState(false);
   const [immersiveModeState, setImmersiveModeState] = useState({});
   const [updateScopeDialog, setUpdateScopeDialog] = useState(null);
+  const [updateScopeModalOpen, setUpdateScopeModalOpen] = useState(false);
+  const [updateScopeModalMounted, setUpdateScopeModalMounted] = useState(false);
+  const [selectedUpdateScope, setSelectedUpdateScope] = useState(PRESET_SCOPE_VISUAL);
+  const [isUpdatingPreset, setIsUpdatingPreset] = useState(false);
 
   const savePresetsToBackend = useCallback(async (updatedPresets) => {
     try {
@@ -269,61 +289,102 @@ const PresetsSettingsTab = React.memo(() => {
     setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
   };
 
-  const commitPresetUpdate = async (presetId, updateScope) => {
-    const presetData = buildPresetDataFromStore({ captureScope: updateScope });
-    const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
-    if (thumbnailDataUrl) {
-      setCaptureNotice({ type: 'success', text: 'Updated preset preview ✨' });
-    } else {
-      setCaptureNotice({ type: 'warning', text: 'Could not refresh preview, keeping previous thumbnail.' });
-    }
+  const commitPresetUpdate = useCallback(
+    async (presetId, updateScope) => {
+      if (!presetId || isUpdatingPreset) return false;
+      setIsUpdatingPreset(true);
+      try {
+        const currentPresets = useConsolidatedAppStore.getState().presets || [];
+        const targetExists = currentPresets.some((p) => p.id === presetId);
+        if (!targetExists) {
+          setCaptureNotice({ type: 'warning', text: 'Could not find that preset to update.' });
+          setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
+          return false;
+        }
 
-    const updatedPresets = presets.map((p) =>
-      p.id === presetId
-        ? {
-            ...p,
-            data: presetData,
-            captureScope: updateScope,
-            includesHomeChannels: updateScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
-            shareable: updateScope === PRESET_SCOPE_VISUAL,
-            timestamp: new Date().toISOString(),
-            thumbnailDataUrl: thumbnailDataUrl || p.thumbnailDataUrl || null,
-          }
-        : p
-    );
-    setPresets(updatedPresets);
-    await savePresetsToBackend(updatedPresets);
-    setJustUpdated(presetId);
-    setTimeout(() => setJustUpdated(null), 1500);
-    setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
-  };
+        const scope = normalizePresetScope(updateScope);
+        const presetData = buildPresetDataFromStore({ captureScope: scope });
+        const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
+        if (thumbnailDataUrl) {
+          setCaptureNotice({ type: 'success', text: 'Preset updated with a fresh preview ✨' });
+        } else {
+          setCaptureNotice({
+            type: 'warning',
+            text: 'Preset updated. Could not refresh preview — kept the previous thumbnail.',
+          });
+        }
 
-  const handleUpdate = (presetId) => {
-    const targetPreset = presets.find((p) => p.id === presetId);
-    if (!targetPreset) return;
-    setUpdateScopeDialog({
-      presetId,
-      presetName: targetPreset.name || 'Preset',
-      currentScope:
-        targetPreset.captureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
-          ? PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS
-          : PRESET_SCOPE_VISUAL,
-    });
-  };
+        const updatedPresets = currentPresets.map((p) =>
+          p.id === presetId
+            ? {
+                ...p,
+                data: presetData,
+                captureScope: scope,
+                includesHomeChannels: scope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+                shareable: scope === PRESET_SCOPE_VISUAL,
+                timestamp: new Date().toISOString(),
+                thumbnailDataUrl: thumbnailDataUrl || p.thumbnailDataUrl || null,
+              }
+            : p
+        );
+        setPresets(updatedPresets);
+        await savePresetsToBackend(updatedPresets);
+        setJustUpdated(presetId);
+        setTimeout(() => setJustUpdated(null), 1800);
+        setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2400);
+        return true;
+      } catch (e) {
+        console.error('[PresetsSettingsTab] Failed to update preset:', e);
+        setCaptureNotice({ type: 'warning', text: 'Update failed. Please try again.' });
+        setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2400);
+        return false;
+      } finally {
+        setIsUpdatingPreset(false);
+      }
+    },
+    [isUpdatingPreset, savePresetsToBackend, setPresets]
+  );
+
+  const handleUpdate = useCallback(
+    (presetId) => {
+      const targetPreset = presets.find((p) => p.id === presetId);
+      if (!targetPreset) return;
+      const currentScope = normalizePresetScope(targetPreset.captureScope);
+      setUpdateScopeDialog({
+        presetId,
+        presetName: targetPreset.name || 'Preset',
+        currentScope,
+      });
+      setSelectedUpdateScope(currentScope);
+      setUpdateScopeModalOpen(true);
+    },
+    [presets]
+  );
+
+  useLayoutEffect(() => {
+    if (updateScopeModalOpen) setUpdateScopeModalMounted(true);
+  }, [updateScopeModalOpen]);
 
   const handleCloseUpdateScopeDialog = useCallback(() => {
+    if (isUpdatingPreset) return;
+    setUpdateScopeModalOpen(false);
+  }, [isUpdatingPreset]);
+
+  const handleUpdateScopeExitComplete = useCallback(() => {
+    setUpdateScopeModalMounted(false);
     setUpdateScopeDialog(null);
   }, []);
 
-  const handleConfirmUpdateScope = useCallback(
-    async (nextScope) => {
-      if (!updateScopeDialog?.presetId) return;
-      const targetPresetId = updateScopeDialog.presetId;
-      setUpdateScopeDialog(null);
-      await commitPresetUpdate(targetPresetId, nextScope);
-    },
-    [updateScopeDialog, presets]
-  );
+  const handleConfirmUpdateScope = useCallback(async () => {
+    if (!updateScopeDialog?.presetId || isUpdatingPreset) return;
+    const ok = await commitPresetUpdate(updateScopeDialog.presetId, selectedUpdateScope);
+    if (ok) setUpdateScopeModalOpen(false);
+  }, [updateScopeDialog, selectedUpdateScope, isUpdatingPreset, commitPresetUpdate]);
+
+  const updateScopeChoiceLabel = useMemo(() => {
+    const match = PRESET_UPDATE_SCOPE_OPTIONS.find((o) => o.value === selectedUpdateScope);
+    return match?.title || 'this scope';
+  }, [selectedUpdateScope]);
 
   const handleStartEdit = (preset) => {
     setEditingPreset(preset.id);
@@ -845,57 +906,96 @@ const PresetsSettingsTab = React.memo(() => {
 
       <AuthModal />
 
-      {updateScopeDialog ? (
+      {updateScopeModalMounted ? (
         <WeeModalShell
-          isOpen={Boolean(updateScopeDialog)}
+          isOpen={updateScopeModalOpen}
           onClose={handleCloseUpdateScopeDialog}
-          headerTitle="Update Preset Scope"
+          headerTitle="Update preset"
           showRail={false}
-          maxWidth="min(860px, 94vw)"
-        >
-          <div className="space-y-5">
-            <WeeSectionEyebrow>Preset update</WeeSectionEyebrow>
-            <h3 className="m-0 text-xl font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
-              {updateScopeDialog.presetName}
-            </h3>
-            <p className="m-0 text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
-              Choose what this update should capture. Wee recommends visual-only for shareable presets and
-              visuals + Home channels when you want a full snapshot.
-            </p>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => handleConfirmUpdateScope(PRESET_SCOPE_VISUAL)}
-                className="rounded-2xl border border-[hsl(var(--border-primary)/0.6)] bg-[hsl(var(--surface-secondary)/0.55)] p-4 text-left transition hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-secondary)/0.75)]"
+          maxWidth="min(760px, 94vw)"
+          onExitAnimationComplete={handleUpdateScopeExitComplete}
+          footerContent={() => (
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <WeeButton
+                variant="secondary"
+                onClick={handleCloseUpdateScopeDialog}
+                disabled={isUpdatingPreset}
               >
-                <p className="m-0 text-[11px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-primary))]">
-                  Visual-only
-                </p>
-                <p className="m-0 mt-2 text-[12px] font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
-                  Save colors, layout, and styling. Home channels are excluded.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleConfirmUpdateScope(PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS)}
-                className="rounded-2xl border border-[hsl(var(--border-primary)/0.6)] bg-[hsl(var(--surface-secondary)/0.55)] p-4 text-left transition hover:border-[hsl(var(--primary)/0.55)] hover:bg-[hsl(var(--surface-secondary)/0.75)]"
-              >
-                <p className="m-0 text-[11px] font-black uppercase tracking-[0.15em] text-[hsl(var(--text-primary))]">
-                  Visuals + Home channels
-                </p>
-                <p className="m-0 mt-2 text-[12px] font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
-                  Save visuals and the current Home channel setup as one snapshot.
-                </p>
-              </button>
-            </div>
-
-            <div className="flex justify-end">
-              <WeeButton variant="secondary" onClick={handleCloseUpdateScopeDialog}>
                 Cancel
               </WeeButton>
+              <WeeButton
+                variant="primary"
+                onClick={handleConfirmUpdateScope}
+                disabled={isUpdatingPreset || !updateScopeDialog?.presetId}
+              >
+                {isUpdatingPreset ? 'Updating…' : 'Update preset'}
+              </WeeButton>
             </div>
+          )}
+        >
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <WeeSectionEyebrow>Overwrite with current look</WeeSectionEyebrow>
+              <h3 className="m-0 text-xl font-black uppercase italic tracking-tight text-[hsl(var(--wee-text-header))] md:text-2xl">
+                {updateScopeDialog?.presetName || 'Preset'}
+              </h3>
+              <p className="m-0 max-w-xl text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
+                This replaces the saved preset with what you see right now. Pick how much to capture,
+                then confirm.
+              </p>
+            </div>
+
+            <div role="group" aria-label="What to capture" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {PRESET_UPDATE_SCOPE_OPTIONS.map(({ value, title, subtitle, Icon }) => {
+                const selected = selectedUpdateScope === value;
+                const isCurrent = updateScopeDialog?.currentScope === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={selected}
+                    disabled={isUpdatingPreset}
+                    onClick={() => setSelectedUpdateScope(value)}
+                    className={`flex flex-col items-start gap-4 rounded-[2rem] border-4 p-6 text-left transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                      selected
+                        ? 'border-[hsl(var(--primary))] bg-[hsl(var(--surface-wii-tint)/0.65)]'
+                        : 'border-[hsl(var(--wee-border-card))] hover:border-[hsl(var(--border-secondary))]'
+                    }`}
+                  >
+                    <div
+                      className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-all ${
+                        selected
+                          ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+                          : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-tertiary))]'
+                      }`}
+                    >
+                      <Icon size={28} strokeWidth={1.8} aria-hidden />
+                    </div>
+                    <div className="min-w-0">
+                      <p
+                        className={`m-0 font-black uppercase italic tracking-wide ${
+                          selected ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--wee-text-header))]'
+                        }`}
+                      >
+                        {title}
+                      </p>
+                      <p className="m-0 mt-2 text-[11px] font-bold uppercase leading-relaxed tracking-[0.08em] text-[hsl(var(--text-tertiary))]">
+                        {subtitle}
+                      </p>
+                      {isCurrent ? (
+                        <p className="m-0 mt-3 inline-flex rounded-full bg-[hsl(var(--surface-secondary))] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
+                          Current scope
+                        </p>
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="m-0 text-[11px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
+              Will save as: {updateScopeChoiceLabel}
+            </p>
           </div>
         </WeeModalShell>
       ) : null}

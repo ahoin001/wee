@@ -20,6 +20,11 @@ function createAppScanService({
       const raw = await fsPromises.readFile(scanCacheFile, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
+        // v2+ includes browser probes + Desktop shortcut dirs — ignore older snapshots.
+        if (Number(parsed.version) < 2) {
+          persistedScanSnapshot = null;
+          return;
+        }
         persistedScanSnapshot = {
           items: parsed.items,
           count: Number(parsed.count) || 0,
@@ -37,7 +42,7 @@ function createAppScanService({
     try {
       await fsPromises.mkdir(path.dirname(scanCacheFile), { recursive: true });
       const payload = {
-        version: 1,
+        version: 2,
         items: Array.isArray(items) ? items : [],
         count: Number(snapshot?.count) || 0,
         fingerprint: typeof snapshot?.fingerprint === 'string' ? snapshot.fingerprint : null,
@@ -94,14 +99,89 @@ function createAppScanService({
     };
   }
 
+  function getShortcutScanDirs() {
+    const home = os.homedir();
+    return [
+      path.join(home, 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+      path.join('C:', 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+      // Desktop shortcuts are common for browsers (Chrome often lands here without Start Menu entry).
+      path.join(home, 'Desktop'),
+      path.join('C:', 'Users', 'Public', 'Desktop'),
+    ];
+  }
+
+  function iconFromExe(exePath) {
+    try {
+      const iconImg = nativeImage.createFromPath(exePath);
+      if (!iconImg.isEmpty()) return iconImg.toDataURL();
+    } catch {
+      /* ignore icon extraction failures */
+    }
+    return null;
+  }
+
+  function pushAppIfMissing(results, seenPaths, app) {
+    const normalizedPath = String(app.path || '').trim().toLowerCase();
+    if (!normalizedPath || !fs.existsSync(app.path)) return false;
+    if (seenPaths.has(normalizedPath)) return false;
+    seenPaths.add(normalizedPath);
+    results.push({
+      name: app.name,
+      path: app.path,
+      args: app.args || '',
+      icon: app.icon || iconFromExe(app.path),
+      lnk: app.lnk || null,
+    });
+    return true;
+  }
+
+  /** Direct exe probes for apps that frequently lack Start Menu shortcuts. */
+  function probeCommonBrowserPaths(results, seenPaths) {
+    const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+    const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+    const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+    const browsers = [
+      {
+        name: 'Google Chrome',
+        paths: [
+          path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+          path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+          path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        ],
+      },
+      {
+        name: 'Microsoft Edge',
+        paths: [
+          path.join(programFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+          path.join(programFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+        ],
+      },
+      {
+        name: 'Mozilla Firefox',
+        paths: [
+          path.join(programFiles, 'Mozilla Firefox', 'firefox.exe'),
+          path.join(programFilesX86, 'Mozilla Firefox', 'firefox.exe'),
+        ],
+      },
+    ];
+
+    for (const browser of browsers) {
+      for (const exePath of browser.paths) {
+        if (pushAppIfMissing(results, seenPaths, { name: browser.name, path: exePath })) {
+          console.log(`[scanInstalledApps] Adding probed browser: ${browser.name} -> ${exePath}`);
+          break;
+        }
+      }
+    }
+  }
+
   async function scanInstalledApps() {
     console.log('[scanInstalledApps] Starting app scan...');
-    const startMenuDirs = [
-      path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
-      path.join('C:', 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
-    ];
-    console.log('[scanInstalledApps] Scanning directories:', startMenuDirs);
+    const shortcutDirs = getShortcutScanDirs();
+    console.log('[scanInstalledApps] Scanning directories:', shortcutDirs);
     const results = [];
+    const seenPaths = new Set();
     let lnkProcessed = 0;
     const yieldIfNeeded = async () => {
       lnkProcessed += 1;
@@ -119,104 +199,45 @@ function createAppScanService({
       { name: 'Windows PowerShell', path: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', args: '', icon: null, lnk: null },
     ];
 
-    const commonApps = [
-      {
-        name: 'Discord',
-        paths: [
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9013\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9012\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9011\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9010\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9009\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9008\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9007\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9006\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9005\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9004\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9003\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9002\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9001\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app-1.0.9000\\Discord.exe',
-          'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\Discord.exe',
-        ],
-        args: '',
-        icon: null,
-        lnk: null,
-      },
-    ];
-
     for (const app of systemApps) {
-      if (fs.existsSync(app.path)) {
-        try {
-          const iconImg = nativeImage.createFromPath(app.path);
-          if (!iconImg.isEmpty()) app.icon = iconImg.toDataURL();
-        } catch {}
+      if (pushAppIfMissing(results, seenPaths, app)) {
         console.log(`[scanInstalledApps] Adding system app: ${app.name} -> ${app.path}`);
-        results.push(app);
       } else {
         console.log(`[scanInstalledApps] System app not found: ${app.name} -> ${app.path}`);
       }
     }
 
-    for (const app of commonApps) {
-      if (app.name === 'Discord') {
-        const discordBasePath = path.join(os.homedir(), 'AppData', 'Local', 'Discord');
-        if (fs.existsSync(discordBasePath)) {
-          try {
-            const discordDirs = await fsPromises.readdir(discordBasePath);
-            const appDirs = discordDirs.filter((dir) => dir.startsWith('app-')).sort().reverse();
-            const discordUpdatePath = path.join(discordBasePath, 'Update.exe');
-            if (fs.existsSync(discordUpdatePath)) {
-              try {
-                let iconDataUrl = null;
-                for (const appDir of appDirs) {
-                  const discordExePath = path.join(discordBasePath, appDir, 'Discord.exe');
-                  if (fs.existsSync(discordExePath)) {
-                    try {
-                      const iconImg = nativeImage.createFromPath(discordExePath);
-                      if (!iconImg.isEmpty()) iconDataUrl = iconImg.toDataURL();
-                    } catch {}
-                    break;
-                  }
-                }
-                console.log(`[scanInstalledApps] Adding Discord: ${app.name} -> ${discordUpdatePath} --processStart Discord.exe`);
-                results.push({
-                  name: app.name,
-                  path: discordUpdatePath,
-                  args: '--processStart Discord.exe',
-                  icon: iconDataUrl,
-                  lnk: null,
-                });
-                break;
-              } catch (err) {
-                console.log(`[scanInstalledApps] Error processing Discord: ${err.message}`);
-              }
+    // Discord: prefer Update.exe --processStart (stable across versioned app-* folders).
+    const discordBasePath = path.join(os.homedir(), 'AppData', 'Local', 'Discord');
+    if (fs.existsSync(discordBasePath)) {
+      try {
+        const discordDirs = await fsPromises.readdir(discordBasePath);
+        const appDirs = discordDirs.filter((dir) => dir.startsWith('app-')).sort().reverse();
+        const discordUpdatePath = path.join(discordBasePath, 'Update.exe');
+        if (fs.existsSync(discordUpdatePath)) {
+          let iconDataUrl = null;
+          for (const appDir of appDirs) {
+            const discordExePath = path.join(discordBasePath, appDir, 'Discord.exe');
+            if (fs.existsSync(discordExePath)) {
+              iconDataUrl = iconFromExe(discordExePath);
+              break;
             }
-          } catch (err) {
-            console.log(`[scanInstalledApps] Error scanning Discord directory: ${err.message}`);
           }
+          console.log(`[scanInstalledApps] Adding Discord: Discord -> ${discordUpdatePath} --processStart Discord.exe`);
+          pushAppIfMissing(results, seenPaths, {
+            name: 'Discord',
+            path: discordUpdatePath,
+            args: '--processStart Discord.exe',
+            icon: iconDataUrl,
+            lnk: null,
+          });
         }
-      } else {
-        for (const appPath of app.paths) {
-          const resolvedPath = appPath.replace('%USERNAME%', os.userInfo().username);
-          if (fs.existsSync(resolvedPath)) {
-            try {
-              const iconImg = nativeImage.createFromPath(resolvedPath);
-              if (!iconImg.isEmpty()) app.icon = iconImg.toDataURL();
-            } catch {}
-            console.log(`[scanInstalledApps] Adding common app: ${app.name} -> ${resolvedPath}`);
-            results.push({
-              name: app.name,
-              path: resolvedPath,
-              args: app.args || '',
-              icon: app.icon,
-              lnk: null,
-            });
-            break;
-          }
-        }
+      } catch (err) {
+        console.log(`[scanInstalledApps] Error scanning Discord directory: ${err.message}`);
       }
     }
+
+    probeCommonBrowserPaths(results, seenPaths);
 
     async function scanDir(dir) {
       try {
@@ -224,6 +245,8 @@ function createAppScanService({
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
           if (entry.isDirectory()) {
+            // Desktop: only top-level .lnk files (avoid deep user folders).
+            if (path.basename(dir).toLowerCase() === 'desktop') continue;
             await scanDir(fullPath);
           } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.lnk')) {
             await yieldIfNeeded();
@@ -235,16 +258,12 @@ function createAppScanService({
                   let iconPath = shortcut.icon;
                   if (iconPath.includes(',')) iconPath = iconPath.split(',')[0];
                   if (fs.existsSync(iconPath)) {
-                    const iconImg = nativeImage.createFromPath(iconPath);
-                    if (!iconImg.isEmpty()) iconDataUrl = iconImg.toDataURL();
+                    iconDataUrl = iconFromExe(iconPath);
                   }
                 } catch {}
               }
               if (!iconDataUrl && shortcut && shortcut.target && fs.existsSync(shortcut.target)) {
-                try {
-                  const iconImg = nativeImage.createFromPath(shortcut.target);
-                  if (!iconImg.isEmpty()) iconDataUrl = iconImg.toDataURL();
-                } catch {}
+                iconDataUrl = iconFromExe(shortcut.target);
               }
 
               if (shortcut && shortcut.target && fs.existsSync(shortcut.target)) {
@@ -262,14 +281,15 @@ function createAppScanService({
                 );
 
                 if (!isUpdater) {
-                  console.log(`[scanInstalledApps] Adding shortcut: ${appName} -> ${shortcut.target}`);
-                  results.push({
+                  if (pushAppIfMissing(results, seenPaths, {
                     name: appName,
                     path: shortcut.target,
                     args: shortcut.args || '',
                     icon: iconDataUrl,
                     lnk: fullPath,
-                  });
+                  })) {
+                    console.log(`[scanInstalledApps] Adding shortcut: ${appName} -> ${shortcut.target}`);
+                  }
                 } else {
                   console.log(`[scanInstalledApps] Skipping updater: ${appName} -> ${shortcut.target}`);
                 }
@@ -282,22 +302,14 @@ function createAppScanService({
       } catch {}
     }
 
-    for (const dir of startMenuDirs) {
+    for (const dir of shortcutDirs) {
       await scanDir(dir);
     }
 
-    console.log(`[scanInstalledApps] Found ${results.length} apps before deduplication`);
-    const seen = new Set();
-    const deduped = results.filter((app) => {
-      const key = `${app.name}|${app.path}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    console.log(`[scanInstalledApps] Returning ${deduped.length} apps after deduplication`);
-    const snapshot = await buildInstalledAppsQuickSnapshot(startMenuDirs);
+    console.log(`[scanInstalledApps] Found ${results.length} apps after path deduplication`);
+    const snapshot = await buildInstalledAppsQuickSnapshot(shortcutDirs);
     return {
-      apps: deduped,
+      apps: results,
       snapshot,
     };
   }
@@ -310,14 +322,11 @@ function createAppScanService({
       return appsCache;
     }
     await loadPersistedScanSnapshot();
-    const startMenuDirs = [
-      path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
-      path.join('C:', 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
-    ];
+    const shortcutDirs = getShortcutScanDirs();
 
     if (persistedScanSnapshot?.items?.length) {
       try {
-        const quickSnapshot = await buildInstalledAppsQuickSnapshot(startMenuDirs);
+        const quickSnapshot = await buildInstalledAppsQuickSnapshot(shortcutDirs);
         if (
           quickSnapshot.count === persistedScanSnapshot.count &&
           quickSnapshot.fingerprint === persistedScanSnapshot.fingerprint

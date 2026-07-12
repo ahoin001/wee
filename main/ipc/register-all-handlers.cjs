@@ -138,6 +138,7 @@ function registerAllIpcHandlers({
     fsExtra,
     currentVersion,
     minVersionForFreshStart,
+    getMainWindow,
   });
 
   registerMonitorHandlers({
