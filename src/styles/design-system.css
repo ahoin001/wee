@@ -202,7 +202,7 @@
   --nav-standard-hit-size: 20px;
   --nav-standard-hit-size-xs: 16px;
 
-  /* Side navigation — Wii peek + Wee gooey motion (see WiiSideNavigation.css, WeeGooeySpacePill) */
+  /* Side navigation — Wii peek + Wee gooey motion (WeeGooeySideNavButton / WeeGooeySpacePill) */
   /* Above dock/ribbon (1000) and space rail (2200) so prev/next stay clickable */
   --side-nav-z-index: 2300;
   /* Longer strip so the inner straight edge reads as a rail; pair with peek so the round cap tucks off-screen */
