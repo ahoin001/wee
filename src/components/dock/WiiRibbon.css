@@ -422,6 +422,28 @@
   filter: var(--ribbon-glow-filter);
 }
 
+.interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
+  animation: ribbon-chrome-glow-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes ribbon-chrome-glow-pulse {
+  0%,
+  100% {
+    filter: var(--ribbon-glow-filter);
+    opacity: 1;
+  }
+  50% {
+    filter: var(--ribbon-glow-filter);
+    opacity: 0.82;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
+    animation: none;
+  }
+}
+
 .glass-shine-opacity-path {
   opacity: var(--glass-shine-opacity, 0.7);
 }

@@ -3,6 +3,7 @@ import useAnimationActivity from '../../hooks/useAnimationActivity';
 import { PARTICLE_EFFECT_PALETTES as COLOR_PALETTES } from '../../design/particleEffectPalettes.js';
 import { DEFAULT_RIBBON_GLOW_HEX } from '../../design/runtimeColorStrings.js';
 import { IS_DEV } from '../../utils/env';
+import { sampleRibbonTopEdgeForCanvas } from './ribbon/ribbonSilhouette';
 
 // Particle effect types
 const PARTICLE_TYPES = {
@@ -492,57 +493,7 @@ const DockParticleSystem = React.memo(({
         points.push({ x, y });
       }
     } else if (isRibbon) {
-      // Ribbon curved shape - based on WiiRibbon.jsx SVG path
-      // "M 0 40 L 250 40 C 450 40, 500 140, 670 140 L 770 140 C 940 140, 990 40, 1190 40 L 1440 40"
-      const scaleFactor = width / 1440; // Scale to canvas width
-      
-      for (let i = 0; i <= 100; i++) {
-        const t = i / 100;
-        const x = t * width;
-        
-        // Approximate the ribbon's curved path more accurately
-        let y;
-        const normalizedX = x / scaleFactor;
-        
-        if (normalizedX <= 250) {
-          // Flat top section
-          y = 40 * (height / 240);
-        } else if (normalizedX <= 450) {
-          // First curve control point — flat until the next segment
-          y = 40 * (height / 240);
-        } else if (normalizedX <= 500) {
-          // Sharp curve down
-          const progress = (normalizedX - 450) / (500 - 450);
-          const curveY = 40 + (140 - 40) * progress;
-          y = curveY * (height / 240);
-        } else if (normalizedX <= 670) {
-          // Continue down to bottom
-          const progress = (normalizedX - 500) / (670 - 500);
-          const curveY = 140 - (140 - 100) * progress;
-          y = curveY * (height / 240);
-        } else if (normalizedX <= 770) {
-          // Flat bottom section
-          y = 100 * (height / 240);
-        } else if (normalizedX <= 940) {
-          // Second curve control point — flat segment
-          y = 100 * (height / 240);
-        } else if (normalizedX <= 990) {
-          // Sharp curve up
-          const progress = (normalizedX - 940) / (990 - 940);
-          const curveY = 100 - (100 - 40) * progress;
-          y = curveY * (height / 240);
-        } else if (normalizedX <= 1190) {
-          // Continue up to top
-          const progress = (normalizedX - 990) / (1190 - 990);
-          const curveY = 40 + (80 - 40) * progress;
-          y = curveY * (height / 240);
-        } else {
-          // Flat top section
-          y = 80 * (height / 240);
-        }
-        
-        points.push({ x, y });
-      }
+      points.push(...sampleRibbonTopEdgeForCanvas(width, height, 100));
     } else {
       // Fallback: simple rectangular border
       const steps = 50;

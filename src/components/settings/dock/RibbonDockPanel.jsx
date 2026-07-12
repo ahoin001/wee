@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Droplets, Layers, SlidersHorizontal } from 'lucide-react';
+import { Droplets, Layers, SlidersHorizontal, Sparkles } from 'lucide-react';
 import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
 import WToggle from '../../../ui/WToggle';
@@ -15,6 +15,13 @@ import {
   DEFAULT_RIBBON_GLOW_HEX,
   DEFAULT_RIBBON_SURFACE_HEX,
 } from '../../../design/runtimeColorStrings.js';
+
+const CHROME_EFFECT_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: 'shimmer', label: 'Shimmer' },
+  { value: 'pulse', label: 'Pulse' },
+  { value: 'neonTrace', label: 'Neon trace' },
+];
 
 const RIBBON_FIELD_CARD =
   'rounded-2xl border border-[hsl(var(--border-primary)/0.42)] bg-[hsl(var(--surface-secondary)/0.55)] p-3 shadow-[inset_0_1px_0_0_hsl(var(--border-primary)/0.14)] md:p-4';
@@ -237,6 +244,9 @@ function RibbonDockPanel({
   onGlassBlurChange,
   onGlassBorderOpacityChange,
   onGlassShineOpacityChange,
+  onChromeEffectChange,
+  onChromeEffectIntensityChange,
+  onChromeEffectSpeedChange,
 }) {
   const glassOn = ribbon?.glassWiiRibbon ?? false;
   const dockOp = ribbon?.ribbonDockOpacity ?? 1;
@@ -244,6 +254,9 @@ function RibbonDockPanel({
   const gBlur = ribbon?.glassBlur ?? 2.5;
   const gBorder = ribbon?.glassBorderOpacity ?? 0.5;
   const gShine = ribbon?.glassShineOpacity ?? 0.7;
+  const chromeEffect = ribbon?.chromeEffect ?? 'none';
+  const chromeIntensity = ribbon?.chromeEffectIntensity ?? 0.55;
+  const chromeSpeed = ribbon?.chromeEffectSpeed ?? 1;
 
   return (
     <div className="flex flex-col gap-6">
@@ -451,6 +464,64 @@ function RibbonDockPanel({
           </WeeModalFieldCard>
         </WeeSettingsCollapsibleSection>
       ) : null}
+
+      <WeeSettingsCollapsibleSection
+        icon={Sparkles}
+        title="Chrome effects"
+        description="Surface FX painted on the ribbon body — separate from ambient particles."
+        defaultOpen={false}
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <div className="space-y-5">
+            <div>
+              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+                Effect mode
+              </WeeSectionEyebrow>
+              <WeeHelpParagraph className="!mb-3 !normal-case !tracking-[0.08em]">
+                Paints on the ribbon surface — separate from ambient particles.
+              </WeeHelpParagraph>
+              <WeeSegmentedControl
+                ariaLabel="Ribbon chrome effect"
+                value={chromeEffect}
+                onChange={onChromeEffectChange}
+                size="sm"
+                wrap
+                className="w-full max-w-xl"
+                options={CHROME_EFFECT_OPTIONS}
+              />
+            </div>
+
+            {chromeEffect !== 'none' ? (
+              <div className="space-y-4 border-t border-[hsl(var(--border-primary)/0.35)] pt-5">
+                <RibbonScaleField
+                  eyebrow="Intensity"
+                  hint="How strong the effect reads on the ribbon."
+                  rangeLabel="0% — 100%"
+                  valueDisplay={`${Math.round(chromeIntensity * 100)}%`}
+                  value={chromeIntensity}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onChange={onChromeEffectIntensityChange}
+                  ariaLabel="Chrome effect intensity"
+                />
+                <RibbonScaleField
+                  eyebrow="Speed"
+                  hint="Animation pace for shimmer, pulse, and neon trace."
+                  rangeLabel="0.25× — 2×"
+                  valueDisplay={`${Number(chromeSpeed).toFixed(2)}×`}
+                  value={chromeSpeed}
+                  min={0.25}
+                  max={2}
+                  step={0.05}
+                  onChange={onChromeEffectSpeedChange}
+                  ariaLabel="Chrome effect speed"
+                />
+              </div>
+            ) : null}
+          </div>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
     </div>
   );
 }
@@ -472,6 +543,9 @@ RibbonDockPanel.propTypes = {
   onGlassBlurChange: PropTypes.func.isRequired,
   onGlassBorderOpacityChange: PropTypes.func.isRequired,
   onGlassShineOpacityChange: PropTypes.func.isRequired,
+  onChromeEffectChange: PropTypes.func.isRequired,
+  onChromeEffectIntensityChange: PropTypes.func.isRequired,
+  onChromeEffectSpeedChange: PropTypes.func.isRequired,
 };
 
 export default React.memo(RibbonDockPanel);

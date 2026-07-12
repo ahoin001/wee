@@ -252,6 +252,30 @@ const UnifiedDockSettingsTab = React.memo(() => {
     [saveSetting, setRibbonState]
   );
 
+  const handleChromeEffectChange = useCallback(
+    (value) => {
+      setRibbonState({ chromeEffect: value });
+      saveSetting('ribbon', 'chromeEffect', value);
+    },
+    [saveSetting, setRibbonState]
+  );
+
+  const handleChromeEffectIntensityChange = useCallback(
+    (value) => {
+      setRibbonState({ chromeEffectIntensity: value });
+      saveSetting('ribbon', 'chromeEffectIntensity', value);
+    },
+    [saveSetting, setRibbonState]
+  );
+
+  const handleChromeEffectSpeedChange = useCallback(
+    (value) => {
+      setRibbonState({ chromeEffectSpeed: value });
+      saveSetting('ribbon', 'chromeEffectSpeed', value);
+    },
+    [saveSetting, setRibbonState]
+  );
+
   const handleParticleEnabledChange = useCallback(
     (checked) => {
       setDockState({ particleSystemEnabled: checked });
@@ -436,6 +460,9 @@ const UnifiedDockSettingsTab = React.memo(() => {
             onGlassBlurChange={handleGlassBlurChange}
             onGlassBorderOpacityChange={handleGlassBorderOpacityChange}
             onGlassShineOpacityChange={handleGlassShineOpacityChange}
+            onChromeEffectChange={handleChromeEffectChange}
+            onChromeEffectIntensityChange={handleChromeEffectIntensityChange}
+            onChromeEffectSpeedChange={handleChromeEffectSpeedChange}
           />
         );
       case 'animations':

@@ -5,6 +5,10 @@ import WToggle from '../../ui/WToggle';
 import { WeeCard, WeeModalShell } from '../../ui/wee';
 import { PARTICLE_TYPES } from './DockParticleSystem';
 import { DEFAULT_RIBBON_GLOW_HEX, INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings.js';
+import {
+  dockParticleModalLocalFromDock,
+  dockParticlePatchFromModalLocal,
+} from '../../utils/dockParticleSettings';
 import './DockEffectsModal.css';
 
 const EFFECT_TYPES = [
@@ -25,63 +29,22 @@ const DIRECTION_OPTIONS = [
 ];
 
 function DockEffectsModal({ isOpen, onClose, onSettingsChange, settings = {}, ribbonGlowColor: _ribbonGlowColor = DEFAULT_RIBBON_GLOW_HEX }) {
-  const [localSettings, setLocalSettings] = useState({
-    enabled: false,
-    effectType: 'normal',
-    direction: 'upward',
-    speed: 2,
-    particleCount: 3,
-    spawnRate: 60,
-    size: 3,
-    gravity: 0.02,
-    fadeSpeed: 0.008,
-    sizeDecay: 0.02,
-    useAdaptiveColor: false,
-    customColors: [],
-    colorIntensity: 1.0,
-    colorVariation: 0.3,
-    rotationSpeed: 0.05,
-    particleLifetime: 3.0,
-    clipPathFollow: false,
-    ...settings
-  });
+  const [localSettings, setLocalSettings] = useState(() => dockParticleModalLocalFromDock(settings));
 
-  // Update local settings when props change
+  // Update local settings when props change (flat dock.particle* keys)
   useEffect(() => {
-    setLocalSettings(prev => ({
-      ...prev,
-      ...settings
-    }));
+    setLocalSettings(dockParticleModalLocalFromDock(settings));
   }, [settings]);
 
   const handleSave = () => {
     if (onSettingsChange) {
-      onSettingsChange({ particleSettings: localSettings });
+      onSettingsChange(dockParticlePatchFromModalLocal(localSettings));
     }
     onClose();
   };
 
   const handleCancel = () => {
-    setLocalSettings({
-      enabled: false,
-      effectType: 'normal',
-      direction: 'upward',
-      speed: 2,
-      particleCount: 3,
-      spawnRate: 60,
-      size: 3,
-      gravity: 0.02,
-      fadeSpeed: 0.008,
-      sizeDecay: 0.02,
-      useAdaptiveColor: false,
-      customColors: [],
-      colorIntensity: 1.0,
-      colorVariation: 0.3,
-      rotationSpeed: 0.05,
-      particleLifetime: 3.0,
-      clipPathFollow: false,
-      ...settings
-    });
+    setLocalSettings(dockParticleModalLocalFromDock(settings));
     onClose();
   };
 

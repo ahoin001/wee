@@ -7,6 +7,7 @@ import { WeePressSurface } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { CLASSIC_DOCK_DEFAULT_COLORS as DEFAULT_DOCK_COLORS } from '../../design/classicDockThemeDefaults.js';
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
+import { toDockParticleProps } from '../../utils/dockParticleSettings';
 
 const WiiDock = ({ 
   dockSettings = {}, 
@@ -138,25 +139,7 @@ const WiiDock = ({
     >
       {/* Particle System */}
       <DockParticleSystem
-        enabled={particleSettings.particleSystemEnabled || false}
-        effectType={particleSettings.particleEffectType || 'normal'}
-        direction={particleSettings.particleDirection || 'upward'}
-        speed={particleSettings.particleSpeed || 2}
-        particleCount={particleSettings.particleCount || 3}
-        spawnRate={particleSettings.particleSpawnRate || 60}
-        clipPathFollow={particleSettings.clipPathFollow || false}
-        settings={{
-          size: particleSettings.particleSize || 3,
-          gravity: particleSettings.particleGravity || 0.02,
-          fadeSpeed: particleSettings.particleFadeSpeed || 0.008,
-          sizeDecay: particleSettings.particleSizeDecay || 0.02,
-          useAdaptiveColor: particleSettings.particleUseAdaptiveColor || false,
-          customColors: particleSettings.particleCustomColors || [],
-          colorIntensity: particleSettings.particleColorIntensity || 1.0,
-          colorVariation: particleSettings.particleColorVariation || 0.3,
-          rotationSpeed: particleSettings.particleRotationSpeed || 0.05,
-          particleLifetime: particleSettings.particleLifetime || 3.0
-        }}
+        {...toDockParticleProps(particleSettings)}
         ribbonGlowColor={colors.dockAccentColor}
       />
       

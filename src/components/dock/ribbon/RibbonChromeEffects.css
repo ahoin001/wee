@@ -1,0 +1,67 @@
+/* Path-masked ribbon chrome FX — CSS vars from RibbonChromeEffects.jsx */
+
+.ribbon-chrome-effects {
+  overflow: hidden;
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-shimmer-band {
+  animation: ribbon-fx-shimmer-sweep var(--ribbon-fx-duration, 2.4s) linear infinite;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-shimmer-band {
+  transform: translateX(12%);
+  opacity: var(--ribbon-fx-opacity, 0.5);
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-pulse-fill {
+  animation: ribbon-fx-pulse-breathe var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-pulse-fill {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.35);
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-neon-trace {
+  animation: ribbon-fx-neon-dash var(--ribbon-fx-duration, 2.4s) linear infinite;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-neon-trace {
+  stroke-dashoffset: 28;
+  opacity: var(--ribbon-fx-opacity, 0.5);
+}
+
+@keyframes ribbon-fx-shimmer-sweep {
+  from {
+    transform: translateX(-35%);
+  }
+  to {
+    transform: translateX(35%);
+  }
+}
+
+@keyframes ribbon-fx-pulse-breathe {
+  0%,
+  100% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.25);
+  }
+  50% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.85);
+  }
+}
+
+@keyframes ribbon-fx-neon-dash {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ribbon-chrome-effects--animate .ribbon-fx-shimmer-band,
+  .ribbon-chrome-effects--animate .ribbon-fx-pulse-fill,
+  .ribbon-chrome-effects--animate .ribbon-fx-neon-trace {
+    animation: none !important;
+  }
+}

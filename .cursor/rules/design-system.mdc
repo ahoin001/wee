@@ -12,6 +12,7 @@ alwaysApply: true
 - **Do not add** new `#rrggbb` or `rgba(…)` literals in `src/components/**` for styling. Extend tokens or add a named export in `src/design/` (e.g. `runtimeColorStrings.js`) and import it.
 - **Where hex is OK**: `src/design/*` (defaults, palettes, canvas/album-art constants), `src/data/**` (preset/theme databases like `classicDockThemeGroups.js`), migrations, and strings required by APIs (`<input type="color">`, persisted settings). Document one-off exceptions with a short comment.
 - **New colors**: Add `--your-token: H S% L%;` in `design-system.css` (light `:root` and `.dark-mode` if it should track theme). Run `npm run lint` after changing tokens (design-system check).
+- **Interactive hover glow** (channels, ribbon side buttons, similar chrome): use shared `--shadow-hover-glow` + `--filter-hover-glow` (with `--shadow-soft-hover` for lift). Do **not** invent hard accent rings (`0 0 0 Npx`) or one-off blue borders per surface.
 
 ## Components
 

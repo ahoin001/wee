@@ -201,6 +201,9 @@ useConsolidatedAppStore = create(
           ribbonGlowStrengthHover: 20,
           ribbonDockOpacity: 1,
           ribbonHoverAnimationEnabled: true,
+          chromeEffect: 'none',
+          chromeEffectIntensity: 0.55,
+          chromeEffectSpeed: 1,
           ribbonButtonConfigs: [],
           presetsButtonConfig: {
             type: 'icon',
@@ -359,6 +362,7 @@ useConsolidatedAppStore = create(
           particleRotationSpeed: 0.05,
           particleLifetime: 3.0,
           particleCustomColors: [],
+          particleClipPathFollow: false,
         },
 
         // Monitor state

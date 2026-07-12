@@ -232,10 +232,11 @@ function App() {
   }, [floatingWidgets]);
 
   // Actions from consolidated store
-  const { setUIState, setRibbonState, setSpacesState } = useConsolidatedAppStore(
+  const { setUIState, setRibbonState, setDockState, setSpacesState } = useConsolidatedAppStore(
     useShallow((state) => ({
       setUIState: state.actions.setUIState,
       setRibbonState: state.actions.setRibbonState,
+      setDockState: state.actions.setDockState,
       setSpacesState: state.actions.setSpacesState,
     }))
   );
@@ -664,6 +665,7 @@ function App() {
                     presetsButtonConfig={presetsButtonConfig}
                     onSettingsClick={openSettingsModal}
                     onSettingsChange={(settings) => setRibbonState(settings)}
+                    onParticleSettingsChange={(settings) => setDockState(settings)}
                     onButtonClick={() => {}}
                     onButtonContextMenu={() => {}}
                     onAccessoryButtonClick={handleSettingsActionMenuOpen}
@@ -694,6 +696,7 @@ function App() {
                     onSettingsClick={handleSettingsActionMenuOpen}
                     onPresetsClick={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'themes' })}
                     onSettingsChange={(settings) => setRibbonState(settings)}
+                    onParticleSettingsChange={(settings) => setDockState(settings)}
                     onToggleDarkMode={toggleDarkMode}
                     onToggleCursor={toggleCustomCursor}
                     useCustomCursor={useCustomCursor}

@@ -5,7 +5,7 @@ This project uses **Cursor rules** in `.cursor/rules/` as the source of truth fo
 ## Always follow
 
 1. **Design system** — `.cursor/rules/design-system.mdc`  
-   Tokens in `src/styles/design-system.css`, no new scattered hex/rgba in components, use `src/ui/` and `src/design/` helpers.
+   Tokens in `src/styles/design-system.css`, no new scattered hex/rgba in components, use `src/ui/` and `src/design/` helpers. Interactive hover glow uses `--shadow-hover-glow` / `--filter-hover-glow` (no hard accent rings).
 
 2. **No ad-hoc drift** — `.cursor/rules/No-one-offs-or-ad-hoc-code.mdc`  
    Prefer systematic, tokenized, reusable approaches.

@@ -9,6 +9,9 @@ const LazyDockEffectsModal = React.lazy(() => import('./DockEffectsModal'));
 
 import WiiStyleButton from './WiiStyleButton';
 import DockParticleSystem from './DockParticleSystem';
+import RibbonChrome from './ribbon/RibbonChrome';
+import RibbonChromeEffects from './ribbon/RibbonChromeEffects';
+import RibbonAccessories from './ribbon/RibbonAccessories';
 import './WiiRibbon.css';
 import intervalManager from '../../utils/IntervalManager';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
@@ -24,6 +27,7 @@ import isEqual from 'fast-deep-equal';
 import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
+import { toDockParticleProps } from '../../utils/dockParticleSettings';
 // import more icons as needed
 
 const WiiRibbonComponent = ({
@@ -63,6 +67,7 @@ const WiiRibbonComponent = ({
   glassShineOpacity: propGlassShineOpacity,
   ribbonHoverAnimationEnabled = true,
   particleSettings = {},
+  onParticleSettingsChange,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -87,9 +92,17 @@ const WiiRibbonComponent = ({
   // Use consolidated store for modal states and UI settings
   const { setUIState } = useUIState();
   const [showDockEffectsModal, setShowDockEffectsModal] = useState(false);
-  
-
-  
+  const {
+    chromeEffect,
+    chromeEffectIntensity,
+    chromeEffectSpeed,
+  } = useConsolidatedAppStore(
+    useShallow((state) => ({
+      chromeEffect: state.ribbon.chromeEffect ?? 'none',
+      chromeEffectIntensity: state.ribbon.chromeEffectIntensity ?? 0.55,
+      chromeEffectSpeed: state.ribbon.chromeEffectSpeed ?? 1,
+    }))
+  );
   const [buttonConfigs, setButtonConfigs] = useState([
     { type: 'text', text: 'Wii', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }, 
     { type: 'text', text: 'Mail', useAdaptiveColor: false, useGlowEffect: false, glowStrength: 20, useGlassEffect: false, glassOpacity: 0.18, glassBlur: 2.5, glassBorderOpacity: 0.5, glassShineOpacity: 0.7 }
@@ -570,97 +583,51 @@ const WiiRibbonComponent = ({
     return timeColor;
   })();
 
+  const particleProps = useMemo(
+    () => toDockParticleProps(particleSettings),
+    [particleSettings]
+  );
+
+  const ribbonFillColor =
+    (shouldUseDynamicRibbonColor && spotifyColors?.primary
+      ? spotifyColors.primary
+      : propRibbonColor) +
+    (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '');
+
   return (
     <>
       <m.footer
         {...dockBarEntrance}
-        className={`interactive-footer ${ribbonHoverAnimationEnabled ? 'ribbon-hover-enabled' : ''}`}
+        className={`interactive-footer ${ribbonHoverAnimationEnabled ? 'ribbon-hover-enabled' : ''}${
+          chromeEffect === 'pulse' ? ' ribbon-fx-pulse-active' : ''
+        }`}
         onContextMenu={handleRibbonContextMenu}
       >
-        {/* Particle System */}
         <DockParticleSystem
-          enabled={particleSettings.particleSystemEnabled || false}
-          effectType={particleSettings.particleEffectType || 'normal'}
-          direction={particleSettings.particleDirection || 'upward'}
-          speed={particleSettings.particleSpeed || 2}
-          particleCount={particleSettings.particleCount || 3}
-          spawnRate={particleSettings.particleSpawnRate || 60}
-          clipPathFollow={particleSettings.clipPathFollow || false}
-          settings={{
-            size: particleSettings.particleSize || 3,
-            gravity: particleSettings.particleGravity || 0.02,
-            fadeSpeed: particleSettings.particleFadeSpeed || 0.008,
-            sizeDecay: particleSettings.particleSizeDecay || 0.02,
-            useAdaptiveColor: particleSettings.particleUseAdaptiveColor || false,
-            customColors: particleSettings.particleCustomColors || [],
-            colorIntensity: particleSettings.particleColorIntensity || 1.0,
-            colorVariation: particleSettings.particleColorVariation || 0.3,
-            rotationSpeed: particleSettings.particleRotationSpeed || 0.05,
-            particleLifetime: particleSettings.particleLifetime || 3.0
-          }}
+          {...particleProps}
           ribbonGlowColor={
             (shouldUseDynamicRibbonColor ? spotifyColors?.accent : null) || propRibbonGlowColor || CSS_WII_BLUE
           }
         />
-          <div
-            className="absolute inset-0 z-0 svg-container-glow ribbon-svg-glow-dynamic"
-            style={{ ['--ribbon-glow-filter']: ribbonGlowFilter }}
-            onMouseEnter={() => ribbonHoverAnimationEnabled && setIsRibbonHovered(true)}
-            onMouseLeave={() => setIsRibbonHovered(false)}
-          >
-              <svg width="100%" height="100%" viewBox="0 0 1440 240" preserveAspectRatio="none">
-                {glassWiiRibbon && (
-                  <defs>
-                    <filter id="glass-blur" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation={propGlassBlur ?? 2.5} result="blur" />
-                      <feComponentTransfer>
-                        <feFuncA type="linear" slope="1.2" />
-                      </feComponentTransfer>
-                      <feMerge>
-                        <feMergeNode />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                    <linearGradient id="glass-shine" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color={`rgba(255,255,255,${propGlassShineOpacity ?? 0.7})`} />
-                      <stop offset="60%" stop-color="rgba(255,255,255,0.05)" />
-                      <stop offset="100%" stop-color="rgba(255,255,255,0.0)" />
-                    </linearGradient>
-                  </defs>
-                )}
-                <path
-                  d="M 0 40 
-                     L 250 40 
-                     C 450 40, 500 140, 670 140 
-                     L 770 140 
-                     C 940 140, 990 40, 1190 40 
-                     L 1440 40 
-                     L 1440 240 
-                     L 0 240 Z"
-                  fill={glassWiiRibbon ? `rgba(255,255,255,${propGlassOpacity ?? 0.18})` : (shouldUseDynamicRibbonColor && spotifyColors?.primary ? spotifyColors.primary : propRibbonColor) + (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '')}
-                  stroke={`rgba(255,255,255,${propGlassBorderOpacity ?? 0.5})`}
-                  strokeWidth="2"
-                  filter={glassWiiRibbon ? "url(#glass-blur)" : undefined}
-                  className="transition-[fill] duration-300"
-                />
-                {glassWiiRibbon && (
-                  <path
-                    d="M 0 40 
-                       L 250 40 
-                       C 450 40, 500 140, 670 140 
-                       L 770 140 
-                       C 940 140, 990 40, 1190 40 
-                       L 1440 40 
-                       L 1440 120 
-                       L 0 120 Z"
-                    fill="url(#glass-shine)"
-                    className="pointer-events-none glass-shine-opacity-path"
-                    style={{ ['--glass-shine-opacity']: propGlassShineOpacity ?? 0.7 }}
-                  />
-                )}
-              </svg>
-          </div>
+        <RibbonChrome
+          glassWiiRibbon={glassWiiRibbon}
+          glassBlur={propGlassBlur}
+          glassShineOpacity={propGlassShineOpacity}
+          glassOpacity={propGlassOpacity}
+          glassBorderOpacity={propGlassBorderOpacity}
+          fillColor={ribbonFillColor}
+          ribbonGlowFilter={ribbonGlowFilter}
+          hoverAnimationEnabled={ribbonHoverAnimationEnabled}
+          onHoverChange={setIsRibbonHovered}
+        />
+        <RibbonChromeEffects
+          effect={chromeEffect}
+          intensity={chromeEffectIntensity}
+          speed={chromeEffectSpeed}
+          glowColor={ribbonGlowHex}
+        />
 
+        <RibbonAccessories>
           <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-[300px] z-20 text-center pointer-events-auto">
               {/* Spotify Match Indicator */}
               {shouldUseDynamicRibbonColor && spotifyTrackName && (
@@ -956,6 +923,7 @@ const WiiRibbonComponent = ({
                   </WiiStyleButton>
               </div>
           </div>
+        </RibbonAccessories>
 
 
               </m.footer>
@@ -1034,7 +1002,7 @@ const WiiRibbonComponent = ({
           <LazyDockEffectsModal
             isOpen={showDockEffectsModal}
             onClose={() => setShowDockEffectsModal(false)}
-            onSettingsChange={onSettingsChange}
+            onSettingsChange={onParticleSettingsChange || onSettingsChange}
             settings={particleSettings}
             ribbonGlowColor={propRibbonGlowColor}
           />
