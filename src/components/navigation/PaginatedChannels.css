@@ -358,10 +358,23 @@
   transition: opacity 0.12s ease, filter 0.12s ease;
 }
 
+/* iPhone-style hole: projected drop slot while the overlay carries the tile */
+.channel-slot-dnd--placeholder .channel-slot-dnd__content {
+  opacity: 0.18;
+  filter: saturate(0.5) brightness(1.08);
+  pointer-events: none;
+}
+
 .channel-drag-overlay {
   pointer-events: none;
 }
 
+.channel-drag-overlay--empty {
+  outline: 2px dashed hsl(var(--primary) / 0.55);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
 .channel-drag-overlay--reduced {
-  filter: drop-shadow(0 12px 28px rgb(0 0 0 / 0.4));
+  filter: drop-shadow(0 12px 28px hsl(var(--foreground) / 0.4));
 }

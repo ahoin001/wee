@@ -29,9 +29,14 @@ import { createHomeChannelEntranceBandVariants, createHubEntranceBandVariants } 
 import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
 import { useAppActivity } from '../../hooks/useAppActivity';
 import { weeMarkChannelPage } from '../../utils/weePerformanceMarks';
+import { applyChannelSlotReorder, snapshotChannelSlotMaps } from '../../utils/channelReorder';
 import './PaginatedChannels.css';
 
 const MotionDiv = m.div;
+
+/** Hold near strip edge before auto-flipping pages (iPhone-style). */
+const PAGE_EDGE_HOLD_MS = 480;
+const PAGE_EDGE_RATIO = 0.11;
 
 const PaginatedChannelsInner = React.memo(() => {
   // ✅ DATA LAYER: Use the new channel operations hook
@@ -39,14 +44,17 @@ const PaginatedChannelsInner = React.memo(() => {
     channelSpaceKey,
     navigation,
     channelSettings,
+    gridConfig,
+    configuredChannels,
+    channelConfigs,
     getCurrentPageChannels,
     getChannelConfig,
-    isChannelEmpty,
     finishAnimation,
     updateChannelConfig,
     updateChannelMedia,
     updateChannelPath,
     reorderChannels,
+    goToPage,
   } = useChannelOperations(undefined, { enableGlobalPageShortcuts: true });
 
   const isSpaceTransitioning = useConsolidatedAppStore((s) => s.spaces.isTransitioning);
@@ -93,6 +101,9 @@ const PaginatedChannelsInner = React.memo(() => {
   );
 
   const [activeDragIndex, setActiveDragIndex] = useState(null);
+  const [hoverDragIndex, setHoverDragIndex] = useState(null);
+  const [previewMaps, setPreviewMaps] = useState(null);
+  const [dragOverlayPayload, setDragOverlayPayload] = useState(null);
   const [channelMediaNotice, setChannelMediaNotice] = useState('');
   const mediaNoticeTimerRef = useRef(null);
   const [liftVfx, setLiftVfx] = useState(null);
@@ -102,6 +113,11 @@ const PaginatedChannelsInner = React.memo(() => {
   const burstKeyRef = useRef(0);
   const reorderWaveIdRef = useRef(0);
   const vfxTimersRef = useRef([]);
+  const dragSnapshotRef = useRef(null);
+  const dragOriginRef = useRef(null);
+  const hoverIndexRef = useRef(null);
+  const pageEdgeTimerRef = useRef(null);
+  const pageEdgeSideRef = useRef(null);
 
   const clearVfxTimers = useCallback(() => {
     vfxTimersRef.current.forEach(clearTimeout);
@@ -115,6 +131,64 @@ const PaginatedChannelsInner = React.memo(() => {
     }, delay);
     vfxTimersRef.current.push(id);
   }, []);
+
+  const clearPageEdgeTimer = useCallback(() => {
+    if (pageEdgeTimerRef.current) {
+      clearTimeout(pageEdgeTimerRef.current);
+      pageEdgeTimerRef.current = null;
+    }
+    pageEdgeSideRef.current = null;
+  }, []);
+
+  const clearDragPreview = useCallback(() => {
+    dragSnapshotRef.current = null;
+    dragOriginRef.current = null;
+    hoverIndexRef.current = null;
+    setPreviewMaps(null);
+    setHoverDragIndex(null);
+    setDragOverlayPayload(null);
+    clearPageEdgeTimer();
+  }, [clearPageEdgeTimer]);
+
+  const projectLiveReorder = useCallback(
+    (fromIndex, toIndex) => {
+      const snap = dragSnapshotRef.current;
+      if (!snap) return;
+      const n = gridConfig.totalChannels | 0;
+      if (fromIndex === toIndex) {
+        setPreviewMaps(snap);
+        return;
+      }
+      setPreviewMaps(
+        applyChannelSlotReorder({
+          fromIndex,
+          toIndex,
+          totalChannels: n,
+          configuredChannels: snap.configuredChannels,
+          channelConfigs: snap.channelConfigs,
+        })
+      );
+    },
+    [gridConfig.totalChannels]
+  );
+
+  const resolveConfigAt = useCallback(
+    (channelId) => {
+      if (previewMaps?.configuredChannels) {
+        return previewMaps.configuredChannels[channelId] || null;
+      }
+      return getChannelConfig(channelId);
+    },
+    [previewMaps, getChannelConfig]
+  );
+
+  const resolveIsEmpty = useCallback(
+    (channelId) => {
+      const config = resolveConfigAt(channelId);
+      return !config || (!config.media && !config.path);
+    },
+    [resolveConfigAt]
+  );
 
   // Get current page channels
   const currentPageChannels = useMemo(() => {
@@ -187,6 +261,9 @@ const PaginatedChannelsInner = React.memo(() => {
     return () => {
       if (idleFadeTimerRef.current) {
         clearTimeout(idleFadeTimerRef.current);
+      }
+      if (pageEdgeTimerRef.current) {
+        clearTimeout(pageEdgeTimerRef.current);
       }
       vfxTimersRef.current.forEach(clearTimeout);
       vfxTimersRef.current = [];
@@ -288,13 +365,34 @@ const PaginatedChannelsInner = React.memo(() => {
       const idx = parseChannelDnDId(event.active.id);
       setActiveDragIndex(idx);
       clearVfxTimers();
+      clearPageEdgeTimer();
       setLiftVfx(null);
       setDropVfx(null);
       setCelebrateIndex(null);
       setReorderWave(null);
+
+      if (idx === null) {
+        clearDragPreview();
+        return;
+      }
+
+      const snap = snapshotChannelSlotMaps(configuredChannels, channelConfigs);
+      dragSnapshotRef.current = snap;
+      dragOriginRef.current = idx;
+      hoverIndexRef.current = idx;
+      setHoverDragIndex(idx);
+      setPreviewMaps(snap);
+
+      const originId = `channel-${idx}`;
+      const originConfig = snap.configuredChannels[originId] || null;
+      setDragOverlayPayload({
+        id: originId,
+        config: originConfig,
+        empty: !originConfig || (!originConfig.media && !originConfig.path),
+      });
+
       if (mf.channelReorderParticles) {
         requestAnimationFrame(() => {
-          if (idx === null) return;
           const c = measureChannelSlotCenter(channelSpaceKey, idx);
           if (c) {
             burstKeyRef.current += 1;
@@ -303,22 +401,144 @@ const PaginatedChannelsInner = React.memo(() => {
         });
       }
     },
-    [channelSpaceKey, clearVfxTimers, mf.channelReorderParticles]
+    [
+      channelConfigs,
+      channelSpaceKey,
+      clearDragPreview,
+      clearPageEdgeTimer,
+      clearVfxTimers,
+      configuredChannels,
+      mf.channelReorderParticles,
+    ]
+  );
+
+  const handleDragOver = useCallback(
+    (event) => {
+      const origin = dragOriginRef.current;
+      if (origin === null || origin === undefined) return;
+      if (isSpaceTransitioning || channelConfigureModalOpen) return;
+
+      const to = event.over ? parseChannelDnDId(event.over.id) : null;
+      if (to === null || to === hoverIndexRef.current) return;
+
+      const prevHover = hoverIndexRef.current;
+      hoverIndexRef.current = to;
+      setHoverDragIndex(to);
+      projectLiveReorder(origin, to);
+
+      if (mf.channelReorderSlotMotion && prevHover !== null && prevHover !== to) {
+        reorderWaveIdRef.current += 1;
+        setReorderWave({ from: prevHover, to, id: reorderWaveIdRef.current, live: true });
+      }
+
+      // Cross-page: follow the hovered slot’s page (continuous strip / iPhone pages).
+      const perPage = Math.max(1, gridConfig.channelsPerPage || 12);
+      const targetPage = Math.floor(to / perPage);
+      const currentPage = Number(navigation.currentPage) || 0;
+      if (targetPage !== currentPage && !navigation.isAnimating) {
+        goToPage(targetPage);
+      }
+    },
+    [
+      channelConfigureModalOpen,
+      goToPage,
+      gridConfig.channelsPerPage,
+      isSpaceTransitioning,
+      mf.channelReorderSlotMotion,
+      navigation.currentPage,
+      navigation.isAnimating,
+      projectLiveReorder,
+    ]
+  );
+
+  const handleDragMove = useCallback(
+    (event) => {
+      if (dragOriginRef.current === null) return;
+      if (navigation.isAnimating || isSpaceTransitioning) {
+        clearPageEdgeTimer();
+        return;
+      }
+
+      const translated = event.active.rect.current.translated;
+      if (!translated) return;
+
+      const gridEl = document.querySelector(
+        `.channels-content[data-channel-space="${channelSpaceKey}"] .wii-mode-grid`
+      );
+      if (!gridEl) return;
+      const bounds = gridEl.getBoundingClientRect();
+      if (bounds.width <= 0) return;
+
+      const midX = translated.left + translated.width / 2;
+      const edgePx = bounds.width * PAGE_EDGE_RATIO;
+      let side = null;
+      if (midX <= bounds.left + edgePx) side = 'left';
+      else if (midX >= bounds.right - edgePx) side = 'right';
+
+      if (!side) {
+        clearPageEdgeTimer();
+        return;
+      }
+
+      const currentPage = Number(navigation.currentPage) || 0;
+      const totalPages = Math.max(1, Number(navigation.totalPages) || 1);
+      if (side === 'left' && currentPage <= 0) {
+        clearPageEdgeTimer();
+        return;
+      }
+      if (side === 'right' && currentPage >= totalPages - 1) {
+        clearPageEdgeTimer();
+        return;
+      }
+
+      if (pageEdgeSideRef.current === side && pageEdgeTimerRef.current) return;
+      clearPageEdgeTimer();
+      pageEdgeSideRef.current = side;
+      pageEdgeTimerRef.current = window.setTimeout(() => {
+        pageEdgeTimerRef.current = null;
+        const heldSide = pageEdgeSideRef.current;
+        pageEdgeSideRef.current = null;
+        if (heldSide === 'left') goToPage(Math.max(0, currentPage - 1));
+        else if (heldSide === 'right') goToPage(Math.min(totalPages - 1, currentPage + 1));
+      }, PAGE_EDGE_HOLD_MS);
+    },
+    [
+      channelSpaceKey,
+      clearPageEdgeTimer,
+      goToPage,
+      isSpaceTransitioning,
+      navigation.currentPage,
+      navigation.isAnimating,
+      navigation.totalPages,
+    ]
   );
 
   const handleDragEnd = useCallback(
     (event) => {
+      const origin = dragOriginRef.current;
+      const { active, over } = event;
+      const from = origin ?? parseChannelDnDId(active.id);
+      const to = over ? parseChannelDnDId(over.id) : hoverIndexRef.current;
+
       setActiveDragIndex(null);
       setLiftVfx(null);
-      const { active, over } = event;
-      if (!over || navigation.isAnimating || isSpaceTransitioning || channelConfigureModalOpen) return;
-      const from = parseChannelDnDId(active.id);
-      const to = parseChannelDnDId(over.id);
-      if (from === null || to === null || from === to) return;
+      clearPageEdgeTimer();
 
-      reorderChannels(from, to);
+      const canCommit =
+        from !== null &&
+        to !== null &&
+        from !== to &&
+        !isSpaceTransitioning &&
+        !channelConfigureModalOpen;
 
+      if (canCommit) {
+        reorderChannels(from, to);
+      }
+
+      clearDragPreview();
       clearVfxTimers();
+
+      if (!canCommit) return;
 
       if (mf.channelReorderParticles) {
         requestAnimationFrame(() => {
@@ -334,19 +554,20 @@ const PaginatedChannelsInner = React.memo(() => {
       if (mf.channelReorderSlotMotion) {
         setCelebrateIndex(to);
         reorderWaveIdRef.current += 1;
-        setReorderWave({ from, to, id: reorderWaveIdRef.current });
+        setReorderWave({ from, to, id: reorderWaveIdRef.current, live: false });
         scheduleVfx(() => setCelebrateIndex(null), 720);
         scheduleVfx(() => setReorderWave(null), 980);
       }
     },
     [
+      channelConfigureModalOpen,
       channelSpaceKey,
+      clearDragPreview,
+      clearPageEdgeTimer,
       clearVfxTimers,
+      isSpaceTransitioning,
       mf.channelReorderParticles,
       mf.channelReorderSlotMotion,
-      navigation.isAnimating,
-      isSpaceTransitioning,
-      channelConfigureModalOpen,
       reorderChannels,
       scheduleVfx,
     ]
@@ -355,8 +576,10 @@ const PaginatedChannelsInner = React.memo(() => {
   const handleDragCancel = useCallback(() => {
     setActiveDragIndex(null);
     setLiftVfx(null);
+    clearDragPreview();
     clearVfxTimers();
-  }, [clearVfxTimers]);
+    setReorderWave(null);
+  }, [clearDragPreview, clearVfxTimers]);
 
   // Animation completion handler
   const handleAnimationComplete = useCallback(() => {
@@ -379,10 +602,14 @@ const PaginatedChannelsInner = React.memo(() => {
   );
 
   const renderChannelInner = useCallback(
-    (channelIndex, wiiMode = false) => {
+    (channelIndex, wiiMode = false, overrideConfig = undefined) => {
       const channelId = `channel-${channelIndex}`;
-      const channelConfig = getChannelConfig(channelId);
-      const isEmpty = isChannelEmpty(channelId);
+      const channelConfig =
+        overrideConfig !== undefined ? overrideConfig : resolveConfigAt(channelId);
+      const isEmpty =
+        overrideConfig !== undefined
+          ? !overrideConfig || (!overrideConfig.media && !overrideConfig.path)
+          : resolveIsEmpty(channelId);
 
       return (
         <Channel
@@ -407,8 +634,8 @@ const PaginatedChannelsInner = React.memo(() => {
       );
     },
     [
-      getChannelConfig,
-      isChannelEmpty,
+      resolveConfigAt,
+      resolveIsEmpty,
       handleChannelMediaChange,
       handleChannelAppPathChange,
       handleChannelSave,
@@ -429,6 +656,7 @@ const PaginatedChannelsInner = React.memo(() => {
         }
         celebrateDrop={celebrateIndex === channelIndex}
         reorderWave={reorderWave}
+        isPlaceholder={activeDragIndex !== null && hoverDragIndex === channelIndex}
       >
         {renderChannelInner(channelIndex, true)}
       </ChannelSlotDnd>
@@ -441,6 +669,8 @@ const PaginatedChannelsInner = React.memo(() => {
       renderChannelInner,
       celebrateIndex,
       reorderWave,
+      activeDragIndex,
+      hoverDragIndex,
     ]
   );
 
@@ -492,6 +722,8 @@ const PaginatedChannelsInner = React.memo(() => {
         sensors={sensors}
         collisionDetection={channelGridCollisionDetection}
         onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
@@ -510,9 +742,13 @@ const PaginatedChannelsInner = React.memo(() => {
         </MotionDiv>
 
         <DragOverlay dropAnimation={null}>
-          {activeDragIndex !== null ? (
-            <ChannelDragOverlayFrame>
-              {renderChannelInner(activeDragIndex, true)}
+          {dragOverlayPayload ? (
+            <ChannelDragOverlayFrame empty={dragOverlayPayload.empty}>
+              {renderChannelInner(
+                activeDragIndex ?? 0,
+                true,
+                dragOverlayPayload.config
+              )}
             </ChannelDragOverlayFrame>
           ) : null}
         </DragOverlay>

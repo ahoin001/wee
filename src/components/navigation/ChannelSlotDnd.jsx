@@ -47,8 +47,17 @@ export function parseChannelDnDId(id) {
 
 /**
  * Whole-tile drag + droppable cell. Click-to-launch uses pointer distance threshold on DndContext sensors.
+ * `isPlaceholder` marks the projected hole (iPhone-style) while the DragOverlay carries the tile.
  */
-function ChannelSlotDnd({ channelSpaceKey, channelIndex, disabled, celebrateDrop, reorderWave, children }) {
+function ChannelSlotDnd({
+  channelSpaceKey,
+  channelIndex,
+  disabled,
+  celebrateDrop,
+  reorderWave,
+  isPlaceholder,
+  children,
+}) {
   const osReduced = useReducedMotion();
   const { channelReorderSlotMotion } = useMotionFeedback();
   const reduceMotion = osReduced || !channelReorderSlotMotion;
@@ -81,12 +90,15 @@ function ChannelSlotDnd({ channelSpaceKey, channelIndex, disabled, celebrateDrop
   );
 
   const shiftMotion = computeReorderShiftMotion(channelIndex, reorderWave, reduceMotion);
+  const showHole = Boolean(isPlaceholder);
 
   return (
     <div
       ref={setCombinedRef}
       data-channel-slot={channelIndex}
-      className={`channel-slot-dnd relative h-full w-full min-h-0 min-w-0${isDragging ? ' channel-slot-dnd--dragging' : ''}`}
+      className={`channel-slot-dnd relative h-full w-full min-h-0 min-w-0${
+        isDragging || showHole ? ' channel-slot-dnd--dragging' : ''
+      }${showHole ? ' channel-slot-dnd--placeholder' : ''}`}
       {...listeners}
       {...attributes}
     >
@@ -97,15 +109,23 @@ function ChannelSlotDnd({ channelSpaceKey, channelIndex, disabled, celebrateDrop
         transition={shiftMotion.transition}
         style={{ transformOrigin: 'center center' }}
       >
-        <ChannelDropTargetMotion isActive={isOver} isSource={isDragging}>
+        <ChannelDropTargetMotion isActive={isOver && !showHole} isSource={showHole || isDragging}>
           <m.div
             className="channel-slot-dnd__content h-full w-full min-h-0 min-w-0"
             animate={
               celebrateDrop && !reduceMotion
                 ? { scale: [1, 1.14, 0.98, 1] }
-                : { scale: 1 }
+                : showHole && !reduceMotion
+                  ? { scale: 0.92, opacity: 0.22 }
+                  : { scale: 1, opacity: 1 }
             }
-            transition={reduceMotion ? { duration: 0 } : WEE_SPRINGS.channelDropCelebrate}
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : celebrateDrop
+                  ? WEE_SPRINGS.channelDropCelebrate
+                  : WEE_SPRINGS.channelDragSoft
+            }
           >
             {children}
           </m.div>
@@ -120,10 +140,12 @@ ChannelSlotDnd.propTypes = {
   channelIndex: PropTypes.number.isRequired,
   disabled: PropTypes.bool,
   celebrateDrop: PropTypes.bool,
+  isPlaceholder: PropTypes.bool,
   reorderWave: PropTypes.shape({
     from: PropTypes.number.isRequired,
     to: PropTypes.number.isRequired,
     id: PropTypes.number.isRequired,
+    live: PropTypes.bool,
   }),
   children: PropTypes.node.isRequired,
 };
@@ -131,6 +153,7 @@ ChannelSlotDnd.propTypes = {
 ChannelSlotDnd.defaultProps = {
   disabled: false,
   celebrateDrop: false,
+  isPlaceholder: false,
   reorderWave: null,
 };
 

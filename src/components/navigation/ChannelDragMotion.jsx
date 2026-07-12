@@ -11,15 +11,20 @@ export const channelDragSpringSoft = WEE_SPRINGS.channelDragSoft;
 
 /**
  * Floating preview while dragging — playful lift, tilt, glow (respects reduced motion).
+ * Empty slots still lift so blank channels feel rearrangable like filled ones.
  */
-export function ChannelDragOverlayFrame({ children }) {
+export function ChannelDragOverlayFrame({ children, empty = false }) {
   const osReduced = useReducedMotion();
   const { channelDragPreview } = useMotionFeedback();
   const reduceMotion = osReduced || !channelDragPreview;
 
   if (reduceMotion) {
     return (
-      <div className="channel-drag-overlay channel-drag-overlay--reduced pointer-events-none rounded-xl">
+      <div
+        className={`channel-drag-overlay channel-drag-overlay--reduced pointer-events-none rounded-xl${
+          empty ? ' channel-drag-overlay--empty' : ''
+        }`}
+      >
         {children}
       </div>
     );
@@ -27,18 +32,21 @@ export function ChannelDragOverlayFrame({ children }) {
 
   return (
     <m.div
-      className="channel-drag-overlay pointer-events-none rounded-xl"
+      className={`channel-drag-overlay pointer-events-none rounded-xl${
+        empty ? ' channel-drag-overlay--empty' : ''
+      }`}
       initial={{ scale: 1, rotate: 0, y: 0 }}
       animate={{
-        scale: 1.08,
-        rotate: -2.5,
-        y: -7,
+        scale: empty ? 1.05 : 1.1,
+        rotate: empty ? 1.5 : -3.2,
+        y: empty ? -5 : -10,
       }}
       transition={channelDragSpring}
       style={{
-        boxShadow:
-          '0 24px 56px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.14), 0 0 48px hsl(var(--primary) / 0.35)',
-        filter: 'brightness(1.06) saturate(1.08)',
+        boxShadow: empty
+          ? '0 16px 40px hsl(var(--foreground) / 0.18), 0 0 0 2px hsl(var(--primary) / 0.35), 0 0 36px hsl(var(--primary) / 0.2)'
+          : '0 24px 56px hsl(var(--foreground) / 0.42), 0 0 0 1px hsl(var(--background) / 0.14), 0 0 48px hsl(var(--primary) / 0.35)',
+        filter: empty ? 'brightness(1.02)' : 'brightness(1.06) saturate(1.08)',
       }}
     >
       {children}
@@ -48,6 +56,11 @@ export function ChannelDragOverlayFrame({ children }) {
 
 ChannelDragOverlayFrame.propTypes = {
   children: PropTypes.node.isRequired,
+  empty: PropTypes.bool,
+};
+
+ChannelDragOverlayFrame.defaultProps = {
+  empty: false,
 };
 
 /**

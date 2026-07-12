@@ -29,6 +29,61 @@ function run() {
 
   const skipUndefined = mergeSettingsPatch(base, { ui: { isDarkMode: undefined } });
   assert.equal(skipUndefined.ui.isDarkMode, false);
+
+  // Reorder: emptied slots are omitted from the patch map — must replace, not deep-merge.
+  const channelBase = {
+    channels: {
+      dataBySpace: {
+        home: {
+          configuredChannels: {
+            'channel-0': { path: 'A' },
+            'channel-4': { path: 'B' },
+          },
+          channelConfigs: {
+            'channel-0': { zoom: 1 },
+            'channel-4': { zoom: 2 },
+          },
+        },
+      },
+    },
+  };
+  const reorderPatch = {
+    channels: {
+      dataBySpace: {
+        home: {
+          configuredChannels: {
+            'channel-0': { path: 'B' },
+          },
+          channelConfigs: {
+            'channel-0': { zoom: 2 },
+          },
+        },
+      },
+    },
+  };
+  const afterReorder = mergeSettingsPatch(channelBase, reorderPatch);
+  assert.deepEqual(afterReorder.channels.dataBySpace.home.configuredChannels, {
+    'channel-0': { path: 'B' },
+  });
+  assert.deepEqual(afterReorder.channels.dataBySpace.home.channelConfigs, {
+    'channel-0': { zoom: 2 },
+  });
+
+  // Empty {} must not wipe populated slot maps (partial/bad saves).
+  const emptyWipe = mergeSettingsPatch(channelBase, {
+    channels: {
+      dataBySpace: {
+        home: {
+          configuredChannels: {},
+          channelConfigs: {},
+        },
+      },
+    },
+  });
+  assert.deepEqual(
+    emptyWipe.channels.dataBySpace.home.configuredChannels,
+    channelBase.channels.dataBySpace.home.configuredChannels
+  );
 }
 
 run();

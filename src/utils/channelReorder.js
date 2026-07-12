@@ -1,6 +1,10 @@
 /**
- * Linear slot reorder for channel grids. Slots are always `channel-0` … `channel-(N-1)`;
- * this module permutes stored payloads without creating or destroying slots.
+ * Linear slot reorder for channel grids (iPhone-style home-screen sorting).
+ * Empty and filled slots are equal occupants: splice-remove from `fromIndex`,
+ * splice-insert at `toIndex`. Cross-page indices are fine (flat 0…N-1 strip).
+ *
+ * Slots are always addressed as `channel-0` … `channel-(N-1)`; this module
+ * permutes stored payloads without creating or destroying the slot count.
  */
 
 export function channelIdAtIndex(index) {
@@ -22,7 +26,8 @@ function collectSlots(totalChannels, configuredChannels, channelConfigs) {
 }
 
 /**
- * Write slot arrays back to id-keyed records. Omits keys for empty slots.
+ * Write slot arrays back to id-keyed records. Omits keys for empty slots so
+ * persistence can replace the whole map without resurrecting stale entries.
  */
 function scatterSlots(totalChannels, cfg, ken) {
   const nextConfigured = {};
@@ -42,7 +47,7 @@ function scatterSlots(totalChannels, cfg, ken) {
 }
 
 /**
- * Move the item at `fromIndex` to `toIndex` (same semantics as splice insert).
+ * Move the item at `fromIndex` to `toIndex` (arrayMove / iPhone insert semantics).
  */
 function moveParallelArrays(cfg, ken, fromIndex, toIndex) {
   if (fromIndex === toIndex) return;
@@ -83,4 +88,16 @@ export function applyChannelSlotReorder({
   const { cfg, ken } = collectSlots(n, cfgIn, kenIn);
   moveParallelArrays(cfg, ken, fromIndex, toIndex);
   return scatterSlots(n, cfg, ken);
+}
+
+/**
+ * Snapshot maps for live drag preview / cancel restore (shallow copy of slot records).
+ * @param {Record<string, unknown>} configuredChannels
+ * @param {Record<string, unknown>} channelConfigs
+ */
+export function snapshotChannelSlotMaps(configuredChannels, channelConfigs) {
+  return {
+    configuredChannels: { ...(configuredChannels || {}) },
+    channelConfigs: { ...(channelConfigs || {}) },
+  };
 }
