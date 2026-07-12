@@ -118,6 +118,8 @@ function registerAllIpcHandlers({
   registerSystemCommandHandlers({
     ipcMain,
     exec,
+    shell,
+    getMainWindow,
   });
 
   registerCaptureHandlers({
@@ -149,6 +151,7 @@ function registerAllIpcHandlers({
     exec,
     process,
     getMainWindow,
+    shell,
   });
 
   registerChannelConfigHandlers({
@@ -223,6 +226,7 @@ function registerAllIpcHandlers({
     app,
     process,
     launchChannelApp,
+    getMainWindow,
   });
 }
 

@@ -1,3 +1,5 @@
+const { relativeFromPrefixedUrl, resolvePathInsideRoot } = require('../utils/path-guard-utils.cjs');
+
 function registerIconsHandlers({
   ipcMain,
   ensureDataDir,
@@ -14,15 +16,16 @@ function registerIconsHandlers({
       if (!fs.existsSync(userIconsPath)) {
         fs.mkdirSync(userIconsPath, { recursive: true });
       }
-      let base = path.basename(filename, path.extname(filename));
-      let ext = path.extname(filename);
+      const safeFilename = path.basename(filename);
+      let base = path.basename(safeFilename, path.extname(safeFilename));
+      let ext = path.extname(safeFilename);
       let uniqueName = base + ext;
       let counter = 1;
-      while (fs.existsSync(path.join(userIconsPath, uniqueName))) {
+      while (fs.existsSync(resolvePathInsideRoot(userIconsPath, uniqueName))) {
         uniqueName = `${base}_${counter}${ext}`;
         counter++;
       }
-      const destPath = path.join(userIconsPath, uniqueName);
+      const destPath = resolvePathInsideRoot(userIconsPath, uniqueName);
       await fsExtra.copy(filePath, destPath);
       const url = `userdata://icons/${uniqueName}`;
       const newIcon = { url, name: filename, added: Date.now() };
@@ -44,9 +47,8 @@ function registerIconsHandlers({
 
   ipcMain.handle('icons:delete', async (_event, { url }) => {
     try {
-      if (!url || !url.startsWith('userdata://icons/')) return { success: false, error: 'Invalid icon URL' };
-      const filename = url.replace('userdata://icons/', '');
-      const filePath = path.join(userIconsPath, filename);
+      const filename = relativeFromPrefixedUrl(url, 'userdata://icons/');
+      const filePath = resolvePathInsideRoot(userIconsPath, filename);
       await fsExtra.remove(filePath);
       const icons = await getUnifiedIcons();
       const filteredIcons = icons.filter((icon) => icon.url !== url);

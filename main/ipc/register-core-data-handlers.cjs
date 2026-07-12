@@ -60,9 +60,7 @@ function registerCoreDataHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.wallpapers.get, async () => {
-    console.log('[DEBUG] IPC: wallpapers:get called');
     const result = await wallpapersData.get();
-    console.log('[DEBUG] IPC: wallpapers:get completed');
     return result;
   });
   ipcMain.handle(IPC_CHANNELS.wallpapers.set, async (_event, data) => {
@@ -71,9 +69,7 @@ function registerCoreDataHandlers({
   });
 
   ipcMain.handle(IPC_CHANNELS.channels.get, async () => {
-    console.log('[DEBUG] IPC: channels:get called');
     const result = await channelsData.get();
-    console.log('[DEBUG] IPC: channels:get completed');
     return result;
   });
   ipcMain.handle(IPC_CHANNELS.channels.set, async (_event, data) => {

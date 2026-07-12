@@ -307,7 +307,7 @@
     <div class="installer-container">
         <div class="title-bar">
             <h1>WeeDesktopLauncher Installer</h1>
-            <button class="close-btn" onclick="window.close()">×</button>
+            <button class="close-btn" onclick="closeInstaller()">×</button>
         </div>
         
         <div class="content">
@@ -318,9 +318,10 @@
     </div>
 
     <script>
-        const { ipcRenderer } = require('electron');
+        const installerApi = window.installerApi;
         
         let currentStep = 0;
+        let removeProgressListener = null;
         let installOptions = {
             desktop: true,
             startmenu: true,
@@ -336,7 +337,7 @@
         // Load step content
         async function loadStep(stepIndex) {
             try {
-                const stepData = await ipcRenderer.invoke('installer:get-step');
+                const stepData = await installerApi.getStep();
                 currentStep = stepIndex;
                 
                 const container = document.getElementById('step-container');
@@ -425,12 +426,12 @@
         async function nextStep() {
             if (currentStep === 1) {
                 // Save options before proceeding
-                await ipcRenderer.invoke('installer:next-step', installOptions);
+                await installerApi.nextStep(installOptions);
             } else {
-                await ipcRenderer.invoke('installer:next-step');
+                await installerApi.nextStep();
             }
             
-            const result = await ipcRenderer.invoke('installer:get-step');
+            const result = await installerApi.getStep();
             if (result) {
                 await loadStep(currentStep + 1);
             }
@@ -443,7 +444,7 @@
         }
 
         async function startInstall() {
-            await ipcRenderer.invoke('installer:start-install');
+            await installerApi.startInstall();
             await loadStep(2);
             
             // Start progress updates
@@ -460,8 +461,10 @@
                 if (progressText) progressText.textContent = message;
             };
             
-            // Listen for progress updates
-            ipcRenderer.on('installer:progress-update', (event, data) => {
+            if (typeof removeProgressListener === 'function') {
+                removeProgressListener();
+            }
+            removeProgressListener = installerApi.onProgressUpdate((data) => {
                 updateProgressBar(data.progress, data.message);
                 
                 if (data.progress >= 100) {
@@ -483,8 +486,12 @@
 
         // Launch app
         function launchApp() {
-            ipcRenderer.send('launch-app-after-install');
-            window.close();
+            installerApi.launchAppAfterInstall();
+            installerApi.closeWindow();
+        }
+
+        function closeInstaller() {
+            installerApi.closeWindow();
         }
 
         // Create confetti effect

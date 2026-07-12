@@ -58,6 +58,7 @@ const IPC_CHANNELS = {
     updateNotAvailableEvent: 'update-notification-not-available',
   },
 };
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 contextBridge.exposeInMainWorld('api', {
   // Unified data API - single source of truth
@@ -224,6 +225,6 @@ contextBridge.exposeInMainWorld('api', {
   onShowAdminPanel: (cb) => ipcRenderer.on('show-admin-panel', cb),
   offShowAdminPanel: (cb) => ipcRenderer.removeListener('show-admin-panel', cb),
   // Developer tools
-  openDevTools: () => ipcRenderer.invoke('open-dev-tools'),
-  forceDevTools: () => ipcRenderer.invoke('force-dev-tools'),
+  openDevTools: () => (IS_DEV ? ipcRenderer.invoke('open-dev-tools') : Promise.resolve({ success: false, message: 'Disabled in production' })),
+  forceDevTools: () => (IS_DEV ? ipcRenderer.invoke('force-dev-tools') : Promise.resolve({ success: false, message: 'Disabled in production' })),
 });

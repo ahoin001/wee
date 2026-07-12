@@ -1,4 +1,5 @@
 function createJsonStorageUtils({ fsPromises, path }) {
+  const shouldLogWrites = process.env.NODE_ENV === 'development';
   async function readJson(filePath, defaultValue) {
     try {
       const data = await fsPromises.readFile(filePath, 'utf-8');
@@ -30,7 +31,9 @@ function createJsonStorageUtils({ fsPromises, path }) {
     try {
       await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
       await fsPromises.rename(tempPath, filePath);
-      console.log(`[WRITE] Atomically wrote file: ${filePath}`);
+      if (shouldLogWrites) {
+        console.log(`[WRITE] Atomically wrote file: ${filePath}`);
+      }
       return true;
     } catch (err) {
       if (err.code === 'EACCES') {

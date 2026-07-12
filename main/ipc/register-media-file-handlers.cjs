@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { execFile } = require('child_process');
 const { nativeImage } = require('electron');
 const { pathToFileURL } = require('url');
+const { resolvePathInsideRoot } = require('../utils/path-guard-utils.cjs');
 
 function registerMediaFileHandlers({
   ipcMain,
@@ -125,13 +126,13 @@ function registerMediaFileHandlers({
       const rel = url.replace('userdata://', '');
       let filePath;
       if (rel.startsWith('sounds/')) {
-        filePath = path.join(userSoundsPath, rel.replace(/^sounds[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userSoundsPath, rel.replace(/^sounds[\\\/]/, ''));
       } else if (rel.startsWith('channel-hover-sounds/')) {
-        filePath = path.join(userChannelHoverSoundsPath, rel.replace(/^channel-hover-sounds[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userChannelHoverSoundsPath, rel.replace(/^channel-hover-sounds[\\\/]/, ''));
       } else if (rel.startsWith('wallpapers/')) {
-        filePath = path.join(userWallpapersPath, rel.replace(/^wallpapers[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userWallpapersPath, rel.replace(/^wallpapers[\\\/]/, ''));
       } else if (rel.startsWith('icons/')) {
-        filePath = path.join(userIconsPath, rel.replace(/^icons[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userIconsPath, rel.replace(/^icons[\\\/]/, ''));
       }
       if (filePath) {
         return `file://${filePath}`;

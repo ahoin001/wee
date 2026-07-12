@@ -13,6 +13,37 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
+const ALLOWED_URL_SCHEMES = new Set([
+  'http:',
+  'https:',
+  'steam:',
+  'magnet:',
+  'com.epicgames.launcher:',
+  'ms-settings:',
+  'mailto:',
+]);
+
+function safeProcessName(value) {
+  const normalized = String(value || '').trim().replace(/\.exe$/i, '');
+  return /^[a-z0-9._-]{1,64}$/i.test(normalized) ? normalized : '';
+}
+
+function getScheme(raw) {
+  const trimmed = String(raw || '').trim();
+  if (!trimmed) return '';
+  try {
+    return new URL(trimmed).protocol.toLowerCase();
+  } catch {
+    const match = trimmed.match(/^([a-z][a-z0-9+.-]*:)/i);
+    return match ? match[1].toLowerCase() : '';
+  }
+}
+
+function isAllowedExternalUri(raw) {
+  const scheme = getScheme(raw);
+  return ALLOWED_URL_SCHEMES.has(scheme);
+}
+
 async function checkAndBringToForeground(executablePath, args = []) {
   try {
     const processName = path.basename(executablePath, path.extname(executablePath));
@@ -35,6 +66,9 @@ async function checkAndBringToForeground(executablePath, args = []) {
       }
     }
 
+    const safeTargetProcessName = safeProcessName(targetProcessName);
+    if (!safeTargetProcessName) return false;
+
     const psCommand = `
       Add-Type -TypeDefinition @"
         using System;
@@ -50,7 +84,7 @@ async function checkAndBringToForeground(executablePath, args = []) {
         }
 "@
 
-      $processes = Get-Process -Name "${targetProcessName}" -ErrorAction SilentlyContinue
+      $processes = Get-Process -Name "${safeTargetProcessName}" -ErrorAction SilentlyContinue
       if ($processes) {
         foreach ($process in $processes) {
           try {
@@ -58,11 +92,11 @@ async function checkAndBringToForeground(executablePath, args = []) {
             if ($hwnd -ne [System.IntPtr]::Zero) {
               [Win32]::SetForegroundWindow($hwnd)
               [Win32]::ShowWindow($hwnd, 9)
-              Write-Host "Brought ${targetProcessName} to foreground"
+              Write-Host "Brought ${safeTargetProcessName} to foreground"
               exit 0
             }
           } catch {
-            Write-Host "Could not bring ${targetProcessName} to foreground: $_"
+            Write-Host "Could not bring ${safeTargetProcessName} to foreground: $_"
           }
         }
       }
@@ -92,7 +126,7 @@ async function checkAndBringToForeground(executablePath, args = []) {
 
 async function bringProcessNameToForeground(processName) {
   try {
-    const normalized = String(processName || '').trim().replace(/\.exe$/i, '');
+    const normalized = safeProcessName(processName);
     if (!normalized) return false;
     const psCommand = `
       Add-Type -TypeDefinition @"
@@ -153,7 +187,11 @@ async function runPostOpenExternalForegroundHint(processName) {
 async function launchViaOpenExternal(uri, options = {}) {
   const foregroundProcessName = options?.foregroundProcessName;
   try {
-    await shell.openExternal(uri.trim());
+    const safeUri = uri.trim();
+    if (!isAllowedExternalUri(safeUri)) {
+      return { ok: false, error: 'URI scheme is not allowed' };
+    }
+    await shell.openExternal(safeUri);
     let foreground = false;
     if (foregroundProcessName) {
       foreground = await runPostOpenExternalForegroundHint(foregroundProcessName);
@@ -181,11 +219,14 @@ function spawnDetachedPromise(command, args, options) {
 }
 
 async function launchMicrosoftStoreAumid(appPath) {
-  const command = `start shell:AppsFolder\\${appPath}`;
-  return spawnDetachedPromise('cmd', ['/c', command], {
+  if (!/^[^\s!]+![^\s!]+$/.test(String(appPath || '').trim())) {
+    return { ok: false, error: 'Invalid Microsoft Store app id' };
+  }
+  const commandTarget = `shell:AppsFolder\\${String(appPath).trim()}`;
+  return spawnDetachedPromise('cmd', ['/c', 'start', '', commandTarget], {
     detached: true,
     stdio: 'ignore',
-    shell: true,
+    shell: false,
   });
 }
 
@@ -316,7 +357,7 @@ async function launchChannelApp(payload) {
   }
 
   // Other registered schemes for URL channels (mailto:, etc.)
-  if (launchType === 'url' && /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+  if (launchType === 'url' && isAllowedExternalUri(trimmed)) {
     return launchViaOpenExternal(trimmed, { foregroundProcessName });
   }
 
@@ -337,6 +378,9 @@ async function launchChannelApp(payload) {
 
   // 4) Fallback: .lnk, folders, or Explorer-associated paths
   try {
+    if (!fs.existsSync(trimmed)) {
+      return { ok: false, error: 'Path does not exist' };
+    }
     const errMsg = await shell.openPath(trimmed);
     if (errMsg) {
       console.error('[launchApp] openPath:', errMsg);

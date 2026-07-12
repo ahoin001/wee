@@ -10,6 +10,7 @@ function createWindowLifecycle({
   let mainWindow = null;
   let isCurrentlyFullscreen = false;
   let isFrameless = true;
+  const isDev = process.env.NODE_ENV === 'development';
 
   function getMainWindow() {
     return mainWindow;
@@ -48,6 +49,7 @@ function createWindowLifecycle({
   }
 
   function openDevToolsSafe(options) {
+    if (!isDev) return;
     if (!mainWindow || mainWindow.isDestroyed()) return;
     try {
       mainWindow.webContents.openDevTools(options);
@@ -57,6 +59,7 @@ function createWindowLifecycle({
   }
 
   function registerDevtoolsMenu() {
+    if (!isDev) return;
     const menu = Menu.buildFromTemplate([
       {
         label: 'Developer',
@@ -73,7 +76,7 @@ function createWindowLifecycle({
   }
 
   function registerDevShortcuts() {
-    if (process.env.NODE_ENV !== 'development') return;
+    if (!isDev) return;
     try {
       globalShortcut.unregister('CommandOrControl+Shift+I');
       globalShortcut.unregister('F12');
@@ -113,14 +116,14 @@ function createWindowLifecycle({
         preload: path.join(appBasePath, 'preload.cjs'),
         contextIsolation: true,
         nodeIntegration: false,
-        devTools: true,
-        webSecurity: false,
+        devTools: isDev,
+        webSecurity: true,
         /** Throttle timers/animations when the window is occluded or backgrounded (wallpaper-style idle target). */
         backgroundThrottling: true,
       },
     });
 
-    if (process.env.NODE_ENV === 'development') {
+    if (isDev) {
       mainWindow.loadURL('http://localhost:5173');
       openDevToolsSafe();
       setTimeout(() => openDevToolsSafe({ mode: 'detach' }), 750);

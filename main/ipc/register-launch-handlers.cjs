@@ -1,8 +1,11 @@
+const { isTrustedMainWindowEvent } = require('./trusted-renderer-utils.cjs');
+
 function registerLaunchHandlers({
   ipcMain,
   app,
   process,
   launchChannelApp,
+  getMainWindow,
 }) {
   ipcMain.handle('get-auto-launch', () => {
     const settings = app.getLoginItemSettings();
@@ -18,9 +21,17 @@ function registerLaunchHandlers({
     return true;
   });
 
-  ipcMain.handle('launch-app', async (_event, payload) => {
+  ipcMain.handle('launch-app', async (event, payload) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { ok: false, error: 'Untrusted renderer' };
+    }
     try {
-      return await launchChannelApp(payload);
+      const safePayload = {
+        ...payload,
+        // Renderer-initiated launches cannot request elevation.
+        asAdmin: false,
+      };
+      return await launchChannelApp(safePayload);
     } catch (err) {
       console.error('[launch-app] handler error:', err);
       return { ok: false, error: err.message || String(err) };

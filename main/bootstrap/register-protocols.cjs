@@ -1,4 +1,5 @@
 const { handleSpotifyProtocolUrl } = require('./handle-spotify-protocol-url.cjs');
+const { resolvePathInsideRoot } = require('../utils/path-guard-utils.cjs');
 
 function registerProtocols({
   protocol,
@@ -17,34 +18,26 @@ function registerProtocols({
   protocol.registerFileProtocol('userdata', async (request, callback) => {
     try {
       const url = decodeURIComponent(request.url.replace('userdata://', ''));
-      console.log('[Protocol] Requested URL:', request.url);
-      console.log('[Protocol] Parsed URL (decoded):', url);
 
       let filePath;
       if (url.startsWith('wallpapers/')) {
-        filePath = path.join(userWallpapersPath, url.replace(/^wallpapers[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userWallpapersPath, url.replace(/^wallpapers[\\\/]/, ''));
       } else if (url.startsWith('wallpaper-thumbs/')) {
-        filePath = path.join(userWallpaperThumbnailsPath, url.replace(/^wallpaper-thumbs[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userWallpaperThumbnailsPath, url.replace(/^wallpaper-thumbs[\\\/]/, ''));
       } else if (url.startsWith('sounds/')) {
-        filePath = path.join(userSoundsPath, url.replace(/^sounds[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userSoundsPath, url.replace(/^sounds[\\\/]/, ''));
       } else if (url.startsWith('channel-hover-sounds/')) {
-        filePath = path.join(userChannelHoverSoundsPath, url.replace(/^channel-hover-sounds[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userChannelHoverSoundsPath, url.replace(/^channel-hover-sounds[\\\/]/, ''));
       } else if (url.startsWith('icons/')) {
-        filePath = path.join(userIconsPath, url.replace(/^icons[\\\/]/, ''));
+        filePath = resolvePathInsideRoot(userIconsPath, url.replace(/^icons[\\\/]/, ''));
       } else {
-        console.warn('[Protocol] Blocked access to invalid path:', url);
         return callback({ error: -6 });
       }
 
-      console.log('[Protocol] Resolved file path:', filePath);
-
       try {
-        await fsPromises.access(filePath, fsPromises.constants.F_OK);
-        console.log('[Protocol] File exists and is accessible:', filePath);
         await fsPromises.access(filePath, fsPromises.constants.R_OK);
         callback({ path: filePath });
       } catch (error) {
-        console.warn('[Protocol] File access failed:', filePath, error.message);
         if (error.code === 'ENOENT') {
           callback({ error: -6 });
         } else if (error.code === 'EACCES') {
@@ -55,7 +48,6 @@ function registerProtocols({
         return;
       }
     } catch (protocolError) {
-      console.error('[Protocol] Protocol handler error:', protocolError);
       callback({ error: -2 });
     }
   });
@@ -63,7 +55,6 @@ function registerProtocols({
   protocol.registerFileProtocol('wee-desktop-launcher', (request, callback) => {
     try {
       const url = request.url;
-      console.log('[Spotify Protocol] Received callback:', url);
       const result = handleSpotifyProtocolUrl({ protocolUrl: url, getMainWindow });
       const hasError = Boolean(result?.error);
 

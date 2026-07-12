@@ -1,35 +1,30 @@
+const { execFile } = require('child_process');
+const si = require('systeminformation');
+const { isTrustedMainWindowEvent } = require('./trusted-renderer-utils.cjs');
+
 function registerSystemInfoHandlers({
   ipcMain,
   exec,
   process,
   getMainWindow,
+  shell,
 }) {
-  ipcMain.handle('get-system-info', async () => {
+  let cachedSystemInfo = null;
+  let lastSystemInfoAt = 0;
+  const SYSTEM_INFO_TTL_MS = 5000;
+
+  ipcMain.handle('get-system-info', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, error: 'Untrusted renderer', data: null };
+    }
     try {
-      console.log('[SYSTEM] Starting system info collection...');
-
-      let si;
-      try {
-        si = require('systeminformation');
-        console.log('[SYSTEM] systeminformation package loaded successfully');
-      } catch (requireError) {
-        console.error('[SYSTEM] Failed to require systeminformation:', requireError);
-        return {
-          success: false,
-          error: 'Failed to load systeminformation package',
-          data: null,
-        };
+      const now = Date.now();
+      if (cachedSystemInfo && now - lastSystemInfoAt < SYSTEM_INFO_TTL_MS) {
+        return { success: true, data: cachedSystemInfo };
       }
-
-      console.log('[SYSTEM] Getting CPU info...');
       const cpuInfo = await si.cpu();
-      console.log('[SYSTEM] CPU info:', cpuInfo);
-
       const cpuLoad = await si.currentLoad();
-      console.log('[SYSTEM] CPU load:', cpuLoad);
-
       const memInfo = await si.mem();
-      console.log('[SYSTEM] Memory info:', memInfo);
 
       const systemInfo = {
         cpu: {
@@ -60,7 +55,8 @@ function registerSystemInfoHandlers({
         battery: null,
       };
 
-      console.log('[SYSTEM] Retrieved system information successfully');
+      cachedSystemInfo = systemInfo;
+      lastSystemInfoAt = now;
       return { success: true, data: systemInfo };
     } catch (error) {
       console.error('[SYSTEM] Error getting system information:', error);
@@ -68,15 +64,14 @@ function registerSystemInfoHandlers({
     }
   });
 
-  ipcMain.handle('open-task-manager', async () => {
+  ipcMain.handle('open-task-manager', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, error: 'Untrusted renderer' };
+    }
     try {
       if (process.platform === 'win32') {
-        exec('taskmgr.exe', (error) => {
-          if (error) {
-            console.error('[SYSTEM] Error opening task manager:', error);
-          } else {
-            console.log('[SYSTEM] Task manager opened');
-          }
+        execFile('taskmgr.exe', [], { windowsHide: true }, (error) => {
+          if (error) console.error('[SYSTEM] Error opening task manager:', error);
         });
         return { success: true };
       }
@@ -95,26 +90,23 @@ function registerSystemInfoHandlers({
     }
   });
 
-  ipcMain.handle('open-file-explorer', async (_event, path) => {
+  ipcMain.handle('open-file-explorer', async (event, path) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, error: 'Untrusted renderer' };
+    }
     try {
+      const targetPath = String(path || '').trim();
+      if (!targetPath) return { success: false, error: 'No path provided' };
       if (process.platform === 'win32') {
-        exec(`explorer.exe "${path}"`, (error) => {
+        execFile('explorer.exe', [targetPath], { windowsHide: true }, (error) => {
           if (error) {
             console.error('[SYSTEM] Error opening file explorer:', error);
-          } else {
-            console.log('[SYSTEM] File explorer opened to:', path);
           }
         });
         return { success: true };
       }
-
-      exec(`xdg-open "${path}"`, (error) => {
-        if (error) {
-          console.error('[SYSTEM] Error opening file manager:', error);
-        } else {
-          console.log('[SYSTEM] File manager opened to:', path);
-        }
-      });
+      const err = await shell.openPath(targetPath);
+      if (err) return { success: false, error: err };
       return { success: true };
     } catch (error) {
       console.error('[SYSTEM] Error opening file explorer:', error);
@@ -122,7 +114,10 @@ function registerSystemInfoHandlers({
     }
   });
 
-  ipcMain.handle('open-admin-panel', async () => {
+  ipcMain.handle('open-admin-panel', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, error: 'Untrusted renderer' };
+    }
     try {
       const mainWindow = getMainWindow();
       if (mainWindow && !mainWindow.isDestroyed()) {

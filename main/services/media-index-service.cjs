@@ -2,19 +2,42 @@ function createMediaIndexService({
   fs,
   fsPromises,
   path,
-  Database,
-  sharp,
+  getDatabaseCtor,
+  getSharpLib,
   dataDir,
   mediaIndexDbFile,
   userWallpaperThumbnailsPath,
   userWallpapersPath,
 }) {
   let mediaIndexDb = null;
+  let DatabaseCtor = null;
+  let sharpLib = null;
+
+  function getDatabase() {
+    if (!DatabaseCtor) {
+      DatabaseCtor = typeof getDatabaseCtor === 'function' ? getDatabaseCtor() : null;
+    }
+    if (!DatabaseCtor) {
+      throw new Error('Database constructor unavailable');
+    }
+    return DatabaseCtor;
+  }
+
+  function getSharp() {
+    if (!sharpLib) {
+      sharpLib = typeof getSharpLib === 'function' ? getSharpLib() : null;
+    }
+    if (!sharpLib) {
+      throw new Error('Sharp library unavailable');
+    }
+    return sharpLib;
+  }
 
   function getMediaIndexDb() {
     if (mediaIndexDb) return mediaIndexDb;
 
     fs.mkdirSync(dataDir, { recursive: true });
+    const Database = getDatabase();
     mediaIndexDb = new Database(mediaIndexDbFile);
     mediaIndexDb.pragma('journal_mode = WAL');
     mediaIndexDb.exec(`
@@ -91,6 +114,7 @@ function createMediaIndexService({
 
   async function createWallpaperThumbnail(sourcePath, stem) {
     try {
+      const sharp = getSharp();
       await fsPromises.mkdir(userWallpaperThumbnailsPath, { recursive: true });
       const thumbnailFilename = `${stem}-${Date.now()}.webp`;
       const thumbnailPath = path.join(userWallpaperThumbnailsPath, thumbnailFilename);
@@ -109,6 +133,7 @@ function createMediaIndexService({
 
   async function getWallpaperMetadata(sourcePath) {
     try {
+      const sharp = getSharp();
       const [stats, metadata] = await Promise.all([
         fsPromises.stat(sourcePath),
         sharp(sourcePath).metadata(),

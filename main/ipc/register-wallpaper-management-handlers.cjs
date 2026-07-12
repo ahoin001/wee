@@ -1,3 +1,5 @@
+const { relativeFromPrefixedUrl, resolvePathInsideRoot } = require('../utils/path-guard-utils.cjs');
+
 function registerWallpaperManagementHandlers({
   ipcMain,
   ensureDataDir,
@@ -19,15 +21,16 @@ function registerWallpaperManagementHandlers({
       if (!fs.existsSync(userWallpapersPath)) {
         fs.mkdirSync(userWallpapersPath, { recursive: true });
       }
-      let base = path.basename(filename, path.extname(filename));
-      let ext = path.extname(filename);
+      const safeFilename = path.basename(filename);
+      let base = path.basename(safeFilename, path.extname(safeFilename));
+      let ext = path.extname(safeFilename);
       let uniqueName = base + ext;
       let counter = 1;
-      while (fs.existsSync(path.join(userWallpapersPath, uniqueName))) {
+      while (fs.existsSync(resolvePathInsideRoot(userWallpapersPath, uniqueName))) {
         uniqueName = `${base}_${counter}${ext}`;
         counter++;
       }
-      const destPath = path.join(userWallpapersPath, uniqueName);
+      const destPath = resolvePathInsideRoot(userWallpapersPath, uniqueName);
       await fsExtra.copy(filePath, destPath);
       const stem = path.basename(uniqueName, path.extname(uniqueName));
       const thumbnailUrl = await createWallpaperThumbnail(destPath, stem);
@@ -38,7 +41,7 @@ function registerWallpaperManagementHandlers({
       const url = `userdata://wallpapers/${uniqueName}`;
       const newWallpaper = {
         url,
-        name: filename,
+        name: safeFilename,
         type: ext.replace('.', ''),
         added: Date.now(),
         thumbnailUrl,
@@ -51,7 +54,7 @@ function registerWallpaperManagementHandlers({
       await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
       upsertWallpaperAssetInIndex({
         url,
-        name: filename,
+        name: safeFilename,
         type: ext.replace('.', ''),
         sourcePath: destPath,
         sizeBytes: metadata.sizeBytes,
@@ -70,9 +73,8 @@ function registerWallpaperManagementHandlers({
 
   ipcMain.handle('wallpapers:delete', async (_event, { url }) => {
     try {
-      if (!url || !url.startsWith('userdata://wallpapers/')) return { success: false, error: 'Invalid wallpaper URL' };
-      const filename = url.replace('userdata://wallpapers/', '');
-      const filePath = path.join(userWallpapersPath, filename);
+      const filename = relativeFromPrefixedUrl(url, 'userdata://wallpapers/');
+      const filePath = resolvePathInsideRoot(userWallpapersPath, filename);
       await fsExtra.remove(filePath);
       let data;
       try { data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8')); } catch { data = {}; }

@@ -82,8 +82,8 @@ const mediaIndexService = createMediaIndexService({
   fs,
   fsPromises,
   path,
-  Database: require('better-sqlite3'),
-  sharp: require('sharp'),
+  getDatabaseCtor: () => require('better-sqlite3'),
+  getSharpLib: () => require('sharp'),
   dataDir,
   mediaIndexDbFile,
   userWallpaperThumbnailsPath,
@@ -106,7 +106,6 @@ async function ensureDataDir() {
   await fsPromises.mkdir(userChannelHoverSoundsPath, { recursive: true });
   await fsPromises.mkdir(userIconsPath, { recursive: true });
   await fsPromises.mkdir(userWallpaperThumbnailsPath, { recursive: true });
-  mediaIndexService.ensureMediaIndexReady();
 }
 
 const {
@@ -329,11 +328,11 @@ app.whenReady().then(async () => {
       
       if (!exists) {
         // Create first run file to mark as completed
-        await fsPromises.writeFile(firstRunFile, {
+        await fsPromises.writeFile(firstRunFile, JSON.stringify({
           completed: true,
           date: new Date().toISOString(),
-          version: app.getVersion()
-        });
+          version: app.getVersion(),
+        }, null, 2), 'utf-8');
         return true;
       }
       
@@ -357,9 +356,11 @@ app.whenReady().then(async () => {
         frame: false,
         transparent: true,
         webPreferences: {
-          nodeIntegration: true,
-          contextIsolation: false,
-          enableRemoteModule: true
+          preload: path.join(__dirname, 'scripts', 'installer-preload.cjs'),
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+          webSecurity: true,
         }
       });
       

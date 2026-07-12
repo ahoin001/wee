@@ -1,3 +1,5 @@
+const { isTrustedMainWindowEvent } = require('./trusted-renderer-utils.cjs');
+
 function registerAppShellHandlers({
   ipcMain,
   BrowserWindow,
@@ -5,7 +7,55 @@ function registerAppShellHandlers({
   app,
   getMainWindow,
 }) {
-  ipcMain.on('open-pip-window', (_event, urlToOpen) => {
+  const ALLOWED_EXTERNAL_SCHEMES = new Set([
+    'http:',
+    'https:',
+    'steam:',
+    'magnet:',
+    'com.epicgames.launcher:',
+    'ms-settings:',
+    'mailto:',
+  ]);
+  const isDev = process.env.NODE_ENV === 'development';
+
+  function getUrlScheme(urlValue) {
+    const s = String(urlValue || '').trim();
+    if (!s) return '';
+    try {
+      return new URL(s).protocol.toLowerCase();
+    } catch {
+      const match = s.match(/^([a-z][a-z0-9+.-]*:)/i);
+      return match ? match[1].toLowerCase() : '';
+    }
+  }
+
+  function canOpenExternally(urlValue) {
+    const scheme = getUrlScheme(urlValue);
+    if (!scheme) return false;
+    if (!ALLOWED_EXTERNAL_SCHEMES.has(scheme)) return false;
+    return scheme !== 'file:' && scheme !== 'javascript:';
+  }
+
+  function canOpenPipUrl(urlValue) {
+    const s = String(urlValue || '').trim();
+    if (!s) return false;
+    try {
+      const parsed = new URL(s);
+      if (parsed.protocol === 'https:') return true;
+      if (isDev && parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  ipcMain.on('open-pip-window', (event, urlToOpen) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
+    if (!canOpenPipUrl(urlToOpen)) {
+      return;
+    }
     const pipWindow = new BrowserWindow({
       width: 900,
       height: 600,
@@ -19,20 +69,34 @@ function registerAppShellHandlers({
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
+        webSecurity: true,
+        sandbox: true,
       },
+    });
+    pipWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    pipWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+      if (!canOpenPipUrl(navigationUrl)) {
+        event.preventDefault();
+      }
     });
     pipWindow.loadURL(urlToOpen);
     pipWindow.setMenuBarVisibility(false);
   });
 
-  ipcMain.on('open-external-url', (_event, urlToOpen) => {
+  ipcMain.on('open-external-url', (event, urlToOpen) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
+    if (!canOpenExternally(urlToOpen)) return;
     shell.openExternal(urlToOpen);
   });
 
   /** Promise-based openExternal for UI that needs success/error (e.g. Media Hub stream modal). */
-  ipcMain.handle('open-external-url-invoke', async (_event, urlToOpen) => {
+  ipcMain.handle('open-external-url-invoke', async (event, urlToOpen) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { ok: false, error: 'Untrusted renderer' };
+    }
     const s = String(urlToOpen || '').trim();
     if (!s) return { ok: false, error: 'No URL provided' };
+    if (!canOpenExternally(s)) return { ok: false, error: 'URL scheme not allowed' };
     try {
       await shell.openExternal(s);
       return { ok: true };
@@ -41,14 +105,23 @@ function registerAppShellHandlers({
     }
   });
 
-  ipcMain.handle('get-fullscreen-state', async () => {
+  ipcMain.handle('get-fullscreen-state', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return false;
+    }
     const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
     return win ? win.isFullScreen() : false;
   });
 
   ipcMain.handle('get-app-version', async () => app.getVersion());
 
-  ipcMain.handle('open-dev-tools', async () => {
+  ipcMain.handle('open-dev-tools', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, message: 'Untrusted renderer' };
+    }
+    if (app.isPackaged) {
+      return { success: false, message: 'Developer tools disabled in production' };
+    }
     console.log('[DEBUG] 🔧 IPC: open-dev-tools called');
     try {
       const mainWindow = getMainWindow();
@@ -114,7 +187,13 @@ function registerAppShellHandlers({
     }
   });
 
-  ipcMain.handle('force-dev-tools', async () => {
+  ipcMain.handle('force-dev-tools', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, message: 'Untrusted renderer' };
+    }
+    if (app.isPackaged) {
+      return { success: false, message: 'Developer tools disabled in production' };
+    }
     console.log('[DEBUG] 🔧 IPC: force-dev-tools called');
     try {
       const mainWindow = getMainWindow();
@@ -215,7 +294,10 @@ function registerAppShellHandlers({
     }
   });
 
-  ipcMain.handle('closeApp', async () => {
+  ipcMain.handle('closeApp', async (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, message: 'Untrusted renderer' };
+    }
     console.log('[SYSTEM] IPC: closeApp called - shutting down application');
     try {
       const mainWindow = getMainWindow();

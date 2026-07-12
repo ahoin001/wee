@@ -16,9 +16,7 @@ function registerSoundHandlers({
 }) {
   ipcMain.handle('get-sound-library', async () => {
     try {
-      const library = await loadSoundLibrary();
-      console.log('[SOUNDS] Loaded sound library:', Object.keys(library).map((k) => `${k}: ${library[k].length} sounds`));
-      return library;
+      return await loadSoundLibrary();
     } catch (error) {
       console.error('[SOUNDS] Error getting sound library:', error);
       return {};
@@ -28,7 +26,6 @@ function registerSoundHandlers({
   ipcMain.handle('save-sound-library', async (_event, library) => {
     try {
       await writeJson(savedSoundsPath, library);
-      console.log('[SOUNDS] Saved sound library');
       return { success: true };
     } catch (error) {
       console.error('[SOUNDS] Error saving sound library:', error);
@@ -41,7 +38,6 @@ function registerSoundHandlers({
 
   ipcMain.handle('select-sound-file', async () => {
     try {
-      console.log('[SOUNDS] Opening file dialog for sound selection');
       const result = await dialog.showOpenDialog(getMainWindow(), {
         properties: ['openFile'],
         filters: [

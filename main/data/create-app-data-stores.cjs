@@ -10,6 +10,9 @@ function createAppDataStores({
   const SETTINGS_SCHEMA_VERSION = 2;
   const isObjectRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
   const asObjectRecord = (value) => (isObjectRecord(value) ? value : {});
+  let wallpapersCache = null;
+  let wallpapersCacheMtimeMs = null;
+  let hasBackfilledWallpaperIndex = false;
 
   const migrateUnifiedSettingsShape = (settings) => {
     const next = { ...asObjectRecord(settings) };
@@ -82,18 +85,28 @@ function createAppDataStores({
     async get() {
       await ensureDataDir();
       try {
+        const stats = await fsPromises.stat(wallpapersFile);
+        const mtimeMs = Number(stats.mtimeMs || 0);
+        if (wallpapersCache && wallpapersCacheMtimeMs === mtimeMs) {
+          return wallpapersCache;
+        }
         const data = JSON.parse(await fsPromises.readFile(wallpapersFile, 'utf-8'));
         const originalSavedWallpapers = Array.isArray(data.savedWallpapers) ? data.savedWallpapers : [];
         const hydratedWallpapers = hydrateWallpapersFromIndex(originalSavedWallpapers);
-        const backfilledWallpapers = await backfillWallpaperIndex(hydratedWallpapers);
+        const backfilledWallpapers = hasBackfilledWallpaperIndex
+          ? hydratedWallpapers
+          : await backfillWallpaperIndex(hydratedWallpapers);
+        hasBackfilledWallpaperIndex = true;
         data.savedWallpapers = backfilledWallpapers;
         if (JSON.stringify(originalSavedWallpapers) !== JSON.stringify(backfilledWallpapers)) {
           await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
         }
-        console.log('[WALLPAPERS] Successfully loaded wallpaper data:', Object.keys(data));
+        wallpapersCache = data;
+        wallpapersCacheMtimeMs = mtimeMs;
         return data;
       } catch (error) {
-        console.warn('[WALLPAPERS] Failed to load wallpaper data, using defaults:', error.message);
+        wallpapersCache = null;
+        wallpapersCacheMtimeMs = null;
         return {
           savedWallpapers: [],
           likedWallpapers: [],
@@ -129,6 +142,8 @@ function createAppDataStores({
     async set(data) {
       await ensureDataDir();
       await fsPromises.writeFile(wallpapersFile, JSON.stringify(data, null, 2), 'utf-8');
+      wallpapersCache = null;
+      wallpapersCacheMtimeMs = null;
     },
     async reset() {
       await this.set({
@@ -167,10 +182,8 @@ function createAppDataStores({
       await ensureDataDir();
       try {
         const data = JSON.parse(await fsPromises.readFile(channelsFile, 'utf-8'));
-        console.log('[CHANNELS] Successfully loaded channel data:', Object.keys(data));
         return data;
       } catch (error) {
-        console.warn('[CHANNELS] Failed to load channel data, using defaults:', error.message);
         return { channels: [] };
       }
     },
@@ -188,15 +201,12 @@ function createAppDataStores({
       await ensureDataDir();
       try {
         const data = JSON.parse(await fsPromises.readFile(unifiedDataFile, 'utf-8'));
-        console.log('[UNIFIED-DATA] Successfully loaded unified data');
         const normalizedData = normalizeUnifiedDataShape(data);
         if (JSON.stringify(normalizedData) !== JSON.stringify(data)) {
           await fsPromises.writeFile(unifiedDataFile, JSON.stringify(normalizedData, null, 2), 'utf-8');
-          console.log('[UNIFIED-DATA] Migrated settings data to schema version', SETTINGS_SCHEMA_VERSION);
         }
         return normalizedData;
       } catch (error) {
-        console.warn('[UNIFIED-DATA] Failed to load unified data, using defaults:', error.message);
         const normalizedDefaults = normalizeUnifiedDataShape({
           settings: {
             appearance: {
@@ -361,7 +371,6 @@ function createAppDataStores({
       await ensureDataDir();
       const normalizedData = normalizeUnifiedDataShape(data);
       await fsPromises.writeFile(unifiedDataFile, JSON.stringify(normalizedData, null, 2), 'utf-8');
-      console.log('[UNIFIED-DATA] Successfully saved unified data');
     },
     async reset() {
       const defaultData = await this.get();

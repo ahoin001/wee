@@ -1,3 +1,5 @@
+const { isTrustedMainWindowEvent } = require('./trusted-renderer-utils.cjs');
+
 function registerWindowHandlers({
   ipcMain,
   app,
@@ -8,33 +10,18 @@ function registerWindowHandlers({
   getIsFrameless,
   setIsFrameless,
 }) {
-  ipcMain.on('close-window', () => {
+  ipcMain.on('close-window', (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
     app.quit();
   });
 
-  ipcMain.on('toggle-fullscreen', () => {
+  ipcMain.on('toggle-fullscreen', (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
     const mainWindow = getMainWindow();
     if (!mainWindow) return;
-    console.log('[DEBUG] Toggle fullscreen requested');
-    const wasFullScreen = mainWindow.isFullScreen();
-
-    if (wasFullScreen) {
+    if (mainWindow.isFullScreen()) {
       mainWindow.setFullScreen(false);
       setIsCurrentlyFullscreen(false);
-
-      setTimeout(() => {
-        const currentWindow = getMainWindow();
-        if (currentWindow && !currentWindow.isDestroyed()) {
-          try {
-            if (!currentWindow.webContents.isDevToolsOpened()) {
-              currentWindow.webContents.openDevTools();
-              console.log('[DEBUG] DevTools re-opened after fullscreen toggle');
-            }
-          } catch (error) {
-            console.error('[DEBUG] Error re-opening DevTools after fullscreen toggle:', error);
-          }
-        }
-      }, 300);
     } else {
       mainWindow.setFullScreen(true);
       setIsCurrentlyFullscreen(true);
@@ -42,7 +29,8 @@ function registerWindowHandlers({
     sendWindowState();
   });
 
-  ipcMain.on('set-fullscreen', (_event, shouldBeFullscreen) => {
+  ipcMain.on('set-fullscreen', (event, shouldBeFullscreen) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
     const mainWindow = getMainWindow();
     if (!mainWindow) return;
     if (shouldBeFullscreen !== mainWindow.isFullScreen()) {
@@ -52,7 +40,10 @@ function registerWindowHandlers({
     }
   });
 
-  ipcMain.handle('set-fullscreen', (_event, shouldBeFullscreen) => {
+  ipcMain.handle('set-fullscreen', (event, shouldBeFullscreen) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, error: 'Untrusted renderer' };
+    }
     const mainWindow = getMainWindow();
     if (!mainWindow) return { success: false, error: 'Window not available' };
     try {
@@ -68,7 +59,8 @@ function registerWindowHandlers({
     }
   });
 
-  ipcMain.on('toggle-frame', () => {
+  ipcMain.on('toggle-frame', (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
     const mainWindow = getMainWindow();
     if (!mainWindow) return;
     const bounds = mainWindow.getBounds();
@@ -82,7 +74,8 @@ function registerWindowHandlers({
     }).catch(console.error);
   });
 
-  ipcMain.on('minimize-window', () => {
+  ipcMain.on('minimize-window', (event) => {
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) return;
     const mainWindow = getMainWindow();
     if (mainWindow) mainWindow.minimize();
   });

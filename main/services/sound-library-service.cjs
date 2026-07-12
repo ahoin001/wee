@@ -17,8 +17,6 @@ function createSoundLibraryService({
       ? path.join(appBasePath, 'public', 'sounds')
       : path.join(process.resourcesPath, 'public', 'sounds');
 
-    console.log(`[SOUNDS] Ensuring default sounds exist from: ${sourceBasePath}`);
-
     for (const soundType of soundTypes) {
       for (const sound of defaultSounds[soundType]) {
         try {
@@ -26,10 +24,8 @@ function createSoundLibraryService({
           const targetPath = path.join(userSoundsPath, sound.filename);
           try {
             await fsPromises.access(targetPath);
-            console.log(`[SOUNDS] Default sound already exists: ${sound.filename} at ${targetPath}`);
           } catch {
             await fsPromises.copyFile(sourcePath, targetPath);
-            console.log(`[SOUNDS] Copied default sound: ${sound.filename} from ${sourcePath} to ${targetPath}`);
           }
         } catch (error) {
           console.error(`[SOUNDS] Failed to copy default sound ${sound.filename}:`, error);
@@ -99,17 +95,16 @@ function createSoundLibraryService({
 
   async function loadSoundLibrary() {
     try {
-      await ensureDefaultSoundsExist();
       const savedLibrary = await readJson(savedSoundsPath, null);
 
       if (!savedLibrary) {
         const initialLibrary = createDefaultLibrary();
         await writeJson(savedSoundsPath, initialLibrary);
-        console.log('[SOUNDS] Created initial sound library with defaults');
         return initialLibrary;
       }
 
       const mergedLibrary = {};
+      let libraryChanged = false;
       for (const soundType of soundTypes) {
         const savedSounds = savedLibrary[soundType] || [];
         const defaults = defaultSounds[soundType] || [];
@@ -118,6 +113,7 @@ function createSoundLibraryService({
         for (const defaultSound of defaults) {
           const exists = savedSounds.some((s) => s.id === defaultSound.id);
           if (!exists) {
+            libraryChanged = true;
             mergedLibrary[soundType].push({
               ...defaultSound,
               url: process.env.NODE_ENV === 'development'
@@ -142,14 +138,12 @@ function createSoundLibraryService({
             if (process.env.NODE_ENV !== 'development') {
               const prodUrl = `userdata://sounds/${sound.filename}`;
               if (sound.url !== prodUrl) {
-                console.log(`[SOUNDS] Correcting default sound URL for production: ${sound.url} -> ${prodUrl}`);
                 sound.url = prodUrl;
                 needsUpdate = true;
               }
             } else {
               const devUrl = getDevServerUrl(sound.filename);
               if (sound.url !== devUrl) {
-                console.log(`[SOUNDS] Correcting default sound URL for dev: ${sound.url} -> ${devUrl}`);
                 sound.url = devUrl;
                 needsUpdate = true;
               }
@@ -157,7 +151,6 @@ function createSoundLibraryService({
           } else if (sound.filename) {
             const correctUrl = `userdata://sounds/${sound.filename}`;
             if (sound.url !== correctUrl) {
-              console.log(`[SOUNDS] Correcting user sound URL: ${sound.url} -> ${correctUrl}`);
               sound.url = correctUrl;
               needsUpdate = true;
             }
@@ -167,19 +160,15 @@ function createSoundLibraryService({
 
       if (needsUpdate) {
         await writeJson(savedSoundsPath, mergedLibrary);
-        console.log('[SOUNDS] Updated sound library URLs for all sounds');
+        libraryChanged = true;
       }
 
       if (savedLibrary.backgroundMusicSettings) {
         mergedLibrary.backgroundMusicSettings = savedLibrary.backgroundMusicSettings;
-        console.log('[SOUNDS] Preserved background music settings:', savedLibrary.backgroundMusicSettings);
-      } else {
-        console.log('[SOUNDS] No background music settings found in saved library');
       }
 
-      if (JSON.stringify(savedLibrary) !== JSON.stringify(mergedLibrary)) {
+      if (libraryChanged) {
         await writeJson(savedSoundsPath, mergedLibrary);
-        console.log('[SOUNDS] Updated sound library with missing defaults');
       }
 
       return mergedLibrary;

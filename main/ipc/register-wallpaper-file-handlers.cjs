@@ -1,3 +1,5 @@
+const { relativeFromPrefixedUrl, resolvePathInsideRoot } = require('../utils/path-guard-utils.cjs');
+
 function registerWallpaperFileHandlers({
   ipcMain,
   fsPromises,
@@ -11,11 +13,8 @@ function registerWallpaperFileHandlers({
 }) {
   ipcMain.handle('wallpapers:get-file', async (_event, url) => {
     try {
-      if (!url || !url.startsWith('userdata://wallpapers/')) {
-        return { success: false, error: 'Invalid wallpaper URL' };
-      }
-      const filename = url.replace('userdata://wallpapers/', '');
-      const filePath = path.join(userWallpapersPath, filename);
+      const filename = relativeFromPrefixedUrl(url, 'userdata://wallpapers/');
+      const filePath = resolvePathInsideRoot(userWallpapersPath, filename);
       const data = await fsPromises.readFile(filePath);
       return { success: true, filename, data: data.toString('base64') };
     } catch (e) {
@@ -26,15 +25,16 @@ function registerWallpaperFileHandlers({
   ipcMain.handle('wallpapers:save-file', async (_event, { filename, data }) => {
     try {
       await ensureDataDir();
-      let base = path.basename(filename, path.extname(filename));
-      let ext = path.extname(filename);
-      let uniqueName = filename;
+      const safeFilename = path.basename(filename);
+      let base = path.basename(safeFilename, path.extname(safeFilename));
+      let ext = path.extname(safeFilename);
+      let uniqueName = safeFilename;
       let i = 1;
-      while (fs.existsSync(path.join(userWallpapersPath, uniqueName))) {
+      while (fs.existsSync(resolvePathInsideRoot(userWallpapersPath, uniqueName))) {
         uniqueName = `${base}_${i}${ext}`;
         i++;
       }
-      const filePath = path.join(userWallpapersPath, uniqueName);
+      const filePath = resolvePathInsideRoot(userWallpapersPath, uniqueName);
       await fsPromises.writeFile(filePath, Buffer.from(data, 'base64'));
       const stem = path.basename(uniqueName, path.extname(uniqueName));
       const url = `userdata://wallpapers/${uniqueName}`;
