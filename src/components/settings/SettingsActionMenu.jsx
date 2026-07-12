@@ -202,7 +202,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
     setUIState({ showUpdateModal: true, showSettingsActionMenu: false });
   }, [setUIState]);
 
-  const openSoundModal = useCallback(() => {
+  const openSoundsSettings = useCallback(() => {
     setUIState({ showSettingsModal: true, settingsActiveTab: 'sounds' });
     handleClose();
   }, [setUIState, handleClose]);
@@ -316,7 +316,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
                 </p>
                 <div className="grid grid-cols-1 gap-3">
                   <ActionButtonRow label="Open settings" icon={Settings} onClick={openSettingsModal} />
-                  <ActionButtonRow label="Manage sounds" icon={Music} onClick={openSoundModal} />
+                  <ActionButtonRow label="Manage sounds" icon={Music} onClick={openSoundsSettings} />
                   <ActionButtonRow
                     label="Check for updates"
                     icon={RefreshCw}

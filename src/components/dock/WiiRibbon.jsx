@@ -13,7 +13,7 @@ import './WiiRibbon.css';
 import intervalManager from '../../utils/IntervalManager';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import useSoundManager from '../../utils/useSoundManager';
+import { playChannelClick } from '../../utils/soundPlayback';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { hexAlpha } from '../../utils/colorHex';
 import { extractColorsFromAlbumArt } from '../../utils/extractColorsFromAlbumArt';
@@ -66,8 +66,6 @@ const WiiRibbonComponent = ({
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
-  // Sound manager for dock button clicks
-  const { playChannelClickSound } = useSoundManager();
   const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
   
   // Spotify — one shallow subscription; use track *name* primitive so progress/metadata churn does not re-render the ribbon.
@@ -440,8 +438,8 @@ const WiiRibbonComponent = ({
 
   const handleSettingsClick = async (event) => {
     // Play click sound
-    await playChannelClickSound();
-    
+    await playChannelClick();
+
     // Call the parent handler to open settings action menu
     if (onSettingsClick) {
       onSettingsClick(event);
@@ -477,7 +475,7 @@ const WiiRibbonComponent = ({
     const config = buttonConfigs?.[index];
     
     // Play click sound for any dock button interaction
-    await playChannelClickSound();
+    await playChannelClick();
     
     // Handle admin mode for left button (index 0)
     if (index === 0 && config?.adminMode && config?.powerActions && config.powerActions.length > 0) {
@@ -834,7 +832,7 @@ const WiiRibbonComponent = ({
             <WiiStyleButton
               className={`sd-card-button presets-cog-button glass-effect presets-cog-button-pos ${activeButton === 'presets' ? 'ribbon-wii-btn-press' : 'ribbon-wii-btn-idle'}`}
               onClick={async () => {
-                await playChannelClickSound();
+                await playChannelClick();
                 onPresetsClick();
               }}
               onContextMenu={handlePresetsButtonContextMenu}

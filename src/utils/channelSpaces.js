@@ -1,4 +1,12 @@
-import { clampPageIndex, DEFAULT_CHANNEL_NAVIGATION, WII_LAYOUT_PRESET } from './channelLayoutSystem';
+import {
+  clampPageIndex,
+  DEFAULT_CHANNEL_NAVIGATION,
+  normalizeLayoutConfig,
+  resolveLayout,
+  WII_LAYOUT_PRESET,
+  WII_STRIP_PEEK_PERCENT,
+  CHANNEL_PAGE_FLIP_MS,
+} from './channelLayoutSystem';
 
 /**
  * Channel grid data is scoped per shell space profile layer:
@@ -55,21 +63,30 @@ export function resolveActiveChannelSpaceKey(activeSpaceId) {
 }
 
 export function createDefaultChannelSpaceData() {
+  const layout = normalizeLayoutConfig({
+    columns: WII_LAYOUT_PRESET.columns,
+    rows: WII_LAYOUT_PRESET.rows,
+    totalPages: WII_LAYOUT_PRESET.totalPages,
+    peekPercent: WII_STRIP_PEEK_PERCENT,
+  });
+  const totalChannels = layout.columns * layout.rows * layout.totalPages;
   return {
-    gridColumns: 4,
-    gridRows: 3,
-    totalChannels: 36,
+    layout,
+    gridColumns: layout.columns,
+    gridRows: layout.rows,
+    totalChannels,
     configuredChannels: {},
     channelConfigs: {},
+    slotMeta: {},
     navigation: {
       currentPage: 0,
-      totalPages: 3,
+      totalPages: layout.totalPages,
       mode: 'wii',
       isAnimating: false,
       animationDirection: 'none',
       animationType: 'slide',
-      animationDuration: 500,
-      animationEasing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+      animationDuration: CHANNEL_PAGE_FLIP_MS,
+      animationEasing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
       enableSlideAnimation: true,
     },
   };
@@ -80,18 +97,24 @@ export function normalizeChannelSpaceData(raw) {
   const incoming = raw && typeof raw === 'object' ? raw : {};
   const incomingNav = incoming.navigation && typeof incoming.navigation === 'object' ? incoming.navigation : {};
 
-  const totalPages = WII_LAYOUT_PRESET.totalPages;
+  const layout = resolveLayout(incoming);
   const currentPage = clampPageIndex(
     incomingNav.currentPage ?? DEFAULT_CHANNEL_NAVIGATION.currentPage,
-    totalPages
+    layout.totalPages
   );
 
   return {
     ...base,
     ...incoming,
-    gridColumns: WII_LAYOUT_PRESET.columns,
-    gridRows: WII_LAYOUT_PRESET.rows,
-    totalChannels: WII_LAYOUT_PRESET.columns * WII_LAYOUT_PRESET.rows * WII_LAYOUT_PRESET.totalPages,
+    layout: {
+      columns: layout.columns,
+      rows: layout.rows,
+      totalPages: layout.totalPages,
+      peekPercent: layout.peekPercent,
+    },
+    gridColumns: layout.columns,
+    gridRows: layout.rows,
+    totalChannels: layout.totalChannels,
     configuredChannels:
       incoming.configuredChannels && typeof incoming.configuredChannels === 'object'
         ? incoming.configuredChannels
@@ -100,15 +123,18 @@ export function normalizeChannelSpaceData(raw) {
       incoming.channelConfigs && typeof incoming.channelConfigs === 'object'
         ? incoming.channelConfigs
         : base.channelConfigs,
+    slotMeta:
+      incoming.slotMeta && typeof incoming.slotMeta === 'object' ? incoming.slotMeta : base.slotMeta,
     navigation: {
       ...base.navigation,
       ...incomingNav,
       mode: 'wii',
-      totalPages,
+      totalPages: layout.totalPages,
       currentPage,
-      animationType: 'slide',
-      animationDuration: 500,
-      enableSlideAnimation: true,
+      animationType: incomingNav.animationType || 'slide',
+      animationDuration: incomingNav.animationDuration || CHANNEL_PAGE_FLIP_MS,
+      enableSlideAnimation:
+        incomingNav.enableSlideAnimation !== undefined ? incomingNav.enableSlideAnimation : true,
     },
   };
 }

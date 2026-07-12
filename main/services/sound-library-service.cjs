@@ -87,7 +87,7 @@ function createSoundLibraryService({
         url: process.env.NODE_ENV === 'development'
           ? getDevServerUrl(sound.filename)
           : `userdata://sounds/${sound.filename}`,
-        enabled: soundType === 'startup' ? false : true,
+        enabled: true,
       }));
     }
     return library;
@@ -119,14 +119,14 @@ function createSoundLibraryService({
               url: process.env.NODE_ENV === 'development'
                 ? getDevServerUrl(defaultSound.filename)
                 : `userdata://sounds/${defaultSound.filename}`,
-              enabled: soundType === 'startup' ? false : true,
+              enabled: true,
             });
           }
         }
 
         for (const sound of mergedLibrary[soundType]) {
           if (sound.isDefault && sound.enabled === undefined) {
-            sound.enabled = soundType === 'startup' ? false : true;
+            sound.enabled = true;
           }
         }
       }
@@ -158,16 +158,12 @@ function createSoundLibraryService({
         }
       }
 
-      if (needsUpdate) {
-        await writeJson(savedSoundsPath, mergedLibrary);
+      // Catalog-only write: ignore unknown keys (e.g. old dual-SOT fields) on disk.
+      if (Object.keys(savedLibrary).some((k) => !soundTypes.includes(k) && k !== 'version')) {
         libraryChanged = true;
       }
 
-      if (savedLibrary.backgroundMusicSettings) {
-        mergedLibrary.backgroundMusicSettings = savedLibrary.backgroundMusicSettings;
-      }
-
-      if (libraryChanged) {
+      if (needsUpdate || libraryChanged) {
         await writeJson(savedSoundsPath, mergedLibrary);
       }
 

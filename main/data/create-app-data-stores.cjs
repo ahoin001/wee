@@ -342,8 +342,6 @@ function createAppDataStores({
               channelClickVolume: 0.5,
               channelHoverEnabled: true,
               channelHoverVolume: 0.5,
-              startupEnabled: true,
-              startupVolume: 0.5,
             },
             system: {
               startOnBoot: false,
@@ -362,7 +360,6 @@ function createAppDataStores({
               backgroundMusic: [],
               channelClick: [],
               channelHover: [],
-              startup: [],
             },
             presets: [],
             icons: [],

@@ -22,7 +22,7 @@ This folder now uses domain folders and barrels to keep related components toget
 - `admin/`  
   Admin panel UI and the floating admin widget.
 
-- `audio/`  
+- `audio/` — shared `sound-management.css` for Settings → Sounds
   Sound management modal/content and shared sound UI logic.
 
 - `app-library/`  

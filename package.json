@@ -11,10 +11,10 @@
   },
   "build": {
     "appId": "com.ahoin001.wiidesktoplauncher",
-    "productName": "WeeDesktopLauncher",
+    "productName": "Wee",
     "win": {
       "target": "nsis",
-      "artifactName": "WeeDesktopLauncher-Setup-${version}.${ext}"
+      "artifactName": "Wee-Setup-${version}.${ext}"
     },
     "directories": {
       "output": "dist"

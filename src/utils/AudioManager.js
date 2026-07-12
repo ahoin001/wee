@@ -1,4 +1,4 @@
-/** Wait until the element can play through (same idea as playSound). */
+/** Wait until the element can play through. */
 function waitForAudioReady(audio) {
   if (audio.readyState >= 2) {
     return Promise.resolve();
@@ -17,179 +17,204 @@ function waitForAudioReady(audio) {
   });
 }
 
+const BGM_DUCK_FACTOR = 0.35;
+const DEFAULT_SFX_FADE_MS = 120;
+
 class AudioManager {
   constructor() {
-    this.audioInstances = new Map(); // Store reusable audio instances
+    /** Template Audio elements for cloneNode one-shots (keyed by URL). */
+    this.templates = new Map();
     this.backgroundAudio = null;
     this.previewAudio = null;
-    this.maxConcurrentSounds = 3; // Limit concurrent audio playback
+    this.maxConcurrentSounds = 6;
+    /** @type {Set<HTMLAudioElement>} */
     this.activeSounds = new Set();
+    this.playlistTracks = null;
+    this.currentPlaylistIndex = 0;
+    this.playlistLooping = false;
+    this._bgmUnduckedVolume = null;
+    this._duckCount = 0;
   }
 
-  // Get or create an audio instance for a URL
-  getAudioInstance(url) {
-    // Check if we already have an instance for this URL
-    if (this.audioInstances.has(url)) {
-      const instance = this.audioInstances.get(url);
-      if (instance.readyState >= 2) { // HAVE_CURRENT_DATA or higher
-        return instance;
-      }
+  /** Cache template Audio elements for cloneNode one-shots (keyed by URL). */
+  getTemplate(url) {
+    if (this.templates.has(url)) {
+      return this.templates.get(url);
     }
-
-    // Create new audio instance
     const audio = new Audio();
     audio.preload = 'auto';
-    
-    // Store the instance
-    this.audioInstances.set(url, audio);
-    
-    // Load the audio
     audio.src = url;
     audio.load();
-    
+    this.templates.set(url, audio);
     return audio;
   }
 
-  // Play a sound with proper cleanup and concurrency limits
-  async playSound(url, volume = 0.7, loop = false) {
-    // Limit concurrent sounds
-    if (this.activeSounds.size >= this.maxConcurrentSounds) {
+  _stealOldestActive() {
+    const oldest = this.activeSounds.values().next().value;
+    if (!oldest) return;
+    try {
+      oldest.pause();
+      oldest.currentTime = 0;
+    } catch {
+      /* ignore */
+    }
+    this.activeSounds.delete(oldest);
+    this._releaseDuck();
+  }
+
+  _applyDuck() {
+    this._duckCount += 1;
+    if (this._duckCount !== 1 || !this.backgroundAudio) return;
+    const bg = this.backgroundAudio;
+    if (this._bgmUnduckedVolume == null) {
+      this._bgmUnduckedVolume = bg.volume;
+    }
+    bg.volume = Math.max(0, this._bgmUnduckedVolume * BGM_DUCK_FACTOR);
+  }
+
+  _releaseDuck() {
+    if (this._duckCount <= 0) return;
+    this._duckCount -= 1;
+    if (this._duckCount > 0 || !this.backgroundAudio) return;
+    if (this._bgmUnduckedVolume != null) {
+      this.backgroundAudio.volume = this._bgmUnduckedVolume;
+      this._bgmUnduckedVolume = null;
+    }
+  }
+
+  fadeOutAndStop(audio, fadeMs = DEFAULT_SFX_FADE_MS) {
+    if (!audio) return;
+    const startVol = audio.volume;
+    if (fadeMs <= 0 || startVol <= 0) {
+      audio.pause();
+      audio.currentTime = 0;
+      this.activeSounds.delete(audio);
+      this._releaseDuck();
       return;
+    }
+    const steps = Math.max(4, Math.round(fadeMs / 25));
+    let step = 0;
+    const id = setInterval(() => {
+      step += 1;
+      audio.volume = Math.max(0, startVol * (1 - step / steps));
+      if (step >= steps) {
+        clearInterval(id);
+        audio.pause();
+        audio.currentTime = 0;
+        this.activeSounds.delete(audio);
+        this._releaseDuck();
+      }
+    }, fadeMs / steps);
+  }
+
+  _claimMediaSession(title = 'Wee') {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaSession) return;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title,
+        artist: 'Wee',
+        album: 'Desktop Launcher',
+      });
+      navigator.mediaSession.playbackState = 'playing';
+    } catch {
+      /* mediaSession optional */
+    }
+  }
+
+  async playSound(url, volume = 0.7, loop = false) {
+    if (!url) return;
+
+    while (this.activeSounds.size >= this.maxConcurrentSounds) {
+      this._stealOldestActive();
     }
 
     try {
-      const audio = this.getAudioInstance(url);
-      
-      // Wait for audio to be ready
-      if (audio.readyState < 2) {
-        await new Promise((resolve, reject) => {
-          audio.addEventListener('canplaythrough', resolve, { once: true });
-          audio.addEventListener('error', reject, { once: true });
-        });
-      }
+      const template = this.getTemplate(url);
+      await waitForAudioReady(template);
 
-      // Set properties
+      const audio = /** @type {HTMLAudioElement} */ (template.cloneNode(true));
       audio.volume = volume;
       audio.loop = loop;
-      
-      // Play the sound
-      await audio.play();
-      
-      // Track active sound
+      audio.currentTime = 0;
+
+      this._applyDuck();
       this.activeSounds.add(audio);
-      
-      // Remove from active sounds when ended
-      audio.addEventListener('ended', () => {
+
+      const cleanup = () => {
         this.activeSounds.delete(audio);
-      }, { once: true });
-      
+        this._releaseDuck();
+      };
+      audio.addEventListener('ended', cleanup, { once: true });
+      audio.addEventListener('error', cleanup, { once: true });
+
+      await audio.play();
+      this._claimMediaSession('Sound');
     } catch (error) {
       console.error('Error playing sound:', error);
+      this._releaseDuck();
     }
   }
 
-  // Update volume for a specific audio instance (for live volume changes)
   updateVolume(url, volume) {
-    const audio = this.audioInstances.get(url);
-    if (audio) {
-      audio.volume = volume;
-    }
-    
-    // Also update background music if it matches
-    if (this.backgroundAudio && this.backgroundAudio.src === url) {
-      this.backgroundAudio.volume = volume;
-    }
-  }
+    const template = this.templates.get(url);
+    if (template) template.volume = volume;
 
-  // Update looping setting for currently playing background music
-  updateBackgroundMusicLooping(loop) {
-    if (this.backgroundAudio) {
-      this.backgroundAudio.loop = loop;
-      
-      // Remove existing ended listener if any
-      this.backgroundAudio.removeEventListener('ended', this.backgroundAudio.onEnded);
-      
-      // If not looping, add ended listener
-      if (!loop) {
-        const onEnded = () => {
-          this.backgroundAudio = null;
-          this.backgroundAudio.removeEventListener('ended', onEnded);
-        };
-        this.backgroundAudio.addEventListener('ended', onEnded);
-        this.backgroundAudio.onEnded = onEnded; // Store reference for removal
+    if (this.backgroundAudio && this._urlsMatch(this.backgroundAudio.src, url)) {
+      this.backgroundAudio.volume = volume;
+      if (this._duckCount > 0) {
+        this._bgmUnduckedVolume = volume;
+        this.backgroundAudio.volume = Math.max(0, volume * BGM_DUCK_FACTOR);
       }
     }
   }
 
-  // Clear audio cache to force fresh instances (useful when settings change)
+  _urlsMatch(a, b) {
+    if (!a || !b) return false;
+    try {
+      return decodeURIComponent(a).endsWith(b) || a.includes(b) || b.includes(a);
+    } catch {
+      return a === b;
+    }
+  }
+
+  updateBackgroundMusicLooping(loop) {
+    if (!this.backgroundAudio) return;
+    this.backgroundAudio.loop = loop;
+    if (this.backgroundAudio.onEnded) {
+      this.backgroundAudio.removeEventListener('ended', this.backgroundAudio.onEnded);
+      this.backgroundAudio.onEnded = null;
+    }
+    if (!loop) {
+      const onEnded = () => {
+        this.backgroundAudio = null;
+      };
+      this.backgroundAudio.addEventListener('ended', onEnded);
+      this.backgroundAudio.onEnded = onEnded;
+    }
+  }
+
   clearCache() {
-    this.audioInstances.forEach((audio, _url) => {
+    this.templates.forEach((audio) => {
       audio.pause();
       audio.currentTime = 0;
       audio.src = '';
       audio.load();
     });
-    this.audioInstances.clear();
+    this.templates.clear();
   }
 
-  // Update volumes for all cached instances based on sound library
-  async updateVolumesFromLibrary() {
-    try {
-      // Get the current sound library
-      const soundsApi = window.api?.sounds;
-      if (!soundsApi) return;
-      
-      const library = await soundsApi.getLibrary();
-      if (!library) return;
-      
-      // Update volumes for all cached instances
-      this.audioInstances.forEach((audio, url) => {
-        // Find the sound in the library that matches this URL
-        for (const category of Object.values(library)) {
-          if (Array.isArray(category)) {
-            const sound = category.find(s => s.url === url);
-            if (sound && sound.volume !== undefined) {
-              // Only update volume if the sound is enabled, or if it's currently playing
-              if (sound.enabled || !audio.paused) {
-                audio.volume = sound.volume;
-              }
-              break;
-            }
-          }
-        }
-      });
-      
-      // Also update background music volume if it's playing
-      if (this.backgroundAudio && !this.backgroundAudio.paused) {
-        for (const category of Object.values(library)) {
-          if (Array.isArray(category)) {
-            const sound = category.find(s => s.url === this.backgroundAudio.src && s.enabled);
-            if (sound && sound.volume !== undefined) {
-              this.backgroundAudio.volume = sound.volume;
-              break;
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to update volumes from library:', error);
-    }
-  }
-
-  // Set background music playlist (multiple tracks)
   async setBackgroundMusicPlaylist(tracks, loop = true) {
-    // Stop previous background music
     if (this.backgroundAudio) {
       this.backgroundAudio.pause();
       this.backgroundAudio.currentTime = 0;
     }
+    this._duckCount = 0;
+    this._bgmUnduckedVolume = null;
 
     if (tracks && tracks.length > 0) {
       this.playlistTracks = tracks;
       this.currentPlaylistIndex = 0;
       this.playlistLooping = loop;
-      
-      // Start playing the first track
       await this.playNextPlaylistTrack();
     } else {
       this.backgroundAudio = null;
@@ -197,16 +222,12 @@ class AudioManager {
     }
   }
 
-  // Play the next track in the playlist
   async playNextPlaylistTrack() {
     if (!this.playlistTracks || this.currentPlaylistIndex >= this.playlistTracks.length) {
-      // End of playlist reached
       if (this.playlistLooping) {
-        // Restart playlist
         this.currentPlaylistIndex = 0;
         await this.playNextPlaylistTrack();
       } else {
-        // Stop playback
         this.backgroundAudio = null;
         this.playlistTracks = null;
       }
@@ -214,21 +235,25 @@ class AudioManager {
     }
 
     const track = this.playlistTracks[this.currentPlaylistIndex];
-    this.backgroundAudio = this.getAudioInstance(track.url);
-    this.backgroundAudio.volume = track.volume ?? 0.4;
-    this.backgroundAudio.loop = false; // Individual tracks don't loop in playlist mode
-    
-    // Set up ended listener to play next track
+    // Dedicated BGM element (not shared with one-shot templates)
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = track.url;
+    audio.volume = track.volume ?? 0.4;
+    audio.loop = false;
+    this.backgroundAudio = audio;
+
     const onEnded = () => {
       this.currentPlaylistIndex++;
-      this.backgroundAudio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('ended', onEnded);
       this.playNextPlaylistTrack();
     };
-    this.backgroundAudio.addEventListener('ended', onEnded);
+    audio.addEventListener('ended', onEnded);
 
     try {
-      await waitForAudioReady(this.backgroundAudio);
-      await this.backgroundAudio.play();
+      await waitForAudioReady(audio);
+      await audio.play();
+      this._claimMediaSession(track.name || 'Background music');
     } catch (error) {
       console.error('Failed to play playlist track:', error);
       this.currentPlaylistIndex++;
@@ -236,71 +261,58 @@ class AudioManager {
     }
   }
 
-  // Set background music (single track)
   async setBackgroundMusic(url, volume = 0.4, loop = true) {
-    // Stop previous background music
     if (this.backgroundAudio) {
       this.backgroundAudio.pause();
       this.backgroundAudio.currentTime = 0;
     }
+    this._duckCount = 0;
+    this._bgmUnduckedVolume = null;
+    this.playlistTracks = null;
 
-    if (url) {
-      this.backgroundAudio = this.getAudioInstance(url);
-      
-      // Get the current volume from sound library if available
-      try {
-        const soundsApi = window.api?.sounds;
-        if (soundsApi) {
-          const library = await soundsApi.getLibrary();
-          if (library?.backgroundMusic) {
-            const enabledMusic = library.backgroundMusic.find(s => s.enabled);
-            if (enabledMusic && enabledMusic.volume !== undefined) {
-              volume = enabledMusic.volume;
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to get current background music volume:', error);
-      }
-      
-      this.backgroundAudio.volume = volume;
-      this.backgroundAudio.loop = loop;
-      
-      // If not looping, stop background music when it ends
-      if (!loop) {
-        const onEnded = () => {
-          this.backgroundAudio = null;
-          this.backgroundAudio.removeEventListener('ended', onEnded);
-        };
-        this.backgroundAudio.addEventListener('ended', onEnded);
-      }
-
-      try {
-        await waitForAudioReady(this.backgroundAudio);
-        await this.backgroundAudio.play();
-      } catch (error) {
-        console.error('[AudioManager] Failed to play background music:', error);
-      }
-    } else {
+    if (!url) {
       this.backgroundAudio = null;
+      return;
+    }
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = url;
+    audio.volume = volume;
+    audio.loop = loop;
+    this.backgroundAudio = audio;
+
+    if (!loop) {
+      const onEnded = () => {
+        if (this.backgroundAudio === audio) this.backgroundAudio = null;
+      };
+      audio.addEventListener('ended', onEnded);
+      audio.onEnded = onEnded;
+    }
+
+    try {
+      await waitForAudioReady(audio);
+      await audio.play();
+      this._claimMediaSession('Background music');
+    } catch (error) {
+      console.error('[AudioManager] Failed to play background music:', error);
     }
   }
 
-  // Pause background music
   pauseBackgroundMusic() {
     if (this.backgroundAudio && !this.backgroundAudio.paused) {
       this.backgroundAudio.pause();
     }
   }
 
-  // Centralized one-at-a-time preview channel for settings/modals.
   async playPreview(url, volume = 0.5) {
     if (!url) return;
     this.stopPreview();
     try {
-      const audio = this.getAudioInstance(url);
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.src = url;
       audio.loop = false;
-      audio.currentTime = 0;
       audio.volume = volume;
       await waitForAudioReady(audio);
       await audio.play();
@@ -324,105 +336,50 @@ class AudioManager {
     this.previewAudio = null;
   }
 
-  // Resume background music with fade
   async resumeBackgroundMusic(targetVolume = 0.4) {
-    if (this.backgroundAudio) {
-      const audio = this.backgroundAudio;
-      
-      // Get the current volume from sound library if available
-      try {
-        const soundsApi = window.api?.sounds;
-        if (soundsApi) {
-          const library = await soundsApi.getLibrary();
-          if (library?.backgroundMusic) {
-            const enabledMusic = library.backgroundMusic.find(s => s.enabled);
-            if (enabledMusic && enabledMusic.volume !== undefined) {
-              targetVolume = enabledMusic.volume;
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to get current background music volume:', error);
-      }
-      
-      audio.volume = 0;
-      try {
-        await waitForAudioReady(audio);
-        await audio.play();
-      } catch {
-        return;
-      }
-
-      // Fade in over 1.5 seconds
-      let v = 0;
-      const fade = setInterval(() => {
-        v += targetVolume / 15; // 100ms steps
-        if (v < targetVolume) {
-          audio.volume = Math.min(v, targetVolume);
-        } else {
-          audio.volume = targetVolume;
-          clearInterval(fade);
-        }
-      }, 100);
-    }
-  }
-
-  // Check and update background music based on settings
-  async updateBackgroundMusicFromSettings() {
+    if (!this.backgroundAudio) return;
+    const audio = this.backgroundAudio;
+    audio.volume = 0;
     try {
-      const soundsApi = window.api?.sounds;
-      if (!soundsApi) return;
-
-      const settings = await soundsApi.getBackgroundMusicSettings();
-      if (!settings.success) return;
-
-      const { enabled, looping, playlistMode } = settings.settings;
-      
-      if (!enabled) {
-        // Stop background music if disabled
-        this.pauseBackgroundMusic();
-        return;
+      await waitForAudioReady(audio);
+      await audio.play();
+    } catch {
+      return;
+    }
+    let v = 0;
+    const fade = setInterval(() => {
+      v += targetVolume / 15;
+      if (v < targetVolume) {
+        audio.volume = Math.min(v, targetVolume);
+      } else {
+        audio.volume = targetVolume;
+        clearInterval(fade);
       }
+    }, 100);
+  }
 
-      // If enabled, check if we have any enabled background music
-      const library = await soundsApi.getLibrary();
-      if (library?.backgroundMusic) {
-        if (playlistMode) {
-          const enabledAll = library.backgroundMusic.filter(s => s.enabled);
-          const likedOnly = enabledAll.filter(s => s.liked);
-          if (likedOnly.length > 0) {
-            await this.setBackgroundMusicPlaylist(likedOnly, looping);
-          } else if (enabledAll.length > 0) {
-            const first = enabledAll[0];
-            await this.setBackgroundMusic(first.url, first.volume, looping);
-          } else {
-            this.pauseBackgroundMusic();
-          }
-        } else {
-          // In single track mode, get only the first enabled sound
-          const enabledMusic = library.backgroundMusic.find(s => s.enabled);
-          if (enabledMusic) {
-            await this.setBackgroundMusic(enabledMusic.url, enabledMusic.volume, looping);
-          } else {
-            this.pauseBackgroundMusic();
-          }
-        }
+  stopAllSounds({ fadeMs = 0 } = {}) {
+    const snapshot = [...this.activeSounds];
+    snapshot.forEach((audio) => {
+      if (fadeMs > 0) {
+        this.fadeOutAndStop(audio, fadeMs);
+      } else {
+        audio.pause();
+        audio.currentTime = 0;
+        this.activeSounds.delete(audio);
+        this._releaseDuck();
       }
-    } catch (error) {
-      console.warn('Failed to update background music from settings:', error);
+    });
+    if (fadeMs <= 0) {
+      this.activeSounds.clear();
+      this._duckCount = 0;
+      if (this.backgroundAudio && this._bgmUnduckedVolume != null) {
+        this.backgroundAudio.volume = this._bgmUnduckedVolume;
+        this._bgmUnduckedVolume = null;
+      }
     }
   }
 
-  // Stop all sounds
-  stopAllSounds() {
-    this.activeSounds.forEach(audio => {
-      audio.pause();
-      audio.currentTime = 0;
-    });
-    this.activeSounds.clear();
-  }
-
-  // Cleanup all audio instances
   cleanup() {
     this.stopAllSounds();
     this.stopPreview();
@@ -431,41 +388,30 @@ class AudioManager {
       this.backgroundAudio.currentTime = 0;
       this.backgroundAudio = null;
     }
-    
-    // Cleanup playlist state
     this.playlistTracks = null;
     this.currentPlaylistIndex = 0;
     this.playlistLooping = false;
-    
-    // Properly cleanup all audio instances
-    this.audioInstances.forEach((audio, _url) => {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.src = '';
-      audio.load(); // Force cleanup
-    });
-    this.audioInstances.clear();
+    this._duckCount = 0;
+    this._bgmUnduckedVolume = null;
+    this.clearCache();
   }
 
-  // Remove specific audio instance to free memory
   removeAudioInstance(url) {
-    const audio = this.audioInstances.get(url);
+    const audio = this.templates.get(url);
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
       audio.src = '';
       audio.load();
-      this.audioInstances.delete(url);
+      this.templates.delete(url);
     }
   }
 
-  // Get active sound count
   getActiveSoundCount() {
     return this.activeSounds.size;
   }
 }
 
-// Create singleton instance
 const audioManager = new AudioManager();
 
-export default audioManager; 
+export default audioManager;

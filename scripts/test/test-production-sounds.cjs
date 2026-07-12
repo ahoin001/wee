@@ -17,7 +17,7 @@ const userDataPath = mockApp.getPath('userData');
 const userSoundsPath = path.join(userDataPath, 'sounds');
 
 // Sound types and default sounds (copied from electron.cjs)
-const SOUND_TYPES = ['channelClick', 'channelHover', 'backgroundMusic', 'startup'];
+const SOUND_TYPES = ['channelClick', 'channelHover', 'backgroundMusic'];
 const DEFAULT_SOUNDS = {
   channelClick: [
     {
@@ -46,15 +46,6 @@ const DEFAULT_SOUNDS = {
       isDefault: true
     }
   ],
-  startup: [
-    {
-      id: 'default-startup-1',
-      name: 'Wii Startup 1',
-      filename: 'wii-startup-1.mp3',
-      volume: 0.6,
-      isDefault: true
-    }
-  ]
 };
 
 async function testSoundSystem() {

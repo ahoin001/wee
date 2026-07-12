@@ -14,7 +14,7 @@ WiiDesktop Launcher is built for ultimate personalization. Nearly every aspect o
   * Adjust the wallpaper's transparency for the perfect look, or enable the "liquid glass" effect for the bottom ribbon to see it through the UI.
 
 * **🎵 Full Sound Customization**
-  * Personalize your experience by setting custom sounds for channel clicks, hovers, and even the application's startup chime.
+  * Personalize your experience by setting custom sounds for channel clicks, hovers, and background music.
   * Set your own background music to create the perfect ambiance.
 
 * **🚀 Quick & Easy Channel Creation**

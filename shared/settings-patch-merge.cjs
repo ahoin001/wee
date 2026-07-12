@@ -5,7 +5,7 @@
  * - Plain objects merge deeply.
  * - Non-object values replace previous values.
  * - `undefined` in patch does not mutate existing value.
- * - Channel slot maps (`configuredChannels` / `channelConfigs`) replace wholesale
+ * - Channel slot maps (`configuredChannels` / `channelConfigs` / `slotMeta`) replace wholesale
  *   when present in the patch. Deep-merge would keep stale slot keys after reorder
  *   (emptied slots omitted from the patch) and duplicate tiles after restart.
  */
@@ -15,7 +15,11 @@ function isPlainObject(v) {
 }
 
 /** Slot-keyed maps under each channel space (`channel-0` …). */
-const CHANNEL_DATA_SLOT_KEYED_MAPS = new Set(['configuredChannels', 'channelConfigs']);
+const CHANNEL_DATA_SLOT_KEYED_MAPS = new Set([
+  'configuredChannels',
+  'channelConfigs',
+  'slotMeta',
+]);
 
 /** Empty `{}` patches must not wipe a populated slot map (bad partial saves). */
 function shouldIgnoreEmptySlotMapPatch(patchVal, baseVal) {

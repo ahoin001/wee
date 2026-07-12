@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import useChannelOperations from '../../utils/useChannelOperations';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import useSoundManager from '../../utils/useSoundManager';
+import { playChannelClick } from '../../utils/soundPlayback';
 import { WeeGooeySideNavButton } from '../../ui/wee';
 
 const DefaultLeftIcon = () => (
@@ -49,8 +49,6 @@ const WiiSideNavigation = () => {
     (state) => state.ribbon.dynamicRibbonColorEnabled ?? false
   );
   const shouldUseDynamicNavColors = spotifyEnabled && dynamicRibbonColorEnabled;
-
-  const { playChannelClickSound } = useSoundManager();
 
   const navigationSettings = useConsolidatedAppStore((state) => state.navigation);
   const leftIcon = navigationSettings.icons?.left || null;
@@ -161,7 +159,7 @@ const WiiSideNavigation = () => {
         aria-label="Previous page"
         onContextMenu={handleContextMenu}
         onClick={async () => {
-          await playChannelClickSound();
+          await playChannelClick();
           prevPage();
         }}
       >
@@ -177,7 +175,7 @@ const WiiSideNavigation = () => {
         aria-label="Next page"
         onContextMenu={handleContextMenu}
         onClick={async () => {
-          await playChannelClickSound();
+          await playChannelClick();
           nextPage();
         }}
       >

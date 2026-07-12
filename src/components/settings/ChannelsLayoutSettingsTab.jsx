@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Activity, Aperture, Home, Info, LayoutGrid, Monitor } from 'lucide-react';
+import { Activity, Aperture, EyeOff, Home, Info, LayoutGrid, Monitor } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import {
@@ -14,7 +14,12 @@ import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsMultiToggleChips from './SettingsMultiToggleChips';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { WII_LAYOUT_PRESET } from '../../utils/channelLayoutSystem';
+import {
+  CHANNEL_LAYOUT_LIMITS,
+  isSlotHidden,
+  resolveLayout,
+  WII_LAYOUT_PRESET,
+} from '../../utils/channelLayoutSystem';
 import { getChannelDataSlice } from '../../utils/channelSpaces';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
@@ -116,10 +121,14 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
       setChannelSettings: state.actions.setChannelSettings,
       setSpacesState: state.actions.setSpacesState,
       setUIState: state.actions.setUIState,
+      setChannelLayoutForSpace: state.actions.setChannelLayoutForSpace,
+      setChannelSlotHiddenForSpace: state.actions.setChannelSlotHiddenForSpace,
     }))
   );
   const motionFeedback = useConsolidatedAppStore((state) => state.ui.motionFeedback);
   const gooeyPrefs = useMemo(() => mergeMotionFeedback(motionFeedback).gooey, [motionFeedback]);
+  const [punchHoleMode, setPunchHoleMode] = useState(false);
+  const [previewPage, setPreviewPage] = useState(0);
 
   const handleChannelHoverModeChange = useCallback(
     (mode) => {
@@ -154,11 +163,34 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     () => getChannelDataSlice(channels, layoutSpaceKey),
     [channels, layoutSpaceKey]
   );
+  const layout = useMemo(() => resolveLayout(currentData), [currentData]);
   const currentNavigation = currentData.navigation || {};
-  const totalChannels =
-    currentData.totalChannels ||
-    WII_LAYOUT_PRESET.columns * WII_LAYOUT_PRESET.rows * WII_LAYOUT_PRESET.totalPages;
+  const totalChannels = layout.totalChannels;
   const currentPage = currentNavigation.currentPage || 0;
+  const slotMeta = currentData.slotMeta || {};
+  const safePreviewPage = Math.max(0, Math.min(previewPage, layout.totalPages - 1));
+
+  const handleLayoutFieldChange = useCallback(
+    (field, value) => {
+      actions.setChannelLayoutForSpace(layoutSpaceKey, { [field]: value });
+    },
+    [actions, layoutSpaceKey]
+  );
+
+  const handleToggleSlotHidden = useCallback(
+    (channelIndex) => {
+      const next = !isSlotHidden(slotMeta, channelIndex);
+      actions.setChannelSlotHiddenForSpace(layoutSpaceKey, channelIndex, next);
+    },
+    [actions, layoutSpaceKey, slotMeta]
+  );
+
+  const pageSlotIndices = useMemo(() => {
+    const start = safePreviewPage * layout.channelsPerPage;
+    return Array.from({ length: layout.channelsPerPage }, (_, i) => start + i).filter(
+      (i) => i < layout.totalChannels
+    );
+  }, [safePreviewPage, layout.channelsPerPage, layout.totalChannels]);
 
   const adaptivePreviewStyle = useMemo(() => {
     const accentColor =
@@ -247,19 +279,20 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
         <WeeSettingsCollapsibleSection
           icon={LayoutGrid}
           title="Layout & spaces"
-          description="Fixed Wii grid, which board you preview, and where related settings live."
+          description="Grid size, wallpaper holes, which board you preview, and related settings links."
           defaultOpen
         >
           <div className="relative overflow-hidden rounded-[2.5rem] border-2 border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-tertiary))] p-8 text-[hsl(var(--text-primary))]">
             <div className="relative z-[1]">
               <span className="inline-flex rounded-full bg-[hsl(var(--primary))] px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-on-accent))]">
-                Standard preset
+                Live layout
               </span>
               <h2 className="m-0 mt-3 text-[clamp(1.75rem,4vw,2.25rem)] font-black uppercase italic leading-none tracking-tighter">
-                4 × 3 × 3
+                {layout.columns} × {layout.rows} × {layout.totalPages}
               </h2>
               <p className="mt-2 text-[11px] font-bold uppercase tracking-wider text-[hsl(var(--text-secondary))]">
-                {totalChannels} total slots (immutable grid)
+                {totalChannels} slots · default {WII_LAYOUT_PRESET.columns}×{WII_LAYOUT_PRESET.rows}×
+                {WII_LAYOUT_PRESET.totalPages}
               </p>
             </div>
             <LayoutGrid
@@ -268,6 +301,121 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               aria-hidden
             />
           </div>
+
+          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-5 md:p-6">
+            <WeeSectionEyebrow className="mb-3 block" trackingClassName="tracking-[0.14em]">
+              Grid geometry
+            </WeeSectionEyebrow>
+            <Text variant="desc" className="!mb-4 !mt-0 text-[hsl(var(--text-secondary))]">
+              Changing size migrates channel keys (extra slots are dropped; new slots start empty).
+            </Text>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4">
+              <Slider
+                label="Columns"
+                value={layout.columns}
+                min={CHANNEL_LAYOUT_LIMITS.columns.min}
+                max={CHANNEL_LAYOUT_LIMITS.columns.max}
+                step={1}
+                onChange={(v) => handleLayoutFieldChange('columns', v)}
+                aria-label="Channel grid columns"
+              />
+              <Slider
+                label="Rows"
+                value={layout.rows}
+                min={CHANNEL_LAYOUT_LIMITS.rows.min}
+                max={CHANNEL_LAYOUT_LIMITS.rows.max}
+                step={1}
+                onChange={(v) => handleLayoutFieldChange('rows', v)}
+                aria-label="Channel grid rows"
+              />
+              <Slider
+                label="Pages"
+                value={layout.totalPages}
+                min={CHANNEL_LAYOUT_LIMITS.totalPages.min}
+                max={CHANNEL_LAYOUT_LIMITS.totalPages.max}
+                step={1}
+                onChange={(v) => handleLayoutFieldChange('totalPages', v)}
+                aria-label="Channel grid pages"
+              />
+            </div>
+          </WeeModalFieldCard>
+
+          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-5 md:p-6">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+                  Punch holes
+                </WeeSectionEyebrow>
+                <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+                  Hide slots so wallpaper shows through. Holes stay at absolute indices.
+                </Text>
+              </div>
+              <button
+                type="button"
+                aria-pressed={punchHoleMode}
+                onClick={() => setPunchHoleMode((v) => !v)}
+                className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide ${
+                  punchHoleMode
+                    ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+                    : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
+                }`}
+              >
+                {punchHoleMode ? 'Editing holes' : 'Edit holes'}
+              </button>
+            </div>
+            {layout.totalPages > 1 ? (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {Array.from({ length: layout.totalPages }, (_, page) => (
+                  <button
+                    key={`layout-page-${page}`}
+                    type="button"
+                    onClick={() => setPreviewPage(page)}
+                    className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
+                      safePreviewPage === page
+                        ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+                        : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
+                    }`}
+                  >
+                    Page {page + 1}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <div
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+              }}
+              role="group"
+              aria-label="Channel slot punch-hole preview"
+            >
+              {pageSlotIndices.map((slotIndex) => {
+                const hidden = isSlotHidden(slotMeta, slotIndex);
+                return (
+                  <button
+                    key={`punch-${slotIndex}`}
+                    type="button"
+                    disabled={!punchHoleMode}
+                    onClick={() => handleToggleSlotHidden(slotIndex)}
+                    title={
+                      punchHoleMode
+                        ? hidden
+                          ? 'Show slot'
+                          : 'Hide slot (wallpaper hole)'
+                        : `Slot ${slotIndex + 1}`
+                    }
+                    className={`relative flex aspect-[4/3] items-center justify-center rounded-xl border-2 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                      hidden
+                        ? 'border-dashed border-[hsl(var(--border-secondary))] bg-transparent text-[hsl(var(--text-tertiary))]'
+                        : 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-secondary))]'
+                    } ${punchHoleMode ? 'cursor-pointer hover:border-[hsl(var(--primary))]' : 'cursor-default opacity-90'}`}
+                  >
+                    {hidden ? <EyeOff size={14} aria-hidden /> : slotIndex + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </WeeModalFieldCard>
 
           <div>
             <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
@@ -292,7 +440,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               Page {String(currentPage + 1).padStart(2, '0')}
             </Text>
             <Text variant="caption" className="!mt-2 text-[hsl(var(--text-tertiary))]">
-              Of {WII_LAYOUT_PRESET.totalPages} total pages · Home
+              Of {layout.totalPages} total pages · Home
             </Text>
           </WeeModalFieldCard>
 

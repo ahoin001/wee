@@ -24,8 +24,6 @@ function registerResetHandlers({
       channelClickVolume: 0.5,
       channelHoverEnabled: true,
       channelHoverVolume: 0.5,
-      startupEnabled: true,
-      startupVolume: 0.5,
     };
     await unifiedData.set({
       ...data,
@@ -80,7 +78,6 @@ function registerResetHandlers({
             backgroundMusic: [],
             channelClick: [],
             channelHover: [],
-            startup: [],
           },
           presets: [],
           icons: preservedIcons,

@@ -6,6 +6,8 @@ function createWindowLifecycle({
   process,
   appBasePath,
   unifiedData,
+  appUserModelId,
+  appDisplayName,
 }) {
   let mainWindow = null;
   let isCurrentlyFullscreen = false;
@@ -112,6 +114,7 @@ function createWindowLifecycle({
       backgroundColor: '#000000',
       frame: opts.frame === undefined ? !isFrameless : opts.frame,
       fullscreen: shouldStartFullscreen,
+      title: appDisplayName || 'Wee',
       webPreferences: {
         preload: path.join(appBasePath, 'preload.cjs'),
         contextIsolation: true,
@@ -122,6 +125,17 @@ function createWindowLifecycle({
         backgroundThrottling: true,
       },
     });
+
+    if (process.platform === 'win32' && typeof mainWindow.setAppDetails === 'function' && appUserModelId) {
+      try {
+        mainWindow.setAppDetails({
+          appId: appUserModelId,
+          relaunchDisplayName: appDisplayName || 'Wee',
+        });
+      } catch (err) {
+        console.warn('[WINDOW] setAppDetails failed:', err?.message || err);
+      }
+    }
 
     if (isDev) {
       mainWindow.loadURL('http://localhost:5173');

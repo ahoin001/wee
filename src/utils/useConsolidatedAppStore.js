@@ -9,7 +9,12 @@ import {
   DEFAULT_RIBBON_SURFACE_HEX,
   INPUT_COLOR_DEFAULT_HEX,
 } from '../design/runtimeColorStrings.js';
-import { resolveGridConfig, resolveNavigation } from './channelLayoutSystem';
+import {
+  applyLayoutChangeToSpaceData,
+  channelIdAtIndex,
+  resolveGridConfig,
+  resolveNavigation,
+} from './channelLayoutSystem';
 import { applyChannelSlotReorder } from './channelReorder';
 import { DEFAULT_MOTION_FEEDBACK, mergeMotionFeedback } from './motionFeedbackDefaults';
 import {
@@ -924,6 +929,75 @@ useConsolidatedAppStore = create(
                     ...channelsData,
                     navigation: { ...channelsData.navigation, ...updates },
                   },
+                },
+              },
+            };
+          }),
+
+          /**
+           * Apply geometry change with slot-map migration (truncate/pad keys).
+           * @param {string} spaceKey
+           * @param {{ columns?: number, rows?: number, totalPages?: number, peekPercent?: number }} layoutPartial
+           */
+          setChannelLayoutForSpace: (spaceKey, layoutPartial) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const channelsData =
+              key === 'workspaces'
+                ? getSecondaryChannelSpaceData(state.channels)
+                : state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
+            const next = applyLayoutChangeToSpaceData(channelsData, layoutPartial || {});
+            if (key === 'workspaces') {
+              return {
+                channels: patchSecondaryChannelSpace(state, () => next),
+              };
+            }
+            return {
+              channels: {
+                ...state.channels,
+                dataBySpace: {
+                  ...state.channels.dataBySpace,
+                  [key]: next,
+                },
+              },
+            };
+          }),
+
+          /**
+           * Punch-hole / show slot at absolute index. Slot meta stays fixed (does not reorder with tiles).
+           */
+          setChannelSlotHiddenForSpace: (spaceKey, channelIndex, hidden) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const index = channelIndex | 0;
+            if (index < 0) return state;
+            const id = channelIdAtIndex(index);
+            const patchMeta = (channelsData) => {
+              const prevMeta =
+                channelsData.slotMeta && typeof channelsData.slotMeta === 'object'
+                  ? { ...channelsData.slotMeta }
+                  : {};
+              const prevSlot =
+                prevMeta[id] && typeof prevMeta[id] === 'object' ? { ...prevMeta[id] } : {};
+              if (hidden) {
+                prevMeta[id] = { ...prevSlot, hidden: true };
+              } else {
+                delete prevSlot.hidden;
+                if (Object.keys(prevSlot).length === 0) delete prevMeta[id];
+                else prevMeta[id] = prevSlot;
+              }
+              return { ...channelsData, slotMeta: prevMeta };
+            };
+            if (key === 'workspaces') {
+              return {
+                channels: patchSecondaryChannelSpace(state, patchMeta),
+              };
+            }
+            const channelsData = state.channels?.dataBySpace?.[key] || createDefaultChannelSpaceData();
+            return {
+              channels: {
+                ...state.channels,
+                dataBySpace: {
+                  ...state.channels.dataBySpace,
+                  [key]: patchMeta(channelsData),
                 },
               },
             };

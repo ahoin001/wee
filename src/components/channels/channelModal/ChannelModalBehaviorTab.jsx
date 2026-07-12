@@ -11,11 +11,13 @@ import {
   WeeDescriptionToggleRow,
   WeeIconHeadingRow,
   WeeModalFieldCard,
+  WeePressSurface,
   WeeSectionEyebrow,
   WeeSegmentedControl,
   WeeSettingsCollapsibleSection,
 } from '../../../ui/wee';
-import AudioManager from '../../../utils/AudioManager';
+import { createWeeTransition } from '../../../design/weeMotion';
+import { playPreview } from '../../../utils/soundPlayback';
 
 function ChannelModalBehaviorTab({
   channelId,
@@ -26,10 +28,9 @@ function ChannelModalBehaviorTab({
   hoverSoundUrl,
   hoverSoundName,
   hoverSoundVolume,
-  hoverSoundAudio,
+  hoverSoundPreviewPlaying,
   selectedHoverSoundId,
   uploadingHoverSound,
-  hoverSoundInputRef,
   soundLibraryLoading,
   getSoundsByCategory,
   clearHoverSoundSelection,
@@ -37,7 +38,6 @@ function ChannelModalBehaviorTab({
   handleHoverSoundVolumeChange,
   handleHoverSoundSelect,
   handleHoverSoundUpload,
-  handleHoverSoundFile,
   animatedOnHover,
   setAnimatedOnHover,
   kenBurnsEnabled,
@@ -72,6 +72,7 @@ function ChannelModalBehaviorTab({
   };
 
   const reduceMotion = useReducedMotion();
+  const hoverBodyTransition = createWeeTransition('tab', { reducedMotion: !!reduceMotion });
 
   const renderHoverSoundSection = () => (
     <div className="channel-stack-16">
@@ -88,7 +89,7 @@ function ChannelModalBehaviorTab({
 
           <div className="channel-row-gap-12">
             <WButton variant="secondary" size="sm" onClick={handleTestHoverSound} disabled={!hoverSoundUrl}>
-              {hoverSoundAudio ? 'Stop' : 'Test'}
+              {hoverSoundPreviewPlaying ? 'Stop' : 'Test'}
             </WButton>
 
             <div className="channel-row-gap-8 channel-fill">
@@ -128,8 +129,9 @@ function ChannelModalBehaviorTab({
         ) : (
           <div className="channel-sound-grid">
             {channelHoverSounds.map((sound) => (
-              <div
+              <WeePressSurface
                 key={sound.id}
+                as="div"
                 onClick={() => handleHoverSoundSelect(sound.id)}
                 className={`channel-sound-card ${selectedHoverSoundId === sound.id ? 'channel-sound-card-selected' : ''}`}
               >
@@ -146,7 +148,7 @@ function ChannelModalBehaviorTab({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      AudioManager.playPreview(sound.url, sound.volume ?? 0.5);
+                      playPreview(sound.url, sound.volume ?? 0.5);
                     }}
                     className="channel-min-w-60"
                   >
@@ -158,50 +160,14 @@ function ChannelModalBehaviorTab({
                     <span className="channel-tiny-label">{Math.round((sound.volume ?? 0.5) * 100)}%</span>
                   </div>
                 </div>
-              </div>
+              </WeePressSurface>
             ))}
           </div>
         )}
       </div>
 
-      <div className="channel-surface-block channel-surface-subtle">
-        <Text variant="p" className="!font-semibold !m-0 !mb-2 !text-[14px]">
-          Legacy File Upload
-        </Text>
-        <div className="channel-row-gap-10">
-          <button
-            type="button"
-            className="file-button"
-            id="channel-legacy-upload-button"
-            onClick={async () => {
-              if (window.api && window.api.sounds && window.api.sounds.selectFile) {
-                const result = await window.api.sounds.selectFile();
-                if (result && result.success && result.file) {
-                  await handleHoverSoundFile(result.file);
-                } else if (result && result.error) {
-                  alert(`Failed to select sound file: ${result.error}`);
-                }
-              } else {
-                hoverSoundInputRef.current?.click();
-              }
-            }}
-          >
-            {hoverSoundName || 'Select Audio File'}
-          </button>
-          <input
-            type="file"
-            accept="audio/*"
-            ref={hoverSoundInputRef}
-            onChange={(e) => handleHoverSoundFile(e.target.files[0])}
-            className="hidden"
-          />
-          <span className="channel-legacy-upload-note">Direct file upload (not saved to library)</span>
-        </div>
-      </div>
-
       <Text variant="help" className="channel-help-sm">
-        Sound will fade in on hover, and fade out on leave or click. Sounds uploaded to the library are saved permanently
-        and can be reused across channels.
+        Sound fades out on leave or click. Library uploads are shared and can be reused across channels.
       </Text>
     </div>
   );
@@ -347,11 +313,7 @@ function ChannelModalBehaviorTab({
                   initial={reduceMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                  transition={
-                    reduceMotion
-                      ? { duration: 0.12 }
-                      : { type: 'spring', stiffness: 380, damping: 28, mass: 0.82 }
-                  }
+                  transition={hoverBodyTransition}
                   className="rounded-[2rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-secondary)/0.65)] p-5 md:p-6"
                 >
                   {renderHoverSoundSection()}
@@ -362,7 +324,7 @@ function ChannelModalBehaviorTab({
                   initial={reduceMotion ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.15 }}
+                  transition={createWeeTransition('tab', { reducedMotion: !!reduceMotion })}
                 >
                   <Text variant="help" className="!m-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-5">
                     Turn on the toggle above to choose a sound, adjust volume, and test playback.
@@ -454,10 +416,9 @@ ChannelModalBehaviorTab.propTypes = {
   hoverSoundUrl: PropTypes.string,
   hoverSoundName: PropTypes.string,
   hoverSoundVolume: PropTypes.number,
-  hoverSoundAudio: PropTypes.object,
+  hoverSoundPreviewPlaying: PropTypes.bool,
   selectedHoverSoundId: PropTypes.string,
   uploadingHoverSound: PropTypes.bool,
-  hoverSoundInputRef: PropTypes.object,
   soundLibraryLoading: PropTypes.bool,
   getSoundsByCategory: PropTypes.func.isRequired,
   clearHoverSoundSelection: PropTypes.func.isRequired,
@@ -465,7 +426,6 @@ ChannelModalBehaviorTab.propTypes = {
   handleHoverSoundVolumeChange: PropTypes.func.isRequired,
   handleHoverSoundSelect: PropTypes.func.isRequired,
   handleHoverSoundUpload: PropTypes.func.isRequired,
-  handleHoverSoundFile: PropTypes.func.isRequired,
   animatedOnHover: PropTypes.oneOf([true, false, 'global', undefined]),
   setAnimatedOnHover: PropTypes.func.isRequired,
   kenBurnsEnabled: PropTypes.oneOf([true, false, 'global', undefined]),

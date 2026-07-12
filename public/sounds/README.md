@@ -1,63 +1,30 @@
-# Default Sounds for WiiDesktop Launcher
+# Default Sounds for Wee
 
-This directory contains the default sound files for the WiiDesktop Launcher application.
+Bundled default audio for the Sounds settings tab (`Settings → Sounds`).
 
-## How to Add Default Sounds
+## Sources of truth
 
-1. **Place your sound files in this directory** with the following naming convention:
-   - `wii-click-1.mp3`, `wii-click-2.mp3`, `wii-click-3.mp3` (for channel click sounds)
-   - `wii-hover-1.mp3`, `wii-hover-2.mp3`, `wii-hover-3.mp3` (for channel hover sounds)
-   - `wii-menu-music.mp3`, `wii-channel-music.mp3`, `wii-ambient-music.mp3` (for background music)
-   - `wii-startup-1.mp3`, `wii-startup-2.mp3`, `wii-startup-3.mp3` (for startup sounds)
+| Domain | Store |
+|--------|--------|
+| Enables / volumes / BGM loop + playlist mode | `settings.sounds` in unified-data (Zustand) |
+| Catalog (files, per-track enable/volume/liked/order) | `savedSounds.json` via `api.sounds.*` |
+| Per-channel hover override | Channel config `hoverSound` |
 
-2. **Supported audio formats**: MP3, WAV, OGG, M4A
+Do **not** store BGM enable/loop/playlist flags in the library JSON.
 
-3. **File size recommendations**:
-   - Click/Hover sounds: 50KB - 200KB each
-   - Background music: 1MB - 5MB each
-   - Startup sounds: 100KB - 500KB each
+## How to add default sounds
 
-4. **Volume levels** (can be adjusted in the app):
-   - Click sounds: Default 50% volume
-   - Hover sounds: Default 30% volume
-   - Background music: Default 40% volume
-   - Startup sounds: Default 60% volume
+1. Place files here with these names (optional packaging assets):
+   - `wii-click-1.mp3` — channel click
+   - `wii-hover-1.mp3` — channel hover
+   - `wii-menu-music.mp3` — background music
+2. Supported formats: MP3, WAV, OGG, M4A, AAC
+3. Size guidance: click/hover ~50–200KB; BGM ~1–5MB
 
-## Automatic Loading
+## Runtime
 
-When you first open the Sound Settings modal, the app will automatically:
-- Load any default sound files found in this directory
-- Add them to the "Saved Sounds" section for each sound type
-- Make them available for selection
+On first launch the main process copies defaults into the user sounds directory and seeds the library catalog. Manage enablement, volume, and playlist order in **Settings → Sounds**. Channel-specific hover overrides are configured on each channel’s Behavior tab.
 
-## Customization
+## Packaging
 
-You can:F
-- Replace the default files with your own sounds (keep the same filenames)
-- Add additional sound files and they will be available in the app
-- Adjust volume levels and enable/disable sounds in the Sound Settings modal
-
-## Example File Structure
-
-```
-public/sounds/
-├── README.md
-├── wii-click-1.mp3
-├── wii-click-2.mp3
-├── wii-click-3.mp3
-├── wii-hover-1.mp3
-├── wii-hover-2.mp3
-├── wii-hover-3.mp3
-├── wii-menu-music.mp3
-├── wii-channel-music.mp3
-├── wii-ambient-music.mp3
-├── wii-startup-1.mp3
-├── wii-startup-2.mp3
-└── wii-startup-3.mp3
-```
-
-## Notes
-
-- The app will only load these sounds on first run or if no saved sounds exist
-- You can still add custom sounds through the file picker in the app
-- Default sounds are marked with a special flag and can be distinguished from user-added sounds 
+Ship the listed `.mp3` files with the app resources (`public/sounds`) so first-run copy succeeds. Missing binaries are logged; the catalog entry may still exist without a playable file.

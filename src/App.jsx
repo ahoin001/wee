@@ -3,14 +3,13 @@ import { m } from 'framer-motion';
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
 import { useShallow } from 'zustand/react/shallow';
 import useWallpaperCycling from './utils/useWallpaperCycling';
-import useSoundManager from './utils/useSoundManager';
 import useKeyboardShortcuts from './utils/useKeyboardShortcuts';
 import { electronApi } from './utils/electronApi';
+import useBackgroundMusicLifecycle from './utils/useBackgroundMusicLifecycle';
 import {
   useCursorEffect,
   useThemeEffect,
   usePrimaryAccentThemeEffect,
-  useBackgroundMusicEffects,
   useFullscreenEffect,
   useGlobalKeyHandlers,
 } from './hooks/useAppShellEffects';
@@ -172,13 +171,8 @@ function App() {
   // Initialize wallpaper cycling (only for cycling status indicator)
   const { isCycling, cycleToNextWallpaper, cycleIntervalSeconds } = useWallpaperCycling();
 
-  // Initialize sound manager for background music
-  const {
-    soundSettings,
-    startBackgroundMusic,
-    stopBackgroundMusic,
-    updateBackgroundMusic
-  } = useSoundManager();
+  // Single BGM lifecycle owner (focus/blur + settings-driven start/stop)
+  useBackgroundMusicLifecycle({ appReady });
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
@@ -234,14 +228,6 @@ function App() {
       delete window.showAllWidgets;
     };
   }, [floatingWidgets]);
-
-  useBackgroundMusicEffects({
-    appReady,
-    soundSettings,
-    startBackgroundMusic,
-    stopBackgroundMusic,
-    updateBackgroundMusic,
-  });
 
   // Actions from consolidated store
   const { setUIState, setRibbonState, setSpacesState } = useConsolidatedAppStore(

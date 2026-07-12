@@ -70,46 +70,6 @@ export const usePrimaryAccentThemeEffect = (ribbonGlowHex, isDarkMode) => {
   }, [ribbonGlowHex, isDarkMode]);
 };
 
-export const useBackgroundMusicEffects = ({
-  appReady,
-  soundSettings,
-  startBackgroundMusic,
-  stopBackgroundMusic,
-  updateBackgroundMusic,
-}) => {
-  useEffect(() => {
-    if (!appReady) {
-      return;
-    }
-
-    if (soundSettings?.backgroundMusicEnabled) {
-      startBackgroundMusic();
-    } else {
-      stopBackgroundMusic();
-    }
-  }, [appReady, soundSettings?.backgroundMusicEnabled, startBackgroundMusic, stopBackgroundMusic]);
-
-  // Reconfigure active BGM only when playback-relevant knobs change.
-  useEffect(() => {
-    if (!appReady || !soundSettings?.backgroundMusicEnabled) {
-      return;
-    }
-    updateBackgroundMusic();
-  }, [
-    appReady,
-    soundSettings?.backgroundMusicEnabled,
-    soundSettings?.backgroundMusicLooping,
-    soundSettings?.backgroundMusicPlaylistMode,
-    updateBackgroundMusic,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      stopBackgroundMusic();
-    };
-  }, [stopBackgroundMusic]);
-};
-
 export const useFullscreenEffect = ({ appReady, startInFullscreen }) => {
   useEffect(() => {
     if (appReady && window.api?.setFullscreen) {

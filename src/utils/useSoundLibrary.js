@@ -1,4 +1,9 @@
 import { useCallback, useState, useEffect } from 'react';
+import {
+  hydrateSoundLibrary,
+  subscribeSoundLibrary,
+} from './soundLibraryCache';
+
 /**
  * Custom hook for managing the sound library
  * Handles sound file operations, library state, and Electron integration
@@ -15,48 +20,30 @@ export const useSoundLibrary = () => {
     { key: 'channelHover', label: 'Channel Hover Sound' },
   ];
 
-  // Load sound library from backend
+  // Load sound library from backend into shared cache + local React state
   const loadSoundLibrary = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      console.log('[useSoundLibrary] Loading sound library...');
-      
-      if (window.api?.sounds?.getLibrary) {
-        const library = await window.api.sounds.getLibrary();
-        console.log('[useSoundLibrary] Loaded library:', library);
-        console.log('[useSoundLibrary] Library keys:', Object.keys(library || {}));
-        
-        if (library) {
-          // Log details for each category
-          Object.keys(library).forEach(category => {
-            if (Array.isArray(library[category])) {
-              console.log(`[useSoundLibrary] ${category}: ${library[category].length} sounds`);
-              library[category].forEach(sound => {
-                console.log(`[useSoundLibrary]   - ${sound.name} (enabled: ${sound.enabled}, volume: ${sound.volume})`);
-              });
-            }
-          });
-        }
-        
-        setSoundLibrary(library || {});
-      } else {
-        console.warn('[useSoundLibrary] Sounds API not available');
-        setSoundLibrary({});
-      }
+      const library = await hydrateSoundLibrary({ force: true });
+      setSoundLibrary(library || {});
     } catch (err) {
-      console.error('[useSoundLibrary] Failed to load sound library:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Load library on mount
   useEffect(() => {
     loadSoundLibrary();
   }, [loadSoundLibrary]);
+
+  useEffect(() => {
+    return subscribeSoundLibrary((lib) => {
+      if (lib) setSoundLibrary(lib);
+    });
+  }, []);
 
   // Add a new sound to the library
   const addSound = useCallback(async (soundType, file, name) => {

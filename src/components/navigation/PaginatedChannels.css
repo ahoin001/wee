@@ -142,7 +142,7 @@
   transition: opacity 0.5s ease-out;
 }
 
-/* One continuous grid: 4×N columns × 3 rows; uniform gap everywhere (Wii-style strip) */
+/* One continuous grid: N×pages columns × rows; uniform gap; pan via Framer Motion */
 .wii-strip-continuous {
   display: block;
   /* 100% = .wii-mode-grid content box; full strip width for translateX(…%) math */
@@ -154,18 +154,6 @@
   box-sizing: border-box;
   position: relative;
   will-change: transform;
-  transition: none;
-  /* One “page” = 1/N of strip width; middle pages get prev + next column peeks */
-  transform: translateX(
-    calc(
-      -1 * var(--wii-strip-current-page, 0) *
-      (100% / var(--wii-total-pages, 1))
-    )
-  );
-}
-
-.wii-strip-track--animating {
-  transition: transform 0.48s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .wii-strip-board--continuous {
@@ -185,6 +173,11 @@
   display: flex;
   align-items: stretch;
   justify-content: stretch;
+}
+
+.wii-strip-channel-cell--hidden {
+  pointer-events: none;
+  visibility: hidden;
 }
 
 /* Tile enter: Framer stagger in WiiChannelStrip (weeMotion.js), not CSS keyframes */
@@ -337,8 +330,8 @@
     transition: none;
   }
 
-  .wii-strip-track--animating {
-    transition: none;
+  .wii-strip-continuous {
+    will-change: auto;
   }
 }
 

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
-import useSoundManager from '../../../utils/useSoundManager';
+import {
+  playChannelClick,
+  playChannelHover,
+  stopSfx,
+} from '../../../utils/soundPlayback';
 import { launchWithFeedback } from '../../../utils/launchWithFeedback';
 import { getRecentLaunchHintTtlMs } from '../../../utils/channelOpenHint';
 
@@ -28,7 +32,6 @@ export function useChannelInteractions({
 
   const openHint = useConsolidatedAppStore((state) => state.ui.channelOpenHints?.[id]);
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
-  const { playChannelHoverSound, playChannelClickSound, stopAllSounds } = useSoundManager();
 
   const recordRecentLaunchHint = useCallback(() => {
     setUIState((prev) => ({
@@ -70,7 +73,7 @@ export function useChannelInteractions({
     setUIState({ channelConfigureModalOpen: showChannelModal });
   }, [showChannelModal, setUIState]);
 
-  useEffect(() => () => stopAllSounds(), [stopAllSounds]);
+  useEffect(() => () => stopSfx({ fadeMs: 0 }), []);
 
   const handleConfigure = useCallback(() => {
     setShowChannelModal(true);
@@ -91,13 +94,13 @@ export function useChannelInteractions({
     if (onHover) onHover();
     const hasContent = effectivePath || effectiveConfig?.isApiChannel || effectiveMedia;
     if (hasContent) {
-      await playChannelHoverSound(effectiveHoverSound);
+      await playChannelHover(effectiveHoverSound);
     }
-  }, [onHover, effectivePath, effectiveConfig?.isApiChannel, effectiveMedia, playChannelHoverSound, effectiveHoverSound]);
+  }, [onHover, effectivePath, effectiveConfig?.isApiChannel, effectiveMedia, effectiveHoverSound]);
 
   const handleMouseLeave = useCallback(() => {
-    stopAllSounds();
-  }, [stopAllSounds]);
+    stopSfx({ fadeMs: 120 });
+  }, []);
 
   const handleClick = useCallback(async () => {
     if (!api) {
@@ -110,11 +113,11 @@ export function useChannelInteractions({
       return;
     }
 
-    stopAllSounds();
+    stopSfx({ fadeMs: 0 });
     const isChannelEmpty = !effectiveConfig || !effectiveConfig.path;
 
     if (effectiveConfig?.isApiChannel && effectiveConfig?.apiConfig?.selectedApi) {
-      await playChannelClickSound();
+      await playChannelClick();
       if (effectiveConfig.apiConfig.selectedApi === 'spotify') {
         if (window.api?.ui?.showSpotifyWidget) {
           window.api.ui.showSpotifyWidget();
@@ -133,7 +136,7 @@ export function useChannelInteractions({
     }
     if (!effectivePath) return;
 
-    await playChannelClickSound();
+    await playChannelClick();
 
     if (effectiveType === 'url' && effectivePath.startsWith('http')) {
       const immersivePip = useConsolidatedAppStore.getState().ui?.immersivePip ?? false;
@@ -171,9 +174,7 @@ export function useChannelInteractions({
     showLaunchError,
     effectiveType,
     effectivePath,
-    stopAllSounds,
     effectiveConfig,
-    playChannelClickSound,
     recordRecentLaunchHint,
     beginLaunchFeedback,
     endLaunchFeedback,

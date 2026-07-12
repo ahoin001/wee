@@ -17,6 +17,16 @@ const url = require('url');
 const os = require('os');
 const { promisify } = require('util');
 
+/** Must match package.json `build.appId` — Windows taskbar, toast, and volume-mixer identity. */
+const APP_USER_MODEL_ID = 'com.ahoin001.wiidesktoplauncher';
+const APP_DISPLAY_NAME = 'Wee';
+
+// Windows: set before ready so audio sessions + shortcuts group under Wee (not Electron).
+if (process.platform === 'win32') {
+  app.setAppUserModelId(APP_USER_MODEL_ID);
+}
+app.setName(APP_DISPLAY_NAME);
+
 const fsExtra = require('fs-extra');
 const ws = require('windows-shortcuts');
 const vdf = require('vdf');
@@ -129,7 +139,7 @@ const {
 });
 
 // Sound Management System
-const SOUND_TYPES = ['channelClick', 'channelHover', 'backgroundMusic', 'startup'];
+const SOUND_TYPES = ['channelClick', 'channelHover', 'backgroundMusic'];
 
 // Default sound definitions
 const DEFAULT_SOUNDS = {
@@ -160,15 +170,6 @@ const DEFAULT_SOUNDS = {
       isDefault: true
     }
   ],
-  startup: [
-    {
-      id: 'default-startup-1',
-      name: 'Wii Startup 1',
-      filename: 'wii-startup-1.mp3',
-      volume: 0.6,
-      isDefault: true
-    }
-  ]
 };
 
 
@@ -211,6 +212,8 @@ const windowLifecycle = createWindowLifecycle({
   process,
   appBasePath: __dirname,
   unifiedData,
+  appUserModelId: APP_USER_MODEL_ID,
+  appDisplayName: APP_DISPLAY_NAME,
 });
 const {
   getMainWindow,

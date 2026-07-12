@@ -7,6 +7,7 @@ export { default as WeeGooeyIconButton, WEE_GOOEY_ICON_PRESS } from './WeeGooeyI
 export { default as WeeGooeySideNavButton, WEE_SIDE_NAV_PEEK_PX } from './WeeGooeySideNavButton';
 export { default as WeeLayoutActiveDisc } from './WeeLayoutActiveDisc';
 export { default as WeePillFloorShadow } from './WeePillFloorShadow';
+export { default as WeeGooeyStatusPill } from './WeeGooeyStatusPill';
 export {
   WeePressSurface,
   WeeTapLayer,

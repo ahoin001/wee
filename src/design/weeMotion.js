@@ -1,5 +1,6 @@
 import { useReducedMotion } from 'framer-motion';
 import { SPACE_SHELL_ENTRANCE_TIERS } from './spaceShellMotion';
+import { CHANNEL_PAGE_FLIP_MS } from '../utils/channelLayoutSystem';
 
 /**
  * spring presets for Wee modal shell + gooey space pill (see src/dev/hub-modal-overhaul-reference.jsx).
@@ -72,6 +73,11 @@ export const WEE_SPRINGS = {
     stiffness: 360,
     damping: 24,
     mass: 0.88,
+  },
+  /** Continuous strip page pan — duration matches CHANNEL_PAGE_FLIP_MS (single isAnimating clock) */
+  channelPageFlip: {
+    duration: CHANNEL_PAGE_FLIP_MS / 1000,
+    ease: [0.22, 0.61, 0.36, 1],
   },
   tabBody: {
     type: 'spring',
@@ -161,10 +167,12 @@ export const WEE_MOTION_INTENTS = Object.freeze({
   modalBackdrop: 'modalBackdrop',
   sheet: 'gooeyPanel',
   tab: 'tabBody',
+  statusPill: 'pillOpen',
   pillOpen: 'pillOpen',
   pillClose: 'pillClose',
   channelDrag: 'channelDragOverlay',
   channelDrop: 'channelDropCelebrate',
+  channelPageFlip: 'channelPageFlip',
   hubEntrance: 'hubSpaceEntranceFull',
   hubRevisit: 'hubSpaceEntranceRevisitGooey',
   homeEntrance: 'homeSpaceEntranceOvershoot',
@@ -183,10 +191,12 @@ const REDUCED_MOTION_BY_INTENT = Object.freeze({
   modalBackdrop: { duration: 0.12 },
   sheet: { duration: 0.16 },
   tab: { duration: 0.12 },
+  statusPill: { duration: 0.14 },
   pillOpen: { duration: 0.15 },
   pillClose: { duration: 0.15 },
   channelDrag: { duration: 0.14 },
   channelDrop: { duration: 0.14 },
+  channelPageFlip: { duration: 0.01 },
   hubEntrance: { duration: 0.16 },
   hubRevisit: { duration: 0.14 },
   homeEntrance: { duration: 0.16 },
@@ -333,6 +343,29 @@ export function getWeeShellChromeEntrance(reducedMotion, pillOpen) {
     initial: { opacity: 0, y: 14, scale: 0.97 },
     animate: { opacity: 1, y: 0, scale: 1 },
     transition: pillOpen,
+  };
+}
+
+/**
+ * Top-of-screen gooey status pill (launch feedback, transient chrome).
+ * Same spring family as space rail; enters from above.
+ */
+export function getWeeStatusPillEntrance(reducedMotion, pillOpen) {
+  if (reducedMotion) {
+    return {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
+      transition: { duration: 0.12 },
+    };
+  }
+  const open = pillOpen || WEE_SPRINGS.pillOpen;
+  const close = WEE_SPRINGS.pillClose;
+  return {
+    initial: { opacity: 0, y: -18, scale: 0.88 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -12, scale: 0.92, transition: close },
+    transition: open,
   };
 }
 

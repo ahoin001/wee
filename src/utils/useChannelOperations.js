@@ -2,12 +2,14 @@ import { useCallback, useMemo, useEffect } from 'react';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { useChannelSpaceKey } from '../contexts/ChannelSpaceContext';
 import {
+  CHANNEL_PAGE_FLIP_MS,
   clampPageIndex,
   getPageBounds,
   getWiiNormalization,
+  isSlotHidden,
   resolveGridConfig,
+  resolveLayout,
   resolveNavigation,
-  WII_LAYOUT_PRESET,
 } from './channelLayoutSystem';
 import { getChannelDataSlice, normalizeChannelSpaceKey } from './channelSpaces';
 
@@ -33,6 +35,10 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   const updateChannelForSpace = useConsolidatedAppStore((state) => state.actions.updateChannelForSpace);
   const setChannelNavigationForSpace = useConsolidatedAppStore((state) => state.actions.setChannelNavigationForSpace);
   const reorderChannelSlotsForSpace = useConsolidatedAppStore((state) => state.actions.reorderChannelSlotsForSpace);
+  const setChannelLayoutForSpace = useConsolidatedAppStore((state) => state.actions.setChannelLayoutForSpace);
+  const setChannelSlotHiddenForSpace = useConsolidatedAppStore(
+    (state) => state.actions.setChannelSlotHiddenForSpace
+  );
 
   const channelData = useMemo(
     () => getChannelDataSlice(channels, spaceKey),
@@ -41,18 +47,20 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   const channelSettings = useMemo(() => channels?.settings || {}, [channels?.settings]);
   const channelOperations = useMemo(() => channels?.operations || {}, [channels?.operations]);
 
+  const layout = useMemo(() => resolveLayout(channelData), [channelData]);
+
   const rawNavigation = useMemo(() => resolveNavigation(channelData.navigation), [channelData.navigation]);
   const navigation = useMemo(
     () => ({
       ...rawNavigation,
       mode: 'wii',
-      currentPage: clampPageIndex(rawNavigation.currentPage || 0, WII_LAYOUT_PRESET.totalPages),
-      totalPages: WII_LAYOUT_PRESET.totalPages,
+      currentPage: clampPageIndex(rawNavigation.currentPage || 0, layout.totalPages),
+      totalPages: layout.totalPages,
       animationType: 'slide',
-      animationDuration: 500,
+      animationDuration: CHANNEL_PAGE_FLIP_MS,
       enableSlideAnimation: true,
     }),
-    [rawNavigation]
+    [rawNavigation, layout.totalPages]
   );
 
   const gridConfig = useMemo(() => {
@@ -69,6 +77,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     setChannelNavigationForSpace(spaceKey, navigationPatch);
   }, [
     spaceKey,
+    channelData.layout,
     channelData.gridColumns,
     channelData.gridRows,
     channelData.totalChannels,
@@ -83,6 +92,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
 
   const configuredChannels = useMemo(() => channelData.configuredChannels || {}, [channelData.configuredChannels]);
   const channelConfigs = useMemo(() => channelData.channelConfigs || {}, [channelData.channelConfigs]);
+  const slotMeta = useMemo(() => channelData.slotMeta || {}, [channelData.slotMeta]);
 
   const updateChannelConfig = useCallback(
     (channelId, config) => {
@@ -143,14 +153,8 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
           currentPage: validPage,
           isAnimating: true,
           animationDirection: direction,
+          animationDuration: CHANNEL_PAGE_FLIP_MS,
         });
-
-        setTimeout(() => {
-          setChannelNavigationForSpace(spaceKey, {
-            isAnimating: false,
-            animationDirection: 'none',
-          });
-        }, 500);
       }
     },
     [navigation, setChannelNavigationForSpace, spaceKey]
@@ -269,8 +273,30 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
   ]);
 
   const finishAnimation = useCallback(() => {
-    setChannelNavigationForSpace(spaceKey, { isAnimating: false });
+    setChannelNavigationForSpace(spaceKey, {
+      isAnimating: false,
+      animationDirection: 'none',
+    });
   }, [setChannelNavigationForSpace, spaceKey]);
+
+  const setLayout = useCallback(
+    (layoutPartial) => {
+      setChannelLayoutForSpace(spaceKey, layoutPartial);
+    },
+    [setChannelLayoutForSpace, spaceKey]
+  );
+
+  const setSlotHidden = useCallback(
+    (channelIndex, hidden) => {
+      setChannelSlotHiddenForSpace(spaceKey, channelIndex, hidden);
+    },
+    [setChannelSlotHiddenForSpace, spaceKey]
+  );
+
+  const isChannelSlotHidden = useCallback(
+    (channelIndex) => isSlotHidden(slotMeta, channelIndex),
+    [slotMeta]
+  );
 
   const updateChannelConfigs = useCallback(
     (updates) => {
@@ -362,9 +388,11 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     channelSettings,
     channelOperations,
     gridConfig,
+    layout,
     navigation,
     configuredChannels,
     channelConfigs,
+    slotMeta,
 
     updateChannelConfig,
     updateChannelMedia,
@@ -373,6 +401,9 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     updateChannelType,
     clearChannel,
     reorderChannels,
+    setLayout,
+    setSlotHidden,
+    isChannelSlotHidden,
 
     goToPage,
     nextPage,

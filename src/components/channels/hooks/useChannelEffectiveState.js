@@ -128,8 +128,8 @@ export function useChannelEffectiveState({
     [effectiveConfig?.adaptiveEmptyChannels, channelSettings.adaptiveEmptyChannels]
   );
   const useAdaptiveEmptyChannels = useMemo(
-    () => effectiveAdaptiveEmptyChannels && !wiiMode,
-    [effectiveAdaptiveEmptyChannels, wiiMode]
+    () => Boolean(effectiveAdaptiveEmptyChannels),
+    [effectiveAdaptiveEmptyChannels]
   );
 
   const adaptiveEmptyStyle = useChannelAdaptiveEmptyStyle({

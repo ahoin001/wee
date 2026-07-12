@@ -75,6 +75,7 @@ contextBridge.exposeInMainWorld('api', {
   channels: {
     get: () => ipcRenderer.invoke(IPC_CHANNELS.channels.get),
     set: (data) => ipcRenderer.invoke(IPC_CHANNELS.channels.set, data),
+    copyHoverSound: (args) => ipcRenderer.invoke('channels:copyHoverSound', args),
   },
   sounds: {
     add: (args) => ipcRenderer.invoke('add-sound', args),
@@ -83,8 +84,6 @@ contextBridge.exposeInMainWorld('api', {
     getLibrary: () => ipcRenderer.invoke('get-sound-library'),
     selectFile: () => ipcRenderer.invoke('select-sound-file'),
     toggleLike: (args) => ipcRenderer.invoke('sounds:toggleLike', args),
-    setBackgroundMusicSettings: (settings) => ipcRenderer.invoke('sounds:setBackgroundMusicSettings', settings),
-    getBackgroundMusicSettings: () => ipcRenderer.invoke('sounds:getBackgroundMusicSettings'),
   },
   steam: {
     getInstalledGames: () => ipcRenderer.invoke('steam:getInstalledGames'),

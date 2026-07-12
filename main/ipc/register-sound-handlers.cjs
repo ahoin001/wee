@@ -167,32 +167,6 @@ function registerSoundHandlers({
     }
   });
 
-  ipcMain.handle('sounds:setBackgroundMusicSettings', async (_event, settings) => {
-    try {
-      const library = await loadSoundLibrary();
-      if (!library.backgroundMusic) library.backgroundMusic = [];
-      library.backgroundMusicSettings = {
-        looping: !!settings.looping,
-        playlistMode: !!settings.playlistMode,
-        enabled: settings.enabled !== undefined ? !!settings.enabled : true,
-      };
-      await writeJson(savedSoundsPath, library);
-      return { success: true, settings: library.backgroundMusicSettings };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('sounds:getBackgroundMusicSettings', async () => {
-    try {
-      const library = await loadSoundLibrary();
-      const settings = library.backgroundMusicSettings || { looping: true, playlistMode: false, enabled: true };
-      return { success: true, settings };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  });
-
   ipcMain.handle('copy-sound-file', async (_event, { sourcePath, filename }) => {
     try {
       const targetPath = await copyFileToUserDirectory(sourcePath, userSoundsPath, filename);

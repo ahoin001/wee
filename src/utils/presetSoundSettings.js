@@ -1,8 +1,24 @@
 /**
- * Normalize sound data stored in presets across formats:
- * - Current: flat consolidated `sounds` slice (same keys as the Zustand store)
- * - Legacy: `sounds.json` blob `{ sounds: [], settings: {} }` from IPC `sounds:get`
+ * Normalize flat `settings.sounds` snapshots from presets (same keys as Zustand).
  */
+const SOUND_SETTINGS_KEYS = [
+  'backgroundMusicEnabled',
+  'backgroundMusicLooping',
+  'backgroundMusicPlaylistMode',
+  'channelClickEnabled',
+  'channelClickVolume',
+  'channelHoverEnabled',
+  'channelHoverVolume',
+];
+
+function pickSoundSettings(raw) {
+  const out = {};
+  for (const key of SOUND_SETTINGS_KEYS) {
+    if (raw[key] !== undefined) out[key] = raw[key];
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 export function normalizePresetSoundsSnapshot(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
 
@@ -13,15 +29,6 @@ export function normalizePresetSoundsSnapshot(raw) {
     raw.channelClickEnabled !== undefined ||
     raw.channelHoverEnabled !== undefined;
 
-  if (hasFlatToggles) {
-    return { ...raw };
-  }
-
-  if (raw.settings && typeof raw.settings === 'object' && !Array.isArray(raw.settings)) {
-    const keys = Object.keys(raw.settings);
-    if (keys.length === 0) return null;
-    return { ...raw.settings };
-  }
-
-  return null;
+  if (!hasFlatToggles) return null;
+  return pickSoundSettings(raw);
 }

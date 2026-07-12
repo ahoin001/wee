@@ -84,6 +84,35 @@ function run() {
     emptyWipe.channels.dataBySpace.home.configuredChannels,
     channelBase.channels.dataBySpace.home.configuredChannels
   );
+
+  // slotMeta also replaces wholesale (punch-hole clears must stick).
+  const metaBase = {
+    channels: {
+      dataBySpace: {
+        home: {
+          slotMeta: {
+            'channel-2': { hidden: true },
+            'channel-5': { hidden: true },
+          },
+        },
+      },
+    },
+  };
+  const metaPatch = {
+    channels: {
+      dataBySpace: {
+        home: {
+          slotMeta: {
+            'channel-2': { hidden: true },
+          },
+        },
+      },
+    },
+  };
+  const afterMeta = mergeSettingsPatch(metaBase, metaPatch);
+  assert.deepEqual(afterMeta.channels.dataBySpace.home.slotMeta, {
+    'channel-2': { hidden: true },
+  });
 }
 
 run();

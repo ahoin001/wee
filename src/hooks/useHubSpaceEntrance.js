@@ -5,7 +5,7 @@ import { SPACE_SHELL_ENTRANCE_TIERS } from '../design/spaceShellMotion';
 
 const STORAGE_PREFIX = 'wee.hubEntrance.';
 
-/** @param {'gamehub' | 'mediahub'} spaceId */
+/** @param {'gamehub' | 'mediahub' | 'home' | string} spaceId */
 export function hubEntranceStorageKey(spaceId) {
   return `${STORAGE_PREFIX}${spaceId}`;
 }
@@ -36,7 +36,10 @@ function writeFullComplete(spaceId) {
 /**
  * Session-aware shell-space entrance: playful spring first visit per session per space;
  * revisit runs a visible hidden→show assembly (stagger) on each landing.
- * First visit waits until the shell world transition finishes so the entrance does not fight the shell.
+ *
+ * Every entrance run (including cold-start home when already active) uses a reveal pulse:
+ * hidden → bump entranceKey → double-rAF → show, so Framer always sees a rising edge.
+ * First visit also waits until the shell world transition finishes when coming from another space.
  *
  * @param {string} spaceId
  * @param {boolean} reducedMotion
@@ -56,6 +59,7 @@ export function useHubSpaceEntrance(spaceId, reducedMotion) {
   const prevIsActiveRef = useRef(false);
   const prevCanStartRef = useRef(false);
   const runCounterRef = useRef(0);
+  const coldStartPulsedRef = useRef(false);
   const [entranceKey, setEntranceKey] = useState(0);
   const [runTier, setRunTier] = useState(() =>
     reducedMotion ? SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey : readTier(spaceId)
@@ -63,10 +67,16 @@ export function useHubSpaceEntrance(spaceId, reducedMotion) {
   const tierByEntranceKeyRef = useRef(new Map());
   const completedRunRef = useRef(0);
 
-  /** Revisit: second rAF flips to `show` so Framer sees a real hidden→show edge. */
-  const [revisitToShow, setRevisitToShow] = useState(false);
+  /** Reveal pulse: second rAF flips to `show` so Framer sees a real hidden→show edge. */
+  const [revealToShow, setRevealToShow] = useState(false);
 
-  const isRevisitTier = runTier === SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey;
+  const bumpEntrance = useCallback((tier) => {
+    runCounterRef.current += 1;
+    const nextKey = runCounterRef.current;
+    tierByEntranceKeyRef.current.set(nextKey, tier);
+    setEntranceKey(nextKey);
+    setRevealToShow(false);
+  }, []);
 
   useEffect(() => {
     if (isActive && !prevIsActiveRef.current) {
@@ -74,41 +84,46 @@ export function useHubSpaceEntrance(spaceId, reducedMotion) {
         ? SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey
         : readTier(spaceId);
       setRunTier(nextTier);
-      if (nextTier === SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey) {
-        runCounterRef.current += 1;
-        const nextKey = runCounterRef.current;
-        tierByEntranceKeyRef.current.set(nextKey, nextTier);
-        setEntranceKey(nextKey);
-      }
+      // Always bump on activation so tiles remount; reveal pulse drives show.
+      bumpEntrance(nextTier);
     }
     prevIsActiveRef.current = isActive;
-  }, [isActive, reducedMotion, spaceId]);
+  }, [isActive, reducedMotion, spaceId, bumpEntrance]);
 
+  /**
+   * Cold start: space is already active on first mount (`prevIsActive` never rises).
+   * Pulse once when canStart becomes true so home gets the same hidden→show edge as return.
+   */
   useEffect(() => {
-    if (runTier !== SPACE_SHELL_ENTRANCE_TIERS.firstVisitPlayful) {
+    if (!canStart || coldStartPulsedRef.current) {
       prevCanStartRef.current = canStart;
       return;
     }
-    if (canStart && !prevCanStartRef.current) {
-      runCounterRef.current += 1;
-      const nextKey = runCounterRef.current;
-      tierByEntranceKeyRef.current.set(nextKey, runTier);
-      setEntranceKey(nextKey);
+    // Rising edge of canStart without a prior activation bump (entranceKey still 0).
+    if (!prevCanStartRef.current && entranceKey === 0) {
+      coldStartPulsedRef.current = true;
+      const tier = reducedMotion
+        ? SPACE_SHELL_ENTRANCE_TIERS.revisitSubtleGooey
+        : readTier(spaceId);
+      setRunTier(tier);
+      bumpEntrance(tier);
+    } else if (canStart && entranceKey > 0) {
+      coldStartPulsedRef.current = true;
     }
     prevCanStartRef.current = canStart;
-  }, [canStart, runTier]);
+  }, [canStart, entranceKey, reducedMotion, spaceId, bumpEntrance]);
 
   useLayoutEffect(() => {
-    if (!isActive || !isRevisitTier) {
-      setRevisitToShow(false);
+    if (!isActive || !canStart || entranceKey === 0) {
+      if (!isActive) setRevealToShow(false);
       return undefined;
     }
-    setRevisitToShow(false);
+    setRevealToShow(false);
     let cancelled = false;
     let id2 = 0;
     const id1 = requestAnimationFrame(() => {
       id2 = requestAnimationFrame(() => {
-        if (!cancelled) setRevisitToShow(true);
+        if (!cancelled) setRevealToShow(true);
       });
     });
     return () => {
@@ -116,7 +131,7 @@ export function useHubSpaceEntrance(spaceId, reducedMotion) {
       cancelAnimationFrame(id1);
       if (id2) cancelAnimationFrame(id2);
     };
-  }, [isActive, isRevisitTier, entranceKey]);
+  }, [isActive, canStart, entranceKey]);
 
   const onEntranceComplete = useCallback(
     (completedKey = entranceKey) => {
@@ -132,8 +147,8 @@ export function useHubSpaceEntrance(spaceId, reducedMotion) {
 
   const animateState = (() => {
     if (!isActive) return 'hidden';
-    if (isRevisitTier) return revisitToShow ? 'show' : 'hidden';
-    return canStart ? 'show' : 'hidden';
+    if (!canStart) return 'hidden';
+    return revealToShow ? 'show' : 'hidden';
   })();
 
   return {

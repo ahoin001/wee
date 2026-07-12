@@ -14,7 +14,7 @@ import { Channel } from '../channels';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { ChannelSpaceProvider } from '../../contexts/ChannelSpaceContext';
 import useIdleChannelAnimations from '../../utils/useIdleChannelAnimations';
-import { WII_LAYOUT_PRESET } from '../../utils/channelLayoutSystem';
+import { CHANNEL_PAGE_FLIP_MS, isSlotHidden } from '../../utils/channelLayoutSystem';
 import { WiiChannelStrip } from '../channels';
 import ChannelSlotDnd, { parseChannelDnDId } from './ChannelSlotDnd';
 import { ChannelDragOverlayFrame } from './ChannelDragMotion';
@@ -47,6 +47,7 @@ const PaginatedChannelsInner = React.memo(() => {
     gridConfig,
     configuredChannels,
     channelConfigs,
+    slotMeta,
     getCurrentPageChannels,
     getChannelConfig,
     finishAnimation,
@@ -55,6 +56,7 @@ const PaginatedChannelsInner = React.memo(() => {
     updateChannelPath,
     reorderChannels,
     goToPage,
+    isChannelSlotHidden,
   } = useChannelOperations(undefined, { enableGlobalPageShortcuts: true });
 
   const isSpaceTransitioning = useConsolidatedAppStore((s) => s.spaces.isTransitioning);
@@ -89,7 +91,7 @@ const PaginatedChannelsInner = React.memo(() => {
     if (!navigation.isAnimating) return undefined;
     const t = window.setTimeout(() => {
       finishAnimation();
-    }, 650);
+    }, CHANNEL_PAGE_FLIP_MS + 130);
     return () => window.clearTimeout(t);
   }, [navigation.isAnimating, finishAnimation]);
 
@@ -313,16 +315,18 @@ const PaginatedChannelsInner = React.memo(() => {
 
   /** Wii strip: drive peek + layout math via inherited custom properties */
   const wiiStripCssVars = useMemo(() => {
-    const safeTotalPages = Math.max(1, Number(navigation.totalPages) || 1);
+    const safeTotalPages = Math.max(1, Number(gridConfig.totalPages || navigation.totalPages) || 1);
     const safeCurrentPage = Math.max(
       0,
       Math.min(Number(navigation.currentPage) || 0, safeTotalPages - 1)
     );
+    const peek = Math.max(4, Math.min(14, Number(gridConfig.peekPercent) || 8));
     return {
       '--wii-strip-current-page': safeCurrentPage,
       '--wii-total-pages': safeTotalPages,
+      '--wii-strip-peek': `${peek}%`,
     };
-  }, [navigation.currentPage, navigation.totalPages]);
+  }, [navigation.currentPage, navigation.totalPages, gridConfig.totalPages, gridConfig.peekPercent]);
 
   useEffect(() => {
     weeMarkChannelPage(Number(navigation.currentPage) || 0);
@@ -371,8 +375,9 @@ const PaginatedChannelsInner = React.memo(() => {
       setCelebrateIndex(null);
       setReorderWave(null);
 
-      if (idx === null) {
+      if (idx === null || isSlotHidden(slotMeta, idx)) {
         clearDragPreview();
+        setActiveDragIndex(null);
         return;
       }
 
@@ -409,6 +414,7 @@ const PaginatedChannelsInner = React.memo(() => {
       clearVfxTimers,
       configuredChannels,
       mf.channelReorderParticles,
+      slotMeta,
     ]
   );
 
@@ -420,6 +426,7 @@ const PaginatedChannelsInner = React.memo(() => {
 
       const to = event.over ? parseChannelDnDId(event.over.id) : null;
       if (to === null || to === hoverIndexRef.current) return;
+      if (isSlotHidden(slotMeta, to)) return;
 
       const prevHover = hoverIndexRef.current;
       hoverIndexRef.current = to;
@@ -448,6 +455,7 @@ const PaginatedChannelsInner = React.memo(() => {
       navigation.currentPage,
       navigation.isAnimating,
       projectLiveReorder,
+      slotMeta,
     ]
   );
 
@@ -528,6 +536,8 @@ const PaginatedChannelsInner = React.memo(() => {
         from !== null &&
         to !== null &&
         from !== to &&
+        !isSlotHidden(slotMeta, from) &&
+        !isSlotHidden(slotMeta, to) &&
         !isSpaceTransitioning &&
         !channelConfigureModalOpen;
 
@@ -569,6 +579,7 @@ const PaginatedChannelsInner = React.memo(() => {
       mf.channelReorderParticles,
       mf.channelReorderSlotMotion,
       reorderChannels,
+      slotMeta,
       scheduleVfx,
     ]
   );
@@ -652,7 +663,10 @@ const PaginatedChannelsInner = React.memo(() => {
         channelSpaceKey={channelSpaceKey}
         channelIndex={channelIndex}
         disabled={
-          navigation.isAnimating || isSpaceTransitioning || channelConfigureModalOpen
+          navigation.isAnimating ||
+          isSpaceTransitioning ||
+          channelConfigureModalOpen ||
+          isChannelSlotHidden(channelIndex)
         }
         celebrateDrop={celebrateIndex === channelIndex}
         reorderWave={reorderWave}
@@ -671,26 +685,30 @@ const PaginatedChannelsInner = React.memo(() => {
       reorderWave,
       activeDragIndex,
       hoverDragIndex,
+      isChannelSlotHidden,
     ]
   );
 
   const renderContent = useMemo(() => {
-    const safeTotalPages = Math.max(1, Number(navigation.totalPages) || 1);
+    const safeTotalPages = Math.max(1, Number(gridConfig.totalPages || navigation.totalPages) || 1);
 
     return (
       <div className="wii-mode-container">
         <WiiChannelStrip
           totalPages={safeTotalPages}
+          currentPage={navigation.currentPage || 0}
           isAnimating={navigation.isAnimating}
           isGridFaded={isGridFaded}
-          columns={WII_LAYOUT_PRESET.columns}
-          rows={WII_LAYOUT_PRESET.rows}
+          columns={gridConfig.columns}
+          rows={gridConfig.rows}
+          slotMeta={slotMeta}
           onGridMouseEnter={handleGridMouseEnter}
           onGridMouseLeave={handleGridMouseLeave}
           onGridPointerMove={handleGridPointerMove}
           onGridPointerDown={bumpGridActivity}
           onGridWheel={bumpGridActivity}
           renderChannelAtIndex={renderChannelAtIndex}
+          onPageFlipComplete={handleAnimationComplete}
           hubEntranceKey={entranceKey}
           hubEntranceTier={channelEntranceTier}
         />
@@ -698,12 +716,15 @@ const PaginatedChannelsInner = React.memo(() => {
     );
   }, [
     navigation,
+    gridConfig,
+    slotMeta,
     isGridFaded,
     handleGridMouseEnter,
     handleGridMouseLeave,
     handleGridPointerMove,
     bumpGridActivity,
     renderChannelAtIndex,
+    handleAnimationComplete,
     entranceKey,
     channelEntranceTier,
   ]);
@@ -755,15 +776,6 @@ const PaginatedChannelsInner = React.memo(() => {
       </DndContext>
 
       <ChannelReorderVfxPortal lift={liftVfx} drop={dropVfx} />
-
-      {/* Animation completion listener */}
-      {navigation.isAnimating && (
-        <div
-          className="animation-listener"
-          onAnimationEnd={handleAnimationComplete}
-          onTransitionEnd={handleAnimationComplete}
-        />
-      )}
     </div>
   );
 });

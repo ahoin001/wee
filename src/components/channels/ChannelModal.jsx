@@ -132,16 +132,14 @@ function ChannelModal({
 
   const {
     setHoverSound,
-    hoverSoundInputRef,
     hoverSoundName,
     hoverSoundUrl,
     hoverSoundVolume,
     hoverSoundEnabled,
     setHoverSoundEnabled,
-    hoverSoundAudio,
+    hoverSoundPreviewPlaying,
     selectedHoverSoundId,
     uploadingHoverSound,
-    handleHoverSoundFile,
     handleHoverSoundSelect,
     handleHoverSoundUpload,
     handleTestHoverSound,
@@ -563,10 +561,9 @@ function ChannelModal({
               hoverSoundUrl={hoverSoundUrl}
               hoverSoundName={hoverSoundName}
               hoverSoundVolume={hoverSoundVolume}
-              hoverSoundAudio={hoverSoundAudio}
+              hoverSoundPreviewPlaying={hoverSoundPreviewPlaying}
               selectedHoverSoundId={selectedHoverSoundId}
               uploadingHoverSound={uploadingHoverSound}
-              hoverSoundInputRef={hoverSoundInputRef}
               soundLibraryLoading={soundLibraryLoading}
               getSoundsByCategory={getSoundsByCategory}
               clearHoverSoundSelection={clearHoverSoundSelection}
@@ -574,7 +571,6 @@ function ChannelModal({
               handleHoverSoundVolumeChange={handleHoverSoundVolumeChange}
               handleHoverSoundSelect={handleHoverSoundSelect}
               handleHoverSoundUpload={handleHoverSoundUpload}
-              handleHoverSoundFile={handleHoverSoundFile}
               animatedOnHover={animatedOnHover}
               setAnimatedOnHover={setAnimatedOnHover}
               kenBurnsEnabled={kenBurnsEnabled}

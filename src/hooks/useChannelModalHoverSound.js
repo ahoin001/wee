@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { playPreview, stopPreview } from '../utils/soundPlayback';
 
 /**
- * Hover sound state, library integration, preview audio, and handlers for ChannelModal.
+ * Hover sound state, library integration, and preview for ChannelModal.
+ * Per-channel override always picks from (or uploads into) the shared hover library.
  */
 export function useChannelModalHoverSound({
   currentHoverSound,
@@ -11,37 +13,25 @@ export function useChannelModalHoverSound({
   getSoundsByCategory,
   loadSoundLibrary,
   soundLibrary,
+  onError,
 }) {
   const [hoverSound, setHoverSound] = useState(currentHoverSound || null);
-  const hoverSoundInputRef = useRef();
   const [hoverSoundName, setHoverSoundName] = useState(hoverSound ? hoverSound.name : '');
   const [hoverSoundUrl, setHoverSoundUrl] = useState(hoverSound ? hoverSound.url : '');
   const [hoverSoundVolume, setHoverSoundVolume] = useState(hoverSound ? hoverSound.volume : 0.7);
   const [hoverSoundEnabled, setHoverSoundEnabled] = useState(!!hoverSound);
-  const [hoverSoundAudio, setHoverSoundAudio] = useState(null);
+  const [hoverSoundPreviewPlaying, setHoverSoundPreviewPlaying] = useState(false);
   const [selectedHoverSoundId, setSelectedHoverSoundId] = useState(null);
   const [uploadingHoverSound, setUploadingHoverSound] = useState(false);
+  const [hoverSoundError, setHoverSoundError] = useState('');
 
-  const handleHoverSoundFile = async (file) => {
-    if (!file) return;
-    if (file.path) {
-      const result = await window.api.channels.copyHoverSound({ filePath: file.path, filename: file.name });
-      if (result.success) {
-        setHoverSound({ url: result.url, name: file.name, volume: hoverSoundVolume });
-        setHoverSoundName(file.name);
-        setHoverSoundUrl(result.url);
-        setHoverSoundEnabled(true);
-      } else {
-        alert('Failed to save hover sound: ' + result.error);
-      }
-    } else {
-      const url = URL.createObjectURL(file);
-      setHoverSound({ url, name: file.name, volume: hoverSoundVolume });
-      setHoverSoundName(file.name);
-      setHoverSoundUrl(url);
-      setHoverSoundEnabled(true);
-    }
-  };
+  const reportError = useCallback(
+    (message) => {
+      setHoverSoundError(message);
+      onError?.(message);
+    },
+    [onError]
+  );
 
   const handleHoverSoundSelect = useCallback(
     async (soundId) => {
@@ -60,6 +50,7 @@ export function useChannelModalHoverSound({
           setHoverSoundVolume(selectedSound.volume ?? 0.7);
           setSelectedHoverSoundId(soundId);
           setHoverSoundEnabled(true);
+          setHoverSoundError('');
         }
       } catch (error) {
         console.error('[ChannelModal] Error selecting hover sound:', error);
@@ -71,6 +62,7 @@ export function useChannelModalHoverSound({
   const handleHoverSoundUpload = useCallback(async () => {
     try {
       setUploadingHoverSound(true);
+      setHoverSoundError('');
 
       const fileResult = await selectSoundFile();
       if (!fileResult.success) {
@@ -94,56 +86,48 @@ export function useChannelModalHoverSound({
       }
     } catch (error) {
       console.error('[ChannelModal] Error uploading hover sound:', error);
-      alert('Failed to upload hover sound: ' + error.message);
+      reportError('Failed to upload hover sound: ' + error.message);
     } finally {
       setUploadingHoverSound(false);
     }
-  }, [selectSoundFile, addSound, loadSoundLibrary, getSoundsByCategory, handleHoverSoundSelect]);
+  }, [
+    selectSoundFile,
+    addSound,
+    loadSoundLibrary,
+    getSoundsByCategory,
+    handleHoverSoundSelect,
+    reportError,
+  ]);
 
   useEffect(() => {
     return () => {
-      if (hoverSoundAudio) {
-        if (hoverSoundAudio._fadeInterval) {
-          clearInterval(hoverSoundAudio._fadeInterval);
-        }
-        hoverSoundAudio.pause();
-        hoverSoundAudio.src = '';
-        hoverSoundAudio.load();
-      }
+      stopPreview();
     };
-  }, [hoverSoundAudio]);
+  }, []);
 
-  const handleTestHoverSound = () => {
-    if (hoverSoundAudio) {
-      hoverSoundAudio.pause();
-      hoverSoundAudio.currentTime = 0;
-      setHoverSoundAudio(null);
-    } else if (hoverSoundUrl) {
-      const audio = new Audio(hoverSoundUrl);
-      audio.volume = hoverSoundVolume;
-      audio
-        .play()
-        .then(() => {
-          setHoverSoundAudio(audio);
-        })
-        .catch((e) => {
-          console.error('[DEBUG] Audio play error:', e);
-        });
-
-      audio.onended = () => {
-        setHoverSoundAudio(null);
-      };
+  const handleTestHoverSound = useCallback(async () => {
+    if (hoverSoundPreviewPlaying) {
+      stopPreview();
+      setHoverSoundPreviewPlaying(false);
+      return;
     }
-  };
+    if (!hoverSoundUrl) return;
+    setHoverSoundPreviewPlaying(true);
+    try {
+      await playPreview(hoverSoundUrl, hoverSoundVolume);
+    } catch (e) {
+      console.error('[ChannelModal] Preview play error:', e);
+      setHoverSoundPreviewPlaying(false);
+    }
+  }, [hoverSoundPreviewPlaying, hoverSoundUrl, hoverSoundVolume]);
 
   const handleHoverSoundVolumeChange = (value) => {
     setHoverSoundVolume(value);
-    if (hoverSoundAudio) {
-      hoverSoundAudio.volume = value;
-    }
   };
 
   const clearHoverSoundSelection = useCallback(() => {
+    stopPreview();
+    setHoverSoundPreviewPlaying(false);
     setHoverSound(null);
     setHoverSoundName('');
     setHoverSoundUrl('');
@@ -151,15 +135,16 @@ export function useChannelModalHoverSound({
     setHoverSoundEnabled(false);
   }, []);
 
-  /** Full reset for “clear channel” and similar flows */
   const resetHoverSoundFields = useCallback(() => {
+    stopPreview();
+    setHoverSoundPreviewPlaying(false);
     setHoverSound(null);
     setHoverSoundName('');
     setHoverSoundUrl('');
     setHoverSoundVolume(0.7);
     setHoverSoundEnabled(false);
     setSelectedHoverSoundId(null);
-    setHoverSoundAudio(null);
+    setHoverSoundError('');
   }, []);
 
   useEffect(() => {
@@ -174,16 +159,15 @@ export function useChannelModalHoverSound({
 
   return {
     setHoverSound,
-    hoverSoundInputRef,
     hoverSoundName,
     hoverSoundUrl,
     hoverSoundVolume,
     hoverSoundEnabled,
     setHoverSoundEnabled,
-    hoverSoundAudio,
+    hoverSoundPreviewPlaying,
     selectedHoverSoundId,
     uploadingHoverSound,
-    handleHoverSoundFile,
+    hoverSoundError,
     handleHoverSoundSelect,
     handleHoverSoundUpload,
     handleTestHoverSound,

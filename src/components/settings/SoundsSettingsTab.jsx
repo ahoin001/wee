@@ -1,8 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { GripVertical, Headphones, Heart, MousePointer2, Music, Trash2, Volume2 } from 'lucide-react';
-import useSoundManager from '../../utils/useSoundManager';
+import useSoundSettingsActions from '../../utils/useSoundSettingsActions';
 import useSoundLibrary from '../../utils/useSoundLibrary';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import {
+  playChannelClick,
+  playChannelHover,
+  playPreview,
+  stopPreview,
+  stopSfx,
+} from '../../utils/soundPlayback';
 import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
@@ -10,7 +17,12 @@ import { ResourceUsageIndicator } from '../widgets';
 import Slider from '../../ui/Slider';
 import '../audio/sound-management.css';
 import './surfaceStyles.css';
-import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
+import {
+  WeeDescriptionToggleRow,
+  WeeModalFieldCard,
+  WeePressSurface,
+  WeeSettingsCollapsibleSection,
+} from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import { IS_DEV } from '../../utils/env';
 
@@ -31,22 +43,16 @@ const SOUND_CATEGORY_DESCRIPTIONS = {
  * Manages background music, channel click sounds, and channel hover sounds
  */
 const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
-  // Sound management hooks
   const {
     soundSettings,
-    playChannelClickSound,
-    playChannelHoverSound,
-    stopAllSounds,
-    stopPreviewSound,
-    playPreviewSound,
     toggleBackgroundMusic,
     toggleBackgroundMusicLooping,
     togglePlaylistMode,
     updateChannelClickSound,
     updateChannelHoverSound,
     saveSoundSettings,
-    updateBackgroundMusic
-  } = useSoundManager();
+    updateBackgroundMusic,
+  } = useSoundSettingsActions();
 
   const {
     soundLibrary,
@@ -76,26 +82,26 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   const isSoundsTabActive = settingsActiveTabId == null || settingsActiveTabId === 'sounds';
 
   const stopAllPreviewAudio = useCallback(() => {
-    stopPreviewSound();
+    stopPreview();
     setTesting({});
-  }, [stopPreviewSound]);
+  }, []);
 
   // Stop immediately when user selects another settings tab (exit animation keeps this view mounted briefly).
   React.useEffect(() => {
     const onLeaveTab = () => {
       stopAllPreviewAudio();
-      stopAllSounds();
+      stopSfx({ fadeMs: 0 });
     };
     window.addEventListener('wee-settings-leave-sounds-tab', onLeaveTab);
     return () => window.removeEventListener('wee-settings-leave-sounds-tab', onLeaveTab);
-  }, [stopAllPreviewAudio, stopAllSounds]);
+  }, [stopAllPreviewAudio]);
 
   // If this view ever stays mounted with a non-sounds active id, stop previews.
   React.useEffect(() => {
     if (isSoundsTabActive) return;
     stopAllPreviewAudio();
-    stopAllSounds();
-  }, [isSoundsTabActive, stopAllPreviewAudio, stopAllSounds]);
+    stopSfx({ fadeMs: 0 });
+  }, [isSoundsTabActive, stopAllPreviewAudio]);
 
   
   // Global sound preferences (store slice) — do not shadow with per-category lists below.
@@ -119,10 +125,10 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   // Stop all preview audio on unmount (always use ref so we catch the latest instances).
   React.useEffect(() => {
     return () => {
-      stopPreviewSound();
-      stopAllSounds();
+      stopPreview();
+      stopSfx({ fadeMs: 0 });
     };
-  }, [stopAllSounds, stopPreviewSound]);
+  }, []);
 
   // Debug: Log current sound library state (only in development)
   useEffect(() => {
@@ -201,19 +207,18 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
 
   // Handle sound testing
   const handleTestSound = useCallback((category, sound) => {
-    stopPreviewSound();
-    stopAllSounds();
+    stopPreview();
+    stopSfx({ fadeMs: 0 });
     setTesting({});
 
-    // Play new audio through centralized preview channel
-    playPreviewSound(sound.url, sound.volume ?? 0.5);
+    playPreview(sound.url, sound.volume ?? 0.5);
     setTesting({ [sound.id]: true });
-  }, [playPreviewSound, stopAllSounds, stopPreviewSound]);
+  }, []);
 
   const handleStopTest = useCallback((soundId) => {
-    stopPreviewSound();
+    stopPreview();
     setTesting((prev) => (prev[soundId] ? {} : prev));
-  }, [stopPreviewSound]);
+  }, []);
 
   // Handle sound toggle (enable/disable)
   const handleToggleSound = useCallback(async (category, soundId) => {
@@ -275,13 +280,13 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
         const sounds = getSoundsByCategory(category);
         const s = sounds.find((x) => x.id === soundId);
         if (s?.url) {
-          playPreviewSound(s.url, volume);
+          playPreview(s.url, volume);
         }
       }
     } catch (err) {
       showMessage('error', err.message || 'Failed to update volume');
     }
-  }, [updateSound, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, updateBackgroundMusic, showMessage, testing, getSoundsByCategory, playPreviewSound]);
+  }, [updateSound, getEnabledSoundsByCategory, updateChannelClickSound, updateChannelHoverSound, updateBackgroundMusic, showMessage, testing, getSoundsByCategory]);
 
   // Handle like toggle
   const handleToggleLike = useCallback(async (soundId) => {
@@ -295,7 +300,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
 
 
 
-  // Setting changes — merge into store and persist sounds slice (same path as useSoundManager toggles).
+  // Setting changes — patch settings.sounds + persist (BGM via soundPlayback).
   const handleSettingChange = useCallback(
     async (key, value) => {
       if (key === 'backgroundMusicEnabled') {
@@ -310,6 +315,16 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
         await togglePlaylistMode(value);
         return;
       }
+      if (key === 'channelClickEnabled') {
+        const vol = useConsolidatedAppStore.getState().sounds?.channelClickVolume ?? 0.5;
+        await updateChannelClickSound(value, vol);
+        return;
+      }
+      if (key === 'channelHoverEnabled') {
+        const vol = useConsolidatedAppStore.getState().sounds?.channelHoverVolume ?? 0.5;
+        await updateChannelHoverSound(value, vol);
+        return;
+      }
       const prev = useConsolidatedAppStore.getState().sounds;
       const next = { ...prev, [key]: value };
       setSoundsState({ [key]: value });
@@ -319,7 +334,15 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
         /* unified persistence also debounces; ignore duplicate errors */
       }
     },
-    [setSoundsState, saveSoundSettings, toggleBackgroundMusic, toggleBackgroundMusicLooping, togglePlaylistMode],
+    [
+      setSoundsState,
+      saveSoundSettings,
+      toggleBackgroundMusic,
+      toggleBackgroundMusicLooping,
+      togglePlaylistMode,
+      updateChannelClickSound,
+      updateChannelHoverSound,
+    ],
   );
 
 
@@ -376,22 +399,22 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
   // Test channel click sound
   const handleTestChannelClick = useCallback(async () => {
     try {
-      await playChannelClickSound();
+      await playChannelClick();
       showMessage('success', 'Channel click sound played');
     } catch (_err) {
       showMessage('error', 'No channel click sound enabled');
     }
-  }, [playChannelClickSound, showMessage]);
+  }, [showMessage]);
 
   // Test channel hover sound
   const handleTestChannelHover = useCallback(async () => {
     try {
-      await playChannelHoverSound();
+      await playChannelHover();
       showMessage('success', 'Channel hover sound played');
     } catch (_err) {
       showMessage('error', 'No channel hover sound enabled');
     }
-  }, [playChannelHoverSound, showMessage]);
+  }, [showMessage]);
 
   // Render sound section body (shell is WeeSettingsCollapsibleSection + WeeModalFieldCard)
   const renderSoundSection = (category) => {
@@ -431,39 +454,48 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                 </div>
 
                 <div className="sound-toggle-stack">
-                  <div className="sound-toggle-row">
-                    <span className="sound-toggle-row__label">Enable background music</span>
+                  <WeeDescriptionToggleRow
+                    description={
+                      <span className="sound-toggle-row__label">Enable background music</span>
+                    }
+                  >
                     <WToggle
                       checked={soundPrefs?.backgroundMusicEnabled ?? true}
                       onChange={(checked) => handleSettingChange('backgroundMusicEnabled', checked)}
                       disableLabelClick
                     />
-                  </div>
+                  </WeeDescriptionToggleRow>
 
                   {(soundPrefs?.backgroundMusicEnabled ?? true) && (
                     <>
-                      <div className="sound-toggle-row">
-                        <span className="sound-toggle-row__label">Loop current track</span>
+                      <WeeDescriptionToggleRow
+                        description={
+                          <span className="sound-toggle-row__label">Loop current track</span>
+                        }
+                      >
                         <WToggle
                           checked={soundPrefs?.backgroundMusicLooping ?? true}
                           onChange={(checked) => handleSettingChange('backgroundMusicLooping', checked)}
                           disableLabelClick
                         />
-                      </div>
+                      </WeeDescriptionToggleRow>
 
-                      <div className="sound-toggle-row">
-                        <div>
-                          <span className="sound-toggle-row__label">Playlist mode</span>
-                          <p className="sound-toggle-row__hint">
-                            Liked tracks only, in order — use hearts and drag below when this is on.
-                          </p>
-                        </div>
+                      <WeeDescriptionToggleRow
+                        description={
+                          <div>
+                            <span className="sound-toggle-row__label">Playlist mode</span>
+                            <p className="sound-toggle-row__hint">
+                              Liked tracks only, in order — use hearts and drag below when this is on.
+                            </p>
+                          </div>
+                        }
+                      >
                         <WToggle
                           checked={soundPrefs?.backgroundMusicPlaylistMode ?? false}
                           onChange={(checked) => handleSettingChange('backgroundMusicPlaylistMode', checked)}
                           disableLabelClick
                         />
-                      </div>
+                      </WeeDescriptionToggleRow>
                     </>
                   )}
                 </div>
@@ -509,14 +541,15 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                 <div className="sound-panel-wee__head">
                   <p className="sound-panel-wee__title">Channel click</p>
                 </div>
-                <div className="sound-toggle-row">
-                  <span className="sound-toggle-row__label">Enable click sounds</span>
+                <WeeDescriptionToggleRow
+                  description={<span className="sound-toggle-row__label">Enable click sounds</span>}
+                >
                   <WToggle
                     checked={soundPrefs?.channelClickEnabled ?? true}
                     onChange={(checked) => handleSettingChange('channelClickEnabled', checked)}
                     disableLabelClick
                   />
-                </div>
+                </WeeDescriptionToggleRow>
               </div>
             </div>
           )}
@@ -528,14 +561,15 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                 <div className="sound-panel-wee__head">
                   <p className="sound-panel-wee__title">Channel hover</p>
                 </div>
-                <div className="sound-toggle-row">
-                  <span className="sound-toggle-row__label">Enable hover sounds</span>
+                <WeeDescriptionToggleRow
+                  description={<span className="sound-toggle-row__label">Enable hover sounds</span>}
+                >
                   <WToggle
                     checked={soundPrefs?.channelHoverEnabled ?? true}
                     onChange={(checked) => handleSettingChange('channelHoverEnabled', checked)}
                     disableLabelClick
                   />
-                </div>
+                </WeeDescriptionToggleRow>
               </div>
             </div>
           )}
@@ -590,8 +624,11 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
             )}
             
             {categorySounds.map((sound) => (
-              <div
+              <WeePressSurface
                 key={sound.id}
+                as="div"
+                variant="mediaHub"
+                enableHover={false}
                 className={[
                   'sound-item-gooey',
                   sound.enabled ? '' : 'sound-item-gooey--disabled',
@@ -723,7 +760,7 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                     </Button>
                   ) : null}
                 </div>
-              </div>
+              </WeePressSurface>
             ))}
           </div>
           
