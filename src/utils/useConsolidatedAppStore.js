@@ -178,12 +178,7 @@ useConsolidatedAppStore = create(
             modifier: shortcut.defaultModifier,
             enabled: true
           })),
-          motionFeedback: {
-            master: DEFAULT_MOTION_FEEDBACK.master,
-            channels: { ...DEFAULT_MOTION_FEEDBACK.channels },
-            dock: { ...DEFAULT_MOTION_FEEDBACK.dock },
-            ribbon: { ...DEFAULT_MOTION_FEEDBACK.ribbon },
-          },
+          motionFeedback: mergeMotionFeedback(DEFAULT_MOTION_FEEDBACK),
           spaceRailAutoHide: true,
           spaceRailPinned: false,
           spaceRailRevealWidth: 28,
@@ -1661,12 +1656,7 @@ useConsolidatedAppStore = create(
                 label: '',
                 key: 0,
               },
-              motionFeedback: {
-                master: DEFAULT_MOTION_FEEDBACK.master,
-                channels: { ...DEFAULT_MOTION_FEEDBACK.channels },
-                dock: { ...DEFAULT_MOTION_FEEDBACK.dock },
-                ribbon: { ...DEFAULT_MOTION_FEEDBACK.ribbon },
-              },
+              motionFeedback: mergeMotionFeedback(DEFAULT_MOTION_FEEDBACK),
             },
             ribbon: {
               glassWiiRibbon: false,

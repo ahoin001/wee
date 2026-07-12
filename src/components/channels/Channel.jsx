@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import { m } from 'framer-motion';
 import './Channel.css';
 import { getStoragePublicObjectUrl } from '../../utils/supabase';
 import { isVideoMediaType } from '../../utils/channelMediaType';
@@ -7,10 +8,13 @@ import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { useChannelSpaceKey } from '../../contexts/ChannelSpaceContext';
 import { PlayfulTapLayer } from '../navigation/PlayfulInteractionMotion';
 import { useRendererMediaPowerState } from '../../hooks/useRendererMediaPowerState';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import useChannelEffectiveState from './hooks/useChannelEffectiveState';
 import useChannelInteractions from './hooks/useChannelInteractions';
 import ChannelMediaPreview from './ChannelMediaPreview';
 import ChannelModalsHost from './ChannelModalsHost';
+
+const MotionDiv = m.div;
 
 const Channel = React.memo(({ 
   id, 
@@ -39,6 +43,8 @@ const Channel = React.memo(({
   const videoRef = useRef(null);
   const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
   const channelSpaceKey = useChannelSpaceKey();
+  const { gooey } = useMotionFeedback();
+  const channelGooeyHover = gooey.channelHover;
   const {
     updateChannelConfig,
     updateChannelMedia,
@@ -230,13 +236,14 @@ const Channel = React.memo(({
   };
 
   const channelContent = (
-    <div
+    <MotionDiv
       className={
         effectiveIsEmpty && !effectiveMedia 
-          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}`
+          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}`
       }
       data-channel-id={id}
+      data-gooey-hover-mode={channelGooeyHover.enabled ? channelGooeyHover.mode : undefined}
       onClick={handleClick}
       onMouseEnter={e => { handleMouseEnter(e); setIsHovered(true); }}
       onMouseLeave={e => { handleMouseLeave(e); setIsHovered(false); }}
@@ -245,6 +252,8 @@ const Channel = React.memo(({
       onContextMenu={handleRightClick}
       title={showRecentLaunchHint ? 'Recently used — tap again to open or focus.' : undefined}
       style={adaptiveEmptyStyle}
+      whileHover={channelGooeyHover.enabled ? channelGooeyHover.whileHover : undefined}
+      transition={channelGooeyHover.enabled ? channelGooeyHover.transition : undefined}
     >
       <PlayfulTapLayer className="channel-tap-layer h-full w-full min-h-0 min-w-0">
         <ChannelMediaPreview
@@ -272,7 +281,7 @@ const Channel = React.memo(({
           <span className="channel-recent-hint-pill">Recent</span>
         </>
       ) : null}
-    </div>
+    </MotionDiv>
   );
 
   return (

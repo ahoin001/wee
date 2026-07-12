@@ -4,6 +4,7 @@ import SettingsWeeSection from './SettingsWeeSection';
 import { WeeModalFieldCard, WeeButton } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import { useAppUpdater } from '../../hooks/useAppUpdater';
+import WeeUpdateProgress from '../modals/WeeUpdateProgress';
 import './settings-wee-panels.css';
 
 const UpdatesSettingsTab = () => {
@@ -20,6 +21,7 @@ const UpdatesSettingsTab = () => {
   const [currentVersion, setCurrentVersion] = useState('');
   const [lastChecked, setLastChecked] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [busyAction, setBusyAction] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +38,13 @@ const UpdatesSettingsTab = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const status = updateInfo?.status;
+    if (busyAction === 'download' && (status === 'downloading' || status === 'downloaded' || status === 'error')) {
+      setBusyAction(null);
+    }
+  }, [updateInfo?.status, busyAction]);
+
   const handleCheck = useCallback(async () => {
     setChecking(true);
     try {
@@ -46,8 +55,22 @@ const UpdatesSettingsTab = () => {
     }
   }, [checkForUpdates]);
 
+  const handleDownload = useCallback(async () => {
+    setBusyAction('download');
+    await downloadUpdate();
+  }, [downloadUpdate]);
+
+  const handleInstall = useCallback(async () => {
+    setBusyAction('install');
+    await installUpdate();
+    setBusyAction(null);
+  }, [installUpdate]);
+
   const status = updateInfo?.status;
   const latestVersion = updateInfo?.version || '';
+  const downloading = status === 'downloading' || busyAction === 'download';
+  const installing = busyAction === 'install';
+  const progress = typeof updateInfo?.progress === 'number' ? updateInfo.progress : 0;
 
   return (
     <div className="settings-wee-tab-root pb-12">
@@ -67,7 +90,12 @@ const UpdatesSettingsTab = () => {
 
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-4">
-              <WeeButton type="button" variant="primary" onClick={handleCheck} disabled={checking}>
+              <WeeButton
+                type="button"
+                variant="primary"
+                onClick={handleCheck}
+                disabled={checking || downloading || installing}
+              >
                 {checking || status === 'checking' ? 'Checking…' : 'Check for updates'}
               </WeeButton>
               <WeeButton type="button" variant="secondary" onClick={openUpdateModal}>
@@ -100,36 +128,61 @@ const UpdatesSettingsTab = () => {
                   <span className="settings-wee-version-pill text-sm">{latestVersion}</span>
                 </div>
 
-                {updateAvailable ? (
+                {updateAvailable || downloading || status === 'downloaded' ? (
                   <div className="settings-wee-panel__body mt-2">
-                    <div className="flex items-center gap-2">
-                      <span className="settings-wee-status-dot" aria-hidden />
-                      <Text variant="body" className="!m-0 text-[hsl(var(--state-success))]">
-                        Update available
+                    {!downloading && status !== 'downloaded' ? (
+                      <div className="flex items-center gap-2">
+                        <span className="settings-wee-status-dot" aria-hidden />
+                        <Text variant="body" className="!m-0 text-[hsl(var(--state-success))]">
+                          Update available
+                        </Text>
+                      </div>
+                    ) : null}
+
+                    {downloading ? (
+                      <WeeUpdateProgress
+                        progress={progress}
+                        indeterminate={busyAction === 'download' && !(progress > 0)}
+                        label="Downloading update"
+                      />
+                    ) : null}
+
+                    {status === 'downloaded' && !installing ? (
+                      <Text variant="body" className="!m-0 text-[hsl(var(--text-secondary))]">
+                        Download complete — install when you are ready to restart.
                       </Text>
-                    </div>
-                    {updateInfo?.releaseNotes ? (
+                    ) : null}
+
+                    {updateInfo?.releaseNotes && !downloading ? (
                       <div className="rounded-[1.25rem] border border-[hsl(var(--border-primary)/0.28)] bg-[hsl(var(--surface-primary)/0.65)] p-3">
                         <Text variant="body" className="text-sm whitespace-pre-wrap">
                           {updateInfo.releaseNotes}
                         </Text>
                       </div>
                     ) : null}
+
                     <div className="flex flex-wrap gap-3">
-                      {status === 'available' ? (
-                        <WeeButton type="button" variant="primary" onClick={downloadUpdate} className="min-w-0 flex-1">
-                          Download update
+                      {status === 'available' && !downloading ? (
+                        <WeeButton
+                          type="button"
+                          variant="primary"
+                          onClick={handleDownload}
+                          className="min-w-0 flex-1"
+                          disabled={busyAction === 'download'}
+                        >
+                          {busyAction === 'download' ? 'Starting…' : 'Download update'}
                         </WeeButton>
                       ) : null}
                       {status === 'downloaded' ? (
-                        <WeeButton type="button" variant="primary" onClick={installUpdate} className="min-w-0 flex-1">
-                          Install & restart
+                        <WeeButton
+                          type="button"
+                          variant="primary"
+                          onClick={handleInstall}
+                          className="min-w-0 flex-1"
+                          disabled={installing}
+                        >
+                          {installing ? 'Restarting…' : 'Install & restart'}
                         </WeeButton>
-                      ) : null}
-                      {status === 'downloading' ? (
-                        <Text variant="body" className="text-[hsl(var(--text-secondary))]">
-                          Downloading… {Math.round(updateInfo?.progress || 0)}%
-                        </Text>
                       ) : null}
                     </div>
                   </div>

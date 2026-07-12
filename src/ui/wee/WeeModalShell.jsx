@@ -5,6 +5,7 @@ import { Dialog } from '@headlessui/react';
 import { m } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useDialogExitPresence } from '../../hooks/useDialogExitPresence';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 import './wee-modal.css';
 
@@ -13,6 +14,7 @@ const MotionDiv = m.div;
 /**
  * Headless UI Dialog + wee visual shell: backdrop blur, rounded shell, optional left rail slot.
  * Close motion: `useDialogExitPresence` + variant `open`/`closed` so Headless does not unmount early.
+ * Panel springs follow WeeGooeySpacePill expand/collapse physics (intensity from ui.motionFeedback.gooey).
  */
 function WeeModalShell({
   isOpen,
@@ -27,7 +29,8 @@ function WeeModalShell({
   panelClassName = '',
   onExitAnimationComplete,
 }) {
-  const { backdropTransition, modalTransition } = useWeeMotion();
+  const { backdropTransition } = useWeeMotion();
+  const { modalSpringTransitions, gooey } = useMotionFeedback();
   const { allowMount, onPanelAnimationComplete } = useDialogExitPresence(isOpen, onExitAnimationComplete);
 
   const handleClose = useCallback(() => {
@@ -47,13 +50,15 @@ function WeeModalShell({
     []
   );
 
-  const panelVariants = useMemo(
-    () => ({
-      open: WEE_VARIANTS.modalPanelAnimate,
-      closed: WEE_VARIANTS.modalPanelExit,
-    }),
-    []
-  );
+  const panelVariants = useMemo(() => {
+    if (!modalSpringTransitions) {
+      return {
+        open: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.18 } },
+        closed: { opacity: 0, scale: 0.96, y: 12, transition: { duration: 0.14 } },
+      };
+    }
+    return gooey.modalPanelVariants;
+  }, [gooey.modalPanelVariants, modalSpringTransitions]);
 
   if (typeof document === 'undefined') {
     return null;
@@ -97,7 +102,6 @@ function WeeModalShell({
               variants={panelVariants}
               initial="closed"
               animate={isOpen ? 'open' : 'closed'}
-              transition={modalTransition}
               onAnimationComplete={onPanelAnimationComplete}
             >
               {showRail && rail}

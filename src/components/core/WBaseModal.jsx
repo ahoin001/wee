@@ -6,7 +6,6 @@ import { m } from 'framer-motion';
 import Button from '../../ui/WButton';
 import { useDialogExitPresence } from '../../hooks/useDialogExitPresence';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
-import { PLAYFUL_SPRINGS, PLAYFUL_VARIANTS } from '../../design/playfulMotion';
 
 const MotionDiv = m.div;
 
@@ -20,16 +19,15 @@ function WBaseModal({
   /** Default closed so callers that omit `isOpen` do not flash an open modal. */
   isOpen = false,
 }) {
-  const sharedPlayfulSpring = PLAYFUL_SPRINGS.navLayout;
-  const { modalSpringTransitions, modalStaggeredEntrance } = useMotionFeedback();
+  const { modalSpringTransitions, modalStaggeredEntrance, gooey } = useMotionFeedback();
   const { allowMount, onPanelAnimationComplete } = useDialogExitPresence(isOpen);
 
   const handleClose = useCallback(() => {
     onClose();
   }, [onClose]);
 
-  const backdropTransition = modalSpringTransitions ? sharedPlayfulSpring : { duration: 0.2 };
-  const panelTransition = modalSpringTransitions ? sharedPlayfulSpring : { duration: 0.22 };
+  const backdropTransition = modalSpringTransitions ? gooey.modalOpenSpring : { duration: 0.2 };
+  const staggerSpring = modalSpringTransitions ? gooey.modalOpenSpring : { duration: 0.16 };
 
   const backdropVariants = useMemo(
     () => ({
@@ -39,13 +37,15 @@ function WBaseModal({
     []
   );
 
-  const panelVariants = useMemo(
-    () => ({
-      open: PLAYFUL_VARIANTS.modalPanelAnimate,
-      closed: PLAYFUL_VARIANTS.modalPanelExit,
-    }),
-    []
-  );
+  const panelVariants = useMemo(() => {
+    if (!modalSpringTransitions) {
+      return {
+        open: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.18 } },
+        closed: { opacity: 0, scale: 0.96, y: 12, transition: { duration: 0.14 } },
+      };
+    }
+    return gooey.modalPanelVariants;
+  }, [gooey.modalPanelVariants, modalSpringTransitions]);
 
   if (typeof document === 'undefined') {
     return null;
@@ -82,14 +82,13 @@ function WBaseModal({
               variants={panelVariants}
               initial="closed"
               animate={isOpen ? 'open' : 'closed'}
-              transition={panelTransition}
               onAnimationComplete={onPanelAnimationComplete}
             >
               <MotionDiv
                 className="flex justify-between items-center p-7 border-b-[3px] border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.72)]"
                 initial={modalStaggeredEntrance ? { opacity: 0, y: -8 } : false}
                 animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
-                transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.04 } : undefined}
+                transition={modalStaggeredEntrance ? { ...staggerSpring, delay: 0.04 } : undefined}
               >
                 <Dialog.Title as="h2" className="m-0 playful-hero-text text-[hsl(var(--text-primary))]">
                   {title}
@@ -107,7 +106,7 @@ function WBaseModal({
                 className="p-7 overflow-y-auto flex-1 min-h-0 scrollbar-soft scroll-region-inset pb-10"
                 initial={modalStaggeredEntrance ? { opacity: 0, y: 8 } : false}
                 animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
-                transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.08 } : undefined}
+                transition={modalStaggeredEntrance ? { ...staggerSpring, delay: 0.08 } : undefined}
               >
                 {children}
               </MotionDiv>
@@ -117,7 +116,7 @@ function WBaseModal({
                   className="flex justify-end items-center px-8 py-5 gap-4 min-h-16 sticky bottom-0 left-0 right-0 z-10 bg-[hsl(var(--surface-secondary))] border-t-[3px] border-[hsl(var(--border-primary))] shadow-[var(--playful-inner-glow)]"
                   initial={modalStaggeredEntrance ? { opacity: 0, y: 10 } : false}
                   animate={modalStaggeredEntrance ? { opacity: 1, y: 0 } : false}
-                  transition={modalStaggeredEntrance ? { ...sharedPlayfulSpring, delay: 0.14 } : undefined}
+                  transition={modalStaggeredEntrance ? { ...staggerSpring, delay: 0.14 } : undefined}
                 >
                   {typeof footerContent === 'function' ? footerContent({ handleClose }) : footerContent}
                 </MotionDiv>

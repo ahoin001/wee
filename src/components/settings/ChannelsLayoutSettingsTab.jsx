@@ -17,6 +17,8 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { WII_LAYOUT_PRESET } from '../../utils/channelLayoutSystem';
 import { getChannelDataSlice } from '../../utils/channelSpaces';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
+import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
+import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
 
 /** Board-style toggle titles: bold all-caps (matches Wii engine field cards). */
 const TOGGLE_TITLE =
@@ -113,7 +115,28 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     useShallow((state) => ({
       setChannelSettings: state.actions.setChannelSettings,
       setSpacesState: state.actions.setSpacesState,
+      setUIState: state.actions.setUIState,
     }))
+  );
+  const motionFeedback = useConsolidatedAppStore((state) => state.ui.motionFeedback);
+  const gooeyPrefs = useMemo(() => mergeMotionFeedback(motionFeedback).gooey, [motionFeedback]);
+
+  const handleChannelHoverModeChange = useCallback(
+    (mode) => {
+      actions.setUIState((prev) => {
+        const m = mergeMotionFeedback(prev.motionFeedback);
+        return {
+          motionFeedback: mergeMotionFeedback({
+            ...m,
+            gooey: {
+              ...m.gooey,
+              channelHoverMode: mode,
+            },
+          }),
+        };
+      });
+    },
+    [actions]
   );
 
   const settings = channels?.settings || {};
@@ -333,6 +356,32 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             checked={settings.animatedOnHover ?? false}
             onChange={handleAnimatedOnHoverChange}
           />
+
+          <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+              Tile hover physics
+            </WeeSectionEyebrow>
+            <Text variant="caption" className="!mb-3 block text-[hsl(var(--text-tertiary))]">
+              Space-pill gooey hover on channel tiles. Bounce strength is under Motion → Gooey physics.
+            </Text>
+            <WeeSegmentedControl
+              ariaLabel="Channel tile hover physics mode"
+              value={gooeyPrefs.channelHoverMode ?? GOOEY_HOVER_MODES.both}
+              onChange={handleChannelHoverModeChange}
+              options={[
+                { value: GOOEY_HOVER_MODES.squash, label: 'Squash' },
+                { value: GOOEY_HOVER_MODES.glow, label: 'Glow' },
+                { value: GOOEY_HOVER_MODES.both, label: 'Both' },
+              ]}
+            />
+            <button
+              type="button"
+              className="mt-3 text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
+              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
+            >
+              Open Motion settings
+            </button>
+          </WeeModalFieldCard>
 
           <SettingsToggleFieldCard
             hoverAccent="none"

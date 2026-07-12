@@ -59,6 +59,23 @@
   filter: drop-shadow(0 14px 32px hsl(var(--primary) / 0.2));
 }
 
+/* Framer gooey hover owns transform — keep glow/border feedback only. */
+.wii-style-button.playful-press--gooey-ribbon:hover,
+.wii-style-button.wii-style-button--wee-rail.playful-press--gooey-ribbon:hover {
+  transform: none;
+}
+
+.wii-style-button.playful-press--gooey-ribbon.playful-press--gooey-glow:hover,
+.wii-style-button.wii-style-button--wee-rail.playful-press--gooey-ribbon.playful-press--gooey-glow:hover {
+  border-color: hsl(var(--border-accent) / 0.55);
+  box-shadow: var(--shadow-soft-hover);
+  filter: drop-shadow(0 14px 32px hsl(var(--primary) / 0.24));
+}
+
+.wii-style-button.playful-press--gooey-ribbon:not(.playful-press--gooey-glow):hover {
+  filter: none;
+}
+
 .wii-style-button-shine--wee-rail {
   opacity: 0.55;
 }

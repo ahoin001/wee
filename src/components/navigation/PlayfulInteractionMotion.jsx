@@ -40,6 +40,14 @@ export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
   const reduced = osReduced || !allowDock;
   const v = PRESS_VARIANT[variant] || PRESS_VARIANT.dockButton;
   const Comp = as === 'button' ? m.button : m.div;
+  const ribbonGooey = variant === 'ribbon' && mf.gooey.ribbonHover.enabled;
+  const ribbonHoverTarget = ribbonGooey
+    ? {
+        ...(mf.gooey.ribbonHover.whileHover || {}),
+        y: PLAYFUL_AMPLITUDE.hoverLiftY * mf.gooey.ribbonIntensity,
+      }
+    : v.hover;
+  const hoverTransition = ribbonGooey ? mf.gooey.ribbonHover.transition : pillSurfacePress;
 
   if (reduced) {
     const Plain = as === 'button' ? 'button' : 'div';
@@ -50,15 +58,17 @@ export const PlayfulPressSurface = forwardRef(function PlayfulPressSurface(
     );
   }
 
+  const hoverEnabled = enableHover || ribbonGooey;
+
   return (
     <Comp
       ref={ref}
       type={as === 'button' ? 'button' : undefined}
-      className={className}
+      className={`${className || ''}${ribbonGooey ? ' playful-press--gooey-ribbon' : ''}${ribbonGooey && mf.gooey.ribbonHover.includeGlow ? ' playful-press--gooey-glow' : ''}`.trim()}
       style={{ transformOrigin: 'center center', ...style }}
       whileTap={v.tap}
-      whileHover={enableHover && v.hover ? v.hover : undefined}
-      transition={pillSurfacePress}
+      whileHover={hoverEnabled && ribbonHoverTarget ? ribbonHoverTarget : undefined}
+      transition={hoverTransition}
       {...rest}
     >
       {children}

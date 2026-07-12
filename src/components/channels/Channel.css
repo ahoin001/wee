@@ -34,6 +34,22 @@
   box-shadow: var(--shadow-glow), 0 0 0 4px hsl(var(--border-accent) / 0.2);
 }
 
+/* Gooey Framer hover owns transform; keep legacy CSS only when gooey motion is off. */
+.channel.channel--gooey-motion:hover,
+.channel.channel--gooey-motion:focus {
+  transform: none;
+}
+
+.channel.channel--gooey-motion.channel--gooey-glow:hover,
+.channel.channel--gooey-motion.channel--gooey-glow:focus {
+  box-shadow: var(--shadow-glow), 0 0 0 4px hsl(var(--border-accent) / 0.28);
+}
+
+.channel.channel--gooey-motion:not(.channel--gooey-glow):hover,
+.channel.channel--gooey-motion:not(.channel--gooey-glow):focus {
+  box-shadow: var(--shadow-md);
+}
+
 .channel:active {
   transform: none;
   box-shadow: var(--shadow-md);
@@ -83,6 +99,19 @@
   box-shadow:
     0 10px 22px hsl(var(--color-pure-black) / 0.2),
     0 0 0 2px hsl(var(--wii-blue) / 0.28),
+    inset 0 1px 0 hsl(var(--color-pure-white) / 0.9);
+}
+
+.channel.wii-mode-tile.channel--gooey-motion:hover,
+.channel.wii-mode-tile.channel--gooey-motion:focus {
+  transform: none;
+}
+
+.channel.wii-mode-tile.channel--gooey-motion.channel--gooey-glow:hover,
+.channel.wii-mode-tile.channel--gooey-motion.channel--gooey-glow:focus {
+  box-shadow:
+    0 10px 22px hsl(var(--color-pure-black) / 0.2),
+    0 0 0 3px hsl(var(--wii-blue) / 0.34),
     inset 0 1px 0 hsl(var(--color-pure-white) / 0.9);
 }
 

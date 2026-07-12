@@ -4,11 +4,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { Anchor, AppWindow, Info, LayoutGrid, Layers, Wand2, Zap } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
+import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
+import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
 import {
   WeeModalFieldCard,
   WeeSectionEyebrow,
+  WeeSegmentedControl,
   WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
@@ -145,6 +148,28 @@ const MotionFeedbackSettingsTab = React.memo(() => {
           motionFeedback: mergeMotionFeedback({
             ...m,
             effects: { ...m.effects, [key]: checked },
+          }),
+        };
+      });
+    },
+    [setUIState]
+  );
+
+  const setGooey = useCallback(
+    (patch) => {
+      setUIState((prev) => {
+        const m = mergeMotionFeedback(prev.motionFeedback);
+        return {
+          motionFeedback: mergeMotionFeedback({
+            ...m,
+            gooey: {
+              ...m.gooey,
+              ...patch,
+              surfaces: {
+                ...m.gooey.surfaces,
+                ...(patch.surfaces || {}),
+              },
+            },
           }),
         };
       });
@@ -316,6 +341,95 @@ const MotionFeedbackSettingsTab = React.memo(() => {
             onChange={(v) => setEffects('iconTilt', v)}
             disabled={!master}
           />
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
+      <WeeSettingsCollapsibleSection
+        icon={Anchor}
+        title="Gooey physics"
+        description="Space-pill expand/shrink springs for modals, channels, and ribbon — bounce amount per surface."
+        defaultOpen
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6 space-y-5">
+          <div>
+            <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+              Global bounce: {Math.round((mf.gooey?.intensity ?? 1) * 100)}%
+            </Text>
+            <Text variant="caption" className="!mb-2 block text-[hsl(var(--text-tertiary))]">
+              100% matches the space rail pill. Lower values settle faster with less overshoot.
+            </Text>
+            <Slider
+              value={Math.round((mf.gooey?.intensity ?? 1) * 100)}
+              min={0}
+              max={100}
+              step={5}
+              hideValue
+              disabled={!master || !mf.effects.gooeyHighlights}
+              aria-label="Global gooey bounce intensity"
+              onChange={(v) => setGooey({ intensity: v / 100 })}
+            />
+          </div>
+          <div>
+            <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+              Modals: {Math.round((mf.gooey?.surfaces?.modals ?? 1) * 100)}%
+            </Text>
+            <Slider
+              value={Math.round((mf.gooey?.surfaces?.modals ?? 1) * 100)}
+              min={0}
+              max={100}
+              step={5}
+              hideValue
+              disabled={!master || !mf.effects.gooeyHighlights}
+              aria-label="Modal gooey intensity"
+              onChange={(v) => setGooey({ surfaces: { modals: v / 100 } })}
+            />
+          </div>
+          <div>
+            <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+              Channels: {Math.round((mf.gooey?.surfaces?.channels ?? 1) * 100)}%
+            </Text>
+            <Slider
+              value={Math.round((mf.gooey?.surfaces?.channels ?? 1) * 100)}
+              min={0}
+              max={100}
+              step={5}
+              hideValue
+              disabled={!master || !mf.effects.gooeyHighlights}
+              aria-label="Channel gooey intensity"
+              onChange={(v) => setGooey({ surfaces: { channels: v / 100 } })}
+            />
+          </div>
+          <div>
+            <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+              Ribbon buttons: {Math.round((mf.gooey?.surfaces?.ribbon ?? 1) * 100)}%
+            </Text>
+            <Slider
+              value={Math.round((mf.gooey?.surfaces?.ribbon ?? 1) * 100)}
+              min={0}
+              max={100}
+              step={5}
+              hideValue
+              disabled={!master || !mf.effects.gooeyHighlights}
+              aria-label="Ribbon gooey intensity"
+              onChange={(v) => setGooey({ surfaces: { ribbon: v / 100 } })}
+            />
+          </div>
+          <div>
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
+              Ribbon hover style
+            </WeeSectionEyebrow>
+            <WeeSegmentedControl
+              ariaLabel="Ribbon floating button hover style"
+              value={mf.gooey?.ribbonHoverMode ?? GOOEY_HOVER_MODES.both}
+              disabled={!master || !mf.effects.gooeyHighlights}
+              onChange={(value) => setGooey({ ribbonHoverMode: value })}
+              options={[
+                { value: GOOEY_HOVER_MODES.squash, label: 'Squash' },
+                { value: GOOEY_HOVER_MODES.glow, label: 'Glow' },
+                { value: GOOEY_HOVER_MODES.both, label: 'Both' },
+              ]}
+            />
+          </div>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
     </div>

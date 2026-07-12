@@ -3,6 +3,8 @@
  * Persisted under `ui.motionFeedback` in unified settings.
  */
 
+import { DEFAULT_GOOEY_PHYSICS, mergeGooeyPhysics } from '../design/gooeyPhysics';
+
 export const DEFAULT_MOTION_FEEDBACK = {
   /** Master switch — when false, all playful motion below is off (OS reduced-motion still applies separately). */
   master: true,
@@ -38,6 +40,11 @@ export const DEFAULT_MOTION_FEEDBACK = {
     /** Subtle icon tilt on hover + press */
     iconTilt: true,
   },
+  /**
+   * Space-pill gooey physics for modals / channel hover / ribbon hover.
+   * Nested under motionFeedback so hydrate + selectPersistedUi stay one merge path.
+   */
+  gooey: { ...DEFAULT_GOOEY_PHYSICS, surfaces: { ...DEFAULT_GOOEY_PHYSICS.surfaces } },
 };
 
 /**
@@ -67,5 +74,6 @@ export function mergeMotionFeedback(patch) {
       ...DEFAULT_MOTION_FEEDBACK.effects,
       ...(p.effects || {}),
     },
+    gooey: mergeGooeyPhysics(p.gooey),
   };
 }

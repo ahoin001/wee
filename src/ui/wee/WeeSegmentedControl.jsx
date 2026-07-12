@@ -4,7 +4,16 @@ import PropTypes from 'prop-types';
 /**
  * Pill segmented control — `role="group"` with `aria-pressed` per option.
  */
-function WeeSegmentedControl({ value, onChange, options, ariaLabel, className = '', size = 'md', wrap = false }) {
+function WeeSegmentedControl({
+  value,
+  onChange,
+  options,
+  ariaLabel,
+  className = '',
+  size = 'md',
+  wrap = false,
+  disabled = false,
+}) {
   const baseId = useId();
   const pad = size === 'sm' ? 'px-4 py-2 text-[10px]' : 'px-6 py-2.5 text-[10px] md:px-8';
 
@@ -18,7 +27,8 @@ function WeeSegmentedControl({ value, onChange, options, ariaLabel, className = 
     <div
       role="group"
       aria-label={ariaLabel}
-      className={`${layoutClass} ${className}`.trim()}
+      aria-disabled={disabled || undefined}
+      className={`${layoutClass} ${disabled ? 'opacity-50' : ''} ${className}`.trim()}
     >
       {options.map((opt) => {
         const selected = opt.value === value;
@@ -29,6 +39,7 @@ function WeeSegmentedControl({ value, onChange, options, ariaLabel, className = 
             id={id}
             type="button"
             aria-pressed={selected}
+            disabled={disabled}
             onClick={() => onChange(opt.value)}
             className={`rounded-xl font-black uppercase italic transition-all ${pad} ${
               selected
@@ -57,6 +68,7 @@ WeeSegmentedControl.propTypes = {
   className: PropTypes.string,
   size: PropTypes.oneOf(['sm', 'md']),
   wrap: PropTypes.bool,
+  disabled: PropTypes.bool,
 };
 
 WeeSegmentedControl.defaultProps = {
@@ -64,6 +76,7 @@ WeeSegmentedControl.defaultProps = {
   className: '',
   size: 'md',
   wrap: false,
+  disabled: false,
 };
 
 export default WeeSegmentedControl;

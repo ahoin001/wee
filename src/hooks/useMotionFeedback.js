@@ -2,6 +2,13 @@ import { useMemo } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { mergeMotionFeedback } from '../utils/motionFeedbackDefaults';
+import {
+  createGooeyCloseSpring,
+  createGooeyModalPanelVariants,
+  createGooeyOpenSpring,
+  resolveGooeyHoverMotion,
+  resolveSurfaceIntensity,
+} from '../design/gooeyPhysics';
 
 /**
  * Resolved motion flags: combines OS `prefers-reduced-motion` with app `ui.motionFeedback`.
@@ -15,6 +22,19 @@ export function useMotionFeedback() {
   return useMemo(() => {
     const masterOff = !prefs.master;
     const off = osReduced || masterOff;
+    const gooeyEnabled = !off && prefs.effects.gooeyHighlights !== false;
+
+    const modalIntensity = resolveSurfaceIntensity(prefs.gooey, 'modals');
+    const channelIntensity = resolveSurfaceIntensity(prefs.gooey, 'channels');
+    const ribbonIntensity = resolveSurfaceIntensity(prefs.gooey, 'ribbon');
+
+    const channelHover = resolveGooeyHoverMotion(prefs.gooey.channelHoverMode, channelIntensity, {
+      baseScale: 1.06,
+    });
+    const ribbonHover = resolveGooeyHoverMotion(prefs.gooey.ribbonHoverMode, ribbonIntensity, {
+      baseScale: 1.12,
+    });
+
     return {
       osReduced,
       prefs,
@@ -28,8 +48,32 @@ export function useMotionFeedback() {
       ribbonTap: !off && prefs.ribbon.tap,
       modalSpringTransitions: !off && prefs.modals.springTransitions,
       modalStaggeredEntrance: !off && prefs.modals.staggeredEntrance,
-      gooeyHighlights: !off && prefs.effects.gooeyHighlights,
+      gooeyHighlights: gooeyEnabled,
       iconTilt: !off && prefs.effects.iconTilt,
+      gooey: {
+        enabled: gooeyEnabled,
+        prefs: prefs.gooey,
+        modalIntensity,
+        channelIntensity,
+        ribbonIntensity,
+        modalPanelVariants: createGooeyModalPanelVariants(modalIntensity),
+        modalOpenSpring: createGooeyOpenSpring(modalIntensity),
+        modalCloseSpring: createGooeyCloseSpring(modalIntensity),
+        channelHover: {
+          enabled: gooeyEnabled,
+          mode: prefs.gooey.channelHoverMode,
+          intensity: channelIntensity,
+          ...channelHover,
+          transition: createGooeyOpenSpring(channelIntensity),
+        },
+        ribbonHover: {
+          enabled: gooeyEnabled && prefs.ribbon.tap,
+          mode: prefs.gooey.ribbonHoverMode,
+          intensity: ribbonIntensity,
+          ...ribbonHover,
+          transition: createGooeyOpenSpring(ribbonIntensity),
+        },
+      },
     };
   }, [osReduced, prefs]);
 }

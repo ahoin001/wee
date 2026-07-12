@@ -9,9 +9,23 @@ export const WEE_SPRINGS = {
   modalBackdrop: { duration: 0.22 },
   modalPanel: {
     type: 'spring',
-    stiffness: 420,
-    damping: 28,
-    mass: 0.85,
+    stiffness: 400,
+    damping: 20,
+    mass: 0.8,
+  },
+  /** Alias: modal open uses space-pill expand physics */
+  modalPanelOpen: {
+    type: 'spring',
+    stiffness: 400,
+    damping: 20,
+    mass: 0.8,
+  },
+  /** Alias: modal close uses space-pill collapse physics */
+  modalPanelClose: {
+    type: 'spring',
+    stiffness: 300,
+    damping: 25,
+    mass: 1,
   },
   /** Prototype: stiffness 400, damping 20, mass 0.8 */
   pillOpen: {
@@ -121,6 +135,8 @@ export const WEE_MOTION_INTENTS = Object.freeze({
   press: 'pillSurfacePress',
   hover: 'pillSurfacePress',
   modalPanel: 'modalPanel',
+  modalPanelOpen: 'pillOpen',
+  modalPanelClose: 'pillClose',
   modalBackdrop: 'modalBackdrop',
   sheet: 'gooeyPanel',
   tab: 'tabBody',
@@ -137,6 +153,8 @@ const REDUCED_MOTION_BY_INTENT = Object.freeze({
   press: { duration: 0.1 },
   hover: { duration: 0.1 },
   modalPanel: { duration: 0.18 },
+  modalPanelOpen: { duration: 0.16 },
+  modalPanelClose: { duration: 0.14 },
   modalBackdrop: { duration: 0.12 },
   sheet: { duration: 0.16 },
   tab: { duration: 0.12 },
@@ -183,9 +201,10 @@ export const WEE_VARIANTS = {
   modalBackdropInitial: { opacity: 0 },
   modalBackdropAnimate: { opacity: 1 },
   modalBackdropExit: { opacity: 0 },
-  modalPanelInitial: { opacity: 0, scale: 0.9, y: 40 },
+  /** Gooey pill-family enter — softer scale floor; open/close springs applied per-state in shells. */
+  modalPanelInitial: { opacity: 0, scale: 0.86, y: 36 },
   modalPanelAnimate: { opacity: 1, scale: 1, y: 0 },
-  modalPanelExit: { opacity: 0, scale: 0.9, y: 40 },
+  modalPanelExit: { opacity: 0, scale: 0.9, y: 28 },
   tabBodyInitial: { opacity: 0, y: 10 },
   tabBodyAnimate: { opacity: 1, y: 0 },
   tabBodyExit: { opacity: 0, y: -6 },
