@@ -45,7 +45,8 @@
       {
         "provider": "github",
         "owner": "ahoin001",
-        "repo": "wee"
+        "repo": "wee",
+        "releaseType": "release"
       }
     ]
   },

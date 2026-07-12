@@ -103,12 +103,13 @@ jobs:
       run: |
         $tag = "${{ steps.release_ref.outputs.tag }}"
         $isPreReleaseTag = $tag -match '-'
+        # electron-updater ignores drafts; always publish the release.
         if ($isPreReleaseTag) {
-          gh release edit "$tag" --prerelease=true
-          Write-Host "Marked $tag as prerelease (private lane)."
+          gh release edit "$tag" --draft=false --prerelease=true
+          Write-Host "Published $tag as prerelease (private lane)."
         } else {
-          gh release edit "$tag" --prerelease=false
-          Write-Host "Marked $tag as stable release (public lane)."
+          gh release edit "$tag" --draft=false --prerelease=false
+          Write-Host "Published $tag as stable release (public lane)."
         }
 
     - name: Verify GitHub release for electron-updater
