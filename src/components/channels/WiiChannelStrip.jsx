@@ -161,7 +161,9 @@ const WiiChannelStrip = ({
       >
         <div
           className={`wii-strip-board wii-strip-board--continuous${
-            focusRecedeEnabled ? ' wii-strip-board--focus-recede' : ''
+            focusRecedeEnabled && !arrangeModeActive
+              ? ' wii-strip-board--focus-recede'
+              : ''
           }`}
           style={boardStyle}
         >

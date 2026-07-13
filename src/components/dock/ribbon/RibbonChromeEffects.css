@@ -23,23 +23,17 @@
   opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.45);
 }
 
-/* —— Neon (left→right comet along top bow) —— */
-.ribbon-chrome-effects--animate .ribbon-fx-neon-trace {
-  animation: ribbon-fx-neon-dash var(--ribbon-fx-duration, 2.4s) linear infinite;
+/* —— Neon (soft comet along top bow — SMIL drives dash + tip in lockstep) —— */
+.ribbon-fx-neon-group {
+  mix-blend-mode: screen;
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-neon-trace {
-  stroke-dashoffset: 18;
-  opacity: var(--ribbon-fx-opacity, 0.5);
-}
-
-.ribbon-fx-neon-tip {
-  transform-box: fill-box;
-  transform-origin: center;
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.55);
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-neon-tip {
-  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.85);
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.8);
 }
 
 /* —— Aurora —— */
@@ -111,27 +105,26 @@
   opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.5);
 }
 
-/* —— Sparkle —— */
-.ribbon-chrome-effects--animate .ribbon-fx-sparkle {
-  animation: ribbon-fx-sparkle-twinkle calc(var(--ribbon-fx-duration, 2.4s) * 0.85) ease-in-out infinite;
+/* —— Sparkle (calm rising light-motes — dock water-drop / fairy light feel) —— */
+.ribbon-chrome-effects[data-ribbon-fx='sparkle'],
+.ribbon-chrome-effects[data-ribbon-fx='neonTrace'] {
+  overflow: visible;
+}
+
+.ribbon-fx-sparkle-mote {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-sparkle-mote {
+  animation: ribbon-fx-sparkle-rise var(--ribbon-fx-sparkle-life, 4s) ease-out infinite;
   animation-delay: var(--ribbon-fx-sparkle-delay, 0s);
 }
 
-.ribbon-chrome-effects--static .ribbon-fx-sparkle {
+.ribbon-chrome-effects--static .ribbon-fx-sparkle-mote {
   opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.55);
-}
-
-.ribbon-chrome-effects--animate .ribbon-fx-sparkle--1 {
-  animation-duration: calc(var(--ribbon-fx-duration, 2.4s) * 0.7);
-}
-.ribbon-chrome-effects--animate .ribbon-fx-sparkle--2 {
-  animation-duration: calc(var(--ribbon-fx-duration, 2.4s) * 1.05);
-}
-.ribbon-chrome-effects--animate .ribbon-fx-sparkle--3 {
-  animation-duration: calc(var(--ribbon-fx-duration, 2.4s) * 0.9);
-}
-.ribbon-chrome-effects--animate .ribbon-fx-sparkle--4 {
-  animation-duration: calc(var(--ribbon-fx-duration, 2.4s) * 1.2);
+  transform: translate(0, -4px) scale(0.85);
 }
 
 /* —— Frost —— */
@@ -181,16 +174,6 @@
   }
   70% {
     opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.28);
-  }
-}
-
-@keyframes ribbon-fx-neon-dash {
-  /* Trail head rides with the tip: dash paints behind path progress 0→100. */
-  from {
-    stroke-dashoffset: var(--ribbon-fx-neon-trail, 22);
-  }
-  to {
-    stroke-dashoffset: calc(var(--ribbon-fx-neon-trail, 22) - 100);
   }
 }
 
@@ -283,19 +266,31 @@
   }
 }
 
-@keyframes ribbon-fx-sparkle-twinkle {
-  0%,
+/**
+ * Soft mote life: spawn near the bow, drift up & slightly sideways, fade —
+ * same calm rhythm as dock water-drop particles.
+ */
+@keyframes ribbon-fx-sparkle-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 5px) scale(0.35);
+  }
+  12% {
+    opacity: 0.9;
+    transform: translate(calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.25), 0) scale(1);
+  }
+  55% {
+    opacity: 0.55;
+    transform: translate(
+        calc(var(--ribbon-fx-sparkle-drift, 0px) * 0.7),
+        calc(var(--ribbon-fx-sparkle-rise, -24px) * 0.55)
+      )
+      scale(0.92);
+  }
   100% {
-    opacity: 0.15;
-    transform: scale(0.7);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-  65% {
-    opacity: 0.35;
-    transform: scale(0.85);
+    opacity: 0;
+    transform: translate(var(--ribbon-fx-sparkle-drift, 0px), var(--ribbon-fx-sparkle-rise, -24px))
+      scale(0.28);
   }
 }
 
@@ -321,13 +316,12 @@
 @media (prefers-reduced-motion: reduce) {
   .ribbon-chrome-effects--animate .ribbon-fx-shimmer-band,
   .ribbon-chrome-effects--animate .ribbon-fx-pulse-fill,
-  .ribbon-chrome-effects--animate .ribbon-fx-neon-trace,
   .ribbon-chrome-effects--animate .ribbon-fx-aurora-band,
   .ribbon-chrome-effects--animate .ribbon-fx-ripple,
   .ribbon-chrome-effects--animate .ribbon-fx-ember-pool,
   .ribbon-chrome-effects--animate .ribbon-fx-ember-edge,
   .ribbon-chrome-effects--animate .ribbon-fx-scanline,
-  .ribbon-chrome-effects--animate .ribbon-fx-sparkle,
+  .ribbon-chrome-effects--animate .ribbon-fx-sparkle-mote,
   .ribbon-chrome-effects--animate .ribbon-fx-frost,
   .ribbon-chrome-effects--animate .ribbon-fx-spectrum {
     animation: none !important;

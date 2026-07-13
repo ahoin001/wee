@@ -121,9 +121,31 @@ function glowToRgba(glowColor, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-const SPARKLE_POINTS = sampleRibbonTopEdgePoints(28).filter((_, i) => i % 3 === 0);
+/** Soft light-motes along the bow — fewer, calmer than a dense twinkle grid. */
+const SPARKLE_MOTE_POINTS = sampleRibbonTopEdgePoints(36)
+  .filter((_, i) => i % 4 === 0)
+  .slice(1, -1)
+  .map((p, i) => ({
+    ...p,
+    /** Sideways drift in viewBox px (gentle, like dock water drops). */
+    driftX: ((i * 17) % 11) - 5,
+    rise: 22 + ((i * 13) % 14),
+    size: 1.6 + (i % 3) * 0.45,
+    delay: (i % 9) * 0.55,
+    life: 3.6 + (i % 5) * 0.45,
+  }));
 const FROST_CRYSTAL_POINTS = sampleRibbonTopEdgePoints(18).filter((_, i) => i % 2 === 0);
 const NEON_STATIC_TIP = sampleRibbonTopEdgePoints(24)[10];
+
+/** Short comet length as fraction of pathLength=100 — soft KH/Zelda tracer, not a long neon snake. */
+function neonTrailLengths(intensity, glow) {
+  const head = 4.5 + intensity * 3.5 + glow * 1.5;
+  return {
+    under: head * 1.65,
+    core: head,
+    white: head * 0.42,
+  };
+}
 
 /**
  * Path-masked chrome FX overlay.
@@ -171,9 +193,11 @@ function RibbonChromeEffects({
   const resolvedGlow = glowColor || DEFAULT_RIBBON_GLOW_HEX;
   const opacityFloor = glassSoft ? 0.34 : 0.22;
   const opacitySpan = glassSoft ? 0.58 : 0.5;
-  const neonTrailLen = 14 + clampedIntensity * 16;
-  const neonTipCore = 3.2 + clampedGlow * 4.5 + clampedIntensity * 1.2;
-  const neonTipBloom = neonTipCore * (2.2 + clampedGlow * 1.8);
+  const neonTrails = neonTrailLengths(clampedIntensity, clampedGlow);
+  /** Soft fairy-light tip — orb bloom, not a hard star spike. */
+  const neonTipCore = 2.1 + clampedGlow * 2.2 + clampedIntensity * 0.7;
+  const neonTipBloom = neonTipCore * (2.8 + clampedGlow * 1.4);
+  const neonDurationSec = (3.6 / clampedSpeed).toFixed(2);
 
   const styleVars = useMemo(
     () => ({
@@ -181,14 +205,14 @@ function RibbonChromeEffects({
       ['--ribbon-fx-duration']: `${durationSec}s`,
       ['--ribbon-fx-glow']: resolvedGlow,
       ['--ribbon-fx-opacity']: String(opacityFloor + clampedIntensity * opacitySpan),
-      ['--ribbon-fx-neon-trail']: String(neonTrailLen),
       ['--ribbon-fx-neon-glow']: String(clampedGlow),
+      ['--ribbon-fx-neon-duration']: `${neonDurationSec}s`,
     }),
     [
       clampedGlow,
       clampedIntensity,
       durationSec,
-      neonTrailLen,
+      neonDurationSec,
       opacityFloor,
       opacitySpan,
       resolvedGlow,
@@ -219,8 +243,10 @@ function RibbonChromeEffects({
   const softBlurId = `ribbon-fx-soft-${uid}`;
   const emberGradId = `ribbon-fx-ember-${uid}`;
   const neonTipGlowId = `ribbon-fx-neon-tip-glow-${uid}`;
-  const neonCoreWidth = 1.4 + clampedIntensity * 1.6;
-  const neonUnderWidth = neonCoreWidth * (2.4 + clampedGlow * 1.6);
+  const moteGlowId = `ribbon-fx-mote-glow-${uid}`;
+  const neonCoreWidth = 1.15 + clampedIntensity * 0.85;
+  const neonUnderWidth = neonCoreWidth * (2.8 + clampedGlow * 1.2);
+  const neonWhiteWidth = Math.max(0.7, neonCoreWidth * 0.45);
 
   const animClass = animate
     ? 'ribbon-chrome-effects--animate'
@@ -234,11 +260,12 @@ function RibbonChromeEffects({
       data-ribbon-fx={mode}
     >
       <svg
-        className="h-full w-full"
+        className="h-full w-full overflow-visible"
         width="100%"
         height="100%"
         viewBox={RIBBON_VIEWBOX}
         preserveAspectRatio="none"
+        overflow="visible"
       >
         <defs>
           <mask id={maskId}>
@@ -288,11 +315,18 @@ function RibbonChromeEffects({
             </feMerge>
           </filter>
 
-          <filter id={neonTipGlowId} x="-120%" y="-120%" width="340%" height="340%">
-            <feGaussianBlur stdDeviation={2 + clampedGlow * 7} result="tipBlur" />
+          <filter id={neonTipGlowId} x="-150%" y="-150%" width="400%" height="400%">
+            <feGaussianBlur stdDeviation={1.8 + clampedGlow * 3.5} result="tipBlur" />
             <feMerge>
               <feMergeNode in="tipBlur" />
-              <feMergeNode in="tipBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          <filter id={moteGlowId} x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur stdDeviation={1.4 + clampedIntensity * 1.8} result="moteBlur" />
+            <feMerge>
+              <feMergeNode in="moteBlur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
@@ -329,6 +363,7 @@ function RibbonChromeEffects({
 
         {mode === 'neonTrace' ? (
           <g className="ribbon-fx-neon-group" overflow="visible">
+            {/* Soft afterglow trail — short comet, driven by SMIL so tip + dash stay in lockstep */}
             <path
               className="ribbon-fx-neon-trace ribbon-fx-neon-trace--under"
               d={RIBBON_TOP_EDGE_PATH}
@@ -339,12 +374,20 @@ function RibbonChromeEffects({
               strokeLinejoin="round"
               filter={`url(#${glowFilterId})`}
               pathLength={100}
-              strokeDasharray={`${neonTrailLen} ${Math.max(1, 100 - neonTrailLen)}`}
-              opacity={0.28 + clampedGlow * 0.35 + clampedIntensity * 0.2}
-              style={{
-                ['--ribbon-fx-neon-trail']: String(neonTrailLen),
-              }}
-            />
+              strokeDasharray={`${neonTrails.under} ${Math.max(1, 100 - neonTrails.under)}`}
+              strokeDashoffset={animate ? undefined : neonTrails.under - 42}
+              opacity={0.22 + clampedGlow * 0.28 + clampedIntensity * 0.12}
+            >
+              {animate ? (
+                <animate
+                  attributeName="stroke-dashoffset"
+                  from={String(neonTrails.under)}
+                  to={String(neonTrails.under - 100)}
+                  dur={`${neonDurationSec}s`}
+                  repeatCount="indefinite"
+                />
+              ) : null}
+            </path>
             <path
               className="ribbon-fx-neon-trace"
               d={RIBBON_TOP_EDGE_PATH}
@@ -354,16 +397,47 @@ function RibbonChromeEffects({
               strokeLinecap="round"
               strokeLinejoin="round"
               pathLength={100}
-              strokeDasharray={`${neonTrailLen * 0.72} ${Math.max(1, 100 - neonTrailLen * 0.72)}`}
-              opacity={0.72 + clampedIntensity * 0.28}
-              style={{
-                ['--ribbon-fx-neon-trail']: String(neonTrailLen * 0.72),
-              }}
-            />
+              strokeDasharray={`${neonTrails.core} ${Math.max(1, 100 - neonTrails.core)}`}
+              strokeDashoffset={animate ? undefined : neonTrails.core - 42}
+              opacity={0.55 + clampedIntensity * 0.3}
+            >
+              {animate ? (
+                <animate
+                  attributeName="stroke-dashoffset"
+                  from={String(neonTrails.core)}
+                  to={String(neonTrails.core - 100)}
+                  dur={`${neonDurationSec}s`}
+                  repeatCount="indefinite"
+                />
+              ) : null}
+            </path>
+            <path
+              className="ribbon-fx-neon-trace ribbon-fx-neon-trace--core"
+              d={RIBBON_TOP_EDGE_PATH}
+              fill="none"
+              stroke={glowToRgba('#ffffff', 0.92)}
+              strokeWidth={neonWhiteWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              pathLength={100}
+              strokeDasharray={`${neonTrails.white} ${Math.max(1, 100 - neonTrails.white)}`}
+              strokeDashoffset={animate ? undefined : neonTrails.white - 42}
+              opacity={0.7 + clampedGlow * 0.25}
+            >
+              {animate ? (
+                <animate
+                  attributeName="stroke-dashoffset"
+                  from={String(neonTrails.white)}
+                  to={String(neonTrails.white - 100)}
+                  dur={`${neonDurationSec}s`}
+                  repeatCount="indefinite"
+                />
+              ) : null}
+            </path>
             <g
               className="ribbon-fx-neon-tip"
               filter={`url(#${neonTipGlowId})`}
-              opacity={0.85 + clampedGlow * 0.15}
+              opacity={0.88 + clampedGlow * 0.12}
               transform={
                 animate
                   ? undefined
@@ -372,35 +446,36 @@ function RibbonChromeEffects({
             >
               {animate ? (
                 <animateMotion
-                  dur={`${durationSec}s`}
+                  dur={`${neonDurationSec}s`}
                   repeatCount="indefinite"
                   path={RIBBON_TOP_EDGE_PATH}
                   rotate="0"
                 />
               ) : null}
-              {/* Soft bloom disc */}
+              {/* Soft orb layers — fairy / sacred-light tip */}
               <circle
                 cx={0}
                 cy={0}
                 r={neonTipBloom}
-                fill={glowToRgba(resolvedGlow, 0.22 + clampedGlow * 0.35)}
+                fill={glowToRgba(resolvedGlow, 0.14 + clampedGlow * 0.22)}
               />
-              {/* 4-point star rays */}
-              <path
-                d={`M 0 ${-neonTipCore * 2.35} L ${neonTipCore * 0.42} 0 L 0 ${neonTipCore * 2.35} L ${-neonTipCore * 0.42} 0 Z`}
-                fill={glowToRgba(resolvedGlow, 0.75 + clampedGlow * 0.2)}
-              />
-              <path
-                d={`M ${-neonTipCore * 2.35} 0 L 0 ${-neonTipCore * 0.42} L ${neonTipCore * 2.35} 0 L 0 ${neonTipCore * 0.42} Z`}
-                fill={glowToRgba(resolvedGlow, 0.75 + clampedGlow * 0.2)}
-              />
-              {/* Hot white core */}
-              <circle cx={0} cy={0} r={neonTipCore * 0.55} fill={glowToRgba('#ffffff', 0.95)} />
               <circle
                 cx={0}
                 cy={0}
-                r={neonTipCore * 0.95}
-                fill={glowToRgba(resolvedGlow, 0.55 + clampedGlow * 0.3)}
+                r={neonTipCore * 1.55}
+                fill={glowToRgba(resolvedGlow, 0.45 + clampedGlow * 0.25)}
+              />
+              <circle
+                cx={0}
+                cy={0}
+                r={neonTipCore * 0.72}
+                fill={glowToRgba('#ffffff', 0.92)}
+              />
+              <circle
+                cx={0}
+                cy={0}
+                r={neonTipCore * 0.32}
+                fill={glowToRgba('#ffffff', 1)}
               />
             </g>
           </g>
@@ -508,17 +583,35 @@ function RibbonChromeEffects({
         ) : null}
 
         {mode === 'sparkle' ? (
-          <g>
-            {SPARKLE_POINTS.map((p, i) => (
-              <circle
-                key={`sp-${i}`}
-                className={`ribbon-fx-sparkle ribbon-fx-sparkle--${i % 5}`}
-                cx={p.x}
-                cy={p.y}
-                r={1.2 + (i % 3) * 0.55 + clampedIntensity * 0.8}
-                fill={glowToRgba(resolvedGlow, 0.55 + clampedIntensity * 0.4)}
-                style={{ ['--ribbon-fx-sparkle-delay']: `${(i % 7) * 0.18}s` }}
-              />
+          <g className="ribbon-fx-sparkle-group" filter={`url(#${moteGlowId})`} overflow="visible">
+            {SPARKLE_MOTE_POINTS.map((p, i) => (
+              <g key={`mote-${i}`} transform={`translate(${p.x} ${p.y})`}>
+                <g
+                  className="ribbon-fx-sparkle-mote"
+                  style={{
+                    ['--ribbon-fx-sparkle-delay']: `${p.delay.toFixed(2)}s`,
+                    ['--ribbon-fx-sparkle-life']: `${(p.life / clampedSpeed).toFixed(2)}s`,
+                    ['--ribbon-fx-sparkle-rise']: `${-p.rise}px`,
+                    ['--ribbon-fx-sparkle-drift']: `${(p.driftX * 0.45).toFixed(1)}px`,
+                  }}
+                >
+                  <circle
+                    className="ribbon-fx-sparkle-halo"
+                    cx={0}
+                    cy={0}
+                    r={p.size * (2.4 + clampedIntensity * 1.1)}
+                    fill={glowToRgba(resolvedGlow, 0.18 + clampedIntensity * 0.22)}
+                  />
+                  <circle
+                    className="ribbon-fx-sparkle-core"
+                    cx={0}
+                    cy={0}
+                    r={p.size * (0.85 + clampedIntensity * 0.35)}
+                    fill={glowToRgba('#ffffff', 0.72 + clampedIntensity * 0.22)}
+                  />
+                  <circle cx={0} cy={0} r={p.size * 0.35} fill={glowToRgba('#ffffff', 0.95)} />
+                </g>
+              </g>
             ))}
           </g>
         ) : null}

@@ -68,11 +68,11 @@ const META_BY_ID = {
   neonTrace: {
     id: 'neonTrace',
     label: 'Neon trace',
-    description: 'A light traces left→right along the ribbon bow, leaving a neon trail.',
-    defaultIntensity: 0.65,
-    defaultSpeed: 0.7,
+    description: 'A soft light comet glides along the ribbon bow with a short glowing trail.',
+    defaultIntensity: 0.55,
+    defaultSpeed: 0.65,
     /** Bloom / tip glow (0–1); separate from overall intensity. */
-    defaultGlowStrength: 0.7,
+    defaultGlowStrength: 0.55,
   },
   aurora: {
     id: 'aurora',
@@ -109,9 +109,9 @@ const META_BY_ID = {
   sparkle: {
     id: 'sparkle',
     label: 'Sparkle',
-    description: 'Twinkling points along the top ribbon edge.',
-    defaultIntensity: 0.5,
-    defaultSpeed: 1.1,
+    description: 'Soft light motes that rise gently from the bow — calm fairy-particle feel.',
+    defaultIntensity: 0.45,
+    defaultSpeed: 0.75,
   },
   frost: {
     id: 'frost',
@@ -149,7 +149,7 @@ export function getRibbonChromeEffectMeta(id) {
 }
 
 /** Default neon-trace bloom when unset (0–1). */
-export const RIBBON_CHROME_DEFAULT_GLOW_STRENGTH = 0.7;
+export const RIBBON_CHROME_DEFAULT_GLOW_STRENGTH = 0.55;
 
 /**
  * Defaults applied when the user picks a chrome mode.

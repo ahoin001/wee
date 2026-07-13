@@ -14,6 +14,9 @@ const DOT_STEP_PX = 22;
  * Pill Morph Reveal page indicator for the Home board: compact page-count disc that expands
  * into clickable page dots on hover/focus. Horizontal twin of `WeeGooeySideNavButton`.
  * Mount inside a Home `ChannelSpaceProvider` — reads navigation via `useChannelOperations`.
+ *
+ * Positioned in `--channel-page-indicator-band` just above `--channel-ribbon-crest-clearance`
+ * so it sits below the channel grid and clears the ribbon/time pill (z above the dock stack).
  */
 function HomePageIndicator() {
   const { navigation, goToPage } = useChannelOperations();
@@ -43,7 +46,7 @@ function HomePageIndicator() {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--channel-dock-clearance)+0.5rem)] z-[5] flex justify-center">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--channel-ribbon-crest-clearance)+0.65rem)] z-[1100] flex justify-center">
       <div
         className="pointer-events-auto relative flex items-center justify-center"
         onMouseEnter={() => setHovered(true)}

@@ -229,7 +229,10 @@ Set CSS vars on a root; classes consume them — do not fan out inline style obj
 ### Layouts
 
 - One clear composition per viewport; chrome floats over content (space rail / side nav / page indicator pattern).
-- Use dock clearance tokens (e.g. `--channel-dock-clearance`) so floating chrome clears the ribbon.
+- Use dock clearance tokens so floating chrome clears the ribbon:
+  - `--channel-ribbon-crest-clearance` — wave + time-pill crest
+  - `--channel-page-indicator-band` — reserved strip for the Home page pill
+  - `--channel-dock-clearance` — crest + band (channel grid bottom padding)
 - Prefer absolute edge placement + `pointer-events` wrappers (`pointer-events-none` shell, `pointer-events-auto` hit target) for overlay chrome.
 - Keep z-index in token families (`--nav-z-index`, `--side-nav-z-index`) — do not invent random 9999s.
 

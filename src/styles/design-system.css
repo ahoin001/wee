@@ -267,8 +267,17 @@
   --wii-strip-channel-gap: clamp(10px, 1.15vw, 18px);
   /* Minimum left padding for Wii channel grid — rail inset + pill width + gap; keep vw modest so ultrawide doesn’t over-inset */
   --channel-space-rail-gutter: clamp(5.5rem, 5.5vw, 6.35rem);
-  /* Bottom clearance so channel tiles sit above the ribbon/dock; page pill uses the same token */
-  --channel-dock-clearance: clamp(112px, 15.5vh, 185px);
+  /*
+   * Ribbon footer is tall/decorative (~240px); the visual crest (wave + time pill)
+   * is the height channel chrome must clear. Page indicator sits in a reserved band
+   * between the channel grid and that crest — see HomePageIndicator.
+   */
+  --channel-ribbon-crest-clearance: clamp(136px, 17vh, 200px);
+  --channel-page-indicator-band: 3.25rem;
+  /* Bottom padding for the channel grid: crest + page-pill band */
+  --channel-dock-clearance: calc(
+    var(--channel-ribbon-crest-clearance) + var(--channel-page-indicator-band)
+  );
 
   /* Form controls */
   --control-radius: var(--radius-md);

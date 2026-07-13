@@ -392,7 +392,7 @@ function RibbonDockPanel({
                 <WeeRevealWhen when={chromeEffect === 'neonTrace'}>
                   <ScaleRow
                     label="Glow strength"
-                    hint="Bloom and star-tip brightness for the neon tracer."
+                    hint="Soft bloom around the light tip (fairy / sacred-light feel)."
                     valueDisplay={`${Math.round(chromeGlowStrength * 100)}%`}
                     value={chromeGlowStrength}
                     min={0}

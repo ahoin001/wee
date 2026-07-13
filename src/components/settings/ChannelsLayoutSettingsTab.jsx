@@ -628,7 +628,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             hoverAccent="none"
             titleClassName={TOGGLE_TITLE}
             title="Focus & recede"
-            desc="Hovering a tile gently softens its neighbors so your eye stays on it. CSS-only, no extra re-renders."
+            desc="Hovering a tile lightly dims neighbors (filled tiles only). Softened to avoid flicker while scrubbing across the board."
             checked={settings.focusRecedeEnabled ?? true}
             onChange={handleFocusRecedeChange}
           />
