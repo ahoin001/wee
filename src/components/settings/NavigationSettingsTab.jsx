@@ -3,17 +3,23 @@ import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
-import { WeeModalFieldCard } from '../../ui/wee';
+import { WeeModalFieldCard, WeeRevealWhen, WeeSegmentedControl } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { logError } from '../../utils/logger';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsWeeSection from './SettingsWeeSection';
+
+const SIDE_NAV_STYLE_OPTIONS = [
+  { value: 'wee', label: 'Wee' },
+  { value: 'classic', label: 'Wee Classic' },
+];
 
 const NavigationSettingsTab = () => {
   const navigation = useConsolidatedAppStore((state) => state.navigation);
   const setNavigationState = useConsolidatedAppStore((state) => state.actions.setNavigationState);
   
   // Local state for form inputs
+  const [sideNavStyle, setSideNavStyle] = useState('wee');
   const [leftIcon, setLeftIcon] = useState('');
   const [rightIcon, setRightIcon] = useState('');
   const [leftGlassEnabled, setLeftGlassEnabled] = useState(false);
@@ -38,6 +44,8 @@ const NavigationSettingsTab = () => {
   // Load current settings on mount
   useEffect(() => {
     // Load from store
+    setSideNavStyle(navigation.sideNavStyle === 'classic' ? 'classic' : 'wee');
+
     if (navigation.icons) {
       setLeftIcon(navigation.icons.left || '');
       setRightIcon(navigation.icons.right || '');
@@ -157,10 +165,10 @@ const NavigationSettingsTab = () => {
     }
   };
 
-  // Save settings
   const saveSettings = () => {
     try {
       setNavigationState({
+        sideNavStyle: sideNavStyle === 'classic' ? 'classic' : 'wee',
         icons: {
           left: leftIcon,
           right: rightIcon
@@ -190,6 +198,7 @@ const NavigationSettingsTab = () => {
 
   // Reset to defaults
   const resetToDefaults = () => {
+    setSideNavStyle('wee');
     setLeftIcon('');
     setRightIcon('');
     setLeftGlassEnabled(false);
@@ -203,6 +212,13 @@ const NavigationSettingsTab = () => {
     setLeftGlassShineOpacity(0.7);
     setRightGlassShineOpacity(0.7);
     setSpotifyIntegration(false);
+    setNavigationState({ sideNavStyle: 'wee' });
+  };
+
+  const handleSideNavStyleChange = (value) => {
+    const next = value === 'classic' ? 'classic' : 'wee';
+    setSideNavStyle(next);
+    setNavigationState({ sideNavStyle: next });
   };
 
   const selectedTileClass =
@@ -214,7 +230,7 @@ const NavigationSettingsTab = () => {
     <div className="mx-auto max-w-4xl space-y-10 pb-12">
       <SettingsTabPageHeader
         title="Navigation"
-        subtitle="Side navigation buttons — customize glass, icons, and Spotify tinting"
+        subtitle="Side page buttons — Wee morph peek or Classic edge slide, icons, and glass"
       />
 
       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -225,6 +241,30 @@ const NavigationSettingsTab = () => {
           Save settings
         </WButton>
       </div>
+
+      <SettingsWeeSection eyebrow="Look">
+        <WeeModalFieldCard
+          hoverAccent="none"
+          paddingClassName="p-5 md:p-6"
+          title="Side button style"
+          description="How prev/next peeks appear on Home"
+        >
+          <div className="space-y-3">
+            <WeeSegmentedControl
+              value={sideNavStyle}
+              onChange={handleSideNavStyleChange}
+              options={SIDE_NAV_STYLE_OPTIONS}
+              ariaLabel="Side navigation button style"
+              layoutId="navSideStyleSegment"
+            />
+            <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
+              {sideNavStyle === 'classic'
+                ? 'Wee Classic — original edge slide peek.'
+                : 'Wee — morphing glass peek (same Pill Morph Reveal as the space rail). Chrome uses space-rail materials; glass and Spotify tints still apply when enabled.'}
+            </Text>
+          </div>
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Spotify">
       <WeeModalFieldCard
@@ -240,14 +280,14 @@ const NavigationSettingsTab = () => {
             checked={spotifyIntegration}
             onChange={setSpotifyIntegration}
           />
-          {spotifyIntegration && (
+          <WeeRevealWhen when={spotifyIntegration}>
             <div className="p-4 bg-[hsl(var(--surface-secondary))] rounded-lg border border-[hsl(var(--border-primary))]">
               <Text variant="caption" className="text-[hsl(var(--text-secondary))]">
                 When enabled, the left navigation button will use the secondary color from the Spotify track art, 
                 and the right navigation button will use the accent color. Text colors will also adapt to the track's color scheme.
               </Text>
             </div>
-          )}
+          </WeeRevealWhen>
         </div>
       </WeeModalFieldCard>
       </SettingsWeeSection>
@@ -500,7 +540,7 @@ const NavigationSettingsTab = () => {
               />
             </div>
             
-            {leftGlassEnabled && (
+            <WeeRevealWhen when={leftGlassEnabled}>
               <div className="space-y-4 pl-4 border-l-2 border-[hsl(var(--border-primary))]">
                 <div>
                   <Text variant="caption" className="text-[hsl(var(--text-secondary))] mb-2 block">
@@ -554,7 +594,7 @@ const NavigationSettingsTab = () => {
                   />
                 </div>
               </div>
-            )}
+            </WeeRevealWhen>
           </div>
 
           {/* Right Button Glass Settings */}
@@ -567,7 +607,7 @@ const NavigationSettingsTab = () => {
               />
             </div>
             
-            {rightGlassEnabled && (
+            <WeeRevealWhen when={rightGlassEnabled}>
               <div className="space-y-4 pl-4 border-l-2 border-[hsl(var(--border-primary))]">
                 <div>
                   <Text variant="caption" className="text-[hsl(var(--text-secondary))] mb-2 block">
@@ -621,7 +661,7 @@ const NavigationSettingsTab = () => {
                   />
                 </div>
               </div>
-            )}
+            </WeeRevealWhen>
           </div>
         </div>
       </WeeModalFieldCard>

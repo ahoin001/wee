@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { applyPrimaryAccentFromHex } from '../utils/theme/applyPrimaryAccentFromHex';
+import { applyAmbientRoleTokens } from '../utils/theme/extractImagePalette';
+import { resolveEffectiveAccent } from '../utils/theme/resolveEffectiveAccent';
 
 export const useCursorEffect = (useCustomCursor, cursorStyle) => {
   useEffect(() => {
@@ -61,13 +63,60 @@ export const useThemeEffect = (isDarkMode) => {
 };
 
 /**
- * Drives global `--primary` / `--wii-blue*` from the same hex as ribbon accent glow
- * (Settings → Ribbon), so primary buttons and linked tokens stay on-brand and themeable.
+ * Drives global `--primary` / `--wii-blue*` from the ambient accent resolver
+ * (Spotify → wallpaper → manual ribbon glow → default).
+ *
+ * @param {{
+ *   wallpaperMatchEnabled?: boolean,
+ *   ambientPalette?: object | null,
+ *   spotifyMatchEnabled?: boolean,
+ *   spotifyColors?: object | null,
+ *   dynamicRibbonColorEnabled?: boolean,
+ *   ribbonGlowColor?: string | null,
+ *   isDarkMode?: boolean,
+ * }} input
  */
-export const usePrimaryAccentThemeEffect = (ribbonGlowHex, isDarkMode) => {
+export const usePrimaryAccentThemeEffect = (input) => {
+  const {
+    wallpaperMatchEnabled = false,
+    ambientPalette = null,
+    spotifyMatchEnabled = false,
+    spotifyColors = null,
+    dynamicRibbonColorEnabled = false,
+    ribbonGlowColor = null,
+    isDarkMode = false,
+  } = input || {};
+
   useEffect(() => {
-    applyPrimaryAccentFromHex(ribbonGlowHex, { isDarkMode });
-  }, [ribbonGlowHex, isDarkMode]);
+    const { hex, source } = resolveEffectiveAccent({
+      wallpaperMatchEnabled,
+      ambientPalette,
+      spotifyMatchEnabled,
+      spotifyColors,
+      dynamicRibbonColorEnabled,
+      ribbonGlowColor,
+    });
+    applyPrimaryAccentFromHex(hex, { isDarkMode });
+
+    if (source === 'wallpaper' && ambientPalette) {
+      applyAmbientRoleTokens(ambientPalette);
+    } else if (source === 'spotify' && spotifyColors) {
+      applyAmbientRoleTokens({
+        secondary: spotifyColors.secondary,
+        accent: spotifyColors.accent || spotifyColors.primary,
+      });
+    } else if (!wallpaperMatchEnabled) {
+      applyAmbientRoleTokens(null, { clear: true });
+    }
+  }, [
+    wallpaperMatchEnabled,
+    ambientPalette,
+    spotifyMatchEnabled,
+    spotifyColors,
+    dynamicRibbonColorEnabled,
+    ribbonGlowColor,
+    isDarkMode,
+  ]);
 };
 
 export const useFullscreenEffect = ({ appReady, startInFullscreen }) => {

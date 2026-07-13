@@ -599,20 +599,18 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               actions.setChannelSettings({ autoFadeTimeout: value });
             }}
           >
-            {(settings.autoFadeTimeout ?? 5) > 0 ? (
-              <div className="w-full min-w-0">
-                <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-                  Delay before fade: {settings.autoFadeTimeout ?? 5}s
-                </Text>
-                <Slider
-                  value={settings.autoFadeTimeout ?? 5}
-                  min={1}
-                  max={30}
-                  step={1}
-                  onChange={handleChannelAutoFadeTimeoutChange}
-                />
-              </div>
-            ) : null}
+            <div className="w-full min-w-0">
+              <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+                Delay before fade: {settings.autoFadeTimeout ?? 5}s
+              </Text>
+              <Slider
+                value={settings.autoFadeTimeout ?? 5}
+                min={1}
+                max={30}
+                step={1}
+                onChange={handleChannelAutoFadeTimeoutChange}
+              />
+            </div>
           </SettingsToggleFieldCard>
         </WeeSettingsCollapsibleSection>
 
@@ -630,33 +628,31 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             checked={settings.idleAnimationEnabled ?? false}
             onChange={handleIdleAnimationEnabledChange}
           >
-            {settings.idleAnimationEnabled ? (
-              <>
-                <div className="w-full min-w-0">
-                  <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                    Animation types
-                  </WeeSectionEyebrow>
-                  <SettingsMultiToggleChips
-                    items={IDLE_TYPE_ITEMS}
-                    selectedValues={idleSelected}
-                    onToggle={handleIdleAnimationTypeToggle}
-                    ariaLabel="Idle animation types"
-                  />
-                </div>
-                <div className="w-full min-w-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
-                  <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-                    Animation interval: {settings.idleAnimationInterval ?? 8} seconds
-                  </Text>
-                  <Slider
-                    value={settings.idleAnimationInterval ?? 8}
-                    min={2}
-                    max={20}
-                    step={1}
-                    onChange={handleIdleAnimationIntervalChange}
-                  />
-                </div>
-              </>
-            ) : null}
+            <div className="space-y-4">
+              <div className="w-full min-w-0">
+                <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+                  Animation types
+                </WeeSectionEyebrow>
+                <SettingsMultiToggleChips
+                  items={IDLE_TYPE_ITEMS}
+                  selectedValues={idleSelected}
+                  onToggle={handleIdleAnimationTypeToggle}
+                  ariaLabel="Idle animation types"
+                />
+              </div>
+              <div className="w-full min-w-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
+                <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+                  Animation interval: {settings.idleAnimationInterval ?? 8} seconds
+                </Text>
+                <Slider
+                  value={settings.idleAnimationInterval ?? 8}
+                  min={2}
+                  max={20}
+                  step={1}
+                  onChange={handleIdleAnimationIntervalChange}
+                />
+              </div>
+            </div>
           </SettingsToggleFieldCard>
         </WeeSettingsCollapsibleSection>
 
@@ -673,9 +669,8 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             desc="Add cinematic zoom and pan to still channel images."
             checked={settings.kenBurnsEnabled ?? false}
             onChange={handleKenBurnsEnabledChange}
+            revealKeepMounted={false}
           >
-            {settings.kenBurnsEnabled ? (
-              <>
                 <div className="w-full min-w-0 space-y-4">
                   <div>
                     <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
@@ -789,8 +784,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                     </div>
                   </div>
                 </div>
-              </>
-            ) : null}
           </SettingsToggleFieldCard>
         </WeeSettingsCollapsibleSection>
       </div>

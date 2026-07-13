@@ -1,0 +1,56 @@
+---
+description: Motion, layout morph, modal presence, and transition cohesion for Wee UI
+alwaysApply: true
+---
+
+# Motion and layout cohesion (Wee)
+
+Use shared motion/layout primitives. Do not invent one-off height snaps, fade-only collapses, or parallel timing clocks.
+
+## Content resize (height morph)
+
+When UI height changes (forms, tools panels, disclosures, toggle→fields):
+
+1. **Animate the space, not only the paint** — CSS `grid-template-rows: 0fr → 1fr` via `WeeContentCollapse` / composers. No opacity/scale-only exits for large panels. No Framer `height: 'auto'`.
+2. **One clock** — siblings that appear/disappear together share `--wee-collapse-*` timing (`design-system.css`).
+3. **Presence owns exit** — keep content mounted through the close morph; unmount only after close when using `keepMounted={false}`.
+4. **Sibling gap** — use `WeeMorphStack` so vertical gap morphs with open/closed; do not hard-toggle `gap-0` / `space-y` ad hoc.
+
+### Compose
+
+| Need | Use |
+|------|-----|
+| Accordion with icon header | `WeeSettingsCollapsibleSection` |
+| Controlled height show/hide | `WeeContentCollapse` |
+| Toggle / condition reveals fields | `WeeRevealWhen` |
+| Toggle field card with nested controls | `SettingsToggleFieldCard` (auto-reveals children when `checked`) |
+| Sibling gap with collapse | `WeeMorphStack` |
+| Same-footprint view swap | `AnimatePresence` + `tabTransition` / `createWeeTransition('tab')` |
+| Avoid | `height: 'auto'`, `{cond ? <BigPanel /> : null}` without morph, fade-only large exits |
+
+Timing tokens: `--wee-collapse-duration`, `--wee-collapse-duration-reduced`, `--wee-collapse-ease`.
+
+Heavy collapsed trees (media grids, large forms): `keepMounted={false}` so children unmount after the close morph.
+
+## Modal and overlay presence
+
+- Pass `isOpen` into `WeeModalShell` / shared shells; use `useDialogExitPresence` — never `if (!isOpen) return null` on animated dialog trees.
+- Do not parent-unmount overlays/menus while they are closing; keep mounted and toggle `isOpen`.
+
+## Motion APIs
+
+- Prefer `createWeeTransition(intent)` / `useWeeMotion()` / `WEE_SPRINGS` from `src/design/weeMotion.js` over ad-hoc spring literals.
+- Amplitudes stay in `src/design/playfulMotion.js`.
+- Gate playful motion with `useMotionFeedback` (OS reduced-motion + `ui.motionFeedback`).
+- Continuous FX / RAF: gate with `useAnimationActivity` (visibility, focus, low-power).
+- Do not invent parallel timing clocks for the same domain (shell switch, hub entrance, modal close, content collapse).
+
+## Performance
+
+- Long-running Electron: avoid always-on heavy effects; prefer `keepMounted={false}` for expensive collapsed UI; debounce expensive work.
+
+## QA
+
+- Rapidly toggle expands/reveals — interruptible, no stuck `0fr`/`1fr`.
+- Reduced motion uses reduced collapse duration; no lingering mounted heavy trees when `keepMounted={false}`.
+- Modal open/close always plays exit animation.

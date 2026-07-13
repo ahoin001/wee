@@ -1,13 +1,11 @@
 /**
  * Edge-peek page nav chrome — tokens from design-system (--side-nav-*).
- * Motion (peek / reveal / press) lives in WeeGooeySideNavButton via weeMotion springs.
+ * Motion lives in WeeGooeySideNavButton via weeMotion (Pill Morph Reveal / classic slide).
  */
 
 .wee-side-nav-btn {
   position: fixed;
   top: 50%;
-  width: var(--side-nav-width);
-  height: var(--side-nav-height);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -19,12 +17,39 @@
   will-change: transform;
 }
 
+.wee-side-nav-btn--classic {
+  width: var(--side-nav-width);
+  height: var(--side-nav-height);
+}
+
+.wee-side-nav-btn--wee {
+  /* Footprint comes from morphing WeeGlassPill; hit target follows expanded size via padding */
+  width: auto;
+  height: auto;
+  min-width: var(--side-nav-compact-size, 56px);
+  min-height: var(--side-nav-compact-size, 56px);
+}
+
 .wee-side-nav-btn--left {
   left: max(0px, env(safe-area-inset-left, 0px));
 }
 
 .wee-side-nav-btn--right {
   right: max(0px, env(safe-area-inset-right, 0px));
+}
+
+.wee-side-nav-btn__morph-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wee-side-nav-btn--left.wee-side-nav-btn--wee .wee-side-nav-btn__morph-shell {
+  justify-content: flex-start;
+}
+
+.wee-side-nav-btn--right.wee-side-nav-btn--wee .wee-side-nav-btn__morph-shell {
+  justify-content: flex-end;
 }
 
 .wee-side-nav-btn__surface {
@@ -45,14 +70,40 @@
   backdrop-filter: blur(var(--nav-glass-blur, 12px)) saturate(1.15);
 }
 
-.wee-side-nav-btn--left .wee-side-nav-btn__surface {
+/* Classic: Wii edge-strip radii */
+.wee-side-nav-btn--classic.wee-side-nav-btn--left .wee-side-nav-btn__surface {
   border-radius: 0.85rem var(--control-radius-pill) var(--control-radius-pill) 0.85rem;
   transform-origin: left center;
 }
 
-.wee-side-nav-btn--right .wee-side-nav-btn__surface {
+.wee-side-nav-btn--classic.wee-side-nav-btn--right .wee-side-nav-btn__surface {
   border-radius: var(--control-radius-pill) 0.85rem 0.85rem var(--control-radius-pill);
   transform-origin: right center;
+}
+
+/* Wee: space-rail glass + edge-flush caps; footprint morphs via Framer */
+.wee-side-nav-btn__surface--wee {
+  flex-shrink: 0;
+  background: hsl(var(--wee-pill-glass));
+  border-color: hsl(var(--wee-pill-border));
+  box-shadow: var(--wee-pill-shadow);
+  color: hsl(var(--text-primary));
+  backdrop-filter: blur(24px) saturate(1.2);
+}
+
+.wee-side-nav-btn--wee.wee-side-nav-btn--left .wee-side-nav-btn__surface--wee {
+  border-radius: 1rem var(--control-radius-pill) var(--control-radius-pill) 1rem;
+  transform-origin: left center;
+}
+
+.wee-side-nav-btn--wee.wee-side-nav-btn--right .wee-side-nav-btn__surface--wee {
+  border-radius: var(--control-radius-pill) 1rem 1rem var(--control-radius-pill);
+  transform-origin: right center;
+}
+
+.wee-side-nav-btn--wee:not(.wee-side-nav-btn--revealed) .wee-side-nav-btn__surface--wee {
+  /* Compact: near-circle nub flush to edge */
+  border-radius: var(--control-radius-pill);
 }
 
 .wee-side-nav-btn__surface::before {
@@ -70,6 +121,15 @@
   pointer-events: none;
 }
 
+.wee-side-nav-btn__surface--wee::before {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--color-pure-white) / 0.28) 0%,
+    hsl(var(--color-pure-white) / 0.08) 50%,
+    hsl(var(--color-pure-white) / 0) 100%
+  );
+}
+
 .wee-side-nav-btn__surface::after {
   content: '';
   position: absolute;
@@ -84,7 +144,7 @@
   pointer-events: none;
 }
 
-.wee-side-nav-btn--revealed .wee-side-nav-btn__surface {
+.wee-side-nav-btn--classic.wee-side-nav-btn--revealed .wee-side-nav-btn__surface {
   background: var(--side-nav-surface-bg-hover);
   border-color: var(--side-nav-surface-border-hover);
   color: var(--side-nav-text-color-hover);
@@ -97,6 +157,11 @@
 .wee-side-nav-btn--revealed .wee-side-nav-btn__surface::after {
   width: var(--side-nav-ripple-size);
   height: var(--side-nav-ripple-size);
+}
+
+.wee-side-nav-btn__floor {
+  /* Soft mass cue under Wee morph pill; keep subtle near screen edge */
+  opacity: 0.55;
 }
 
 .wee-side-nav-btn__icon {

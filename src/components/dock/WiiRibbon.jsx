@@ -12,6 +12,7 @@ import DockParticleSystem from './DockParticleSystem';
 import RibbonChrome from './ribbon/RibbonChrome';
 import RibbonChromeEffects from './ribbon/RibbonChromeEffects';
 import RibbonAccessories from './ribbon/RibbonAccessories';
+import { RIBBON_CHROME_IDLE_DELAY_MS } from './ribbon/ribbonChromeEffectMeta';
 import './WiiRibbon.css';
 import intervalManager from '../../utils/IntervalManager';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
@@ -96,11 +97,13 @@ const WiiRibbonComponent = ({
     chromeEffect,
     chromeEffectIntensity,
     chromeEffectSpeed,
+    chromeEffectIdleOnly,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       chromeEffect: state.ribbon.chromeEffect ?? 'none',
       chromeEffectIntensity: state.ribbon.chromeEffectIntensity ?? 0.55,
       chromeEffectSpeed: state.ribbon.chromeEffectSpeed ?? 1,
+      chromeEffectIdleOnly: state.ribbon.chromeEffectIdleOnly ?? false,
     }))
   );
   const [buttonConfigs, setButtonConfigs] = useState([
@@ -114,6 +117,7 @@ const WiiRibbonComponent = ({
   const [primaryActionsModalMounted, setPrimaryActionsModalMounted] = useState(false);
   const [presetsButtonModalMounted, setPresetsButtonModalMounted] = useState(false);
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
+  const [chromeIdleReady, setChromeIdleReady] = useState(true);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [tintedImages, setTintedImages] = useState({});
   const [activeButton, setActiveButton] = useState(null);
@@ -150,6 +154,20 @@ const WiiRibbonComponent = ({
       setSpotifyColors(null);
     }
   }, [spotifyAlbumArtUrl, spotifyExtractedColors, shouldUseDynamicRibbonColor]);
+
+  // Idle-only chrome: pause pulse glow (and FX) until unhovered for delay.
+  useEffect(() => {
+    if (!chromeEffectIdleOnly) {
+      setChromeIdleReady(true);
+      return undefined;
+    }
+    if (isRibbonHovered) {
+      setChromeIdleReady(false);
+      return undefined;
+    }
+    const t = window.setTimeout(() => setChromeIdleReady(true), RIBBON_CHROME_IDLE_DELAY_MS);
+    return () => window.clearTimeout(t);
+  }, [chromeEffectIdleOnly, isRibbonHovered]);
 
   // Load configs from consolidated store on mount and subscribe to changes
   useEffect(() => {
@@ -547,8 +565,12 @@ const WiiRibbonComponent = ({
     : (propRibbonGlowStrength ?? 20);
   const ribbonGlowFilter = `drop-shadow(0 0 ${glowPx}px ${ribbonGlowHex}) drop-shadow(0 0 12px ${ribbonGlowHex})`;
 
+  const wallpaperMatchEnabled = useConsolidatedAppStore(
+    (state) => state.ui.wallpaperMatchEnabled ?? false
+  );
+
   const pillBackdropBackground = (() => {
-    if (spotifyColors?.secondary) {
+    if (spotifyColors?.secondary && shouldUseDynamicRibbonColor) {
       const match = spotifyColors.secondary.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       if (match) {
         const [, r, g, b] = match;
@@ -560,6 +582,9 @@ const WiiRibbonComponent = ({
         const b = parseInt(spotifyColors.secondary.slice(5, 7), 16);
         return `rgba(${r}, ${g}, ${b}, ${timePillOpacity})`;
       }
+    }
+    if (wallpaperMatchEnabled) {
+      return `hsl(var(--ambient-secondary) / ${timePillOpacity})`;
     }
     return `hsl(var(--color-pure-white) / ${timePillOpacity})`;
   })();
@@ -594,13 +619,21 @@ const WiiRibbonComponent = ({
       : propRibbonColor) +
     (propRibbonDockOpacity !== undefined ? hexAlpha(propRibbonDockOpacity) : '');
 
+  const chromeFxDurationSec = (2.4 / Math.min(2, Math.max(0.25, chromeEffectSpeed ?? 1))).toFixed(2);
+  const pulseChromeActive =
+    chromeEffect === 'pulse' && (!chromeEffectIdleOnly || chromeIdleReady);
+
   return (
     <>
       <m.footer
         {...dockBarEntrance}
         className={`interactive-footer ${ribbonHoverAnimationEnabled ? 'ribbon-hover-enabled' : ''}${
-          chromeEffect === 'pulse' ? ' ribbon-fx-pulse-active' : ''
+          pulseChromeActive ? ' ribbon-fx-pulse-active' : ''
         }`}
+        style={{
+          ['--ribbon-fx-duration']: `${chromeFxDurationSec}s`,
+          ['--ribbon-fx-glow']: ribbonGlowHex,
+        }}
         onContextMenu={handleRibbonContextMenu}
       >
         <DockParticleSystem
@@ -625,6 +658,8 @@ const WiiRibbonComponent = ({
           intensity={chromeEffectIntensity}
           speed={chromeEffectSpeed}
           glowColor={ribbonGlowHex}
+          hovered={isRibbonHovered}
+          idleOnly={chromeEffectIdleOnly}
         />
 
         <RibbonAccessories>

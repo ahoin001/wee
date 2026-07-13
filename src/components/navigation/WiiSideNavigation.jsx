@@ -35,8 +35,8 @@ function rgbToRgba(rgbString, alpha = 1) {
 
 /**
  * Home Wii-layout edge peeks for channel pages.
- * Visual + motion chrome: {@link WeeGooeySideNavButton} (WeeGooeySpacePill spring family).
- * (SlideNavigation is unused for this — it was a page-slide wrapper only.)
+ * Visual + motion chrome: {@link WeeGooeySideNavButton}
+ * (`wee` = Pill Morph Reveal; `classic` = legacy edge slide).
  */
 const WiiSideNavigation = () => {
   const channelSpaceKey = useMemo(() => 'home', []);
@@ -51,6 +51,8 @@ const WiiSideNavigation = () => {
   const shouldUseDynamicNavColors = spotifyEnabled && dynamicRibbonColorEnabled;
 
   const navigationSettings = useConsolidatedAppStore((state) => state.navigation);
+  const sideNavVariant =
+    navigationSettings.sideNavStyle === 'classic' ? 'classic' : 'wee';
   const leftIcon = navigationSettings.icons?.left || null;
   const rightIcon = navigationSettings.icons?.right || null;
   const leftGlassSettings = navigationSettings.glassEffect?.left || {
@@ -152,6 +154,7 @@ const WiiSideNavigation = () => {
     <>
       <WeeGooeySideNavButton
         side="left"
+        variant={sideNavVariant}
         isOpen={canGoLeft}
         disabled={isAnimating}
         surfaceStyle={getGlassStyleVars(leftGlassSettings)}
@@ -168,6 +171,7 @@ const WiiSideNavigation = () => {
 
       <WeeGooeySideNavButton
         side="right"
+        variant={sideNavVariant}
         isOpen={canGoRight}
         disabled={isAnimating}
         surfaceStyle={getGlassStyleVars(rightGlassSettings)}

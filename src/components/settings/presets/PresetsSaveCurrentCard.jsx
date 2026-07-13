@@ -17,6 +17,7 @@ const PresetsSaveCurrentCard = React.memo(
     onOpenHomeProfiles,
     customPresetCount,
     maxCustomPresets,
+    isSaving = false,
   }) => (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
@@ -27,16 +28,16 @@ const PresetsSaveCurrentCard = React.memo(
           value={newPresetName}
           onChange={(e) => onNewPresetNameChange(e.target.value)}
           maxLength={32}
-          disabled={customPresetCount >= maxCustomPresets}
+          disabled={isSaving || customPresetCount >= maxCustomPresets}
           className="min-w-0 flex-1"
         />
         <Button
           variant="primary"
-          className="min-w-[90px] shrink-0 sm:self-stretch"
+          className="min-w-[110px] shrink-0 sm:self-stretch"
           onClick={onSave}
-          disabled={customPresetCount >= maxCustomPresets}
+          disabled={isSaving || customPresetCount >= maxCustomPresets}
         >
-          Save Preset
+          {isSaving ? 'Capturing…' : 'Save Preset'}
         </Button>
       </div>
 
@@ -45,7 +46,7 @@ const PresetsSaveCurrentCard = React.memo(
       </Text>
 
       <div className="flex flex-col gap-3 border-t border-[hsl(var(--border-primary)/0.35)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
-        <Button variant="tertiary" size="sm" onClick={onOpenHomeProfiles} className="w-fit">
+        <Button variant="tertiary" size="sm" onClick={onOpenHomeProfiles} className="w-fit" disabled={isSaving}>
           Open Home Profiles
         </Button>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:ml-auto">
@@ -57,6 +58,7 @@ const PresetsSaveCurrentCard = React.memo(
             onChange={onIncludeHomeChannelsChange}
             label="Include Home channels"
             disableLabelClick
+            disabled={isSaving}
           />
         </div>
       </div>

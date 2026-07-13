@@ -4,25 +4,28 @@
   overflow: hidden;
 }
 
+/* —— Shimmer —— */
 .ribbon-chrome-effects--animate .ribbon-fx-shimmer-band {
   animation: ribbon-fx-shimmer-sweep var(--ribbon-fx-duration, 2.4s) linear infinite;
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-shimmer-band {
-  transform: translateX(12%);
+  transform: translateX(10%) skewX(-6deg);
   opacity: var(--ribbon-fx-opacity, 0.5);
 }
 
+/* —— Pulse (heartbeat: quick rise, slow fall) —— */
 .ribbon-chrome-effects--animate .ribbon-fx-pulse-fill {
-  animation: ribbon-fx-pulse-breathe var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
+  animation: ribbon-fx-pulse-heartbeat var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-pulse-fill {
   opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.35);
 }
 
+/* —— Neon (ping-pong) —— */
 .ribbon-chrome-effects--animate .ribbon-fx-neon-trace {
-  animation: ribbon-fx-neon-dash var(--ribbon-fx-duration, 2.4s) linear infinite;
+  animation: ribbon-fx-neon-dash var(--ribbon-fx-duration, 2.4s) linear infinite alternate;
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-neon-trace {
@@ -30,22 +33,137 @@
   opacity: var(--ribbon-fx-opacity, 0.5);
 }
 
+/* —— Aurora —— */
+.ribbon-chrome-effects--animate .ribbon-fx-aurora-band--a {
+  animation: ribbon-fx-aurora-drift-a calc(var(--ribbon-fx-duration, 2.4s) * 1.35) ease-in-out infinite alternate;
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-aurora-band--b {
+  animation: ribbon-fx-aurora-drift-b calc(var(--ribbon-fx-duration, 2.4s) * 1.7) ease-in-out infinite alternate;
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-aurora-band--c {
+  animation: ribbon-fx-aurora-drift-c calc(var(--ribbon-fx-duration, 2.4s) * 2.1) ease-in-out infinite alternate;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-aurora-band {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.7);
+}
+
+/* —— Ripple / caustic —— */
+.ribbon-chrome-effects--animate .ribbon-fx-ripple--1 {
+  animation: ribbon-fx-ripple-1 calc(var(--ribbon-fx-duration, 2.4s) * 1.6) ease-in-out infinite alternate;
+  transform-origin: 420px 130px;
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-ripple--2 {
+  animation: ribbon-fx-ripple-2 calc(var(--ribbon-fx-duration, 2.4s) * 2) ease-in-out infinite alternate;
+  transform-origin: 780px 150px;
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-ripple--3 {
+  animation: ribbon-fx-ripple-3 calc(var(--ribbon-fx-duration, 2.4s) * 1.8) ease-in-out infinite alternate;
+  transform-origin: 1100px 120px;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-ripple {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.65);
+}
+
+/* —— Edge ember —— */
+.ribbon-chrome-effects--animate .ribbon-fx-ember-pool {
+  animation: ribbon-fx-ember-breathe var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-ember-edge {
+  animation: ribbon-fx-ember-edge-glow calc(var(--ribbon-fx-duration, 2.4s) * 1.2) ease-in-out infinite;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-ember-pool,
+.ribbon-chrome-effects--static .ribbon-fx-ember-edge {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.6);
+}
+
+/* —— Scanline —— */
+.ribbon-chrome-effects--animate .ribbon-fx-scanline {
+  animation: ribbon-fx-scanline-sweep var(--ribbon-fx-duration, 2.4s) linear infinite;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-scanline {
+  transform: translateY(90px);
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.5);
+}
+
+/* —— Sparkle —— */
+.ribbon-chrome-effects--animate .ribbon-fx-sparkle {
+  animation: ribbon-fx-sparkle-twinkle calc(var(--ribbon-fx-duration, 2.4s) * 0.85) ease-in-out infinite;
+  animation-delay: var(--ribbon-fx-sparkle-delay, 0s);
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-sparkle {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.55);
+}
+
+.ribbon-chrome-effects--animate .ribbon-fx-sparkle--1 {
+  animation-duration: calc(var(--ribbon-fx-duration, 2.4s) * 0.7);
+}
+.ribbon-chrome-effects--animate .ribbon-fx-sparkle--2 {
+  animation-duration: calc(var(--ribbon-fx-duration, 2.4s) * 1.05);
+}
+.ribbon-chrome-effects--animate .ribbon-fx-sparkle--3 {
+  animation-duration: calc(var(--ribbon-fx-duration, 2.4s) * 0.9);
+}
+.ribbon-chrome-effects--animate .ribbon-fx-sparkle--4 {
+  animation-duration: calc(var(--ribbon-fx-duration, 2.4s) * 1.2);
+}
+
+/* —— Frost —— */
+.ribbon-chrome-effects--animate .ribbon-fx-frost {
+  animation: ribbon-fx-frost-breathe var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-frost {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.55);
+}
+
+/* —— Spectrum —— */
+.ribbon-chrome-effects--animate .ribbon-fx-spectrum {
+  animation: ribbon-fx-spectrum-hue calc(var(--ribbon-fx-duration, 2.4s) * 2.2) linear infinite;
+  transform-origin: center;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-spectrum {
+  filter: hue-rotate(40deg);
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.7);
+}
+
+/* —— Keyframes —— */
+
 @keyframes ribbon-fx-shimmer-sweep {
   from {
-    transform: translateX(-35%);
+    transform: translateX(-38%) skewX(-6deg);
   }
   to {
-    transform: translateX(35%);
+    transform: translateX(38%) skewX(-6deg);
   }
 }
 
-@keyframes ribbon-fx-pulse-breathe {
+@keyframes ribbon-fx-pulse-heartbeat {
   0%,
   100% {
-    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.25);
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.2);
   }
-  50% {
-    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.85);
+  18% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.9);
+  }
+  32% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.4);
+  }
+  48% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.75);
+  }
+  70% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.28);
   }
 }
 
@@ -58,10 +176,142 @@
   }
 }
 
+@keyframes ribbon-fx-aurora-drift-a {
+  from {
+    transform: translateX(-12%) translateY(4%);
+  }
+  to {
+    transform: translateX(14%) translateY(-3%);
+  }
+}
+
+@keyframes ribbon-fx-aurora-drift-b {
+  from {
+    transform: translateX(10%) translateY(-5%);
+  }
+  to {
+    transform: translateX(-16%) translateY(6%);
+  }
+}
+
+@keyframes ribbon-fx-aurora-drift-c {
+  from {
+    transform: translateX(-8%) scale(1);
+  }
+  to {
+    transform: translateX(12%) scale(1.05);
+  }
+}
+
+@keyframes ribbon-fx-ripple-1 {
+  from {
+    transform: translate(-18px, 6px) scale(0.92);
+    opacity: 0.45;
+  }
+  to {
+    transform: translate(22px, -10px) scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+@keyframes ribbon-fx-ripple-2 {
+  from {
+    transform: translate(14px, -8px) scale(1.05);
+    opacity: 0.5;
+  }
+  to {
+    transform: translate(-20px, 12px) scale(0.9);
+    opacity: 0.8;
+  }
+}
+
+@keyframes ribbon-fx-ripple-3 {
+  from {
+    transform: translate(-10px, -4px) scale(0.95);
+    opacity: 0.4;
+  }
+  to {
+    transform: translate(16px, 8px) scale(1.1);
+    opacity: 0.75;
+  }
+}
+
+@keyframes ribbon-fx-ember-breathe {
+  0%,
+  100% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.45);
+  }
+  50% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.95);
+  }
+}
+
+@keyframes ribbon-fx-ember-edge-glow {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes ribbon-fx-scanline-sweep {
+  from {
+    transform: translateY(-24px);
+  }
+  to {
+    transform: translateY(240px);
+  }
+}
+
+@keyframes ribbon-fx-sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.7);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  65% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes ribbon-fx-frost-breathe {
+  0%,
+  100% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.35);
+  }
+  50% {
+    opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.9);
+  }
+}
+
+@keyframes ribbon-fx-spectrum-hue {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ribbon-chrome-effects--animate .ribbon-fx-shimmer-band,
   .ribbon-chrome-effects--animate .ribbon-fx-pulse-fill,
-  .ribbon-chrome-effects--animate .ribbon-fx-neon-trace {
+  .ribbon-chrome-effects--animate .ribbon-fx-neon-trace,
+  .ribbon-chrome-effects--animate .ribbon-fx-aurora-band,
+  .ribbon-chrome-effects--animate .ribbon-fx-ripple,
+  .ribbon-chrome-effects--animate .ribbon-fx-ember-pool,
+  .ribbon-chrome-effects--animate .ribbon-fx-ember-edge,
+  .ribbon-chrome-effects--animate .ribbon-fx-scanline,
+  .ribbon-chrome-effects--animate .ribbon-fx-sparkle,
+  .ribbon-chrome-effects--animate .ribbon-fx-frost,
+  .ribbon-chrome-effects--animate .ribbon-fx-spectrum {
     animation: none !important;
   }
 }

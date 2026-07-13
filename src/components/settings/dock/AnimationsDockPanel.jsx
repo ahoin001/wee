@@ -5,7 +5,11 @@ import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
 import WSelect from '../../../ui/WSelect';
 import WToggle from '../../../ui/WToggle';
-import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../../ui/wee';
+import { WeeModalFieldCard, WeeRevealWhen, WeeSettingsCollapsibleSection } from '../../../ui/wee';
+import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
+
+const TOGGLE_TITLE =
+  '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
 
 function AnimationsDockPanel({
   dock,
@@ -25,6 +29,7 @@ function AnimationsDockPanel({
   onParticleRotationSpeedChange,
 }) {
   const enabled = dock?.particleSystemEnabled ?? false;
+  const useAdaptiveColor = dock?.particleUseAdaptiveColor ?? false;
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,176 +39,161 @@ function AnimationsDockPanel({
         description="Ambient particles around the dock — works with Classic or Ribbon."
         defaultOpen
       >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-          <div className="surface-row-between mb-4">
+        <SettingsToggleFieldCard
+          hoverAccent="none"
+          titleClassName={TOGGLE_TITLE}
+          title="Particles"
+          desc="Floating accents along the dock edge."
+          checked={enabled}
+          onChange={onParticleEnabledChange}
+        >
+          <div className="surface-controls">
+            <div className="surface-soft-panel border-[hsl(var(--state-success)/0.28)] bg-[hsl(var(--state-success)/0.1)] surface-row">
+              <span className="text-base" aria-hidden>
+                ✨
+              </span>
+              <div>
+                <Text variant="body" className="font-semibold text-[hsl(var(--state-success))]">
+                  Particles active
+                </Text>
+                <Text variant="caption" className="text-secondary">
+                  {dock?.particleEffectType || 'normal'} · {dock?.particleCount ?? 3} particles
+                </Text>
+              </div>
+            </div>
+
             <div>
-              <Text variant="h4" className="surface-title !mb-1">
-                Particles
+              <Text variant="body" className="mb-2 text-secondary">
+                Effect type
               </Text>
-              <Text variant="body" className="text-secondary">
-                Floating accents along the dock edge.
+              <WSelect
+                value={dock?.particleEffectType ?? 'normal'}
+                onChange={onParticleEffectTypeChange}
+                options={[
+                  { value: 'normal', label: 'Normal particles' },
+                  { value: 'stars', label: 'Stars' },
+                  { value: 'sparkles', label: 'Sparkles' },
+                  { value: 'fireflies', label: 'Fireflies' },
+                  { value: 'dust', label: 'Dust' },
+                  { value: 'energy', label: 'Energy orbs' },
+                  { value: 'magic', label: 'Magic sparkles' },
+                ]}
+              />
+            </div>
+
+            <div>
+              <Text variant="body" className="mb-2 text-secondary">
+                Direction
+              </Text>
+              <WSelect
+                value={dock?.particleDirection ?? 'upward'}
+                onChange={onParticleDirectionChange}
+                options={[
+                  { value: 'upward', label: 'Upward' },
+                  { value: 'downward', label: 'Downward' },
+                  { value: 'leftward', label: 'Leftward' },
+                  { value: 'rightward', label: 'Rightward' },
+                  { value: 'random', label: 'Random' },
+                  { value: 'outward', label: 'Outward from center' },
+                  { value: 'inward', label: 'Inward to center' },
+                ]}
+              />
+            </div>
+
+            <div className="surface-row-between">
+              <div>
+                <Text variant="body" className="text-secondary">
+                  Follow border path
+                </Text>
+                <Text variant="caption" className="text-tertiary !mt-0">
+                  Emit from dock / ribbon outline
+                </Text>
+              </div>
+              <WToggle checked={dock?.particleClipPathFollow ?? false} onChange={onParticleClipPathFollowChange} />
+            </div>
+
+            <div>
+              <Text variant="body" className="mb-2 text-secondary">
+                Particle count
+              </Text>
+              <Slider value={dock?.particleCount ?? 3} min={1} max={10} step={1} onChange={onParticleCountChange} />
+              <Text variant="caption" className="surface-caption">
+                {dock?.particleCount ?? 3} particles
               </Text>
             </div>
-            <div className="surface-row">
-              <span
-                className={`h-2 w-2 shrink-0 rounded-full ${
-                  enabled ? 'bg-[hsl(var(--state-success))] wee-settings-pulse-dot' : 'bg-[hsl(var(--text-tertiary))]'
-                }`}
-                aria-hidden
+
+            <div>
+              <Text variant="body" className="mb-2 text-secondary">
+                Animation speed
+              </Text>
+              <Slider value={dock?.particleSpeed ?? 2} min={0.5} max={5} step={0.1} onChange={onParticleSpeedChange} />
+              <Text variant="caption" className="surface-caption">
+                {dock?.particleSpeed ?? 2}× speed
+              </Text>
+            </div>
+
+            <div>
+              <Text variant="body" className="mb-2 text-secondary">
+                Particle size
+              </Text>
+              <Slider value={dock?.particleSize ?? 3} min={1} max={10} step={0.5} onChange={onParticleSizeChange} />
+              <Text variant="caption" className="surface-caption">
+                {dock?.particleSize ?? 3}px
+              </Text>
+            </div>
+
+            <div>
+              <Text variant="body" className="mb-2 text-secondary">
+                Gravity
+              </Text>
+              <Slider
+                value={dock?.particleGravity ?? 0.02}
+                min={0}
+                max={0.1}
+                step={0.005}
+                onChange={onParticleGravityChange}
               />
-              <WToggle checked={enabled} onChange={onParticleEnabledChange} />
+              <Text variant="caption" className="surface-caption">
+                {dock?.particleGravity ?? 0.02}
+              </Text>
+            </div>
+
+            <div>
+              <Text variant="body" className="mb-2 text-secondary">
+                Fade speed
+              </Text>
+              <Slider
+                value={dock?.particleFadeSpeed ?? 0.008}
+                min={0.001}
+                max={0.02}
+                step={0.001}
+                onChange={onParticleFadeSpeedChange}
+              />
+              <Text variant="caption" className="surface-caption">
+                {dock?.particleFadeSpeed ?? 0.008}
+              </Text>
+            </div>
+
+            <div>
+              <Text variant="body" className="mb-2 text-secondary">
+                Lifetime
+              </Text>
+              <Slider
+                value={dock?.particleLifetime ?? 3.0}
+                min={1}
+                max={10}
+                step={0.5}
+                onChange={onParticleLifetimeChange}
+              />
+              <Text variant="caption" className="surface-caption">
+                {dock?.particleLifetime ?? 3.0}s
+              </Text>
             </div>
           </div>
-
-          {enabled ? (
-            <div className="surface-controls">
-              <div className="surface-soft-panel border-[hsl(var(--state-success)/0.28)] bg-[hsl(var(--state-success)/0.1)] surface-row">
-                <span className="text-base" aria-hidden>
-                  ✨
-                </span>
-                <div>
-                  <Text variant="body" className="font-semibold text-[hsl(var(--state-success))]">
-                    Particles active
-                  </Text>
-                  <Text variant="caption" className="text-secondary">
-                    {(dock?.particleEffectType || 'normal')} · {dock?.particleCount ?? 3} particles
-                  </Text>
-                </div>
-              </div>
-
-              <div>
-                <Text variant="body" className="mb-2 text-secondary">
-                  Effect type
-                </Text>
-                <WSelect
-                  value={dock?.particleEffectType ?? 'normal'}
-                  onChange={onParticleEffectTypeChange}
-                  options={[
-                    { value: 'normal', label: 'Normal particles' },
-                    { value: 'stars', label: 'Stars' },
-                    { value: 'sparkles', label: 'Sparkles' },
-                    { value: 'fireflies', label: 'Fireflies' },
-                    { value: 'dust', label: 'Dust' },
-                    { value: 'energy', label: 'Energy orbs' },
-                    { value: 'magic', label: 'Magic sparkles' },
-                  ]}
-                />
-              </div>
-
-              <div>
-                <Text variant="body" className="mb-2 text-secondary">
-                  Direction
-                </Text>
-                <WSelect
-                  value={dock?.particleDirection ?? 'upward'}
-                  onChange={onParticleDirectionChange}
-                  options={[
-                    { value: 'upward', label: 'Upward' },
-                    { value: 'downward', label: 'Downward' },
-                    { value: 'leftward', label: 'Leftward' },
-                    { value: 'rightward', label: 'Rightward' },
-                    { value: 'random', label: 'Random' },
-                    { value: 'outward', label: 'Outward from center' },
-                    { value: 'inward', label: 'Inward to center' },
-                  ]}
-                />
-              </div>
-
-              <div className="surface-row-between">
-                <div>
-                  <Text variant="body" className="text-secondary">
-                    Follow border path
-                  </Text>
-                  <Text variant="caption" className="text-tertiary !mt-0">
-                    Emit from dock / ribbon outline
-                  </Text>
-                </div>
-                <WToggle checked={dock?.particleClipPathFollow ?? false} onChange={onParticleClipPathFollowChange} />
-              </div>
-
-              <div>
-                <Text variant="body" className="mb-2 text-secondary">
-                  Particle count
-                </Text>
-                <Slider value={dock?.particleCount ?? 3} min={1} max={10} step={1} onChange={onParticleCountChange} />
-                <Text variant="caption" className="surface-caption">
-                  {dock?.particleCount ?? 3} particles
-                </Text>
-              </div>
-
-              <div>
-                <Text variant="body" className="mb-2 text-secondary">
-                  Animation speed
-                </Text>
-                <Slider value={dock?.particleSpeed ?? 2} min={0.5} max={5} step={0.1} onChange={onParticleSpeedChange} />
-                <Text variant="caption" className="surface-caption">
-                  {dock?.particleSpeed ?? 2}× speed
-                </Text>
-              </div>
-
-              <div>
-                <Text variant="body" className="mb-2 text-secondary">
-                  Particle size
-                </Text>
-                <Slider value={dock?.particleSize ?? 3} min={1} max={10} step={0.5} onChange={onParticleSizeChange} />
-                <Text variant="caption" className="surface-caption">
-                  {dock?.particleSize ?? 3}px
-                </Text>
-              </div>
-
-              <div>
-                <Text variant="body" className="mb-2 text-secondary">
-                  Gravity
-                </Text>
-                <Slider
-                  value={dock?.particleGravity ?? 0.02}
-                  min={0}
-                  max={0.1}
-                  step={0.005}
-                  onChange={onParticleGravityChange}
-                />
-                <Text variant="caption" className="surface-caption">
-                  {dock?.particleGravity ?? 0.02}
-                </Text>
-              </div>
-
-              <div>
-                <Text variant="body" className="mb-2 text-secondary">
-                  Fade speed
-                </Text>
-                <Slider
-                  value={dock?.particleFadeSpeed ?? 0.008}
-                  min={0.001}
-                  max={0.02}
-                  step={0.001}
-                  onChange={onParticleFadeSpeedChange}
-                />
-                <Text variant="caption" className="surface-caption">
-                  {dock?.particleFadeSpeed ?? 0.008}
-                </Text>
-              </div>
-
-              <div>
-                <Text variant="body" className="mb-2 text-secondary">
-                  Lifetime
-                </Text>
-                <Slider
-                  value={dock?.particleLifetime ?? 3.0}
-                  min={1}
-                  max={10}
-                  step={0.5}
-                  onChange={onParticleLifetimeChange}
-                />
-                <Text variant="caption" className="surface-caption">
-                  {dock?.particleLifetime ?? 3.0}s
-                </Text>
-              </div>
-            </div>
-          ) : null}
-        </WeeModalFieldCard>
+        </SettingsToggleFieldCard>
       </WeeSettingsCollapsibleSection>
 
-      {enabled ? (
+      <WeeRevealWhen when={enabled} keepMounted={false}>
         <WeeSettingsCollapsibleSection
           icon={Zap}
           title="Advanced particles"
@@ -218,17 +208,14 @@ function AnimationsDockPanel({
                     Adaptive colors
                   </Text>
                   <Text variant="caption" className="text-tertiary">
-                    Tint from dock colors
+                    Tint from dock colors. Off reveals manual intensity and variation.
                   </Text>
                 </div>
-                <WToggle
-                  checked={dock?.particleUseAdaptiveColor ?? false}
-                  onChange={onParticleUseAdaptiveColorChange}
-                />
+                <WToggle checked={useAdaptiveColor} onChange={onParticleUseAdaptiveColorChange} />
               </div>
 
-              {!dock?.particleUseAdaptiveColor ? (
-                <>
+              <WeeRevealWhen when={!useAdaptiveColor}>
+                <div className="surface-controls">
                   <div>
                     <Text variant="body" className="mb-2 text-secondary">
                       Color intensity
@@ -259,8 +246,8 @@ function AnimationsDockPanel({
                       {Math.round((dock?.particleColorVariation ?? 0.3) * 100)}%
                     </Text>
                   </div>
-                </>
-              ) : null}
+                </div>
+              </WeeRevealWhen>
 
               <div>
                 <Text variant="body" className="mb-2 text-secondary">
@@ -280,7 +267,7 @@ function AnimationsDockPanel({
             </div>
           </WeeModalFieldCard>
         </WeeSettingsCollapsibleSection>
-      ) : null}
+      </WeeRevealWhen>
 
       <WeeSettingsCollapsibleSection
         icon={Info}

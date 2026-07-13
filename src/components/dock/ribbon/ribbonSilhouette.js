@@ -15,9 +15,16 @@ export const RIBBON_SILHOUETTE_PATH =
 export const RIBBON_SHINE_PATH =
   'M 0 40 L 250 40 C 450 40, 500 140, 670 140 L 770 140 C 940 140, 990 40, 1190 40 L 1440 40 L 1440 120 L 0 120 Z';
 
-/** Top edge only (open path) for neon stroke. */
+/** Top edge only (open path) for neon stroke / sparkle sampling. */
 export const RIBBON_TOP_EDGE_PATH =
   'M 0 40 L 250 40 C 450 40, 500 140, 670 140 L 770 140 C 940 140, 990 40, 1190 40 L 1440 40';
+
+/**
+ * Closed silhouette outline (top edge + bottom) for neon / ember stroke FX.
+ * Walks the top bow left→right, then returns along the bottom edge.
+ */
+export const RIBBON_FULL_OUTLINE_PATH =
+  'M 0 40 L 250 40 C 450 40, 500 140, 670 140 L 770 140 C 940 140, 990 40, 1190 40 L 1440 40 L 1440 240 L 0 240 Z';
 
 function cubicPoint(p0, p1, p2, p3, t) {
   const u = 1 - t;

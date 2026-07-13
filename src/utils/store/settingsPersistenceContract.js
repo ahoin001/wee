@@ -195,6 +195,7 @@ const selectPersistedUi = (ui = {}) => ({
   showDock: ui.showDock ?? true,
   classicMode: ui.classicMode ?? false,
   spotifyMatchEnabled: ui.spotifyMatchEnabled ?? false,
+  wallpaperMatchEnabled: ui.wallpaperMatchEnabled ?? false,
   channelOpacity: ui.channelOpacity ?? 1,
   keyboardShortcuts: Array.isArray(ui.keyboardShortcuts) ? ui.keyboardShortcuts : [],
   motionFeedback: mergeMotionFeedback(ui.motionFeedback),
@@ -207,7 +208,13 @@ const selectPersistedUi = (ui = {}) => ({
 export const buildSettingsSnapshotFromStore = (state = {}) => ({
   ui: selectPersistedUi(state.ui || {}),
   ribbon: state.ribbon || {},
-  wallpaper: state.wallpaper || {},
+  wallpaper: omitKeys(state.wallpaper || {}, [
+    'visualCommittedUrl',
+    'isTransitioning',
+    'next',
+    'crossfadeProgress',
+    'slideProgress',
+  ]),
   overlay: state.overlay || {},
   time: state.time || {},
   channels: state.channels || {},

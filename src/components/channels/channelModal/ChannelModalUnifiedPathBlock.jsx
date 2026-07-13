@@ -11,6 +11,7 @@ import { validateChannelPath } from '../../../utils/channelPathValidation';
 
 /**
  * App / URL picker + validation helpers for Configure Channel → Setup tab.
+ * Stays mounted while `isOpen` is false so modal exit presence is not blanked.
  */
 function ChannelModalUnifiedPathBlock({
   channelId,
@@ -51,16 +52,18 @@ function ChannelModalUnifiedPathBlock({
     return validateChannelPath(trimmed, type).valid;
   }, [path, type, matchingApp]);
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="flex min-w-0 flex-col gap-12 md:gap-16">
+    <div
+      className={`flex min-w-0 flex-col gap-12 md:gap-16${
+        isOpen ? '' : ' pointer-events-none'
+      }`}
+      aria-hidden={!isOpen}
+      {...(!isOpen ? { inert: '' } : {})}
+    >
       <section className="space-y-4">
         <WeeModalFieldCard hoverAccent="primary">
           <UnifiedAppPathCard
-            key={`unified-app-path-${channelId}-${isOpen}`}
+            key={`unified-app-path-${channelId}`}
             value={value}
             onChange={onUnifiedAppPathChange}
             externalValidationError={pathError}

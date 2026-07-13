@@ -4,7 +4,7 @@ import WToggle from '../../../ui/WToggle';
 import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
 import SettingsWeeSection from '../SettingsWeeSection';
-import { WeeButton, WeeModalFieldCard, WeeSpaceRailPillButton } from '../../../ui/wee';
+import { WeeButton, WeeModalFieldCard, WeeRevealWhen, WeeSpaceRailPillButton } from '../../../ui/wee';
 import { SPACE_WALLPAPER_OPTIONS } from './wallpaperSettingsConstants';
 
 function SpaceWallpaperAppearanceSection({
@@ -123,7 +123,7 @@ function SpaceWallpaperAppearanceSection({
                   </div>
                 </div>
 
-                {!selectedSpaceUsesGlobalWallpaper ? (
+                <WeeRevealWhen when={!selectedSpaceUsesGlobalWallpaper}>
                   <div className="mb-4 rounded-xl border border-[hsl(var(--border-primary)/0.6)] bg-[hsl(var(--surface-secondary)/0.55)] p-3">
                     <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))]">
                       Space wallpaper
@@ -158,7 +158,7 @@ function SpaceWallpaperAppearanceSection({
                           : 'No override selected yet.'}
                     </p>
                   </div>
-                ) : null}
+                </WeeRevealWhen>
               </>
             ) : (
               <p className="mb-4 text-[13px] leading-relaxed text-[hsl(var(--text-secondary))]">

@@ -770,8 +770,6 @@ const WallpaperSettingsTab = React.memo(() => {
           <WallpaperCyclingSection
             cycling={cycling}
             handleCyclingChange={handleCyclingChange}
-            reduceMotion={reduceMotion}
-            tabTransition={tabTransition}
             cycleInterval={cycleInterval}
             handleCycleIntervalChange={handleCycleIntervalChange}
             cycleAnimation={cycleAnimation}

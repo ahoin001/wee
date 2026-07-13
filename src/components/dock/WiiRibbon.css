@@ -423,7 +423,7 @@
 }
 
 .interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
-  animation: ribbon-chrome-glow-pulse 2.4s ease-in-out infinite;
+  animation: ribbon-chrome-glow-pulse var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
 }
 
 @keyframes ribbon-chrome-glow-pulse {
@@ -432,9 +432,22 @@
     filter: var(--ribbon-glow-filter);
     opacity: 1;
   }
-  50% {
+  18% {
+    filter: drop-shadow(0 0 calc(var(--ribbon-glow-blur-boost, 4px) + 4px) var(--ribbon-fx-glow, hsl(var(--wii-blue))))
+      var(--ribbon-glow-filter);
+    opacity: 0.88;
+  }
+  32% {
     filter: var(--ribbon-glow-filter);
-    opacity: 0.82;
+    opacity: 0.94;
+  }
+  48% {
+    filter: drop-shadow(0 0 6px var(--ribbon-fx-glow, hsl(var(--wii-blue)))) var(--ribbon-glow-filter);
+    opacity: 0.9;
+  }
+  70% {
+    filter: var(--ribbon-glow-filter);
+    opacity: 0.97;
   }
 }
 

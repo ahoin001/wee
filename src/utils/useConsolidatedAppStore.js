@@ -9,6 +9,7 @@ import {
   DEFAULT_RIBBON_SURFACE_HEX,
   INPUT_COLOR_DEFAULT_HEX,
 } from '../design/runtimeColorStrings.js';
+import { DEFAULT_AMBIENT_COLOR } from './theme/extractImagePalette.js';
 import {
   applyLayoutChangeToSpaceData,
   channelIdAtIndex,
@@ -150,6 +151,13 @@ useConsolidatedAppStore = create(
           classicMode: false,
           /** Ribbon/shell follow Spotify album-art colors (synced with Spotify Match preset). */
           spotifyMatchEnabled: false,
+          /** Live-follow accents extracted from the on-screen wallpaper. */
+          wallpaperMatchEnabled: false,
+          /**
+           * Derived ambient palette cache (rehydrated from wallpaper URL while match is on).
+           * Consumers must not style from this directly — use resolveEffectiveAccent / --primary*.
+           */
+          ambientColor: { ...DEFAULT_AMBIENT_COLOR },
           channelOpacity: 1,
           lastChannelHoverTime: Date.now(),
           // Modal states
@@ -176,6 +184,11 @@ useConsolidatedAppStore = create(
           },
           /** Transient: recent-launch hint per channel id (not persisted; no process tracking). */
           channelOpenHints: {},
+          /**
+           * Transient: while capturing a preset thumbnail, Home channel slots render empty
+           * for display only (channels slice is not mutated / not persisted).
+           */
+          presetThumbnailCaptureActive: false,
           settingsActiveTab: 'channels', // Default active tab for settings modal
           // Keyboard shortcuts
           keyboardShortcuts: createDefaultKeyboardShortcuts(),
@@ -204,6 +217,7 @@ useConsolidatedAppStore = create(
           chromeEffect: 'none',
           chromeEffectIntensity: 0.55,
           chromeEffectSpeed: 1,
+          chromeEffectIdleOnly: false,
           ribbonButtonConfigs: [],
           presetsButtonConfig: {
             type: 'icon',
@@ -238,6 +252,8 @@ useConsolidatedAppStore = create(
           slideDirection: 'right',
           crossfadeProgress: 0,
           slideProgress: 0,
+          /** Settled painted wallpaper URL (after crossfade/cycle). Transient — not persisted. */
+          visualCommittedUrl: null,
           cycleWallpapers: false,
           cycleInterval: 30,
           cycleAnimation: 'fade',
@@ -495,6 +511,8 @@ useConsolidatedAppStore = create(
           loading: false,
           error: null,
           // Side navigation button settings
+          /** `'wee'` = morphing glass peek (default); `'classic'` = legacy edge slide */
+          sideNavStyle: 'wee',
           icons: {
             left: null,
             right: null
@@ -1731,6 +1749,8 @@ useConsolidatedAppStore = create(
               showDock: true,
               classicMode: false,
               spotifyMatchEnabled: false,
+              wallpaperMatchEnabled: false,
+              ambientColor: { ...DEFAULT_AMBIENT_COLOR },
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),
               showUpdateModal: false,
@@ -1741,6 +1761,7 @@ useConsolidatedAppStore = create(
               confirmationModalData: null,
               showWorkspaceSwitcher: false,
               channelOpenHints: {},
+              presetThumbnailCaptureActive: false,
               sceneTransition: {
                 active: false,
                 label: '',
@@ -1763,6 +1784,10 @@ useConsolidatedAppStore = create(
               ribbonGlowStrengthHover: 20,
               ribbonDockOpacity: 1,
               ribbonHoverAnimationEnabled: true,
+              chromeEffect: 'none',
+              chromeEffectIntensity: 0.55,
+              chromeEffectSpeed: 1,
+              chromeEffectIdleOnly: false,
               ribbonButtonConfigs: [],
               presetsButtonConfig: {
                 type: 'icon',
@@ -1788,6 +1813,7 @@ useConsolidatedAppStore = create(
               slideDirection: 'right',
               crossfadeProgress: 0,
               slideProgress: 0,
+              visualCommittedUrl: null,
               cycleWallpapers: false,
               cycleInterval: 30,
               cycleAnimation: 'fade',

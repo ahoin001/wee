@@ -106,7 +106,18 @@ export async function applyPresetData(preset) {
   }
 
   if (settingsToApply.ribbon) {
-    setRibbonState(settingsToApply.ribbon);
+    const wallpaperMatchEnabled = useConsolidatedAppStore.getState().ui?.wallpaperMatchEnabled;
+    if (wallpaperMatchEnabled) {
+      // Ambient owns ribbon surface/glow while match is on; apply on visual commit instead.
+      const ribbonRest = { ...settingsToApply.ribbon };
+      delete ribbonRest.ribbonColor;
+      delete ribbonRest.ribbonGlowColor;
+      delete ribbonRest.recentRibbonColors;
+      delete ribbonRest.recentRibbonGlowColors;
+      setRibbonState(ribbonRest);
+    } else {
+      setRibbonState(settingsToApply.ribbon);
+    }
   }
 
   if (settingsToApply.time) {

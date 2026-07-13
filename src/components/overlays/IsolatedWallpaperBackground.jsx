@@ -96,10 +96,9 @@ function IsolatedWallpaperBackgroundInner({
     currentWallpaper,
     nextWallpaper,
     crossfadeProgress: cyclingProgress,
-    slideProgress: cyclingSlideProgress,
     slideDirection: cyclingSlideDirection,
-    forceUpdate,
   } = useWallpaperCycling();
+  const setWallpaperState = useConsolidatedAppStore((state) => state.actions.setWallpaperState);
   const hasSpaceWallpaperOverride = Boolean(spaceWallpaperUrl);
   const { opacity, blur, cycleAnimation } = wallpaper;
   const effectiveSpaceBlur =
@@ -128,6 +127,11 @@ function IsolatedWallpaperBackgroundInner({
     transitionsEnabled: !reducedMotion,
     transitionMs: shellTransitionMs,
   });
+
+  // Publish settled URL for ambient + scene transition waiters (not the mid-fade store URL).
+  useEffect(() => {
+    setWallpaperState({ visualCommittedUrl: spaceFade.committedUrl ?? null });
+  }, [spaceFade.committedUrl, setWallpaperState]);
 
   const getCurrentWallpaperStyle = useCallback(() => {
     if (!effectiveCyclingTransitioning || !transitionCurrentWallpaperUrl) {
@@ -327,8 +331,6 @@ function IsolatedWallpaperBackgroundInner({
     effectiveCyclingSlideDirection,
   ]);
 
-  const transitionKey = `${effectiveCyclingTransitioning}-${effectiveCyclingProgress}-${cyclingSlideProgress}-${effectiveCyclingSlideDirection}-${forceUpdate}`;
-
   const resolvedSpaceOrder = useMemo(
     () =>
       normalizeShellSpaceOrder(
@@ -362,6 +364,13 @@ function IsolatedWallpaperBackgroundInner({
 
   const spaceOverlayTransition = `opacity ${spaceFade.spaceCrossfadeMs}ms ${SPACE_SHELL_EASE_CSS}`;
 
+  // Idle layers use committed baseUrl (not store display URL) so same-space URL
+  // changes never flash the destination for a frame before the crossfade starts.
+  // During cycling, the cycling hook owns the visible current layer URL.
+  const idleWallpaperUrl = effectiveCyclingTransitioning
+    ? effectiveCurrentWallpaperUrl
+    : spaceFade.baseUrl || effectiveCurrentWallpaperUrl;
+
   return (
     <div
       className="wallpaper-space-parallax"
@@ -372,7 +381,6 @@ function IsolatedWallpaperBackgroundInner({
         pointerEvents: 'none',
       }}
     >
-    <div key={transitionKey}>
       {spaceFade.spaceCrossfadeActive && spaceFade.baseUrl ? (
         <>
           <div
@@ -418,7 +426,7 @@ function IsolatedWallpaperBackgroundInner({
         </>
       ) : (
         <>
-          {effectiveCurrentWallpaperUrl ? (
+          {idleWallpaperUrl ? (
             <div
               className="wallpaper-bg"
               style={{
@@ -429,7 +437,7 @@ function IsolatedWallpaperBackgroundInner({
                 height: '100vh',
                 zIndex: 0,
                 pointerEvents: 'none',
-                backgroundImage: `url('${effectiveCurrentWallpaperUrl}')`,
+                backgroundImage: `url('${idleWallpaperUrl}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: `center ${parallaxBgY}%`,
                 backgroundRepeat: 'no-repeat',
@@ -461,7 +469,6 @@ function IsolatedWallpaperBackgroundInner({
           ) : null}
         </>
       )}
-    </div>
     </div>
   );
 }

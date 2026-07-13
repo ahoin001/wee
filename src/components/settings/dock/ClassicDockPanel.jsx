@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Gamepad2, Palette, Sparkles } from 'lucide-react';
 import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
-import { WeeModalFieldCard, WeeSectionEyebrow, WeeSettingsCollapsibleSection } from '../../../ui/wee';
+import { WeeModalFieldCard, WeeRevealWhen, WeeSectionEyebrow, WeeSettingsCollapsibleSection } from '../../../ui/wee';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
 import DockSettingsColorRow from './DockSettingsColorRow';
 
@@ -37,6 +37,7 @@ function ClassicDockPanel({
               type="button"
               className="flex w-full items-center justify-between gap-3 text-left transition-colors hover:opacity-95"
               onClick={() => onToggleThemeGroup(groupKey)}
+              aria-expanded={Boolean(expandedGroups[groupKey])}
             >
               <div>
                 <WeeSectionEyebrow className="!mb-1 block" trackingClassName="tracking-[0.12em]">
@@ -56,7 +57,7 @@ function ClassicDockPanel({
               </span>
             </button>
 
-            {expandedGroups[groupKey] ? (
+            <WeeRevealWhen when={Boolean(expandedGroups[groupKey])} keepMounted={false}>
               <div className="surface-theme-grid mt-4">
                 {Object.entries(group.themes).map(([themeKey, theme]) => {
                   const themePath = `${groupKey}.${themeKey}`;
@@ -89,7 +90,7 @@ function ClassicDockPanel({
                   );
                 })}
               </div>
-            ) : null}
+            </WeeRevealWhen>
           </div>
         ))}
       </WeeSettingsCollapsibleSection>
@@ -138,40 +139,38 @@ function ClassicDockPanel({
           checked={dock?.glassEnabled ?? false}
           onChange={onGlassEnabled}
         >
-          {dock?.glassEnabled ? (
-            <div className="surface-controls">
-              <div>
-                <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
-                  Glass opacity
-                </Text>
-                <Slider
-                  value={dock?.glassOpacity ?? 0.18}
-                  min={0.05}
-                  max={0.5}
-                  step={0.01}
-                  onChange={onGlassOpacity}
-                />
-                <Text variant="caption" className="surface-caption">
-                  {Math.round((dock?.glassOpacity ?? 0.18) * 100)}%
-                </Text>
-              </div>
-              <div>
-                <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
-                  Glass blur
-                </Text>
-                <Slider
-                  value={dock?.glassBlur ?? 2.5}
-                  min={0.5}
-                  max={8}
-                  step={0.1}
-                  onChange={onGlassBlur}
-                />
-                <Text variant="caption" className="surface-caption">
-                  {dock?.glassBlur ?? 2.5}px
-                </Text>
-              </div>
+          <div className="surface-controls">
+            <div>
+              <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
+                Glass opacity
+              </Text>
+              <Slider
+                value={dock?.glassOpacity ?? 0.18}
+                min={0.05}
+                max={0.5}
+                step={0.01}
+                onChange={onGlassOpacity}
+              />
+              <Text variant="caption" className="surface-caption">
+                {Math.round((dock?.glassOpacity ?? 0.18) * 100)}%
+              </Text>
             </div>
-          ) : null}
+            <div>
+              <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
+                Glass blur
+              </Text>
+              <Slider
+                value={dock?.glassBlur ?? 2.5}
+                min={0.5}
+                max={8}
+                step={0.1}
+                onChange={onGlassBlur}
+              />
+              <Text variant="caption" className="surface-caption">
+                {dock?.glassBlur ?? 2.5}px
+              </Text>
+            </div>
+          </div>
         </SettingsToggleFieldCard>
       </WeeSettingsCollapsibleSection>
     </div>

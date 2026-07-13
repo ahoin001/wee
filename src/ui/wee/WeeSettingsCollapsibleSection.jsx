@@ -5,11 +5,11 @@ import { ChevronDown } from 'lucide-react';
 import Text from '../Text';
 import { createWeeTransition } from '../../design/weeMotion';
 import WeeGlassPill from './WeeGlassPill';
+import WeeContentCollapse from './WeeContentCollapse';
 
 /**
  * Settings collapsible — space-rail glass pill chrome + gooey header press.
- * Panel open/close uses CSS grid 0fr→1fr (no Framer height:auto) so the modal
- * shell stays stable and only the inner scroll region absorbs height change.
+ * Panel open/close composes {@link WeeContentCollapse} (CSS grid 0fr→1fr).
  */
 function WeeSettingsCollapsibleSection({
   icon: Icon,
@@ -27,9 +27,6 @@ function WeeSettingsCollapsibleSection({
   const toggle = useCallback(() => setOpen((o) => !o), []);
 
   const pressSpring = createWeeTransition('press', { reducedMotion: reduceMotion });
-  const panelEase = reduceMotion
-    ? 'duration-100 ease-out'
-    : 'duration-[420ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]';
 
   return (
     <WeeGlassPill
@@ -95,25 +92,15 @@ function WeeSettingsCollapsibleSection({
         </m.span>
       </m.button>
 
-      <div
-        id={panelId}
-        role="region"
-        aria-labelledby={headingId}
-        aria-hidden={!open}
-        className={`grid min-h-0 transition-[grid-template-rows,opacity] ${panelEase} ${
-          open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-80'
-        }`}
-      >
-        <div className="min-h-0 overflow-hidden">
-          <div
-            className={`space-y-6 border-t border-[hsl(var(--border-primary)/0.28)] px-5 pb-7 pt-5 md:px-7 md:pb-8 ${
-              open ? 'pointer-events-auto' : 'pointer-events-none'
-            }`}
-          >
-            {children}
-          </div>
+      <WeeContentCollapse open={open} id={panelId} role="region" aria-labelledby={headingId}>
+        <div
+          className={`space-y-6 border-t border-[hsl(var(--border-primary)/0.28)] px-5 pb-7 pt-5 md:px-7 md:pb-8 ${
+            open ? 'pointer-events-auto' : 'pointer-events-none'
+          }`}
+        >
+          {children}
         </div>
-      </div>
+      </WeeContentCollapse>
     </WeeGlassPill>
   );
 }

@@ -11,6 +11,7 @@ alwaysApply: true
 - **Prefer Tailwind** that resolves to tokens over inline `style={{ color: '#…' }}`. When Tailwind needs an arbitrary value, use `hsl(var(--…))`, not raw hex.
 - **Do not add** new `#rrggbb` or `rgba(…)` literals in `src/components/**` for styling. Extend tokens or add a named export in `src/design/` (e.g. `runtimeColorStrings.js`) and import it.
 - **Where hex is OK**: `src/design/*` (defaults, palettes, canvas/album-art constants), `src/data/**` (preset/theme databases like `classicDockThemeGroups.js`), migrations, and strings required by APIs (`<input type="color">`, persisted settings). Document one-off exceptions with a short comment.
+- **Ambient accents** (wallpaper / Spotify / ribbon): write only through `resolveEffectiveAccent` + `applyPrimaryAccentFromHex` / `applyAmbientRoleTokens`. Components use `hsl(var(--primary))` or `hsl(var(--ambient-secondary))` — do not sample wallpaper URLs in feature components.
 - **New colors**: Add `--your-token: H S% L%;` in `design-system.css` (light `:root` and `.dark-mode` if it should track theme). Run `npm run lint` after changing tokens (design-system check).
 - **Interactive hover glow** (channels, ribbon side buttons, similar chrome): use shared `--shadow-hover-glow` + `--filter-hover-glow` (with `--shadow-soft-hover` for lift). Do **not** invent hard accent rings (`0 0 0 Npx`) or one-off blue borders per surface.
 
@@ -18,6 +19,7 @@ alwaysApply: true
 
 - **Use `src/ui/`** primitives (WButton, WInput, WToggle, Card, Text, etc.) for new controls before adding raw HTML or unstyled widgets.
 - **Match** naming, imports, and patterns in the same folder; avoid drive-by refactors outside the task.
+- **Pill Morph Reveal** (compact glass → expand on hover): prefer `WeeGlassPill` + `createWeeShellRailContainerVariants` / `createWeeSideNavPeekVariants` — see `AGENTS.md` Motion section.
 
 ## Architecture and data
 
@@ -32,3 +34,4 @@ alwaysApply: true
 ## See also
 
 - `AGENTS.md` (repo root) — short checklist for agents and contributors.
+- `.cursor/rules/motion-and-layout-cohesion.mdc` — content morph, modal presence, motion APIs, QA.

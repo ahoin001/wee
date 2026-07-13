@@ -1,14 +1,18 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { m, useReducedMotion } from 'framer-motion';
 import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
 import SettingsWeeSection from './SettingsWeeSection';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import { WeeHelpLinkButton, WeeModalFieldCard } from '../../ui/wee';
+import { WeeHelpLinkButton, WeeModalFieldCard, WeeRevealWhen, WeeSectionEyebrow } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import { DEFAULT_RIBBON_GLOW_HEX, DEFAULT_RIBBON_SURFACE_HEX } from '../../design/runtimeColorStrings.js';
+import { createWeeTransition } from '../../design/weeMotion';
+import { DEFAULT_AMBIENT_COLOR } from '../../utils/theme/extractImagePalette';
+import { resolveEffectiveAccent } from '../../utils/theme/resolveEffectiveAccent';
 import './settings-wee-panels.css';
 
 const QUICK_LINKS = [
@@ -19,17 +23,50 @@ const QUICK_LINKS = [
 ];
 
 const ColorsSettingsTab = React.memo(() => {
-  const { ribbon, ui, time } = useConsolidatedAppStore(
+  const reduceMotion = useReducedMotion();
+  const press = useMemo(
+    () => createWeeTransition('press', { reducedMotion: reduceMotion }),
+    [reduceMotion]
+  );
+
+  const { ribbon, ui, time, spotifyColors } = useConsolidatedAppStore(
     useShallow((state) => ({
       ribbon: state.ribbon,
       ui: state.ui,
       time: state.time,
+      spotifyColors: state.spotify?.extractedColors ?? null,
     }))
   );
-  const { setRibbonState } = useConsolidatedAppStore(
+  const { setRibbonState, setUIState } = useConsolidatedAppStore(
     useShallow((state) => ({
       setRibbonState: state.actions.setRibbonState,
+      setUIState: state.actions.setUIState,
     }))
+  );
+
+  const wallpaperMatchEnabled = ui?.wallpaperMatchEnabled ?? false;
+  const ambient = ui?.ambientColor || DEFAULT_AMBIENT_COLOR;
+  const seeds = Array.isArray(ambient.seeds) ? ambient.seeds : [];
+  const palette = ambient.palette;
+
+  const effective = useMemo(
+    () =>
+      resolveEffectiveAccent({
+        wallpaperMatchEnabled,
+        ambientPalette: palette,
+        spotifyMatchEnabled: ui?.spotifyMatchEnabled ?? false,
+        spotifyColors,
+        dynamicRibbonColorEnabled: ribbon?.dynamicRibbonColorEnabled ?? false,
+        ribbonGlowColor: ribbon?.ribbonGlowColor,
+      }),
+    [
+      wallpaperMatchEnabled,
+      palette,
+      ui?.spotifyMatchEnabled,
+      spotifyColors,
+      ribbon?.dynamicRibbonColorEnabled,
+      ribbon?.ribbonGlowColor,
+    ]
   );
 
   const handleDynamicRibbonColorChange = useCallback(
@@ -44,33 +81,220 @@ const ColorsSettingsTab = React.memo(() => {
     [setRibbonState]
   );
 
+  const handleWallpaperMatchChange = useCallback(
+    async (enabled) => {
+      setUIState({
+        wallpaperMatchEnabled: enabled,
+        ambientColor: enabled
+          ? {
+              ...ambient,
+              cachedForUrl: null,
+              source: enabled ? 'wallpaper' : 'manual',
+            }
+          : { ...DEFAULT_AMBIENT_COLOR },
+      });
+      if (enabled && !(ribbon?.dynamicRibbonColorEnabled)) {
+        setRibbonState({ dynamicRibbonColorEnabled: true });
+      }
+      await saveUnifiedSettingsSnapshot({
+        ui: {
+          wallpaperMatchEnabled: enabled,
+        },
+        ...(enabled && !(ribbon?.dynamicRibbonColorEnabled)
+          ? { ribbon: { dynamicRibbonColorEnabled: true } }
+          : {}),
+      });
+    },
+    [ambient, ribbon?.dynamicRibbonColorEnabled, setRibbonState, setUIState]
+  );
+
+  const handleLockLook = useCallback(async () => {
+    const primary = palette?.primary || ambient.seedHex || effective.hex;
+    const surface = palette?.surfaceHint || ribbon?.ribbonColor || DEFAULT_RIBBON_SURFACE_HEX;
+    const glow = palette?.accent || primary || DEFAULT_RIBBON_GLOW_HEX;
+
+    setRibbonState({
+      ribbonColor: surface,
+      ribbonGlowColor: glow,
+      dynamicRibbonColorEnabled: true,
+    });
+    setUIState({
+      wallpaperMatchEnabled: false,
+      ambientColor: { ...DEFAULT_AMBIENT_COLOR },
+    });
+
+    await saveUnifiedSettingsSnapshot({
+      ui: { wallpaperMatchEnabled: false },
+      ribbon: {
+        ribbonColor: surface,
+        ribbonGlowColor: glow,
+        dynamicRibbonColorEnabled: true,
+      },
+    });
+  }, [
+    ambient.seedHex,
+    effective.hex,
+    palette,
+    ribbon?.ribbonColor,
+    setRibbonState,
+    setUIState,
+  ]);
+
+  const handlePickSeed = useCallback(
+    (hex) => {
+      if (!hex || !wallpaperMatchEnabled) return;
+      const nextPalette = {
+        ...(palette || {}),
+        primary: hex,
+        accent: hex,
+        secondary: palette?.secondary || hex,
+        surfaceHint: palette?.surfaceHint || hex,
+      };
+      setUIState({
+        ambientColor: {
+          ...ambient,
+          seedHex: hex,
+          palette: nextPalette,
+          source: 'wallpaper',
+        },
+      });
+      setRibbonState({
+        ribbonGlowColor: hex,
+        dynamicRibbonColorEnabled: true,
+      });
+    },
+    [ambient, palette, setRibbonState, setUIState, wallpaperMatchEnabled]
+  );
+
+  const sourceLabel =
+    effective.source === 'spotify'
+      ? 'Spotify Match'
+      : effective.source === 'wallpaper'
+        ? 'Wallpaper'
+        : effective.source === 'manual'
+          ? 'Ribbon glow'
+          : 'Default blue';
+
   return (
-    <div className="settings-wee-tab-root pb-12">
-      <SettingsTabPageHeader title="Colors" subtitle="Discover and tune color behavior" />
+    <div className="settings-wee-tab-root pb-12 [contain:layout]">
+      <SettingsTabPageHeader
+        title="Colors"
+        subtitle="Match your wallpaper, follow Spotify, or pick ribbon accents"
+      />
+
+      <SettingsWeeSection eyebrow="Match wallpaper">
+        <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <Text variant="h3" className="mb-1 playful-hero-text">
+                Match wallpaper
+              </Text>
+              <Text variant="desc" className="!m-0">
+                Live accents from the wallpaper on screen. Spotify Match still wins while it&apos;s on.
+              </Text>
+            </div>
+            <WToggle
+              checked={wallpaperMatchEnabled}
+              onChange={handleWallpaperMatchChange}
+              disableLabelClick
+              title="Toggle match wallpaper colors"
+            />
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <span
+              className="h-10 w-10 rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] shadow-[var(--shadow-sm)]"
+              style={{ backgroundColor: effective.hex }}
+              aria-hidden
+            />
+            <div className="min-w-0">
+              <WeeSectionEyebrow className="block" trackingClassName="tracking-[0.14em]">
+                Effective accent
+              </WeeSectionEyebrow>
+              <Text variant="body" className="!m-0 font-mono text-[12px]">
+                {effective.hex.toUpperCase()} · {sourceLabel}
+              </Text>
+            </div>
+          </div>
+
+          <WeeRevealWhen when={wallpaperMatchEnabled && seeds.length > 0}>
+            <div className="mb-4">
+              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+                Seed swatches
+              </WeeSectionEyebrow>
+              <div className="flex flex-wrap gap-2" role="list" aria-label="Wallpaper seed colors">
+                {[ambient.seedHex || palette?.primary, ...seeds]
+                  .filter(Boolean)
+                  .filter((hex, i, arr) => arr.indexOf(hex) === i)
+                  .slice(0, 6)
+                  .map((hex) => {
+                    const selected = (palette?.primary || ambient.seedHex) === hex;
+                    return (
+                      <m.button
+                        key={hex}
+                        type="button"
+                        role="listitem"
+                        aria-pressed={selected}
+                        title={hex}
+                        onClick={() => handlePickSeed(hex)}
+                        whileHover={reduceMotion ? undefined : { scale: 1.08 }}
+                        whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+                        transition={press}
+                        className={`h-9 w-9 rounded-full border-2 ${
+                          selected
+                            ? 'border-[hsl(var(--text-primary))] ring-2 ring-[hsl(var(--primary)/0.45)]'
+                            : 'border-[hsl(var(--border-primary)/0.4)]'
+                        }`}
+                        style={{ backgroundColor: hex }}
+                      />
+                    );
+                  })}
+              </div>
+            </div>
+          </WeeRevealWhen>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <m.button
+              type="button"
+              disabled={!wallpaperMatchEnabled || !palette}
+              onClick={handleLockLook}
+              whileHover={reduceMotion || !wallpaperMatchEnabled ? undefined : { scale: 1.03 }}
+              whileTap={reduceMotion || !wallpaperMatchEnabled ? undefined : { scale: 0.96 }}
+              transition={press}
+              className="rounded-full bg-[hsl(var(--primary))] px-4 py-2.5 text-[10px] font-black uppercase tracking-wide text-[hsl(var(--text-on-accent))] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Lock this look
+            </m.button>
+            <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+              Saves colors to the ribbon and stops live follow.
+            </Text>
+          </div>
+        </WeeModalFieldCard>
+      </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Global behavior">
         <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <Text variant="h3" className="mb-1 playful-hero-text">
-                Dynamic color from ribbon
+                Dynamic chrome accents
               </Text>
               <Text variant="desc" className="!m-0">
-                Off keeps neutral grayscale accents. On uses ribbon glow + Spotify match where supported.
+                Off keeps the default brand blue. On lets wallpaper, Spotify, or ribbon glow drive --primary.
               </Text>
             </div>
             <WToggle
               checked={ribbon?.dynamicRibbonColorEnabled ?? false}
               onChange={handleDynamicRibbonColorChange}
               disableLabelClick
-              title="Toggle dynamic color from ribbon"
+              title="Toggle dynamic chrome accents"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] p-3">
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                Ribbon glow source
+                Ribbon glow (manual)
               </Text>
               <div className="mt-2 flex items-center gap-2">
                 <span
@@ -102,16 +326,13 @@ const ColorsSettingsTab = React.memo(() => {
 
           <div className="mt-4 rounded-xl border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-secondary)/0.55)] p-3">
             <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-              Current status
+              Precedence
             </Text>
             <Text variant="body" className="!mb-0 !mt-1">
-              {ribbon?.dynamicRibbonColorEnabled
-                ? 'Dynamic ribbon accents are active.'
-                : 'Dynamic ribbon accents are disabled (neutral grays in supported areas).'}{' '}
-              {ui?.spotifyMatchEnabled ? 'Spotify Match is enabled.' : 'Spotify Match is off.'}
+              Spotify Match → Wallpaper match → Ribbon glow → Default. Now using {sourceLabel}.
             </Text>
             <Text variant="caption" className="!mb-0 !mt-1 text-[hsl(var(--text-tertiary))]">
-              Time color currently set to {(time?.color || '#FFFFFF').toUpperCase()}.
+              Time color {(time?.color || '#FFFFFF').toUpperCase()}. Edit ribbon colors in Dock.
             </Text>
           </div>
         </WeeModalFieldCard>
@@ -123,7 +344,7 @@ const ColorsSettingsTab = React.memo(() => {
             Edit colors by feature
           </Text>
           <Text variant="desc" className="mb-4">
-            Use these shortcuts to jump to each area without duplicating full color editors here.
+            Jump to each area without duplicating full color editors here.
           </Text>
           <div className="space-y-2">
             {QUICK_LINKS.map((link) => (

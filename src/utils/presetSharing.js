@@ -265,14 +265,45 @@ export const resolveWallpaperFileForShare = async (selectedPreset) => {
   }
 }
 
+const waitForNextPaint = () =>
+  new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== 'function') {
+      setTimeout(resolve, 32)
+      return
+    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve())
+    })
+  })
+
+/**
+ * Capture a preset thumbnail with empty Home channel slots (display-only).
+ * Does not mutate the channels store slice — uses ui.presetThumbnailCaptureActive.
+ */
 export const capturePresetThumbnailDataUrl = async () => {
+  let setUIState = null
   try {
     if (!window.api?.capturePresetThumbnail) return null
+
+    // Lazy require avoids circular imports with the store ↔ preset helpers.
+    const { default: useConsolidatedAppStore } = await import('./useConsolidatedAppStore')
+    setUIState = useConsolidatedAppStore.getState().actions.setUIState
+    setUIState({ presetThumbnailCaptureActive: true })
+    await waitForNextPaint()
+    // Brief settle so empty tiles paint before Electron capturePage.
+    await new Promise((resolve) => setTimeout(resolve, 48))
+
     const result = await window.api.capturePresetThumbnail({ width: 960, height: 540, quality: 88 })
     if (!result?.success || !result?.dataUrl) return null
     return result.dataUrl
   } catch {
     return null
+  } finally {
+    try {
+      setUIState?.({ presetThumbnailCaptureActive: false })
+    } catch {
+      // ignore restore failures
+    }
   }
 }
 

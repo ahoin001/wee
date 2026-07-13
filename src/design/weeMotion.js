@@ -153,6 +153,8 @@ export const WEE_SPRINGS = {
 /**
  * Intent → spring key map for uniform transitions across surfaces.
  * Prefer `createWeeTransition(intent)` over ad-hoc spring literals.
+ * Content height morph (accordion / reveal) is CSS-tokenized via `--wee-collapse-*`
+ * on `WeeContentCollapse` — not a spring intent.
  *
  * Apple-aligned guidance:
  * - Default UI intents use near-critically-damped WEE_SPRINGS (settle without wild bounce).
@@ -251,6 +253,7 @@ export const WEE_VARIANTS = {
 
 /**
  * Space rail: height-morphing pill container (WeeGooeySpacePill).
+ * Vertical twin of {@link createWeeSideNavPeekVariants} — same Pill Morph Reveal pattern.
  */
 export function createWeeShellRailContainerVariants(expandedHeight, pillClose, pillOpen) {
   return {
@@ -265,6 +268,42 @@ export function createWeeShellRailContainerVariants(expandedHeight, pillClose, p
       width: 90,
       borderRadius: 45,
       transition: pillOpen,
+    },
+  };
+}
+
+/**
+ * Home page edge nav: horizontal Pill Morph Reveal (compact nub → full prev/next control).
+ * Vertical twin: {@link createWeeShellRailContainerVariants} on WeeGooeySpacePill.
+ * Use with WeeGlassPill `motion` + `animate={hovered ? 'open' : 'closed'}`.
+ * Edge radii stay in CSS (left/right flush caps); this only morphs footprint.
+ *
+ * @param {'left'|'right'} _side reserved for future side-specific insets
+ * @param {{ compactSize?: number, expandedWidth?: number, expandedHeight?: number, pillClose: object, pillOpen: object, reducedMotion?: boolean }} opts
+ */
+export function createWeeSideNavPeekVariants(
+  _side,
+  {
+    compactSize = 56,
+    expandedWidth = 156,
+    expandedHeight = 64,
+    pillClose,
+    pillOpen,
+    reducedMotion = false,
+  } = {}
+) {
+  const reduced = reducedMotion ? { duration: 0.12 } : null;
+
+  return {
+    closed: {
+      width: compactSize,
+      height: compactSize,
+      transition: reduced || pillClose,
+    },
+    open: {
+      width: expandedWidth,
+      height: expandedHeight,
+      transition: reduced || pillOpen,
     },
   };
 }

@@ -11,14 +11,11 @@ const PANEL =
  */
 const PresetsSpotifyMatchSection = React.memo(
   ({
-    show,
     spotifyMatchEnabled,
     onSpotifyMatchToggle,
     onSaveLookAsPreset,
     onOpenSpotifySettings,
   }) => {
-    if (!show) return null;
-
     return (
       <div className="space-y-3">
         <div className={PANEL}>

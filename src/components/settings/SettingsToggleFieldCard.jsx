@@ -4,9 +4,11 @@ import clsx from 'clsx';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
+import WeeRevealWhen from '../../ui/wee/WeeRevealWhen';
 
 /**
  * Clickable field card: tapping the row toggles; switch stops propagation.
+ * When `revealChildren` is true (default), nested controls morph with {@link WeeRevealWhen} keyed to `checked`.
  */
 function SettingsToggleFieldCard({
   title,
@@ -18,6 +20,8 @@ function SettingsToggleFieldCard({
   titleClassName = '',
   hoverAccent = 'primary',
   children,
+  revealChildren = true,
+  revealKeepMounted = true,
 }) {
   const toggle = useCallback(() => {
     if (!disabled) onChange(!checked);
@@ -33,6 +37,17 @@ function SettingsToggleFieldCard({
     },
     [checked, disabled, onChange]
   );
+
+  const body =
+    children != null ? (
+      <div
+        className="border-t border-[hsl(var(--border-primary)/0.35)] px-6 pb-6 pt-4 md:px-8"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    ) : null;
 
   return (
     <WeeModalFieldCard hoverAccent={hoverAccent} className={`p-0 overflow-hidden ${className}`.trim()} paddingClassName="p-0">
@@ -66,14 +81,14 @@ function SettingsToggleFieldCard({
           <WToggle checked={checked} onChange={onChange} disabled={disabled} disableLabelClick />
         </div>
       </div>
-      {children ? (
-        <div
-          className="border-t border-[hsl(var(--border-primary)/0.35)] px-6 pb-6 pt-4 md:px-8"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          {children}
-        </div>
+      {body ? (
+        revealChildren ? (
+          <WeeRevealWhen when={checked} keepMounted={revealKeepMounted}>
+            {body}
+          </WeeRevealWhen>
+        ) : (
+          body
+        )
       ) : null}
     </WeeModalFieldCard>
   );
@@ -89,6 +104,8 @@ SettingsToggleFieldCard.propTypes = {
   titleClassName: PropTypes.string,
   hoverAccent: PropTypes.oneOf(['none', 'primary', 'discovery']),
   children: PropTypes.node,
+  revealChildren: PropTypes.bool,
+  revealKeepMounted: PropTypes.bool,
 };
 
 SettingsToggleFieldCard.defaultProps = {
@@ -98,6 +115,8 @@ SettingsToggleFieldCard.defaultProps = {
   titleClassName: '',
   hoverAccent: 'primary',
   children: null,
+  revealChildren: true,
+  revealKeepMounted: true,
 };
 
 export default SettingsToggleFieldCard;

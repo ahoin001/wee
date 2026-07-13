@@ -978,6 +978,15 @@ label {
   min-width: 0;
 }
 
+/* Summary mode: tools collapsed to preview + Change button — no extra gap under 0fr collapse */
+.channel-art-panel--summary-only {
+  gap: 0;
+}
+
+.channel-art-panel--summary-only .channel-art-panel__tools-collapse {
+  margin-top: 0;
+}
+
 .channel-art-panel__library-scroll.image-search-modal__scroll {
   max-height: min(38vh, 440px);
   min-height: 160px;

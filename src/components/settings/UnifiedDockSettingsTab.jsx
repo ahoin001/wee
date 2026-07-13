@@ -15,6 +15,7 @@ import ClassicDockPanel from './dock/ClassicDockPanel';
 import RibbonDockPanel from './dock/RibbonDockPanel';
 import AnimationsDockPanel from './dock/AnimationsDockPanel';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
+import { getRibbonChromeEffectMeta } from '../dock/ribbon/ribbonChromeEffectMeta';
 import './surfaceStyles.css';
 
 const DOCK_SUB_TABS = [
@@ -254,8 +255,15 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
   const handleChromeEffectChange = useCallback(
     (value) => {
-      setRibbonState({ chromeEffect: value });
+      const meta = getRibbonChromeEffectMeta(value);
+      setRibbonState({
+        chromeEffect: value,
+        chromeEffectIntensity: meta.defaultIntensity,
+        chromeEffectSpeed: meta.defaultSpeed,
+      });
       saveSetting('ribbon', 'chromeEffect', value);
+      saveSetting('ribbon', 'chromeEffectIntensity', meta.defaultIntensity);
+      saveSetting('ribbon', 'chromeEffectSpeed', meta.defaultSpeed);
     },
     [saveSetting, setRibbonState]
   );
@@ -272,6 +280,14 @@ const UnifiedDockSettingsTab = React.memo(() => {
     (value) => {
       setRibbonState({ chromeEffectSpeed: value });
       saveSetting('ribbon', 'chromeEffectSpeed', value);
+    },
+    [saveSetting, setRibbonState]
+  );
+
+  const handleChromeEffectIdleOnlyChange = useCallback(
+    (value) => {
+      setRibbonState({ chromeEffectIdleOnly: value });
+      saveSetting('ribbon', 'chromeEffectIdleOnly', value);
     },
     [saveSetting, setRibbonState]
   );
@@ -463,6 +479,7 @@ const UnifiedDockSettingsTab = React.memo(() => {
             onChromeEffectChange={handleChromeEffectChange}
             onChromeEffectIntensityChange={handleChromeEffectIntensityChange}
             onChromeEffectSpeedChange={handleChromeEffectSpeedChange}
+            onChromeEffectIdleOnlyChange={handleChromeEffectIdleOnlyChange}
           />
         );
       case 'animations':

@@ -11,6 +11,37 @@ function isHttpLike(url) {
 }
 
 /**
+ * Decode a single image URL into the browser cache before painting (wallpaper crossfade).
+ * Resolves even on error so callers can still snap/fade without hanging.
+ * @param {string|null|undefined} url
+ * @returns {Promise<boolean>} true if load succeeded
+ */
+export function preloadImageUrl(url) {
+  return new Promise((resolve) => {
+    if (!url || typeof url !== 'string') {
+      resolve(false);
+      return;
+    }
+    if (warmedUrls.has(url)) {
+      resolve(true);
+      return;
+    }
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      warmedUrls.add(url);
+      if (typeof img.decode === 'function') {
+        img.decode().then(() => resolve(true)).catch(() => resolve(true));
+      } else {
+        resolve(true);
+      }
+    };
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
+
+/**
  * @param {string[]} urls
  * @param {{ max?: number, chunkSize?: number }} [options]
  */
@@ -23,9 +54,12 @@ export function warmImageUrlsOnIdle(urls, options = {}) {
 
   const warmOne = (url) => {
     if (warmedUrls.has(url)) return;
-    warmedUrls.add(url);
+    // Mark only after load so preloadImageUrl does not short-circuit on in-flight warms.
     const img = new Image();
     img.decoding = 'async';
+    img.onload = () => {
+      warmedUrls.add(url);
+    };
     img.src = url;
   };
 

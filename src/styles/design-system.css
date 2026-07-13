@@ -211,7 +211,9 @@
   /* Longer strip so the inner straight edge reads as a rail; pair with peek so the round cap tucks off-screen */
   --side-nav-width: 156px;
   --side-nav-height: 64px;
-  /* Peek: tuck most of the pill off-screen — small “there’s more” sliver; hover brings full strip */
+  /* Wee compact nub (Pill Morph Reveal closed state) */
+  --side-nav-compact-size: 56px;
+  /* Peek: tuck most of the pill off-screen — Classic slide only */
   --side-nav-peek-offset: 100px;
   /* Symmetric inset when icon is centered (matches hover ripple at 50% / 50%) */
   --side-nav-cap-padding: 6px;
@@ -253,6 +255,10 @@
   --side-nav-ripple-size: 80px;
   --side-nav-text-color: hsl(215 16% 35%);
   --side-nav-text-color-hover: hsl(215 19% 27%);
+
+  /* Ambient roles (written by ambient resolver — wallpaper / Spotify secondary) */
+  --ambient-secondary: var(--primary);
+  --ambient-accent: var(--primary);
 
   /* Wii channel strip: one “page” width = 100% − peek (adjacent page visible on left/right when not on that edge) */
   --wii-strip-peek: 8%;
@@ -385,6 +391,10 @@
   --wee-pill-border: 0 0% 100% / 0.5;
   --wee-pill-shadow: 0 20px 50px rgb(0 0 0 / 0.15);
   --wee-pill-floor: 0 0% 0% / 0.1;
+  /* Content height morph (WeeContentCollapse / accordion / reveal) — non-spring clock */
+  --wee-collapse-duration: 420ms;
+  --wee-collapse-duration-reduced: 100ms;
+  --wee-collapse-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 /* Dark Mode Colors */

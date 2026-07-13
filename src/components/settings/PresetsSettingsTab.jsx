@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { AnimatePresence, m } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Bookmark, Home, Library, Music, Palette, Users } from 'lucide-react';
 import { getCommunityPresetUpdates, uploadPreset, downloadPreset } from '../../utils/supabase';
@@ -32,6 +33,8 @@ import {
   isSupportedPresetCoverImageUpload,
   SUPPORTED_GALLERY_HINT,
 } from '../../utils/supportedUploadMedia';
+import { createWeeTransition } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import './surfaceStyles.css';
 
 import PresetsSaveCurrentCard from './presets/PresetsSaveCurrentCard';
@@ -41,6 +44,7 @@ import PresetsCommunityCard from './presets/PresetsCommunityCard';
 import {
   WeeButton,
   WeeModalShell,
+  WeeRevealWhen,
   WeeSectionEyebrow,
   WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
@@ -94,6 +98,7 @@ const PresetsSettingsTab = React.memo(() => {
   const [uploadMessage, setUploadMessage] = useState({ type: '', text: '' });
   const [communityUpdateMap, setCommunityUpdateMap] = useState({});
   const [captureNotice, setCaptureNotice] = useState({ type: '', text: '' });
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
   const [uploadFormData, setUploadFormData] = useState({
     name: '',
     description: '',
@@ -114,6 +119,10 @@ const PresetsSettingsTab = React.memo(() => {
   const [spotifyNameModalOpen, setSpotifyNameModalOpen] = useState(false);
   const [spotifyNameInput, setSpotifyNameInput] = useState('');
   const saveSectionRef = useRef(null);
+  const mf = useMotionFeedback();
+  const noticeTransition = createWeeTransition('pillOpen', {
+    reducedMotion: !mf.channelReorderSlotMotion,
+  });
 
   const savePresetsToBackend = useCallback(async (updatedPresets) => {
     try {
@@ -244,6 +253,7 @@ const PresetsSettingsTab = React.memo(() => {
   };
 
   const handleSave = async () => {
+    if (isSavingPreset) return;
     if (!newPresetName.trim()) {
       setError('Please enter a name for the preset.');
       return;
@@ -257,31 +267,41 @@ const PresetsSettingsTab = React.memo(() => {
       return;
     }
 
-    const presetData = buildPresetDataFromStore({ captureScope: selectedCaptureScope });
-    const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
-    if (thumbnailDataUrl) {
-      setCaptureNotice({ type: 'success', text: 'Captured preset preview ✨' });
-    } else {
-      setCaptureNotice({ type: 'warning', text: 'Could not capture preview, using default thumbnail.' });
+    setIsSavingPreset(true);
+    setCaptureNotice({ type: 'info', text: 'Capturing preview…' });
+    try {
+      const presetData = buildPresetDataFromStore({ captureScope: selectedCaptureScope });
+      const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
+      if (thumbnailDataUrl) {
+        setCaptureNotice({ type: 'success', text: 'Captured preset preview' });
+      } else {
+        setCaptureNotice({ type: 'warning', text: 'Could not capture preview, using default thumbnail.' });
+      }
+
+      const newPreset = {
+        id: createPresetId(),
+        name: newPresetName.trim(),
+        data: presetData,
+        captureScope: selectedCaptureScope,
+        includesHomeChannels: selectedCaptureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
+        shareable: selectedCaptureScope === PRESET_SCOPE_VISUAL,
+        timestamp: new Date().toISOString(),
+        thumbnailDataUrl: thumbnailDataUrl || null,
+      };
+
+      const updatedPresets = [...presets, newPreset];
+      setPresets(updatedPresets);
+      await savePresetsToBackend(updatedPresets);
+      setNewPresetName('');
+      setError('');
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
+    } catch (e) {
+      console.error('[PresetsSettingsTab] Failed to save preset:', e);
+      setCaptureNotice({ type: 'warning', text: 'Could not save preset. Please try again.' });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2400);
+    } finally {
+      setIsSavingPreset(false);
     }
-
-    const newPreset = {
-      id: createPresetId(),
-      name: newPresetName.trim(),
-      data: presetData,
-      captureScope: selectedCaptureScope,
-      includesHomeChannels: selectedCaptureScope === PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
-      shareable: selectedCaptureScope === PRESET_SCOPE_VISUAL,
-      timestamp: new Date().toISOString(),
-      thumbnailDataUrl: thumbnailDataUrl || null,
-    };
-
-    const updatedPresets = [...presets, newPreset];
-    setPresets(updatedPresets);
-    await savePresetsToBackend(updatedPresets);
-    setNewPresetName('');
-    setError('');
-    setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2200);
   };
 
   const commitPresetUpdate = useCallback(
@@ -301,7 +321,7 @@ const PresetsSettingsTab = React.memo(() => {
         const presetData = buildPresetDataFromStore({ captureScope: scope });
         const thumbnailDataUrl = await capturePresetThumbnailDataUrl();
         if (thumbnailDataUrl) {
-          setCaptureNotice({ type: 'success', text: 'Preset updated with a fresh preview ✨' });
+          setCaptureNotice({ type: 'success', text: 'Preset updated with a fresh preview' });
         } else {
           setCaptureNotice({
             type: 'warning',
@@ -857,17 +877,26 @@ const PresetsSettingsTab = React.memo(() => {
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
       <SettingsTabPageHeader title="Presets" subtitle="Save looks, apply themes, and share with the community" />
 
-      {captureNotice.text ? (
-        <div
-          className={`rounded-xl border px-4 py-3 text-sm font-medium ${
-            captureNotice.type === 'success'
-              ? 'border-[hsl(var(--state-success))] bg-[hsl(var(--state-success-light))] text-[hsl(var(--state-success))]'
-              : 'border-[hsl(var(--state-warning))] bg-[hsl(var(--state-warning)/0.14)] text-[hsl(var(--state-warning))]'
-          }`}
-        >
-          {captureNotice.text}
-        </div>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {captureNotice.text ? (
+          <m.div
+            key={`${captureNotice.type}-${captureNotice.text}`}
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={noticeTransition}
+            className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+              captureNotice.type === 'success'
+                ? 'border-[hsl(var(--state-success))] bg-[hsl(var(--state-success-light))] text-[hsl(var(--state-success))]'
+                : captureNotice.type === 'info'
+                  ? 'border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
+                  : 'border-[hsl(var(--state-warning))] bg-[hsl(var(--state-warning)/0.14)] text-[hsl(var(--state-warning))]'
+            }`}
+          >
+            {captureNotice.text}
+          </m.div>
+        ) : null}
+      </AnimatePresence>
 
       <div ref={saveSectionRef}>
         <WeeSettingsCollapsibleSection
@@ -890,11 +919,12 @@ const PresetsSettingsTab = React.memo(() => {
             onOpenHomeProfiles={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'workspaces' })}
             customPresetCount={customPresetCount}
             maxCustomPresets={MAX_CUSTOM_PRESETS}
+            isSaving={isSavingPreset}
           />
         </WeeSettingsCollapsibleSection>
       </div>
 
-      {showSpotifySection ? (
+      <WeeRevealWhen when={showSpotifySection} keepMounted={false}>
         <WeeSettingsCollapsibleSection
           icon={Music}
           title="Spotify Match"
@@ -902,14 +932,13 @@ const PresetsSettingsTab = React.memo(() => {
           defaultOpen={false}
         >
           <PresetsSpotifyMatchSection
-            show={showSpotifySection}
             spotifyMatchEnabled={spotifyMatchEnabled}
             onSpotifyMatchToggle={handleSpotifyMatchToggle}
             onSaveLookAsPreset={handleSaveSpotifyLookAsPreset}
             onOpenSpotifySettings={() => setUIState({ showSettingsModal: true, settingsActiveTab: 'api-integrations' })}
           />
         </WeeSettingsCollapsibleSection>
-      ) : null}
+      </WeeRevealWhen>
 
       <WeeSettingsCollapsibleSection
         icon={Library}

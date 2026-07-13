@@ -7,7 +7,7 @@ import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { INPUT_COLOR_DEFAULT_HEX } from '../../design/runtimeColorStrings.js';
 import SettingsWeeSection from './SettingsWeeSection';
-import { WeeModalFieldCard } from '../../ui/wee';
+import { WeeModalFieldCard, WeeRevealWhen } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import './settings-wee-panels.css';
 import './settings-modal-forms.css';
@@ -121,7 +121,7 @@ const TimeSettingsTab = React.memo(() => {
               title="Toggle the frosted pill behind the time"
             />
           </div>
-          {time?.enablePill ? (
+          <WeeRevealWhen when={time?.enablePill ?? true}>
             <div className="settings-wee-panel__body border-t border-[hsl(var(--border-primary)/0.22)] pt-4">
               <div className="modal-mb-12">
                 <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
@@ -154,7 +154,7 @@ const TimeSettingsTab = React.memo(() => {
                 </Text>
               </div>
             </div>
-          ) : null}
+          </WeeRevealWhen>
         </WeeModalFieldCard>
       </SettingsWeeSection>
     </div>

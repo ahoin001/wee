@@ -20,7 +20,9 @@ import './surfaceStyles.css';
 import {
   WeeDescriptionToggleRow,
   WeeModalFieldCard,
+  WeeMorphStack,
   WeePressSurface,
+  WeeRevealWhen,
   WeeSettingsCollapsibleSection,
 } from '../../ui/wee';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
@@ -466,8 +468,8 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                     />
                   </WeeDescriptionToggleRow>
 
-                  {(soundPrefs?.backgroundMusicEnabled ?? true) && (
-                    <>
+                  <WeeRevealWhen when={soundPrefs?.backgroundMusicEnabled ?? true}>
+                    <div className="sound-toggle-stack">
                       <WeeDescriptionToggleRow
                         description={
                           <span className="sound-toggle-row__label">Loop current track</span>
@@ -496,41 +498,54 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
                           disableLabelClick
                         />
                       </WeeDescriptionToggleRow>
-                    </>
-                  )}
+                    </div>
+                  </WeeRevealWhen>
                 </div>
               </div>
 
-              {/* Playlist Mode Info */}
-              {(soundPrefs?.backgroundMusicEnabled ?? true) && (soundPrefs?.backgroundMusicPlaylistMode ?? false) && (
-                <div className="sound-callout sound-callout--playlist">
-                  <div className="sound-callout-head">
-                    <span className="sound-emoji-lg">🎵</span>
-                    <div className="sound-callout--playlist-title">
-                      Playlist Mode Active ({likedSounds.length} liked sounds)
+              <WeeMorphStack
+                open={
+                  (!(soundPrefs?.backgroundMusicEnabled ?? true)) ||
+                  ((soundPrefs?.backgroundMusicEnabled ?? true) &&
+                    (soundPrefs?.backgroundMusicPlaylistMode ?? false))
+                }
+                gapOpen="gap-4"
+                className="mt-4"
+              >
+                <WeeRevealWhen
+                  when={
+                    (soundPrefs?.backgroundMusicEnabled ?? true) &&
+                    (soundPrefs?.backgroundMusicPlaylistMode ?? false)
+                  }
+                >
+                  <div className="sound-callout sound-callout--playlist">
+                    <div className="sound-callout-head">
+                      <span className="sound-emoji-lg">🎵</span>
+                      <div className="sound-callout--playlist-title">
+                        Playlist Mode Active ({likedSounds.length} liked sounds)
+                      </div>
+                    </div>
+                    <div className="sound-callout--playlist-body">
+                      Only liked sounds will play in the order they appear below.
+                      Click the ❤️ to like/unlike sounds and drag items to reorder your playlist.
                     </div>
                   </div>
-                  <div className="sound-callout--playlist-body">
-                    Only liked sounds will play in the order they appear below. 
-                    Click the ❤️ to like/unlike sounds and drag items to reorder your playlist.
-                  </div>
-                </div>
-              )}
+                </WeeRevealWhen>
 
-          {/* Background Music Disabled Warning */}
-              {!(soundPrefs?.backgroundMusicEnabled ?? true) && (
-            <div className="sound-callout sound-callout--warn-music">
-              <div className="sound-callout-head">
-                <span className="sound-emoji-lg">🔇</span>
-                <div className="sound-callout--warn-music-title">
-                  Background Music Disabled
-                </div>
-              </div>
-              <div className="sound-callout--warn-music-body">
-                Background music is currently disabled. Enable it above to hear background music sounds.
-              </div>
-            </div>
-          )}
+                <WeeRevealWhen when={!(soundPrefs?.backgroundMusicEnabled ?? true)}>
+                  <div className="sound-callout sound-callout--warn-music">
+                    <div className="sound-callout-head">
+                      <span className="sound-emoji-lg">🔇</span>
+                      <div className="sound-callout--warn-music-title">
+                        Background Music Disabled
+                      </div>
+                    </div>
+                    <div className="sound-callout--warn-music-body">
+                      Background music is currently disabled. Enable it above to hear background music sounds.
+                    </div>
+                  </div>
+                </WeeRevealWhen>
+              </WeeMorphStack>
               </div>
           )}
 

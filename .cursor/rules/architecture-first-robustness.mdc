@@ -16,6 +16,8 @@ alwaysApply: true
 - Do not introduce ad hoc fallbacks that bypass canonical contracts (`useConsolidatedAppStore`, `appearanceBySpace`, unified settings persistence, shared motion tokens/variants).
 - Avoid feature-local constants when an existing token/config domain exists; promote reusable tokens/config instead.
 - Keep one source of truth for each domain (state, persistence, animation lifecycle, UI styling).
+- For expand/collapse and toggle→fields height changes, extend `WeeContentCollapse` / `WeeRevealWhen` / `WeeMorphStack` / `SettingsToggleFieldCard` — do not invent parallel collapse or Framer `height: 'auto'` paths (see `motion-and-layout-cohesion.mdc`).
+- For **Pill Morph Reveal** (compact glass → expanded on hover/focus), extend `createWeeShellRailContainerVariants` (vertical) or `createWeeSideNavPeekVariants` (horizontal) in `weeMotion.js` with `pillOpen`/`pillClose` — do not invent parallel peek/expand clocks. Canonical UIs: `WeeGooeySpacePill`, `WeeGooeySideNavButton`.
 
 ## Performance + Scalability
 

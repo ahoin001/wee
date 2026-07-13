@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import Button from '../../../ui/WButton';
 import Text from '../../../ui/Text';
 import WInput from '../../../ui/WInput';
 import WSelect from '../../../ui/WSelect';
+import WToggle from '../../../ui/WToggle';
 import { CommunityPresets } from '../../app-library';
 import { PRESET_SCOPE_VISUAL } from '../../../utils/presets/presetScopes';
 import { ACCEPT_GALLERY_STILLS, SUPPORTED_GALLERY_HINT } from '../../../utils/supportedUploadMedia';
 import { createWeeTransition } from '../../../design/weeMotion';
 import { useMotionFeedback } from '../../../hooks/useMotionFeedback';
+import { WeeRevealWhen } from '../../../ui/wee';
 
 const UPLOAD_SHELL =
   'mb-1 rounded-2xl border border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.55)] p-4 md:p-5';
@@ -46,6 +48,19 @@ const PresetsCommunityCard = React.memo(
     }));
     const mf = useMotionFeedback();
     const panelTransition = createWeeTransition('pillOpen', { reducedMotion: !mf.channelReorderSlotMotion });
+    const [useCustomCover, setUseCustomCover] = useState(Boolean(uploadFormData.custom_image));
+
+    const autoThumb = uploadFormData.selectedPreset?.thumbnailDataUrl || null;
+    const sharePreviewSrc = useCustomCover && uploadFormData.custom_image
+      ? uploadFormData.custom_image
+      : autoThumb;
+
+    const handleCustomCoverToggle = (checked) => {
+      setUseCustomCover(checked);
+      if (!checked) {
+        onUploadField('custom_image', null);
+      }
+    };
 
     return (
       <div className="space-y-4">
@@ -120,7 +135,7 @@ const PresetsCommunityCard = React.memo(
                   placeholder="Select a preset to share..."
                 />
               </div>
-              {selectedPresetNeedsShareableCopy ? (
+              <WeeRevealWhen when={selectedPresetNeedsShareableCopy}>
                 <div className="mb-4 rounded-xl border border-[hsl(var(--state-warning))] bg-[hsl(var(--state-warning)/0.12)] p-3">
                   <Text variant="caption" className="!m-0 text-[hsl(var(--state-warning))]">
                     This preset includes Home channels and cannot be shared directly.
@@ -131,7 +146,7 @@ const PresetsCommunityCard = React.memo(
                     </Button>
                   </div>
                 </div>
-              ) : null}
+              </WeeRevealWhen>
 
               <div className="mb-3">
                 <Text variant="label" className="mb-2">
@@ -172,52 +187,82 @@ const PresetsCommunityCard = React.memo(
                 />
               </div>
 
-              <div className="mb-4">
-                <Text variant="label" className="mb-2">
-                  Custom cover (optional)
-                </Text>
-                <Text variant="caption" className="!mb-2 !mt-0 block text-[hsl(var(--text-tertiary))]">
-                  {SUPPORTED_GALLERY_HINT.trim()}. Wallpaper + colors upload from the preset automatically.
-                </Text>
-                <div className="surface-actions">
-                  <input
-                    type="file"
-                    accept={ACCEPT_GALLERY_STILLS}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (e.target) e.target.value = '';
-                      if (f) onUploadField('file', f);
-                    }}
-                    className="hidden"
-                    id="presets-custom-image-upload"
-                  />
-                  <Button
-                    variant="secondary"
-                    onClick={() => document.getElementById('presets-custom-image-upload')?.click()}
-                    className="flex-1"
-                  >
-                    Choose image
-                  </Button>
-                  {uploadFormData.custom_image ? (
-                    <Button variant="secondary" onClick={() => onUploadField('custom_image', null)}>
-                      Remove
-                    </Button>
-                  ) : null}
-                </div>
-                {uploadFormData.custom_image ? (
-                  <div className="mt-2 space-y-1">
-                    {uploadFormData.custom_image_name ? (
-                      <Text variant="caption" className="block text-[hsl(var(--text-secondary))]">
-                        {uploadFormData.custom_image_name}
-                      </Text>
-                    ) : null}
+              <div className="mb-4 space-y-3">
+                <div>
+                  <Text variant="label" className="mb-1">
+                    Cover preview
+                  </Text>
+                  <Text variant="caption" className="!mb-2 !mt-0 block text-[hsl(var(--text-tertiary))]">
+                    {useCustomCover && uploadFormData.custom_image
+                      ? 'Custom cover will be used when you share.'
+                      : 'Auto screenshot from this look — shared when you click Share preset.'}
+                  </Text>
+                  {sharePreviewSrc ? (
                     <img
-                      src={uploadFormData.custom_image}
-                      alt="Custom preview"
-                      className="max-h-[120px] w-full max-w-[200px] rounded-lg border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] object-contain"
+                      src={sharePreviewSrc}
+                      alt="Share cover preview"
+                      className="max-h-[160px] w-full max-w-[280px] rounded-xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary))] object-cover"
                     />
+                  ) : (
+                    <div className="flex h-[100px] w-full max-w-[280px] items-center justify-center rounded-xl border border-dashed border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-secondary)/0.5)] px-3 text-center">
+                      <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                        {uploadFormData.selectedPreset
+                          ? 'No thumbnail yet — save or update the look to capture one.'
+                          : 'Select a preset to preview its cover.'}
+                      </Text>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
+                  <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                    Use a custom cover instead
+                  </Text>
+                  <WToggle
+                    checked={useCustomCover}
+                    onChange={handleCustomCoverToggle}
+                    label="Use custom cover"
+                    disableLabelClick
+                  />
+                </div>
+
+                <WeeRevealWhen when={useCustomCover}>
+                  <div className="space-y-2">
+                      <Text variant="caption" className="!mb-2 !mt-0 block text-[hsl(var(--text-tertiary))]">
+                        {SUPPORTED_GALLERY_HINT.trim()}. Wallpaper + colors still upload from the preset.
+                      </Text>
+                      <div className="surface-actions">
+                        <input
+                          type="file"
+                          accept={ACCEPT_GALLERY_STILLS}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (e.target) e.target.value = '';
+                            if (f) onUploadField('file', f);
+                          }}
+                          className="hidden"
+                          id="presets-custom-image-upload"
+                        />
+                        <Button
+                          variant="secondary"
+                          onClick={() => document.getElementById('presets-custom-image-upload')?.click()}
+                          className="flex-1"
+                        >
+                          Choose image
+                        </Button>
+                        {uploadFormData.custom_image ? (
+                          <Button variant="secondary" onClick={() => onUploadField('custom_image', null)}>
+                            Remove
+                          </Button>
+                        ) : null}
+                      </div>
+                      {uploadFormData.custom_image_name ? (
+                        <Text variant="caption" className="!mt-2 block text-[hsl(var(--text-secondary))]">
+                          {uploadFormData.custom_image_name}
+                        </Text>
+                      ) : null}
                   </div>
-                ) : null}
+                </WeeRevealWhen>
               </div>
 
               <div className="surface-actions justify-end">

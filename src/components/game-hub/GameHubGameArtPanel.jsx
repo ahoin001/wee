@@ -3,7 +3,14 @@ import PropTypes from 'prop-types';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Upload } from 'lucide-react';
 import Text from '../../ui/Text';
-import { WeeButton, WeeModalFieldCard, WeeSegmentedControl, WeeSectionEyebrow } from '../../ui/wee';
+import {
+  WeeButton,
+  WeeContentCollapse,
+  WeeMorphStack,
+  WeeModalFieldCard,
+  WeeSegmentedControl,
+  WeeSectionEyebrow,
+} from '../../ui/wee';
 import { useWeeMotion } from '../../design/weeMotion';
 import MediaLibraryBrowser from '../media/MediaLibraryBrowser';
 import ChannelModalInlineMediaSuggestions from '../channels/channelModal/ChannelModalInlineMediaSuggestions';
@@ -74,6 +81,7 @@ function GameHubGameArtPanel({ game, enabled, customEntry, onApplyArt }) {
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState(null);
   const uploadPreviewRef = useRef(null);
   const prevResolvedMediaUrlRef = useRef(null);
+  const previewHasEnteredRef = useRef(false);
   const reduceMotion = useReducedMotion();
   const { shouldPauseDecorativeVideo } = useRendererMediaPowerState();
   const decorativeVideoRef = useRef(null);
@@ -111,6 +119,7 @@ function GameHubGameArtPanel({ game, enabled, customEntry, onApplyArt }) {
     if (!displayMedia) {
       setArtToolsExpanded(true);
       prevResolvedMediaUrlRef.current = null;
+      previewHasEnteredRef.current = false;
       return;
     }
     if (displayMedia.loading) return;
@@ -243,34 +252,37 @@ function GameHubGameArtPanel({ game, enabled, customEntry, onApplyArt }) {
     (typeof displayMedia?.type === 'string' && displayMedia.type.startsWith('video') ? 'Video' : 'Image');
 
   const artSummaryOnly = Boolean(displayMedia && !displayMedia.loading && !artToolsExpanded);
+  const previewEnterInitial =
+    reduceMotion || previewHasEnteredRef.current
+      ? false
+      : { opacity: 0, y: 10, scale: 0.97 };
+
+  useEffect(() => {
+    if (displayMedia && !displayMedia.loading) {
+      previewHasEnteredRef.current = true;
+    }
+  }, [displayMedia]);
 
   if (!game?.id) {
     return null;
   }
 
   return (
-    <div
-      className={`channel-art-panel channel-art-panel--tabbed space-y-4${
+    <WeeMorphStack
+      open={!artSummaryOnly}
+      className={`channel-art-panel channel-art-panel--tabbed${
         artSummaryOnly ? ' channel-art-panel--summary-only' : ''
       }`}
     >
-      {artToolsExpanded ? (
-        <Text variant="desc" className="block text-[hsl(var(--text-secondary))]">
-          Pick art from suggestions or your library—or upload once and we apply it for this game in the hub (saved
-          automatically).
-        </Text>
-      ) : null}
-
       <AnimatePresence>
         {displayMedia && !displayMedia.loading ? (
           <motion.div
             key="hub-art-preview"
             className="rounded-2xl border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] p-3 shadow-[var(--shadow-card)] sm:p-5"
-            initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.97 }}
+            initial={previewEnterInitial}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -8, scale: 0.98 }}
             transition={tabTransition}
-            layout
           >
             <div className="flex min-w-0 flex-nowrap items-center gap-3 sm:gap-5">
               <div className="relative h-[72px] w-[140px] max-h-[28vh] shrink-0 -rotate-2 overflow-hidden rounded-[16px] border-4 border-[hsl(var(--wee-border-outer))] shadow-[var(--shadow-card)] sm:h-[80px] sm:w-[156px]">
@@ -318,182 +330,176 @@ function GameHubGameArtPanel({ game, enabled, customEntry, onApplyArt }) {
         ) : null}
       </AnimatePresence>
 
-      <AnimatePresence initial={false} mode="sync">
-        {artToolsExpanded ? (
-          <motion.div
-            key="hub-art-tools"
-            initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.99 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: -14, scale: 0.99 }}
-            transition={tabTransition}
-            layout
-            className="space-y-4 overflow-hidden"
-          >
-            <WeeSegmentedControl
-              ariaLabel="Game art source"
-              value={artSubTab}
-              onChange={setArtSubTabPersist}
-              options={[
-                { value: 'library', label: 'Library' },
-                { value: 'upload', label: 'Upload' },
-              ]}
-              className="!flex w-full max-w-full [&>button]:min-w-0 [&>button]:flex-1"
-            />
+      <WeeContentCollapse
+        open={artToolsExpanded}
+        keepMounted={false}
+        className="channel-art-panel__tools-collapse"
+      >
+        <div className="space-y-4">
+          <Text variant="desc" className="block text-[hsl(var(--text-secondary))]">
+            Pick art from suggestions or your library—or upload once and we apply it for this game in the hub (saved
+            automatically).
+          </Text>
 
-            <div className="relative min-h-0">
-              <AnimatePresence mode="wait" initial={false}>
-                {artSubTab === 'library' && (
-                  <motion.div
-                    key="library"
-                    id="hub-game-art-panel-library"
-                    role="tabpanel"
-                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={reduceMotion ? undefined : { opacity: 0, y: -10, scale: 0.995 }}
-                    transition={tabTransition}
-                    layout
-                    className="space-y-4"
-                  >
-                    <ChannelModalInlineMediaSuggestions
-                      path={path}
-                      type={type}
-                      matchingApp={matchingApp}
-                      onApplyMedia={handleApplySuggested}
-                      appliedMedia={displayMedia}
-                      sectionHeading="Suggested art"
-                      appliedPillText="In use"
-                    />
-                    <MediaLibraryBrowser
-                      {...browserForLibrary}
-                      onSelect={handleSelectFromLibrary}
-                      showDownload={false}
-                      compact
-                      channelPicker
-                    />
-                  </motion.div>
-                )}
+          <WeeSegmentedControl
+            ariaLabel="Game art source"
+            value={artSubTab}
+            onChange={setArtSubTabPersist}
+            options={[
+              { value: 'library', label: 'Library' },
+              { value: 'upload', label: 'Upload' },
+            ]}
+            className="!flex w-full max-w-full [&>button]:min-w-0 [&>button]:flex-1"
+          />
 
-                {artSubTab === 'upload' && (
-                  <motion.div
-                    key="upload"
-                    id="hub-game-art-panel-upload"
-                    role="tabpanel"
-                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={reduceMotion ? undefined : { opacity: 0, y: -10, scale: 0.995 }}
-                    transition={tabTransition}
-                    layout
-                  >
-                    <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-6 md:p-10" className="!mt-0">
-                      <WeeSectionEyebrow className="mb-1">Upload &amp; apply</WeeSectionEyebrow>
-                      <Text variant="help" className="mb-6 mt-2 block max-w-prose">
-                        Add a file to your media library and use it as this game&apos;s cover in one step.
+          <div className="relative min-h-0">
+            <AnimatePresence mode="wait" initial={false}>
+              {artSubTab === 'library' ? (
+                <motion.div
+                  key="library"
+                  id="hub-game-art-panel-library"
+                  role="tabpanel"
+                  initial={reduceMotion || !artToolsExpanded ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduceMotion || !artToolsExpanded ? undefined : { opacity: 0, y: -10 }}
+                  transition={tabTransition}
+                  className="space-y-4"
+                >
+                  <ChannelModalInlineMediaSuggestions
+                    path={path}
+                    type={type}
+                    matchingApp={matchingApp}
+                    onApplyMedia={handleApplySuggested}
+                    appliedMedia={displayMedia}
+                    sectionHeading="Suggested art"
+                    appliedPillText="In use"
+                  />
+                  <MediaLibraryBrowser
+                    {...browserForLibrary}
+                    onSelect={handleSelectFromLibrary}
+                    showDownload={false}
+                    compact
+                    channelPicker
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="upload"
+                  id="hub-game-art-panel-upload"
+                  role="tabpanel"
+                  initial={reduceMotion || !artToolsExpanded ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduceMotion || !artToolsExpanded ? undefined : { opacity: 0, y: -10 }}
+                  transition={tabTransition}
+                >
+                  <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-6 md:p-10" className="!mt-0">
+                    <WeeSectionEyebrow className="mb-1">Upload &amp; apply</WeeSectionEyebrow>
+                    <Text variant="help" className="mb-6 mt-2 block max-w-prose">
+                      Add a file to your media library and use it as this game&apos;s cover in one step.
+                    </Text>
+                    {mediaUploadHint ? (
+                      <Text size="sm" className="mb-4 block" color="hsl(var(--state-warning))">
+                        {mediaUploadHint}
                       </Text>
-                      {mediaUploadHint ? (
-                        <Text size="sm" className="mb-4 block" color="hsl(var(--state-warning))">
-                          {mediaUploadHint}
-                        </Text>
-                      ) : null}
+                    ) : null}
 
-                      <div className="space-y-6">
-                        <div>
-                          <WeeSectionEyebrow className="mb-2">Library title</WeeSectionEyebrow>
-                          <input
-                            type="text"
-                            value={uploadTitle}
-                            onChange={(e) => setUploadTitle(e.target.value)}
-                            placeholder="Name shown in your library"
-                            className={uploadInputClass}
-                          />
-                        </div>
-
-                        <div>
-                          <WeeSectionEyebrow className="mb-2">File</WeeSectionEyebrow>
-                          <input
-                            id={uploadFieldId}
-                            type="file"
-                            accept={ACCEPT_IMAGE_OR_MP4}
-                            onChange={handlePickFile}
-                            className="sr-only"
-                          />
-                          <label
-                            htmlFor={uploadFieldId}
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onDrop={handleUploadDrop}
-                            className="flex min-h-[11rem] cursor-pointer flex-col items-center justify-center rounded-[var(--wee-radius-card)] border-4 border-dashed border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--wee-surface-input))] px-6 py-8 text-center transition-[border-color,background-color,box-shadow,transform] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--surface-tertiary)/0.35)] hover:shadow-[var(--shadow-sm)] motion-safe:active:scale-[0.99]"
-                          >
-                            <Upload
-                              className="mb-3 h-9 w-9 text-[hsl(var(--wee-text-rail-muted))]"
-                              strokeWidth={1.75}
-                              aria-hidden
-                            />
-                            <p className="m-0 text-[11px] font-black uppercase tracking-[0.14em] text-[hsl(var(--wee-text-header))]">
-                              Drop files or browse
-                            </p>
-                            <p className="mt-2 m-0 max-w-sm text-[10px] font-bold uppercase leading-relaxed tracking-wide text-[hsl(var(--text-tertiary))]">
-                              {SUPPORTED_IMAGE_VIDEO_HINT}
-                            </p>
-                          </label>
-                        </div>
+                    <div className="space-y-6">
+                      <div>
+                        <WeeSectionEyebrow className="mb-2">Library title</WeeSectionEyebrow>
+                        <input
+                          type="text"
+                          value={uploadTitle}
+                          onChange={(e) => setUploadTitle(e.target.value)}
+                          placeholder="Name shown in your library"
+                          className={uploadInputClass}
+                        />
                       </div>
 
-                      {uploadFile && uploadPreviewUrl ? (
-                        <motion.div
-                          layout
-                          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={tabTransition}
-                          className="mt-6 overflow-hidden rounded-2xl border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] shadow-[var(--shadow-card)]"
+                      <div>
+                        <WeeSectionEyebrow className="mb-2">File</WeeSectionEyebrow>
+                        <input
+                          id={uploadFieldId}
+                          type="file"
+                          accept={ACCEPT_IMAGE_OR_MP4}
+                          onChange={handlePickFile}
+                          className="sr-only"
+                        />
+                        <label
+                          htmlFor={uploadFieldId}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onDrop={handleUploadDrop}
+                          className="flex min-h-[11rem] cursor-pointer flex-col items-center justify-center rounded-[var(--wee-radius-card)] border-4 border-dashed border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--wee-surface-input))] px-6 py-8 text-center transition-[border-color,background-color,box-shadow,transform] hover:border-[hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--surface-tertiary)/0.35)] hover:shadow-[var(--shadow-sm)] motion-safe:active:scale-[0.99]"
                         >
-                          <Text
-                            variant="small"
-                            className="block border-b border-[hsl(var(--border-primary)/0.5)] px-4 py-2.5 font-bold uppercase tracking-wide text-[hsl(var(--text-secondary))]"
-                          >
-                            {uploadFile.name}
-                          </Text>
-                          <div className="flex max-h-[220px] justify-center p-4">
-                            {uploadFile.type.startsWith('video/') || /\.mp4$/i.test(uploadFile.name) ? (
-                              <video
-                                ref={uploadPreviewVideoRef}
-                                src={uploadPreviewUrl}
-                                className="max-h-[200px] max-w-full rounded-xl object-contain"
-                                controls
-                                muted
-                                playsInline
-                              />
-                            ) : (
-                              <img
-                                src={uploadPreviewUrl}
-                                alt=""
-                                className="max-h-[200px] max-w-full rounded-xl object-contain"
-                              />
-                            )}
-                          </div>
-                        </motion.div>
-                      ) : null}
+                          <Upload
+                            className="mb-3 h-9 w-9 text-[hsl(var(--wee-text-rail-muted))]"
+                            strokeWidth={1.75}
+                            aria-hidden
+                          />
+                          <p className="m-0 text-[11px] font-black uppercase tracking-[0.14em] text-[hsl(var(--wee-text-header))]">
+                            Drop files or browse
+                          </p>
+                          <p className="mt-2 m-0 max-w-sm text-[10px] font-bold uppercase leading-relaxed tracking-wide text-[hsl(var(--text-tertiary))]">
+                            {SUPPORTED_IMAGE_VIDEO_HINT}
+                          </p>
+                        </label>
+                      </div>
+                    </div>
 
-                      <WeeButton
-                        variant="primary"
-                        fullWidth
-                        rounded
-                        disabled={libraryUploading || !uploadFile || !String(uploadTitle || '').trim()}
-                        onClick={handleSubmitUpload}
-                        className="mt-8 !py-4 text-[hsl(var(--text-on-accent))]"
+                    {uploadFile && uploadPreviewUrl ? (
+                      <motion.div
+                        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={tabTransition}
+                        className="mt-6 overflow-hidden rounded-2xl border-2 border-[hsl(var(--wee-border-card))] bg-[hsl(var(--wee-surface-card))] shadow-[var(--shadow-card)]"
                       >
-                        {libraryUploading ? 'Uploading…' : 'Upload & apply to game'}
-                      </WeeButton>
-                    </WeeModalFieldCard>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
+                        <Text
+                          variant="small"
+                          className="block border-b border-[hsl(var(--border-primary)/0.5)] px-4 py-2.5 font-bold uppercase tracking-wide text-[hsl(var(--text-secondary))]"
+                        >
+                          {uploadFile.name}
+                        </Text>
+                        <div className="flex max-h-[220px] justify-center p-4">
+                          {uploadFile.type.startsWith('video/') || /\.mp4$/i.test(uploadFile.name) ? (
+                            <video
+                              ref={uploadPreviewVideoRef}
+                              src={uploadPreviewUrl}
+                              className="max-h-[200px] max-w-full rounded-xl object-contain"
+                              controls
+                              muted
+                              playsInline
+                            />
+                          ) : (
+                            <img
+                              src={uploadPreviewUrl}
+                              alt=""
+                              className="max-h-[200px] max-w-full rounded-xl object-contain"
+                            />
+                          )}
+                        </div>
+                      </motion.div>
+                    ) : null}
+
+                    <WeeButton
+                      variant="primary"
+                      fullWidth
+                      rounded
+                      disabled={libraryUploading || !uploadFile || !String(uploadTitle || '').trim()}
+                      onClick={handleSubmitUpload}
+                      className="mt-8 !py-4 text-[hsl(var(--text-on-accent))]"
+                    >
+                      {libraryUploading ? 'Uploading…' : 'Upload & apply to game'}
+                    </WeeButton>
+                  </WeeModalFieldCard>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </WeeContentCollapse>
+    </WeeMorphStack>
   );
 }
 

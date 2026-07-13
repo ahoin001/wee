@@ -1,13 +1,37 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
-import { m } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { MoreHorizontal } from 'lucide-react';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import { WeeEmphasisText, WeeButton, WeePressSurface } from '../../ui/wee';
 import { createWeeTransition } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+
+const MENU_MIN_WIDTH_PX = 176;
+const MENU_ESTIMATE_HEIGHT_PX = 220;
+const VIEWPORT_PAD_PX = 8;
+
+function computeMenuPosition(anchorRect) {
+  if (!anchorRect) return { top: 0, left: 0, transformOrigin: 'top right' };
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 720;
+  const preferBelow = anchorRect.bottom + MENU_ESTIMATE_HEIGHT_PX + VIEWPORT_PAD_PX <= vh;
+  const top = preferBelow
+    ? anchorRect.bottom + 4
+    : Math.max(VIEWPORT_PAD_PX, anchorRect.top - MENU_ESTIMATE_HEIGHT_PX - 4);
+  const left = Math.min(
+    Math.max(VIEWPORT_PAD_PX, anchorRect.right - MENU_MIN_WIDTH_PX),
+    vw - MENU_MIN_WIDTH_PX - VIEWPORT_PAD_PX
+  );
+  return {
+    top,
+    left,
+    transformOrigin: preferBelow ? 'top right' : 'bottom right',
+  };
+}
 
 const PresetListItem = React.forwardRef(function PresetListItem(
   {
@@ -44,23 +68,128 @@ const PresetListItem = React.forwardRef(function PresetListItem(
 ) {
   const presetKey = preset.id || preset.name;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, transformOrigin: 'top right' });
+  const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const { channelReorderSlotMotion } = useMotionFeedback();
   const reduceMotion = !channelReorderSlotMotion;
   const enterTransition = createWeeTransition('pillOpen', { reducedMotion: reduceMotion });
+  const menuTransition = createWeeTransition('pillOpen', { reducedMotion: reduceMotion });
+
+  const updateMenuPosition = useCallback(() => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuPos(computeMenuPosition(rect));
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!menuOpen) return undefined;
+    updateMenuPosition();
+    return undefined;
+  }, [menuOpen, updateMenuPosition]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
     const onDoc = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+      const t = e.target;
+      if (menuRef.current?.contains(t) || triggerRef.current?.contains(t)) return;
+      setMenuOpen(false);
     };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    const onReposition = () => updateMenuPosition();
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [menuOpen]);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onReposition);
+    window.addEventListener('scroll', onReposition, true);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', onReposition, true);
+    };
+  }, [menuOpen, updateMenuPosition]);
 
   const thumb = preset.thumbnailDataUrl;
   const scopeLabel =
     preset.captureScope === 'visual+homeChannels' ? 'Visual + Home' : 'Visual';
+
+  const menuItems = (
+    <>
+      <button
+        type="button"
+        className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))]"
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenuOpen(false);
+          onUpdate(presetKey);
+        }}
+      >
+        {justUpdated === presetKey ? 'Updated!' : 'Update from current'}
+      </button>
+      <button
+        type="button"
+        className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))] disabled:opacity-45"
+        disabled={!hasActiveProfile}
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenuOpen(false);
+          onApplyToActiveProfile(preset);
+        }}
+      >
+        Apply to profile
+      </button>
+      {preset.shareable !== false && onShare ? (
+        <button
+          type="button"
+          className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))]"
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen(false);
+            onShare(preset);
+          }}
+        >
+          Share…
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))]"
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenuOpen(false);
+          onStartEdit(preset);
+        }}
+      >
+        Rename
+      </button>
+      {hasCommunityUpdate ? (
+        <button
+          type="button"
+          className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--state-warning))] hover:bg-[hsl(var(--surface-secondary))]"
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen(false);
+            onApplyCommunityUpdate?.(preset);
+          }}
+        >
+          Install community update
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--state-error))] hover:bg-[hsl(var(--surface-secondary))]"
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenuOpen(false);
+          onDelete(presetKey);
+        }}
+      >
+        Delete
+      </button>
+    </>
+  );
 
   return (
     <m.li
@@ -172,12 +301,13 @@ const PresetListItem = React.forwardRef(function PresetListItem(
               </WeeButton>
             </WeePressSurface>
 
-            <div className="relative" ref={menuRef}>
+            <div className="relative" ref={triggerRef}>
               <Button
                 variant="secondary"
                 size="sm"
                 aria-label="More preset actions"
                 aria-expanded={menuOpen}
+                aria-haspopup="menu"
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenuOpen((o) => !o);
@@ -185,81 +315,35 @@ const PresetListItem = React.forwardRef(function PresetListItem(
               >
                 <MoreHorizontal size={16} aria-hidden />
               </Button>
-              {menuOpen ? (
-                <div className="absolute right-0 z-20 mt-1 min-w-[11rem] overflow-hidden rounded-xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] py-1 shadow-[var(--shadow-lg)]">
-                  <button
-                    type="button"
-                    className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onUpdate(presetKey);
-                    }}
-                  >
-                    {justUpdated === presetKey ? 'Updated!' : 'Update from current'}
-                  </button>
-                  <button
-                    type="button"
-                    className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))] disabled:opacity-45"
-                    disabled={!hasActiveProfile}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onApplyToActiveProfile(preset);
-                    }}
-                  >
-                    Apply to profile
-                  </button>
-                  {preset.shareable !== false && onShare ? (
-                    <button
-                      type="button"
-                      className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpen(false);
-                        onShare(preset);
-                      }}
-                    >
-                      Share…
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onStartEdit(preset);
-                    }}
-                  >
-                    Rename
-                  </button>
-                  {hasCommunityUpdate ? (
-                    <button
-                      type="button"
-                      className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--state-warning))] hover:bg-[hsl(var(--surface-secondary))]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpen(false);
-                        onApplyCommunityUpdate?.(preset);
-                      }}
-                    >
-                      Install community update
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--state-error))] hover:bg-[hsl(var(--surface-secondary))]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(false);
-                      onDelete(presetKey);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ) : null}
+              {typeof document !== 'undefined'
+                ? createPortal(
+                    <AnimatePresence>
+                      {menuOpen ? (
+                        <m.div
+                          ref={menuRef}
+                          role="menu"
+                          initial={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.94, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -2 }}
+                          transition={menuTransition}
+                          style={{
+                            position: 'fixed',
+                            top: menuPos.top,
+                            left: menuPos.left,
+                            zIndex: 10050,
+                            minWidth: MENU_MIN_WIDTH_PX,
+                            transformOrigin: menuPos.transformOrigin,
+                          }}
+                          className="overflow-hidden rounded-xl border border-[hsl(var(--border-primary))] bg-[hsl(var(--surface-primary))] py-1 shadow-[var(--shadow-lg)]"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          {menuItems}
+                        </m.div>
+                      ) : null}
+                    </AnimatePresence>,
+                    document.body
+                  )
+                : null}
             </div>
           </>
         )}

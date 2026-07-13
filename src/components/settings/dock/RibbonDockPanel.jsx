@@ -7,6 +7,7 @@ import WToggle from '../../../ui/WToggle';
 import {
   WeeHelpParagraph,
   WeeModalFieldCard,
+  WeeRevealWhen,
   WeeSectionEyebrow,
   WeeSegmentedControl,
   WeeSettingsCollapsibleSection,
@@ -15,13 +16,9 @@ import {
   DEFAULT_RIBBON_GLOW_HEX,
   DEFAULT_RIBBON_SURFACE_HEX,
 } from '../../../design/runtimeColorStrings.js';
+import { getRibbonChromeEffectOptions } from '../../dock/ribbon/ribbonChromeEffectMeta';
 
-const CHROME_EFFECT_OPTIONS = [
-  { value: 'none', label: 'None' },
-  { value: 'shimmer', label: 'Shimmer' },
-  { value: 'pulse', label: 'Pulse' },
-  { value: 'neonTrace', label: 'Neon trace' },
-];
+const CHROME_EFFECT_OPTIONS = getRibbonChromeEffectOptions();
 
 const RIBBON_FIELD_CARD =
   'rounded-2xl border border-[hsl(var(--border-primary)/0.42)] bg-[hsl(var(--surface-secondary)/0.55)] p-3 shadow-[inset_0_1px_0_0_hsl(var(--border-primary)/0.14)] md:p-4';
@@ -193,7 +190,7 @@ function RibbonGlowFields({
         onChange={onRibbonGlowStrengthChange}
         ariaLabel="Ribbon glow strength in pixels"
       />
-      {hoverAnimationEnabled ? (
+      <WeeRevealWhen when={hoverAnimationEnabled}>
         <RibbonScaleField
           eyebrow="Hover glow boost"
           hint="Extra bloom when the ribbon hover animation runs."
@@ -206,7 +203,8 @@ function RibbonGlowFields({
           onChange={onRibbonGlowStrengthHoverChange}
           ariaLabel="Ribbon hover glow boost in pixels"
         />
-      ) : (
+      </WeeRevealWhen>
+      <WeeRevealWhen when={!hoverAnimationEnabled}>
         <div className={RIBBON_FIELD_CARD}>
           <WeeSectionEyebrow className="!mb-2 block" trackingClassName="tracking-[0.12em]">
             Hover glow boost
@@ -215,7 +213,7 @@ function RibbonGlowFields({
             Enable Ribbon hover animation in Style & behavior to tune extra hover bloom.
           </WeeHelpParagraph>
         </div>
-      )}
+      </WeeRevealWhen>
     </div>
   );
 }
@@ -247,6 +245,7 @@ function RibbonDockPanel({
   onChromeEffectChange,
   onChromeEffectIntensityChange,
   onChromeEffectSpeedChange,
+  onChromeEffectIdleOnlyChange,
 }) {
   const glassOn = ribbon?.glassWiiRibbon ?? false;
   const dockOp = ribbon?.ribbonDockOpacity ?? 1;
@@ -257,6 +256,7 @@ function RibbonDockPanel({
   const chromeEffect = ribbon?.chromeEffect ?? 'none';
   const chromeIntensity = ribbon?.chromeEffectIntensity ?? 0.55;
   const chromeSpeed = ribbon?.chromeEffectSpeed ?? 1;
+  const chromeIdleOnly = ribbon?.chromeEffectIdleOnly ?? false;
 
   return (
     <div className="flex flex-col gap-6">
@@ -317,7 +317,7 @@ function RibbonDockPanel({
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
 
-      {!glassOn ? (
+      <WeeRevealWhen when={!glassOn}>
         <WeeSettingsCollapsibleSection
           icon={Layers}
           title="Solid surface"
@@ -375,9 +375,9 @@ function RibbonDockPanel({
             </div>
           </WeeModalFieldCard>
         </WeeSettingsCollapsibleSection>
-      ) : null}
+      </WeeRevealWhen>
 
-      {glassOn ? (
+      <WeeRevealWhen when={glassOn}>
         <WeeSettingsCollapsibleSection
           icon={Droplets}
           title="Glass surface"
@@ -463,7 +463,7 @@ function RibbonDockPanel({
             </div>
           </WeeModalFieldCard>
         </WeeSettingsCollapsibleSection>
-      ) : null}
+      </WeeRevealWhen>
 
       <WeeSettingsCollapsibleSection
         icon={Sparkles}
@@ -478,7 +478,7 @@ function RibbonDockPanel({
                 Effect mode
               </WeeSectionEyebrow>
               <WeeHelpParagraph className="!mb-3 !normal-case !tracking-[0.08em]">
-                Paints on the ribbon surface — separate from ambient particles.
+                Surface FX on the ribbon body — shimmer, pulse, neon, aurora, and more. Separate from ambient particles.
               </WeeHelpParagraph>
               <WeeSegmentedControl
                 ariaLabel="Ribbon chrome effect"
@@ -491,7 +491,7 @@ function RibbonDockPanel({
               />
             </div>
 
-            {chromeEffect !== 'none' ? (
+            <WeeRevealWhen when={chromeEffect !== 'none'}>
               <div className="space-y-4 border-t border-[hsl(var(--border-primary)/0.35)] pt-5">
                 <RibbonScaleField
                   eyebrow="Intensity"
@@ -507,7 +507,7 @@ function RibbonDockPanel({
                 />
                 <RibbonScaleField
                   eyebrow="Speed"
-                  hint="Animation pace for shimmer, pulse, and neon trace."
+                  hint="Animation pace for the selected chrome effect."
                   rangeLabel="0.25× — 2×"
                   valueDisplay={`${Number(chromeSpeed).toFixed(2)}×`}
                   value={chromeSpeed}
@@ -517,8 +517,20 @@ function RibbonDockPanel({
                   onChange={onChromeEffectSpeedChange}
                   ariaLabel="Chrome effect speed"
                 />
+                <div className="border-t border-[hsl(var(--border-primary)/0.28)] pt-4">
+                  <ToggleRow
+                    title="Idle only"
+                    description="Animate when the dock is idle; pause while you use it."
+                  >
+                    <WToggle
+                      checked={chromeIdleOnly}
+                      onChange={onChromeEffectIdleOnlyChange}
+                      disableLabelClick
+                    />
+                  </ToggleRow>
+                </div>
               </div>
-            ) : null}
+            </WeeRevealWhen>
           </div>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
@@ -546,6 +558,7 @@ RibbonDockPanel.propTypes = {
   onChromeEffectChange: PropTypes.func.isRequired,
   onChromeEffectIntensityChange: PropTypes.func.isRequired,
   onChromeEffectSpeedChange: PropTypes.func.isRequired,
+  onChromeEffectIdleOnlyChange: PropTypes.func.isRequired,
 };
 
 export default React.memo(RibbonDockPanel);

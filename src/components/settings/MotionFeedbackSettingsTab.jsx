@@ -10,6 +10,7 @@ import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
 import {
   WeeModalFieldCard,
+  WeeRevealWhen,
   WeeSectionEyebrow,
   WeeSegmentedControl,
   WeeSettingsCollapsibleSection,
@@ -217,6 +218,8 @@ const MotionFeedbackSettingsTab = React.memo(() => {
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
 
+      <WeeRevealWhen when={master}>
+        <div className="flex flex-col gap-6">
       <WeeSettingsCollapsibleSection
         icon={LayoutGrid}
         title="Channels & grid"
@@ -229,35 +232,30 @@ const MotionFeedbackSettingsTab = React.memo(() => {
             description="Spring squash when you click a channel tile to launch."
             checked={mf.channels.tap}
             onChange={(v) => setChannel('tap', v)}
-            disabled={!master}
           />
           <MotionToggleRow
             title="Drag preview"
             description="Lifted, tilted floating preview while dragging a channel."
             checked={mf.channels.dragPreview}
             onChange={(v) => setChannel('dragPreview', v)}
-            disabled={!master}
           />
           <MotionToggleRow
             title="Drop target highlight"
             description="Slot glows when you drag over a valid drop target."
             checked={mf.channels.dropTarget}
             onChange={(v) => setChannel('dropTarget', v)}
-            disabled={!master}
           />
           <MotionToggleRow
             title="Reorder sparkles"
             description="Particle burst when you pick up a tile and when you drop it."
             checked={mf.channels.reorderParticles}
             onChange={(v) => setChannel('reorderParticles', v)}
-            disabled={!master}
           />
           <MotionToggleRow
             title="Reorder slot motion"
             description="Tiles wobble and settle after a reorder; includes drop celebration on the moved tile."
             checked={mf.channels.reorderSlotMotion}
             onChange={(v) => setChannel('reorderSlotMotion', v)}
-            disabled={!master}
           />
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
@@ -274,7 +272,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
             description="Spring scale and tilt on press; subtle hover lift on dock buttons and SD card."
             checked={mf.dock.press}
             onChange={setDock}
-            disabled={!master}
           />
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
@@ -291,7 +288,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
             description="Spring feedback when pressing ribbon pills (hover scale stays in Dock / Ribbon settings)."
             checked={mf.ribbon.tap}
             onChange={setRibbon}
-            disabled={!master}
           />
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
@@ -308,14 +304,12 @@ const MotionFeedbackSettingsTab = React.memo(() => {
             description="Spring-driven modal panel transitions instead of rigid timing curves."
             checked={mf.modals.springTransitions}
             onChange={(v) => setModal('springTransitions', v)}
-            disabled={!master}
           />
           <MotionToggleRow
             title="Staggered modal entrances"
             description="Sections fade/slide in with slight delay — top to bottom."
             checked={mf.modals.staggeredEntrance}
             onChange={(v) => setModal('staggeredEntrance', v)}
-            disabled={!master}
           />
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
@@ -332,18 +326,17 @@ const MotionFeedbackSettingsTab = React.memo(() => {
             description="Soft liquid selection and highlight effects on active controls."
             checked={mf.effects.gooeyHighlights}
             onChange={(v) => setEffects('gooeyHighlights', v)}
-            disabled={!master}
           />
           <MotionToggleRow
             title="Icon tilt micro-interactions"
             description="Icons subtly lean on hover and press."
             checked={mf.effects.iconTilt}
             onChange={(v) => setEffects('iconTilt', v)}
-            disabled={!master}
           />
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
 
+      <WeeRevealWhen when={mf.effects.gooeyHighlights} keepMounted={false}>
       <WeeSettingsCollapsibleSection
         icon={Anchor}
         title="Gooey physics"
@@ -364,7 +357,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
               max={100}
               step={5}
               hideValue
-              disabled={!master || !mf.effects.gooeyHighlights}
               aria-label="Global gooey bounce intensity"
               onChange={(v) => setGooey({ intensity: v / 100 })}
             />
@@ -379,7 +371,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
               max={100}
               step={5}
               hideValue
-              disabled={!master || !mf.effects.gooeyHighlights}
               aria-label="Modal gooey intensity"
               onChange={(v) => setGooey({ surfaces: { modals: v / 100 } })}
             />
@@ -394,7 +385,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
               max={100}
               step={5}
               hideValue
-              disabled={!master || !mf.effects.gooeyHighlights}
               aria-label="Channel gooey intensity"
               onChange={(v) => setGooey({ surfaces: { channels: v / 100 } })}
             />
@@ -409,7 +399,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
               max={100}
               step={5}
               hideValue
-              disabled={!master || !mf.effects.gooeyHighlights}
               aria-label="Ribbon gooey intensity"
               onChange={(v) => setGooey({ surfaces: { ribbon: v / 100 } })}
             />
@@ -424,7 +413,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
               max={100}
               step={5}
               hideValue
-              disabled={!master || !mf.effects.gooeyHighlights}
               aria-label="Media Hub gooey intensity"
               onChange={(v) => setGooey({ surfaces: { mediaHub: v / 100 } })}
             />
@@ -436,7 +424,6 @@ const MotionFeedbackSettingsTab = React.memo(() => {
             <WeeSegmentedControl
               ariaLabel="Ribbon floating button hover style"
               value={mf.gooey?.ribbonHoverMode ?? GOOEY_HOVER_MODES.both}
-              disabled={!master || !mf.effects.gooeyHighlights}
               onChange={(value) => setGooey({ ribbonHoverMode: value })}
               options={[
                 { value: GOOEY_HOVER_MODES.squash, label: 'Squash' },
@@ -447,6 +434,9 @@ const MotionFeedbackSettingsTab = React.memo(() => {
           </div>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
+      </WeeRevealWhen>
+        </div>
+      </WeeRevealWhen>
     </div>
   );
 });

@@ -14,6 +14,7 @@ import {
   useFullscreenEffect,
   useGlobalKeyHandlers,
 } from './hooks/useAppShellEffects';
+import { useWallpaperAmbientColor } from './hooks/useWallpaperAmbientColor';
 import { useAppInitialization } from './hooks/useAppInitialization';
 import { useAppUpdater } from './hooks/useAppUpdater';
 import { useUnifiedSettingsPersistence } from './hooks/useUnifiedSettingsPersistence';
@@ -29,7 +30,7 @@ import {
 import { ErrorBoundary, SplashScreen, SpaceBootLoader } from './components/core';
 import { LaunchFeedbackProvider } from './contexts/LaunchFeedbackContext';
 import { WallpaperOverlay, IsolatedWallpaperBackground } from './components/overlays';
-import { DEFAULT_RIBBON_GLOW_HEX, DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
+import { DEFAULT_TIME_COLOR_HEX } from './design/runtimeColorStrings.js';
 import GameHubMinimalDock from './components/game-hub/GameHubMinimalDock';
 import { DEFAULT_SHELL_SPACE_ORDER, normalizeShellSpaceOrder } from './utils/channelSpaces';
 import {
@@ -91,6 +92,10 @@ function App() {
     ribbonColor,
     ribbonGlowColor,
     dynamicRibbonColorEnabled,
+    wallpaperMatchEnabled,
+    ambientPalette,
+    spotifyMatchEnabled,
+    spotifyExtractedColors,
     ribbonGlowStrength,
     ribbonGlowStrengthHover,
     ribbonDockOpacity,
@@ -132,6 +137,10 @@ function App() {
       ribbonColor: state.ribbon.ribbonColor,
       ribbonGlowColor: state.ribbon.ribbonGlowColor,
       dynamicRibbonColorEnabled: state.ribbon.dynamicRibbonColorEnabled ?? false,
+      wallpaperMatchEnabled: state.ui.wallpaperMatchEnabled ?? false,
+      ambientPalette: state.ui.ambientColor?.palette ?? null,
+      spotifyMatchEnabled: state.ui.spotifyMatchEnabled ?? false,
+      spotifyExtractedColors: state.spotify?.extractedColors ?? null,
       ribbonGlowStrength: state.ribbon.ribbonGlowStrength,
       ribbonGlowStrengthHover: state.ribbon.ribbonGlowStrengthHover,
       ribbonDockOpacity: state.ribbon.ribbonDockOpacity,
@@ -418,10 +427,16 @@ function App() {
 
   useCursorEffect(useCustomCursor, cursorStyle);
   useThemeEffect(isDarkMode);
-  usePrimaryAccentThemeEffect(
-    dynamicRibbonColorEnabled ? ribbonGlowColor : DEFAULT_RIBBON_GLOW_HEX,
-    isDarkMode
-  );
+  useWallpaperAmbientColor();
+  usePrimaryAccentThemeEffect({
+    wallpaperMatchEnabled,
+    ambientPalette,
+    spotifyMatchEnabled,
+    spotifyColors: spotifyExtractedColors,
+    dynamicRibbonColorEnabled,
+    ribbonGlowColor,
+    isDarkMode,
+  });
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
