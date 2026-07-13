@@ -18,7 +18,7 @@ const UnifiedAppPathSearch = ({
 }) => {
   const { unifiedApps, setUnifiedAppsState } = useUnifiedAppsState();
   const {
-    apps, loading: unifiedAppsLoading, error: unifiedAppsError,
+    apps, loading: unifiedAppsLoading, error: unifiedAppsError, storeError: unifiedStoreError,
     searchQuery, selectedAppType
   } = unifiedApps;
 
@@ -155,6 +155,18 @@ const UnifiedAppPathSearch = ({
     }
   };
 
+  const looksLikeStoreQuery = useMemo(() => {
+    const q = String(localSearchQuery || '').toLowerCase();
+    return /\b(apple|music|store|xbox|spotify|netflix|disney)\b/.test(q) || q.includes('apple music');
+  }, [localSearchQuery]);
+
+  const showStoreFilterHint =
+    selectedAppType === 'exe' &&
+    looksLikeStoreQuery &&
+    !unifiedAppsLoading &&
+    Boolean(localSearchQuery) &&
+    filteredApps.length === 0;
+
   const filterId = inputId ? `${inputId}-filter` : 'uaps-filter-label';
 
   return (
@@ -232,6 +244,43 @@ const UnifiedAppPathSearch = ({
       {unifiedAppsError ? (
         <div className="mt-2 text-[0.8125rem] leading-snug text-[hsl(var(--state-error))]">
           {unifiedAppsError}
+        </div>
+      ) : null}
+
+      {unifiedStoreError ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.8125rem] leading-snug text-[hsl(var(--state-warning))]">
+          <span>Microsoft Store apps could not be listed. Desktop apps still appear — try Refresh.</span>
+          <WeeButton
+            type="button"
+            variant="secondary"
+            onClick={handleRescan}
+            disabled={unifiedAppsLoading || disabled}
+            className="!px-3 !py-1.5 text-[0.7rem]"
+          >
+            Refresh
+          </WeeButton>
+        </div>
+      ) : null}
+
+      {showStoreFilterHint ? (
+        <div className="mt-2 text-[0.8125rem] leading-snug text-[hsl(var(--text-secondary))]">
+          Looking for a Store app? Switch the filter to{' '}
+          <button
+            type="button"
+            className="font-bold text-[hsl(var(--primary))] underline-offset-2 hover:underline"
+            onClick={() => handleTypeFilterChange('all')}
+          >
+            All
+          </button>{' '}
+          or{' '}
+          <button
+            type="button"
+            className="font-bold text-[hsl(var(--primary))] underline-offset-2 hover:underline"
+            onClick={() => handleTypeFilterChange('microsoft')}
+          >
+            Store
+          </button>
+          .
         </div>
       ) : null}
 

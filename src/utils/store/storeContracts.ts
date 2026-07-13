@@ -21,6 +21,8 @@ export type ChannelSettings = {
   kenBurnsAnimationType?: string;
   kenBurnsCrossfadeReturn?: boolean;
   kenBurnsTransitionType?: string;
+  /** CSS-only sibling softening while a Home tile is hovered (`:has()`); default true. */
+  focusRecedeEnabled?: boolean;
 };
 
 export type ChannelData = {

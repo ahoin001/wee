@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { m, useReducedMotion } from 'framer-motion';
+import * as ContextMenu from '@radix-ui/react-context-menu';
 import {
   DndContext,
   DragOverlay,
@@ -10,8 +11,12 @@ import {
   pointerWithin,
   closestCorners,
 } from '@dnd-kit/core';
+import { LayoutGrid } from 'lucide-react';
 import { Channel } from '../channels';
+import { HomeSlot, HomeBoardArrangeBar, HomePageIndicator } from '../home-grid';
 import useChannelOperations from '../../utils/useChannelOperations';
+import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
+import { getSlotAt } from '../../utils/homeGridSlots';
 import { ChannelSpaceProvider } from '../../contexts/ChannelSpaceContext';
 import useIdleChannelAnimations from '../../utils/useIdleChannelAnimations';
 import { CHANNEL_PAGE_FLIP_MS, isSlotHidden } from '../../utils/channelLayoutSystem';
@@ -48,6 +53,7 @@ const PaginatedChannelsInner = React.memo(() => {
     configuredChannels,
     channelConfigs,
     slotMeta,
+    channelData,
     getCurrentPageChannels,
     getChannelConfig,
     finishAnimation,
@@ -57,12 +63,20 @@ const PaginatedChannelsInner = React.memo(() => {
     reorderChannels,
     goToPage,
     isChannelSlotHidden,
+    setSlotHidden,
   } = useChannelOperations(undefined, { enableGlobalPageShortcuts: true });
 
   const isSpaceTransitioning = useConsolidatedAppStore((s) => s.spaces.isTransitioning);
   const activeSpaceId = useConsolidatedAppStore((s) => s.spaces.activeSpaceId);
   const channelConfigureModalOpen = useConsolidatedAppStore((s) => s.ui.channelConfigureModalOpen);
   const mf = useMotionFeedback();
+  const {
+    arrangeMode: homeBoardArrangeMode,
+    punchMode: homeBoardPunchMode,
+    enterArrange: enterHomeBoardArrange,
+    exitArrange: exitHomeBoardArrange,
+    togglePunchMode: toggleHomeBoardPunchMode,
+  } = useHomeBoardArrange();
   const { isAppActive } = useAppActivity();
   const reducedMotion = useReducedMotion();
   const {
@@ -206,7 +220,8 @@ const PaginatedChannelsInner = React.memo(() => {
     idleAnimationEnabled: channelSettings.idleAnimationEnabled ?? false,
     idleAnimationTypes: channelSettings.idleAnimationTypes ?? ['pulse', 'bounce', 'glow'],
     idleAnimationInterval: channelSettings.idleAnimationInterval ?? 8,
-    autoFadeTimeout: channelSettings.autoFadeTimeout ?? 5
+    autoFadeTimeout: channelSettings.autoFadeTimeout ?? 5,
+    focusRecedeEnabled: channelSettings.focusRecedeEnabled ?? true,
   }), [channelSettings]);
 
   // Grid-level auto-fade: fade after `autoFadeTimeout` seconds of *no* pointer activity on the grid
@@ -218,6 +233,23 @@ const PaginatedChannelsInner = React.memo(() => {
   const autoFadeTimeout = effectiveSettings.autoFadeTimeout;
   const isHomeSpace = channelSpaceKey === 'home';
   const isHomeActive = isHomeSpace && activeSpaceId === 'home';
+
+  // Live Board Studio only applies to the live Home board.
+  const arrangeModeActive = isHomeSpace && homeBoardArrangeMode;
+  const punchModeActive = isHomeSpace && homeBoardPunchMode;
+
+  const handleTogglePunchSlot = useCallback(
+    (channelIndex) => {
+      setSlotHidden(channelIndex, !isChannelSlotHidden(channelIndex));
+    },
+    [setSlotHidden, isChannelSlotHidden]
+  );
+
+  useEffect(() => {
+    if (!isHomeSpace && homeBoardArrangeMode) {
+      exitHomeBoardArrange();
+    }
+  }, [isHomeSpace, homeBoardArrangeMode, exitHomeBoardArrange]);
 
   const clearIdleFadeTimer = useCallback(() => {
     if (idleFadeTimerRef.current) {
@@ -622,6 +654,51 @@ const PaginatedChannelsInner = React.memo(() => {
           ? !overrideConfig || (!overrideConfig.media && !overrideConfig.path)
           : resolveIsEmpty(channelId);
 
+      const slotFromBoard = getSlotAt(channelData?.slots, channelId);
+      const slot =
+        overrideConfig !== undefined
+          ? {
+              kind: 'channel',
+              hidden: false,
+              colSpan: 1,
+              rowSpan: 1,
+              channel: overrideConfig
+                ? {
+                    media: overrideConfig.media ?? null,
+                    path: overrideConfig.path ?? null,
+                    launchType: overrideConfig.type ?? null,
+                    icon: overrideConfig.icon ?? null,
+                    asAdmin: overrideConfig.asAdmin,
+                    hoverSound: overrideConfig.hoverSound,
+                    animatedOnHover: overrideConfig.animatedOnHover,
+                    title: overrideConfig.title,
+                  }
+                : null,
+            }
+          : slotFromBoard;
+
+      const sharedProps = {
+        onMediaChange: handleChannelMediaChange,
+        onAppPathChange: handleChannelAppPathChange,
+        onChannelSave: handleChannelSave,
+        onHover: handleChannelHover,
+        wiiMode,
+        idleAnimationClass:
+          idleAnimationProps.enabled ? getChannelAnimationClass(channelId) : '',
+        isIdleAnimating: idleAnimationProps.enabled,
+      };
+
+      if (slot) {
+        return (
+          <HomeSlot
+            key={channelId}
+            slot={slot}
+            channelId={channelId}
+            {...sharedProps}
+          />
+        );
+      }
+
       return (
         <Channel
           key={channelId}
@@ -631,22 +708,15 @@ const PaginatedChannelsInner = React.memo(() => {
           icon={channelConfig?.icon || null}
           empty={isEmpty}
           media={channelConfig?.media || null}
-          onMediaChange={handleChannelMediaChange}
-          onAppPathChange={handleChannelAppPathChange}
-          onChannelSave={handleChannelSave}
-          onHover={handleChannelHover}
           channelConfig={channelConfig || { empty: true }}
-          wiiMode={wiiMode}
-          idleAnimationClass={
-            idleAnimationProps.enabled ? getChannelAnimationClass(channelId) : ''
-          }
-          isIdleAnimating={idleAnimationProps.enabled}
+          {...sharedProps}
         />
       );
     },
     [
       resolveConfigAt,
       resolveIsEmpty,
+      channelData?.slots,
       handleChannelMediaChange,
       handleChannelAppPathChange,
       handleChannelSave,
@@ -711,6 +781,10 @@ const PaginatedChannelsInner = React.memo(() => {
           onPageFlipComplete={handleAnimationComplete}
           hubEntranceKey={entranceKey}
           hubEntranceTier={channelEntranceTier}
+          focusRecedeEnabled={effectiveSettings.focusRecedeEnabled}
+          arrangeModeActive={arrangeModeActive}
+          punchModeActive={punchModeActive}
+          onTogglePunch={handleTogglePunchSlot}
         />
       </div>
     );
@@ -727,7 +801,27 @@ const PaginatedChannelsInner = React.memo(() => {
     handleAnimationComplete,
     entranceKey,
     channelEntranceTier,
+    effectiveSettings.focusRecedeEnabled,
+    arrangeModeActive,
+    punchModeActive,
+    handleTogglePunchSlot,
   ]);
+
+  const channelsContent = (
+    <MotionDiv
+      variants={channelReturnVariants}
+      initial={false}
+      animate={channelEntranceState}
+      onAnimationComplete={
+        channelEntranceState === 'show' ? () => onEntranceComplete(entranceKey) : undefined
+      }
+      className="channels-content"
+      style={wiiStripCssVars}
+      data-channel-space={channelSpaceKey}
+    >
+      {renderContent}
+    </MotionDiv>
+  );
 
   return (
     <div className="paginated-channels-container">
@@ -748,19 +842,28 @@ const PaginatedChannelsInner = React.memo(() => {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <MotionDiv
-          variants={channelReturnVariants}
-          initial={false}
-          animate={channelEntranceState}
-          onAnimationComplete={
-            channelEntranceState === 'show' ? () => onEntranceComplete(entranceKey) : undefined
-          }
-          className="channels-content"
-          style={wiiStripCssVars}
-          data-channel-space={channelSpaceKey}
-        >
-          {renderContent}
-        </MotionDiv>
+        {isHomeSpace ? (
+          <ContextMenu.Root modal={false}>
+            <ContextMenu.Trigger asChild>{channelsContent}</ContextMenu.Trigger>
+            <ContextMenu.Portal>
+              <ContextMenu.Content
+                className="z-[2400] min-w-[13rem] rounded-[1.25rem] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] p-1.5 shadow-[var(--wee-pill-shadow)] backdrop-blur-xl"
+                collisionPadding={12}
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                <ContextMenu.Item
+                  className="flex items-center gap-2 rounded-full px-3.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-[hsl(var(--text-secondary))] outline-none data-[highlighted]:bg-[hsl(var(--state-hover))] data-[highlighted]:text-[hsl(var(--text-primary))]"
+                  onSelect={enterHomeBoardArrange}
+                >
+                  <LayoutGrid size={14} strokeWidth={2.5} aria-hidden />
+                  Arrange Home board
+                </ContextMenu.Item>
+              </ContextMenu.Content>
+            </ContextMenu.Portal>
+          </ContextMenu.Root>
+        ) : (
+          channelsContent
+        )}
 
         <DragOverlay dropAnimation={null}>
           {dragOverlayPayload ? (
@@ -774,6 +877,18 @@ const PaginatedChannelsInner = React.memo(() => {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {isHomeSpace ? (
+        <>
+          <HomePageIndicator />
+          <HomeBoardArrangeBar
+            arrangeMode={arrangeModeActive}
+            punchMode={punchModeActive}
+            onTogglePunch={toggleHomeBoardPunchMode}
+            onDone={exitHomeBoardArrange}
+          />
+        </>
+      ) : null}
 
       <ChannelReorderVfxPortal lift={liftVfx} drop={dropVfx} />
     </div>

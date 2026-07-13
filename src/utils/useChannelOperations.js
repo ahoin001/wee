@@ -102,6 +102,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     return channelData.channelConfigs || {};
   }, [channelData.channelConfigs, presetThumbnailCaptureActive]);
   const slotMeta = useMemo(() => channelData.slotMeta || {}, [channelData.slotMeta]);
+  const slots = useMemo(() => channelData.slots || [], [channelData.slots]);
 
   const updateChannelConfig = useCallback(
     (channelId, config) => {
@@ -402,6 +403,7 @@ export const useChannelOperations = (explicitSpaceKey, options = {}) => {
     configuredChannels,
     channelConfigs,
     slotMeta,
+    slots,
 
     updateChannelConfig,
     updateChannelMedia,

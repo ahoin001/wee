@@ -43,8 +43,9 @@ const Channel = React.memo(({
   const videoRef = useRef(null);
   const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
   const channelSpaceKey = useChannelSpaceKey();
-  const { gooey } = useMotionFeedback();
+  const { gooey, channelTap } = useMotionFeedback();
   const channelGooeyHover = gooey.channelHover;
+  const [isLaunchPressed, setIsLaunchPressed] = useState(false);
   const {
     updateChannelConfig,
     updateChannelMedia,
@@ -113,6 +114,26 @@ const Channel = React.memo(({
     setFallbackIcon(null);
     setIconLoadError(false);
   }, [effectiveMedia?.url]);
+
+  useEffect(() => () => setIsLaunchPressed(false), [id]);
+
+  /** Soft launch choreography: brief press-down before the real launch, gated by channel tap motion feedback. */
+  const handleTileClick = useCallback(
+    (event) => {
+      if (!channelTap || effectiveIsEmpty) {
+        handleClick(event);
+        return;
+      }
+      setIsLaunchPressed(true);
+      requestAnimationFrame(() => {
+        window.setTimeout(() => {
+          setIsLaunchPressed(false);
+          handleClick(event);
+        }, 80);
+      });
+    },
+    [channelTap, effectiveIsEmpty, handleClick]
+  );
 
   // Pause decorative MP4 when the window is unfocused, hidden, or low-power mode is on.
   useEffect(() => {
@@ -240,11 +261,11 @@ const Channel = React.memo(({
       className={
         effectiveIsEmpty && !effectiveMedia 
           ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}`
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed ? ' channel--launch-press' : ''}`
       }
       data-channel-id={id}
       data-gooey-hover-mode={channelGooeyHover.enabled ? channelGooeyHover.mode : undefined}
-      onClick={handleClick}
+      onClick={handleTileClick}
       onMouseEnter={e => { handleMouseEnter(e); setIsHovered(true); }}
       onMouseLeave={e => { handleMouseLeave(e); setIsHovered(false); }}
       tabIndex={0}

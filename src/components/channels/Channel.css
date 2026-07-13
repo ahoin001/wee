@@ -59,6 +59,16 @@
   filter: none;
 }
 
+/* Soft launch choreography: brief press-down before the real launch fires (Channel.jsx handleTileClick). */
+.channel.channel--launch-press {
+  transform: scale(0.94);
+  transition: transform 0.08s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.channel.wii-mode-tile.channel--launch-press {
+  transform: scale(0.96);
+}
+
 .channel.wii-mode-tile {
   width: 100%;
   height: 100%;
@@ -151,6 +161,26 @@
   border: 2px dashed hsl(var(--border-secondary)) !important;
   box-shadow: none !important;
   cursor: default;
+}
+
+/* Subtle empty-slot invitation — hidden while the adaptive wallpaper-blend look is on. */
+.channel.empty:not(.adaptive)::after {
+  content: '+';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 300;
+  color: hsl(var(--text-tertiary) / 0.55);
+  pointer-events: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.channel.empty:not(.adaptive):hover::after {
+  color: hsl(var(--primary) / 0.7);
+  transform: scale(1.12);
 }
 
 .channel.empty.adaptive {

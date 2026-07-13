@@ -187,6 +187,56 @@
   height: 100%;
 }
 
+/* ===== FOCUS / RECEDE — hovered tile stays crisp, siblings soften (CSS-only, no JS per-tile state) ===== */
+.wii-strip-board--focus-recede:has(.channel:hover) .wii-strip-channel-cell:not(:hover) .channel {
+  opacity: 0.86;
+  transform: scale(0.976);
+  filter: saturate(0.94);
+  transition: opacity 0.22s ease, transform 0.22s ease, filter 0.22s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wii-strip-board--focus-recede:has(.channel:hover) .wii-strip-channel-cell:not(:hover) .channel {
+    transform: none;
+    transition: opacity 0.12s ease;
+  }
+}
+
+/* ===== LIVE BOARD STUDIO — arrange chrome ===== */
+.wii-mode-grid--arrange {
+  outline: 2px dashed hsl(var(--primary) / 0.4);
+  outline-offset: 6px;
+  border-radius: var(--radius-lg);
+}
+
+.wii-strip-channel-cell--punchable {
+  cursor: pointer;
+}
+
+.wii-strip-channel-cell--punchable .channel {
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.35), var(--shadow-md);
+}
+
+button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable {
+  visibility: visible;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed hsl(var(--border-secondary));
+  border-radius: 14px;
+  background: hsl(var(--surface-secondary) / 0.4);
+  color: hsl(var(--text-tertiary));
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable:hover {
+  background: hsl(var(--primary) / 0.12);
+  border-color: hsl(var(--primary) / 0.55);
+  color: hsl(var(--primary));
+  transform: scale(1.03);
+}
+
 .wii-mode-grid.auto-fade {
   opacity: 0.3;
   /* Restore via JS activity (pointer move / enter), not :hover —

@@ -1,13 +1,20 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { m } from 'framer-motion';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import AuraGameCard from './AuraGameCard';
 import GameCardContextMenu from './GameCardContextMenu';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import { createWeeTransition } from '../../design/weeMotion';
 
 /** Align with `.aura-hub-grid` min track (~210px) + gap. */
 const VIRTUAL_THRESHOLD = 48;
 const MIN_TRACK_PX = 210;
 const GAP_EST_PX = 20;
 const ROW_HEIGHT_EST = 400;
+const ENTRANCE_STAGGER_CAP = 10;
+const ENTRANCE_SESSION_KEY = 'wee-gamehub-library-entrance-done';
+
+const MotionDiv = m.div;
 
 export default function AuraLibrarySection({
   games,
@@ -20,6 +27,19 @@ export default function AuraLibrarySection({
 }) {
   const gridMeasureRef = useRef(null);
   const [cols, setCols] = useState(4);
+  const { off: motionOff } = useMotionFeedback();
+  const [runEntrance, setRunEntrance] = useState(false);
+
+  useEffect(() => {
+    if (motionOff || typeof window === 'undefined') return;
+    try {
+      if (sessionStorage.getItem(ENTRANCE_SESSION_KEY)) return;
+      sessionStorage.setItem(ENTRANCE_SESSION_KEY, '1');
+      setRunEntrance(true);
+    } catch {
+      setRunEntrance(true);
+    }
+  }, [motionOff]);
 
   useLayoutEffect(() => {
     const el = gridMeasureRef.current;
@@ -64,16 +84,36 @@ export default function AuraLibrarySection({
     </div>
   );
 
-  const renderGame = (game) => (
-    <GameCardContextMenu key={game.id} game={game}>
-      <AuraGameCard
-        game={game}
-        onHover={() => onSelectGame(game.id)}
-        onHeroPreview={onHeroPreview}
-        onLaunch={onLaunchGame}
-      />
-    </GameCardContextMenu>
-  );
+  const renderGame = (game, index = 0) => {
+    const card = (
+      <GameCardContextMenu game={game}>
+        <AuraGameCard
+          game={game}
+          onHover={() => onSelectGame(game.id)}
+          onHeroPreview={onHeroPreview}
+          onLaunch={onLaunchGame}
+        />
+      </GameCardContextMenu>
+    );
+
+    if (!runEntrance || virtualize || index >= ENTRANCE_STAGGER_CAP) {
+      return <React.Fragment key={game.id}>{card}</React.Fragment>;
+    }
+
+    return (
+      <MotionDiv
+        key={game.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          ...createWeeTransition('hubEntrance'),
+          delay: index * 0.035,
+        }}
+      >
+        {card}
+      </MotionDiv>
+    );
+  };
 
   if (!virtualize) {
     return (
@@ -83,7 +123,7 @@ export default function AuraLibrarySection({
           ref={gridMeasureRef}
           className={`aura-hub-grid${games.length > 32 ? ' aura-hub-grid--content-visibility' : ''}`}
         >
-          {games.map((game) => renderGame(game))}
+          {games.map((game, index) => renderGame(game, index))}
         </div>
       </section>
     );

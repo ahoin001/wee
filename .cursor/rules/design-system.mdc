@@ -24,6 +24,7 @@ alwaysApply: true
 ## Architecture and data
 
 - **Unified data layer**: Use consolidated store and hooks (`useSettings`, `useChannels`, `useUI`, etc.). Do not introduce parallel globals or duplicate sources of truth.
+- **Home grid**: Slot SSOT is `channels.dataBySpace.*.slots[]` ([`homeGridSlots.js`](src/utils/homeGridSlots.js)); extend kinds via [`slotKindRegistry.js`](src/components/home-grid/slotKindRegistry.js) — do not fork mega-conditionals in `Channel.jsx`. Legacy `configuredChannels` / `channelConfigs` / `slotMeta` are projections kept in sync for compatibility.
 - **Performance**: Treat as a long-running Electron app — avoid unnecessary re-renders, broad subscriptions, and always-on heavy effects.
 
 ## Verification

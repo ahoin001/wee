@@ -99,6 +99,9 @@ Timing source: `--wee-collapse-duration`, `--wee-collapse-duration-reduced`, `--
 | Dock defaults | `src/design/classicDockThemeDefaults.js` |
 | Dock preset *data* (hex allowed) | `src/data/dock/classicDockThemeGroups.js` |
 | UI primitives | `src/ui/` |
+| Home grid slots (SSOT) | `src/utils/homeGridSlots.js` — `slots[]` is canonical, `configuredChannels`/`channelConfigs`/`slotMeta` are projections synced via `syncSpaceDataFromLegacyMaps` |
+| Home grid tile switcher | `src/components/home-grid/` — `HomeSlot` renders by `slot.kind` via `slotKindRegistry.js` (`HOME_SLOT_KINDS`); the `widget` kind is a Phase 5 placeholder — add new tile types to the registry, not ad-hoc branches |
+| Live Board Studio (arrange Home) | `ui.homeBoardArrangeMode` / `ui.homeBoardPunchMode` (transient) via `useHomeBoardArrange`; toolbar `HomeBoardArrangeBar`, entry via right-click on the Home grid or Settings → Channel & layout → Arrange on Home |
 
 ## Electron
 

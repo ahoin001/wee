@@ -28,6 +28,95 @@ function registerSystemCommandHandlers({
     return true;
   }
 
+  function normalizeStartAppsPayload(stdout) {
+    const trimmed = String(stdout || '').trim();
+    if (!trimmed) return [];
+    const data = JSON.parse(trimmed);
+    const apps = Array.isArray(data) ? data : data ? [data] : [];
+    return apps
+      .map((app) => ({
+        name: app.Name || app.name || '',
+        appId: app.AppID || app.AppId || app.appId || '',
+      }))
+      .filter((app) => app.name && isLikelyStoreAppId(app.appId));
+  }
+
+  function runPowerShellJson(command) {
+    return new Promise((resolve) => {
+      execFile(
+        'powershell.exe',
+        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command],
+        { encoding: 'utf8', windowsHide: true, maxBuffer: 10 * 1024 * 1024 },
+        (err, stdout, stderr) => {
+          if (err) {
+            resolve({
+              success: false,
+              apps: [],
+              error: err.message || String(stderr || 'PowerShell failed'),
+            });
+            return;
+          }
+          try {
+            resolve({ success: true, apps: normalizeStartAppsPayload(stdout), error: null });
+          } catch (parseError) {
+            resolve({
+              success: false,
+              apps: [],
+              error: parseError.message || 'Failed to parse Store app list',
+            });
+          }
+        }
+      );
+    });
+  }
+
+  function mergeStoreAppsById(primary, extra) {
+    const byId = new Map();
+    [...(primary || []), ...(extra || [])].forEach((app) => {
+      const key = String(app.appId || '').toLowerCase();
+      if (!key || byId.has(key)) return;
+      byId.set(key, app);
+    });
+    return [...byId.values()];
+  }
+
+  async function ensureAppleMusicStoreApp(apps) {
+    const hasAppleMusic = (apps || []).some((app) => /apple\s*music/i.test(String(app.name || '')));
+    if (hasAppleMusic) return apps;
+
+    const filtered = await runPowerShellJson(
+      "Get-StartApps | Where-Object { $_.Name -like '*Apple Music*' } | Select-Object Name, AppID | ConvertTo-Json -Compress"
+    );
+    let merged = mergeStoreAppsById(apps, filtered.success ? filtered.apps : []);
+
+    if (merged.some((app) => /apple\s*music/i.test(String(app.name || '')))) {
+      return merged;
+    }
+
+    const appx = await runPowerShellJson(
+      [
+        "$pkg = Get-AppxPackage -Name '*AppleMusic*' -ErrorAction SilentlyContinue | Select-Object -First 1;",
+        "if (-not $pkg) { '[]'; exit }",
+        "$family = $pkg.PackageFamilyName;",
+        "$manifestPath = Join-Path $pkg.InstallLocation 'AppxManifest.xml';",
+        "$id = 'App';",
+        "if (Test-Path $manifestPath) {",
+        "  try {",
+        "    [xml]$manifest = Get-Content -LiteralPath $manifestPath -ErrorAction Stop;",
+        "    $appNode = $manifest.Package.Applications.Application | Select-Object -First 1;",
+        "    if ($appNode -and $appNode.Id) { $id = [string]$appNode.Id }",
+        "  } catch {}",
+        "}",
+        "@{ Name = 'Apple Music'; AppID = ($family + '!' + $id) } | ConvertTo-Json -Compress",
+      ].join(' ')
+    );
+
+    if (appx.success && appx.apps.length) {
+      merged = mergeStoreAppsById(merged, appx.apps);
+    }
+    return merged;
+  }
+
   function runExecFile(command, args = []) {
     return new Promise((resolve) => {
       execFile(command, args, { windowsHide: true }, (err, stdout, stderr) => {
@@ -40,30 +129,27 @@ function registerSystemCommandHandlers({
   }
 
   ipcMain.handle('uwp:list-apps', async (event) => {
-    if (!isTrustedMainWindowEvent(event, getMainWindow)) return [];
-    return runExclusive(
-      () =>
-        new Promise((resolve) => {
-          exec(
-            'powershell -Command "Get-StartApps | Select-Object Name, AppID | ConvertTo-Json"',
-            { encoding: 'utf8', maxBuffer: 1024 * 1024 },
-            (err, stdout) => {
-              if (err) return resolve([]);
-              try {
-                const data = JSON.parse(stdout);
-                const apps = Array.isArray(data) ? data : [data];
-                resolve(
-                  apps
-                    .map((app) => ({ name: app.Name, appId: app.AppID }))
-                    .filter((app) => app.name && isLikelyStoreAppId(app.appId))
-                );
-              } catch {
-                resolve([]);
-              }
-            }
-          );
-        })
-    );
+    if (!isTrustedMainWindowEvent(event, getMainWindow)) {
+      return { success: false, apps: [], error: 'Untrusted renderer' };
+    }
+    return runExclusive(async () => {
+      const listed = await runPowerShellJson(
+        'Get-StartApps | Select-Object Name, AppID | ConvertTo-Json -Compress'
+      );
+      if (!listed.success) {
+        return { success: false, apps: [], error: listed.error || 'Failed to list Store apps' };
+      }
+      try {
+        const apps = await ensureAppleMusicStoreApp(listed.apps);
+        return { success: true, apps, error: null };
+      } catch (error) {
+        return {
+          success: true,
+          apps: listed.apps,
+          error: error?.message || null,
+        };
+      }
+    });
   });
 
   ipcMain.handle('uwp:launch', async (event, appId) => {

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { m } from 'framer-motion';
+import { Plus } from 'lucide-react';
 import {
   useWeeMotion,
   createWeeChannelTileItemVariants,
@@ -13,6 +14,9 @@ import { isSlotHidden } from '../../utils/channelLayoutSystem';
  * Continuous channel strip: uniform gap grid, pan via Framer (`channelPageFlip`).
  * Peek / page math use `--wii-strip-peek` / `--wii-total-pages` from the parent.
  * Hidden slots (`slotMeta`) keep absolute cells as wallpaper holes.
+ * `focusRecedeEnabled` softens sibling tiles via CSS `:has()` while one tile is hovered.
+ * Live Board Studio (`arrangeModeActive` + `punchModeActive`) intercepts tile taps to punch
+ * or restore a wallpaper hole instead of launching — drag-to-reorder stays active underneath.
  */
 const WiiChannelStrip = ({
   totalPages,
@@ -31,6 +35,10 @@ const WiiChannelStrip = ({
   onPageFlipComplete,
   hubEntranceKey = 0,
   hubEntranceTier = SPACE_SHELL_ENTRANCE_TIERS.firstVisitPlayful,
+  focusRecedeEnabled = false,
+  arrangeModeActive = false,
+  punchModeActive = false,
+  onTogglePunch,
 }) => {
   const { pillOpen, reducedMotion } = useWeeMotion();
   const tileItemVariants = useMemo(
@@ -72,9 +80,23 @@ const WiiChannelStrip = ({
     }
   }, [isAnimating, onPageFlipComplete]);
 
+  const canPunch = arrangeModeActive && punchModeActive && typeof onTogglePunch === 'function';
+
+  const handlePunchCapture = useCallback(
+    (index) => (event) => {
+      if (!canPunch) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onTogglePunch(index);
+    },
+    [canPunch, onTogglePunch]
+  );
+
   return (
     <div
-      className={`wii-mode-grid${isGridFaded ? ' auto-fade' : ''}`}
+      className={`wii-mode-grid${isGridFaded ? ' auto-fade' : ''}${
+        arrangeModeActive ? ' wii-mode-grid--arrange' : ''
+      }${canPunch ? ' wii-mode-grid--punch' : ''}`}
       onMouseEnter={onGridMouseEnter}
       onMouseLeave={onGridMouseLeave}
       onPointerMove={onGridPointerMove}
@@ -89,7 +111,9 @@ const WiiChannelStrip = ({
         onAnimationComplete={handleStripAnimationComplete}
       >
         <div
-          className="wii-strip-board wii-strip-board--continuous"
+          className={`wii-strip-board wii-strip-board--continuous${
+            focusRecedeEnabled ? ' wii-strip-board--focus-recede' : ''
+          }`}
           style={boardStyle}
         >
           {Array.from({ length: totalChannelSlots }, (_, i) => {
@@ -100,6 +124,21 @@ const WiiChannelStrip = ({
             const hidden = isSlotHidden(slotMeta, i);
 
             if (hidden) {
+              if (canPunch) {
+                return (
+                  <button
+                    key={`tile-hole-${hubEntranceKey}-${i}`}
+                    type="button"
+                    className="wii-strip-channel-cell wii-strip-channel-cell--hidden wii-strip-channel-cell--punchable"
+                    style={{ gridColumn: col + 1, gridRow: row + 1 }}
+                    onClick={handlePunchCapture(i)}
+                    aria-label={`Restore slot ${i + 1}`}
+                    title="Restore this slot"
+                  >
+                    <Plus size={18} strokeWidth={2.5} aria-hidden />
+                  </button>
+                );
+              }
               return (
                 <div
                   key={`tile-hole-${hubEntranceKey}-${i}`}
@@ -116,7 +155,7 @@ const WiiChannelStrip = ({
             return (
               <m.div
                 key={`tile-${hubEntranceKey}-${i}`}
-                className="wii-strip-channel-cell"
+                className={`wii-strip-channel-cell${canPunch ? ' wii-strip-channel-cell--punchable' : ''}`}
                 style={{
                   gridColumn: col + 1,
                   gridRow: row + 1,
@@ -125,6 +164,7 @@ const WiiChannelStrip = ({
                 custom={idxInPage}
                 initial="closed"
                 animate={tileAnimate}
+                onClickCapture={canPunch ? handlePunchCapture(i) : undefined}
               >
                 {renderChannelAtIndex(i, true)}
               </m.div>
@@ -153,6 +193,10 @@ WiiChannelStrip.propTypes = {
   onPageFlipComplete: PropTypes.func,
   hubEntranceKey: PropTypes.number,
   hubEntranceTier: PropTypes.oneOf(Object.values(SPACE_SHELL_ENTRANCE_TIERS)),
+  focusRecedeEnabled: PropTypes.bool,
+  arrangeModeActive: PropTypes.bool,
+  punchModeActive: PropTypes.bool,
+  onTogglePunch: PropTypes.func,
 };
 
 export default React.memo(WiiChannelStrip);

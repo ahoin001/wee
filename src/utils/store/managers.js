@@ -308,10 +308,34 @@ export const createStoreManagers = (getStore) => {
       try {
         if (window.api && window.api.uwp && window.api.uwp.listApps) {
           const result = await window.api.uwp.listApps();
-          const apps = Array.isArray(result) ? result : [];
+          // Prefer structured { success, apps, error }; keep array fallback for older preload.
+          const structured = result && !Array.isArray(result) && typeof result === 'object';
+          const apps = Array.isArray(result)
+            ? result
+            : Array.isArray(result?.apps)
+              ? result.apps
+              : [];
+          const listFailed = structured && result.success === false;
+          if (listFailed) {
+            const errorMessage = result.error || 'Failed to list Microsoft Store apps';
+            setAppLibraryPatch(
+              store,
+              {
+                uwpApps: [],
+                uwpLoading: false,
+                ...(silent ? {} : { uwpError: errorMessage }),
+              },
+              silent
+            );
+            return { success: false, apps: [], error: errorMessage };
+          }
           appLibraryManager._setCache('uwpApps', apps);
-          setAppLibraryPatch(store, { uwpApps: apps, uwpLoading: false }, silent);
-          return { success: true, apps };
+          setAppLibraryPatch(
+            store,
+            { uwpApps: apps, uwpLoading: false, ...(silent ? {} : { uwpError: null }) },
+            silent
+          );
+          return { success: true, apps, error: structured ? result.error || null : null };
         }
 
         const apps = [];
@@ -475,7 +499,27 @@ export const createStoreManagers = (getStore) => {
   /** Lower = better when the same display name exists from multiple sources. */
   const UNIFIED_TYPE_PRIORITY = { exe: 0, steam: 1, epic: 2, microsoft: 3 };
 
+  const isNonLaunchableExePath = (app) => {
+    if (!app || app.type !== 'exe') return false;
+    const p = String(app.path || '').trim();
+    if (!p) return true;
+    const lower = p.toLowerCase();
+    if (lower.includes('\\windowsapps\\')) return true;
+    if (lower.endsWith('\\applicationframehost.exe') || lower.endsWith('/applicationframehost.exe')) {
+      return true;
+    }
+    if (lower.includes('applicationframehost.exe')) return true;
+    return false;
+  };
+
   const pickPreferredUnifiedApp = (a, b) => {
+    const aBadExe = isNonLaunchableExePath(a);
+    const bBadExe = isNonLaunchableExePath(b);
+    if (a.type === 'microsoft' && bBadExe) return a;
+    if (b.type === 'microsoft' && aBadExe) return b;
+    if (a.type === 'microsoft' && b.type === 'exe' && aBadExe === false && bBadExe) return a;
+    if (b.type === 'microsoft' && a.type === 'exe' && bBadExe === false && aBadExe) return b;
+
     const pa = UNIFIED_TYPE_PRIORITY[a.type] ?? 99;
     const pb = UNIFIED_TYPE_PRIORITY[b.type] ?? 99;
     if (pa !== pb) return pa < pb ? a : b;
@@ -491,9 +535,7 @@ export const createStoreManagers = (getStore) => {
         byId.set(idKey, app);
         return;
       }
-      if (existing.type === 'microsoft' && app.type === 'exe') {
-        byId.set(idKey, app);
-      }
+      byId.set(idKey, pickPreferredUnifiedApp(existing, app));
     });
 
     const byName = new Map();
@@ -514,10 +556,11 @@ export const createStoreManagers = (getStore) => {
   const unifiedAppManager = {
     async fetchUnifiedApps(forceRefresh = false) {
       const store = getStore();
-      store.actions.setUnifiedAppsState({ loading: true, error: null });
+      store.actions.setUnifiedAppsState({ loading: true, error: null, storeError: null });
 
       try {
         const allApps = [];
+        let storeError = null;
         const [installedResult, steamResult, epicResult, uwpResult] = await Promise.allSettled([
           appLibraryManager.fetchInstalledApps(forceRefresh),
           appLibraryManager.fetchSteamGames(forceRefresh),
@@ -572,17 +615,26 @@ export const createStoreManagers = (getStore) => {
             category: 'Microsoft Store App',
             path: app.appId || app.name,
           })));
+        } else if (uwpResult.status === 'fulfilled' && uwpResult.value && !uwpResult.value.success) {
+          storeError = uwpResult.value.error || 'Microsoft Store apps could not be listed';
+          console.error('[UnifiedAppManager] UWP apps fetch failed:', storeError);
         } else if (uwpResult.status === 'rejected') {
+          storeError = uwpResult.reason?.message || 'Microsoft Store apps could not be listed';
           console.error('[UnifiedAppManager] UWP apps fetch failed:', uwpResult.reason);
         }
 
         const dedupedApps = dedupeUnifiedApps(allApps);
-        store.actions.setUnifiedAppsState({ apps: dedupedApps, loading: false });
-        return { success: true, apps: dedupedApps };
+        store.actions.setUnifiedAppsState({
+          apps: dedupedApps,
+          loading: false,
+          storeError,
+        });
+        return { success: true, apps: dedupedApps, storeError };
       } catch (error) {
         store.actions.setUnifiedAppsState({
           loading: false,
           error: error.message || 'Failed to fetch unified apps',
+          storeError: null,
         });
         return { success: false, error: error.message };
       }

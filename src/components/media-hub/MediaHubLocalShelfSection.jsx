@@ -9,6 +9,7 @@ import {
   runFlyOutAnimations,
 } from '../game-hub/collectionFlyAnimations';
 import { maybeScrollHubExpansionIntoView, readHubDockInsetPx, readHubScrollTopReservePx } from '../game-hub/hubScrollUtils';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import '../game-hub/GameHubSpace.css';
 
 /** Mirrors Game Hub curated shelf cap (`MAX_COLLECTION_GAMES`). */
@@ -86,12 +87,8 @@ export default function MediaHubLocalShelfSection({
     shelfClosingRef.current = shelfClosing;
   }, [shelfClosing]);
 
-  const reducedMotion = useMemo(
-    () => (typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false),
-    []
-  );
-
-  const flyAllowed = !reducedMotion;
+  const { off: motionFeedbackOff } = useMotionFeedback();
+  const flyAllowed = !motionFeedbackOff;
 
   useEffect(() => {
     if (!activeCollectionId) {

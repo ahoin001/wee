@@ -44,6 +44,7 @@ const omitKeys = (obj, keys) => {
  * Channel slot maps (`channel-0` …) encode order: the key set *is* the layout.
  * Deep-merge would keep stale slot keys when a reorder omits emptied slots, duplicating
  * tiles after persist. When the patch owns these keys, replace the whole map.
+ * `slots` (array SSOT) is also replaced wholesale when present.
  */
 const CHANNEL_DATA_SLOT_KEYED_MAPS = ['configuredChannels', 'channelConfigs'];
 
@@ -71,8 +72,8 @@ function mergeChannelData(baseData, patchData) {
   if (!isPlainObject(baseData)) return patchData;
 
   const mergedRest = deepMerge(
-    omitKeys(baseData, CHANNEL_DATA_SLOT_KEYED_MAPS),
-    omitKeys(patchData, CHANNEL_DATA_SLOT_KEYED_MAPS)
+    omitKeys(baseData, [...CHANNEL_DATA_SLOT_KEYED_MAPS, 'slots']),
+    omitKeys(patchData, [...CHANNEL_DATA_SLOT_KEYED_MAPS, 'slots'])
   );
   const merged = { ...mergedRest };
   CHANNEL_DATA_SLOT_KEYED_MAPS.forEach((key) => {
@@ -84,6 +85,11 @@ function mergeChannelData(baseData, patchData) {
       merged[key] = baseData[key];
     }
   });
+  if (Object.prototype.hasOwnProperty.call(patchData, 'slots') && Array.isArray(patchData.slots)) {
+    merged.slots = patchData.slots;
+  } else if (Array.isArray(baseData.slots)) {
+    merged.slots = baseData.slots;
+  }
   return merged;
 }
 

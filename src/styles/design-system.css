@@ -395,6 +395,15 @@
   --wee-collapse-duration: 420ms;
   --wee-collapse-duration-reduced: 100ms;
   --wee-collapse-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* Game / Media Hub collection shelf expand (shared hub domain clock) */
+  --hub-collection-expand-duration: 700ms;
+  --hub-collection-expand-duration-reduced: 120ms;
+  --hub-collection-expand-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --hub-collection-fly-duration: 600ms;
+  --hub-collection-fly-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --hub-collection-stagger-ms: 40ms;
+  --hub-collection-gap-open: 1.15rem;
 }
 
 /* Dark Mode Colors */

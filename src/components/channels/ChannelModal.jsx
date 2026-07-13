@@ -22,8 +22,6 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { getChannelDataSlice } from '../../utils/channelSpaces';
 import './ChannelModal.css';
 
-const channelsApi = window.api?.channels;
-
 function ChannelModal({
   channelId,
   channelSpaceKey = 'home',
@@ -311,16 +309,7 @@ function ChannelModal({
     if (hasKenBurnsSettings) {
       actions.updateChannelConfigForSpace(channelSpaceKey, channelId, kenBurnsConfig);
     }
-    
-    // Also save to channels API for persistence
-    try {
-      const allChannels = await window.api?.channels?.get();
-      const updatedChannels = { ...allChannels, [channelId]: newChannel };
-      await window.api?.channels?.set(updatedChannels);
-    } catch (error) {
-      console.error('[ChannelModal] Failed to save to channels API:', error);
-    }
-    
+
     handleClose();
   };
 
@@ -351,17 +340,7 @@ function ChannelModal({
     
     // Clear channel configs
     actions.updateChannelConfigForSpace(channelSpaceKey, channelId, null);
-    
-    // Also clear from channels API for persistence
-    try {
-      const allChannels = await channelsApi?.get();
-      const updatedChannels = { ...allChannels };
-      delete updatedChannels[channelId];
-      await channelsApi?.set(updatedChannels);
-    } catch (error) {
-      console.error('[ChannelModal] Failed to clear from channels API:', error);
-    }
-    
+
     handleClose();
   };
 

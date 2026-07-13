@@ -7,12 +7,14 @@ import {
   WII_STRIP_PEEK_PERCENT,
   CHANNEL_PAGE_FLIP_MS,
 } from './channelLayoutSystem';
+import { migrateSpaceDataToSlots } from './homeGridSlots';
 
 /**
  * Channel grid data is scoped per shell space profile layer:
  * - `dataBySpace.home` is the live Home board.
  * - `secondaryChannelProfiles[id].channelSpace` stores Home Profile channel layouts.
  * - `dataBySpace.workspaces` remains a persistence mirror of the active Home Profile.
+ * - `slots[]` is the widget-ready SSOT; configuredChannels/channelConfigs/slotMeta are projections.
  */
 
 export const CHANNEL_SPACE_KEYS = ['home', 'workspaces'];
@@ -75,6 +77,7 @@ export function createDefaultChannelSpaceData() {
     gridColumns: layout.columns,
     gridRows: layout.rows,
     totalChannels,
+    slots: [],
     configuredChannels: {},
     channelConfigs: {},
     slotMeta: {},
@@ -103,7 +106,7 @@ export function normalizeChannelSpaceData(raw) {
     layout.totalPages
   );
 
-  return {
+  const normalized = {
     ...base,
     ...incoming,
     layout: {
@@ -125,6 +128,7 @@ export function normalizeChannelSpaceData(raw) {
         : base.channelConfigs,
     slotMeta:
       incoming.slotMeta && typeof incoming.slotMeta === 'object' ? incoming.slotMeta : base.slotMeta,
+    slots: Array.isArray(incoming.slots) ? incoming.slots : base.slots,
     navigation: {
       ...base.navigation,
       ...incomingNav,
@@ -137,6 +141,8 @@ export function normalizeChannelSpaceData(raw) {
         incomingNav.enableSlideAnimation !== undefined ? incomingNav.enableSlideAnimation : true,
     },
   };
+
+  return migrateSpaceDataToSlots(normalized);
 }
 
 /**

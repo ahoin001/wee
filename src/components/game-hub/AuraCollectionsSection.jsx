@@ -7,6 +7,7 @@ import CollectionShelfContextMenu from './CollectionShelfContextMenu';
 import GameHubManageCollectionsDialog from './GameHubManageCollectionsDialog';
 import GameHubRenameCollectionDialog from './GameHubRenameCollectionDialog';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import {
   COLLECTION_EXPANSION_MS,
   COLLECTION_FLY_PHASE_MS,
@@ -106,12 +107,8 @@ export default function AuraCollectionsSection({
     shelfClosingRef.current = shelfClosing;
   }, [shelfClosing]);
 
-  const reducedMotion = useMemo(
-    () => (typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false),
-    []
-  );
-
-  const flyAllowed = Boolean(effectsEnabled) && !reducedMotion;
+  const { off: motionFeedbackOff } = useMotionFeedback();
+  const flyAllowed = Boolean(effectsEnabled) && !motionFeedbackOff;
 
   useEffect(() => {
     if (!activeCollectionId) {
@@ -582,8 +579,11 @@ export default function AuraCollectionsSection({
         </>
       ) : (
         <div className="aura-hub-empty">
-          No shelves yet. Add Wee favorites from the right-click menu, connect Steam for playtime-based shelves and
-          client tags, or create Wee collections from a shelf context menu action.
+          <p className="!m-0 mb-2 font-semibold text-[hsl(var(--text-primary))]">Start your first shelf</p>
+          <p className="!m-0 leading-relaxed">
+            Add Wee favorites from a game&apos;s right-click menu, connect Steam for playtime shelves, or create a Wee
+            collection from a shelf context menu.
+          </p>
         </div>
       )}
     </section>

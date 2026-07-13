@@ -18,6 +18,7 @@ const SecondaryChannelProfilesCard = React.memo(() => {
     createSecondaryChannelProfile,
     renameSecondaryChannelProfile,
     deleteSecondaryChannelProfile,
+    applySecondaryChannelProfileToHome,
   } = useConsolidatedAppStore(
     useShallow((state) => ({
       secondaryChannelProfiles: state.channels.secondaryChannelProfiles,
@@ -26,6 +27,7 @@ const SecondaryChannelProfilesCard = React.memo(() => {
       createSecondaryChannelProfile: state.actions.createSecondaryChannelProfile,
       renameSecondaryChannelProfile: state.actions.renameSecondaryChannelProfile,
       deleteSecondaryChannelProfile: state.actions.deleteSecondaryChannelProfile,
+      applySecondaryChannelProfileToHome: state.actions.applySecondaryChannelProfileToHome,
     }))
   );
 
@@ -52,6 +54,11 @@ const SecondaryChannelProfilesCard = React.memo(() => {
   const handleActivate = (id) => {
     setActiveSecondaryChannelProfileId(id);
     setStatus('Switched active layout for the second space.');
+  };
+
+  const handleUseAsHomeBoard = (profile) => {
+    applySecondaryChannelProfileToHome(profile.id);
+    setStatus(`Copied "${profile.name}" onto the Home board.`);
   };
 
   const saveRename = () => {
@@ -124,6 +131,9 @@ const SecondaryChannelProfilesCard = React.memo(() => {
                     Use layout
                   </WButton>
                 )}
+                <WButton size="sm" variant="secondary" onClick={() => handleUseAsHomeBoard(p)}>
+                  Use as Home board
+                </WButton>
                 {editingId === p.id ? (
                   <WButton size="sm" variant="secondary" onClick={saveRename}>
                     Save name

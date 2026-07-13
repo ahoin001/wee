@@ -54,7 +54,7 @@ function AuraHubModalFrame({ open, onOpenChange, ariaLabelledBy, panelClassName 
   return createPortal(
     <div className="aura-hub-modal-overlay">
       <MotionDiv
-        className="aura-hub-modal-backdrop absolute inset-0 bg-[hsl(var(--bg-overlay))]"
+        className="aura-hub-modal-backdrop absolute inset-0 bg-[hsl(var(--wee-overlay-backdrop))] backdrop-blur-[12px]"
         aria-hidden
         variants={backdropVariants}
         initial="closed"

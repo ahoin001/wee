@@ -4,7 +4,9 @@ import { m, useReducedMotion } from 'framer-motion';
 import { Activity, Aperture, EyeOff, Info, LayoutGrid, Minus, Monitor, Plus } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
+import WToggle from '../../ui/WToggle';
 import {
+  WeeDescriptionToggleRow,
   WeeGlassPill,
   WeeHelpLinkButton,
   WeeModalFieldCard,
@@ -15,6 +17,8 @@ import {
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsMultiToggleChips from './SettingsMultiToggleChips';
+import { HomeBoardSwitcher } from '../home-grid';
+import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   CHANNEL_LAYOUT_LIMITS,
@@ -27,6 +31,13 @@ import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigati
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
 import { createWeeTransition } from '../../design/weeMotion';
+
+/** Idle personality presets — quick-select from the same 6 idle chip types (never all at once). */
+const IDLE_PERSONALITY_PACKS = {
+  restrained: ['pulse'],
+  playful: ['pulse', 'bounce', 'glow', 'wiggle'],
+  showy: ['pulse', 'bounce', 'glow', 'heartbeat', 'shake', 'wiggle'],
+};
 
 /** Board-style toggle titles: bold all-caps (matches Wii engine field cards). */
 const TOGGLE_TITLE =
@@ -255,6 +266,12 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   );
   const [punchHoleMode, setPunchHoleMode] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
+  const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
+
+  const handleArrangeOnHome = useCallback(() => {
+    enterHomeBoardArrange();
+    actions.setUIState({ showSettingsModal: false });
+  }, [enterHomeBoardArrange, actions]);
 
   const handleChannelHoverModeChange = useCallback(
     (mode) => {
@@ -341,6 +358,18 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     actions.setChannelSettings({ adaptiveEmptyChannels: checked });
   }, [actions]);
 
+  const handleFocusRecedeChange = useCallback((checked) => {
+    actions.setChannelSettings({ focusRecedeEnabled: checked });
+  }, [actions]);
+
+  const handleKenBurnsForGifsChange = useCallback((checked) => {
+    actions.setChannelSettings({ kenBurnsForGifs: checked });
+  }, [actions]);
+
+  const handleKenBurnsForVideosChange = useCallback((checked) => {
+    actions.setChannelSettings({ kenBurnsForVideos: checked });
+  }, [actions]);
+
   const handleIdleAnimationIntervalChange = useCallback((value) => {
     actions.setChannelSettings({ idleAnimationInterval: value });
   }, [actions]);
@@ -385,6 +414,23 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
   );
 
   const idleSelected = settings.idleAnimationTypes || ['pulse', 'bounce', 'glow'];
+
+  const idlePersonality = useMemo(() => {
+    const sortedSelected = [...idleSelected].sort().join(',');
+    const match = Object.entries(IDLE_PERSONALITY_PACKS).find(
+      ([, types]) => [...types].sort().join(',') === sortedSelected
+    );
+    return match ? match[0] : '';
+  }, [idleSelected]);
+
+  const handleIdlePersonalityChange = useCallback(
+    (packId) => {
+      const types = IDLE_PERSONALITY_PACKS[packId];
+      if (!types) return;
+      actions.setChannelSettings({ idleAnimationTypes: [...types] });
+    },
+    [actions]
+  );
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
@@ -433,7 +479,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             />
           </WeeGlassPill>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <LayoutStepper
               label="Columns"
               value={layout.columns}
@@ -458,9 +504,18 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               onChange={(v) => handleLayoutFieldChange('totalPages', v)}
               ariaLabel="pages"
             />
+            <LayoutStepper
+              label="Peek %"
+              value={layout.peekPercent}
+              min={CHANNEL_LAYOUT_LIMITS.peekPercent.min}
+              max={CHANNEL_LAYOUT_LIMITS.peekPercent.max}
+              onChange={(v) => handleLayoutFieldChange('peekPercent', v)}
+              ariaLabel="next-page peek percent"
+            />
           </div>
           <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
             Shrinking the board keeps channels that still fit; extras are cleared. Growing adds empty slots.
+            Peek % controls how much of the next page shows at the strip’s edge.
           </Text>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -472,21 +527,26 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                 Let wallpaper show through selected slots.
               </Text>
             </div>
-            <m.button
-              type="button"
-              aria-pressed={punchHoleMode}
-              onClick={() => setPunchHoleMode((v) => !v)}
-              whileHover={reduceMotion ? undefined : { scale: 1.04 }}
-              whileTap={reduceMotion ? undefined : { scale: 0.95 }}
-              transition={press}
-              className={`rounded-full px-4 py-2.5 text-[10px] font-black uppercase tracking-wide ${
-                punchHoleMode
-                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
-                  : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
-              }`}
-            >
-              {punchHoleMode ? 'Done editing' : 'Edit holes'}
-            </m.button>
+            <div className="flex flex-wrap items-center gap-2">
+              <WeeHelpLinkButton type="button" className="!mt-0" onClick={handleArrangeOnHome}>
+                Arrange on Home
+              </WeeHelpLinkButton>
+              <m.button
+                type="button"
+                aria-pressed={punchHoleMode}
+                onClick={() => setPunchHoleMode((v) => !v)}
+                whileHover={reduceMotion ? undefined : { scale: 1.04 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.95 }}
+                transition={press}
+                className={`rounded-full px-4 py-2.5 text-[10px] font-black uppercase tracking-wide ${
+                  punchHoleMode
+                    ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
+                    : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
+                }`}
+              >
+                {punchHoleMode ? 'Done editing' : 'Edit holes'}
+              </m.button>
+            </div>
           </div>
 
           <BoardLivePreview
@@ -500,6 +560,8 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             onPreviewPage={setPreviewPage}
             currentPage={currentPage}
           />
+
+          <HomeBoardSwitcher />
 
           <div className="flex flex-col gap-3 rounded-[2rem] border-2 border-[hsl(var(--primary)/0.22)] bg-[hsl(var(--surface-wii-tint)/0.45)] p-5 md:flex-row md:items-start md:gap-4">
             <Info className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--primary))]" aria-hidden />
@@ -560,6 +622,15 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             desc="Animated channel art (GIFs/MP4s) plays only while you hover when this is on."
             checked={settings.animatedOnHover ?? false}
             onChange={handleAnimatedOnHoverChange}
+          />
+
+          <SettingsToggleFieldCard
+            hoverAccent="none"
+            titleClassName={TOGGLE_TITLE}
+            title="Focus & recede"
+            desc="Hovering a tile gently softens its neighbors so your eye stays on it. CSS-only, no extra re-renders."
+            checked={settings.focusRecedeEnabled ?? true}
+            onChange={handleFocusRecedeChange}
           />
 
           <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
@@ -631,6 +702,22 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             <div className="space-y-4">
               <div className="w-full min-w-0">
                 <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+                  Personality
+                </WeeSectionEyebrow>
+                <WeeSegmentedControl
+                  ariaLabel="Idle animation personality"
+                  value={idlePersonality}
+                  onChange={handleIdlePersonalityChange}
+                  options={[
+                    { value: 'restrained', label: 'Restrained' },
+                    { value: 'playful', label: 'Playful' },
+                    { value: 'showy', label: 'Showy' },
+                  ]}
+                  size="sm"
+                />
+              </div>
+              <div className="w-full min-w-0">
+                <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
                   Animation types
                 </WeeSectionEyebrow>
                 <SettingsMultiToggleChips
@@ -684,6 +771,27 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                       size="sm"
                       className="w-full min-w-0 justify-start sm:inline-flex sm:w-auto"
                     />
+                  </div>
+
+                  <div className="space-y-3 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
+                    <WeeDescriptionToggleRow
+                      description="Apply Ken Burns to animated GIFs too (in addition to still images)."
+                    >
+                      <WToggle
+                        checked={settings.kenBurnsForGifs ?? false}
+                        onChange={handleKenBurnsForGifsChange}
+                        label="Ken Burns for GIFs"
+                      />
+                    </WeeDescriptionToggleRow>
+                    <WeeDescriptionToggleRow
+                      description="Apply Ken Burns to MP4 channel videos too (in addition to still images)."
+                    >
+                      <WToggle
+                        checked={settings.kenBurnsForVideos ?? false}
+                        onChange={handleKenBurnsForVideosChange}
+                        label="Ken Burns for videos"
+                      />
+                    </WeeDescriptionToggleRow>
                   </div>
 
                   <div>

@@ -1,34 +1,30 @@
 /**
- * Collection open/close motion aligned with hub-design.html:
- * - Shelf: grid-template-rows ~0.7s + --physics-ease (slight spring)
- * - Flyers: ~0.6s + smooth deceleration to slot
- * - Settle: crossfade real tiles vs flyers (no hard pop — removes flicker)
+ * Collection open/close motion for Game Hub / Media Hub shelves.
+ * Timing tokens live in design-system.css (--hub-collection-*).
+ * Flyers use transform FLIP (translate + scale), not layout thrash.
  */
 
-/** Matches `.expansion-wrapper` in hub-design.html (0.7s). */
+/** Matches `--hub-collection-expand-duration` (ms). */
 export const COLLECTION_EXPANSION_MS = 700;
 
-/** Matches flyer `transition: all 0.6s` in hub-design.html. */
+/** Matches `--hub-collection-fly-duration` (ms). */
 export const COLLECTION_FLY_MS = 600;
 
-/** hub-design `--physics-ease` on shelf / stacks. */
+/** Per-card stagger; total wall-clock stays ≤ shelf duration for typical stacks. */
+export const COLLECTION_FLY_STAGGER_MS = 40;
+
+/** Matches `--hub-collection-expand-ease`. */
 export const SHELF_PHYSICS_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 
-/** hub-design flyer path (settle tween). */
+/** Matches `--hub-collection-fly-ease`. */
 const FLY_PHYSICS_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 /** Close fly-out duration: matches shelf collapse so vacuum and grid row finish together. */
 export const COLLECTION_FLY_OUT_MS = COLLECTION_EXPANSION_MS;
 const CLOSE_MS = COLLECTION_FLY_OUT_MS;
 
-/**
- * Ghost handshake: after flyers land, keep clones fully opaque on top of the real slot for this window so
- * underlying `<img>` decode/load does not flash through — then crossfade the flyer out.
- */
-const GHOST_HANDSHAKE_MS = 100;
-
-/** Crossfade flyer opacity after the ghost hold. */
-const HANDOFF_CROSSFADE_MS = 100;
+const GHOST_HANDSHAKE_MS = 120;
+const HANDOFF_CROSSFADE_MS = 120;
 
 /** Matches `.aura-hub-stack__item--1|2|3` filter brightness in GameHubSpace.css */
 export function stackBrightnessForFlyIndex(i) {
@@ -46,32 +42,44 @@ function defaultFlyLayerParent() {
   );
 }
 
+function staggerDelayMs(index) {
+  return Math.min(index, 8) * COLLECTION_FLY_STAGGER_MS;
+}
+
+function flyWallClockMs(count, baseMs) {
+  const n = Math.max(1, Math.min(count, 9));
+  return baseMs + (n - 1) * COLLECTION_FLY_STAGGER_MS;
+}
+
 /**
- * @param {string | undefined} imageUrl
- * @param {'in' | 'out'} mode
- * @param {number} flyIndex stack slot index for brightness matching
- * @param {(() => HTMLElement | null) | undefined} getFlyLayerParent
+ * Place flyer at `fromRect` with fixed box; destination reached via translate+scale.
  */
 function mountFlyer(imageUrl, mode = 'in', flyIndex = 0, getFlyLayerParent) {
   const el = document.createElement('div');
   el.setAttribute('aria-hidden', 'true');
   el.className = 'aura-hub-flyer';
   const ms = mode === 'in' ? COLLECTION_FLY_MS : CLOSE_MS;
+  const delay = staggerDelayMs(flyIndex);
   const b0 = mode === 'in' ? stackBrightnessForFlyIndex(flyIndex) : 1;
-  const filterTween = `filter ${ms}ms ${FLY_PHYSICS_EASE}`;
-  const geomTween = `top ${ms}ms ${FLY_PHYSICS_EASE}, left ${ms}ms ${FLY_PHYSICS_EASE}, width ${ms}ms ${FLY_PHYSICS_EASE}, height ${ms}ms ${FLY_PHYSICS_EASE}`;
+  const filterTween = `filter ${ms}ms ${FLY_PHYSICS_EASE} ${delay}ms`;
+  const transformTween = `transform ${ms}ms ${FLY_PHYSICS_EASE} ${delay}ms`;
   const transition =
     mode === 'in'
-      ? `${geomTween}, ${filterTween}`
-      : `${geomTween}, ${filterTween}, opacity ${ms}ms ease`;
+      ? `${transformTween}, ${filterTween}`
+      : `${transformTween}, ${filterTween}, opacity ${ms}ms ease ${delay}ms`;
 
   Object.assign(el.style, {
     position: 'fixed',
     zIndex: '10050',
     pointerEvents: 'none',
     backgroundImage: imageUrl ? `url(${JSON.stringify(String(imageUrl))})` : 'none',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
     opacity: '1',
     filter: `brightness(${b0})`,
+    transformOrigin: 'top left',
+    transform: 'translate3d(0,0,0) scale(1,1)',
+    willChange: 'transform, filter, opacity',
     transition,
   });
   const parent =
@@ -80,11 +88,20 @@ function mountFlyer(imageUrl, mode = 'in', flyIndex = 0, getFlyLayerParent) {
   return el;
 }
 
-function setFlyerRect(el, rect) {
+function setFlyerBaseRect(el, rect) {
   el.style.top = `${rect.top}px`;
   el.style.left = `${rect.left}px`;
   el.style.width = `${rect.width}px`;
   el.style.height = `${rect.height}px`;
+  el.style.transform = 'translate3d(0,0,0) scale(1,1)';
+}
+
+function setFlyerTransformTo(el, fromRect, toRect) {
+  const sx = toRect.width / Math.max(fromRect.width, 1);
+  const sy = toRect.height / Math.max(fromRect.height, 1);
+  const dx = toRect.left - fromRect.left;
+  const dy = toRect.top - fromRect.top;
+  el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, ${sy})`;
 }
 
 function waitMs(ms) {
@@ -104,8 +121,8 @@ export async function runFlyInAnimations({ games, fromRect, getToRect, onHandoff
       const toRect = getToRect(i);
       if (!toRect || toRect.width < 4 || toRect.height < 4) continue;
       const el = mountFlyer(games[i]?.imageUrl, 'in', i, getFlyLayerParent);
-      setFlyerRect(el, fromRect);
-      moves.push({ el, i });
+      setFlyerBaseRect(el, fromRect);
+      moves.push({ el, i, fromRect, toRect });
     }
 
     if (moves.length === 0) {
@@ -114,15 +131,15 @@ export async function runFlyInAnimations({ games, fromRect, getToRect, onHandoff
 
     await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
 
-    moves.forEach(({ el, i }) => {
+    moves.forEach(({ el, i, fromRect: fr }) => {
       const toRect = getToRect(i);
       if (toRect && toRect.width >= 4 && toRect.height >= 4) {
-        setFlyerRect(el, toRect);
+        setFlyerTransformTo(el, fr, toRect);
         el.style.filter = 'brightness(1)';
       }
     });
 
-    await waitMs(COLLECTION_FLY_MS);
+    await waitMs(flyWallClockMs(moves.length, COLLECTION_FLY_MS));
 
     await prepareHandoff?.();
 
@@ -149,23 +166,23 @@ export async function runFlyOutAnimations({ games, fromRects, toRect, getFlyLaye
       const fromRect = fromRects[i];
       if (!fromRect || fromRect.width < 4 || fromRect.height < 4) continue;
       const el = mountFlyer(games[i]?.imageUrl, 'out', i, getFlyLayerParent);
-      setFlyerRect(el, fromRect);
-      flyers.push(el);
+      setFlyerBaseRect(el, fromRect);
+      flyers.push({ el, fromRect, i });
     }
 
     if (flyers.length === 0) return;
 
     await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
 
-    flyers.forEach((el, i) => {
-      setFlyerRect(el, toRect);
+    flyers.forEach(({ el, fromRect, i }) => {
+      setFlyerTransformTo(el, fromRect, toRect);
       el.style.filter = `brightness(${stackBrightnessForFlyIndex(i)})`;
       el.style.opacity = '0';
     });
 
-    await waitMs(CLOSE_MS + 24);
+    await waitMs(flyWallClockMs(flyers.length, CLOSE_MS) + 24);
   } finally {
-    flyers.forEach((el) => el.remove());
+    flyers.forEach(({ el }) => el.remove());
   }
 }
 
@@ -174,9 +191,10 @@ export const COLLECTION_FLY_PHASE_MS = {
   ghostHandshake: GHOST_HANDSHAKE_MS,
   handoffCrossfade: HANDOFF_CROSSFADE_MS,
   close: CLOSE_MS,
+  stagger: COLLECTION_FLY_STAGGER_MS,
 };
 
 /** Wall-clock time for `runFlyOutAnimations` (rAF + transition + padding). */
-export function flyOutBlockingMs() {
-  return COLLECTION_EXPANSION_MS + 40;
+export function flyOutBlockingMs(gameCount = 4) {
+  return flyWallClockMs(gameCount, COLLECTION_EXPANSION_MS) + 40;
 }

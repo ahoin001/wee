@@ -564,10 +564,7 @@ export function createGameHubMorphLibraryFollowVariants(tier, reducedMotion) {
         opacity: 1,
         x: 0,
         transition: {
-          type: 'spring',
-          stiffness: 270,
-          damping: 28,
-          mass: 0.9,
+          ...WEE_SPRINGS.hubSpaceEntranceFull,
           delay: 0.16,
         },
       },
