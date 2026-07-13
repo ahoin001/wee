@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import WToggle from '../../ui/WToggle';
@@ -14,11 +14,20 @@ const SIDE_NAV_STYLE_OPTIONS = [
   { value: 'classic', label: 'Wee Classic' },
 ];
 
+const DEFAULT_GLASS = {
+  enabled: false,
+  opacity: 0.18,
+  blur: 2.5,
+  borderOpacity: 0.5,
+  shineOpacity: 0.7,
+};
+
 const NavigationSettingsTab = () => {
   const navigation = useConsolidatedAppStore((state) => state.navigation);
   const setNavigationState = useConsolidatedAppStore((state) => state.actions.setNavigationState);
+  const skipAutoPersistRef = useRef(true);
   
-  // Local state for form inputs
+  // Local state for form inputs — mirrored to store (unified-data) on change.
   const [sideNavStyle, setSideNavStyle] = useState('wee');
   const [leftIcon, setLeftIcon] = useState('');
   const [rightIcon, setRightIcon] = useState('');
@@ -150,7 +159,7 @@ const NavigationSettingsTab = () => {
       const updatedIcons = (Array.isArray(savedIcons) ? savedIcons : []).filter(icon => icon.url !== iconUrl);
       setSavedIcons(updatedIcons);
       
-      // Clear from navigation if it was being used
+      // Clear from navigation if it was being used (auto-persist effect picks this up)
       if (leftIcon === iconUrl) {
         setLeftIcon('');
       }
@@ -165,36 +174,70 @@ const NavigationSettingsTab = () => {
     }
   };
 
+  const buildNavigationPrefs = () => ({
+    sideNavStyle: sideNavStyle === 'classic' ? 'classic' : 'wee',
+    icons: {
+      left: leftIcon || null,
+      right: rightIcon || null,
+    },
+    glassEffect: {
+      left: {
+        enabled: leftGlassEnabled,
+        opacity: leftGlassOpacity,
+        blur: leftGlassBlur,
+        borderOpacity: leftGlassBorderOpacity,
+        shineOpacity: leftGlassShineOpacity,
+      },
+      right: {
+        enabled: rightGlassEnabled,
+        opacity: rightGlassOpacity,
+        blur: rightGlassBlur,
+        borderOpacity: rightGlassBorderOpacity,
+        shineOpacity: rightGlassShineOpacity,
+      },
+    },
+    spotifyIntegration,
+  });
+
   const saveSettings = () => {
     try {
-      setNavigationState({
-        sideNavStyle: sideNavStyle === 'classic' ? 'classic' : 'wee',
-        icons: {
-          left: leftIcon,
-          right: rightIcon
-        },
-        glassEffect: {
-          left: {
-            enabled: leftGlassEnabled,
-            opacity: leftGlassOpacity,
-            blur: leftGlassBlur,
-            borderOpacity: leftGlassBorderOpacity,
-            shineOpacity: leftGlassShineOpacity
-          },
-          right: {
-            enabled: rightGlassEnabled,
-            opacity: rightGlassOpacity,
-            blur: rightGlassBlur,
-            borderOpacity: rightGlassBorderOpacity,
-            shineOpacity: rightGlassShineOpacity
-          }
-        },
-        spotifyIntegration: spotifyIntegration
-      });
+      setNavigationState(buildNavigationPrefs());
     } catch (error) {
       logError('NavigationSettingsTab', 'Failed to save navigation settings', error);
     }
   };
+
+  // Keep store (and unified-data) in sync with the form — same path as sideNavStyle.
+  useEffect(() => {
+    if (skipAutoPersistRef.current) {
+      skipAutoPersistRef.current = false;
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      try {
+        setNavigationState(buildNavigationPrefs());
+      } catch (error) {
+        logError('NavigationSettingsTab', 'Failed to auto-persist navigation settings', error);
+      }
+    }, 120);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- persist when form fields change
+  }, [
+    sideNavStyle,
+    leftIcon,
+    rightIcon,
+    leftGlassEnabled,
+    rightGlassEnabled,
+    leftGlassOpacity,
+    rightGlassOpacity,
+    leftGlassBlur,
+    rightGlassBlur,
+    leftGlassBorderOpacity,
+    rightGlassBorderOpacity,
+    leftGlassShineOpacity,
+    rightGlassShineOpacity,
+    spotifyIntegration,
+  ]);
 
   // Reset to defaults
   const resetToDefaults = () => {
@@ -212,13 +255,20 @@ const NavigationSettingsTab = () => {
     setLeftGlassShineOpacity(0.7);
     setRightGlassShineOpacity(0.7);
     setSpotifyIntegration(false);
-    setNavigationState({ sideNavStyle: 'wee' });
+    setNavigationState({
+      sideNavStyle: 'wee',
+      icons: { left: null, right: null },
+      glassEffect: {
+        left: { ...DEFAULT_GLASS },
+        right: { ...DEFAULT_GLASS },
+      },
+      spotifyIntegration: false,
+    });
   };
 
   const handleSideNavStyleChange = (value) => {
     const next = value === 'classic' ? 'classic' : 'wee';
     setSideNavStyle(next);
-    setNavigationState({ sideNavStyle: next });
   };
 
   const selectedTileClass =
@@ -237,7 +287,7 @@ const NavigationSettingsTab = () => {
         <WButton variant="secondary" onClick={resetToDefaults}>
           Reset to defaults
         </WButton>
-        <WButton variant="primary" onClick={saveSettings}>
+        <WButton variant="primary" onClick={saveSettings} title="Changes also save automatically">
           Save settings
         </WButton>
       </div>

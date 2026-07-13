@@ -120,6 +120,27 @@ const WiiChannelStrip = ({
     [canSelect, onArrangeSelectIndex, occupancy]
   );
 
+  const handleArrangeContextMenuCapture = useCallback(
+    (index) => (event) => {
+      if (!canSelect && !canPunch) return;
+      // Block Channel configure (right-click) while Live Board Studio owns the grid.
+      event.preventDefault();
+      event.stopPropagation();
+      if (canPunch) {
+        const occ = occupancy[index];
+        const punchIndex = occ?.anchorIndex ?? index;
+        onTogglePunch(punchIndex);
+        return;
+      }
+      if (canSelect) {
+        const occ = occupancy[index];
+        const selectIndex = occ?.anchorIndex ?? index;
+        onArrangeSelectIndex(selectIndex);
+      }
+    },
+    [canSelect, canPunch, onArrangeSelectIndex, onTogglePunch, occupancy]
+  );
+
   return (
     <div
       className={`wii-mode-grid${isGridFaded ? ' auto-fade' : ''}${
@@ -209,6 +230,9 @@ const WiiChannelStrip = ({
                     : canSelect
                       ? handleArrangeSelectCapture(i)
                       : undefined
+                }
+                onContextMenuCapture={
+                  canPunch || canSelect ? handleArrangeContextMenuCapture(i) : undefined
                 }
               >
                 {renderChannelAtIndex(i, true)}

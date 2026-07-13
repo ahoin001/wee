@@ -4,7 +4,6 @@ import { useShallow } from 'zustand/react/shallow';
 
 // Lazy load modals
 const LazyPrimaryActionsModal = React.lazy(() => import('../modals/PrimaryActionsModal'));
-const LazyDockEffectsModal = React.lazy(() => import('./DockEffectsModal'));
 // Update modal is hosted from App.jsx (startup popup + Escape menu).
 
 import WiiStyleButton from './WiiStyleButton';
@@ -12,7 +11,6 @@ import DockParticleSystem from './DockParticleSystem';
 import RibbonChrome from './ribbon/RibbonChrome';
 import RibbonChromeEffects from './ribbon/RibbonChromeEffects';
 import RibbonAccessories from './ribbon/RibbonAccessories';
-import { RIBBON_CHROME_IDLE_DELAY_MS } from './ribbon/ribbonChromeEffectMeta';
 import './WiiRibbon.css';
 import intervalManager from '../../utils/IntervalManager';
 import { useUIState } from '../../utils/useConsolidatedAppHooks';
@@ -29,6 +27,8 @@ import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStr
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { toDockParticleProps } from '../../utils/dockParticleSettings';
+import { openSettingsToDockSubtab } from '../../utils/settingsNavigation';
+import { useRibbonChromeIdleGate } from '../../hooks/useRibbonChromeIdleGate';
 // import more icons as needed
 
 const WiiRibbonComponent = ({
@@ -68,7 +68,7 @@ const WiiRibbonComponent = ({
   glassShineOpacity: propGlassShineOpacity,
   ribbonHoverAnimationEnabled = true,
   particleSettings = {},
-  onParticleSettingsChange,
+  onParticleSettingsChange: _onParticleSettingsChange,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -92,7 +92,6 @@ const WiiRibbonComponent = ({
   
   // Use consolidated store for modal states and UI settings
   const { setUIState } = useUIState();
-  const [showDockEffectsModal, setShowDockEffectsModal] = useState(false);
   const {
     chromeEffect,
     chromeEffectIntensity,
@@ -117,7 +116,7 @@ const WiiRibbonComponent = ({
   const [primaryActionsModalMounted, setPrimaryActionsModalMounted] = useState(false);
   const [presetsButtonModalMounted, setPresetsButtonModalMounted] = useState(false);
   const [isRibbonHovered, setIsRibbonHovered] = useState(false);
-  const [chromeIdleReady, setChromeIdleReady] = useState(true);
+  const chromeIdleReady = useRibbonChromeIdleGate(chromeEffectIdleOnly, isRibbonHovered);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [tintedImages, setTintedImages] = useState({});
   const [activeButton, setActiveButton] = useState(null);
@@ -154,20 +153,6 @@ const WiiRibbonComponent = ({
       setSpotifyColors(null);
     }
   }, [spotifyAlbumArtUrl, spotifyExtractedColors, shouldUseDynamicRibbonColor]);
-
-  // Idle-only chrome: pause pulse glow (and FX) until unhovered for delay.
-  useEffect(() => {
-    if (!chromeEffectIdleOnly) {
-      setChromeIdleReady(true);
-      return undefined;
-    }
-    if (isRibbonHovered) {
-      setChromeIdleReady(false);
-      return undefined;
-    }
-    const t = window.setTimeout(() => setChromeIdleReady(true), RIBBON_CHROME_IDLE_DELAY_MS);
-    return () => window.clearTimeout(t);
-  }, [chromeEffectIdleOnly, isRibbonHovered]);
 
   // Load configs from consolidated store on mount and subscribe to changes
   useEffect(() => {
@@ -296,7 +281,7 @@ const WiiRibbonComponent = ({
   const handleDockEffectsContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setShowDockEffectsModal(true);
+    openSettingsToDockSubtab('animations');
   };
 
   const handlePrimaryActionsSave = useCallback(
@@ -660,6 +645,7 @@ const WiiRibbonComponent = ({
           glowColor={ribbonGlowHex}
           hovered={isRibbonHovered}
           idleOnly={chromeEffectIdleOnly}
+          glassWiiRibbon={glassWiiRibbon}
         />
 
         <RibbonAccessories>
@@ -818,7 +804,7 @@ const WiiRibbonComponent = ({
             }}
             onClick={(e) => handleSettingsClick(e)}
             onContextMenu={handleDockEffectsContextMenu}
-            title="Settings (Left-click for Quick Settings, Right-click for Dock Effects)"
+            title="Settings (Left-click for Quick Settings, Right-click for particle settings)"
           >
               <svg 
                 width="28" 
@@ -1026,20 +1012,6 @@ const WiiRibbonComponent = ({
             title="Customize Presets Button"
             ribbonGlowColor={propRibbonGlowColor}
             onExitAnimationComplete={handlePresetsButtonExitComplete}
-          />
-        </Suspense>
-      )}
-
-
-      {/* Dock Effects Modal */}
-      {showDockEffectsModal && (
-        <Suspense fallback={<div>Loading Dock Effects Modal...</div>}>
-          <LazyDockEffectsModal
-            isOpen={showDockEffectsModal}
-            onClose={() => setShowDockEffectsModal(false)}
-            onSettingsChange={onParticleSettingsChange || onSettingsChange}
-            settings={particleSettings}
-            ribbonGlowColor={propRibbonGlowColor}
           />
         </Suspense>
       )}

@@ -1,16 +1,12 @@
 import { useCallback } from 'react';
 import { saveUnifiedSoundSettings } from './electronApi';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
-import {
-  startBackgroundMusicFromSettings,
-  stopBackgroundMusic,
-  updateBackgroundMusicLooping,
-} from './soundPlayback';
+import { updateBackgroundMusicLooping } from './soundPlayback';
 import { refreshSoundLibrary } from './soundLibraryCache';
 
 /**
- * Settings-tab actions: patch Zustand settings.sounds + persist.
- * BGM side effects go through soundPlayback (single owner).
+ * Settings-tab actions: patch Zustand settings.sounds + persist only.
+ * BGM start/stop is owned exclusively by useBackgroundMusicLifecycle.
  */
 export function useSoundSettingsActions() {
   const sounds = useConsolidatedAppStore((s) => s.sounds);
@@ -25,22 +21,15 @@ export function useSoundSettingsActions() {
   }, []);
 
   const patchSounds = useCallback(
-    async (partial, { restartBgm = false, updateLoopOnly = false } = {}) => {
+    async (partial, { updateLoopOnly = false } = {}) => {
       const prev = useConsolidatedAppStore.getState().sounds || {};
       const next = { ...prev, ...partial };
       setSoundsState(next);
       await saveSoundSettings(next);
 
+      // Apply loop on the live element without a full restart when already playing
       if (updateLoopOnly && next.backgroundMusicEnabled) {
         updateBackgroundMusicLooping(!!next.backgroundMusicLooping);
-        return next;
-      }
-      if (restartBgm || partial.backgroundMusicEnabled !== undefined) {
-        if (next.backgroundMusicEnabled) {
-          await startBackgroundMusicFromSettings();
-        } else {
-          stopBackgroundMusic();
-        }
       }
       return next;
     },
@@ -48,7 +37,7 @@ export function useSoundSettingsActions() {
   );
 
   const toggleBackgroundMusic = useCallback(
-    (enabled) => patchSounds({ backgroundMusicEnabled: enabled }, { restartBgm: true }),
+    (enabled) => patchSounds({ backgroundMusicEnabled: enabled }),
     [patchSounds]
   );
 
@@ -59,8 +48,7 @@ export function useSoundSettingsActions() {
   );
 
   const togglePlaylistMode = useCallback(
-    (playlistMode) =>
-      patchSounds({ backgroundMusicPlaylistMode: playlistMode }, { restartBgm: true }),
+    (playlistMode) => patchSounds({ backgroundMusicPlaylistMode: playlistMode }),
     [patchSounds]
   );
 
@@ -78,8 +66,6 @@ export function useSoundSettingsActions() {
 
   const updateBackgroundMusic = useCallback(async () => {
     await refreshSoundLibrary();
-    const enabled = useConsolidatedAppStore.getState().sounds?.backgroundMusicEnabled;
-    if (enabled) await startBackgroundMusicFromSettings();
   }, []);
 
   return {

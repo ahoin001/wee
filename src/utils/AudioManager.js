@@ -24,6 +24,7 @@ class AudioManager {
   constructor() {
     /** Template Audio elements for cloneNode one-shots (keyed by URL). */
     this.templates = new Map();
+    /** Single reusable BGM element — never orphan parallel Audio() instances. */
     this.backgroundAudio = null;
     this.previewAudio = null;
     this.maxConcurrentSounds = 6;
@@ -34,6 +35,83 @@ class AudioManager {
     this.playlistLooping = false;
     this._bgmUnduckedVolume = null;
     this._duckCount = 0;
+    /** Bumped on every BGM start/stop so stale async play() calls abort. */
+    this._bgmGeneration = 0;
+    /** Bumped on every preview start/stop so ended callbacks stay scoped to the active preview. */
+    this._previewGeneration = 0;
+    /** @type {((this: HTMLAudioElement, ev: Event) => void) | null} */
+    this._bgmEndedHandler = null;
+  }
+
+  _ensureBackgroundAudio() {
+    if (this.backgroundAudio) return this.backgroundAudio;
+    const audio = new Audio();
+    audio.preload = 'auto';
+    this.backgroundAudio = audio;
+    return audio;
+  }
+
+  _detachBgmEndedHandler() {
+    const audio = this.backgroundAudio;
+    if (!audio || !this._bgmEndedHandler) {
+      this._bgmEndedHandler = null;
+      return;
+    }
+    try {
+      audio.removeEventListener('ended', this._bgmEndedHandler);
+    } catch {
+      /* ignore */
+    }
+    this._bgmEndedHandler = null;
+    if (audio.onEnded) {
+      try {
+        audio.removeEventListener('ended', audio.onEnded);
+      } catch {
+        /* ignore */
+      }
+      audio.onEnded = null;
+    }
+  }
+
+  /**
+   * Hard stop: silence BGM, clear playlist callbacks, invalidate in-flight starts.
+   * Call when disabled / disallowed — not soft pause.
+   */
+  hardStopBackgroundMusic() {
+    this._bgmGeneration += 1;
+    this._detachBgmEndedHandler();
+    this.playlistTracks = null;
+    this.currentPlaylistIndex = 0;
+    this.playlistLooping = false;
+    this._duckCount = 0;
+    this._bgmUnduckedVolume = null;
+
+    const audio = this.backgroundAudio;
+    if (!audio) return;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.loop = false;
+      audio.removeAttribute('src');
+      audio.src = '';
+      audio.load();
+    } catch {
+      /* ignore */
+    }
+    try {
+      if (typeof navigator !== 'undefined' && navigator.mediaSession) {
+        navigator.mediaSession.playbackState = 'none';
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /** Soft pause for temporary inactivity — keeps src so lifecycle can resume via start. */
+  pauseBackgroundMusic() {
+    if (this.backgroundAudio && !this.backgroundAudio.paused) {
+      this.backgroundAudio.pause();
+    }
   }
 
   /** Cache template Audio elements for cloneNode one-shots (keyed by URL). */
@@ -178,19 +256,12 @@ class AudioManager {
   }
 
   updateBackgroundMusicLooping(loop) {
-    if (!this.backgroundAudio) return;
-    this.backgroundAudio.loop = loop;
-    if (this.backgroundAudio.onEnded) {
-      this.backgroundAudio.removeEventListener('ended', this.backgroundAudio.onEnded);
-      this.backgroundAudio.onEnded = null;
-    }
-    if (!loop) {
-      const onEnded = () => {
-        this.backgroundAudio = null;
-      };
-      this.backgroundAudio.addEventListener('ended', onEnded);
-      this.backgroundAudio.onEnded = onEnded;
-    }
+    const audio = this.backgroundAudio;
+    if (!audio || !audio.src) return;
+    // Single-track mode only — playlist always advances via ended handler
+    if (this.playlistTracks?.length) return;
+    this._detachBgmEndedHandler();
+    audio.loop = !!loop;
   }
 
   clearCache() {
@@ -204,110 +275,143 @@ class AudioManager {
   }
 
   async setBackgroundMusicPlaylist(tracks, loop = true) {
-    if (this.backgroundAudio) {
-      this.backgroundAudio.pause();
-      this.backgroundAudio.currentTime = 0;
-    }
+    this._bgmGeneration += 1;
+    const generation = this._bgmGeneration;
+    this._detachBgmEndedHandler();
     this._duckCount = 0;
     this._bgmUnduckedVolume = null;
 
-    if (tracks && tracks.length > 0) {
-      this.playlistTracks = tracks;
-      this.currentPlaylistIndex = 0;
-      this.playlistLooping = loop;
-      await this.playNextPlaylistTrack();
-    } else {
-      this.backgroundAudio = null;
-      this.playlistTracks = null;
+    const audio = this._ensureBackgroundAudio();
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch {
+      /* ignore */
     }
+
+    if (!tracks?.length) {
+      this.hardStopBackgroundMusic();
+      return;
+    }
+
+    this.playlistTracks = tracks;
+    this.currentPlaylistIndex = 0;
+    this.playlistLooping = loop;
+    await this.playNextPlaylistTrack(generation);
   }
 
-  async playNextPlaylistTrack() {
+  async playNextPlaylistTrack(generation = this._bgmGeneration) {
+    if (generation !== this._bgmGeneration) return;
+
     if (!this.playlistTracks || this.currentPlaylistIndex >= this.playlistTracks.length) {
-      if (this.playlistLooping) {
+      if (this.playlistLooping && this.playlistTracks?.length) {
         this.currentPlaylistIndex = 0;
-        await this.playNextPlaylistTrack();
+        await this.playNextPlaylistTrack(generation);
       } else {
-        this.backgroundAudio = null;
-        this.playlistTracks = null;
+        this.hardStopBackgroundMusic();
       }
       return;
     }
 
     const track = this.playlistTracks[this.currentPlaylistIndex];
-    // Dedicated BGM element (not shared with one-shot templates)
-    const audio = new Audio();
-    audio.preload = 'auto';
-    audio.src = track.url;
-    audio.volume = track.volume ?? 0.4;
+    const audio = this._ensureBackgroundAudio();
+    this._detachBgmEndedHandler();
+
     audio.loop = false;
-    this.backgroundAudio = audio;
+    audio.volume = track.volume ?? 0.4;
+    if (this._duckCount > 0) {
+      this._bgmUnduckedVolume = audio.volume;
+      audio.volume = Math.max(0, audio.volume * BGM_DUCK_FACTOR);
+    }
+
+    try {
+      audio.pause();
+      audio.src = track.url;
+      audio.load();
+    } catch {
+      /* ignore */
+    }
 
     const onEnded = () => {
-      this.currentPlaylistIndex++;
-      audio.removeEventListener('ended', onEnded);
-      this.playNextPlaylistTrack();
+      if (generation !== this._bgmGeneration) return;
+      this._detachBgmEndedHandler();
+      this.currentPlaylistIndex += 1;
+      void this.playNextPlaylistTrack(generation);
     };
+    this._bgmEndedHandler = onEnded;
     audio.addEventListener('ended', onEnded);
 
     try {
       await waitForAudioReady(audio);
+      if (generation !== this._bgmGeneration) return;
       await audio.play();
+      if (generation !== this._bgmGeneration) {
+        audio.pause();
+        return;
+      }
       this._claimMediaSession(track.name || 'Background music');
     } catch (error) {
+      if (generation !== this._bgmGeneration) return;
       console.error('Failed to play playlist track:', error);
-      this.currentPlaylistIndex++;
-      await this.playNextPlaylistTrack();
+      this.currentPlaylistIndex += 1;
+      await this.playNextPlaylistTrack(generation);
     }
   }
 
   async setBackgroundMusic(url, volume = 0.4, loop = true) {
-    if (this.backgroundAudio) {
-      this.backgroundAudio.pause();
-      this.backgroundAudio.currentTime = 0;
-    }
+    this._bgmGeneration += 1;
+    const generation = this._bgmGeneration;
+    this._detachBgmEndedHandler();
     this._duckCount = 0;
     this._bgmUnduckedVolume = null;
     this.playlistTracks = null;
+    this.currentPlaylistIndex = 0;
+    this.playlistLooping = false;
 
     if (!url) {
-      this.backgroundAudio = null;
+      this.hardStopBackgroundMusic();
       return;
     }
 
-    const audio = new Audio();
-    audio.preload = 'auto';
-    audio.src = url;
+    const audio = this._ensureBackgroundAudio();
     audio.volume = volume;
-    audio.loop = loop;
-    this.backgroundAudio = audio;
+    audio.loop = !!loop;
 
-    if (!loop) {
-      const onEnded = () => {
-        if (this.backgroundAudio === audio) this.backgroundAudio = null;
-      };
-      audio.addEventListener('ended', onEnded);
-      audio.onEnded = onEnded;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = url;
+      audio.load();
+    } catch {
+      /* ignore */
     }
 
     try {
       await waitForAudioReady(audio);
+      if (generation !== this._bgmGeneration) return;
       await audio.play();
+      if (generation !== this._bgmGeneration) {
+        audio.pause();
+        return;
+      }
       this._claimMediaSession('Background music');
     } catch (error) {
+      if (generation !== this._bgmGeneration) return;
       console.error('[AudioManager] Failed to play background music:', error);
     }
   }
 
-  pauseBackgroundMusic() {
-    if (this.backgroundAudio && !this.backgroundAudio.paused) {
-      this.backgroundAudio.pause();
-    }
-  }
-
-  async playPreview(url, volume = 0.5) {
+  /**
+   * Exclusive preview slot (Test / Preview buttons).
+   * @param {string} url
+   * @param {number} [volume]
+   * @param {{ onEnded?: () => void }} [options] — called when playback finishes naturally (not on stopPreview)
+   */
+  async playPreview(url, volume = 0.5, options = {}) {
     if (!url) return;
     this.stopPreview();
+    const onEnded = typeof options?.onEnded === 'function' ? options.onEnded : null;
+    const generation = ++this._previewGeneration;
     try {
       const audio = new Audio();
       audio.preload = 'auto';
@@ -315,21 +419,32 @@ class AudioManager {
       audio.loop = false;
       audio.volume = volume;
       await waitForAudioReady(audio);
+      if (generation !== this._previewGeneration) return;
       await audio.play();
+      if (generation !== this._previewGeneration) {
+        audio.pause();
+        return;
+      }
       this.previewAudio = audio;
       audio.addEventListener(
         'ended',
         () => {
           if (this.previewAudio === audio) this.previewAudio = null;
+          // Only notify if this preview was not superseded by stop/replace.
+          if (generation === this._previewGeneration) {
+            onEnded?.();
+          }
         },
         { once: true }
       );
     } catch (error) {
       console.error('[AudioManager] Failed to play preview:', error);
+      throw error;
     }
   }
 
   stopPreview() {
+    this._previewGeneration += 1;
     if (!this.previewAudio) return;
     this.previewAudio.pause();
     this.previewAudio.currentTime = 0;
@@ -337,17 +452,27 @@ class AudioManager {
   }
 
   async resumeBackgroundMusic(targetVolume = 0.4) {
-    if (!this.backgroundAudio) return;
     const audio = this.backgroundAudio;
+    if (!audio?.src) return;
+    const generation = this._bgmGeneration;
     audio.volume = 0;
     try {
       await waitForAudioReady(audio);
+      if (generation !== this._bgmGeneration) return;
       await audio.play();
+      if (generation !== this._bgmGeneration) {
+        audio.pause();
+        return;
+      }
     } catch {
       return;
     }
     let v = 0;
     const fade = setInterval(() => {
+      if (generation !== this._bgmGeneration) {
+        clearInterval(fade);
+        return;
+      }
       v += targetVolume / 15;
       if (v < targetVolume) {
         audio.volume = Math.min(v, targetVolume);
@@ -383,16 +508,8 @@ class AudioManager {
   cleanup() {
     this.stopAllSounds();
     this.stopPreview();
-    if (this.backgroundAudio) {
-      this.backgroundAudio.pause();
-      this.backgroundAudio.currentTime = 0;
-      this.backgroundAudio = null;
-    }
-    this.playlistTracks = null;
-    this.currentPlaylistIndex = 0;
-    this.playlistLooping = false;
-    this._duckCount = 0;
-    this._bgmUnduckedVolume = null;
+    this.hardStopBackgroundMusic();
+    this.backgroundAudio = null;
     this.clearCache();
   }
 

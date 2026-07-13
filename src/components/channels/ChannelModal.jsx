@@ -142,6 +142,7 @@ function ChannelModal({
     handleHoverSoundSelect,
     handleHoverSoundUpload,
     handleTestHoverSound,
+    handleTestLibraryHoverSound,
     handleHoverSoundVolumeChange,
     clearHoverSoundSelection,
     resetHoverSoundFields,
@@ -562,6 +563,7 @@ function ChannelModal({
               getSoundsByCategory={getSoundsByCategory}
               clearHoverSoundSelection={clearHoverSoundSelection}
               handleTestHoverSound={handleTestHoverSound}
+              handleTestLibraryHoverSound={handleTestLibraryHoverSound}
               handleHoverSoundVolumeChange={handleHoverSoundVolumeChange}
               handleHoverSoundSelect={handleHoverSoundSelect}
               handleHoverSoundUpload={handleHoverSoundUpload}

@@ -267,6 +267,8 @@
   --wii-strip-channel-gap: clamp(10px, 1.15vw, 18px);
   /* Minimum left padding for Wii channel grid — rail inset + pill width + gap; keep vw modest so ultrawide doesn’t over-inset */
   --channel-space-rail-gutter: clamp(5.5rem, 5.5vw, 6.35rem);
+  /* Bottom clearance so channel tiles sit above the ribbon/dock; page pill uses the same token */
+  --channel-dock-clearance: clamp(112px, 15.5vh, 185px);
 
   /* Form controls */
   --control-radius: var(--radius-md);

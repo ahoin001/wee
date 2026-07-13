@@ -58,10 +58,10 @@ export async function playSoundEffect(url, volume = 0.5) {
   await audioManager.playSound(url, volume);
 }
 
-export async function playPreview(url, volume = 0.5) {
+export async function playPreview(url, volume = 0.5, options = {}) {
   if (!url) return;
   await ensureSoundRuntimeReady();
-  await audioManager.playPreview(url, volume);
+  await audioManager.playPreview(url, volume, options);
 }
 
 export function stopPreview() {
@@ -71,26 +71,34 @@ export function stopPreview() {
 export async function startBackgroundMusicFromSettings() {
   const sounds = getSoundsSettings();
   if (!sounds.backgroundMusicEnabled) {
-    audioManager.pauseBackgroundMusic();
+    audioManager.hardStopBackgroundMusic();
     return;
   }
   await ensureSoundRuntimeReady();
-  const enabledMusic = getEnabledBackgroundTracks();
-  if (enabledMusic.length === 0) {
-    audioManager.pauseBackgroundMusic();
+
+  // Stale async: user may have disabled BGM while hydrating
+  const latest = getSoundsSettings();
+  if (!latest.backgroundMusicEnabled) {
+    audioManager.hardStopBackgroundMusic();
     return;
   }
 
-  if (sounds.backgroundMusicPlaylistMode) {
+  const enabledMusic = getEnabledBackgroundTracks();
+  if (enabledMusic.length === 0) {
+    audioManager.hardStopBackgroundMusic();
+    return;
+  }
+
+  if (latest.backgroundMusicPlaylistMode) {
     const likedMusic = enabledMusic.filter((s) => s.liked);
     if (likedMusic.length > 0) {
-      await audioManager.setBackgroundMusicPlaylist(likedMusic, !!sounds.backgroundMusicLooping);
+      await audioManager.setBackgroundMusicPlaylist(likedMusic, !!latest.backgroundMusicLooping);
     } else {
       const sound = enabledMusic[0];
       await audioManager.setBackgroundMusic(
         sound.url,
         sound.volume ?? 0.5,
-        !!sounds.backgroundMusicLooping
+        !!latest.backgroundMusicLooping
       );
     }
   } else {
@@ -98,13 +106,18 @@ export async function startBackgroundMusicFromSettings() {
     await audioManager.setBackgroundMusic(
       sound.url,
       sound.volume ?? 0.5,
-      !!sounds.backgroundMusicLooping
+      !!latest.backgroundMusicLooping
     );
+  }
+
+  // Final stale guard after awaits
+  if (!getSoundsSettings().backgroundMusicEnabled) {
+    audioManager.hardStopBackgroundMusic();
   }
 }
 
 export function stopBackgroundMusic() {
-  audioManager.pauseBackgroundMusic();
+  audioManager.hardStopBackgroundMusic();
 }
 
 export function updateBackgroundMusicLooping(looping) {

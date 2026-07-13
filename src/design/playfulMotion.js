@@ -48,6 +48,10 @@ export const PLAYFUL_AMPLITUDE = {
   modalExitY: 44,
   modalEnterScale: 0.92,
   modalExitScale: 0.93,
+  /** Wee side-nav idle: mostly tucked off-edge (px along X). */
+  sideNavIdleTuckPx: 40,
+  /** Wee side-nav idle: friendly bounce tip that peeks into view (px along X). */
+  sideNavIdlePeekPx: 14,
 };
 
 /** Game Hub: scroll-linked hero → dock lane (see hub-game-micro.html pattern). */

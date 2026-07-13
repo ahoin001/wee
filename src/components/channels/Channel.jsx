@@ -32,8 +32,13 @@ const Channel = React.memo(({
   onHover, 
   animationStyle, 
   idleAnimationClass, 
-  wiiMode = false
+  wiiMode = false,
+  arrangeMode = false,
+  punchMode = false,
+  selected = false,
+  onArrangeSelect,
 }) => {
+  const interactionsLocked = arrangeMode || punchMode;
   const fileInputRef = useRef();
   const exeInputRef = useRef();
   const [isHovered, setIsHovered] = useState(false);
@@ -107,6 +112,7 @@ const Channel = React.memo(({
     showLaunchError,
     onChannelSave,
     updateChannelConfig,
+    interactionsLocked,
   });
 
   const { shouldPauseDecorativeVideo } = useRendererMediaPowerState();
@@ -122,6 +128,14 @@ const Channel = React.memo(({
   /** Soft launch choreography: brief press-down before the real launch, gated by channel tap motion feedback. */
   const handleTileClick = useCallback(
     (event) => {
+      if (interactionsLocked) {
+        // Strip capture owns arrange/punch; belt-and-suspenders if click still reaches the tile.
+        event?.stopPropagation?.();
+        if (arrangeMode && !punchMode && typeof onArrangeSelect === 'function') {
+          onArrangeSelect(id);
+        }
+        return;
+      }
       if (!channelTap || effectiveIsEmpty) {
         handleClick(event);
         return;
@@ -134,7 +148,16 @@ const Channel = React.memo(({
         }, 80);
       });
     },
-    [channelTap, effectiveIsEmpty, handleClick]
+    [
+      interactionsLocked,
+      arrangeMode,
+      punchMode,
+      onArrangeSelect,
+      id,
+      channelTap,
+      effectiveIsEmpty,
+      handleClick,
+    ]
   );
 
   // Pause decorative MP4 when the window is unfocused, hidden, or low-power mode is on.
@@ -262,8 +285,8 @@ const Channel = React.memo(({
     <MotionDiv
       className={
         effectiveIsEmpty && !effectiveMedia 
-          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed ? ' channel--launch-press' : ''}`
+          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${selected ? ' channel--arrange-selected' : ''}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}`
       }
       data-channel-id={id}
       data-gooey-hover-mode={channelGooeyHover.enabled ? channelGooeyHover.mode : undefined}
@@ -360,6 +383,10 @@ Channel.propTypes = {
   animationStyle: PropTypes.oneOf(['none', 'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'random']),
   idleAnimationClass: PropTypes.string,
   wiiMode: PropTypes.bool,
+  arrangeMode: PropTypes.bool,
+  punchMode: PropTypes.bool,
+  selected: PropTypes.bool,
+  onArrangeSelect: PropTypes.func,
 };
 
 export default Channel;

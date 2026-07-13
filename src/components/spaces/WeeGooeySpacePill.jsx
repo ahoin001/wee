@@ -47,6 +47,63 @@ const SPACE_META = {
   gamehub: { label: 'Games', Icon: Gamepad2 },
 };
 
+/**
+ * Expanded rail footprint — must match WeeGooeyIconButton sizes + flex gap/padding
+ * in the open column (wand + pin are real actions, not free “+120” slack).
+ */
+const SPACE_RAIL_LAYOUT = Object.freeze({
+  spaceBtn: 56, // size lg
+  wandBtn: 56, // size lg
+  pinBtn: 48, // size md
+  gapComfortable: 8, // gap-2
+  gapCompact: 6, // gap-1.5
+  padTopComfortable: 20, // pt-5
+  padBottomComfortable: 20, // pb-5
+  padTopCompact: 14,
+  padBottomCompact: 14,
+  dividerH: 4, // h-1
+  dividerMarginYComfortable: 8, // my-1
+  dividerMarginYCompact: 4,
+  borderY: 8, // border-4 top + bottom (border-box)
+  viewportMargin: 16,
+  actionSlotCount: 3, // divider + wand + pin
+});
+
+function computeSpaceRailContentHeight(spaceCount, density = 'comfortable') {
+  const compact = density === 'compact';
+  const gap = compact ? SPACE_RAIL_LAYOUT.gapCompact : SPACE_RAIL_LAYOUT.gapComfortable;
+  const padTop = compact
+    ? SPACE_RAIL_LAYOUT.padTopCompact
+    : SPACE_RAIL_LAYOUT.padTopComfortable;
+  const padBottom = compact
+    ? SPACE_RAIL_LAYOUT.padBottomCompact
+    : SPACE_RAIL_LAYOUT.padBottomComfortable;
+  const dividerMargin = compact
+    ? SPACE_RAIL_LAYOUT.dividerMarginYCompact
+    : SPACE_RAIL_LAYOUT.dividerMarginYComfortable;
+  const children = spaceCount + SPACE_RAIL_LAYOUT.actionSlotCount;
+  const gaps = Math.max(0, children - 1) * gap;
+  return (
+    SPACE_RAIL_LAYOUT.borderY +
+    padTop +
+    padBottom +
+    spaceCount * SPACE_RAIL_LAYOUT.spaceBtn +
+    SPACE_RAIL_LAYOUT.dividerH +
+    dividerMargin +
+    SPACE_RAIL_LAYOUT.wandBtn +
+    SPACE_RAIL_LAYOUT.pinBtn +
+    gaps
+  );
+}
+
+/** Max pill height that stays fully on-screen given vertical center + left-nav nudge. */
+function maxSpaceRailViewportHeight(viewportH, nudgeY = 0) {
+  const margin = SPACE_RAIL_LAYOUT.viewportMargin;
+  const center = viewportH / 2 + nudgeY;
+  const half = Math.min(center - margin, viewportH - margin - center);
+  return Math.max(SPACE_RAIL_LAYOUT.spaceBtn * 2, half * 2);
+}
+
 function getNextSpace(order, currentId, delta) {
   if (!Array.isArray(order) || order.length === 0) return currentId;
   const currentIndex = Math.max(0, order.indexOf(currentId));
@@ -160,6 +217,9 @@ export default function WeeGooeySpacePill() {
   const [hovered, setHovered] = useState(false);
   const [compactDirection, setCompactDirection] = useState(1);
   const [focusWithin, setFocusWithin] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 900
+  );
   const hideTimeoutRef = useRef(null);
   const draggingRef = useRef(false);
   const rootRef = useRef(null);
@@ -239,10 +299,32 @@ export default function WeeGooeySpacePill() {
     [orderedSpaces, activeSpaceId]
   );
 
-  const expandedHeight = useMemo(
-    () => orderedSpaces.length * 64 + 120,
-    [orderedSpaces.length]
-  );
+  const railNudgeY = showLeftNav ? railNudgeWithLeftNav.y : 0;
+
+  const { expandedHeight, railDensity, railNeedsScroll } = useMemo(() => {
+    const maxH = maxSpaceRailViewportHeight(viewportHeight, railNudgeY);
+    const comfortable = computeSpaceRailContentHeight(orderedSpaces.length, 'comfortable');
+    if (comfortable <= maxH) {
+      return {
+        expandedHeight: comfortable,
+        railDensity: 'comfortable',
+        railNeedsScroll: false,
+      };
+    }
+    const compact = computeSpaceRailContentHeight(orderedSpaces.length, 'compact');
+    if (compact <= maxH) {
+      return {
+        expandedHeight: compact,
+        railDensity: 'compact',
+        railNeedsScroll: false,
+      };
+    }
+    return {
+      expandedHeight: maxH,
+      railDensity: 'compact',
+      railNeedsScroll: true,
+    };
+  }, [orderedSpaces.length, railNudgeY, viewportHeight]);
 
   const containerVariants = useMemo(
     () => createWeeShellRailContainerVariants(expandedHeight, pillClose, pillOpen),
@@ -325,6 +407,12 @@ export default function WeeGooeySpacePill() {
       previousIndexRef.current = activeSpaceIndex;
     }
   }, [activeSpaceIndex]);
+
+  useEffect(() => {
+    const onResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(
     () => () => {
@@ -482,7 +570,11 @@ export default function WeeGooeySpacePill() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                      className="absolute inset-0 flex w-full flex-col items-center gap-2 pt-5"
+                      className={[
+                        'absolute inset-0 flex w-full flex-col items-center',
+                        railDensity === 'compact' ? 'gap-1.5 pt-3.5 pb-3.5' : 'gap-2 pt-5 pb-5',
+                        railNeedsScroll ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden',
+                      ].join(' ')}
                     >
                       <DndContext
                         sensors={sensors}
@@ -512,7 +604,10 @@ export default function WeeGooeySpacePill() {
                         initial="closed"
                         animate="open"
                         exit="closed"
-                        className="my-1 h-1 w-8 rounded-full bg-[hsl(var(--border-primary)/0.35)]"
+                        className={[
+                          'w-8 shrink-0 rounded-full bg-[hsl(var(--border-primary)/0.35)]',
+                          railDensity === 'compact' ? 'my-0.5 h-1' : 'my-1 h-1',
+                        ].join(' ')}
                         aria-hidden
                       />
 

@@ -30,12 +30,22 @@ export const SETTINGS_TAB_ID = {
 /**
  * Open the settings modal and select a tab (used from CTAs on toasts, widgets, etc.).
  * @param {string} tabId — see SETTINGS_TAB_ID
+ * @param {{ dockSubTab?: string }} [options] — Dock tab deep-link (e.g. `animations`, `wii-ribbon`)
  */
-export function openSettingsToTab(tabId) {
-  useConsolidatedAppStore.getState().actions.setUIState({
+export function openSettingsToTab(tabId, options = {}) {
+  const patch = {
     showSettingsModal: true,
     settingsActiveTab: tabId,
-  });
+  };
+  if (tabId === SETTINGS_TAB_ID.DOCK && options.dockSubTab) {
+    patch.dockSubTab = options.dockSubTab;
+  }
+  useConsolidatedAppStore.getState().actions.setUIState(patch);
+}
+
+/** Open Dock settings on a specific subtab (type / classic / ribbon / animations). */
+export function openSettingsToDockSubtab(dockSubTab) {
+  openSettingsToTab(SETTINGS_TAB_ID.DOCK, { dockSubTab });
 }
 
 /**

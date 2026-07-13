@@ -1,74 +1,45 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Droplets, Layers, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Layers, SlidersHorizontal, Sparkles } from 'lucide-react';
 import Text from '../../../ui/Text';
 import Slider from '../../../ui/Slider';
-import WToggle from '../../../ui/WToggle';
+import WSelect from '../../../ui/WSelect';
 import {
+  WeeHelpLinkButton,
   WeeHelpParagraph,
   WeeModalFieldCard,
   WeeRevealWhen,
-  WeeSectionEyebrow,
-  WeeSegmentedControl,
   WeeSettingsCollapsibleSection,
 } from '../../../ui/wee';
+import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
 import {
   DEFAULT_RIBBON_GLOW_HEX,
   DEFAULT_RIBBON_SURFACE_HEX,
 } from '../../../design/runtimeColorStrings.js';
-import { getRibbonChromeEffectOptions } from '../../dock/ribbon/ribbonChromeEffectMeta';
+import {
+  getRibbonChromeEffectMeta,
+  getRibbonChromeEffectOptions,
+  isRibbonChromeGlassSoftMode,
+} from '../../dock/ribbon/ribbonChromeEffectMeta';
+import { openSettingsToDockSubtab } from '../../../utils/settingsNavigation';
+
+const TOGGLE_TITLE =
+  '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
 
 const CHROME_EFFECT_OPTIONS = getRibbonChromeEffectOptions();
 
-const RIBBON_FIELD_CARD =
-  'rounded-2xl border border-[hsl(var(--border-primary)/0.42)] bg-[hsl(var(--surface-secondary)/0.55)] p-3 shadow-[inset_0_1px_0_0_hsl(var(--border-primary)/0.14)] md:p-4';
-
-/** Shared grid: label block | switch-only — keeps switch tracks aligned vertically */
-function ToggleRow({ title, description, children }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
-      <div className="min-w-0">
-        {typeof title === 'string' ? (
-          <Text
-            variant="body"
-            className="text-[0.8125rem] font-black uppercase tracking-[0.08em] text-[hsl(var(--text-primary))]"
-          >
-            {title}
-          </Text>
-        ) : (
-          title
-        )}
-        {description ? (
-          <Text variant="caption" className="!mt-1 block text-[hsl(var(--text-tertiary))]">
-            {description}
-          </Text>
-        ) : null}
-      </div>
-      <div className="flex shrink-0 items-center justify-end">{children}</div>
-    </div>
-  );
-}
-
-ToggleRow.propTypes = {
-  title: PropTypes.node.isRequired,
-  description: PropTypes.node,
-  children: PropTypes.node.isRequired,
-};
-
-function RibbonColorField({ eyebrow, hint, value, fallbackHex, onChange, hexLabel }) {
+function ColorRow({ label, hint, value, fallbackHex, onChange, hexLabel }) {
   const hex = (value ?? fallbackHex).toUpperCase();
   return (
-    <div className={RIBBON_FIELD_CARD}>
-      <div className="mb-3">
-        <WeeSectionEyebrow className="!mb-1 block" trackingClassName="tracking-[0.12em]">
-          {eyebrow}
-        </WeeSectionEyebrow>
-        {hint ? (
-          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-            {hint}
-          </Text>
-        ) : null}
-      </div>
+    <div>
+      <Text variant="body" className="mb-1 text-[hsl(var(--text-secondary))]">
+        {label}
+      </Text>
+      {hint ? (
+        <Text variant="caption" className="!mb-2 !mt-0 block text-[hsl(var(--text-tertiary))]">
+          {hint}
+        </Text>
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="color"
@@ -85,8 +56,8 @@ function RibbonColorField({ eyebrow, hint, value, fallbackHex, onChange, hexLabe
   );
 }
 
-RibbonColorField.propTypes = {
-  eyebrow: PropTypes.string.isRequired,
+ColorRow.propTypes = {
+  label: PropTypes.string.isRequired,
   hint: PropTypes.string,
   value: PropTypes.string,
   fallbackHex: PropTypes.string.isRequired,
@@ -94,42 +65,22 @@ RibbonColorField.propTypes = {
   hexLabel: PropTypes.string.isRequired,
 };
 
-function RibbonScaleField({
-  eyebrow,
-  hint,
-  rangeLabel,
-  valueDisplay,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  ariaLabel,
-}) {
+function ScaleRow({ label, hint, valueDisplay, value, min, max, step, onChange, ariaLabel }) {
   return (
-    <div className={RIBBON_FIELD_CARD}>
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <WeeSectionEyebrow className="!mb-1 block" trackingClassName="tracking-[0.12em]">
-            {eyebrow}
-          </WeeSectionEyebrow>
-          {hint ? (
-            <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-              {hint}
-            </Text>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-          <span className="rounded-full border border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-primary))] px-2.5 py-1 text-[11px] font-black tabular-nums tracking-wide text-[hsl(var(--text-primary))]">
-            {valueDisplay}
-          </span>
-          {rangeLabel ? (
-            <span className="max-w-[10rem] text-[10px] font-black uppercase leading-tight tracking-[0.1em] text-[hsl(var(--wee-text-rail-muted))]">
-              {rangeLabel}
-            </span>
-          ) : null}
-        </div>
+    <div>
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <Text variant="body" className="text-[hsl(var(--text-secondary))]">
+          {label}
+        </Text>
+        <Text variant="caption" className="!m-0 tabular-nums text-[hsl(var(--text-tertiary))]">
+          {valueDisplay}
+        </Text>
       </div>
+      {hint ? (
+        <Text variant="caption" className="!mb-2 !mt-0 block text-[hsl(var(--text-tertiary))]">
+          {hint}
+        </Text>
+      ) : null}
       <Slider
         value={value}
         min={min}
@@ -144,10 +95,9 @@ function RibbonScaleField({
   );
 }
 
-RibbonScaleField.propTypes = {
-  eyebrow: PropTypes.string.isRequired,
+ScaleRow.propTypes = {
+  label: PropTypes.string.isRequired,
   hint: PropTypes.string,
-  rangeLabel: PropTypes.string,
   valueDisplay: PropTypes.string.isRequired,
   value: PropTypes.number.isRequired,
   min: PropTypes.number.isRequired,
@@ -157,7 +107,6 @@ RibbonScaleField.propTypes = {
   ariaLabel: PropTypes.string.isRequired,
 };
 
-/** Glow controls shared between solid and glass ribbon surface sections */
 function RibbonGlowFields({
   ribbon,
   hoverAnimationEnabled,
@@ -169,19 +118,18 @@ function RibbonGlowFields({
   const gHover = ribbon?.ribbonGlowStrengthHover ?? 28;
 
   return (
-    <div className="space-y-4">
-      <RibbonColorField
-        eyebrow="Glow color"
+    <div className="surface-controls">
+      <ColorRow
+        label="Glow color"
         hint="Halation and rim light around the ribbon edge."
         value={ribbon?.ribbonGlowColor}
         fallbackHex={DEFAULT_RIBBON_GLOW_HEX}
         onChange={onRibbonGlowColorChange}
         hexLabel="Ribbon glow color"
       />
-      <RibbonScaleField
-        eyebrow="Glow strength"
+      <ScaleRow
+        label="Glow strength"
         hint="Base bloom radius — visible at rest."
-        rangeLabel="0 — 50 px"
         valueDisplay={`${gStrength}px`}
         value={gStrength}
         min={0}
@@ -191,10 +139,9 @@ function RibbonGlowFields({
         ariaLabel="Ribbon glow strength in pixels"
       />
       <WeeRevealWhen when={hoverAnimationEnabled}>
-        <RibbonScaleField
-          eyebrow="Hover glow boost"
+        <ScaleRow
+          label="Hover glow boost"
           hint="Extra bloom when the ribbon hover animation runs."
-          rangeLabel="0 — 96 px"
           valueDisplay={`${gHover}px`}
           value={gHover}
           min={0}
@@ -205,14 +152,9 @@ function RibbonGlowFields({
         />
       </WeeRevealWhen>
       <WeeRevealWhen when={!hoverAnimationEnabled}>
-        <div className={RIBBON_FIELD_CARD}>
-          <WeeSectionEyebrow className="!mb-2 block" trackingClassName="tracking-[0.12em]">
-            Hover glow boost
-          </WeeSectionEyebrow>
-          <WeeHelpParagraph className="!normal-case !tracking-[0.08em]">
-            Enable Ribbon hover animation in Style & behavior to tune extra hover bloom.
-          </WeeHelpParagraph>
-        </div>
+        <WeeHelpParagraph className="!mb-0 !normal-case !tracking-[0.04em]">
+          Enable Ribbon hover animation in Style to tune extra hover bloom.
+        </WeeHelpParagraph>
       </WeeRevealWhen>
     </div>
   );
@@ -259,162 +201,61 @@ function RibbonDockPanel({
   const chromeIdleOnly = ribbon?.chromeEffectIdleOnly ?? false;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <WeeSettingsCollapsibleSection
         icon={SlidersHorizontal}
         title="Style & behavior"
-        description="Pick solid or glass first, then tune appearance below."
+        description="Hover motion and dynamic accents."
         defaultOpen
       >
-        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-          <div className="space-y-5">
-            <div>
-              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                Ribbon surface mode
-              </WeeSectionEyebrow>
-              <Text variant="desc" className="!mb-3 !mt-0 text-[hsl(var(--text-secondary))]">
-                Solid uses a flat fill; Glass adds blur, shine, and border controls.
-              </Text>
-              <WeeSegmentedControl
-                ariaLabel="Ribbon solid or glass"
-                value={glassOn ? 'glass' : 'solid'}
-                onChange={(v) => onGlassWiiRibbonChange(v === 'glass')}
-                size="sm"
-                className="w-full max-w-md"
-                options={[
-                  { value: 'solid', label: 'Solid' },
-                  { value: 'glass', label: 'Glass' },
-                ]}
-              />
-            </div>
-
-            <div className="border-t border-[hsl(var(--border-primary)/0.35)] pt-5">
-              <ToggleRow
-                title="Ribbon hover animation"
-                description="Lift, stretch, and extra hover glow when enabled."
-              >
-                <WToggle
-                  checked={hoverAnimationEnabled}
-                  onChange={onRibbonHoverAnimationChange}
-                  disableLabelClick
-                />
-              </ToggleRow>
-            </div>
-
-            <div className="border-t border-[hsl(var(--border-primary)/0.35)] pt-5">
-              <ToggleRow
-                title="Dynamic color from ribbon"
-                description="When on, ribbon glow drives dynamic accents in supported UI areas."
-              >
-                <WToggle
-                  checked={dynamicRibbonColorEnabled}
-                  onChange={onDynamicRibbonColorEnabledChange}
-                  disableLabelClick
-                />
-              </ToggleRow>
-            </div>
-          </div>
-        </WeeModalFieldCard>
+        <div className="flex flex-col gap-4">
+          <SettingsToggleFieldCard
+            hoverAccent="none"
+            titleClassName={TOGGLE_TITLE}
+            title="Ribbon hover animation"
+            desc="Lift, stretch, and extra hover glow when enabled."
+            checked={hoverAnimationEnabled}
+            onChange={onRibbonHoverAnimationChange}
+          />
+          <SettingsToggleFieldCard
+            hoverAccent="none"
+            titleClassName={TOGGLE_TITLE}
+            title="Dynamic color from ribbon"
+            desc="When on, ribbon glow drives dynamic accents in supported UI areas."
+            checked={dynamicRibbonColorEnabled}
+            onChange={onDynamicRibbonColorEnabledChange}
+          />
+        </div>
       </WeeSettingsCollapsibleSection>
 
-      <WeeRevealWhen when={!glassOn}>
-        <WeeSettingsCollapsibleSection
-          icon={Layers}
-          title="Solid surface"
-          description="Outer glow first, then solid fill and opacity."
-          defaultOpen
-        >
-          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <WeeSectionEyebrow className="block" trackingClassName="tracking-[0.14em]">
-                  Outer glow
-                </WeeSectionEyebrow>
-                <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                  Tune bloom before the ribbon fill so edge light reads clearly.
-                </Text>
-                <RibbonGlowFields
-                  ribbon={ribbon}
-                  hoverAnimationEnabled={hoverAnimationEnabled}
-                  onRibbonGlowColorChange={onRibbonGlowColorChange}
-                  onRibbonGlowStrengthChange={onRibbonGlowStrengthChange}
-                  onRibbonGlowStrengthHoverChange={onRibbonGlowStrengthHoverChange}
-                />
-              </div>
+      <WeeSettingsCollapsibleSection
+        icon={Layers}
+        title="Surface"
+        description="Glow, solid fill, or glass material."
+        defaultOpen={false}
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <div className="flex flex-col gap-6">
+            <RibbonGlowFields
+              ribbon={ribbon}
+              hoverAnimationEnabled={hoverAnimationEnabled}
+              onRibbonGlowColorChange={onRibbonGlowColorChange}
+              onRibbonGlowStrengthChange={onRibbonGlowStrengthChange}
+              onRibbonGlowStrengthHoverChange={onRibbonGlowStrengthHoverChange}
+            />
 
-              <div className="space-y-4 border-t border-[hsl(var(--border-primary)/0.35)] pt-5">
-                <div>
-                  <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                    Ribbon fill
-                  </WeeSectionEyebrow>
-                  <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                    Flat color and transparency for the solid ribbon body.
-                  </Text>
-                </div>
-                <RibbonColorField
-                  eyebrow="Ribbon color"
-                  hint="Main face color behind icons and labels."
-                  value={ribbon?.ribbonColor}
-                  fallbackHex={DEFAULT_RIBBON_SURFACE_HEX}
-                  onChange={onRibbonColorChange}
-                  hexLabel="Ribbon solid color"
-                />
-                <RibbonScaleField
-                  eyebrow="Ribbon opacity"
-                  hint="How much wallpaper shows through the fill."
-                  rangeLabel="10% — 100%"
-                  valueDisplay={`${Math.round(dockOp * 100)}%`}
-                  value={dockOp}
-                  min={0.1}
-                  max={1}
-                  step={0.1}
-                  onChange={onRibbonDockOpacityChange}
-                  ariaLabel="Ribbon opacity percentage"
-                />
-              </div>
-            </div>
-          </WeeModalFieldCard>
-        </WeeSettingsCollapsibleSection>
-      </WeeRevealWhen>
-
-      <WeeRevealWhen when={glassOn}>
-        <WeeSettingsCollapsibleSection
-          icon={Droplets}
-          title="Glass surface"
-          description="Outer glow first, then glass material sliders."
-          defaultOpen
-        >
-          <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <WeeSectionEyebrow className="block" trackingClassName="tracking-[0.14em]">
-                  Outer glow
-                </WeeSectionEyebrow>
-                <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                  Same bloom controls as solid — edge light stays consistent when you switch modes.
-                </Text>
-                <RibbonGlowFields
-                  ribbon={ribbon}
-                  hoverAnimationEnabled={hoverAnimationEnabled}
-                  onRibbonGlowColorChange={onRibbonGlowColorChange}
-                  onRibbonGlowStrengthChange={onRibbonGlowStrengthChange}
-                  onRibbonGlowStrengthHoverChange={onRibbonGlowStrengthHoverChange}
-                />
-              </div>
-
-              <div className="space-y-4 border-t border-[hsl(var(--border-primary)/0.35)] pt-5">
-                <div>
-                  <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                    Glass material
-                  </WeeSectionEyebrow>
-                  <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                    Frosted layer: transparency, blur, edge, and specular shine.
-                  </Text>
-                </div>
-                <RibbonScaleField
-                  eyebrow="Glass opacity"
+            <SettingsToggleFieldCard
+              hoverAccent="none"
+              titleClassName={TOGGLE_TITLE}
+              title="Glass ribbon"
+              desc="Frosted blur, shine, and border on the ribbon body."
+              checked={glassOn}
+              onChange={onGlassWiiRibbonChange}
+            >
+              <div className="surface-controls">
+                <ScaleRow
+                  label="Glass opacity"
                   hint="Overall transparency of the frosted panel."
-                  rangeLabel="0% — 50%"
                   valueDisplay={`${Math.round(gOp * 100)}%`}
                   value={gOp}
                   min={0}
@@ -423,10 +264,9 @@ function RibbonDockPanel({
                   onChange={onGlassOpacityChange}
                   ariaLabel="Glass opacity"
                 />
-                <RibbonScaleField
-                  eyebrow="Glass blur"
+                <ScaleRow
+                  label="Glass blur"
                   hint="Backdrop frost — higher reads more like glass."
-                  rangeLabel="0 — 10 px"
                   valueDisplay={`${gBlur}px`}
                   value={gBlur}
                   min={0}
@@ -435,10 +275,9 @@ function RibbonDockPanel({
                   onChange={onGlassBlurChange}
                   ariaLabel="Glass blur in pixels"
                 />
-                <RibbonScaleField
-                  eyebrow="Border intensity"
+                <ScaleRow
+                  label="Border intensity"
                   hint="Rim contrast around the ribbon edge."
-                  rangeLabel="0% — 100%"
                   valueDisplay={`${Math.round(gBorder * 100)}%`}
                   value={gBorder}
                   min={0}
@@ -447,10 +286,9 @@ function RibbonDockPanel({
                   onChange={onGlassBorderOpacityChange}
                   ariaLabel="Glass border intensity"
                 />
-                <RibbonScaleField
-                  eyebrow="Shine intensity"
+                <ScaleRow
+                  label="Shine intensity"
                   hint="Specular streak for a wet-glass highlight."
-                  rangeLabel="0% — 100%"
                   valueDisplay={`${Math.round(gShine * 100)}%`}
                   value={gShine}
                   min={0}
@@ -460,43 +298,76 @@ function RibbonDockPanel({
                   ariaLabel="Glass shine intensity"
                 />
               </div>
-            </div>
-          </WeeModalFieldCard>
-        </WeeSettingsCollapsibleSection>
-      </WeeRevealWhen>
+            </SettingsToggleFieldCard>
+
+            <WeeRevealWhen when={!glassOn}>
+              <div className="surface-controls">
+                <ColorRow
+                  label="Ribbon color"
+                  hint="Main face color behind icons and labels."
+                  value={ribbon?.ribbonColor}
+                  fallbackHex={DEFAULT_RIBBON_SURFACE_HEX}
+                  onChange={onRibbonColorChange}
+                  hexLabel="Ribbon solid color"
+                />
+                <ScaleRow
+                  label="Ribbon opacity"
+                  hint="How much wallpaper shows through the fill."
+                  valueDisplay={`${Math.round(dockOp * 100)}%`}
+                  value={dockOp}
+                  min={0.1}
+                  max={1}
+                  step={0.1}
+                  onChange={onRibbonDockOpacityChange}
+                  ariaLabel="Ribbon opacity percentage"
+                />
+              </div>
+            </WeeRevealWhen>
+          </div>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
 
       <WeeSettingsCollapsibleSection
         icon={Sparkles}
         title="Chrome effects"
-        description="Surface FX painted on the ribbon body — separate from ambient particles."
+        description="Surface FX on the ribbon body (not ambient particles)."
         defaultOpen={false}
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-          <div className="space-y-5">
+          <div className="surface-controls">
             <div>
-              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+              <Text variant="body" className="mb-2 text-[hsl(var(--text-secondary))]">
                 Effect mode
-              </WeeSectionEyebrow>
-              <WeeHelpParagraph className="!mb-3 !normal-case !tracking-[0.08em]">
-                Surface FX on the ribbon body — shimmer, pulse, neon, aurora, and more. Separate from ambient particles.
-              </WeeHelpParagraph>
-              <WeeSegmentedControl
-                ariaLabel="Ribbon chrome effect"
+              </Text>
+              <WSelect
                 value={chromeEffect}
                 onChange={onChromeEffectChange}
-                size="sm"
-                wrap
-                className="w-full max-w-xl"
                 options={CHROME_EFFECT_OPTIONS}
+                className="w-full"
               />
+              {chromeEffect !== 'none' ? (
+                <Text
+                  variant="caption"
+                  className="!mb-0 !mt-2 block text-[hsl(var(--text-tertiary))]"
+                >
+                  {getRibbonChromeEffectMeta(chromeEffect).description}
+                </Text>
+              ) : null}
+              {glassOn && isRibbonChromeGlassSoftMode(chromeEffect) ? (
+                <Text
+                  variant="caption"
+                  className="!mb-0 !mt-1.5 block text-[hsl(var(--text-tertiary))]"
+                >
+                  Boosted for glass so the effect stays visible.
+                </Text>
+              ) : null}
             </div>
 
             <WeeRevealWhen when={chromeEffect !== 'none'}>
-              <div className="space-y-4 border-t border-[hsl(var(--border-primary)/0.35)] pt-5">
-                <RibbonScaleField
-                  eyebrow="Intensity"
+              <div className="surface-controls">
+                <ScaleRow
+                  label="Intensity"
                   hint="How strong the effect reads on the ribbon."
-                  rangeLabel="0% — 100%"
                   valueDisplay={`${Math.round(chromeIntensity * 100)}%`}
                   value={chromeIntensity}
                   min={0}
@@ -505,10 +376,9 @@ function RibbonDockPanel({
                   onChange={onChromeEffectIntensityChange}
                   ariaLabel="Chrome effect intensity"
                 />
-                <RibbonScaleField
-                  eyebrow="Speed"
+                <ScaleRow
+                  label="Speed"
                   hint="Animation pace for the selected chrome effect."
-                  rangeLabel="0.25× — 2×"
                   valueDisplay={`${Number(chromeSpeed).toFixed(2)}×`}
                   value={chromeSpeed}
                   min={0.25}
@@ -517,20 +387,24 @@ function RibbonDockPanel({
                   onChange={onChromeEffectSpeedChange}
                   ariaLabel="Chrome effect speed"
                 />
-                <div className="border-t border-[hsl(var(--border-primary)/0.28)] pt-4">
-                  <ToggleRow
-                    title="Idle only"
-                    description="Animate when the dock is idle; pause while you use it."
-                  >
-                    <WToggle
-                      checked={chromeIdleOnly}
-                      onChange={onChromeEffectIdleOnlyChange}
-                      disableLabelClick
-                    />
-                  </ToggleRow>
-                </div>
+                <SettingsToggleFieldCard
+                  hoverAccent="none"
+                  titleClassName={TOGGLE_TITLE}
+                  title="Idle only"
+                  desc="Animate when the dock is idle; pause while you use it."
+                  checked={chromeIdleOnly}
+                  onChange={onChromeEffectIdleOnlyChange}
+                />
               </div>
             </WeeRevealWhen>
+
+            <WeeHelpParagraph className="!mb-0 !normal-case !tracking-[0.04em]">
+              Ambient dock particles (Classic + Ribbon) live under{' '}
+              <WeeHelpLinkButton type="button" className="!mt-0 inline" onClick={() => openSettingsToDockSubtab('animations')}>
+                Dock → Animations
+              </WeeHelpLinkButton>
+              .
+            </WeeHelpParagraph>
           </div>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
@@ -540,7 +414,6 @@ function RibbonDockPanel({
 
 RibbonDockPanel.propTypes = {
   ribbon: PropTypes.object,
-  glassWiiRibbon: PropTypes.bool,
   onGlassWiiRibbonChange: PropTypes.func.isRequired,
   onRibbonHoverAnimationChange: PropTypes.func.isRequired,
   onDynamicRibbonColorEnabledChange: PropTypes.func.isRequired,

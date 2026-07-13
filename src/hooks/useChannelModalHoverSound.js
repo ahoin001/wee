@@ -105,6 +105,13 @@ export function useChannelModalHoverSound({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) {
+      stopPreview();
+      setHoverSoundPreviewPlaying(false);
+    }
+  }, [isOpen]);
+
   const handleTestHoverSound = useCallback(async () => {
     if (hoverSoundPreviewPlaying) {
       stopPreview();
@@ -114,12 +121,46 @@ export function useChannelModalHoverSound({
     if (!hoverSoundUrl) return;
     setHoverSoundPreviewPlaying(true);
     try {
-      await playPreview(hoverSoundUrl, hoverSoundVolume);
+      await playPreview(hoverSoundUrl, hoverSoundVolume, {
+        onEnded: () => setHoverSoundPreviewPlaying(false),
+      });
     } catch (e) {
       console.error('[ChannelModal] Preview play error:', e);
       setHoverSoundPreviewPlaying(false);
     }
   }, [hoverSoundPreviewPlaying, hoverSoundUrl, hoverSoundVolume]);
+
+  const handleTestLibraryHoverSound = useCallback(
+    async (sound) => {
+      if (!sound?.url) return;
+      // Selecting + testing from the library card should drive the same Stop/Test chrome.
+      if (hoverSoundPreviewPlaying && hoverSoundUrl === sound.url) {
+        stopPreview();
+        setHoverSoundPreviewPlaying(false);
+        return;
+      }
+      setHoverSound({
+        url: sound.url,
+        name: sound.name,
+        volume: sound.volume ?? hoverSoundVolume,
+      });
+      setHoverSoundName(sound.name);
+      setHoverSoundUrl(sound.url);
+      setHoverSoundVolume(sound.volume ?? hoverSoundVolume);
+      setSelectedHoverSoundId(sound.id);
+      setHoverSoundEnabled(true);
+      setHoverSoundPreviewPlaying(true);
+      try {
+        await playPreview(sound.url, sound.volume ?? hoverSoundVolume, {
+          onEnded: () => setHoverSoundPreviewPlaying(false),
+        });
+      } catch (e) {
+        console.error('[ChannelModal] Library preview play error:', e);
+        setHoverSoundPreviewPlaying(false);
+      }
+    },
+    [hoverSoundPreviewPlaying, hoverSoundUrl, hoverSoundVolume]
+  );
 
   const handleHoverSoundVolumeChange = (value) => {
     setHoverSoundVolume(value);
@@ -171,6 +212,7 @@ export function useChannelModalHoverSound({
     handleHoverSoundSelect,
     handleHoverSoundUpload,
     handleTestHoverSound,
+    handleTestLibraryHoverSound,
     handleHoverSoundVolumeChange,
     clearHoverSoundSelection,
     resetHoverSoundFields,

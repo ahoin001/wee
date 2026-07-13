@@ -27,6 +27,8 @@ export function useChannelInteractions({
   showLaunchError,
   onChannelSave,
   updateChannelConfig,
+  /** Live Board Studio — suppress launch/configure so arrange/punch own the tile. */
+  interactionsLocked = false,
 }) {
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [channelModalMounted, setChannelModalMounted] = useState(false);
@@ -34,6 +36,23 @@ export function useChannelInteractions({
 
   const openHint = useConsolidatedAppStore((state) => state.ui.channelOpenHints?.[id]);
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
+
+  const exitHomeBoardArrangeIfNeeded = useCallback(() => {
+    setUIState((prev) => {
+      if (!prev.homeBoardArrangeMode && !prev.homeBoardPunchMode) return prev;
+      return {
+        homeBoardArrangeMode: false,
+        homeBoardPunchMode: false,
+        homeBoardSelectedSlotIndex: null,
+      };
+    });
+  }, [setUIState]);
+
+  const openChannelModal = useCallback(() => {
+    // Configure and Live Board Studio must not stack — exit arrange first.
+    exitHomeBoardArrangeIfNeeded();
+    setShowChannelModal(true);
+  }, [exitHomeBoardArrangeIfNeeded]);
 
   const recordRecentLaunchHint = useCallback(() => {
     setUIState((prev) => ({
@@ -73,13 +92,19 @@ export function useChannelInteractions({
 
   useEffect(() => {
     setUIState({ channelConfigureModalOpen: showChannelModal });
+    return () => {
+      if (showChannelModal) {
+        setUIState({ channelConfigureModalOpen: false });
+      }
+    };
   }, [showChannelModal, setUIState]);
 
   useEffect(() => () => stopSfx({ fadeMs: 0 }), []);
 
   const handleConfigure = useCallback(() => {
-    setShowChannelModal(true);
-  }, []);
+    if (interactionsLocked) return;
+    openChannelModal();
+  }, [interactionsLocked, openChannelModal]);
 
   const handleChannelModalSave = useCallback((channelId, channelData) => {
     updateChannelConfig(channelId, channelData);
@@ -89,8 +114,9 @@ export function useChannelInteractions({
   const handleRightClick = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    setShowChannelModal(true);
-  }, []);
+    if (interactionsLocked) return;
+    openChannelModal();
+  }, [interactionsLocked, openChannelModal]);
 
   const handleMouseEnter = useCallback(async () => {
     if (onHover) onHover();
@@ -105,6 +131,8 @@ export function useChannelInteractions({
   }, []);
 
   const handleClick = useCallback(async () => {
+    if (interactionsLocked) return;
+
     if (!api) {
       showLaunchError?.({
         technicalError: 'Electron API bridge unavailable',
@@ -189,6 +217,7 @@ export function useChannelInteractions({
       });
     }
   }, [
+    interactionsLocked,
     showLaunchError,
     effectiveType,
     effectivePath,

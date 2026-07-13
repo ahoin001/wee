@@ -43,7 +43,7 @@ function HomePageIndicator() {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[5] flex justify-center md:bottom-4">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--channel-dock-clearance)+0.5rem)] z-[5] flex justify-center">
       <div
         className="pointer-events-auto relative flex items-center justify-center"
         onMouseEnter={() => setHovered(true)}

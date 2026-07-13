@@ -113,6 +113,39 @@ function run() {
   assert.deepEqual(afterMeta.channels.dataBySpace.home.slotMeta, {
     'channel-2': { hidden: true },
   });
+
+  // Empty slots: [] must not wipe a populated board.
+  const slotsBase = {
+    channels: {
+      dataBySpace: {
+        home: {
+          slots: [{ kind: 'channel', channel: { path: 'A' } }],
+        },
+      },
+    },
+  };
+  const emptySlots = mergeSettingsPatch(slotsBase, {
+    channels: {
+      dataBySpace: {
+        home: {
+          slots: [],
+        },
+      },
+    },
+  });
+  assert.equal(emptySlots.channels.dataBySpace.home.slots.length, 1);
+
+  // Non-empty slots replace wholesale.
+  const replacedSlots = mergeSettingsPatch(slotsBase, {
+    channels: {
+      dataBySpace: {
+        home: {
+          slots: [{ kind: 'adminQuickAccess', colSpan: 1, rowSpan: 1 }],
+        },
+      },
+    },
+  });
+  assert.equal(replacedSlots.channels.dataBySpace.home.slots[0].kind, 'adminQuickAccess');
 }
 
 run();

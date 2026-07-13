@@ -1061,7 +1061,7 @@ const PaginatedChannelsInner = React.memo(() => {
         <>
           <HomePageIndicator />
           <HomeBoardArrangeBar
-            arrangeMode={arrangeModeActive}
+            arrangeMode={arrangeModeActive && !channelConfigureModalOpen}
             punchMode={punchModeActive}
             onTogglePunch={toggleHomeBoardPunchMode}
             onDone={exitHomeBoardArrange}

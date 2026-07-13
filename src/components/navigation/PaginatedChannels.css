@@ -133,7 +133,7 @@
   min-width: 0;
   box-sizing: border-box;
   /* top right bottom left — right flush; left inset only when --wii-strip-current-page is 0 */
-  padding: clamp(10px, 1.4vh, 20px) 0 clamp(112px, 15.5vh, 185px)
+  padding: clamp(10px, 1.4vh, 20px) 0 var(--channel-dock-clearance)
     calc((1 - min(1, var(--wii-strip-current-page, 0))) * clamp(12px, 1.8vw, 28px));
   overflow: hidden;
   /* No edge mask — it hid the “next page” peek */
@@ -215,6 +215,12 @@
 
 .wii-strip-channel-cell--punchable .channel {
   box-shadow: 0 0 0 2px hsl(var(--primary) / 0.35), var(--shadow-md);
+}
+
+.wii-mode-grid--arrange .channel.channel--arrange-selected {
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.75), var(--shadow-md);
+  outline: 2px solid hsl(var(--primary) / 0.45);
+  outline-offset: 2px;
 }
 
 button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable {

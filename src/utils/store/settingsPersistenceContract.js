@@ -45,13 +45,24 @@ const omitKeys = (obj, keys) => {
  * Deep-merge would keep stale slot keys when a reorder omits emptied slots, duplicating
  * tiles after persist. When the patch owns these keys, replace the whole map.
  * `slots` (array SSOT) is also replaced wholesale when present.
+ * Keep in sync with `shared/settings-patch-merge.cjs` (`CHANNEL_DATA_SLOT_KEYED_MAPS`).
  */
-const CHANNEL_DATA_SLOT_KEYED_MAPS = ['configuredChannels', 'channelConfigs'];
+const CHANNEL_DATA_SLOT_KEYED_MAPS = ['configuredChannels', 'channelConfigs', 'slotMeta'];
 
 /** Empty `{}` patches must not wipe a populated slot map (bad partial saves / merge bugs). */
 function shouldIgnoreEmptySlotMapPatch(patchVal, baseVal) {
   if (!isPlainObject(patchVal) || !isPlainObject(baseVal)) return false;
   return Object.keys(patchVal).length === 0 && Object.keys(baseVal).length > 0;
+}
+
+/** Empty `slots: []` must not wipe a populated board (same class of bug as empty maps). */
+function shouldIgnoreEmptySlotsPatch(patchSlots, baseSlots) {
+  return (
+    Array.isArray(patchSlots) &&
+    patchSlots.length === 0 &&
+    Array.isArray(baseSlots) &&
+    baseSlots.length > 0
+  );
 }
 
 const deepMerge = (target, source) => {
@@ -86,7 +97,9 @@ function mergeChannelData(baseData, patchData) {
     }
   });
   if (Object.prototype.hasOwnProperty.call(patchData, 'slots') && Array.isArray(patchData.slots)) {
-    merged.slots = patchData.slots;
+    merged.slots = shouldIgnoreEmptySlotsPatch(patchData.slots, baseData.slots)
+      ? baseData.slots
+      : patchData.slots;
   } else if (Array.isArray(baseData.slots)) {
     merged.slots = baseData.slots;
   }
@@ -212,6 +225,70 @@ const selectPersistedUi = (ui = {}) => ({
   updateDismissedVersion: typeof ui.updateDismissedVersion === 'string' ? ui.updateDismissedVersion : '',
 });
 
+/** Strip modal / loading chrome — prefs only. */
+const selectPersistedNavigation = (navigation = {}) => {
+  if (!isPlainObject(navigation)) return {};
+  return omitKeys(navigation, ['showNavigationModal', 'loading', 'error']);
+};
+
+/** Strip live telemetry; keep positions, visibility, and configs. */
+const selectPersistedFloatingWidgets = (floatingWidgets = {}) => {
+  if (!isPlainObject(floatingWidgets)) return {};
+  const next = { ...floatingWidgets };
+  if (isPlainObject(next.systemInfo)) {
+    next.systemInfo = omitKeys(next.systemInfo, ['data', 'isLoading', 'error']);
+  }
+  return next;
+};
+
+/** Strip rail animation flags; keep active space + order. */
+const selectPersistedSpaces = (spaces = {}) => {
+  if (!isPlainObject(spaces)) return {};
+  return omitKeys(spaces, ['isTransitioning', 'railVisible']);
+};
+
+/**
+ * Persist channel boards + settings; drop operations runtime and in-flight page animation.
+ * @param {Record<string, unknown>} spaceData
+ */
+function selectPersistedChannelSpaceData(spaceData) {
+  if (!isPlainObject(spaceData)) return spaceData;
+  const navigation = isPlainObject(spaceData.navigation)
+    ? {
+        ...spaceData.navigation,
+        isAnimating: false,
+        animationDirection: 'none',
+      }
+    : spaceData.navigation;
+  return {
+    ...spaceData,
+    navigation,
+  };
+}
+
+const selectPersistedChannels = (channels = {}) => {
+  if (!isPlainObject(channels)) return {};
+  const next = omitKeys(channels, ['operations', 'data']);
+  if (isPlainObject(channels.dataBySpace)) {
+    next.dataBySpace = {
+      home: selectPersistedChannelSpaceData(channels.dataBySpace.home),
+      workspaces: selectPersistedChannelSpaceData(channels.dataBySpace.workspaces),
+    };
+  }
+  if (isPlainObject(channels.secondaryChannelProfiles)) {
+    const profiles = {};
+    Object.entries(channels.secondaryChannelProfiles).forEach(([id, entry]) => {
+      if (!isPlainObject(entry)) return;
+      profiles[id] = {
+        ...entry,
+        channelSpace: selectPersistedChannelSpaceData(entry.channelSpace),
+      };
+    });
+    next.secondaryChannelProfiles = profiles;
+  }
+  return next;
+};
+
 export const buildSettingsSnapshotFromStore = (state = {}) => ({
   ui: selectPersistedUi(state.ui || {}),
   ribbon: state.ribbon || {},
@@ -224,16 +301,16 @@ export const buildSettingsSnapshotFromStore = (state = {}) => ({
   ]),
   overlay: state.overlay || {},
   time: state.time || {},
-  channels: state.channels || {},
+  channels: selectPersistedChannels(state.channels || {}),
   dock: state.dock || {},
   monitors: state.monitors || {},
   spotify: omitKeys(state.spotify || {}, ['playerWebApiForbidden']),
   sounds: state.sounds || {},
-  floatingWidgets: state.floatingWidgets || {},
-  navigation: state.navigation || {},
+  floatingWidgets: selectPersistedFloatingWidgets(state.floatingWidgets || {}),
+  navigation: selectPersistedNavigation(state.navigation || {}),
   presets: Array.isArray(state.presets) ? state.presets : [],
   workspaces: state.workspaces || {},
-  spaces: state.spaces || {},
+  spaces: selectPersistedSpaces(state.spaces || {}),
   appearanceBySpace: state.appearanceBySpace || {
     home: null,
     workspaces: null,
@@ -256,6 +333,18 @@ export const normalizeUnifiedSettingsSnapshot = (settings = {}) => {
 
   if (canonical.ui) {
     canonical.ui = selectPersistedUi(canonical.ui);
+  }
+  if (canonical.navigation) {
+    canonical.navigation = selectPersistedNavigation(canonical.navigation);
+  }
+  if (canonical.floatingWidgets) {
+    canonical.floatingWidgets = selectPersistedFloatingWidgets(canonical.floatingWidgets);
+  }
+  if (canonical.spaces) {
+    canonical.spaces = selectPersistedSpaces(canonical.spaces);
+  }
+  if (canonical.channels) {
+    canonical.channels = selectPersistedChannels(canonical.channels);
   }
 
   return canonical;

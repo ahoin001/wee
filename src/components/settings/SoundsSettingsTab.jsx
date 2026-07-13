@@ -207,14 +207,20 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
     }
   }, [removeSound, showMessage]);
 
-  // Handle sound testing
-  const handleTestSound = useCallback((category, sound) => {
+  // Handle sound testing — Preview/Stop resets when playback ends naturally.
+  const handleTestSound = useCallback(async (category, sound) => {
     stopPreview();
     stopSfx({ fadeMs: 0 });
-    setTesting({});
-
-    playPreview(sound.url, sound.volume ?? 0.5);
     setTesting({ [sound.id]: true });
+    try {
+      await playPreview(sound.url, sound.volume ?? 0.5, {
+        onEnded: () => {
+          setTesting((prev) => (prev[sound.id] ? {} : prev));
+        },
+      });
+    } catch {
+      setTesting({});
+    }
   }, []);
 
   const handleStopTest = useCallback((soundId) => {
@@ -282,7 +288,11 @@ const SoundsSettingsTab = React.memo(({ settingsActiveTabId } = {}) => {
         const sounds = getSoundsByCategory(category);
         const s = sounds.find((x) => x.id === soundId);
         if (s?.url) {
-          playPreview(s.url, volume);
+          void playPreview(s.url, volume, {
+            onEnded: () => {
+              setTesting((prev) => (prev[soundId] ? {} : prev));
+            },
+          });
         }
       }
     } catch (err) {

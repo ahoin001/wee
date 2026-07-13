@@ -1,11 +1,13 @@
-import React, { forwardRef, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import {
   createWeeSideNavPeekVariants,
+  createWeeSideNavShellMotion,
   createWeeTransition,
   useWeeMotion,
 } from '../../design/weeMotion';
+import { PLAYFUL_AMPLITUDE } from '../../design/playfulMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import WeeGlassPill from './WeeGlassPill';
 import WeePillFloorShadow from './WeePillFloorShadow';
@@ -24,7 +26,7 @@ export const WEE_SIDE_NAV_COMPACT_PX = 56;
 
 /**
  * Edge-peek prev/next control.
- * - `variant="wee"` (default): Pill Morph Reveal — compact glass nub → full control (space-rail twin).
+ * - `variant="wee"` (default): tucked idle + friendly bounce peek → morph expand on hover.
  * - `variant="classic"`: legacy translate-x edge slide.
  */
 const WeeGooeySideNavButton = forwardRef(function WeeGooeySideNavButton(
@@ -57,6 +59,13 @@ const WeeGooeySideNavButton = forwardRef(function WeeGooeySideNavButton(
   const peekX = side === 'left' ? -WEE_SIDE_NAV_PEEK_PX : WEE_SIDE_NAV_PEEK_PX;
   const pressEnabled = ribbonTap && !reducedMotion;
 
+  useEffect(() => {
+    if (!isOpen || disabled) {
+      setHovered(false);
+      setFocused(false);
+    }
+  }, [isOpen, disabled]);
+
   const classicShellTransition = useMemo(() => {
     if (reducedMotion) {
       return createWeeTransition('railNudge', { reducedMotion: true });
@@ -77,15 +86,28 @@ const WeeGooeySideNavButton = forwardRef(function WeeGooeySideNavButton(
     [side, pillClose, pillOpen, reducedMotion]
   );
 
+  const weeShellMotion = useMemo(
+    () =>
+      createWeeSideNavShellMotion(side, {
+        revealed,
+        reducedMotion,
+        tuckPx: PLAYFUL_AMPLITUDE.sideNavIdleTuckPx,
+        peekPx: PLAYFUL_AMPLITUDE.sideNavIdlePeekPx,
+      }),
+    [side, revealed, reducedMotion]
+  );
+
   const presenceInitial = useMemo(() => {
     if (isClassic) {
       return reducedMotion
         ? { opacity: 0, x: peekX, y: '-50%' }
         : { opacity: 0, scale: 0.88, x: peekX * 1.12, y: '-50%' };
     }
+    const tuck =
+      (side === 'left' ? -1 : 1) * PLAYFUL_AMPLITUDE.sideNavIdleTuckPx;
     return reducedMotion
-      ? { opacity: 0, x: side === 'left' ? -12 : 12, y: '-50%' }
-      : { opacity: 0, scale: 0.86, x: side === 'left' ? -18 : 18, y: '-50%' };
+      ? { opacity: 0, x: tuck, y: '-50%' }
+      : { opacity: 0, scale: 0.9, x: tuck * 1.15, y: '-50%' };
   }, [isClassic, peekX, reducedMotion, side]);
 
   const presenceExit = useMemo(() => {
@@ -100,16 +122,23 @@ const WeeGooeySideNavButton = forwardRef(function WeeGooeySideNavButton(
             transition: createWeeTransition('pillClose', { reducedMotion }),
           };
     }
+    const tuck =
+      (side === 'left' ? -1 : 1) * PLAYFUL_AMPLITUDE.sideNavIdleTuckPx;
     return reducedMotion
-      ? { opacity: 0, x: side === 'left' ? -12 : 12, y: '-50%', transition: { duration: 0.1 } }
+      ? { opacity: 0, x: tuck, y: '-50%', transition: { duration: 0.1 } }
       : {
           opacity: 0,
           scale: 0.9,
-          x: side === 'left' ? -14 : 14,
+          x: tuck * 1.1,
           y: '-50%',
           transition: createWeeTransition('pillClose', { reducedMotion }),
         };
   }, [isClassic, peekX, reducedMotion, side]);
+
+  const clearReveal = () => {
+    setHovered(false);
+    setFocused(false);
+  };
 
   return (
     <AnimatePresence>
@@ -139,17 +168,13 @@ const WeeGooeySideNavButton = forwardRef(function WeeGooeySideNavButton(
                   x: revealed ? 0 : peekX,
                   y: '-50%',
                 }
-              : {
-                  opacity: 1,
-                  scale: 1,
-                  x: 0,
-                  y: '-50%',
-                }
+              : weeShellMotion.animate
           }
           exit={presenceExit}
-          transition={isClassic ? classicShellTransition : createWeeTransition('pillOpen', { reducedMotion })}
+          transition={isClassic ? classicShellTransition : weeShellMotion.transition}
           onHoverStart={() => setHovered(true)}
           onHoverEnd={() => setHovered(false)}
+          onPointerLeave={clearReveal}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onClick={onClick}
@@ -176,7 +201,7 @@ const WeeGooeySideNavButton = forwardRef(function WeeGooeySideNavButton(
               />
               <WeeGlassPill
                 motion
-                initial={false}
+                initial="closed"
                 animate={revealed ? 'open' : 'closed'}
                 variants={weePeekVariants}
                 className="wee-side-nav-btn__surface wee-side-nav-btn__surface--wee relative z-10 !shadow-none overflow-hidden"

@@ -65,7 +65,16 @@ function HomeSlot({ slot, channelId, arrangeMode = false, punchMode = false, sel
     );
   }
 
-  return <Channel {...channelProps} {...rest} />;
+  return (
+    <Channel
+      {...channelProps}
+      {...rest}
+      arrangeMode={arrangeMode}
+      punchMode={punchMode}
+      selected={selected}
+      onArrangeSelect={onArrangeSelect}
+    />
+  );
 }
 
 HomeSlot.propTypes = {

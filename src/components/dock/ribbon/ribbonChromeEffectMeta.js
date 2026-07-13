@@ -17,19 +17,115 @@ export const RIBBON_CHROME_EFFECTS = [
   'spectrum',
 ];
 
-/** @type {Record<string, { id: string, label: string, defaultIntensity: number, defaultSpeed: number }>} */
+/** Soft atmospheric modes that need a glass intensity boost to stay readable. */
+export const RIBBON_CHROME_GLASS_SOFT_MODES = [
+  'shimmer',
+  'pulse',
+  'aurora',
+  'ripple',
+  'scanline',
+  'frost',
+];
+
+/**
+ * @typedef {{
+ *   id: string,
+ *   label: string,
+ *   description: string,
+ *   defaultIntensity: number,
+ *   defaultSpeed: number,
+ *   defaultIntensityGlass?: number,
+ *   defaultSpeedGlass?: number,
+ * }} RibbonChromeEffectMeta
+ */
+
+/** @type {Record<string, RibbonChromeEffectMeta>} */
 const META_BY_ID = {
-  none: { id: 'none', label: 'None', defaultIntensity: 0.55, defaultSpeed: 1 },
-  shimmer: { id: 'shimmer', label: 'Shimmer', defaultIntensity: 0.55, defaultSpeed: 1 },
-  pulse: { id: 'pulse', label: 'Pulse', defaultIntensity: 0.6, defaultSpeed: 0.85 },
-  neonTrace: { id: 'neonTrace', label: 'Neon trace', defaultIntensity: 0.65, defaultSpeed: 0.7 },
-  aurora: { id: 'aurora', label: 'Aurora', defaultIntensity: 0.5, defaultSpeed: 0.75 },
-  ripple: { id: 'ripple', label: 'Ripple', defaultIntensity: 0.45, defaultSpeed: 0.65 },
-  edgeEmber: { id: 'edgeEmber', label: 'Edge ember', defaultIntensity: 0.55, defaultSpeed: 0.8 },
-  scanline: { id: 'scanline', label: 'Scanline', defaultIntensity: 0.35, defaultSpeed: 0.55 },
-  sparkle: { id: 'sparkle', label: 'Sparkle', defaultIntensity: 0.5, defaultSpeed: 1.1 },
-  frost: { id: 'frost', label: 'Frost', defaultIntensity: 0.45, defaultSpeed: 0.7 },
-  spectrum: { id: 'spectrum', label: 'Spectrum', defaultIntensity: 0.5, defaultSpeed: 0.6 },
+  none: {
+    id: 'none',
+    label: 'None',
+    description: 'No chrome surface effect.',
+    defaultIntensity: 0.55,
+    defaultSpeed: 1,
+  },
+  shimmer: {
+    id: 'shimmer',
+    label: 'Shimmer',
+    description: 'A soft highlight sweep across the ribbon face.',
+    defaultIntensity: 0.55,
+    defaultSpeed: 1,
+    defaultIntensityGlass: 0.7,
+  },
+  pulse: {
+    id: 'pulse',
+    label: 'Pulse',
+    description: 'Gentle heartbeat glow that fills the silhouette.',
+    defaultIntensity: 0.65,
+    defaultSpeed: 0.85,
+    defaultIntensityGlass: 0.8,
+  },
+  neonTrace: {
+    id: 'neonTrace',
+    label: 'Neon trace',
+    description: 'A dashed neon edge that travels the ribbon outline.',
+    defaultIntensity: 0.65,
+    defaultSpeed: 0.7,
+  },
+  aurora: {
+    id: 'aurora',
+    label: 'Aurora',
+    description: 'Drifting color bands layered over the ribbon.',
+    defaultIntensity: 0.65,
+    defaultSpeed: 0.9,
+    defaultIntensityGlass: 0.8,
+    defaultSpeedGlass: 0.95,
+  },
+  ripple: {
+    id: 'ripple',
+    label: 'Ripple',
+    description: 'Soft caustic pools that slowly breathe.',
+    defaultIntensity: 0.55,
+    defaultSpeed: 0.7,
+    defaultIntensityGlass: 0.72,
+  },
+  edgeEmber: {
+    id: 'edgeEmber',
+    label: 'Edge ember',
+    description: 'Warm ember glow pooled toward the ribbon edge.',
+    defaultIntensity: 0.55,
+    defaultSpeed: 0.8,
+  },
+  scanline: {
+    id: 'scanline',
+    label: 'Scanline',
+    description: 'A thin scan bar sweeping the ribbon body.',
+    defaultIntensity: 0.5,
+    defaultSpeed: 0.6,
+    defaultIntensityGlass: 0.65,
+  },
+  sparkle: {
+    id: 'sparkle',
+    label: 'Sparkle',
+    description: 'Twinkling points along the top ribbon edge.',
+    defaultIntensity: 0.5,
+    defaultSpeed: 1.1,
+  },
+  frost: {
+    id: 'frost',
+    label: 'Frost',
+    description: 'Soft ice veil with a cool crystalline rim.',
+    defaultIntensity: 0.6,
+    defaultSpeed: 0.75,
+    defaultIntensityGlass: 0.78,
+    defaultSpeedGlass: 0.8,
+  },
+  spectrum: {
+    id: 'spectrum',
+    label: 'Spectrum',
+    description: 'Slow hue shift across the ribbon fill and edge.',
+    defaultIntensity: 0.5,
+    defaultSpeed: 0.6,
+  },
 };
 
 /** Milliseconds after unhover before Idle-only FX start animating. */
@@ -38,12 +134,37 @@ export const RIBBON_CHROME_IDLE_DELAY_MS = 2500;
 /** Hover dampen multiplier when Idle only is off (keeps FX from fighting gooey buttons). */
 export const RIBBON_CHROME_HOVER_DAMPEN = 0.55;
 
+/** Runtime glass intensity multiplier applied on top of user intensity for soft modes. */
+export const RIBBON_CHROME_GLASS_INTENSITY_MULT = 1.4;
+
 /**
  * @param {string} [id]
- * @returns {{ id: string, label: string, defaultIntensity: number, defaultSpeed: number }}
+ * @returns {RibbonChromeEffectMeta}
  */
 export function getRibbonChromeEffectMeta(id) {
   return META_BY_ID[id] || META_BY_ID.none;
+}
+
+/**
+ * Defaults applied when the user picks a chrome mode.
+ * Soft modes use glass-aware intensity/speed when glass ribbon is on.
+ * @param {string} [id]
+ * @param {{ glass?: boolean }} [opts]
+ * @returns {{ intensity: number, speed: number }}
+ */
+export function getRibbonChromeEffectDefaults(id, { glass = false } = {}) {
+  const meta = getRibbonChromeEffectMeta(id);
+  const useGlass = Boolean(glass) && RIBBON_CHROME_GLASS_SOFT_MODES.includes(meta.id);
+  return {
+    intensity: useGlass
+      ? (meta.defaultIntensityGlass ?? meta.defaultIntensity)
+      : meta.defaultIntensity,
+    speed: useGlass ? (meta.defaultSpeedGlass ?? meta.defaultSpeed) : meta.defaultSpeed,
+  };
+}
+
+export function isRibbonChromeGlassSoftMode(id) {
+  return RIBBON_CHROME_GLASS_SOFT_MODES.includes(id);
 }
 
 /** Options for WeeSegmentedControl / pickers (excludes nothing — includes None). */

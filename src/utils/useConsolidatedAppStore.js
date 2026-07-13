@@ -356,6 +356,7 @@ useConsolidatedAppStore = create(
             kenBurnsAnimationType: 'both',
             kenBurnsCrossfadeReturn: true,
             kenBurnsTransitionType: 'cross-dissolve',
+            focusRecedeEnabled: true,
           },
           
           /** Per shell space: `home` + mirror of active secondary profile under `workspaces` */

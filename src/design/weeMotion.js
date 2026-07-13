@@ -309,6 +309,62 @@ export function createWeeSideNavPeekVariants(
 }
 
 /**
+ * Outer shell motion for Wee edge page buttons.
+ * Idle: tucked mostly off-screen with a soft repeating peek bounce.
+ * Revealed (hover/focus): fully on-screen; morph open is handled on the glass pill.
+ *
+ * @param {'left'|'right'} side
+ * @param {{ revealed?: boolean, reducedMotion?: boolean, tuckPx?: number, peekPx?: number }} [opts]
+ */
+export function createWeeSideNavShellMotion(
+  side,
+  {
+    revealed = false,
+    reducedMotion = false,
+    tuckPx = 40,
+    peekPx = 14,
+  } = {}
+) {
+  const dir = side === 'left' ? -1 : 1;
+  const tuck = Math.abs(tuckPx) * dir;
+  const peek = Math.abs(peekPx) * dir;
+
+  if (revealed) {
+    return {
+      animate: { opacity: 1, scale: 1, x: 0, y: '-50%' },
+      transition: createWeeTransition('pillOpen', { reducedMotion }),
+    };
+  }
+
+  if (reducedMotion) {
+    return {
+      animate: { opacity: 0.88, scale: 1, x: tuck, y: '-50%' },
+      transition: { duration: 0.12 },
+    };
+  }
+
+  return {
+    animate: {
+      opacity: 1,
+      scale: 1,
+      x: [tuck, peek, tuck],
+      y: '-50%',
+    },
+    transition: {
+      x: {
+        duration: 1.15,
+        times: [0, 0.42, 1],
+        ease: ['easeOut', 'easeInOut'],
+        repeat: Infinity,
+        repeatDelay: 2.75,
+      },
+      opacity: createWeeTransition('railNudge'),
+      scale: createWeeTransition('railNudge'),
+    },
+  };
+}
+
+/**
  * Space rail rows, divider, wand — matches SortableSpaceRow stagger.
  */
 export function createWeeShellRailItemVariants(pillOpen, reducedMotion) {

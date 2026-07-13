@@ -7,6 +7,7 @@
 | [release-guide.md](release-guide.md) | Building and publishing releases |
 | [installer.md](installer.md) | Custom installer script notes |
 | [style-architecture-map.md](style-architecture-map.md) | UI/style structure reference |
+| [wee-chrome-style-reference.md](wee-chrome-style-reference.md) | Pill Morph / glass chrome look & motion reference for building matching UI |
 | [perf-smoke-checklist.md](perf-smoke-checklist.md) | Performance smoke checks |
 
 Root [README.md](../README.md) is the main project overview. [CHANGELOG.md](../CHANGELOG.md) tracks releases.

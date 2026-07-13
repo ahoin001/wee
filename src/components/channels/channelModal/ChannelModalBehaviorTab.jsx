@@ -17,7 +17,6 @@ import {
   WeeSettingsCollapsibleSection,
 } from '../../../ui/wee';
 import { createWeeTransition } from '../../../design/weeMotion';
-import { playPreview } from '../../../utils/soundPlayback';
 import { getAutoPerformancePauseHint } from '../../../utils/launch/isIntensiveLaunchTarget';
 
 function ChannelModalBehaviorTab({
@@ -40,6 +39,7 @@ function ChannelModalBehaviorTab({
   getSoundsByCategory,
   clearHoverSoundSelection,
   handleTestHoverSound,
+  handleTestLibraryHoverSound,
   handleHoverSoundVolumeChange,
   handleHoverSoundSelect,
   handleHoverSoundUpload,
@@ -154,11 +154,11 @@ function ChannelModalBehaviorTab({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      playPreview(sound.url, sound.volume ?? 0.5);
+                      handleTestLibraryHoverSound?.(sound);
                     }}
                     className="channel-min-w-60"
                   >
-                    Test
+                    {hoverSoundPreviewPlaying && selectedHoverSoundId === sound.id ? 'Stop' : 'Test'}
                   </WButton>
 
                   <div className="channel-row-gap-4 channel-fill">
@@ -477,6 +477,7 @@ ChannelModalBehaviorTab.propTypes = {
   getSoundsByCategory: PropTypes.func.isRequired,
   clearHoverSoundSelection: PropTypes.func.isRequired,
   handleTestHoverSound: PropTypes.func.isRequired,
+  handleTestLibraryHoverSound: PropTypes.func,
   handleHoverSoundVolumeChange: PropTypes.func.isRequired,
   handleHoverSoundSelect: PropTypes.func.isRequired,
   handleHoverSoundUpload: PropTypes.func.isRequired,

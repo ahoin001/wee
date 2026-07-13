@@ -15,7 +15,7 @@ import ClassicDockPanel from './dock/ClassicDockPanel';
 import RibbonDockPanel from './dock/RibbonDockPanel';
 import AnimationsDockPanel from './dock/AnimationsDockPanel';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
-import { getRibbonChromeEffectMeta } from '../dock/ribbon/ribbonChromeEffectMeta';
+import { getRibbonChromeEffectDefaults } from '../dock/ribbon/ribbonChromeEffectMeta';
 import './surfaceStyles.css';
 
 const DOCK_SUB_TABS = [
@@ -34,7 +34,7 @@ const DOCK_SUB_TABS = [
   {
     id: 'wii-ribbon',
     label: 'Wii ribbon',
-    description: 'Glow & glass',
+    description: 'Glow, glass & chrome',
     icon: Layers,
   },
   {
@@ -255,17 +255,18 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
   const handleChromeEffectChange = useCallback(
     (value) => {
-      const meta = getRibbonChromeEffectMeta(value);
+      const glass = Boolean(ribbon?.glassWiiRibbon);
+      const defaults = getRibbonChromeEffectDefaults(value, { glass });
       setRibbonState({
         chromeEffect: value,
-        chromeEffectIntensity: meta.defaultIntensity,
-        chromeEffectSpeed: meta.defaultSpeed,
+        chromeEffectIntensity: defaults.intensity,
+        chromeEffectSpeed: defaults.speed,
       });
       saveSetting('ribbon', 'chromeEffect', value);
-      saveSetting('ribbon', 'chromeEffectIntensity', meta.defaultIntensity);
-      saveSetting('ribbon', 'chromeEffectSpeed', meta.defaultSpeed);
+      saveSetting('ribbon', 'chromeEffectIntensity', defaults.intensity);
+      saveSetting('ribbon', 'chromeEffectSpeed', defaults.speed);
     },
-    [saveSetting, setRibbonState]
+    [ribbon?.glassWiiRibbon, saveSetting, setRibbonState]
   );
 
   const handleChromeEffectIntensityChange = useCallback(
@@ -396,6 +397,22 @@ const UnifiedDockSettingsTab = React.memo(() => {
     [saveSetting, setDockState]
   );
 
+  const handleParticleSpawnRateChange = useCallback(
+    (value) => {
+      setDockState({ particleSpawnRate: value });
+      saveSetting('dock', 'particleSpawnRate', value);
+    },
+    [saveSetting, setDockState]
+  );
+
+  const handleParticleSizeDecayChange = useCallback(
+    (value) => {
+      setDockState({ particleSizeDecay: value });
+      saveSetting('dock', 'particleSizeDecay', value);
+    },
+    [saveSetting, setDockState]
+  );
+
   const handleParticleClipPathFollowChange = useCallback(
     (checked) => {
       setDockState({ particleClipPathFollow: checked });
@@ -461,7 +478,6 @@ const UnifiedDockSettingsTab = React.memo(() => {
         return (
           <RibbonDockPanel
             ribbon={ribbon}
-            glassWiiRibbon={ribbon?.glassWiiRibbon ?? false}
             onGlassWiiRibbonChange={handleGlassWiiRibbonChange}
             onRibbonHoverAnimationChange={handleRibbonHoverAnimationChange}
             onDynamicRibbonColorEnabledChange={handleDynamicRibbonColorEnabledChange}
@@ -496,6 +512,8 @@ const UnifiedDockSettingsTab = React.memo(() => {
             onParticleGravityChange={handleParticleGravityChange}
             onParticleFadeSpeedChange={handleParticleFadeSpeedChange}
             onParticleLifetimeChange={handleParticleLifetimeChange}
+            onParticleSpawnRateChange={handleParticleSpawnRateChange}
+            onParticleSizeDecayChange={handleParticleSizeDecayChange}
             onParticleUseAdaptiveColorChange={handleParticleUseAdaptiveColorChange}
             onParticleColorIntensityChange={handleParticleColorIntensityChange}
             onParticleColorVariationChange={handleParticleColorVariationChange}

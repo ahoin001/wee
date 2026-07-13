@@ -7,9 +7,16 @@ import WSelect from '../../../ui/WSelect';
 import WToggle from '../../../ui/WToggle';
 import { WeeModalFieldCard, WeeRevealWhen, WeeSettingsCollapsibleSection } from '../../../ui/wee';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
+import {
+  getParticleDirectionOptions,
+  getParticleEffectTypeOptions,
+} from '../../../design/particleEffectMeta';
 
 const TOGGLE_TITLE =
   '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
+
+const EFFECT_TYPE_OPTIONS = getParticleEffectTypeOptions();
+const DIRECTION_OPTIONS = getParticleDirectionOptions();
 
 function AnimationsDockPanel({
   dock,
@@ -23,6 +30,8 @@ function AnimationsDockPanel({
   onParticleGravityChange,
   onParticleFadeSpeedChange,
   onParticleLifetimeChange,
+  onParticleSpawnRateChange,
+  onParticleSizeDecayChange,
   onParticleUseAdaptiveColorChange,
   onParticleColorIntensityChange,
   onParticleColorVariationChange,
@@ -69,15 +78,7 @@ function AnimationsDockPanel({
               <WSelect
                 value={dock?.particleEffectType ?? 'normal'}
                 onChange={onParticleEffectTypeChange}
-                options={[
-                  { value: 'normal', label: 'Normal particles' },
-                  { value: 'stars', label: 'Stars' },
-                  { value: 'sparkles', label: 'Sparkles' },
-                  { value: 'fireflies', label: 'Fireflies' },
-                  { value: 'dust', label: 'Dust' },
-                  { value: 'energy', label: 'Energy orbs' },
-                  { value: 'magic', label: 'Magic sparkles' },
-                ]}
+                options={EFFECT_TYPE_OPTIONS}
               />
             </div>
 
@@ -88,15 +89,7 @@ function AnimationsDockPanel({
               <WSelect
                 value={dock?.particleDirection ?? 'upward'}
                 onChange={onParticleDirectionChange}
-                options={[
-                  { value: 'upward', label: 'Upward' },
-                  { value: 'downward', label: 'Downward' },
-                  { value: 'leftward', label: 'Leftward' },
-                  { value: 'rightward', label: 'Rightward' },
-                  { value: 'random', label: 'Random' },
-                  { value: 'outward', label: 'Outward from center' },
-                  { value: 'inward', label: 'Inward to center' },
-                ]}
+                options={DIRECTION_OPTIONS}
               />
             </div>
 
@@ -197,11 +190,43 @@ function AnimationsDockPanel({
         <WeeSettingsCollapsibleSection
           icon={Zap}
           title="Advanced particles"
-          description="Color adaptation and rotation when particles are on."
+          description="Spawn rate, size decay, color adaptation, and rotation."
           defaultOpen={false}
         >
           <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
             <div className="surface-controls">
+              <div>
+                <Text variant="body" className="mb-2 text-secondary">
+                  Spawn rate
+                </Text>
+                <Slider
+                  value={dock?.particleSpawnRate ?? 60}
+                  min={10}
+                  max={120}
+                  step={5}
+                  onChange={onParticleSpawnRateChange}
+                />
+                <Text variant="caption" className="surface-caption">
+                  {dock?.particleSpawnRate ?? 60}/min
+                </Text>
+              </div>
+
+              <div>
+                <Text variant="body" className="mb-2 text-secondary">
+                  Size decay
+                </Text>
+                <Slider
+                  value={dock?.particleSizeDecay ?? 0.02}
+                  min={0}
+                  max={0.1}
+                  step={0.005}
+                  onChange={onParticleSizeDecayChange}
+                />
+                <Text variant="caption" className="surface-caption">
+                  {dock?.particleSizeDecay ?? 0.02}
+                </Text>
+              </div>
+
               <div className="surface-row-between">
                 <div>
                   <Text variant="body" className="mb-1 text-secondary">
@@ -290,8 +315,8 @@ function AnimationsDockPanel({
               Features
             </Text>
             <Text variant="caption" className="text-secondary">
-              Border path follow, energy orbs, magic sparkles, and multi-direction motion are available in the controls
-              above.
+              Border path follow, paws, water drops, energy orbs, and multi-direction motion are available above.
+              Ribbon chrome FX (shimmer, aurora, …) live under Dock → Wii Ribbon.
             </Text>
           </div>
         </div>
@@ -312,6 +337,8 @@ AnimationsDockPanel.propTypes = {
   onParticleGravityChange: PropTypes.func.isRequired,
   onParticleFadeSpeedChange: PropTypes.func.isRequired,
   onParticleLifetimeChange: PropTypes.func.isRequired,
+  onParticleSpawnRateChange: PropTypes.func.isRequired,
+  onParticleSizeDecayChange: PropTypes.func.isRequired,
   onParticleUseAdaptiveColorChange: PropTypes.func.isRequired,
   onParticleColorIntensityChange: PropTypes.func.isRequired,
   onParticleColorVariationChange: PropTypes.func.isRequired,

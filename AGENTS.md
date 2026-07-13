@@ -42,6 +42,8 @@ Compact glass control → fluid expand on hover/focus using `WeeGlassPill` + `pi
 | Space rail (vertical) | `createWeeShellRailContainerVariants` | `WeeGooeySpacePill` |
 | Home page edge nav (horizontal) | `createWeeSideNavPeekVariants` | `WeeGooeySideNavButton` (`variant="wee"`) |
 
+Full look/feel + styling recipe sheet: [`docs/wee-chrome-style-reference.md`](docs/wee-chrome-style-reference.md).
+
 - Do **not** invent one-off width/height springs for peeks or expanding chrome — extend these helpers.
 - Icon press inside morph shells uses `WEE_GOOEY_ICON_PRESS` + `createWeeTransition('press')` (`WeeGooeyIconButton`).
 - Classic slide peeks (`variant="classic"`) are a preserved legacy path; new work defaults to Wee morph.
@@ -103,6 +105,7 @@ Timing source: `--wee-collapse-duration`, `--wee-collapse-duration-reduced`, `--
 | Home grid tile switcher | `src/components/home-grid/` — `HomeSlot` dispatches via `slotKindRegistry.js` (`HOME_SLOT_KINDS`); first widget kind is `adminQuickAccess` (`AdminQuickAccessSlot`). Size presets live in `homeSlotSizePresets.js`; span occupancy in `homeGridOccupancy.js` |
 | Admin Quick Access (Home) | Shared actions SSOT: `floatingWidgets.adminPanel.config` + `normalizeAdminPanelConfig` / `executeAdminCommand`. Place/resize/remove in Live Board Studio (`HomeBoardArrangeBar`) |
 | Live Board Studio (arrange Home) | `ui.homeBoardArrangeMode` / `ui.homeBoardPunchMode` / `ui.homeBoardSelectedSlotIndex` (transient) via `useHomeBoardArrange`; toolbar `HomeBoardArrangeBar`; entry via right-click on the Home grid or Settings → Channel & layout → Arrange on Home |
+| Settings persistence SSOT | `unified-data.json` ← `useUnifiedSettingsPersistence` + [`settingsPersistenceContract.js`](src/utils/store/settingsPersistenceContract.js) (ui/nav/widgets/spaces/channels sanitized snapshots). Main patch merge: [`shared/settings-patch-merge.cjs`](shared/settings-patch-merge.cjs). Do **not** use unused `persistConfig.js` / localStorage as a second SSOT |
 
 ## Electron
 

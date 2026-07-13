@@ -10,12 +10,17 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Prefer box-shadow over filter for hover glow — CSS filter promotes layers and
+     can make sibling tiles flash when one channel is hovered (Chromium compositing). */
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 180px;
   min-height: 110px;
   aspect-ratio: 2 / 1;
   max-width: 100%;
   overflow: hidden;
+  isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .channel-tap-layer {
@@ -30,33 +35,29 @@
 }
 
 .channel:hover, .channel:focus {
-  transform: scale(1.06);
+  transform: translateZ(0) scale(1.06);
   box-shadow: var(--shadow-soft-hover), var(--shadow-hover-glow);
-  filter: var(--filter-hover-glow);
 }
 
 /* Gooey Framer hover owns transform; keep legacy CSS only when gooey motion is off. */
 .channel.channel--gooey-motion:hover,
 .channel.channel--gooey-motion:focus {
-  transform: none;
+  transform: translateZ(0);
 }
 
 .channel.channel--gooey-motion.channel--gooey-glow:hover,
 .channel.channel--gooey-motion.channel--gooey-glow:focus {
   box-shadow: var(--shadow-soft-hover), var(--shadow-hover-glow);
-  filter: var(--filter-hover-glow);
 }
 
 .channel.channel--gooey-motion:not(.channel--gooey-glow):hover,
 .channel.channel--gooey-motion:not(.channel--gooey-glow):focus {
   box-shadow: var(--shadow-md);
-  filter: none;
 }
 
 .channel:active {
-  transform: none;
+  transform: translateZ(0);
   box-shadow: var(--shadow-md);
-  filter: none;
 }
 
 /* Soft launch choreography: brief press-down before the real launch fires (Channel.jsx handleTileClick). */
@@ -109,17 +110,16 @@
 
 .channel.wii-mode-tile:hover,
 .channel.wii-mode-tile:focus {
-  transform: scale(1.03);
+  transform: translateZ(0) scale(1.03);
   box-shadow:
     0 10px 22px hsl(var(--color-pure-black) / 0.2),
     var(--shadow-hover-glow),
     inset 0 1px 0 hsl(var(--color-pure-white) / 0.9);
-  filter: var(--filter-hover-glow);
 }
 
 .channel.wii-mode-tile.channel--gooey-motion:hover,
 .channel.wii-mode-tile.channel--gooey-motion:focus {
-  transform: none;
+  transform: translateZ(0);
 }
 
 .channel.wii-mode-tile.channel--gooey-motion.channel--gooey-glow:hover,
@@ -128,12 +128,13 @@
     0 10px 22px hsl(var(--color-pure-black) / 0.2),
     var(--shadow-hover-glow),
     inset 0 1px 0 hsl(var(--color-pure-white) / 0.9);
-  filter: var(--filter-hover-glow);
 }
 
 .channel.wii-mode-tile.channel--gooey-motion:not(.channel--gooey-glow):hover,
 .channel.wii-mode-tile.channel--gooey-motion:not(.channel--gooey-glow):focus {
-  filter: none;
+  box-shadow:
+    0 10px 22px hsl(var(--color-pure-black) / 0.2),
+    inset 0 1px 0 hsl(var(--color-pure-white) / 0.9);
 }
 
 .channel.wii-mode-tile .channel-media {
@@ -151,9 +152,8 @@
 }
 
 .channel.empty.wii-mode-tile:hover {
-  transform: scale(1.02);
+  transform: translateZ(0) scale(1.02);
   box-shadow: 0 8px 16px hsl(var(--color-pure-black) / 0.16), var(--shadow-hover-glow) !important;
-  filter: var(--filter-hover-glow);
 }
 
 .channel.empty {
@@ -199,9 +199,8 @@
     color-mix(in srgb, hsl(var(--surface-secondary)) 66%, hsl(var(--primary)) 34%)
   ) !important;
   opacity: 0.92;
-  transform: scale(1.02);
+  transform: translateZ(0) scale(1.02);
   box-shadow: var(--shadow-soft-hover), var(--shadow-hover-glow) !important;
-  filter: var(--filter-hover-glow);
 }
 
 /* Channel content */

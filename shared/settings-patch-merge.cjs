@@ -27,6 +27,19 @@ function shouldIgnoreEmptySlotMapPatch(patchVal, baseVal) {
   return Object.keys(patchVal).length === 0 && Object.keys(baseVal).length > 0;
 }
 
+/**
+ * Empty `slots: []` must not wipe a populated board (same class of bug as empty maps).
+ * Arrays are replaced wholesale when present; this guard only blocks accidental empties.
+ */
+function shouldIgnoreEmptySlotsPatch(patchSlots, baseSlots) {
+  return (
+    Array.isArray(patchSlots) &&
+    patchSlots.length === 0 &&
+    Array.isArray(baseSlots) &&
+    baseSlots.length > 0
+  );
+}
+
 function mergeSettingsPatch(base, patch) {
   if (!isPlainObject(base)) return isPlainObject(patch) ? { ...patch } : (patch ?? base);
   if (!isPlainObject(patch)) return patch === undefined ? base : patch;
@@ -38,6 +51,11 @@ function mergeSettingsPatch(base, patch) {
 
     if (CHANNEL_DATA_SLOT_KEYED_MAPS.has(key) && isPlainObject(pv)) {
       out[key] = shouldIgnoreEmptySlotMapPatch(pv, bv) ? bv : pv;
+      continue;
+    }
+
+    if (key === 'slots' && Array.isArray(pv)) {
+      out[key] = shouldIgnoreEmptySlotsPatch(pv, bv) ? bv : pv;
       continue;
     }
 
