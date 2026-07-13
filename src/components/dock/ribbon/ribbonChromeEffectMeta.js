@@ -36,6 +36,7 @@ export const RIBBON_CHROME_GLASS_SOFT_MODES = [
  *   defaultSpeed: number,
  *   defaultIntensityGlass?: number,
  *   defaultSpeedGlass?: number,
+ *   defaultGlowStrength?: number,
  * }} RibbonChromeEffectMeta
  */
 
@@ -67,9 +68,11 @@ const META_BY_ID = {
   neonTrace: {
     id: 'neonTrace',
     label: 'Neon trace',
-    description: 'A dashed neon edge that travels the ribbon outline.',
+    description: 'A light traces left→right along the ribbon bow, leaving a neon trail.',
     defaultIntensity: 0.65,
     defaultSpeed: 0.7,
+    /** Bloom / tip glow (0–1); separate from overall intensity. */
+    defaultGlowStrength: 0.7,
   },
   aurora: {
     id: 'aurora',
@@ -145,12 +148,15 @@ export function getRibbonChromeEffectMeta(id) {
   return META_BY_ID[id] || META_BY_ID.none;
 }
 
+/** Default neon-trace bloom when unset (0–1). */
+export const RIBBON_CHROME_DEFAULT_GLOW_STRENGTH = 0.7;
+
 /**
  * Defaults applied when the user picks a chrome mode.
  * Soft modes use glass-aware intensity/speed when glass ribbon is on.
  * @param {string} [id]
  * @param {{ glass?: boolean }} [opts]
- * @returns {{ intensity: number, speed: number }}
+ * @returns {{ intensity: number, speed: number, glowStrength: number }}
  */
 export function getRibbonChromeEffectDefaults(id, { glass = false } = {}) {
   const meta = getRibbonChromeEffectMeta(id);
@@ -160,6 +166,7 @@ export function getRibbonChromeEffectDefaults(id, { glass = false } = {}) {
       ? (meta.defaultIntensityGlass ?? meta.defaultIntensity)
       : meta.defaultIntensity,
     speed: useGlass ? (meta.defaultSpeedGlass ?? meta.defaultSpeed) : meta.defaultSpeed,
+    glowStrength: meta.defaultGlowStrength ?? RIBBON_CHROME_DEFAULT_GLOW_STRENGTH,
   };
 }
 

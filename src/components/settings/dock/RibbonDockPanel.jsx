@@ -187,6 +187,7 @@ function RibbonDockPanel({
   onChromeEffectChange,
   onChromeEffectIntensityChange,
   onChromeEffectSpeedChange,
+  onChromeEffectGlowStrengthChange,
   onChromeEffectIdleOnlyChange,
 }) {
   const glassOn = ribbon?.glassWiiRibbon ?? false;
@@ -198,6 +199,7 @@ function RibbonDockPanel({
   const chromeEffect = ribbon?.chromeEffect ?? 'none';
   const chromeIntensity = ribbon?.chromeEffectIntensity ?? 0.55;
   const chromeSpeed = ribbon?.chromeEffectSpeed ?? 1;
+  const chromeGlowStrength = ribbon?.chromeEffectGlowStrength ?? 0.7;
   const chromeIdleOnly = ribbon?.chromeEffectIdleOnly ?? false;
 
   return (
@@ -387,6 +389,19 @@ function RibbonDockPanel({
                   onChange={onChromeEffectSpeedChange}
                   ariaLabel="Chrome effect speed"
                 />
+                <WeeRevealWhen when={chromeEffect === 'neonTrace'}>
+                  <ScaleRow
+                    label="Glow strength"
+                    hint="Bloom and star-tip brightness for the neon tracer."
+                    valueDisplay={`${Math.round(chromeGlowStrength * 100)}%`}
+                    value={chromeGlowStrength}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onChange={onChromeEffectGlowStrengthChange}
+                    ariaLabel="Neon trace glow strength"
+                  />
+                </WeeRevealWhen>
                 <SettingsToggleFieldCard
                   hoverAccent="none"
                   titleClassName={TOGGLE_TITLE}
@@ -431,6 +446,7 @@ RibbonDockPanel.propTypes = {
   onChromeEffectChange: PropTypes.func.isRequired,
   onChromeEffectIntensityChange: PropTypes.func.isRequired,
   onChromeEffectSpeedChange: PropTypes.func.isRequired,
+  onChromeEffectGlowStrengthChange: PropTypes.func.isRequired,
   onChromeEffectIdleOnlyChange: PropTypes.func.isRequired,
 };
 

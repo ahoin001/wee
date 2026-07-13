@@ -264,6 +264,7 @@ useConsolidatedAppStore = create(
           chromeEffectIntensity: 0.55,
           chromeEffectSpeed: 1,
           chromeEffectIdleOnly: false,
+          chromeEffectGlowStrength: 0.7,
           ribbonButtonConfigs: [],
           presetsButtonConfig: {
             type: 'icon',
@@ -1912,6 +1913,7 @@ useConsolidatedAppStore = create(
               chromeEffectIntensity: 0.55,
               chromeEffectSpeed: 1,
               chromeEffectIdleOnly: false,
+              chromeEffectGlowStrength: 0.7,
               ribbonButtonConfigs: [],
               presetsButtonConfig: {
                 type: 'icon',

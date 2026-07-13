@@ -12,6 +12,7 @@ import {
   RIBBON_SILHOUETTE_PATH,
   RIBBON_SHINE_PATH,
   RIBBON_FULL_OUTLINE_PATH,
+  RIBBON_TOP_EDGE_PATH,
   sampleRibbonTopEdgePoints,
 } from './ribbonSilhouette';
 import {
@@ -19,6 +20,7 @@ import {
   RIBBON_CHROME_GLASS_INTENSITY_MULT,
   RIBBON_CHROME_GLASS_SOFT_MODES,
   RIBBON_CHROME_HOVER_DAMPEN,
+  RIBBON_CHROME_DEFAULT_GLOW_STRENGTH,
   isRibbonChromeEffectId,
 } from './ribbonChromeEffectMeta';
 import './RibbonChromeEffects.css';
@@ -121,6 +123,7 @@ function glowToRgba(glowColor, alpha) {
 
 const SPARKLE_POINTS = sampleRibbonTopEdgePoints(28).filter((_, i) => i % 3 === 0);
 const FROST_CRYSTAL_POINTS = sampleRibbonTopEdgePoints(18).filter((_, i) => i % 2 === 0);
+const NEON_STATIC_TIP = sampleRibbonTopEdgePoints(24)[10];
 
 /**
  * Path-masked chrome FX overlay.
@@ -130,6 +133,7 @@ function RibbonChromeEffects({
   effect = 'none',
   intensity = 0.55,
   speed = 1,
+  glowStrength = RIBBON_CHROME_DEFAULT_GLOW_STRENGTH,
   glowColor,
   hovered = false,
   idleOnly = false,
@@ -162,10 +166,14 @@ function RibbonChromeEffects({
   const hoverDampen = !idleOnly && hovered ? RIBBON_CHROME_HOVER_DAMPEN : 1;
   const clampedIntensity = Math.min(1, baseIntensity * glassBoost * hoverDampen);
   const clampedSpeed = Math.min(2, Math.max(0.25, speed ?? 1));
+  const clampedGlow = Math.min(1, Math.max(0, glowStrength ?? RIBBON_CHROME_DEFAULT_GLOW_STRENGTH));
   const durationSec = (2.4 / clampedSpeed).toFixed(2);
   const resolvedGlow = glowColor || DEFAULT_RIBBON_GLOW_HEX;
   const opacityFloor = glassSoft ? 0.34 : 0.22;
   const opacitySpan = glassSoft ? 0.58 : 0.5;
+  const neonTrailLen = 14 + clampedIntensity * 16;
+  const neonTipCore = 3.2 + clampedGlow * 4.5 + clampedIntensity * 1.2;
+  const neonTipBloom = neonTipCore * (2.2 + clampedGlow * 1.8);
 
   const styleVars = useMemo(
     () => ({
@@ -173,8 +181,18 @@ function RibbonChromeEffects({
       ['--ribbon-fx-duration']: `${durationSec}s`,
       ['--ribbon-fx-glow']: resolvedGlow,
       ['--ribbon-fx-opacity']: String(opacityFloor + clampedIntensity * opacitySpan),
+      ['--ribbon-fx-neon-trail']: String(neonTrailLen),
+      ['--ribbon-fx-neon-glow']: String(clampedGlow),
     }),
-    [clampedIntensity, durationSec, opacityFloor, opacitySpan, resolvedGlow]
+    [
+      clampedGlow,
+      clampedIntensity,
+      durationSec,
+      neonTrailLen,
+      opacityFloor,
+      opacitySpan,
+      resolvedGlow,
+    ]
   );
 
   const shimmerPeak = glowToRgba(resolvedGlow, 0.12 + clampedIntensity * 0.38);
@@ -200,8 +218,9 @@ function RibbonChromeEffects({
   const glowFilterId = `ribbon-fx-glow-${uid}`;
   const softBlurId = `ribbon-fx-soft-${uid}`;
   const emberGradId = `ribbon-fx-ember-${uid}`;
-  const neonDash = 10 + clampedIntensity * 16;
-  const neonGap = Math.max(8, 100 - neonDash);
+  const neonTipGlowId = `ribbon-fx-neon-tip-glow-${uid}`;
+  const neonCoreWidth = 1.4 + clampedIntensity * 1.6;
+  const neonUnderWidth = neonCoreWidth * (2.4 + clampedGlow * 1.6);
 
   const animClass = animate
     ? 'ribbon-chrome-effects--animate'
@@ -269,6 +288,15 @@ function RibbonChromeEffects({
             </feMerge>
           </filter>
 
+          <filter id={neonTipGlowId} x="-120%" y="-120%" width="340%" height="340%">
+            <feGaussianBlur stdDeviation={2 + clampedGlow * 7} result="tipBlur" />
+            <feMerge>
+              <feMergeNode in="tipBlur" />
+              <feMergeNode in="tipBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
           <filter id={softBlurId} x="-30%" y="-30%" width="160%" height="160%">
             <feGaussianBlur stdDeviation={softBlurStd} />
           </filter>
@@ -300,32 +328,81 @@ function RibbonChromeEffects({
         ) : null}
 
         {mode === 'neonTrace' ? (
-          <g>
+          <g className="ribbon-fx-neon-group" overflow="visible">
             <path
               className="ribbon-fx-neon-trace ribbon-fx-neon-trace--under"
-              d={RIBBON_FULL_OUTLINE_PATH}
+              d={RIBBON_TOP_EDGE_PATH}
               fill="none"
               stroke={resolvedGlow}
-              strokeWidth={3.5 + clampedIntensity * 3}
+              strokeWidth={neonUnderWidth}
               strokeLinecap="round"
               strokeLinejoin="round"
               filter={`url(#${glowFilterId})`}
               pathLength={100}
-              strokeDasharray={`${neonDash} ${neonGap}`}
-              opacity={0.35 + clampedIntensity * 0.35}
+              strokeDasharray={`${neonTrailLen} ${Math.max(1, 100 - neonTrailLen)}`}
+              opacity={0.28 + clampedGlow * 0.35 + clampedIntensity * 0.2}
+              style={{
+                ['--ribbon-fx-neon-trail']: String(neonTrailLen),
+              }}
             />
             <path
               className="ribbon-fx-neon-trace"
-              d={RIBBON_FULL_OUTLINE_PATH}
+              d={RIBBON_TOP_EDGE_PATH}
               fill="none"
               stroke={resolvedGlow}
-              strokeWidth={1.2 + clampedIntensity * 1.8}
+              strokeWidth={neonCoreWidth}
               strokeLinecap="round"
               strokeLinejoin="round"
               pathLength={100}
-              strokeDasharray={`${neonDash * 0.7} ${neonGap + neonDash * 0.3}`}
-              opacity={0.75 + clampedIntensity * 0.25}
+              strokeDasharray={`${neonTrailLen * 0.72} ${Math.max(1, 100 - neonTrailLen * 0.72)}`}
+              opacity={0.72 + clampedIntensity * 0.28}
+              style={{
+                ['--ribbon-fx-neon-trail']: String(neonTrailLen * 0.72),
+              }}
             />
+            <g
+              className="ribbon-fx-neon-tip"
+              filter={`url(#${neonTipGlowId})`}
+              opacity={0.85 + clampedGlow * 0.15}
+              transform={
+                animate
+                  ? undefined
+                  : `translate(${NEON_STATIC_TIP.x} ${NEON_STATIC_TIP.y})`
+              }
+            >
+              {animate ? (
+                <animateMotion
+                  dur={`${durationSec}s`}
+                  repeatCount="indefinite"
+                  path={RIBBON_TOP_EDGE_PATH}
+                  rotate="0"
+                />
+              ) : null}
+              {/* Soft bloom disc */}
+              <circle
+                cx={0}
+                cy={0}
+                r={neonTipBloom}
+                fill={glowToRgba(resolvedGlow, 0.22 + clampedGlow * 0.35)}
+              />
+              {/* 4-point star rays */}
+              <path
+                d={`M 0 ${-neonTipCore * 2.35} L ${neonTipCore * 0.42} 0 L 0 ${neonTipCore * 2.35} L ${-neonTipCore * 0.42} 0 Z`}
+                fill={glowToRgba(resolvedGlow, 0.75 + clampedGlow * 0.2)}
+              />
+              <path
+                d={`M ${-neonTipCore * 2.35} 0 L 0 ${-neonTipCore * 0.42} L ${neonTipCore * 2.35} 0 L 0 ${neonTipCore * 0.42} Z`}
+                fill={glowToRgba(resolvedGlow, 0.75 + clampedGlow * 0.2)}
+              />
+              {/* Hot white core */}
+              <circle cx={0} cy={0} r={neonTipCore * 0.55} fill={glowToRgba('#ffffff', 0.95)} />
+              <circle
+                cx={0}
+                cy={0}
+                r={neonTipCore * 0.95}
+                fill={glowToRgba(resolvedGlow, 0.55 + clampedGlow * 0.3)}
+              />
+            </g>
           </g>
         ) : null}
 
@@ -509,6 +586,7 @@ RibbonChromeEffects.propTypes = {
   effect: PropTypes.oneOf(RIBBON_CHROME_EFFECTS),
   intensity: PropTypes.number,
   speed: PropTypes.number,
+  glowStrength: PropTypes.number,
   glowColor: PropTypes.string,
   hovered: PropTypes.bool,
   idleOnly: PropTypes.bool,

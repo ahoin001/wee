@@ -23,14 +23,23 @@
   opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.45);
 }
 
-/* —— Neon (ping-pong) —— */
+/* —— Neon (left→right comet along top bow) —— */
 .ribbon-chrome-effects--animate .ribbon-fx-neon-trace {
-  animation: ribbon-fx-neon-dash var(--ribbon-fx-duration, 2.4s) linear infinite alternate;
+  animation: ribbon-fx-neon-dash var(--ribbon-fx-duration, 2.4s) linear infinite;
 }
 
 .ribbon-chrome-effects--static .ribbon-fx-neon-trace {
-  stroke-dashoffset: 28;
+  stroke-dashoffset: 18;
   opacity: var(--ribbon-fx-opacity, 0.5);
+}
+
+.ribbon-fx-neon-tip {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ribbon-chrome-effects--static .ribbon-fx-neon-tip {
+  opacity: calc(var(--ribbon-fx-opacity, 0.5) * 0.85);
 }
 
 /* —— Aurora —— */
@@ -176,11 +185,12 @@
 }
 
 @keyframes ribbon-fx-neon-dash {
+  /* Trail head rides with the tip: dash paints behind path progress 0→100. */
   from {
-    stroke-dashoffset: 100;
+    stroke-dashoffset: var(--ribbon-fx-neon-trail, 22);
   }
   to {
-    stroke-dashoffset: 0;
+    stroke-dashoffset: calc(var(--ribbon-fx-neon-trail, 22) - 100);
   }
 }
 

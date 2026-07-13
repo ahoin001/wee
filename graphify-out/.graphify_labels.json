@@ -180,5 +180,8 @@
   "178": "jszip",
   "179": "uuid",
   "180": "@types/react",
-  "181": "@vitejs/plugin-react"
+  "181": "@vitejs/plugin-react",
+  "182": "lucide-react",
+  "183": "spotify-web-api-js",
+  "184": "@tanstack/react-virtual"
 }
