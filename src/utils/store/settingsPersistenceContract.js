@@ -197,6 +197,7 @@ const selectPersistedUi = (ui = {}) => ({
   toggleDarkModeShortcut: ui.toggleDarkModeShortcut ?? '',
   toggleCustomCursorShortcut: ui.toggleCustomCursorShortcut ?? '',
   lowPowerMode: ui.lowPowerMode ?? false,
+  performancePauseOnGameLaunch: ui.performancePauseOnGameLaunch !== false,
   immersivePip: ui.immersivePip ?? false,
   showDock: ui.showDock ?? true,
   classicMode: ui.classicMode ?? false,

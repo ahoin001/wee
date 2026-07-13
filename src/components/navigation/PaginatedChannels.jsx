@@ -16,7 +16,9 @@ import { Channel } from '../channels';
 import { HomeSlot, HomeBoardArrangeBar, HomePageIndicator } from '../home-grid';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
-import { getSlotAt } from '../../utils/homeGridSlots';
+import { getSlotAt, isChannelSlotEmpty } from '../../utils/homeGridSlots';
+import { canPlaceSpan } from '../../utils/homeGridOccupancy';
+import { getHomeSlotSizePresetById } from '../../utils/homeSlotSizePresets';
 import { ChannelSpaceProvider } from '../../contexts/ChannelSpaceContext';
 import useIdleChannelAnimations from '../../utils/useIdleChannelAnimations';
 import { CHANNEL_PAGE_FLIP_MS, isSlotHidden } from '../../utils/channelLayoutSystem';
@@ -73,10 +75,22 @@ const PaginatedChannelsInner = React.memo(() => {
   const {
     arrangeMode: homeBoardArrangeMode,
     punchMode: homeBoardPunchMode,
+    selectedSlotIndex: homeBoardSelectedSlotIndex,
     enterArrange: enterHomeBoardArrange,
     exitArrange: exitHomeBoardArrange,
     togglePunchMode: toggleHomeBoardPunchMode,
+    setSelectedSlotIndex: setHomeBoardSelectedSlotIndex,
   } = useHomeBoardArrange();
+
+  const placeAdminQuickAccessSlotForSpace = useConsolidatedAppStore(
+    (s) => s.actions.placeAdminQuickAccessSlotForSpace
+  );
+  const removeHomeWidgetSlotForSpace = useConsolidatedAppStore(
+    (s) => s.actions.removeHomeWidgetSlotForSpace
+  );
+  const setHomeSlotSpanForSpace = useConsolidatedAppStore(
+    (s) => s.actions.setHomeSlotSpanForSpace
+  );
   const { isAppActive } = useAppActivity();
   const reducedMotion = useReducedMotion();
   const {
@@ -243,6 +257,140 @@ const PaginatedChannelsInner = React.memo(() => {
       setSlotHidden(channelIndex, !isChannelSlotHidden(channelIndex));
     },
     [setSlotHidden, isChannelSlotHidden]
+  );
+
+  const boardSlots = channelData?.slots;
+
+  const findFirstFreeSlotIndex = useCallback(() => {
+    const slots = Array.isArray(boardSlots) ? boardSlots : [];
+    const preset = getHomeSlotSizePresetById('S');
+    for (let i = 0; i < slots.length; i += 1) {
+      if (isChannelSlotHidden(i)) continue;
+      if (
+        canPlaceSpan({
+          slots,
+          anchorIndex: i,
+          colSpan: preset.colSpan,
+          rowSpan: preset.rowSpan,
+          columns: gridConfig.columns,
+          rows: gridConfig.rows,
+        })
+      ) {
+        return i;
+      }
+    }
+    return null;
+  }, [boardSlots, gridConfig.columns, gridConfig.rows, isChannelSlotHidden]);
+
+  const selectedSlot =
+    homeBoardSelectedSlotIndex != null && Array.isArray(boardSlots)
+      ? boardSlots[homeBoardSelectedSlotIndex] ?? null
+      : null;
+
+  const addTargetIndex = useMemo(() => {
+    if (!arrangeModeActive || punchModeActive) return null;
+    if (
+      homeBoardSelectedSlotIndex != null &&
+      selectedSlot &&
+      isChannelSlotEmpty(selectedSlot) &&
+      !isChannelSlotHidden(homeBoardSelectedSlotIndex)
+    ) {
+      const preset = getHomeSlotSizePresetById('S');
+      if (
+        canPlaceSpan({
+          slots: boardSlots,
+          anchorIndex: homeBoardSelectedSlotIndex,
+          colSpan: preset.colSpan,
+          rowSpan: preset.rowSpan,
+          columns: gridConfig.columns,
+          rows: gridConfig.rows,
+        })
+      ) {
+        return homeBoardSelectedSlotIndex;
+      }
+    }
+    return findFirstFreeSlotIndex();
+  }, [
+    arrangeModeActive,
+    punchModeActive,
+    homeBoardSelectedSlotIndex,
+    selectedSlot,
+    boardSlots,
+    gridConfig.columns,
+    gridConfig.rows,
+    isChannelSlotHidden,
+    findFirstFreeSlotIndex,
+  ]);
+
+  const handleAddQuickAccess = useCallback(() => {
+    if (addTargetIndex == null) return;
+    placeAdminQuickAccessSlotForSpace(channelSpaceKey, addTargetIndex, 'S');
+    setHomeBoardSelectedSlotIndex(addTargetIndex);
+  }, [
+    addTargetIndex,
+    placeAdminQuickAccessSlotForSpace,
+    channelSpaceKey,
+    setHomeBoardSelectedSlotIndex,
+  ]);
+
+  const handleRemoveWidget = useCallback(() => {
+    if (homeBoardSelectedSlotIndex == null) return;
+    removeHomeWidgetSlotForSpace(channelSpaceKey, homeBoardSelectedSlotIndex);
+    setHomeBoardSelectedSlotIndex(null);
+  }, [
+    homeBoardSelectedSlotIndex,
+    removeHomeWidgetSlotForSpace,
+    channelSpaceKey,
+    setHomeBoardSelectedSlotIndex,
+  ]);
+
+  const [sizeBlockedPresetId, setSizeBlockedPresetId] = useState(null);
+
+  const handleSetSizePreset = useCallback(
+    (presetId) => {
+      if (homeBoardSelectedSlotIndex == null) return;
+      const preset = getHomeSlotSizePresetById(presetId);
+      if (!preset) return;
+      const slots = Array.isArray(boardSlots) ? boardSlots : [];
+      const ok = canPlaceSpan({
+        slots,
+        anchorIndex: homeBoardSelectedSlotIndex,
+        colSpan: preset.colSpan,
+        rowSpan: preset.rowSpan,
+        columns: gridConfig.columns,
+        rows: gridConfig.rows,
+        selfIndex: homeBoardSelectedSlotIndex,
+      });
+      if (!ok) {
+        setSizeBlockedPresetId(presetId);
+        window.setTimeout(() => setSizeBlockedPresetId(null), 1600);
+        return;
+      }
+      setSizeBlockedPresetId(null);
+      setHomeSlotSpanForSpace(
+        channelSpaceKey,
+        homeBoardSelectedSlotIndex,
+        preset.colSpan,
+        preset.rowSpan
+      );
+    },
+    [
+      homeBoardSelectedSlotIndex,
+      boardSlots,
+      gridConfig.columns,
+      gridConfig.rows,
+      setHomeSlotSpanForSpace,
+      channelSpaceKey,
+    ]
+  );
+
+  const handleArrangeSelectChannelId = useCallback(
+    (channelId) => {
+      const match = /^channel-(\d+)$/.exec(channelId || '');
+      if (!match) return;
+      setHomeBoardSelectedSlotIndex(Number(match[1]));
+    },
+    [setHomeBoardSelectedSlotIndex]
   );
 
   useEffect(() => {
@@ -694,6 +842,14 @@ const PaginatedChannelsInner = React.memo(() => {
             key={channelId}
             slot={slot}
             channelId={channelId}
+            arrangeMode={arrangeModeActive}
+            punchMode={punchModeActive}
+            selected={
+              arrangeModeActive &&
+              homeBoardSelectedSlotIndex != null &&
+              homeBoardSelectedSlotIndex === channelIndex
+            }
+            onArrangeSelect={handleArrangeSelectChannelId}
             {...sharedProps}
           />
         );
@@ -723,11 +879,20 @@ const PaginatedChannelsInner = React.memo(() => {
       handleChannelHover,
       idleAnimationProps.enabled,
       getChannelAnimationClass,
+      arrangeModeActive,
+      punchModeActive,
+      homeBoardSelectedSlotIndex,
+      handleArrangeSelectChannelId,
     ]
   );
 
   const renderChannelAtIndex = useCallback(
-    (channelIndex) => (
+    (channelIndex) => {
+      const slotAt = Array.isArray(channelData?.slots)
+        ? channelData.slots[channelIndex]
+        : null;
+      const isWidgetSlot = Boolean(slotAt && slotAt.kind && slotAt.kind !== 'channel');
+      return (
       <ChannelSlotDnd
         key={`channel-slot-${channelSpaceKey}-${channelIndex}`}
         channelSpaceKey={channelSpaceKey}
@@ -736,7 +901,9 @@ const PaginatedChannelsInner = React.memo(() => {
           navigation.isAnimating ||
           isSpaceTransitioning ||
           channelConfigureModalOpen ||
-          isChannelSlotHidden(channelIndex)
+          isChannelSlotHidden(channelIndex) ||
+          isWidgetSlot ||
+          (arrangeModeActive && !punchModeActive)
         }
         celebrateDrop={celebrateIndex === channelIndex}
         reorderWave={reorderWave}
@@ -744,9 +911,11 @@ const PaginatedChannelsInner = React.memo(() => {
       >
         {renderChannelInner(channelIndex, true)}
       </ChannelSlotDnd>
-    ),
+      );
+    },
     [
       channelSpaceKey,
+      channelData?.slots,
       navigation.isAnimating,
       isSpaceTransitioning,
       channelConfigureModalOpen,
@@ -756,6 +925,8 @@ const PaginatedChannelsInner = React.memo(() => {
       activeDragIndex,
       hoverDragIndex,
       isChannelSlotHidden,
+      arrangeModeActive,
+      punchModeActive,
     ]
   );
 
@@ -772,6 +943,7 @@ const PaginatedChannelsInner = React.memo(() => {
           columns={gridConfig.columns}
           rows={gridConfig.rows}
           slotMeta={slotMeta}
+          slots={channelData?.slots}
           onGridMouseEnter={handleGridMouseEnter}
           onGridMouseLeave={handleGridMouseLeave}
           onGridPointerMove={handleGridPointerMove}
@@ -785,6 +957,11 @@ const PaginatedChannelsInner = React.memo(() => {
           arrangeModeActive={arrangeModeActive}
           punchModeActive={punchModeActive}
           onTogglePunch={handleTogglePunchSlot}
+          onArrangeSelectIndex={
+            arrangeModeActive && !punchModeActive
+              ? setHomeBoardSelectedSlotIndex
+              : undefined
+          }
         />
       </div>
     );
@@ -792,6 +969,7 @@ const PaginatedChannelsInner = React.memo(() => {
     navigation,
     gridConfig,
     slotMeta,
+    channelData?.slots,
     isGridFaded,
     handleGridMouseEnter,
     handleGridMouseLeave,
@@ -805,6 +983,7 @@ const PaginatedChannelsInner = React.memo(() => {
     arrangeModeActive,
     punchModeActive,
     handleTogglePunchSlot,
+    setHomeBoardSelectedSlotIndex,
   ]);
 
   const channelsContent = (
@@ -886,6 +1065,13 @@ const PaginatedChannelsInner = React.memo(() => {
             punchMode={punchModeActive}
             onTogglePunch={toggleHomeBoardPunchMode}
             onDone={exitHomeBoardArrange}
+            selectedSlot={selectedSlot}
+            selectedIndex={homeBoardSelectedSlotIndex}
+            canAddQuickAccess={addTargetIndex != null}
+            onAddQuickAccess={handleAddQuickAccess}
+            onRemoveWidget={handleRemoveWidget}
+            onSetSizePreset={handleSetSizePreset}
+            sizeBlockedPresetId={sizeBlockedPresetId}
           />
         </>
       ) : null}

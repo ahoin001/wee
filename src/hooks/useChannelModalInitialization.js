@@ -20,6 +20,7 @@ export const useChannelModalInitialization = ({
   setKenBurnsCrossfadeDuration,
   setKenBurnsEasing,
   setAsAdmin,
+  setPerformancePauseMode,
   installedAppsLength,
   uwpAppsLength,
   steamGamesLength,
@@ -54,6 +55,7 @@ export const useChannelModalInitialization = ({
     setKenBurnsCrossfadeDuration(1000);
     setKenBurnsEasing('ease-out');
     setAsAdmin(false);
+    setPerformancePauseMode?.('auto');
 
     const existingChannel = configuredChannels[channelId];
     if (!existingChannel) return;
@@ -63,6 +65,11 @@ export const useChannelModalInitialization = ({
     setHoverSound(existingChannel.hoverSound || null);
     setAnimatedOnHover(existingChannel.animatedOnHover ?? 'global');
     setAsAdmin(existingChannel.asAdmin ?? false);
+    setPerformancePauseMode?.(
+      existingChannel.performancePauseMode === 'on' || existingChannel.performancePauseMode === 'off'
+        ? existingChannel.performancePauseMode
+        : 'auto'
+    );
 
     const channelConfig = channelConfigs[channelId];
     if (!channelConfig) return;
@@ -95,6 +102,7 @@ export const useChannelModalInitialization = ({
     setKenBurnsCrossfadeDuration,
     setKenBurnsEasing,
     setAsAdmin,
+    setPerformancePauseMode,
   ]);
 
   useEffect(() => {

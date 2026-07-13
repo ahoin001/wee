@@ -60,6 +60,7 @@ function ChannelModal({
   const [activeTab, setActiveTab] = useState('setup');
   
   const [asAdmin, setAsAdmin] = useState(currentAsAdmin);
+  const [performancePauseMode, setPerformancePauseMode] = useState('auto');
   const [showError, setShowError] = useState(false);
   const [animatedOnHover, setAnimatedOnHover] = useState(currentAnimatedOnHover);
   
@@ -174,6 +175,7 @@ function ChannelModal({
     setKenBurnsCrossfadeDuration,
     setKenBurnsEasing,
     setAsAdmin,
+    setPerformancePauseMode,
     installedAppsLength: installedApps?.length || 0,
     uwpAppsLength: uwpApps?.length || 0,
     steamGamesLength: steamGames?.length || 0,
@@ -281,6 +283,7 @@ function ChannelModal({
       path: persistedPath || null,
       type: persistedPath ? type : null,
       asAdmin,
+      performancePauseMode: performancePauseMode || 'auto',
       hoverSound: hoverSoundEnabled && hoverSoundUrl ? { url: hoverSoundUrl, name: hoverSoundName, volume: hoverSoundVolume } : null,
       animatedOnHover: resolvedAnimatedOnHover,
     };
@@ -320,6 +323,7 @@ function ChannelModal({
     setType('exe');
     setPathError('');
     setAsAdmin(false);
+    setPerformancePauseMode('auto');
     resetHoverSoundFields();
     setAnimatedOnHover(undefined);
     setKenBurnsEnabled(undefined);
@@ -351,6 +355,12 @@ function ChannelModal({
     const pathChanged = path !== (currentPath || '');
     const typeChanged = type !== (currentType || 'exe');
     const asAdminChanged = asAdmin !== currentAsAdmin;
+    const existingPause =
+      configuredChannels[channelId]?.performancePauseMode === 'on' ||
+      configuredChannels[channelId]?.performancePauseMode === 'off'
+        ? configuredChannels[channelId].performancePauseMode
+        : 'auto';
+    const performancePauseChanged = (performancePauseMode || 'auto') !== existingPause;
     
     // Check if hover sound has changed
     const currentHoverSoundData = currentHoverSound ? {
@@ -379,7 +389,7 @@ function ChannelModal({
     const kenBurnsCrossfadeDurationChanged = kenBurnsCrossfadeDuration !== (existingConfig.kenBurnsCrossfadeDuration ?? 1000);
     const kenBurnsEasingChanged = kenBurnsEasing !== (existingConfig.kenBurnsEasing ?? 'ease-out');
     
-    return mediaChanged || pathChanged || typeChanged || asAdminChanged || 
+    return mediaChanged || pathChanged || typeChanged || asAdminChanged || performancePauseChanged ||
            hoverSoundChanged || animatedOnHoverChanged || kenBurnsEnabledChanged || kenBurnsModeChanged ||
            kenBurnsHoverScaleChanged || kenBurnsAutoplayScaleChanged || kenBurnsHoverDurationChanged ||
            kenBurnsAutoplayDurationChanged || kenBurnsCrossfadeDurationChanged || kenBurnsEasingChanged;
@@ -388,6 +398,7 @@ function ChannelModal({
     path, currentPath,
     type, currentType,
     asAdmin, currentAsAdmin,
+    performancePauseMode, configuredChannels, channelId,
     hoverSoundEnabled, hoverSoundUrl, hoverSoundName, hoverSoundVolume, currentHoverSound,
     animatedOnHover, currentAnimatedOnHover,
     kenBurnsEnabled, currentKenBurnsEnabled,
@@ -535,6 +546,10 @@ function ChannelModal({
               channelId={channelId}
               asAdmin={asAdmin}
               setAsAdmin={setAsAdmin}
+              path={path}
+              type={type}
+              performancePauseMode={performancePauseMode}
+              setPerformancePauseMode={setPerformancePauseMode}
               hoverSoundEnabled={hoverSoundEnabled}
               setHoverSoundEnabled={setHoverSoundEnabled}
               hoverSoundUrl={hoverSoundUrl}

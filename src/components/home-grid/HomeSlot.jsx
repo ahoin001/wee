@@ -1,7 +1,13 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Channel from '../channels/Channel';
-import { SLOT_KIND_CHANNEL, SLOT_KIND_WIDGET } from '../../utils/homeGridSlots';
+import {
+  SLOT_KIND_ADMIN_QUICK_ACCESS,
+  SLOT_KIND_CHANNEL,
+  SLOT_KIND_WIDGET,
+} from '../../utils/homeGridSlots';
+import { getHomeSlotKind } from './slotKindRegistry';
+import AdminQuickAccessSlot from './AdminQuickAccessSlot';
 
 /**
  * @param {import('../../utils/homeGridSlots').HomeChannelPayload | null | undefined} channel
@@ -19,11 +25,16 @@ function legacyChannelConfigFromSlot(channel) {
 }
 
 /**
- * Thin home-grid slot switcher. Channel kind delegates to the existing Channel tile;
- * widget kind renders a tokenized placeholder until widgets land.
+ * Thin home-grid slot switcher. Kind render ids come from `slotKindRegistry`.
  */
-function HomeSlot({ slot, channelId, ...rest }) {
-  const kind = slot?.kind ?? SLOT_KIND_CHANNEL;
+function HomeSlot({ slot, channelId, arrangeMode = false, punchMode = false, selected = false, onArrangeSelect, ...rest }) {
+  const kindId = slot?.kind ?? SLOT_KIND_CHANNEL;
+  const kindMeta = getHomeSlotKind(kindId);
+  const renderId =
+    kindMeta?.render ||
+    (kindId === SLOT_KIND_ADMIN_QUICK_ACCESS || kindId === SLOT_KIND_WIDGET
+      ? 'AdminQuickAccessSlot'
+      : 'ChannelSlot');
 
   const channelProps = useMemo(() => {
     const channel = slot?.channel;
@@ -41,12 +52,15 @@ function HomeSlot({ slot, channelId, ...rest }) {
     };
   }, [slot?.channel, channelId]);
 
-  if (kind === SLOT_KIND_WIDGET) {
+  if (renderId === 'AdminQuickAccessSlot') {
     return (
-      <div
-        className="flex h-full w-full min-h-0 min-w-0 items-center justify-center rounded-[1.25rem] border-2 border-dashed border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-tertiary)/0.55)] text-xs text-[hsl(var(--text-secondary))]"
-        aria-label="Widget (coming soon)"
-        role="img"
+      <AdminQuickAccessSlot
+        slot={slot}
+        channelId={channelId}
+        arrangeMode={arrangeMode}
+        punchMode={punchMode}
+        selected={selected}
+        onArrangeSelect={onArrangeSelect}
       />
     );
   }
@@ -61,8 +75,13 @@ HomeSlot.propTypes = {
     colSpan: PropTypes.number,
     rowSpan: PropTypes.number,
     channel: PropTypes.object,
+    widget: PropTypes.object,
   }),
   channelId: PropTypes.string.isRequired,
+  arrangeMode: PropTypes.bool,
+  punchMode: PropTypes.bool,
+  selected: PropTypes.bool,
+  onArrangeSelect: PropTypes.func,
 };
 
 export default React.memo(HomeSlot);

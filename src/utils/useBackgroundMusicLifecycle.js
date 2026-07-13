@@ -5,11 +5,15 @@ import {
   startBackgroundMusicFromSettings,
   stopBackgroundMusic,
 } from './soundPlayback';
+import { useAppActivity } from '../hooks/useAppActivity';
+import { usePowerPolicy } from '../hooks/usePowerPolicy';
 
 /**
- * Mount once from App shell. Owns BGM start/stop + single focus/blur handler.
+ * Mount once from App shell. Owns BGM start/stop + focus/blur + session-away pause.
  */
 export function useBackgroundMusicLifecycle({ appReady }) {
+  const { isAppActive } = useAppActivity();
+  const { shouldRunBgm } = usePowerPolicy();
   const backgroundMusicEnabled = useConsolidatedAppStore(
     (s) => s.sounds?.backgroundMusicEnabled
   );
@@ -23,13 +27,17 @@ export function useBackgroundMusicLifecycle({ appReady }) {
   const startRef = useRef(startBackgroundMusicFromSettings);
   startRef.current = startBackgroundMusicFromSettings;
 
+  const allowBgm = Boolean(
+    appReady && backgroundMusicEnabled && isAppActive && shouldRunBgm
+  );
+
   useEffect(() => {
     if (!appReady) return undefined;
     let cancelled = false;
     (async () => {
       await hydrateSoundLibrary();
       if (cancelled) return;
-      if (backgroundMusicEnabled) {
+      if (allowBgm) {
         await startBackgroundMusicFromSettings();
       } else {
         stopBackgroundMusic();
@@ -40,6 +48,7 @@ export function useBackgroundMusicLifecycle({ appReady }) {
     };
   }, [
     appReady,
+    allowBgm,
     backgroundMusicEnabled,
     backgroundMusicLooping,
     backgroundMusicPlaylistMode,
@@ -47,8 +56,10 @@ export function useBackgroundMusicLifecycle({ appReady }) {
 
   useEffect(() => {
     const onFocus = () => {
-      const enabled = useConsolidatedAppStore.getState().sounds?.backgroundMusicEnabled;
-      if (enabled) startRef.current();
+      const state = useConsolidatedAppStore.getState();
+      const enabled = state.sounds?.backgroundMusicEnabled;
+      const away = state.ui?.sessionPower === 'away';
+      if (enabled && !away) startRef.current();
     };
     const onBlur = () => {
       stopBackgroundMusic();

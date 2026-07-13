@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { useLaunchFeedback } from '../../contexts/LaunchFeedbackContext';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
+import { enterSessionAwayIfIntensive } from '../../hooks/useSessionPowerSync';
 import { buildHubData, orderHubCollectionItems, sortHubGamesByName } from './hubData';
 import AuraHero from './AuraHero';
 import AuraCollectionsSection from './AuraCollectionsSection';
@@ -710,6 +711,12 @@ export default function GameHubSpace() {
     });
     if (result?.ok !== false) {
       patchGameHubLastLaunch(game.id, Date.now());
+      enterSessionAwayIfIntensive({
+        type: game.source === 'epic' ? 'epic' : 'steam',
+        path: game.launchPath,
+        source: 'gamehub',
+        mode: 'on',
+      });
     }
   };
 

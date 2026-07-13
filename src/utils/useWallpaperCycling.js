@@ -5,16 +5,19 @@ import { useAppActivity } from '../hooks/useAppActivity';
 import { normalizeWallpaperForStore, wallpaperEntryUrlKey } from './wallpaperShape';
 
 const useWallpaperCycling = () => {
-  const { wallpaper, setWallpaperState, lowPowerMode, activeSpaceId } = useConsolidatedAppStore(
+  const { wallpaper, setWallpaperState, lowPowerMode, activeSpaceId, sessionPower } = useConsolidatedAppStore(
     useShallow((state) => ({
       wallpaper: state.wallpaper,
       setWallpaperState: state.actions.setWallpaperState,
       lowPowerMode: state.ui.lowPowerMode,
       activeSpaceId: state.spaces.activeSpaceId,
+      sessionPower: state.ui.sessionPower ?? 'normal',
     }))
   );
   const { isAppActive } = useAppActivity();
   const isAppActiveRef = useRef(isAppActive);
+  const cycleAllowed = isAppActive && sessionPower !== 'away';
+  const cycleAllowedRef = useRef(cycleAllowed);
   const prevSpaceIdRef = useRef(activeSpaceId);
   const intervalRef = useRef(null);
   const isTransitioningRef = useRef(false);
@@ -37,7 +40,8 @@ const useWallpaperCycling = () => {
 
   useEffect(() => {
     isAppActiveRef.current = isAppActive;
-  }, [isAppActive]);
+    cycleAllowedRef.current = cycleAllowed;
+  }, [isAppActive, cycleAllowed]);
 
   const abortCycleTransition = useCallback(() => {
     if (cycleRafRef.current != null) {
@@ -258,7 +262,7 @@ const useWallpaperCycling = () => {
 
   // Simple cycle function
   const cycleToNext = useCallback(() => {
-    if (!isAppActive || isTransitioningRef.current) {
+    if (!cycleAllowedRef.current || isTransitioningRef.current) {
       return; // Don't cycle if already transitioning
     }
 
@@ -267,7 +271,7 @@ const useWallpaperCycling = () => {
     if (nextWallpaper) {
       transitionToWallpaper(nextWallpaper);
     }
-  }, [getNextWallpaper, transitionToWallpaper, isAppActive]);
+  }, [getNextWallpaper, transitionToWallpaper]);
 
   // Manage cycling lifecycle - simplified to prevent infinite loops
   useEffect(() => {
@@ -278,7 +282,7 @@ const useWallpaperCycling = () => {
     }
 
     // Start cycling if conditions are met
-    if (isAppActive && cycleWallpapers && likedWallpapers && likedWallpapers.length > 1) {
+    if (cycleAllowed && cycleWallpapers && likedWallpapers && likedWallpapers.length > 1) {
       intervalRef.current = setInterval(() => {
         if (!isTransitioningRef.current) {
           cycleToNext();
@@ -293,14 +297,14 @@ const useWallpaperCycling = () => {
         intervalRef.current = null;
       }
     };
-  }, [cycleWallpapers, likedWallpapers?.length, effectiveCycleInterval, cycleToNext, isAppActive]); // Only depend on these stable values
+  }, [cycleWallpapers, likedWallpapers?.length, effectiveCycleInterval, cycleToNext, cycleAllowed]);
 
   // Manual cycle function
   const manualCycle = useCallback(() => {
-    if (isAppActive && !isTransitioningRef.current) {
+    if (cycleAllowedRef.current && !isTransitioningRef.current) {
       cycleToNext();
     }
-  }, [cycleToNext, isAppActive]);
+  }, [cycleToNext]);
 
   return {
     isCycling: cycleWallpapers && likedWallpapers && likedWallpapers.length > 1,

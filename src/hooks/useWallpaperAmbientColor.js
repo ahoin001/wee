@@ -38,6 +38,8 @@ export function useWallpaperAmbientColor() {
     }))
   );
 
+  const sessionPower = useConsolidatedAppStore((s) => s.ui.sessionPower ?? 'normal');
+
   const displayUrl = resolveDisplayWallpaperUrl({
     activeSpaceId,
     wallpaperCurrent,
@@ -56,6 +58,11 @@ export function useWallpaperAmbientColor() {
   useEffect(() => {
     if (!wallpaperMatchEnabled) {
       applyAmbientRoleTokens(null, { clear: true });
+      return undefined;
+    }
+
+    // Deep-pause after intensive launch — keep last tokens, skip re-extract.
+    if (sessionPower === 'away') {
       return undefined;
     }
 
@@ -132,6 +139,7 @@ export function useWallpaperAmbientColor() {
     };
   }, [
     wallpaperMatchEnabled,
+    sessionPower,
     ambientSourceUrl,
     displayUrl,
     visualCommittedUrl,

@@ -7,6 +7,7 @@ import {
 } from '../../../utils/soundPlayback';
 import { launchWithFeedback } from '../../../utils/launchWithFeedback';
 import { getRecentLaunchHintTtlMs } from '../../../utils/channelOpenHint';
+import { enterSessionAwayIfIntensive } from '../../../hooks/useSessionPowerSync';
 
 const api = window.api;
 
@@ -17,6 +18,7 @@ export function useChannelInteractions({
   effectivePath,
   effectiveType,
   effectiveAsAdmin,
+  effectivePerformancePauseMode = 'auto',
   effectiveHoverSound,
   effectiveMedia,
   launchLabel,
@@ -154,7 +156,15 @@ export function useChannelInteractions({
           path: effectivePath,
           source: 'channel',
         });
-        if (!result || result.ok !== false) recordRecentLaunchHint();
+        if (!result || result.ok !== false) {
+          recordRecentLaunchHint();
+          enterSessionAwayIfIntensive({
+            type: 'url',
+            path: effectivePath,
+            source: 'channel',
+            mode: effectivePerformancePauseMode,
+          });
+        }
       }
       return;
     }
@@ -169,7 +179,15 @@ export function useChannelInteractions({
       path: effectivePath,
       source: 'channel',
     });
-    if (!result || result.ok !== false) recordRecentLaunchHint();
+    if (!result || result.ok !== false) {
+      recordRecentLaunchHint();
+      enterSessionAwayIfIntensive({
+        type: effectiveType,
+        path: effectivePath,
+        source: 'channel',
+        mode: effectivePerformancePauseMode,
+      });
+    }
   }, [
     showLaunchError,
     effectiveType,
@@ -180,6 +198,7 @@ export function useChannelInteractions({
     endLaunchFeedback,
     launchLabel,
     effectiveAsAdmin,
+    effectivePerformancePauseMode,
     handleConfigure,
   ]);
 

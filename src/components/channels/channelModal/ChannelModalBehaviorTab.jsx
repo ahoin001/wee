@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Film, Maximize2, PlayCircle, Shield, Volume2 } from 'lucide-react';
+import { Film, Maximize2, PlayCircle, Shield, Volume2, Zap } from 'lucide-react';
 import Slider from '../../../ui/Slider';
 import Text from '../../../ui/Text';
 import WButton from '../../../ui/WButton';
@@ -18,11 +18,16 @@ import {
 } from '../../../ui/wee';
 import { createWeeTransition } from '../../../design/weeMotion';
 import { playPreview } from '../../../utils/soundPlayback';
+import { getAutoPerformancePauseHint } from '../../../utils/launch/isIntensiveLaunchTarget';
 
 function ChannelModalBehaviorTab({
   channelId,
   asAdmin,
   setAsAdmin,
+  path,
+  type,
+  performancePauseMode,
+  setPerformancePauseMode,
   hoverSoundEnabled,
   setHoverSoundEnabled,
   hoverSoundUrl,
@@ -46,6 +51,7 @@ function ChannelModalBehaviorTab({
   setKenBurnsMode,
 }) {
   const channelHoverSounds = getSoundsByCategory('channelHover') || [];
+  const autoHint = getAutoPerformancePauseHint(path, type);
 
   const motionGridValue = useMemo(() => {
     if (animatedOnHover === undefined || animatedOnHover === 'global') return 'global';
@@ -275,6 +281,50 @@ function ChannelModalBehaviorTab({
           </div>
         </WeeModalFieldCard>
 
+        <WeeModalFieldCard hoverAccent="primary" className="w-full" paddingClassName="p-6 md:p-8">
+          <div className="flex items-start gap-4">
+            <div
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-[var(--shadow-sm)] ${
+                performancePauseMode === 'off'
+                  ? 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-tertiary))]'
+                  : 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+              }`}
+            >
+              <Zap size={24} strokeWidth={2.35} aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1 space-y-4">
+              <div>
+                <p className="mb-1 font-black uppercase italic leading-none tracking-tighter text-[hsl(var(--wee-text-header))]">
+                  Pause Wee effects when launching
+                </p>
+                <Text variant="caption" className="!m-0 text-[hsl(var(--text-secondary))]">
+                  Frees GPU/CPU while a game runs. Wee stays open — it does not minimize. Auto detects Steam, Epic, and
+                  common game folders; leave Never for browsers and tools.
+                </Text>
+              </div>
+              <WeeSegmentedControl
+                ariaLabel="Performance pause when launching"
+                value={performancePauseMode || 'auto'}
+                onChange={setPerformancePauseMode}
+                size="sm"
+                className="w-full max-w-md"
+                options={[
+                  { value: 'auto', label: 'Auto' },
+                  { value: 'on', label: 'Always' },
+                  { value: 'off', label: 'Never' },
+                ]}
+              />
+              {(performancePauseMode || 'auto') === 'auto' ? (
+                <Text variant="help" className="!m-0">
+                  {autoHint === 'game'
+                    ? 'Detected as a game launch — effects will pause until you return to Wee.'
+                    : 'Detected as casual — only soft background throttling applies (same as switching to Chrome).'}
+                </Text>
+              ) : null}
+            </div>
+          </div>
+        </WeeModalFieldCard>
+
         <WeeSettingsCollapsibleSection
           key={`hover-sound-${channelId}`}
           icon={Volume2}
@@ -411,6 +461,10 @@ ChannelModalBehaviorTab.propTypes = {
   channelId: PropTypes.string.isRequired,
   asAdmin: PropTypes.bool,
   setAsAdmin: PropTypes.func.isRequired,
+  path: PropTypes.string,
+  type: PropTypes.string,
+  performancePauseMode: PropTypes.oneOf(['auto', 'on', 'off']),
+  setPerformancePauseMode: PropTypes.func.isRequired,
   hoverSoundEnabled: PropTypes.bool,
   setHoverSoundEnabled: PropTypes.func.isRequired,
   hoverSoundUrl: PropTypes.string,

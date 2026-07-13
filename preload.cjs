@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const appWindowActivityListenerMap = new WeakMap();
+const systemPowerListenerMap = new WeakMap();
 const updateStatusListenerMap = new WeakMap();
 const updateNotificationAvailableListenerMap = new WeakMap();
 const updateNotificationNotAvailableListenerMap = new WeakMap();
@@ -140,6 +141,13 @@ contextBridge.exposeInMainWorld('api', {
   },
   offAppWindowActivity: (cb) => {
     removeMappedListener('app-window-activity', cb, appWindowActivityListenerMap);
+  },
+  getSystemPower: () => ipcRenderer.invoke('system-power:get'),
+  onSystemPower: (cb) => {
+    addMappedListener('system-power', cb, systemPowerListenerMap, (listener) => (_e, payload) => listener(payload));
+  },
+  offSystemPower: (cb) => {
+    removeMappedListener('system-power', cb, systemPowerListenerMap);
   },
   openPipWindow: (url) => ipcRenderer.send('open-pip-window', url),
   openExternal: (url) => ipcRenderer.send('open-external-url', url),

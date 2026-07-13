@@ -76,6 +76,13 @@ const GeneralSettingsTab = React.memo(() => {
     [setUIState]
   );
 
+  const handlePerformancePauseOnGameLaunchChange = useCallback(
+    (checked) => {
+      setUIState({ performancePauseOnGameLaunch: checked });
+    },
+    [setUIState]
+  );
+
   const handleFreshInstall = useCallback(async () => {
     if (
       window.confirm(
@@ -144,6 +151,12 @@ const GeneralSettingsTab = React.memo(() => {
           desc="Reduces background polling and animation cadence to keep CPU/GPU usage lower while the app is idle or running in the background."
           checked={ui.lowPowerMode ?? false}
           onChange={handleLowPowerModeChange}
+        />
+        <SettingsToggleFieldCard
+          title="Pause effects when launching games"
+          desc="When you launch a game (Steam, Epic, Game Hub, or auto-detected game folders), Wee freezes wallpaper cycling, particles, and ambient effects until you return — without minimizing. Channel Behavior can override Auto per tile."
+          checked={ui.performancePauseOnGameLaunch !== false}
+          onChange={handlePerformancePauseOnGameLaunchChange}
         />
       </SettingsWeeSection>
 

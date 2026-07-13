@@ -14,6 +14,7 @@ import {
   applyLayoutChangeToSpaceData,
   channelIdAtIndex,
   resolveGridConfig,
+  resolveLayout,
   resolveNavigation,
 } from './channelLayoutSystem';
 import { applyChannelSlotReorder } from './channelReorder';
@@ -26,7 +27,14 @@ import {
   normalizeChannelSpaceKey,
   normalizeShellSpaceOrder,
 } from './channelSpaces';
-import { syncSpaceDataFromLegacyMaps } from './homeGridSlots';
+import {
+  placeAdminQuickAccessInSpaceData,
+  removeHomeWidgetFromSpaceData,
+  setHomeSlotSpanInSpaceData,
+  syncSpaceDataFromLegacyMaps,
+} from './homeGridSlots';
+import { canPlaceSpan, applySlotSpan } from './homeGridOccupancy';
+import { getHomeSlotSizePresetById } from './homeSlotSizePresets';
 import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
 import {
@@ -162,6 +170,22 @@ useConsolidatedAppStore = create(
           toggleDarkModeShortcut: '',
           toggleCustomCursorShortcut: '',
           lowPowerMode: false,
+          /**
+           * When true, intensive (game) launches deep-pause decorative work until Wee regains focus.
+           * Does not minimize the window. Persisted.
+           */
+          performancePauseOnGameLaunch: true,
+          /**
+           * Transient: 'away' after intensive launch until focus returns. Not persisted.
+           */
+          sessionPower: 'normal',
+          /**
+           * Transient OS power hints from main process. Not persisted.
+           */
+          systemPower: {
+            onBattery: false,
+            suspended: false,
+          },
           immersivePip: false,
           showDock: true,
           classicMode: false,
@@ -196,6 +220,8 @@ useConsolidatedAppStore = create(
           homeBoardArrangeMode: false,
           /** While arrange mode is on, tapping a slot punches/restores a wallpaper hole instead of launching. Transient — not persisted. */
           homeBoardPunchMode: false,
+          /** Absolute slot index selected in Live Board Studio for widget size / remove. Transient. */
+          homeBoardSelectedSlotIndex: null,
           /** Full-app scene transition for premium workspace/preset switching UX. Not persisted. */
           sceneTransition: {
             active: false,
@@ -1014,6 +1040,86 @@ useConsolidatedAppStore = create(
             };
           }),
 
+          /**
+           * Place Admin Quick Access on an empty Home slot. Uses size preset S unless overridden.
+           * Returns no state change when the footprint is blocked.
+           */
+          placeAdminQuickAccessSlotForSpace: (spaceKey, channelIndex, sizePresetId = 'S') =>
+            set((state) => {
+              const key = normalizeChannelSpaceKey(spaceKey);
+              const index = channelIndex | 0;
+              if (index < 0) return state;
+              const preset =
+                getHomeSlotSizePresetById(sizePresetId) || getHomeSlotSizePresetById('S');
+              const apply = (channelsData) => {
+                const layout = resolveLayout(channelsData);
+                const slots = Array.isArray(channelsData.slots) ? channelsData.slots : [];
+                if (
+                  !canPlaceSpan({
+                    slots,
+                    anchorIndex: index,
+                    colSpan: preset.colSpan,
+                    rowSpan: preset.rowSpan,
+                    columns: layout.columns,
+                    rows: layout.rows,
+                    selfIndex: null,
+                  })
+                ) {
+                  return channelsData;
+                }
+                return placeAdminQuickAccessInSpaceData(channelsData, index, {
+                  colSpan: preset.colSpan,
+                  rowSpan: preset.rowSpan,
+                });
+              };
+              if (key === 'workspaces') {
+                return { channels: patchSecondaryChannelSpace(state, apply) };
+              }
+              return { channels: patchHomeChannelSpace(state, key, apply) };
+            }),
+
+          removeHomeWidgetSlotForSpace: (spaceKey, channelIndex) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const index = channelIndex | 0;
+            if (index < 0) return state;
+            const apply = (channelsData) => removeHomeWidgetFromSpaceData(channelsData, index);
+            if (key === 'workspaces') {
+              return { channels: patchSecondaryChannelSpace(state, apply) };
+            }
+            return { channels: patchHomeChannelSpace(state, key, apply) };
+          }),
+
+          setHomeSlotSpanForSpace: (spaceKey, channelIndex, colSpan, rowSpan) => set((state) => {
+            const key = normalizeChannelSpaceKey(spaceKey);
+            const index = channelIndex | 0;
+            if (index < 0) return state;
+            const apply = (channelsData) => {
+              const layout = resolveLayout(channelsData);
+              const slots = Array.isArray(channelsData.slots) ? channelsData.slots : [];
+              const slot = slots[index];
+              if (!slot) return channelsData;
+              const next = applySlotSpan(slot, colSpan, rowSpan, index, layout.columns, layout.rows);
+              if (
+                !canPlaceSpan({
+                  slots,
+                  anchorIndex: index,
+                  colSpan: next.colSpan,
+                  rowSpan: next.rowSpan,
+                  columns: layout.columns,
+                  rows: layout.rows,
+                  selfIndex: index,
+                })
+              ) {
+                return channelsData;
+              }
+              return setHomeSlotSpanInSpaceData(channelsData, index, next.colSpan, next.rowSpan);
+            };
+            if (key === 'workspaces') {
+              return { channels: patchSecondaryChannelSpace(state, apply) };
+            }
+            return { channels: patchHomeChannelSpace(state, key, apply) };
+          }),
+
           setActiveSecondaryChannelProfileId: (profileId) => set((state) => {
             const profiles = state.channels.secondaryChannelProfiles || {};
             if (!profiles[profileId]) return state;
@@ -1753,6 +1859,12 @@ useConsolidatedAppStore = create(
               startOnBoot: false,
               settingsShortcut: '',
               lowPowerMode: false,
+              performancePauseOnGameLaunch: true,
+              sessionPower: 'normal',
+              systemPower: {
+                onBattery: false,
+                suspended: false,
+              },
               immersivePip: false,
               showDock: true,
               classicMode: false,
@@ -1772,6 +1884,7 @@ useConsolidatedAppStore = create(
               presetThumbnailCaptureActive: false,
               homeBoardArrangeMode: false,
               homeBoardPunchMode: false,
+              homeBoardSelectedSlotIndex: null,
               sceneTransition: {
                 active: false,
                 label: '',

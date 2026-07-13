@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 import { useAppActivity } from './useAppActivity';
+import { usePowerPolicy } from './usePowerPolicy';
 
 export const useAnimationActivity = ({
   activeFps = 60,
@@ -10,18 +11,32 @@ export const useAnimationActivity = ({
 } = {}) => {
   const lowPowerMode = useConsolidatedAppStore((state) => state.ui.lowPowerMode);
   const { isVisible, isFocused, isAppActive } = useAppActivity();
+  const { isAway, isEfficient } = usePowerPolicy();
 
   const shouldAnimate = useMemo(() => {
+    if (isAway) return false;
     if (!isVisible) return false;
     if (allowWhenUnfocused) return true;
     return isAppActive;
-  }, [allowWhenUnfocused, isAppActive, isVisible]);
+  }, [allowWhenUnfocused, isAppActive, isAway, isVisible]);
 
   const targetFps = useMemo(() => {
-    if (!isVisible) return inactiveFps;
-    if (isAppActive) return lowPowerMode ? lowPowerFps : activeFps;
+    if (isAway || !isVisible) return inactiveFps;
+    if (isAppActive) {
+      if (lowPowerMode || isEfficient) return lowPowerFps;
+      return activeFps;
+    }
     return inactiveFps;
-  }, [activeFps, inactiveFps, isAppActive, isVisible, lowPowerFps, lowPowerMode]);
+  }, [
+    activeFps,
+    inactiveFps,
+    isAppActive,
+    isAway,
+    isEfficient,
+    isVisible,
+    lowPowerFps,
+    lowPowerMode,
+  ]);
 
   const frameIntervalMs = useMemo(
     () => 1000 / Math.max(1, targetFps),
@@ -29,17 +44,18 @@ export const useAnimationActivity = ({
   );
 
   const pollIntervalMultiplier = useMemo(() => {
-    if (!isVisible) return 3;
-    if (lowPowerMode) return 2;
+    if (isAway || !isVisible) return 3;
+    if (lowPowerMode || isEfficient) return 2;
     if (!isFocused) return 2;
     return 1;
-  }, [isFocused, isVisible, lowPowerMode]);
+  }, [isAway, isEfficient, isFocused, isVisible, lowPowerMode]);
 
   return {
     isVisible,
     isFocused,
     isAppActive,
     isLowPowerMode: lowPowerMode,
+    isAway,
     shouldAnimate,
     targetFps,
     frameIntervalMs,

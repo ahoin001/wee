@@ -79,6 +79,10 @@ export function useChannelEffectiveState({
     () => storeChannelConfig?.asAdmin ?? asAdmin ?? false,
     [storeChannelConfig, asAdmin]
   );
+  const effectivePerformancePauseMode = useMemo(() => {
+    const m = storeChannelConfig?.performancePauseMode;
+    return m === 'on' || m === 'off' ? m : 'auto';
+  }, [storeChannelConfig?.performancePauseMode]);
   const effectiveHoverSound = useMemo(
     () => storeChannelConfig?.hoverSound || hoverSound,
     [storeChannelConfig?.hoverSound, hoverSound]
@@ -181,6 +185,7 @@ export function useChannelEffectiveState({
     effectivePath,
     effectiveType,
     effectiveAsAdmin,
+    effectivePerformancePauseMode,
     effectiveHoverSound,
     launchLabel,
     effectiveAnimatedOnHover,

@@ -9,14 +9,19 @@ import {
 } from '../../design/weeMotion';
 import { SPACE_SHELL_ENTRANCE_TIERS } from '../../design/spaceShellMotion';
 import { isSlotHidden } from '../../utils/channelLayoutSystem';
+import {
+  buildOccupancyMap,
+  getSlotSpan,
+  getStripGridPlacement,
+} from '../../utils/homeGridOccupancy';
 
 /**
  * Continuous channel strip: uniform gap grid, pan via Framer (`channelPageFlip`).
  * Peek / page math use `--wii-strip-peek` / `--wii-total-pages` from the parent.
  * Hidden slots (`slotMeta`) keep absolute cells as wallpaper holes.
- * `focusRecedeEnabled` softens sibling tiles via CSS `:has()` while one tile is hovered.
+ * Spanned slots (`slots[].colSpan` / `rowSpan`) occupy multiple cells; covered cells skip render.
  * Live Board Studio (`arrangeModeActive` + `punchModeActive`) intercepts tile taps to punch
- * or restore a wallpaper hole instead of launching — drag-to-reorder stays active underneath.
+ * or restore a wallpaper hole — punch applies to the **anchor** slot only.
  */
 const WiiChannelStrip = ({
   totalPages,
@@ -26,6 +31,7 @@ const WiiChannelStrip = ({
   columns,
   rows,
   slotMeta = {},
+  slots = null,
   onGridMouseEnter,
   onGridMouseLeave,
   onGridPointerMove,
@@ -39,6 +45,7 @@ const WiiChannelStrip = ({
   arrangeModeActive = false,
   punchModeActive = false,
   onTogglePunch,
+  onArrangeSelectIndex,
 }) => {
   const { pillOpen, reducedMotion } = useWeeMotion();
   const tileItemVariants = useMemo(
@@ -64,6 +71,11 @@ const WiiChannelStrip = ({
   const totalChannelSlots = channelsPerPage * safeTotalPages;
   const totalGridColumns = safeColumns * safeTotalPages;
 
+  const occupancy = useMemo(
+    () => buildOccupancyMap(slots, safeColumns, safeRows, totalChannelSlots),
+    [slots, safeColumns, safeRows, totalChannelSlots]
+  );
+
   const boardStyle = useMemo(
     () => ({
       gridTemplateColumns: `repeat(${totalGridColumns}, minmax(0, 1fr))`,
@@ -81,15 +93,31 @@ const WiiChannelStrip = ({
   }, [isAnimating, onPageFlipComplete]);
 
   const canPunch = arrangeModeActive && punchModeActive && typeof onTogglePunch === 'function';
+  const canSelect =
+    arrangeModeActive && !punchModeActive && typeof onArrangeSelectIndex === 'function';
 
   const handlePunchCapture = useCallback(
     (index) => (event) => {
       if (!canPunch) return;
       event.preventDefault();
       event.stopPropagation();
-      onTogglePunch(index);
+      const occ = occupancy[index];
+      const punchIndex = occ?.anchorIndex ?? index;
+      onTogglePunch(punchIndex);
     },
-    [canPunch, onTogglePunch]
+    [canPunch, onTogglePunch, occupancy]
+  );
+
+  const handleArrangeSelectCapture = useCallback(
+    (index) => (event) => {
+      if (!canSelect) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const occ = occupancy[index];
+      const selectIndex = occ?.anchorIndex ?? index;
+      onArrangeSelectIndex(selectIndex);
+    },
+    [canSelect, onArrangeSelectIndex, occupancy]
   );
 
   return (
@@ -117,10 +145,27 @@ const WiiChannelStrip = ({
           style={boardStyle}
         >
           {Array.from({ length: totalChannelSlots }, (_, i) => {
-            const page = Math.floor(i / channelsPerPage);
+            const occ = occupancy[i];
+            if (occ?.role === 'covered') return null;
+
             const idxInPage = i % channelsPerPage;
-            const row = Math.floor(idxInPage / safeColumns);
-            const col = (idxInPage % safeColumns) + page * safeColumns;
+            const spanSource = Array.isArray(slots) ? slots[i] : null;
+            const { colSpan, rowSpan } = occ
+              ? { colSpan: occ.colSpan, rowSpan: occ.rowSpan }
+              : getSlotSpan(spanSource);
+            const placement = getStripGridPlacement(
+              i,
+              colSpan,
+              rowSpan,
+              safeColumns,
+              safeRows,
+              safeTotalPages
+            );
+            const gridStyle = {
+              gridColumn: placement.gridColumn,
+              gridRow: placement.gridRow,
+            };
+
             const hidden = isSlotHidden(slotMeta, i);
 
             if (hidden) {
@@ -130,7 +175,7 @@ const WiiChannelStrip = ({
                     key={`tile-hole-${hubEntranceKey}-${i}`}
                     type="button"
                     className="wii-strip-channel-cell wii-strip-channel-cell--hidden wii-strip-channel-cell--punchable"
-                    style={{ gridColumn: col + 1, gridRow: row + 1 }}
+                    style={gridStyle}
                     onClick={handlePunchCapture(i)}
                     aria-label={`Restore slot ${i + 1}`}
                     title="Restore this slot"
@@ -143,10 +188,7 @@ const WiiChannelStrip = ({
                 <div
                   key={`tile-hole-${hubEntranceKey}-${i}`}
                   className="wii-strip-channel-cell wii-strip-channel-cell--hidden"
-                  style={{
-                    gridColumn: col + 1,
-                    gridRow: row + 1,
-                  }}
+                  style={gridStyle}
                   aria-hidden
                 />
               );
@@ -156,15 +198,18 @@ const WiiChannelStrip = ({
               <m.div
                 key={`tile-${hubEntranceKey}-${i}`}
                 className={`wii-strip-channel-cell${canPunch ? ' wii-strip-channel-cell--punchable' : ''}`}
-                style={{
-                  gridColumn: col + 1,
-                  gridRow: row + 1,
-                }}
+                style={gridStyle}
                 variants={tileItemVariants}
                 custom={idxInPage}
                 initial="closed"
                 animate={tileAnimate}
-                onClickCapture={canPunch ? handlePunchCapture(i) : undefined}
+                onClickCapture={
+                  canPunch
+                    ? handlePunchCapture(i)
+                    : canSelect
+                      ? handleArrangeSelectCapture(i)
+                      : undefined
+                }
               >
                 {renderChannelAtIndex(i, true)}
               </m.div>
@@ -184,6 +229,7 @@ WiiChannelStrip.propTypes = {
   columns: PropTypes.number.isRequired,
   rows: PropTypes.number.isRequired,
   slotMeta: PropTypes.object,
+  slots: PropTypes.array,
   onGridMouseEnter: PropTypes.func.isRequired,
   onGridMouseLeave: PropTypes.func.isRequired,
   onGridPointerMove: PropTypes.func,
@@ -197,6 +243,7 @@ WiiChannelStrip.propTypes = {
   arrangeModeActive: PropTypes.bool,
   punchModeActive: PropTypes.bool,
   onTogglePunch: PropTypes.func,
+  onArrangeSelectIndex: PropTypes.func,
 };
 
 export default React.memo(WiiChannelStrip);

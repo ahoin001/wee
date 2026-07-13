@@ -43,6 +43,8 @@ import { collectPrioritizedWarmMediaUrls } from './utils/mediaWarmCache';
 import { scheduleMediaWarmPass } from './utils/mediaWarmScheduler';
 import { IS_DEV } from './utils/env';
 import { useAppActivity } from './hooks/useAppActivity';
+import { useSessionPowerSync } from './hooks/useSessionPowerSync';
+import { useSystemPowerSync } from './hooks/useSystemPowerSync';
 import { useWeeMotion } from './design/weeMotion';
 import { weeMeasureAsync, weeMarkSettingsModalVisible } from './utils/weePerformanceMarks';
 
@@ -175,6 +177,8 @@ function App() {
 
   /** Must run before any early return (splash) — same hook order every render. */
   const { isAppActive } = useAppActivity();
+  useSessionPowerSync();
+  useSystemPowerSync();
   const { reducedMotion, pillOpen } = useWeeMotion();
 
 

@@ -17,6 +17,7 @@ const { registerWallpaperManagementHandlers } = require('./register-wallpaper-ma
 const { registerIconsHandlers } = require('./register-icons-handlers.cjs');
 const { registerResetHandlers } = require('./register-reset-handlers.cjs');
 const { registerLaunchHandlers } = require('./register-launch-handlers.cjs');
+const { registerSystemPowerHandlers } = require('./register-system-power-handlers.cjs');
 
 function registerAllIpcHandlers({
   core,
@@ -227,6 +228,11 @@ function registerAllIpcHandlers({
     app,
     process,
     launchChannelApp,
+    getMainWindow,
+  });
+
+  registerSystemPowerHandlers({
+    ipcMain,
     getMainWindow,
   });
 }

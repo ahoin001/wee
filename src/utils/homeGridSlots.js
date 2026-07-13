@@ -1,7 +1,63 @@
 import { channelIdAtIndex } from './channelReorder';
 
 export const SLOT_KIND_CHANNEL = 'channel';
+/** @deprecated Prefer SLOT_KIND_ADMIN_QUICK_ACCESS — kept for migrate of early stubs. */
 export const SLOT_KIND_WIDGET = 'widget';
+export const SLOT_KIND_ADMIN_QUICK_ACCESS = 'adminQuickAccess';
+
+/**
+ * @param {import('./homeGridSlots').HomeGridSlot | null | undefined} slot
+ * @returns {boolean}
+ */
+export function isNonChannelSlot(slot) {
+  return Boolean(slot && slot.kind && slot.kind !== SLOT_KIND_CHANNEL);
+}
+
+/**
+ * @returns {import('./homeGridSlots').HomeGridSlot}
+ */
+export function createEmptyChannelSlot() {
+  return {
+    kind: SLOT_KIND_CHANNEL,
+    hidden: false,
+    colSpan: 1,
+    rowSpan: 1,
+    channel: null,
+  };
+}
+
+/**
+ * @param {{ colSpan?: number, rowSpan?: number }} [span]
+ * @returns {import('./homeGridSlots').HomeGridSlot}
+ */
+export function createAdminQuickAccessSlot(span = {}) {
+  return {
+    kind: SLOT_KIND_ADMIN_QUICK_ACCESS,
+    hidden: false,
+    colSpan: span.colSpan ?? 1,
+    rowSpan: span.rowSpan ?? 1,
+    channel: null,
+    widget: { widgetId: SLOT_KIND_ADMIN_QUICK_ACCESS },
+  };
+}
+
+/**
+ * Normalize legacy `widget` stubs → adminQuickAccess.
+ * @param {import('./homeGridSlots').HomeGridSlot | null | undefined} slot
+ */
+export function normalizeHomeGridSlot(slot) {
+  if (!slot || typeof slot !== 'object') return createEmptyChannelSlot();
+  if (slot.kind === SLOT_KIND_WIDGET) {
+    return {
+      ...createAdminQuickAccessSlot({
+        colSpan: slot.colSpan ?? 1,
+        rowSpan: slot.rowSpan ?? 1,
+      }),
+      hidden: Boolean(slot.hidden),
+    };
+  }
+  return slot;
+}
 
 const KEN_BURNS_KEYS = [
   'kenBurnsEnabled',
@@ -20,19 +76,6 @@ const KEN_BURNS_KEYS = [
   'kenBurnsCrossfadeReturn',
   'kenBurnsTransitionType',
 ];
-
-/**
- * @returns {import('./homeGridSlots').HomeGridSlot}
- */
-export function createEmptyChannelSlot() {
-  return {
-    kind: SLOT_KIND_CHANNEL,
-    hidden: false,
-    colSpan: 1,
-    rowSpan: 1,
-    channel: null,
-  };
-}
 
 /**
  * @param {Record<string, unknown> | null | undefined} kenBurnsEntry
@@ -66,6 +109,7 @@ function buildChannelPayload(configuredEntry, kenBurnsEntry) {
     hoverSound: configuredEntry.hoverSound ?? null,
     animatedOnHover: configuredEntry.animatedOnHover,
     title: configuredEntry.title,
+    performancePauseMode: configuredEntry.performancePauseMode ?? 'auto',
   };
 
   const kenBurns = extractKenBurnsPayload(kenBurnsEntry);
@@ -111,6 +155,12 @@ function channelToConfiguredEntry(channel) {
   if (channel.hoverSound != null) entry.hoverSound = channel.hoverSound;
   if (channel.animatedOnHover !== undefined) entry.animatedOnHover = channel.animatedOnHover;
   if (channel.title !== undefined) entry.title = channel.title;
+  if (channel.performancePauseMode === 'on' || channel.performancePauseMode === 'off') {
+    entry.performancePauseMode = channel.performancePauseMode;
+  } else if (channel.performancePauseMode === 'auto') {
+    // Explicit auto clears a previous on/off override when projecting slots → maps.
+    entry.performancePauseMode = 'auto';
+  }
 
   return Object.keys(entry).length > 0 ? entry : undefined;
 }
@@ -151,16 +201,19 @@ export function projectSlotsToLegacyMaps(slots) {
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     const id = channelIdAtIndex(i);
-    if (!slot || slot.kind !== SLOT_KIND_CHANNEL) continue;
+    if (!slot) continue;
+
+    // Non-channel kinds still project slotMeta (hidden / spans) so punch + layout survive sync.
+    const metaEntry = slotToMetaEntry(slot);
+    if (metaEntry) slotMeta[id] = metaEntry;
+
+    if (slot.kind !== SLOT_KIND_CHANNEL) continue;
 
     const configuredEntry = channelToConfiguredEntry(slot.channel);
     if (configuredEntry) configuredChannels[id] = configuredEntry;
 
     const kenBurnsEntry = channelToKenBurnsEntry(slot.channel);
     if (kenBurnsEntry) channelConfigs[id] = kenBurnsEntry;
-
-    const metaEntry = slotToMetaEntry(slot);
-    if (metaEntry) slotMeta[id] = metaEntry;
   }
 
   return { configuredChannels, channelConfigs, slotMeta };
@@ -194,6 +247,8 @@ export function migrateSpaceDataToSlots(spaceData) {
   } else if (slots.length > totalChannels) {
     slots = slots.slice(0, totalChannels);
   }
+
+  slots = slots.map((s) => normalizeHomeGridSlot(s));
 
   const hasLegacyContent =
     Object.keys(input.configuredChannels || {}).length > 0 ||
@@ -249,7 +304,8 @@ export function getSlotAt(slots, channelId) {
  * @returns {boolean}
  */
 export function isChannelSlotEmpty(slot) {
-  if (!slot || slot.kind !== SLOT_KIND_CHANNEL) return true;
+  if (!slot) return true;
+  if (slot.kind !== SLOT_KIND_CHANNEL) return false;
   const channel = slot.channel;
   return !channel || (!channel.media && !channel.path);
 }
@@ -285,12 +341,17 @@ export function syncSpaceDataFromLegacyMaps(spaceData) {
       existingSlotMeta[id]
     );
     const prev = prevSlots[i];
-    // Preserve widget kind / spans when legacy maps have no content for this index.
-    if (prev && prev.kind === SLOT_KIND_WIDGET) {
-      slots.push({
-        ...prev,
-        hidden: Boolean(existingSlotMeta[id]?.hidden) || Boolean(prev.hidden),
-      });
+    // Preserve non-channel kinds (widgets) when remapping from legacy channel maps.
+    if (prev && prev.kind && prev.kind !== SLOT_KIND_CHANNEL) {
+      const meta = existingSlotMeta[id];
+      slots.push(
+        normalizeHomeGridSlot({
+          ...prev,
+          hidden: Boolean(meta?.hidden) || Boolean(prev.hidden),
+          colSpan: meta?.colSpan ?? prev.colSpan ?? 1,
+          rowSpan: meta?.rowSpan ?? prev.rowSpan ?? 1,
+        })
+      );
     } else {
       slots.push(fromLegacy);
     }
@@ -309,4 +370,65 @@ export function syncSpaceDataFromLegacyMaps(spaceData) {
  */
 export function syncSpaceDataSlotsAfterReorder(spaceData) {
   return syncSpaceDataFromLegacyMaps(spaceData);
+}
+
+/**
+ * Replace an empty channel slot with Admin Quick Access (S by default).
+ * Caller should verify `canPlaceSpan` first for multi-cell presets.
+ * @param {Record<string, unknown>} spaceData
+ * @param {number} channelIndex
+ * @param {{ colSpan?: number, rowSpan?: number }} [span]
+ */
+export function placeAdminQuickAccessInSpaceData(spaceData, channelIndex, span = {}) {
+  const input = spaceData && typeof spaceData === 'object' ? spaceData : {};
+  const slots = Array.isArray(input.slots) ? [...input.slots] : [];
+  const index = channelIndex | 0;
+  if (index < 0 || index >= slots.length) return input;
+
+  slots[index] = createAdminQuickAccessSlot({
+    colSpan: span.colSpan ?? 1,
+    rowSpan: span.rowSpan ?? 1,
+  });
+
+  const legacy = projectSlotsToLegacyMaps(slots);
+  return { ...input, slots, ...legacy };
+}
+
+/**
+ * Convert a non-channel widget slot back to an empty channel.
+ * @param {Record<string, unknown>} spaceData
+ * @param {number} channelIndex
+ */
+export function removeHomeWidgetFromSpaceData(spaceData, channelIndex) {
+  const input = spaceData && typeof spaceData === 'object' ? spaceData : {};
+  const slots = Array.isArray(input.slots) ? [...input.slots] : [];
+  const index = channelIndex | 0;
+  if (index < 0 || index >= slots.length) return input;
+  if (!isNonChannelSlot(slots[index])) return input;
+
+  slots[index] = createEmptyChannelSlot();
+  const legacy = projectSlotsToLegacyMaps(slots);
+  return { ...input, slots, ...legacy };
+}
+
+/**
+ * Update colSpan/rowSpan on a slot (any kind).
+ * @param {Record<string, unknown>} spaceData
+ * @param {number} channelIndex
+ * @param {number} colSpan
+ * @param {number} rowSpan
+ */
+export function setHomeSlotSpanInSpaceData(spaceData, channelIndex, colSpan, rowSpan) {
+  const input = spaceData && typeof spaceData === 'object' ? spaceData : {};
+  const slots = Array.isArray(input.slots) ? [...input.slots] : [];
+  const index = channelIndex | 0;
+  if (index < 0 || index >= slots.length || !slots[index]) return input;
+
+  slots[index] = {
+    ...slots[index],
+    colSpan: Math.max(1, colSpan | 0),
+    rowSpan: Math.max(1, rowSpan | 0),
+  };
+  const legacy = projectSlotsToLegacyMaps(slots);
+  return { ...input, slots, ...legacy };
 }

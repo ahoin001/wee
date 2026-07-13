@@ -4,14 +4,17 @@ import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 
 /**
  * Live Board Studio: transient Home-grid arrange overlay (`ui.homeBoardArrangeMode` /
- * `ui.homeBoardPunchMode`). Not persisted — resets to off on reload.
- * Escape always exits; entering only makes sense while the Home board is on screen.
+ * `ui.homeBoardPunchMode` / `ui.homeBoardSelectedSlotIndex`). Not persisted.
  */
 export function useHomeBoardArrange() {
-  const { arrangeMode, punchMode, setUIState } = useConsolidatedAppStore(
+  const { arrangeMode, punchMode, selectedSlotIndex, setUIState } = useConsolidatedAppStore(
     useShallow((state) => ({
       arrangeMode: Boolean(state.ui.homeBoardArrangeMode),
       punchMode: Boolean(state.ui.homeBoardPunchMode),
+      selectedSlotIndex:
+        state.ui.homeBoardSelectedSlotIndex == null
+          ? null
+          : Number(state.ui.homeBoardSelectedSlotIndex),
       setUIState: state.actions.setUIState,
     }))
   );
@@ -21,13 +24,21 @@ export function useHomeBoardArrange() {
   }, [setUIState]);
 
   const exitArrange = useCallback(() => {
-    setUIState({ homeBoardArrangeMode: false, homeBoardPunchMode: false });
+    setUIState({
+      homeBoardArrangeMode: false,
+      homeBoardPunchMode: false,
+      homeBoardSelectedSlotIndex: null,
+    });
   }, [setUIState]);
 
   const toggleArrange = useCallback(() => {
     setUIState((prev) =>
       prev.homeBoardArrangeMode
-        ? { homeBoardArrangeMode: false, homeBoardPunchMode: false }
+        ? {
+            homeBoardArrangeMode: false,
+            homeBoardPunchMode: false,
+            homeBoardSelectedSlotIndex: null,
+          }
         : { homeBoardArrangeMode: true }
     );
   }, [setUIState]);
@@ -35,15 +46,37 @@ export function useHomeBoardArrange() {
   const setPunchMode = useCallback(
     (next) => {
       setUIState((prev) => ({
-        homeBoardPunchMode: typeof next === 'function' ? next(Boolean(prev.homeBoardPunchMode)) : Boolean(next),
+        homeBoardPunchMode:
+          typeof next === 'function' ? next(Boolean(prev.homeBoardPunchMode)) : Boolean(next),
+        // Punch and widget selection don't mix well — clear selection when punching.
+        ...(typeof next === 'function'
+          ? {}
+          : next
+            ? { homeBoardSelectedSlotIndex: null }
+            : {}),
       }));
     },
     [setUIState]
   );
 
   const togglePunchMode = useCallback(() => {
-    setPunchMode((prev) => !prev);
-  }, [setPunchMode]);
+    setUIState((prev) => {
+      const nextPunch = !prev.homeBoardPunchMode;
+      return {
+        homeBoardPunchMode: nextPunch,
+        ...(nextPunch ? { homeBoardSelectedSlotIndex: null } : {}),
+      };
+    });
+  }, [setUIState]);
+
+  const setSelectedSlotIndex = useCallback(
+    (index) => {
+      setUIState({
+        homeBoardSelectedSlotIndex: index == null || Number.isNaN(Number(index)) ? null : Number(index),
+      });
+    },
+    [setUIState]
+  );
 
   useEffect(() => {
     if (!arrangeMode) return undefined;
@@ -59,11 +92,13 @@ export function useHomeBoardArrange() {
   return {
     arrangeMode,
     punchMode,
+    selectedSlotIndex: Number.isFinite(selectedSlotIndex) ? selectedSlotIndex : null,
     enterArrange,
     exitArrange,
     toggleArrange,
     setPunchMode,
     togglePunchMode,
+    setSelectedSlotIndex,
   };
 }
 
