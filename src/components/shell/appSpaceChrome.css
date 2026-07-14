@@ -80,7 +80,8 @@
     visibility 0s linear 0s;
 }
 
-.channel-space-chrome__stack .page-navigation {
+.channel-space-chrome__stack .page-navigation,
+.channel-space-chrome__stack [aria-label='Home page'] {
   pointer-events: auto;
 }
 

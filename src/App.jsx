@@ -56,6 +56,7 @@ const lazyNamedExport = (importer, exportName) =>
 
 const LazyPaginatedChannels = lazyNamedExport(() => import('./components/navigation'), 'PaginatedChannels');
 const LazyPageNavigation = lazyNamedExport(() => import('./components/navigation'), 'PageNavigation');
+const LazyHomePageIndicator = lazyNamedExport(() => import('./components/home-grid'), 'HomePageIndicator');
 const LazyWiiRibbon = lazyNamedExport(() => import('./components/dock'), 'WiiRibbon');
 const LazyClassicWiiDock = lazyNamedExport(() => import('./components/dock'), 'ClassicWiiDock');
 const LazyWiiSideNavigation = lazyNamedExport(() => import('./components/navigation'), 'WiiSideNavigation');
@@ -663,6 +664,7 @@ function App() {
             aria-hidden={isHubSpace}
           >
             <LazyPageNavigation position="bottom" showPageIndicator />
+            <LazyHomePageIndicator />
             <LazyWiiSideNavigation />
           </div>
         </Suspense>

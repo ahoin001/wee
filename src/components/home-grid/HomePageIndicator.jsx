@@ -13,13 +13,16 @@ const DOT_STEP_PX = 22;
 /**
  * Pill Morph Reveal page indicator for the Home board: compact page-count disc that expands
  * into clickable page dots on hover/focus. Horizontal twin of `WeeGooeySideNavButton`.
- * Mount inside a Home `ChannelSpaceProvider` — reads navigation via `useChannelOperations`.
  *
- * Positioned in `--channel-page-indicator-band` just above `--channel-ribbon-crest-clearance`
- * so it sits below the channel grid and clears the ribbon/time pill (z above the dock stack).
+ * Mount in `.channel-space-chrome__stack` (viewport chrome above the dock) — not inside the
+ * transformed space-world track, or the ribbon paints over it. Reads Home via
+ * `useChannelOperations('home')`.
+ *
+ * Sits at the top of `--channel-page-indicator-band`, just under the channel grid and clear
+ * of `--channel-ribbon-crest-clearance` (wave + time pill).
  */
 function HomePageIndicator() {
-  const { navigation, goToPage } = useChannelOperations();
+  const { navigation, goToPage } = useChannelOperations('home');
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const reducedMotion = useReducedMotion();
@@ -46,7 +49,14 @@ function HomePageIndicator() {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--channel-ribbon-crest-clearance)+0.65rem)] z-[1100] flex justify-center">
+    <div
+      className="pointer-events-none absolute inset-x-0 z-[1] flex justify-center"
+      style={{
+        /* Top of reserved indicator band — snug under grid, above ribbon crest */
+        bottom:
+          'calc(var(--channel-ribbon-crest-clearance) + var(--channel-page-indicator-band) - 2.55rem)',
+      }}
+    >
       <div
         className="pointer-events-auto relative flex items-center justify-center"
         onMouseEnter={() => setHovered(true)}

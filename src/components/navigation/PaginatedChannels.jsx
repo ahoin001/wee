@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core';
 import { LayoutGrid } from 'lucide-react';
 import { Channel } from '../channels';
-import { HomeSlot, HomeBoardArrangeBar, HomePageIndicator } from '../home-grid';
+import { HomeSlot, HomeBoardArrangeBar } from '../home-grid';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import { getSlotAt, isChannelSlotEmpty } from '../../utils/homeGridSlots';
@@ -1059,7 +1059,6 @@ const PaginatedChannelsInner = React.memo(() => {
 
       {isHomeSpace ? (
         <>
-          <HomePageIndicator />
           <HomeBoardArrangeBar
             arrangeMode={arrangeModeActive && !channelConfigureModalOpen}
             punchMode={punchModeActive}
