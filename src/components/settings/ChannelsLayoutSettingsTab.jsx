@@ -1,14 +1,16 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { m, useReducedMotion } from 'framer-motion';
-import { Activity, Aperture, EyeOff, Info, LayoutGrid, Minus, Monitor, Plus } from 'lucide-react';
+import { Aperture, EyeOff, Info, LayoutGrid, Minus, Monitor, Plus, Sparkles } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import {
+  WeeButton,
   WeeDescriptionToggleRow,
   WeeGlassPill,
   WeeHelpLinkButton,
+  WeeHelpParagraph,
   WeeModalFieldCard,
   WeeSegmentedControl,
   WeeSectionEyebrow,
@@ -255,6 +257,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
       setUIState: state.actions.setUIState,
       setChannelLayoutForSpace: state.actions.setChannelLayoutForSpace,
       setChannelSlotHiddenForSpace: state.actions.setChannelSlotHiddenForSpace,
+      setFloatingWidgetsState: state.actions.setFloatingWidgetsState,
     }))
   );
   const motionFeedback = useConsolidatedAppStore((state) => state.ui.motionFeedback);
@@ -264,15 +267,29 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     () => createWeeTransition('press', { reducedMotion: reduceMotion }),
     [reduceMotion]
   );
+  const floatingWidgets = useConsolidatedAppStore((state) => state.floatingWidgets);
   const [punchHoleMode, setPunchHoleMode] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
   const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
 
+  /** Close Settings, jump to Home, and open Live Board Studio. */
   const handleArrangeOnHome = useCallback(() => {
-    enterHomeBoardArrange();
-    actions.setUIState({ showSettingsModal: false });
-  }, [enterHomeBoardArrange, actions]);
+    enterHomeBoardArrange({ closeSettings: true });
+  }, [enterHomeBoardArrange]);
 
+  const handleToggleFloatingWidget = useCallback(
+    (key, nextVisible) => {
+      const current = floatingWidgets?.[key];
+      if (!current) return;
+      actions.setFloatingWidgetsState({
+        [key]: {
+          ...current,
+          visible: typeof nextVisible === 'boolean' ? nextVisible : !current.visible,
+        },
+      });
+    },
+    [actions, floatingWidgets]
+  );
   const handleChannelHoverModeChange = useCallback(
     (mode) => {
       actions.setUIState((prev) => {
@@ -436,7 +453,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
       <SettingsTabPageHeader
         title="Channel & layout"
-        subtitle="Shape your Home board, punch wallpaper holes, and tune tile motion"
+        subtitle="Shape the Home board, place widgets, and tune how tiles look and move"
       />
 
       <div className="flex flex-col gap-5">
@@ -518,19 +535,38 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             Peek % controls how much of the next page shows at the strip’s edge.
           </Text>
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                Punch holes
-              </WeeSectionEyebrow>
-              <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-                Let wallpaper show through selected slots.
-              </Text>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <WeeHelpLinkButton type="button" className="!mt-0" onClick={handleArrangeOnHome}>
+          <div className="flex flex-col gap-4 rounded-[2rem] border-2 border-[hsl(var(--primary)/0.28)] bg-[hsl(var(--surface-wii-tint)/0.5)] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 max-w-xl">
+                <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+                  Live Board Studio
+                </WeeSectionEyebrow>
+                <Text variant="body" className="!m-0 !font-black !text-[hsl(var(--text-primary))]">
+                  Arrange tiles on Home
+                </Text>
+                <Text variant="desc" className="!mt-2 !mb-0 text-[hsl(var(--text-secondary))]">
+                  Closes settings and opens a toolbar on the Home board. Tap tiles to select them,
+                  punch wallpaper holes, or place a Quick Access widget in an empty slot.
+                </Text>
+              </div>
+              <WeeButton
+                type="button"
+                variant="primary"
+                className="!rounded-full !px-5 !py-3 shrink-0"
+                onClick={handleArrangeOnHome}
+              >
                 Arrange on Home
-              </WeeHelpLinkButton>
+              </WeeButton>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
+              <div>
+                <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+                  Punch holes (in settings)
+                </WeeSectionEyebrow>
+                <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+                  Edit holes in the preview below — or punch them live on Home while arranging.
+                </Text>
+              </div>
               <m.button
                 type="button"
                 aria-pressed={punchHoleMode}
@@ -583,6 +619,97 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               </Text>
             </div>
           </div>
+        </WeeSettingsCollapsibleSection>
+
+        <WeeSettingsCollapsibleSection
+          icon={Sparkles}
+          title="Widgets"
+          description="Floating overlays and Home-board widgets — what they are and how to use them."
+          defaultOpen
+        >
+          <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+              Two kinds of widgets
+            </WeeSectionEyebrow>
+            <ul className="m-0 flex list-none flex-col gap-3 p-0">
+              <li className="rounded-[1.25rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.7)] px-4 py-3">
+                <Text variant="body" className="!m-0 !text-sm !font-black !text-[hsl(var(--text-primary))]">
+                  Floating widgets
+                </Text>
+                <Text variant="desc" className="!mt-1 !mb-0 text-[hsl(var(--text-secondary))]">
+                  Drift over every space (Spotify, System Info, Admin panel). Drag them anywhere;
+                  toggle them below. They are not tied to a Home grid slot.
+                </Text>
+              </li>
+              <li className="rounded-[1.25rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.7)] px-4 py-3">
+                <Text variant="body" className="!m-0 !text-sm !font-black !text-[hsl(var(--text-primary))]">
+                  Home board widgets
+                </Text>
+                <Text variant="desc" className="!mt-1 !mb-0 text-[hsl(var(--text-secondary))]">
+                  Sit in a channel slot (like Quick Access). Use <strong>Arrange on Home</strong>,
+                  tap an empty tile, then <strong>Add Quick Access</strong> on the bottom toolbar.
+                  Resize or remove from that same toolbar.
+                </Text>
+              </li>
+            </ul>
+          </WeeModalFieldCard>
+
+          <SettingsToggleFieldCard
+            hoverAccent="none"
+            titleClassName={TOGGLE_TITLE}
+            title="Spotify widget"
+            desc="Floating mini-player. Connect Spotify under API & Widgets for account access."
+            checked={Boolean(floatingWidgets?.spotify?.visible)}
+            onChange={(next) => handleToggleFloatingWidget('spotify', next)}
+          />
+          <SettingsToggleFieldCard
+            hoverAccent="none"
+            titleClassName={TOGGLE_TITLE}
+            title="System Info widget"
+            desc="Floating CPU, memory, and system meters. Drag to reposition."
+            checked={Boolean(floatingWidgets?.systemInfo?.visible)}
+            onChange={(next) => handleToggleFloatingWidget('systemInfo', next)}
+          />
+          <SettingsToggleFieldCard
+            hoverAccent="none"
+            titleClassName={TOGGLE_TITLE}
+            title="Admin panel widget"
+            desc="Floating Quick Access menu for Windows tools. You can also pin Quick Access onto the Home board."
+            checked={Boolean(floatingWidgets?.adminPanel?.visible)}
+            onChange={(next) => handleToggleFloatingWidget('adminPanel', next)}
+          />
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-dashed border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.4)] p-4">
+            <div className="min-w-0 max-w-md">
+              <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
+                Place on the board
+              </WeeSectionEyebrow>
+              <WeeHelpParagraph className="!normal-case !tracking-[0.04em]">
+                Need a Quick Access tile in the grid? Arrange Home, select an empty slot, then Add
+                Quick Access.
+              </WeeHelpParagraph>
+            </div>
+            <WeeButton
+              type="button"
+              variant="secondary"
+              className="!rounded-full !px-4 !py-2.5 shrink-0"
+              onClick={handleArrangeOnHome}
+            >
+              Arrange to place
+            </WeeButton>
+          </div>
+
+          <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+            Spotify login &amp; detailed widget options live under{' '}
+            <WeeHelpLinkButton
+              type="button"
+              className="!mt-0 inline"
+              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS)}
+            >
+              API &amp; Widgets
+            </WeeHelpLinkButton>
+            .
+          </Text>
         </WeeSettingsCollapsibleSection>
 
         <WeeSettingsCollapsibleSection

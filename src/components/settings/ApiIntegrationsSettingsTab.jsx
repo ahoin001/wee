@@ -107,10 +107,24 @@ const ApiIntegrationsSettingsTab = () => {
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
       <SettingsTabPageHeader
         title="API & Widgets"
-        subtitle="External services & floating widgets"
+        subtitle="External services — Spotify auth & deep widget options"
       />
 
-      {/* Spotify Integration */}
+      <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-5" className="mb-2">
+        <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
+          Show or hide floating widgets, and place Quick Access on the Home board, under{' '}
+          <button
+            type="button"
+            className="border-0 bg-transparent p-0 font-black uppercase tracking-[0.12em] text-[hsl(var(--primary))] underline decoration-[hsl(var(--primary)/0.45)] underline-offset-4"
+            onClick={() => {
+              actions.setUIState({ settingsActiveTab: 'channels' });
+            }}
+          >
+            Channels &amp; layout → Widgets
+          </button>
+          .
+        </Text>
+      </WeeModalFieldCard>
       <WeeSettingsCollapsibleSection
         icon={Music}
         title="Spotify Integration"

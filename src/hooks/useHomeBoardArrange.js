@@ -7,21 +7,35 @@ import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
  * `ui.homeBoardPunchMode` / `ui.homeBoardSelectedSlotIndex`). Not persisted.
  */
 export function useHomeBoardArrange() {
-  const { arrangeMode, punchMode, selectedSlotIndex, setUIState } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      arrangeMode: Boolean(state.ui.homeBoardArrangeMode),
-      punchMode: Boolean(state.ui.homeBoardPunchMode),
-      selectedSlotIndex:
-        state.ui.homeBoardSelectedSlotIndex == null
-          ? null
-          : Number(state.ui.homeBoardSelectedSlotIndex),
-      setUIState: state.actions.setUIState,
-    }))
-  );
+  const { arrangeMode, punchMode, selectedSlotIndex, setUIState, setSpacesState } =
+    useConsolidatedAppStore(
+      useShallow((state) => ({
+        arrangeMode: Boolean(state.ui.homeBoardArrangeMode),
+        punchMode: Boolean(state.ui.homeBoardPunchMode),
+        selectedSlotIndex:
+          state.ui.homeBoardSelectedSlotIndex == null
+            ? null
+            : Number(state.ui.homeBoardSelectedSlotIndex),
+        setUIState: state.actions.setUIState,
+        setSpacesState: state.actions.setSpacesState,
+      }))
+    );
 
-  const enterArrange = useCallback(() => {
-    setUIState({ homeBoardArrangeMode: true });
-  }, [setUIState]);
+  /**
+   * Enter Live Board Studio on Home.
+   * Always jumps to the Home space and closes Settings so the arrange bar is visible.
+   */
+  const enterArrange = useCallback(
+    ({ closeSettings = false } = {}) => {
+      setSpacesState({ activeSpaceId: 'home' });
+      setUIState({
+        homeBoardArrangeMode: true,
+        homeBoardPunchMode: false,
+        ...(closeSettings ? { showSettingsModal: false } : {}),
+      });
+    },
+    [setSpacesState, setUIState]
+  );
 
   const exitArrange = useCallback(() => {
     setUIState({
@@ -32,16 +46,18 @@ export function useHomeBoardArrange() {
   }, [setUIState]);
 
   const toggleArrange = useCallback(() => {
-    setUIState((prev) =>
-      prev.homeBoardArrangeMode
-        ? {
-            homeBoardArrangeMode: false,
-            homeBoardPunchMode: false,
-            homeBoardSelectedSlotIndex: null,
-          }
-        : { homeBoardArrangeMode: true }
-    );
-  }, [setUIState]);
+    setUIState((prev) => {
+      if (prev.homeBoardArrangeMode) {
+        return {
+          homeBoardArrangeMode: false,
+          homeBoardPunchMode: false,
+          homeBoardSelectedSlotIndex: null,
+        };
+      }
+      setSpacesState({ activeSpaceId: 'home' });
+      return { homeBoardArrangeMode: true, homeBoardPunchMode: false };
+    });
+  }, [setSpacesState, setUIState]);
 
   const setPunchMode = useCallback(
     (next) => {

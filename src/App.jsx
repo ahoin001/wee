@@ -363,7 +363,9 @@ function App() {
 
   const shouldMountSpaceContent = useCallback(
     (spaceId) => {
-      if (visitedSpaces === null) return spaceId === activeSpaceId;
+      // Always mount the active space (critical for first visit / Arrange on Home from a Hub).
+      if (spaceId === activeSpaceId) return true;
+      if (visitedSpaces === null) return false;
       return visitedSpaces.has(spaceId);
     },
     [visitedSpaces, activeSpaceId]

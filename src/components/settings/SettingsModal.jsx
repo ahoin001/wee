@@ -41,7 +41,7 @@ const SETTINGS_TABS_MAIN = [
     label: 'API & Widgets',
     icon: '🔌',
     color: 'hsl(var(--settings-tab-api))',
-    description: 'External services & floating widgets',
+    description: 'Spotify auth & deep widget options',
     component: ApiIntegrationsSettingsTab,
   },
   {
@@ -49,7 +49,7 @@ const SETTINGS_TABS_MAIN = [
     label: 'Channels & layout',
     icon: '📺',
     color: 'hsl(var(--settings-tab-channels))',
-    description: 'Wii grid, space status, and channel tile defaults',
+    description: 'Home board, widgets, and tile look',
     component: ChannelsLayoutSettingsTab,
   },
   {
