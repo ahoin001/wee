@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { m, useReducedMotion } from 'framer-motion';
-import { Aperture, EyeOff, Info, LayoutGrid, Minus, Monitor, Plus, Sparkles } from 'lucide-react';
+import { Activity, Aperture, EyeOff, Info, LayoutGrid, Minus, Monitor, Plus, Sparkles } from 'lucide-react';
 import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
