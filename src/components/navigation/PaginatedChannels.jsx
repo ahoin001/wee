@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import * as ContextMenu from '@radix-ui/react-context-menu';
@@ -1266,7 +1267,11 @@ const PaginatedChannelsInner = React.memo(() => {
         </DragOverlay>
       </DndContext>
 
-      {isHomeSpace ? (
+      {/* Fixed chrome portals to <body>: the space-world track is transformed
+          (`will-change: transform`), which would otherwise make it the containing
+          block for position:fixed and clip/bury this UI behind the dock. */}
+      {isHomeSpace
+        ? createPortal(
         <>
           <HomeBoardArrangeBar
             arrangeMode={arrangeModeActive && !channelConfigureModalOpen}
@@ -1336,8 +1341,10 @@ const PaginatedChannelsInner = React.memo(() => {
               </MotionDiv>
             ) : null}
           </AnimatePresence>
-        </>
-      ) : null}
+        </>,
+            document.body
+          )
+        : null}
 
       <ChannelReorderVfxPortal lift={liftVfx} drop={dropVfx} />
     </div>

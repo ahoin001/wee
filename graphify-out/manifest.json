@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784145077.588987,
-    "ast_hash": "c1f0107bf26f80d29a3a8ca3f59920ff",
+    "mtime": 1784145806.9488294,
+    "ast_hash": "a4dd4f9772432cdc90ce9358c350241f",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -555,8 +555,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784144805.15453,
-    "ast_hash": "81b9ba63b5d8609024558926c3c124a7",
+    "mtime": 1784150264.0915594,
+    "ast_hash": "d7b8e0062a597a2227d3b593621c3168",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -625,8 +625,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
-    "mtime": 1784145454.5884025,
-    "ast_hash": "8e9756fc3ceb3f6c5ba85a255c8286bb",
+    "mtime": 1784150415.3532422,
+    "ast_hash": "3096a0aa71ad866a70d7be61aa9e1491",
     "semantic_hash": ""
   },
   "src/components/settings/GameHubSettingsTab.jsx": {
@@ -755,8 +755,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockPanel.jsx": {
-    "mtime": 1784145453.3405411,
-    "ast_hash": "56410a3fe558059d2de1db09990e8a2e",
+    "mtime": 1784150441.521691,
+    "ast_hash": "c765ab2fdb717262498bd78553d26c30",
     "semantic_hash": ""
   },
   "src/components/settings/dock/DockSettingsColorRow.jsx": {
@@ -770,8 +770,8 @@
     "semantic_hash": "bc56fd97e8acbbfd62f61a7de3601fcc"
   },
   "src/components/settings/dock/RibbonDockPanel.jsx": {
-    "mtime": 1784145451.132793,
-    "ast_hash": "f9ad6245c7e57a5814a3b38048155443",
+    "mtime": 1784150414.4491684,
+    "ast_hash": "60545eae6af46af32c27ba81401d916b",
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
@@ -2290,18 +2290,23 @@
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockLivePreview.jsx": {
-    "mtime": 1784145519.8739448,
-    "ast_hash": "e3bfbcdd60fe2f007c44f69b0872a38d",
+    "mtime": 1784150487.6550026,
+    "ast_hash": "4167c0a313d3f8f9be7b6748bddee662",
     "semantic_hash": ""
   },
   "src/components/settings/dock/RibbonLivePreview.jsx": {
-    "mtime": 1784145416.0149462,
-    "ast_hash": "ba08441448516da8e7ea9d2eb5b468cc",
+    "mtime": 1784150405.865147,
+    "ast_hash": "361d10cacb8e637dad351e5cec5411f5",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperScenePreview.jsx": {
-    "mtime": 1784145480.613932,
-    "ast_hash": "158541392d4ab6efcdfc6ed409966aac",
+    "mtime": 1784150503.7319112,
+    "ast_hash": "8762222d712e9e13f2371a34d73b16a7",
+    "semantic_hash": ""
+  },
+  "src/components/dock/ribbon/RibbonMiniature.jsx": {
+    "mtime": 1784150485.115294,
+    "ast_hash": "757bcbcebfffb579560d85967f16a01a",
     "semantic_hash": ""
   }
 }

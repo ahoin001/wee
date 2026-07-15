@@ -26,7 +26,7 @@ function ClassicDockPanel({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <ClassicDockLivePreview dock={dock} sticky />
+      <ClassicDockLivePreview sticky />
 
       <WeeSettingsCollapsibleSection
         icon={Gamepad2}

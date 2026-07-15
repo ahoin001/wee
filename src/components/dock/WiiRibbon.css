@@ -1,5 +1,6 @@
 /* Design system variables are now imported from design-system.css */
-.interactive-footer {
+.interactive-footer,
+.ribbon-miniature-stage {
   --ribbon-glow-soft: hsl(var(--wii-blue) / 0.2);
   --ribbon-glow-faint: hsl(var(--wii-blue) / 0.1);
   --ribbon-glow-medium: hsl(var(--wii-blue) / 0.4);
@@ -12,6 +13,19 @@
   --ribbon-shadow-soft: hsl(var(--text-primary) / 0.1);
   --ribbon-cog-glass: hsl(var(--surface-secondary) / 0.88);
   --ribbon-inner-highlight: hsl(var(--color-pure-white));
+}
+
+/* Non-interactive 1:1 miniature stage (settings live previews) — same visual layers
+   as .interactive-footer, rendered at native 1440×240 then scaled to fit. */
+.ribbon-miniature-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  user-select: none;
 }
 .border-wii-gray { border-color: hsl(var(--border-primary)); }
 .text-wii-gray-dark { color: hsl(var(--text-secondary)); }
@@ -429,7 +443,8 @@
   filter: var(--ribbon-glow-filter);
 }
 
-.interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
+.interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic,
+.ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
   animation: ribbon-chrome-glow-pulse var(--ribbon-fx-duration, 2.4s) ease-in-out infinite;
 }
 
@@ -459,7 +474,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
+  .interactive-footer.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic,
+  .ribbon-miniature-stage.ribbon-fx-pulse-active .ribbon-svg-glow-dynamic {
     animation: none;
   }
 }

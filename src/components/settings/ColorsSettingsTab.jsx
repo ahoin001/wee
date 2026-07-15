@@ -191,7 +191,7 @@ const ColorsSettingsTab = React.memo(() => {
       />
 
       <div className="mb-6">
-        <RibbonLivePreview ribbon={ribbon} sticky compact />
+        <RibbonLivePreview sticky compact />
       </div>
 
       <SettingsWeeSection eyebrow="Match wallpaper">

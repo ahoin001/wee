@@ -1,16 +1,12 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { useShallow } from 'zustand/react/shallow';
 import SettingsLivePreviewFrame from '../SettingsLivePreviewFrame';
-import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
-import {
-  DEFAULT_RIBBON_GLOW_HEX,
-  DEFAULT_RIBBON_SURFACE_HEX,
-} from '../../../design/runtimeColorStrings.js';
+import RibbonMiniature from '../../dock/ribbon/RibbonMiniature';
 
 /**
- * Schematic Home scene for wallpaper tune controls — opacity / blur / brightness /
- * saturate on the current (or library-selected) image, plus sample channel tiles + ribbon bar.
+ * Home scene for wallpaper tune controls — opacity / blur / brightness / saturate
+ * on the current (or library-selected) image, sample channel tiles, and the real
+ * ribbon miniature so the scene reads exactly like the homescreen.
  */
 function WallpaperScenePreview({
   wallpaperUrl,
@@ -20,16 +16,6 @@ function WallpaperScenePreview({
   saturate = 1,
   sticky = true,
 }) {
-  const ribbon = useConsolidatedAppStore(
-    useShallow((state) => ({
-      ribbonColor: state.ribbon?.ribbonColor,
-      ribbonGlowColor: state.ribbon?.ribbonGlowColor,
-    }))
-  );
-
-  const surface = ribbon.ribbonColor || DEFAULT_RIBBON_SURFACE_HEX;
-  const glow = ribbon.ribbonGlowColor || DEFAULT_RIBBON_GLOW_HEX;
-
   const layerStyle = useMemo(() => {
     const op = Math.min(1, Math.max(0, Number(opacity) || 0));
     const bl = Math.max(0, Number(blur) || 0);
@@ -68,7 +54,7 @@ function WallpaperScenePreview({
           </div>
         )}
 
-        <div className="absolute inset-x-3 top-3 bottom-10 grid grid-cols-4 gap-2">
+        <div className="absolute inset-x-3 top-3 bottom-12 grid grid-cols-4 gap-2">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
@@ -78,14 +64,9 @@ function WallpaperScenePreview({
           <div className="rounded-xl border-2 border-dashed border-[hsl(var(--border-secondary)/0.55)] bg-transparent" />
         </div>
 
-        <div
-          className="absolute inset-x-4 bottom-2 h-7 rounded-full border-2 shadow-[var(--shadow-sm)]"
-          style={{
-            background: surface,
-            borderColor: glow,
-            boxShadow: `0 0 10px ${glow}66, var(--shadow-sm)`,
-          }}
-        />
+        <div className="absolute inset-x-0 bottom-0">
+          <RibbonMiniature />
+        </div>
       </div>
     </SettingsLivePreviewFrame>
   );

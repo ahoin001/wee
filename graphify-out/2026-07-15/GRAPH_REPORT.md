@@ -1,16 +1,16 @@
 # Graph Report - wee  (2026-07-15)
 
 ## Corpus Check
-- 439 files · ~296,488 words
+- 443 files · ~297,874 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2479 nodes · 5511 edges · 186 communities (132 shown, 54 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 70 edges (avg confidence: 0.54)
+- 2488 nodes · 5545 edges · 181 communities (127 shown, 54 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 73 edges (avg confidence: 0.54)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `272eeccd`
+- Built from commit: `2d9980f4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -155,10 +155,8 @@
 - 11. COMPONENT EXECUTION GUIDELINES
 - 18. EXTRA CREATIVITY & IMPLEMENTATION EDGE
 - ChannelsLayoutSettingsTab.jsx
-- supportedUploadMedia.js
 - 9. AI TELLS (Forbidden Patterns)
 - 8. ANTI-AI-SLOP RULES
-- DockParticleSystem.jsx
 - APPENDICES - Real Source-Backed Reference Material
 - 11. REDESIGN PROTOCOL
 - 3. DEFAULT ARCHITECTURE & CONVENTIONS
@@ -183,18 +181,15 @@
 - jszip
 - @types/react
 - lucide-react
-- spotify-web-api-js
 - wait-on
-- normalizeNowPlayingExperience
 - 6. Styling advice by UI type
 - 4. Motion system
-- 3. Pill Morph Reveal (the pattern)
 - lucide-react
 - spotify-web-api-js
 - @tanstack/react-virtual
 
 ## God Nodes (most connected - your core abstractions)
-1. `Text()` - 57 edges
+1. `Text()` - 58 edges
 2. `createWeeTransition()` - 44 edges
 3. `useMotionFeedback()` - 43 edges
 4. `WButton` - 43 edges
@@ -220,35 +215,31 @@
 ## Import Cycles
 - 4-file cycle: `src/components/app-library/CommunityPresets.jsx -> src/components/modals/index.js -> src/components/modals/PrimaryActionsModal.jsx -> src/components/app-library/index.js -> src/components/app-library/CommunityPresets.jsx`
 
-## Communities (186 total, 54 thin omitted)
+## Communities (181 total, 54 thin omitted)
 
 ### Community 0 - "PresetsSettingsTab.jsx"
-Cohesion: 0.07
-Nodes (58): PresetsCommunityCard, PresetsSaveCurrentCard, PresetsSavedListCard, PresetsSpotifyMatchSection, PRESET_UPDATE_SCOPE_OPTIONS, WorkspaceSwitcherModal(), applyPresetData(), normalizeSettingsShape() (+50 more)
+Cohesion: 0.06
+Nodes (69): PresetsCommunityCard, PresetsSaveCurrentCard, PresetsSavedListCard, PresetsSpotifyMatchSection, PRESET_UPDATE_SCOPE_OPTIONS, WorkspaceSwitcherModal(), captureSpaceAppearanceFromState(), mergeLiveStateFromSpaceAppearance() (+61 more)
 
 ### Community 1 - "useConsolidatedAppStore.js"
-Cohesion: 0.07
-Nodes (60): base, m, patch, buildChannelPatchFromNormalized(), useAppInitialization(), hasPatchSettingsApi(), selectPersistedSlices(), useUnifiedSettingsPersistence() (+52 more)
+Cohesion: 0.08
+Nodes (57): base, m, patch, buildChannelPatchFromNormalized(), useAppInitialization(), hasPatchSettingsApi(), selectPersistedSlices(), useUnifiedSettingsPersistence() (+49 more)
 
 ### Community 2 - "PaginatedChannels.jsx"
-Cohesion: 0.14
-Nodes (21): Channel, ChannelDragOverlayFrame(), ChannelDropTargetMotion(), buildDropMicroSparks(), buildDropParticles(), buildLiftParticles(), ChannelReorderVfxPortal(), DropBurstLayer() (+13 more)
+Cohesion: 0.16
+Nodes (18): ChannelDragOverlayFrame(), ChannelDropTargetMotion(), buildDropMicroSparks(), buildDropParticles(), buildLiftParticles(), ChannelReorderVfxPortal(), DropBurstLayer(), LiftBurstLayer() (+10 more)
 
 ### Community 3 - "FloatingSpotifyWidget.jsx"
-Cohesion: 0.21
-Nodes (11): EMPTY_CUSTOM, ActionCommand(), QuickAccessItem(), ADMIN_ACTION_CATEGORIES, ADMIN_POWER_ACTIONS_CATALOG, ALLOWED_SIMPLE_START_TARGETS, CUSTOM_ACTION_ICONS, DESTRUCTIVE_ACTION_IDS (+3 more)
-
-### Community 4 - "WiiRibbon.jsx"
 Cohesion: 0.22
-Nodes (4): adjustColorIntensity(), createColorVariations(), hexToRgb(), Particle
+Nodes (8): ChannelModal(), ChannelModalUnifiedPathBlock(), useChannelModalInitialization(), getSmartPathSuggestions(), inferLaunchTypeFromPath(), normalizeChannelPath(), validateChannelPath(), useAppLibraryState()
 
 ### Community 6 - "WallpaperSettingsTab.jsx"
 Cohesion: 0.05
-Nodes (46): GameHubMinimalDock(), SpotifyGradientOverlay(), SpotifyImmersiveOverlay(), WallpaperOverlay(), GooeyFloatingPanel(), FloatingSpotifyWidget(), PerformanceMonitor(), SpotifyBrowseView() (+38 more)
+Nodes (50): LaunchErrorToast(), AuraHero(), buildHeroStats(), hoursShort(), applyCustomArtOverrides(), buildDynamicCollections(), buildHubData(), effectiveRecentSeconds() (+42 more)
 
 ### Community 7 - "AuraCollectionsSection.jsx"
-Cohesion: 0.10
-Nodes (35): AuraCollectionsSection(), nextFrame(), preloadGameArt(), shouldIgnoreCollectionCloseTarget(), waitMs(), AuraGameCard, COLLECTION_FLY_PHASE_MS, defaultFlyLayerParent() (+27 more)
+Cohesion: 0.16
+Nodes (21): AuraCollectionsSection(), nextFrame(), preloadGameArt(), shouldIgnoreCollectionCloseTarget(), waitMs(), AuraGameCard, COLLECTION_FLY_PHASE_MS, CollectionShelfContextMenu() (+13 more)
 
 ### Community 8 - "devDependencies"
 Cohesion: 0.06
@@ -263,88 +254,88 @@ Cohesion: 0.10
 Nodes (25): DevReactProfiler(), ChannelsLayoutSettingsTab, ColorsSettingsTab, GameHubSettingsTab, GeneralSettingsTab, MonitorSettingsTab, MotionFeedbackSettingsTab, NavigationPillSettingsTab (+17 more)
 
 ### Community 11 - "AdminPanel.jsx"
-Cohesion: 0.30
-Nodes (14): AdminPanel(), AdminPanelWidget(), AdminQuickAccessSlot(), splitActionsByCapacity(), AuthModal(), ConfirmationModal(), ApiIntegrationsSettingsTab(), spotifyBtnClass() (+6 more)
+Cohesion: 0.22
+Nodes (8): adjustColorIntensity(), createColorVariations(), hexToRgb(), PARTICLE_TYPES, cubicPoint(), sampleRibbonTopEdgeForCanvas(), sampleRibbonTopEdgePoints(), PARTICLE_EFFECT_PALETTES
 
 ### Community 12 - "ChannelModal.jsx"
-Cohesion: 0.29
-Nodes (10): collectPrioritizedWarmMediaUrls(), collectWarmMediaUrlsFromStore(), isHttpLike(), warmedUrls, warmImageUrlsOnIdle(), dedupeMerge(), flush(), pendingHigh (+2 more)
+Cohesion: 0.23
+Nodes (12): useSpaceWallpaperCrossfade(), collectPrioritizedWarmMediaUrls(), collectWarmMediaUrlsFromStore(), isHttpLike(), preloadImageUrl(), warmedUrls, warmImageUrlsOnIdle(), dedupeMerge() (+4 more)
 
 ### Community 13 - "scripts"
 Cohesion: 0.06
 Nodes (33): scripts, build, dev, lint, lint:eslint, make, migrate:media, package (+25 more)
 
 ### Community 14 - "ChannelsLayoutSettingsTab.jsx"
-Cohesion: 0.34
-Nodes (12): clampGooeyIntensity(), createGooeyCloseSpring(), createGooeyModalPanelVariants(), createGooeyOpenSpring(), DEFAULT_GOOEY_PHYSICS, lerp(), mergeGooeyPhysics(), normalizeGooeyHoverMode() (+4 more)
+Cohesion: 0.27
+Nodes (16): clampGooeyIntensity(), createGooeyCloseSpring(), createGooeyModalPanelVariants(), createGooeyOpenSpring(), DEFAULT_GOOEY_PHYSICS, lerp(), mergeGooeyPhysics(), normalizeGooeyHoverMode() (+8 more)
 
 ### Community 15 - "WToggle.jsx"
-Cohesion: 0.06
-Nodes (53): CHANNEL_ANIMATION_STYLES, ChannelModal(), ChannelModalUnifiedPathBlock(), ChannelModalsHost(), ChannelPathSmartSuggestions(), useChannelInteractions(), DefaultLeftIcon(), DefaultRightIcon() (+45 more)
+Cohesion: 0.05
+Nodes (62): ChannelModalBehaviorTab(), useChannelInteractions(), GameHubMinimalDock(), SpotifyGradientOverlay(), SpotifyImmersiveOverlay(), WallpaperOverlay(), PerformanceMonitor(), SystemInfoWidget() (+54 more)
 
 ### Community 16 - "supabase.js"
-Cohesion: 0.13
-Nodes (23): CommunityPresets(), NavigationSettingsTab(), logError(), applyMediaSearchFilters(), createSession(), downloadPreset(), ensureSession(), generatePresetThumbnail() (+15 more)
+Cohesion: 0.10
+Nodes (28): CommunityPresets(), SpotifyLiveGradientWallpaper(), NavigationSettingsTab(), formatMessage(), logError(), logWarn(), registerSpotifyGradientSave(), SPOTIFY_SCOPES (+20 more)
 
 ### Community 17 - "index.js"
-Cohesion: 0.09
-Nodes (16): UnifiedAppPathCard, UnifiedAppPathSearch(), PrimaryActionsModal, SettingsActionMenu, VARIANT_MAP, WeeButton(), WeeDescriptionToggleRow(), sizeClasses (+8 more)
+Cohesion: 0.07
+Nodes (23): UnifiedAppPathCard, UnifiedAppPathSearch(), ChannelPathSmartSuggestions(), MediaLibraryBrowser(), PrimaryActionsModal, IDLE_TYPE_ITEMS, KEN_BURNS_EASING_OPTIONS, KEN_BURNS_MODE_OPTIONS (+15 more)
 
 ### Community 18 - "MediaHubSpace.jsx"
-Cohesion: 0.14
-Nodes (20): EMPTY_OBJECT, episodesForSeason(), formatImdbRating(), getPosterUrl(), GRID_LIST_PARENT_VARIANTS, MediaHubItemDetail(), MediaHubSpace(), pickDiscoverGenre() (+12 more)
+Cohesion: 0.12
+Nodes (19): MediaHubDiscoverGrid(), EMPTY_OBJECT, episodesForSeason(), formatImdbRating(), getPosterUrl(), GRID_LIST_PARENT_VARIANTS, MediaHubItemDetail(), MediaHubSpace() (+11 more)
 
 ### Community 19 - "WeeModalFieldCard"
-Cohesion: 0.23
-Nodes (6): DOCK_SUB_TABS, CLASSIC_DOCK_THEME_GROUPS, CLASSIC_DOCK_DEFAULT_COLORS, WeeChoiceTileGrid(), findDockThemePath(), getDockThemeByPath()
+Cohesion: 0.11
+Nodes (10): CHROME_EFFECT_OPTIONS, RibbonLivePreview(), withHexAlpha(), SettingsLivePreviewFrame(), DOCK_SUB_TABS, ResourceUsageIndicator(), CLASSIC_DOCK_THEME_GROUPS, CLASSIC_DOCK_DEFAULT_COLORS (+2 more)
 
 ### Community 20 - "managers.js"
 Cohesion: 0.26
 Nodes (7): markAppLibraryBackgroundPrefetchScheduled(), filterSteamToolEntries(), STEAM_TOOL_APP_IDS, createFloatingWidgetManager(), isRendererActive(), createStoreManagers(), createPerformanceManager()
 
 ### Community 22 - "WButton.jsx"
-Cohesion: 0.25
-Nodes (17): renderShortcutKeyChips(), RESERVED_SHORTCUT_CHORDS, ShortcutCaptureControl(), CATEGORY_ICONS, CATEGORY_ORDER, checkShortcutConflict(), createDefaultKeyboardShortcuts(), DEFAULT_SHORTCUTS (+9 more)
+Cohesion: 0.16
+Nodes (11): HUB_MORPH, PLAYFUL_AMPLITUDE, PLAYFUL_SPRINGS, PLAYFUL_VARIANTS, SIZE_CLASS, VARIANT_CLASS, WEE_GOOEY_ICON_PRESS, WeeGooeyIconButton (+3 more)
 
 ### Community 24 - "Text"
-Cohesion: 0.12
-Nodes (16): 10. QA for “does this feel like Wee chrome?”, 1. What this style *is*, 2. Canonical surfaces (study these first), 5. Materials & color, 7. Building a new experience in this style, 8. Anti-patterns (break the feel), 9. File map, Checklist (+8 more)
+Cohesion: 0.13
+Nodes (15): 10. QA for “does this feel like Wee chrome?”, 1. What this style *is*, 2. Canonical surfaces (study these first), 3. Pill Morph Reveal (the pattern), 7. Building a new experience in this style, 8. Anti-patterns (break the feel), 9. File map, Checklist (+7 more)
 
 ### Community 25 - "GameHubSpace.jsx"
-Cohesion: 0.18
-Nodes (18): GameHubSpace(), smoothstep01(), useMinWidthDockMorph(), orderHubCollectionItems(), sortHubGamesByName(), useHeroMediaCrossfade(), HUB_MORPH, createGameHubMorphLibraryFollowVariants() (+10 more)
+Cohesion: 0.20
+Nodes (14): AuraLibrarySection(), GameHubSpace(), smoothstep01(), useMinWidthDockMorph(), orderHubCollectionItems(), sortHubGamesByName(), useHeroMediaCrossfade(), createHubEntranceFadeVariants() (+6 more)
 
 ### Community 26 - "GameHubGameArtPanel.jsx"
-Cohesion: 0.29
-Nodes (7): useChannelAdaptiveEmptyStyle(), useChannelEffectiveState(), clearMp4PosterCache(), mp4PosterCache, readCachedPoster(), useChannelMediaPreview(), writeCachedPoster()
+Cohesion: 0.14
+Nodes (16): CHANNEL_ANIMATION_STYLES, buildKenBurnsProps(), ChannelMediaPreview(), ChannelModalsHost(), useChannelAdaptiveEmptyStyle(), useChannelEffectiveState(), clearMp4PosterCache(), mp4PosterCache (+8 more)
 
 ### Community 27 - "compilerOptions"
 Cohesion: 0.10
 Nodes (20): DOM, DOM.Iterable, ES2022, scripts, src, compilerOptions, allowJs, checkJs (+12 more)
 
 ### Community 28 - "Channel.jsx"
-Cohesion: 0.33
-Nodes (7): buildKenBurnsProps(), ChannelMediaPreview(), KenBurnsImage(), PAN_DIRECTIONS, isGifMediaType(), isRasterImageMediaType(), isVideoMediaType()
+Cohesion: 0.47
+Nodes (3): GameHubNewCollectionDialog(), GameHubTileDialogsContext, GameHubTileDialogsProvider()
 
 ### Community 29 - "useWeeMotion"
-Cohesion: 0.09
-Nodes (34): WeeChannelModal(), HomePageIndicator(), statusLabel(), UpdateModal(), WeeUpdateProgress(), LayoutStepper(), PLAYFUL_AMPLITUDE, PLAYFUL_SPRINGS (+26 more)
+Cohesion: 0.17
+Nodes (16): HomePageIndicator(), statusLabel(), UpdateModal(), WeeUpdateProgress(), LayoutStepper(), createWeeSideNavPeekVariants(), createWeeSideNavShellMotion(), createWeeTransition() (+8 more)
 
 ### Community 30 - "mediaLibraryCache.js"
 Cohesion: 0.14
 Nodes (24): ImageSearchModal(), MEDIA_LIBRARY_FILETYPE_OPTIONS, MEDIA_LIBRARY_PAGE_SIZE_OPTIONS, MEDIA_LIBRARY_SORT_OPTIONS, useMediaLibraryBrowser(), clearMatchCache(), clearMediaLibraryCache(), filterMediaLibraryCache() (+16 more)
 
 ### Community 31 - "weeMotion.js"
-Cohesion: 0.16
-Nodes (15): computeSpaceRailContentHeight(), getNextSpace(), maxSpaceRailViewportHeight(), SPACE_META, SPACE_RAIL_LAYOUT, WeeGooeySpacePill(), createWeeShellRailContainerVariants(), createWeeShellRailItemVariants() (+7 more)
+Cohesion: 0.21
+Nodes (9): computeSpaceRailContentHeight(), getNextSpace(), maxSpaceRailViewportHeight(), SPACE_META, SPACE_RAIL_LAYOUT, WeeGooeySpacePill(), createWeeShellRailContainerVariants(), createWeeShellRailItemVariants() (+1 more)
 
 ### Community 32 - "keyboardShortcuts.js"
-Cohesion: 0.31
-Nodes (10): PrimaryActionsModalComponent(), analyzeIconTransparency(), clampSampleSize(), getTintedIconCacheSize(), getTintedIconUrl(), loadImageElement(), parseColorToRgb(), tintedIconCache (+2 more)
+Cohesion: 0.39
+Nodes (11): defaultFlyLayerParent(), flyOutBlockingMs(), flyWallClockMs(), mountFlyer(), runFlyInAnimations(), runFlyOutAnimations(), setFlyerBaseRect(), setFlyerTransformTo() (+3 more)
 
 ### Community 33 - "Text.jsx"
-Cohesion: 0.10
-Nodes (18): DIRECTION_OPTIONS, EFFECT_TYPE_OPTIONS, CHROME_EFFECT_OPTIONS, SettingsToggleFieldCard(), SpaceWallpaperAppearanceSection(), WallpaperCyclingSection(), WallpaperOverlaySection(), EASING_OPTIONS (+10 more)
+Cohesion: 0.16
+Nodes (14): SettingsToggleFieldCard(), SettingsWeeSection(), SpaceWallpaperAppearanceSection(), WallpaperCyclingSection(), WallpaperLibrarySection(), WallpaperOverlaySection(), EASING_OPTIONS, OVERLAY_EFFECT_OPTIONS (+6 more)
 
 ### Community 34 - "custom-installer.js"
 Cohesion: 0.17
@@ -360,31 +351,31 @@ Nodes (9): Anti-Patterns Verdict, Critique: Wee Home Channel Grid (`src/componen
 
 ### Community 37 - "dependencies"
 Cohesion: 0.26
-Nodes (9): ChannelModalBehaviorTab(), enterSessionAwayIfIntensive(), useSessionPowerSync(), CASUAL_EXE_NAMES, GAME_PATH_MARKERS, getAutoPerformancePauseHint(), isIntensiveLaunchTarget(), PERFORMANCE_PAUSE_MODES (+1 more)
+Nodes (11): createGameHubMorphLibraryFollowVariants(), createHomeChannelEntranceBandVariants(), createHubEntranceBandVariants(), createMediaHubGridContainerVariants(), createMediaHubGridItemVariants(), createMediaHubShellBandVariants(), isFirstVisitTier(), MEDIA_HUB_STAGGER (+3 more)
 
 ### Community 38 - "build"
 Cohesion: 0.18
 Nodes (11): build, appId, directories, extraFiles, extraResources, productName, publish, win (+3 more)
 
 ### Community 39 - "WeeGooeySpacePill.jsx"
-Cohesion: 0.22
-Nodes (14): IsolatedWallpaperBackground, IsolatedWallpaperBackgroundInner(), spaceParallaxBackgroundYPercent(), useWallpaperSettingsController(), useSpaceWallpaperCrossfade(), DEFAULT_SHELL_SPACE_ORDER, preloadImageUrl(), resolveDisplayWallpaperUrl() (+6 more)
+Cohesion: 0.38
+Nodes (8): IsolatedWallpaperBackground, IsolatedWallpaperBackgroundInner(), spaceParallaxBackgroundYPercent(), useWallpaperSettingsController(), DEFAULT_SHELL_SPACE_ORDER, useWallpaperCycling(), normalizeWallpaperForStore(), wallpaperEntryUrlKey()
 
 ### Community 40 - "AuthService"
-Cohesion: 0.18
-Nodes (12): albumArtPaletteCache, clearAlbumArtPaletteCache(), getAlbumArtPaletteCacheSize(), IDLE_EXPERIENCE_MODES, IDLE_PERSONALITY_PACKS, matchIdlePersonality(), normalizeIdleExperienceSettings(), LAUNCH_FEEDBACK_MODES (+4 more)
+Cohesion: 0.07
+Nodes (40): PrimaryActionsModalComponent(), formatLastRefreshed(), SCOPE_LABELS, SettingsDataCachesCard(), actionStamps, clearAllCacheDomains(), clearCacheDomain(), domains (+32 more)
 
 ### Community 41 - "package.json"
 Cohesion: 0.20
 Nodes (9): author, description, main, name, private, repository, type, url (+1 more)
 
 ### Community 42 - "ChannelModalSuggestedGames.jsx"
-Cohesion: 0.36
-Nodes (7): ChannelModalSuggestedGames(), dedupeInstalledAgainstStores(), filterGames(), getSuggestedCarouselKey(), paginateGames(), sortGames(), SOURCE_FILTER
+Cohesion: 0.25
+Nodes (11): ChannelModalSuggestedGames(), dedupeInstalledAgainstStores(), filterGames(), getSuggestedCarouselKey(), paginateGames(), sortGames(), SOURCE_FILTER, buildLaunchPathFromSelectedApp() (+3 more)
 
 ### Community 43 - "logWarn"
-Cohesion: 0.20
-Nodes (20): PageNavigation(), SlideNavigation(), BoardLivePreview(), applyLayoutChangeToSpaceData(), CHANNEL_LAYOUT_LIMITS, channelIdAtIndex(), clampInt(), clampPageIndex() (+12 more)
+Cohesion: 0.42
+Nodes (3): SecondaryChannelProfilesCard, WeeCard(), WInput
 
 ### Community 44 - "hub-modal-overhaul-reference.jsx"
 Cohesion: 0.20
@@ -404,11 +395,11 @@ Nodes (6): folderGroupSubtitle(), folderGroupTitle(), getParentDirNormalized(), 
 
 ### Community 49 - "MediaLibraryBrowser.jsx"
 Cohesion: 0.15
-Nodes (13): AdvancedSettingsTab, IDLE_TYPE_ITEMS, KEN_BURNS_EASING_OPTIONS, KEN_BURNS_MODE_OPTIONS, QUICK_LINKS, DEFAULT_GLASS, SIDE_NAV_STYLE_OPTIONS, SettingsTabPageHeader() (+5 more)
+Nodes (12): AdvancedSettingsTab, QUICK_LINKS, DEFAULT_GLASS, SIDE_NAV_STYLE_OPTIONS, SettingsActionMenu, SettingsTabPageHeader(), CATEGORY_ICONS, CATEGORY_ORDER (+4 more)
 
 ### Community 50 - "applyPrimaryAccentFromHex.js"
-Cohesion: 0.06
-Nodes (31): 1. First Run Detection, 2. Installation Steps, 3. Shortcut Creation, 4. Completion, Adding New Steps, Best Practices, Common Issues, `custom-installer.js` (+23 more)
+Cohesion: 0.09
+Nodes (22): Best Practices, Common Issues, `custom-installer.js`, Debug Mode, Development Testing, Features, Files, Future Enhancements (+14 more)
 
 ### Community 51 - "useChannelInteractions.js"
 Cohesion: 0.07
@@ -419,8 +410,8 @@ Cohesion: 0.60
 Nodes (5): UpdatesSettingsTab(), applyUpdaterStatus(), ensureAppUpdaterListeners(), normalizeReleaseNotes(), useAppUpdater()
 
 ### Community 53 - "useHubSpaceEntrance.js"
-Cohesion: 0.60
-Nodes (5): hubEntranceStorageKey(), memoryFullComplete, readTier(), useHubSpaceEntrance(), writeFullComplete()
+Cohesion: 0.43
+Nodes (6): SPACE_SHELL_ENTRANCE_TIERS, hubEntranceStorageKey(), memoryFullComplete, readTier(), useHubSpaceEntrance(), writeFullComplete()
 
 ### Community 54 - "useWallpaperDataFileSync.js"
 Cohesion: 0.60
@@ -439,28 +430,28 @@ Cohesion: 0.40
 Nodes (4): { execSync }, fs, packageJson, path
 
 ### Community 59 - "react"
-Cohesion: 0.21
-Nodes (15): usePrimaryAccentThemeEffect(), useWallpaperAmbientColor(), captureSpaceAppearanceFromState(), mergeLiveStateFromSpaceAppearance(), SPACE_IDS, syncActiveSpaceAppearanceCapture(), WALLPAPER_TRANSIENT_KEYS, applyAmbientRoleTokens() (+7 more)
+Cohesion: 0.22
+Nodes (16): usePrimaryAccentThemeEffect(), useWallpaperAmbientColor(), adjustL(), applyPrimaryAccentFromHex(), fmt(), hexToRgb(), rgbToHslComponents(), applyAmbientRoleTokens() (+8 more)
 
 ### Community 72 - "cors"
-Cohesion: 0.15
-Nodes (13): better-sqlite3, @dnd-kit/sortable, fast-deep-equal, gifuct-js, dependencies, better-sqlite3, @dnd-kit/sortable, fast-deep-equal (+5 more)
+Cohesion: 0.18
+Nodes (11): fast-average-color, fast-deep-equal, jszip, dependencies, fast-average-color, fast-deep-equal, jszip, @radix-ui/react-context-menu (+3 more)
 
 ### Community 73 - "@dnd-kit/core"
-Cohesion: 0.21
-Nodes (14): formatLastRefreshed(), SCOPE_LABELS, SettingsDataCachesCard(), actionStamps, clearAllCacheDomains(), clearCacheDomain(), domains, domainsSnapshot (+6 more)
+Cohesion: 0.38
+Nodes (5): WeeChannelModal(), WEE_VARIANTS, WeeModalRail(), WeeModalRailItem(), WeeModalRailSection()
 
 ### Community 81 - "gifuct-js"
 Cohesion: 0.33
-Nodes (4): clearCachedSteamClientLibrary(), refreshSteamEnrichmentNow(), clearTintedIconCache(), clearSupabaseReadCache()
+Nodes (6): 5. Materials & color, Dynamic runtime colors, Glass chrome tokens, Interactive glow, Semantic color (always), Wee surface radii (settings / modals / cards)
 
 ### Community 83 - "lucide-react"
-Cohesion: 0.14
-Nodes (13): WiiDock(), DockParticleSystem, PARTICLE_TYPES, LazyPrimaryActionsModal, WiiRibbon, WiiRibbonComponent(), WiiStyleButton(), PARTICLE_EFFECT_PALETTES (+5 more)
+Cohesion: 0.17
+Nodes (10): WiiDock(), DockParticleSystem, LazyPrimaryActionsModal, WiiRibbon, WiiRibbonComponent(), WiiStyleButton(), getWeeDockBarEntrance(), useRibbonChromeIdleGate() (+2 more)
 
 ### Community 87 - "@radix-ui/react-context-menu"
-Cohesion: 0.60
-Nodes (5): adjustL(), applyPrimaryAccentFromHex(), fmt(), hexToRgb(), rgbToHslComponents()
+Cohesion: 0.40
+Nodes (5): 1. First Run Detection, 2. Installation Steps, 3. Shortcut Creation, 4. Completion, How It Works
 
 ### Community 92 - "spotify-web-api-js"
 Cohesion: 0.11
@@ -487,16 +478,16 @@ Cohesion: 0.13
 Nodes (15): Appendix B - Canonical Sources (read these before reinventing), Apple Liquid Glass (Apple platforms only), Atlassian, Bootstrap, Carbon, Fluent UI, GOV.UK, Material Web (+7 more)
 
 ### Community 115 - "WeePressSurface.jsx"
-Cohesion: 0.23
-Nodes (15): HomeBoardArrangeBar(), HomeSlot(), legacyChannelConfigFromSlot(), WIDGET_SLOT_COMPONENTS, getHomeSlotKind(), getHomeSlotSizePreset(), HOME_SLOT_KINDS, listHomeSlotKinds() (+7 more)
+Cohesion: 0.07
+Nodes (57): AdminPanel(), EMPTY_CUSTOM, AdminPanelWidget(), ActionCommand(), QuickAccessItem(), AdminQuickAccessSlot(), splitActionsByCapacity(), HomeBoardArrangeBar() (+49 more)
 
 ### Community 116 - "Spotify Integration Setup Guide"
 Cohesion: 0.09
 Nodes (23): 1. Backend Integration, 2. Real-time Updates, 3. Music-Synced Effects, Common Issues:, Current Limitations, Debug Mode:, Features Available, Future Enhancements (+15 more)
 
 ### Community 117 - "useAppInitialization.js"
-Cohesion: 0.38
-Nodes (6): LAUNCH_TYPE_FALLBACK_ICONS, RecentlyUsedSlot(), CommandPalette(), useLaunchFeedback(), filterAndGroupCommands(), launchWithFeedback()
+Cohesion: 0.43
+Nodes (4): LAUNCH_TYPE_FALLBACK_ICONS, RecentlyUsedSlot(), useLaunchFeedback(), launchWithFeedback()
 
 ### Community 118 - "Glossary"
 Cohesion: 0.11
@@ -519,8 +510,8 @@ Cohesion: 0.10
 Nodes (20): 1. `shared_presets` Table, 2. Storage Buckets, 3. Row Level Security (RLS), Current Status, "Database error" or "RLS policy" Error, Database Setup, For Distribution, How to Set Up Supabase (+12 more)
 
 ### Community 123 - "useConsolidatedAppStore.js"
-Cohesion: 0.15
-Nodes (27): applyChannelSlotReorder(), channelIdAtIndex(), collectSlots(), moveParallelArrays(), scatterSlots(), snapshotChannelSlotMaps(), buildChannelPayload(), channelToConfiguredEntry() (+19 more)
+Cohesion: 0.05
+Nodes (87): PageNavigation(), SlideNavigation(), DefaultLeftIcon(), DefaultRightIcon(), rgbToRgba(), WiiSideNavigation(), BoardLivePreview(), renderShortcutKeyChips() (+79 more)
 
 ### Community 124 - "[1.9.1] - 2024-01-XX"
 Cohesion: 0.11
@@ -531,16 +522,20 @@ Cohesion: 0.18
 Nodes (6): Automated, Checks, Modes, Performance Smoke Checklist, PR smell checklist, Documentation
 
 ### Community 126 - "usePerformanceOptimization.js"
-Cohesion: 0.17
-Nodes (15): getRibbonChromeEffectDefaults(), getRibbonChromeEffectMeta(), getRibbonChromeEffectOptions(), isRibbonChromeEffectId(), isRibbonChromeGlassSoftMode(), META_BY_ID, RIBBON_CHROME_EFFECTS, RIBBON_CHROME_GLASS_SOFT_MODES (+7 more)
+Cohesion: 0.23
+Nodes (12): getRibbonChromeEffectDefaults(), getRibbonChromeEffectMeta(), getRibbonChromeEffectOptions(), isRibbonChromeEffectId(), isRibbonChromeGlassSoftMode(), META_BY_ID, RIBBON_CHROME_EFFECTS, RIBBON_CHROME_GLASS_SOFT_MODES (+4 more)
 
 ### Community 127 - "mediaWarmScheduler.js"
-Cohesion: 0.24
-Nodes (15): AuraHero(), buildHeroStats(), hoursShort(), applyCustomArtOverrides(), buildDynamicCollections(), buildHubData(), effectiveRecentSeconds(), formatDiskSize() (+7 more)
+Cohesion: 0.50
+Nodes (4): Adding New Steps, Customization, Modifying Shortcuts, Styling Changes
 
 ### Community 128 - "SystemInfoWidget.jsx"
-Cohesion: 0.22
-Nodes (5): SOUND_CATEGORY_DESCRIPTIONS, SOUND_CATEGORY_ICONS, WallpaperLibrarySection(), ResourceUsageIndicator(), GLASS_TEST_BTN_STYLE
+Cohesion: 0.19
+Nodes (5): GooeySettingsRow(), GLASS_TEST_BTN_STYLE, Slider(), WeeChoiceTileGrid(), WeeIconHeadingRow()
+
+### Community 129 - "UnifiedDockSettingsTab.jsx"
+Cohesion: 0.50
+Nodes (4): react, react, lazyNamedExport(), createOptimizedComponent()
 
 ### Community 130 - "Agent and contributor guide (Wee)"
 Cohesion: 0.04
@@ -558,14 +553,6 @@ Nodes (8): Game Hub, Key files, Saved “workspaces” (full environments), Seco
 Cohesion: 0.25
 Nodes (8): Anti-Patterns To Avoid, Core Rule, Dynamic Runtime Styling Pattern, Feature Surfaces (Tokenized), Navigation Surfaces, Shared UI Primitives, Style Architecture Map, Token Layers
 
-### Community 134 - "ChannelReorderVfx.jsx"
-Cohesion: 0.43
-Nodes (6): LaunchErrorToast(), LaunchFeedbackContext, LaunchFeedbackProvider(), setLaunchCinematic(), buildLaunchErrorReport(), getLaunchErrorPresentation()
-
-### Community 135 - "[Unreleased]"
-Cohesion: 0.33
-Nodes (5): SpotifyLiveGradientWallpaper(), formatMessage(), logWarn(), registerSpotifyGradientSave(), SPOTIFY_SCOPES
-
 ### Community 136 - "Primary accent (Wii blue) — theme audit"
 Cohesion: 0.29
 Nodes (6): Audit notes (remaining drift), Future optional work, Primary accent (Wii blue) — theme audit, Single source of truth, Tailwind, What updates with the ribbon accent
@@ -577,10 +564,6 @@ Nodes (5): Channel editor — follow-ups for review, Items for product or later 
 ### Community 138 - "Default Sounds for Wee"
 Cohesion: 0.33
 Nodes (5): Default Sounds for Wee, How to add default sounds, Packaging, Runtime, Sources of truth
-
-### Community 139 - "WeeModalShell.jsx"
-Cohesion: 0.19
-Nodes (18): elementCanScrollVertically(), getNextSpaceId(), isTypingTarget(), useWheelNavigation(), DEFAULT_CHANNEL_NAVIGATION, WII_LAYOUT_PRESET, CHANNEL_SPACE_KEYS, createDefaultChannelSpaceData() (+10 more)
 
 ### Community 140 - "WiiSideNavigation.jsx"
 Cohesion: 0.17
@@ -679,28 +662,24 @@ Cohesion: 0.50
 Nodes (4): 20. EXAMPLE INTERPRETATIONS, Example 1, Example 2, Example 3
 
 ### Community 171 - "ChannelModalImageSection.jsx"
-Cohesion: 0.10
-Nodes (15): PresetListItem, MediaLibraryBrowser(), ImageModal(), SecondaryChannelProfilesCard, Text(), variantMap, buttonVariants, variantSecondarySurface (+7 more)
+Cohesion: 0.12
+Nodes (10): PresetListItem, ImageModal(), Text(), variantMap, buttonVariants, variantSecondarySurface, WButton, VARIANT_MAP (+2 more)
 
 ### Community 172 - "SpotifyBrowseView.jsx"
 Cohesion: 0.25
 Nodes (15): buildHubDisplayMedia(), GameHubGameArtPanel(), readStoredArtSubtab(), MediaItem(), useChannelModalMedia(), resolveMimeTypeFromMediaLibraryRow(), uploadFileToMediaLibraryRow(), getStoragePublicObjectUrl() (+7 more)
 
 ### Community 174 - "Future Enhancements"
-Cohesion: 0.28
-Nodes (8): DIRECTION_META, getParticleDirectionOptions(), getParticleEffectTypeOptions(), isParticleDirection(), isParticleEffectType(), PARTICLE_DIRECTIONS, PARTICLE_EFFECT_TYPES, TYPE_META
+Cohesion: 0.21
+Nodes (10): DIRECTION_OPTIONS, EFFECT_TYPE_OPTIONS, DIRECTION_META, getParticleDirectionOptions(), getParticleEffectTypeOptions(), isParticleDirection(), isParticleEffectType(), PARTICLE_DIRECTIONS (+2 more)
 
 ### Community 177 - "fast-deep-equal"
 Cohesion: 0.18
-Nodes (6): react, react, lazyNamedExport(), createOptimizedComponent(), performanceChecklist, performanceUtils
+Nodes (5): Channel, VirtualizedChannelList, performanceChecklist, performanceUtils, usePerformanceMonitor()
 
 ### Community 182 - "lucide-react"
 Cohesion: 0.33
 Nodes (5): AuraHubModalFrame(), GameHubManageCollectionsDialog(), FloatingWidgetPresence, useDialogExitPresence(), variantNameFromDefinition()
-
-### Community 186 - "normalizeNowPlayingExperience"
-Cohesion: 0.19
-Nodes (18): NowPlayingSlot(), SpotifyTakeoverController(), refreshCacheDomain(), buildCommandCatalog(), channelTitleFromSlot(), COMMAND_GROUPS, EXCLUDED_SHORTCUT_IDS, fuzzyScore() (+10 more)
 
 ### Community 188 - "6. Styling advice by UI type"
 Cohesion: 0.25
@@ -710,10 +689,6 @@ Nodes (8): 6. Styling advice by UI type, Animations (decision tree), Containers 
 Cohesion: 0.29
 Nodes (7): 4. Motion system, Amplitudes (do not hardcode), Content resize (not Pill Morph), Core spring family (chrome), Intent cheat sheet, Modal presence, Ownership split
 
-### Community 191 - "3. Pill Morph Reveal (the pattern)"
-Cohesion: 0.40
-Nodes (5): 3. Pill Morph Reveal (the pattern), Content swap inside the pill, Idle life (side nav only), Recipe, Vertical twin (space rail)
-
 ## Knowledge Gaps
 - **798 isolated node(s):** `PLAYLISTS`, `SONGS`, `name`, `version`, `main` (+793 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -722,17 +697,17 @@ Nodes (5): 3. Pill Morph Reveal (the pattern), Content swap inside the pill, Idl
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `dependencies` connect `cors` to `ChannelsLayoutSettingsTab.jsx`, `supportedUploadMedia.js`, `DockParticleSystem.jsx`, `package.json`, `fast-deep-equal`, `jszip`, `spotify-web-api-js`, `lucide-react`, `spotify-web-api-js`, `@tanstack/react-virtual`, `@dnd-kit/utilities`, `electron-updater`, `express`, `framer-motion`, `fs-extra`, `fuse.js`, `@headlessui/react`, `node-fetch`, `p-queue`, `prop-types`, `react-dom`, `react-freezeframe-vite`, `react-icons`, `sharp`, `systeminformation`, `vdf`, `windows-shortcuts`, `zustand`?**
+- **Why does `dependencies` connect `cors` to `UnifiedDockSettingsTab.jsx`, `ChannelReorderVfx.jsx`, `[Unreleased]`, `WeeModalShell.jsx`, `ChannelsLayoutSettingsTab.jsx`, `package.json`, `jszip`, `lucide-react`, `spotify-web-api-js`, `@tanstack/react-virtual`, `@dnd-kit/utilities`, `electron-updater`, `express`, `framer-motion`, `fs-extra`, `fuse.js`, `@headlessui/react`, `node-fetch`, `p-queue`, `prop-types`, `react-dom`, `react-freezeframe-vite`, `react-icons`, `sharp`, `@supabase/supabase-js`, `systeminformation`, `vdf`, `windows-shortcuts`, `zustand`?**
   _High betweenness centrality (0.085) - this node is a cross-community bridge._
-- **Why does `react` connect `fast-deep-equal` to `cors`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
-- **Why does `lazyNamedExport()` connect `fast-deep-equal` to `App.jsx`?**
+- **Why does `react` connect `UnifiedDockSettingsTab.jsx` to `cors`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
+- **Why does `lazyNamedExport()` connect `UnifiedDockSettingsTab.jsx` to `App.jsx`?**
   _High betweenness centrality (0.050) - this node is a cross-community bridge._
 - **What connects `PLAYLISTS`, `SONGS`, `name` to the rest of the system?**
   _798 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `PresetsSettingsTab.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.056179775280898875 - nodes in this community are weakly interconnected._
 - **Should `useConsolidatedAppStore.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.07002012072434607 - nodes in this community are weakly interconnected._
-- **Should `PaginatedChannels.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.14193548387096774 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07598371777476255 - nodes in this community are weakly interconnected._
+- **Should `useConsolidatedAppHooks.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.03571428571428571 - nodes in this community are weakly interconnected._

@@ -205,7 +205,7 @@ function RibbonDockPanel({
 
   return (
     <div className="flex flex-col gap-5">
-      <RibbonLivePreview ribbon={ribbon} sticky />
+      <RibbonLivePreview sticky />
 
       <WeeSettingsCollapsibleSection
         icon={SlidersHorizontal}
