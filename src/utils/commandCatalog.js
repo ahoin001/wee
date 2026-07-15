@@ -14,12 +14,16 @@ import {
 } from './adminPanelCommands';
 import { normalizeNowPlayingExperience, toggleSpotifyTakeover } from './spotifyTakeover';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
+import { clearAllCacheDomains, listCacheDomains, refreshCacheDomain } from './cacheRegistry';
+// Side effect: ensures cache domains are registered before the palette builds refresh commands.
+import './cacheDomains';
 
 export const COMMAND_GROUPS = Object.freeze([
   Object.freeze({ id: 'recent', label: 'Recent' }),
   Object.freeze({ id: 'channels', label: 'Channels & apps' }),
   Object.freeze({ id: 'spaces', label: 'Go to' }),
   Object.freeze({ id: 'actions', label: 'Actions' }),
+  Object.freeze({ id: 'refresh', label: 'Refresh & caches' }),
   Object.freeze({ id: 'settings', label: 'Settings' }),
   Object.freeze({ id: 'admin', label: 'System tools' }),
 ]);
@@ -184,6 +188,29 @@ export function buildCommandCatalog(state, handlers = {}) {
       run: () => toggleSpotifyTakeover(useConsolidatedAppStore, 'manual'),
     });
   }
+
+  // —— Refresh & caches (cache registry–driven; one refresh path app-wide) ——
+  listCacheDomains().forEach((domain) => {
+    if (!domain.palette) return;
+    commands.push({
+      id: `refresh:${domain.id}`,
+      group: 'refresh',
+      title: `Refresh ${domain.label.toLowerCase()}`,
+      subtitle: domain.description,
+      icon: '🔄',
+      keywords: ['refresh', 'cache', 'reload', domain.id],
+      run: () => refreshCacheDomain(domain.id),
+    });
+  });
+  commands.push({
+    id: 'refresh:all',
+    group: 'refresh',
+    title: 'Clear all caches',
+    subtitle: 'Drop every cached library, catalog, and palette — data refetches as needed',
+    icon: '🧹',
+    keywords: ['refresh', 'cache', 'clear', 'bust', 'reset'],
+    run: () => clearAllCacheDomains(),
+  });
 
   // —— Settings destinations (registry-driven) ——
   SETTINGS_TAB_META.forEach((tab) => {

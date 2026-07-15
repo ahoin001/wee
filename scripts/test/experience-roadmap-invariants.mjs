@@ -34,10 +34,41 @@ import {
   buildPresetFilePayload,
   parsePresetFile,
 } from '../../src/utils/presets/presetFileTransfer.js';
+import {
+  clearAlbumArtPaletteCache,
+  extractColorsFromAlbumArt,
+  getAlbumArtPaletteCacheSize,
+} from '../../src/utils/extractColorsFromAlbumArt.js';
+import {
+  clearTintedIconCache,
+  getTintedIconCacheSize,
+  getTintedIconUrl,
+} from '../../src/utils/iconTinting.js';
+import {
+  MEDIA_HUB_PERSISTED_CACHE_MAX_ENTRIES,
+  pruneKeyedCacheForPersistence,
+} from '../../src/utils/store/persistedCachePrune.js';
+import {
+  clearAllCacheDomains,
+  getCacheDomainLastRefreshedAt,
+  listCacheDomains,
+  refreshCacheDomain,
+  registerCacheDomain,
+} from '../../src/utils/cacheRegistry.js';
 
 function test(name, fn) {
   try {
     fn();
+    console.log(`PASS: ${name}`);
+  } catch (error) {
+    console.error(`FAIL: ${name}`);
+    throw error;
+  }
+}
+
+async function testAsync(name, fn) {
+  try {
+    await fn();
     console.log(`PASS: ${name}`);
   } catch (error) {
     console.error(`FAIL: ${name}`);
@@ -170,6 +201,113 @@ test('parsePresetFile rejects wrong formats and future versions', () => {
   );
   assert.equal(future.ok, false);
   assert.match(future.error, /newer version/);
+});
+
+// —— Caching: bounded memos, persistence pruning, registry clear-all ——
+
+// The palette/tint memos load images lazily; a never-loading Image stub keeps the
+// promises pending, which is all these bound/identity tests need.
+globalThis.Image = class FakeImage {};
+
+test('album-art palette memo is bounded and shares in-flight promises', () => {
+  clearAlbumArtPaletteCache();
+  const first = extractColorsFromAlbumArt('https://img.example/0.jpg');
+  const again = extractColorsFromAlbumArt('https://img.example/0.jpg');
+  assert.equal(first, again, 'same URL must reuse the cached promise');
+
+  for (let i = 0; i < 30; i += 1) {
+    extractColorsFromAlbumArt(`https://img.example/${i}.jpg`);
+  }
+  assert.ok(getAlbumArtPaletteCacheSize() <= 12, 'memo must stay bounded');
+
+  clearAlbumArtPaletteCache();
+  assert.equal(getAlbumArtPaletteCacheSize(), 0);
+});
+
+test('icon tint memo is bounded and keyed by url + color', () => {
+  clearTintedIconCache();
+  const a = getTintedIconUrl('https://icons.example/a.png', '#ff0000');
+  const sameKey = getTintedIconUrl('https://icons.example/a.png', [255, 0, 0]);
+  const otherColor = getTintedIconUrl('https://icons.example/a.png', '#00ff00');
+  assert.equal(a, sameKey, 'hex and rgb array of the same color share one entry');
+  assert.notEqual(a, otherColor, 'different colors are separate entries');
+
+  for (let i = 0; i < 80; i += 1) {
+    getTintedIconUrl(`https://icons.example/${i}.png`, '#0099ff');
+  }
+  assert.ok(getTintedIconCacheSize() <= 48, 'memo must stay bounded');
+
+  clearTintedIconCache();
+  assert.equal(getTintedIconCacheSize(), 0);
+});
+
+test('pruneKeyedCacheForPersistence bounds maps and drops in-flight entries', () => {
+  const big = {};
+  for (let i = 0; i < MEDIA_HUB_PERSISTED_CACHE_MAX_ENTRIES + 20; i += 1) {
+    big[`id-${i}`] = { fetchedAt: 1000 + i, videos: [] };
+  }
+  const pruned = pruneKeyedCacheForPersistence(big);
+  const keys = Object.keys(pruned);
+  assert.equal(keys.length, MEDIA_HUB_PERSISTED_CACHE_MAX_ENTRIES);
+  // Newest fetchedAt entries survive.
+  assert.ok(!('id-0' in pruned));
+  assert.ok(`id-${MEDIA_HUB_PERSISTED_CACHE_MAX_ENTRIES + 19}` in pruned);
+
+  const mixed = {
+    inflight: { loading: true },
+    done: { loading: false, videos: [{}] },
+    junk: 'not-an-object',
+  };
+  const cleaned = pruneKeyedCacheForPersistence(mixed);
+  assert.deepEqual(Object.keys(cleaned), ['done']);
+
+  assert.deepEqual(pruneKeyedCacheForPersistence(null), {});
+  assert.deepEqual(pruneKeyedCacheForPersistence('garbage'), {});
+});
+
+await testAsync('cache registry clear-all clears every registered domain', async () => {
+  const cleared = [];
+  const disposeA = registerCacheDomain({
+    id: 'test-a',
+    label: 'Test A',
+    description: 'refresh + clear',
+    scope: 'session',
+    getLastRefreshedAt: () => 12345,
+    refresh: () => cleared.push('a:refresh'),
+    clear: () => cleared.push('a:clear'),
+  });
+  const disposeB = registerCacheDomain({
+    id: 'test-b',
+    label: 'Test B',
+    description: 'clear only',
+    scope: 'session',
+    clear: () => cleared.push('b:clear'),
+  });
+
+  try {
+    assert.ok(listCacheDomains().some((d) => d.id === 'test-a'));
+
+    // refresh prefers domain.refresh, falls back to clear.
+    assert.equal((await refreshCacheDomain('test-a')).ok, true);
+    assert.equal((await refreshCacheDomain('test-b')).ok, true);
+    assert.deepEqual(cleared, ['a:refresh', 'b:clear']);
+
+    // Domain-provided stamp wins over the registry stamp.
+    assert.equal(getCacheDomainLastRefreshedAt('test-a'), 12345);
+    assert.ok(getCacheDomainLastRefreshedAt('test-b') > 0);
+
+    cleared.length = 0;
+    const result = await clearAllCacheDomains();
+    assert.equal(result.ok, true);
+    assert.ok(cleared.includes('a:clear'));
+    assert.ok(cleared.includes('b:clear'));
+
+    assert.equal((await refreshCacheDomain('nope')).ok, false);
+  } finally {
+    disposeA();
+    disposeB();
+  }
+  assert.ok(!listCacheDomains().some((d) => d.id === 'test-a'));
 });
 
 console.log('Experience roadmap invariant suite complete.');

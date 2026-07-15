@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { m } from 'framer-motion';
+import { RefreshCcw } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import AuraGameCard from './AuraGameCard';
 import GameCardContextMenu from './GameCardContextMenu';
@@ -20,6 +21,8 @@ export default function AuraLibrarySection({
   games,
   librarySort = 'default',
   onLibrarySortChange,
+  onRefreshLibrary,
+  libraryRefreshing = false,
   onSelectGame,
   onHeroPreview,
   onLaunchGame,
@@ -69,6 +72,18 @@ export default function AuraLibrarySection({
     <div className="aura-hub-section__header aura-hub-section__header--row">
       <h3>Complete Library</h3>
       <div className="aura-hub-section__header-actions">
+        {typeof onRefreshLibrary === 'function' ? (
+          <button
+            type="button"
+            className="aura-hub-refresh-btn"
+            onClick={onRefreshLibrary}
+            disabled={libraryRefreshing}
+            title="Refetch Steam library details now"
+          >
+            <RefreshCcw size={12} aria-hidden />
+            {libraryRefreshing ? 'Refreshing…' : 'Refresh library'}
+          </button>
+        ) : null}
         <label className="aura-hub-sort">
           <span className="sr-only">Sort library</span>
           <select

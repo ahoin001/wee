@@ -1,6 +1,38 @@
 import { useEffect, useState } from 'react';
 import { isVideoMediaType } from '../../../utils/channelMediaType';
 
+/**
+ * Per-URL poster memo — space switches remount tiles, and re-decoding a video
+ * element just to grab its first frame is expensive. Bounded LRU of data URLs.
+ */
+const MP4_POSTER_CACHE_MAX = 32;
+const mp4PosterCache = new Map();
+
+export function clearMp4PosterCache() {
+  mp4PosterCache.clear();
+}
+
+/** @returns {number} current memo size (test/diagnostics) */
+export function getMp4PosterCacheSize() {
+  return mp4PosterCache.size;
+}
+
+function readCachedPoster(url) {
+  const cached = mp4PosterCache.get(url);
+  if (cached === undefined) return undefined;
+  // LRU touch — re-insert so the oldest entry is evicted first.
+  mp4PosterCache.delete(url);
+  mp4PosterCache.set(url, cached);
+  return cached;
+}
+
+function writeCachedPoster(url, dataUrl) {
+  mp4PosterCache.set(url, dataUrl);
+  while (mp4PosterCache.size > MP4_POSTER_CACHE_MAX) {
+    mp4PosterCache.delete(mp4PosterCache.keys().next().value);
+  }
+}
+
 export function useChannelMediaPreview({
   effectiveMedia,
   effectiveAnimatedOnHover,
@@ -13,8 +45,15 @@ export function useChannelMediaPreview({
     let handleLoadedData = null;
 
     if (effectiveMedia && isVideoMediaType(effectiveMedia.type) && effectiveAnimatedOnHover && !mp4Preview) {
+      const mediaUrl = effectiveMedia.url;
+      const cached = readCachedPoster(mediaUrl);
+      if (cached !== undefined) {
+        setMp4Preview(cached);
+        return undefined;
+      }
+
       video = document.createElement('video');
-      video.src = effectiveMedia.url;
+      video.src = mediaUrl;
       video.crossOrigin = 'anonymous';
       video.muted = true;
       video.playsInline = true;
@@ -28,6 +67,7 @@ export function useChannelMediaPreview({
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         try {
           const dataUrl = canvas.toDataURL('image/png');
+          writeCachedPoster(mediaUrl, dataUrl);
           setMp4Preview(dataUrl);
         } catch {
           setMp4Preview(null);

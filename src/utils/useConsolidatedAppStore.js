@@ -1082,8 +1082,10 @@ useConsolidatedAppStore = create(
           /**
            * Place a registry widget kind on an empty Home slot (Edit Home “Add widget”).
            * Returns no state change when the footprint is blocked.
+           * `options.replace` treats the target's own footprint as free so a configured
+           * channel tile can be overwritten (Edit Home “Replace with widget”).
            */
-          placeHomeWidgetSlotForSpace: (spaceKey, channelIndex, kindId, sizePresetId = 'S') =>
+          placeHomeWidgetSlotForSpace: (spaceKey, channelIndex, kindId, sizePresetId = 'S', options = {}) =>
             set((state) => {
               const key = normalizeChannelSpaceKey(spaceKey);
               const index = channelIndex | 0;
@@ -1101,7 +1103,7 @@ useConsolidatedAppStore = create(
                     rowSpan: preset.rowSpan,
                     columns: layout.columns,
                     rows: layout.rows,
-                    selfIndex: null,
+                    selfIndex: options.replace ? index : null,
                   })
                 ) {
                   return channelsData;
@@ -1572,6 +1574,30 @@ useConsolidatedAppStore = create(
                 },
               };
             }),
+
+          /**
+           * Drop persisted Media Hub catalog caches (Discover catalog, streams, series meta).
+           * Needed because setMediaHubState merges these maps and cannot remove keys.
+           * Owned by the cache registry ("Refresh media catalog" / "Clear all caches").
+           */
+          clearMediaHubCatalogCaches: () =>
+            set((state) => ({
+              mediaHub: {
+                ...state.mediaHub,
+                sources: {
+                  ...state.mediaHub.sources,
+                  cinemeta: {
+                    items: [],
+                    fetchedAt: null,
+                    loading: false,
+                    error: null,
+                  },
+                  catalogCache: {},
+                  streamsById: {},
+                  seriesMetaById: {},
+                },
+              },
+            })),
 
           /**
            * Single Zustand commit for cold-start hydration (IPC unified data + settings).

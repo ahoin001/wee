@@ -183,5 +183,6 @@
   "181": "@vitejs/plugin-react",
   "182": "lucide-react",
   "183": "spotify-web-api-js",
-  "184": "@tanstack/react-virtual"
+  "184": "@tanstack/react-virtual",
+  "185": "wait-on"
 }

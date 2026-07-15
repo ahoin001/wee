@@ -15,7 +15,7 @@ import {
 } from '../../ui/wee';
 import WInput from '../../ui/WInput';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { parseColorToRgb, tintImageWithOverwrite } from '../../utils/iconTinting';
+import { getTintedIconUrl, parseColorToRgb } from '../../utils/iconTinting';
 import {
   CSS_STATE_ERROR,
   DEFAULT_RIBBON_GLOW_HEX,
@@ -137,24 +137,16 @@ function PrimaryActionsModalComponent({
 
   useEffect(() => {
     if (useAdaptiveColor && savedIcons.length > 0) {
-      // Use the same color logic as WiiRibbon for consistency
-      const colorToUse = ribbonGlowColor;
-      const rgbColor = parseColorToRgb(colorToUse);
-      const newTintedImages = {};
+      // Use the same color logic as WiiRibbon for consistency (memoized per url+color)
+      const rgbColor = parseColorToRgb(ribbonGlowColor);
 
-      savedIcons.forEach(icon => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = async () => {
-          try {
-          const tintedUrl = await tintImageWithOverwrite(img, rgbColor);
-            newTintedImages[icon.url] = tintedUrl;
-            setTintedImages(prev => ({ ...prev, ...newTintedImages }));
-                  } catch (error) {
+      savedIcons.forEach(async (icon) => {
+        try {
+          const tintedUrl = await getTintedIconUrl(icon.url, rgbColor);
+          setTintedImages(prev => ({ ...prev, [icon.url]: tintedUrl }));
+        } catch (error) {
           console.error('[PrimaryActionsModal] Error tinting image:', error);
         }
-        };
-        img.src = icon.url;
       });
     }
   }, [ribbonGlowColor, useAdaptiveColor, savedIcons]);
@@ -214,20 +206,12 @@ function PrimaryActionsModalComponent({
     
     // Generate tinted images for all saved icons when adaptive color is enabled
     if (checked && savedIcons.length > 0) {
-      const colorToUse = ribbonGlowColor;
-      const rgbColor = parseColorToRgb(colorToUse);
-      const newTintedImages = {};
-      
+      const rgbColor = parseColorToRgb(ribbonGlowColor);
+
       for (const icon of savedIcons) {
         try {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = async () => {
-            const tintedUrl = await tintImageWithOverwrite(img, rgbColor);
-            newTintedImages[icon.url] = tintedUrl;
-            setTintedImages(prev => ({ ...prev, ...newTintedImages }));
-          };
-          img.src = icon.url;
+          const tintedUrl = await getTintedIconUrl(icon.url, rgbColor);
+          setTintedImages(prev => ({ ...prev, [icon.url]: tintedUrl }));
         } catch (error) {
           console.error('[PrimaryActionsModal] Error tinting image:', error);
         }

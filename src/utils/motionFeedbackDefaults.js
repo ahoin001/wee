@@ -3,8 +3,8 @@
  * Persisted under `ui.motionFeedback` in unified settings.
  */
 
-import { DEFAULT_GOOEY_PHYSICS, mergeGooeyPhysics } from '../design/gooeyPhysics';
-import { DEFAULT_LAUNCH_FEEDBACK_MODE, normalizeLaunchFeedbackMode } from './launchCinematic';
+import { DEFAULT_GOOEY_PHYSICS, mergeGooeyPhysics } from '../design/gooeyPhysics.js';
+import { DEFAULT_LAUNCH_FEEDBACK_MODE, normalizeLaunchFeedbackMode } from './launchCinematic.js';
 
 export const DEFAULT_MOTION_FEEDBACK = {
   /** Master switch — when false, all playful motion below is off (OS reduced-motion still applies separately). */

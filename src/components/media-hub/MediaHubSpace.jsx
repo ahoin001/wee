@@ -37,6 +37,7 @@ import {
 } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
+import { isCatalogCacheFresh } from '../../utils/mediaHub/mediaCatalogCache';
 import './MediaHubSpace.css';
 
 const MotionDiv = m.div;
@@ -399,6 +400,8 @@ export default function MediaHubSpace() {
   );
   const { beginLaunchFeedback, endLaunchFeedback, showLaunchError } = useLaunchFeedback();
   const discoverAbortRef = useRef(null);
+  const discoverForceRefreshRef = useRef(false);
+  const [discoverRefreshNonce, setDiscoverRefreshNonce] = useState(0);
   const seriesMetaAbortRef = useRef(null);
   const autoScannedFolderKeysRef = useRef(new Set());
   const hubScrollRef = useRef(null);
@@ -640,6 +643,14 @@ export default function MediaHubSpace() {
       }
     }
 
+    // Fresh persisted catalog (< MEDIA_CATALOG_TTL_MS): skip the network entirely.
+    // Manual refresh (button / registry) forces via discoverForceRefreshRef.
+    const forced = discoverForceRefreshRef.current;
+    discoverForceRefreshRef.current = false;
+    if (!forced && isCatalogCacheFresh(cached)) {
+      return undefined;
+    }
+
     if (discoverAbortRef.current) discoverAbortRef.current.abort();
     const controller = new AbortController();
     discoverAbortRef.current = controller;
@@ -676,7 +687,13 @@ export default function MediaHubSpace() {
         });
       });
     return () => controller.abort();
-  }, [activeSpaceId, activeTab, contentMode, setMediaHubState]);
+  }, [activeSpaceId, activeTab, contentMode, discoverRefreshNonce, setMediaHubState]);
+
+  /** Manual "Refresh catalog" — bypasses the catalog TTL for the current mode. */
+  const refreshDiscoverCatalog = useCallback(() => {
+    discoverForceRefreshRef.current = true;
+    setDiscoverRefreshNonce((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     if (activeSpaceId !== 'mediahub' || activeTab !== 'local') return;
@@ -944,6 +961,18 @@ export default function MediaHubSpace() {
                       </MotionButton>
                     ))}
                   </div>
+                ) : null}
+                {activeTab === 'discover' ? (
+                  <button
+                    type="button"
+                    onClick={refreshDiscoverCatalog}
+                    disabled={cinemetaState.loading === true}
+                    className="media-hub-demo-action"
+                    title="Refetch the Discover catalog now"
+                  >
+                    <RefreshCcw size={14} />
+                    Refresh
+                  </button>
                 ) : null}
               </div>
 

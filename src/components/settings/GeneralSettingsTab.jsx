@@ -8,6 +8,7 @@ import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsWeeSection from './SettingsWeeSection';
+import SettingsDataCachesCard from './SettingsDataCachesCard';
 
 const GeneralSettingsTab = React.memo(() => {
   const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
@@ -207,6 +208,10 @@ const GeneralSettingsTab = React.memo(() => {
           checked={ui.startOnBoot ?? false}
           onChange={handleStartOnBootChange}
         />
+      </SettingsWeeSection>
+
+      <SettingsWeeSection eyebrow="Data & caches">
+        <SettingsDataCachesCard />
       </SettingsWeeSection>
 
       <SettingsWeeSection eyebrow="Danger zone">

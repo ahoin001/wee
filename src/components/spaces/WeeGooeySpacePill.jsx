@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, LayoutGroup, m } from 'framer-motion';
-import { Clapperboard, Gamepad2, Home, Pin, PinOff, Wand2 } from 'lucide-react';
+import { Clapperboard, Gamepad2, Home, PenLine, Pin, PinOff, Wand2 } from 'lucide-react';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import {
   DEFAULT_SHELL_SPACE_ORDER,
@@ -25,6 +25,7 @@ import {
   resolveActiveChannelSpaceKey,
 } from '../../utils/channelSpaces';
 import useChannelOperations from '../../utils/useChannelOperations';
+import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import {
   useWeeMotion,
   createWeeShellRailContainerVariants,
@@ -53,6 +54,7 @@ const SPACE_META = {
  */
 const SPACE_RAIL_LAYOUT = Object.freeze({
   spaceBtn: 56, // size lg
+  editBtn: 56, // size lg — Edit Home
   wandBtn: 56, // size lg
   pinBtn: 48, // size md
   gapComfortable: 8, // gap-2
@@ -66,7 +68,7 @@ const SPACE_RAIL_LAYOUT = Object.freeze({
   dividerMarginYCompact: 4,
   borderY: 8, // border-4 top + bottom (border-box)
   viewportMargin: 16,
-  actionSlotCount: 3, // divider + wand + pin
+  actionSlotCount: 4, // divider + edit + wand + pin
 });
 
 function computeSpaceRailContentHeight(spaceCount, density = 'comfortable') {
@@ -90,6 +92,7 @@ function computeSpaceRailContentHeight(spaceCount, density = 'comfortable') {
     spaceCount * SPACE_RAIL_LAYOUT.spaceBtn +
     SPACE_RAIL_LAYOUT.dividerH +
     dividerMargin +
+    SPACE_RAIL_LAYOUT.editBtn +
     SPACE_RAIL_LAYOUT.wandBtn +
     SPACE_RAIL_LAYOUT.pinBtn +
     gaps
@@ -428,8 +431,16 @@ export default function WeeGooeySpacePill() {
   const shouldShowRail = railPinned || !autoHideRail || railVisible || isExpanded;
   const railClassName = `space-rail ${shouldShowRail ? 'space-rail--visible' : 'space-rail--hidden'} ${isExpanded ? 'space-rail--expanded' : 'space-rail--compact'}`;
 
+  const { enterArrange: enterHomeBoardArrange } = useHomeBoardArrange();
+
   const handleWand = () => {
     openSettingsToTab(SETTINGS_TAB_ID.CHANNELS);
+    setHovered(false);
+  };
+
+  /** Edit Home from any space — enterArrange jumps to the Home board itself. */
+  const handleEditHome = () => {
+    enterHomeBoardArrange({ closeSettings: true });
     setHovered(false);
   };
 
@@ -622,6 +633,25 @@ export default function WeeGooeySpacePill() {
                         reducedMotion={reducedMotion}
                         onClick={(e) => {
                           e.stopPropagation();
+                          handleEditHome();
+                        }}
+                        title="Edit Home — arrange tiles and widgets (Ctrl+E)"
+                        aria-label="Edit Home — arrange tiles and widgets"
+                      >
+                        <PenLine size={22} strokeWidth={2} className="relative z-10" aria-hidden />
+                      </WeeGooeyIconButton>
+
+                      <WeeGooeyIconButton
+                        variant="solid"
+                        size="lg"
+                        custom={orderedSpaces.length + 2}
+                        variants={itemVariants}
+                        initial="closed"
+                        animate="open"
+                        exit="closed"
+                        reducedMotion={reducedMotion}
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleWand();
                         }}
                         title="Channels & layout"
@@ -633,7 +663,7 @@ export default function WeeGooeySpacePill() {
                       <WeeGooeyIconButton
                         variant="outline"
                         size="md"
-                        custom={orderedSpaces.length + 2}
+                        custom={orderedSpaces.length + 3}
                         variants={itemVariants}
                         initial="closed"
                         animate="open"

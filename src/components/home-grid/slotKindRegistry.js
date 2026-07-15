@@ -17,6 +17,9 @@ export const HOME_SLOT_KINDS = {
     label: 'Home Channel',
     colSpan: 1,
     rowSpan: 1,
+    defaultSizePreset: 'S',
+    /** Channel tiles resize through the same Edit Home preset row as widgets. */
+    sizePresets: HOME_SLOT_SIZE_PRESETS,
     render: 'ChannelSlot',
   },
   adminQuickAccess: {

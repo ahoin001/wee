@@ -68,6 +68,53 @@ export async function tintImageUrlWithOverwrite(url, color) {
   return tintImageWithOverwrite(img, rgbColor);
 }
 
+/**
+ * Memoized per-(url, color) tint — ribbon buttons and the Primary Actions modal
+ * re-tint the same icons whenever the accent changes or they remount; the canvas
+ * pixel pass runs once per combination. Bounded LRU; promise cached so concurrent
+ * callers share one tint.
+ */
+const TINTED_ICON_CACHE_MAX = 48;
+const tintedIconCache = new Map();
+
+export function clearTintedIconCache() {
+  tintedIconCache.clear();
+}
+
+/** @returns {number} current memo size (test/diagnostics) */
+export function getTintedIconCacheSize() {
+  return tintedIconCache.size;
+}
+
+/**
+ * @param {string} url
+ * @param {string | number[]} color — hex/rgb string or [r, g, b]
+ * @returns {Promise<string>} tinted PNG data URL
+ */
+export function getTintedIconUrl(url, color) {
+  const rgbColor = Array.isArray(color) ? color : parseColorToRgb(color);
+  const key = `${url}|${rgbColor.join(',')}`;
+
+  const cached = tintedIconCache.get(key);
+  if (cached) {
+    tintedIconCache.delete(key);
+    tintedIconCache.set(key, cached);
+    return cached;
+  }
+
+  const request = tintImageUrlWithOverwrite(url, rgbColor).catch((error) => {
+    // Do not memoize failures — transient load errors should retry next time.
+    tintedIconCache.delete(key);
+    throw error;
+  });
+
+  tintedIconCache.set(key, request);
+  while (tintedIconCache.size > TINTED_ICON_CACHE_MAX) {
+    tintedIconCache.delete(tintedIconCache.keys().next().value);
+  }
+  return request;
+}
+
 export function analyzeIconTransparency(imageElement, { sampleSize = 128 } = {}) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');

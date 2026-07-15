@@ -115,7 +115,7 @@ const WiiChannelStrip = ({
       event.stopPropagation();
       const occ = occupancy[index];
       const selectIndex = occ?.anchorIndex ?? index;
-      onArrangeSelectIndex(selectIndex);
+      onArrangeSelectIndex(selectIndex, 'click');
     },
     [canSelect, onArrangeSelectIndex, occupancy]
   );
@@ -123,20 +123,20 @@ const WiiChannelStrip = ({
   const handleArrangeContextMenuCapture = useCallback(
     (index) => (event) => {
       if (!canSelect && !canPunch) return;
-      // Block Channel configure (right-click) while Live Board Studio owns the grid.
-      event.preventDefault();
-      event.stopPropagation();
       if (canPunch) {
+        // Punch owns the grid entirely — no board context menu while punching.
+        event.preventDefault();
+        event.stopPropagation();
         const occ = occupancy[index];
         const punchIndex = occ?.anchorIndex ?? index;
         onTogglePunch(punchIndex);
         return;
       }
-      if (canSelect) {
-        const occ = occupancy[index];
-        const selectIndex = occ?.anchorIndex ?? index;
-        onArrangeSelectIndex(selectIndex);
-      }
+      // Arrange: select the tile but let the event bubble so the unified board
+      // context menu opens with arrange-aware items (add / replace / punch / done).
+      const occ = occupancy[index];
+      const selectIndex = occ?.anchorIndex ?? index;
+      onArrangeSelectIndex(selectIndex, 'contextmenu');
     },
     [canSelect, canPunch, onArrangeSelectIndex, onTogglePunch, occupancy]
   );

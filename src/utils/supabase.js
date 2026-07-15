@@ -693,7 +693,8 @@ export const getSharedPresets = async (searchTerm = '', sortBy = 'created_at', o
         return { success: false, error: error.message, data: [] }
       }
     },
-    { ttlMs: options.ttlMs ?? 15000, forceFresh: options.forceFresh === true }
+    // Community presets change rarely — 5 min keeps browsing snappy; refresh actions force.
+    { ttlMs: options.ttlMs ?? 5 * 60 * 1000, forceFresh: options.forceFresh === true }
   )
 }
 

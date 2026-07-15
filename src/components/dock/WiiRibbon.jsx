@@ -21,7 +21,7 @@ import { hexAlpha } from '../../utils/colorHex';
 import { extractColorsFromAlbumArt } from '../../utils/extractColorsFromAlbumArt';
 import { loadUnifiedSettingsSnapshot, saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
 import { logError } from '../../utils/logger';
-import { parseColorToRgb, tintImageWithOverwrite } from '../../utils/iconTinting';
+import { getTintedIconUrl, parseColorToRgb } from '../../utils/iconTinting';
 import isEqual from 'fast-deep-equal';
 import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
@@ -393,16 +393,11 @@ const WiiRibbonComponent = ({
         }
       }
       
-      // Process each unique icon
+      // Process each unique icon (memoized per url+color — see iconTinting.js)
       for (const iconUrl of iconsToTint) {
         try {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = async () => {
-            const tintedUrl = await tintImageWithOverwrite(img, rgbColor);
-            setTintedImages(prev => ({ ...prev, [iconUrl]: tintedUrl }));
-          };
-          img.src = iconUrl;
+          const tintedUrl = await getTintedIconUrl(iconUrl, rgbColor);
+          setTintedImages(prev => ({ ...prev, [iconUrl]: tintedUrl }));
         } catch (error) {
           logError('WiiRibbon', 'Error tinting image', error);
         }

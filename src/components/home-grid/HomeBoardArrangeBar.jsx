@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Check, Grip, MoreHorizontal, PenLine, Plus, Trash2 } from 'lucide-react';
+import { Check, Grip, HelpCircle, MoreHorizontal, PenLine, Plus, Trash2 } from 'lucide-react';
 import { createWeeTransition } from '../../design/weeMotion';
 import { WeeGlassPill, WeeButton, WeeContentCollapse } from '../../ui/wee';
 import { isNonChannelSlot } from '../../utils/homeGridSlots';
@@ -26,25 +26,33 @@ function HomeBoardArrangeBar({
   onRemoveWidget,
   onSetSizePreset,
   blockedPresetIds = [],
+  pickerOpen = false,
+  onPickerOpenChange,
+  onReopenGuide,
 }) {
   const reducedMotion = useReducedMotion();
   const transition = createWeeTransition('pillOpen', { reducedMotion });
   const press = createWeeTransition('press', { reducedMotion });
 
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const setPickerOpen = useCallback(
+    (next) => {
+      onPickerOpenChange?.(typeof next === 'function' ? next(pickerOpen) : next);
+    },
+    [onPickerOpenChange, pickerOpen]
+  );
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     if (!arrangeMode) {
-      setPickerOpen(false);
       setMoreOpen(false);
     }
   }, [arrangeMode]);
 
   const placeableKinds = useMemo(() => listPlaceableHomeSlotKinds(), []);
 
-  const selectedKindMeta = isNonChannelSlot(selectedSlot)
-    ? getHomeSlotKind(selectedSlot.kind)
+  const selectedIsWidget = isNonChannelSlot(selectedSlot);
+  const selectedKindMeta = selectedSlot
+    ? getHomeSlotKind(selectedSlot.kind ?? 'channel')
     : null;
   const sizePresets = selectedKindMeta?.sizePresets ?? null;
   const activePreset = useMemo(
@@ -62,28 +70,30 @@ function HomeBoardArrangeBar({
   const handleToggleQuickPicker = useCallback(() => {
     setPickerOpen((prev) => !prev);
     setMoreOpen(false);
-  }, []);
+  }, [setPickerOpen]);
 
   const handleToggleMore = useCallback(() => {
     setMoreOpen((prev) => !prev);
     setPickerOpen(false);
-  }, []);
+  }, [setPickerOpen]);
 
   const handlePickKind = useCallback(
     (kindId) => {
       onAddWidget?.(kindId);
       setPickerOpen(false);
     },
-    [onAddWidget]
+    [onAddWidget, setPickerOpen]
   );
 
   const hint = punchMode
     ? 'Tap tiles to punch wallpaper holes · toggle off under More when finished'
-    : selectedKindMeta
-      ? `Resize or remove this ${selectedKindMeta.label} widget`
-      : selectedIndex != null
-        ? 'Empty slot selected — Add widget places it here'
-        : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
+    : selectedIsWidget
+      ? `Resize or remove this ${selectedKindMeta?.label ?? ''} widget`.replace('  ', ' ')
+      : selectedKindMeta
+        ? 'Pick a size for this tile · drag tiles to reorder'
+        : selectedIndex != null
+          ? 'Empty slot selected — Add widget places it here'
+          : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
 
   return (
     <AnimatePresence>
@@ -132,7 +142,7 @@ function HomeBoardArrangeBar({
                   <div
                     className="flex items-center gap-1 rounded-full border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.9)] p-1"
                     role="group"
-                    aria-label="Widget size"
+                    aria-label="Tile size"
                   >
                     {Object.values(sizePresets).map((preset) => {
                       const active = activePreset?.id === preset.id;
@@ -165,17 +175,19 @@ function HomeBoardArrangeBar({
                       );
                     })}
                   </div>
-                  <m.button
-                    type="button"
-                    onClick={onRemoveWidget}
-                    whileHover={reducedMotion ? undefined : { scale: 1.04 }}
-                    whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                    transition={press}
-                    className="flex items-center gap-1.5 rounded-full border-2 border-[hsl(var(--state-error)/0.4)] bg-[hsl(var(--state-error)/0.12)] px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--state-error))]"
-                  >
-                    <Trash2 size={13} strokeWidth={2.5} aria-hidden />
-                    Remove
-                  </m.button>
+                  {selectedIsWidget ? (
+                    <m.button
+                      type="button"
+                      onClick={onRemoveWidget}
+                      whileHover={reducedMotion ? undefined : { scale: 1.04 }}
+                      whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                      transition={press}
+                      className="flex items-center gap-1.5 rounded-full border-2 border-[hsl(var(--state-error)/0.4)] bg-[hsl(var(--state-error)/0.12)] px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--state-error))]"
+                    >
+                      <Trash2 size={13} strokeWidth={2.5} aria-hidden />
+                      Remove
+                    </m.button>
+                  ) : null}
                 </>
               ) : null}
 
@@ -260,6 +272,23 @@ function HomeBoardArrangeBar({
                 <span className="text-[length:var(--font-size-micro)] font-bold uppercase tracking-[0.1em] text-[hsl(var(--text-tertiary))]">
                   Punch see-through holes in the grid to show wallpaper
                 </span>
+                {typeof onReopenGuide === 'function' ? (
+                  <m.button
+                    type="button"
+                    onClick={() => {
+                      onReopenGuide();
+                      setMoreOpen(false);
+                    }}
+                    whileHover={reducedMotion ? undefined : { scale: 1.04 }}
+                    whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                    transition={press}
+                    className="flex items-center gap-1.5 rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--text-secondary))]"
+                    title="Show the Edit Home tips again"
+                  >
+                    <HelpCircle size={13} strokeWidth={2.5} aria-hidden />
+                    Show tips
+                  </m.button>
+                ) : null}
               </div>
             </WeeContentCollapse>
 
@@ -285,6 +314,9 @@ HomeBoardArrangeBar.propTypes = {
   onRemoveWidget: PropTypes.func,
   onSetSizePreset: PropTypes.func,
   blockedPresetIds: PropTypes.arrayOf(PropTypes.string),
+  pickerOpen: PropTypes.bool,
+  onPickerOpenChange: PropTypes.func,
+  onReopenGuide: PropTypes.func,
 };
 
 export default React.memo(HomeBoardArrangeBar);

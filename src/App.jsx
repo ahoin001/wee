@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Suspense, useMemo } from 'react';
 import { m } from 'framer-motion';
 import useConsolidatedAppStore from './utils/useConsolidatedAppStore';
+// Side effect: registers every cache domain with the cache registry (refresh actions).
+import './utils/cacheDomains';
 import { useShallow } from 'zustand/react/shallow';
 import useWallpaperCycling from './utils/useWallpaperCycling';
 import useKeyboardShortcuts from './utils/useKeyboardShortcuts';
@@ -58,7 +60,6 @@ const lazyNamedExport = (importer, exportName) =>
 const LazyPaginatedChannels = lazyNamedExport(() => import('./components/navigation'), 'PaginatedChannels');
 const LazyPageNavigation = lazyNamedExport(() => import('./components/navigation'), 'PageNavigation');
 const LazyHomePageIndicator = lazyNamedExport(() => import('./components/home-grid'), 'HomePageIndicator');
-const LazyHomeEditPill = lazyNamedExport(() => import('./components/home-grid'), 'HomeEditPill');
 const LazyWiiRibbon = lazyNamedExport(() => import('./components/dock'), 'WiiRibbon');
 const LazyClassicWiiDock = lazyNamedExport(() => import('./components/dock'), 'ClassicWiiDock');
 const LazyWiiSideNavigation = lazyNamedExport(() => import('./components/navigation'), 'WiiSideNavigation');
@@ -684,7 +685,6 @@ function App() {
           >
             <LazyPageNavigation position="bottom" showPageIndicator />
             <LazyHomePageIndicator />
-            <LazyHomeEditPill />
             <LazyWiiSideNavigation />
           </div>
         </Suspense>

@@ -899,11 +899,7 @@ export default function ChannelModalSuggestedGames({
             <WButton
               variant="secondary"
               size="sm"
-              onClick={() => {
-                localStorage.removeItem('app_cache_steamGames');
-                localStorage.removeItem('app_cache_timestamp_steamGames');
-                rescanSteamGames();
-              }}
+              onClick={() => rescanSteamGames()}
               disabled={steamLoading}
             >
               {steamLoading ? 'Scanning...' : 'Rescan Steam'}
@@ -911,11 +907,7 @@ export default function ChannelModalSuggestedGames({
             <WButton
               variant="secondary"
               size="sm"
-              onClick={() => {
-                localStorage.removeItem('app_cache_epicGames');
-                localStorage.removeItem('app_cache_timestamp_epicGames');
-                rescanEpicGames();
-              }}
+              onClick={() => rescanEpicGames()}
               disabled={epicLoading}
             >
               {epicLoading ? 'Scanning...' : 'Rescan Epic'}

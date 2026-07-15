@@ -184,5 +184,15 @@
   "182": "lucide-react",
   "183": "spotify-web-api-js",
   "184": "@tanstack/react-virtual",
-  "185": "wait-on"
+  "185": "wait-on",
+  "186": "normalizeNowPlayingExperience",
+  "187": "ChannelReorderVfx.jsx",
+  "188": "6. Styling advice by UI type",
+  "189": "spotifyGooeyTokens.js",
+  "190": "4. Motion system",
+  "191": "3. Pill Morph Reveal (the pattern)",
+  "192": "react",
+  "193": "lucide-react",
+  "194": "spotify-web-api-js",
+  "195": "@tanstack/react-virtual"
 }

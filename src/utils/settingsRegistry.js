@@ -181,7 +181,7 @@ export const SETTINGS_TAB_META = Object.freeze([
     color: 'hsl(var(--settings-tab-general))',
     description: 'App behavior & startup',
     categoryId: 'system',
-    keywords: ['startup', 'launch on boot', 'cursor', 'classic mode', 'reset', 'danger'],
+    keywords: ['startup', 'launch on boot', 'cursor', 'classic mode', 'reset', 'danger', 'cache', 'refresh', 'data'],
   },
   {
     id: 'shortcuts',

@@ -9,10 +9,10 @@ import { buildHubData, orderHubCollectionItems, sortHubGamesByName } from './hub
 import AuraHero from './AuraHero';
 import AuraCollectionsSection from './AuraCollectionsSection';
 import AuraLibrarySection from './AuraLibrarySection';
-import { readHubDockInsetPx, readHubScrollTopReservePx, scrollHubRegionIntoFocus } from './hubScrollUtils';
 import { isAppLibraryBackgroundPrefetchScheduled } from '../../utils/appLibraryStartupCoordinator';
 import { shouldUseWarmEnrichmentCache } from '../../utils/gameHub/gameHubEnrichmentCache';
 import { getCachedSteamClientLibrary, setCachedSteamClientLibrary } from '../../utils/gameHub/gameHubClientLibraryCache';
+import { refreshCacheDomain } from '../../utils/cacheRegistry';
 import { useHeroMediaCrossfade } from './useHeroMediaCrossfade';
 import { HUB_MORPH } from '../../design/playfulMotion';
 import {
@@ -375,27 +375,14 @@ export default function GameHubSpace() {
       };
 
       if (shouldUseWarmEnrichmentCache(library, profile)) {
+        // Warm cache is fresh (< GAME_HUB_ENRICHMENT_TTL_MS): trust it and skip the
+        // network entirely. Manual refresh (refreshSteamEnrichmentNow) forces a refetch.
         setGameHubState({
           library: {
             syncStatus: 'ready',
             lastError: null,
           },
         });
-        try {
-          const enriched = await window.api.steam.getEnrichedGames({ steamId });
-          if (cancelled) return;
-          applyFromApiResponse(enriched);
-        } catch (error) {
-          if (!cancelled) {
-            setGameHubState({
-              library: {
-                syncStatus: 'error',
-                statusReason: 'Network or API request failed.',
-                lastError: error?.message || 'Failed to sync library',
-              },
-            });
-          }
-        }
         return;
       }
 
@@ -796,6 +783,10 @@ export default function GameHubSpace() {
       games={libraryGames}
       librarySort={hubLibrarySort}
       onLibrarySortChange={(sort) => setGameHubState({ ui: { hubLibrarySort: sort } })}
+      onRefreshLibrary={
+        gameHub.profile?.steamId ? () => refreshCacheDomain('game-enrichment') : undefined
+      }
+      libraryRefreshing={gameHub.library?.syncStatus === 'refreshing'}
       onSelectGame={(gameId) => setGameHubState({ ui: { selectedGameId: gameId } })}
       onLaunchGame={handleLaunchGame}
       onHeroPreview={setHeroPreview}

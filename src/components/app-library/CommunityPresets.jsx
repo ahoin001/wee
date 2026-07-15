@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { m } from 'framer-motion';
+import { RefreshCcw } from 'lucide-react';
 import Text from '../../ui/Text';
 import Button from '../../ui/WButton';
 import WInput from '../../ui/WInput';
@@ -11,10 +12,14 @@ import { createWeeTransition } from '../../design/weeMotion';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import './community-presets.css';
 
+const SEARCH_DEBOUNCE_MS = 300;
+
 const CommunityPresets = ({ onImportPreset }) => {
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  /** Debounced copy of searchTerm — drives the network query (local filter stays immediate). */
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [downloading, setDownloading] = useState(null);
@@ -39,30 +44,38 @@ const CommunityPresets = ({ onImportPreset }) => {
   });
 
   useEffect(() => {
-    loadPresets();
-  }, [searchTerm, sortBy]);
+    const id = window.setTimeout(() => setDebouncedSearchTerm(searchTerm.trim()), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [searchTerm]);
 
-  const loadPresets = async () => {
-    try {
-      setLoading(true);
-      const result = await getSharedPresets(searchTerm, sortBy);
+  const loadPresets = useCallback(
+    async ({ forceFresh = false } = {}) => {
+      try {
+        setLoading(true);
+        const result = await getSharedPresets(debouncedSearchTerm, sortBy, { forceFresh });
 
-      if (result.success) {
-        setPresets(result.data);
-      } else if (result.error === 'Supabase not configured') {
-        setMessage({
-          type: 'error',
-          text: 'Community features are not configured. Please check your environment variables.',
-        });
-      } else {
-        setMessage({ type: 'error', text: `Failed to load presets: ${result.error}` });
+        if (result.success) {
+          setPresets(result.data);
+        } else if (result.error === 'Supabase not configured') {
+          setMessage({
+            type: 'error',
+            text: 'Community features are not configured. Please check your environment variables.',
+          });
+        } else {
+          setMessage({ type: 'error', text: `Failed to load presets: ${result.error}` });
+        }
+      } catch (error) {
+        setMessage({ type: 'error', text: `Error loading presets: ${error.message}` });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      setMessage({ type: 'error', text: `Error loading presets: ${error.message}` });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [debouncedSearchTerm, sortBy]
+  );
+
+  useEffect(() => {
+    loadPresets();
+  }, [loadPresets]);
 
   const handleDownload = async (preset) => {
     try {
@@ -106,7 +119,7 @@ const CommunityPresets = ({ onImportPreset }) => {
         }
         setTimeout(() => setMessage({ type: '', text: '' }), 4200);
 
-        await loadPresets();
+        await loadPresets({ forceFresh: true });
       } else {
         setMessage({ type: 'error', text: `Failed to download: ${result.error}` });
       }
@@ -159,6 +172,16 @@ const CommunityPresets = ({ onImportPreset }) => {
         </div>
         <WSelect value={selectedTag} onChange={setSelectedTag} options={tagOptions} />
         <WSelect value={sortBy} onChange={setSortBy} options={sortOptions} />
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={loading}
+          onClick={() => loadPresets({ forceFresh: true })}
+          title="Refetch community presets now"
+        >
+          <RefreshCcw size={14} aria-hidden />
+          Refresh
+        </Button>
       </div>
 
       {loading ? (

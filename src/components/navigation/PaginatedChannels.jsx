@@ -11,9 +11,9 @@ import {
   pointerWithin,
   closestCorners,
 } from '@dnd-kit/core';
-import { LayoutGrid, PenLine, Settings2, X } from 'lucide-react';
+import { Check, LayoutGrid, PenLine, Plus, Replace, Settings2, X } from 'lucide-react';
 import { Channel } from '../channels';
-import { HomeSlot, HomeBoardArrangeBar } from '../home-grid';
+import { HomeSlot, HomeBoardArrangeBar, getHomeSlotKind } from '../home-grid';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import { getSlotAt, isChannelSlotEmpty } from '../../utils/homeGridSlots';
@@ -103,6 +103,7 @@ const PaginatedChannelsInner = React.memo(() => {
   const setHomeSlotSpanForSpace = useConsolidatedAppStore(
     (s) => s.actions.setHomeSlotSpanForSpace
   );
+  const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
   const reducedMotion = useReducedMotion();
   const {
     entranceKey,
@@ -259,6 +260,18 @@ const PaginatedChannelsInner = React.memo(() => {
   const arrangeModeActive = isHomeSpace && homeBoardArrangeMode;
   const punchModeActive = isHomeSpace && homeBoardPunchMode;
 
+  /** Widget picker in the arrange tray — owned here so tile clicks can open it. */
+  const [arrangePickerOpen, setArrangePickerOpen] = useState(false);
+  /** When set, the next picker pick replaces this configured channel slot. */
+  const [replaceTargetIndex, setReplaceTargetIndex] = useState(null);
+
+  useEffect(() => {
+    if (!arrangeModeActive || punchModeActive) {
+      setArrangePickerOpen(false);
+      setReplaceTargetIndex(null);
+    }
+  }, [arrangeModeActive, punchModeActive]);
+
   const handleTogglePunchSlot = useCallback(
     (channelIndex) => {
       setSlotHidden(channelIndex, !isChannelSlotHidden(channelIndex));
@@ -293,6 +306,23 @@ const PaginatedChannelsInner = React.memo(() => {
     homeBoardSelectedSlotIndex != null && Array.isArray(boardSlots)
       ? boardSlots[homeBoardSelectedSlotIndex] ?? null
       : null;
+
+  /**
+   * Strip tile selection. A left click on an empty tile also opens the tray's
+   * widget picker (the tile CTA says "Add widget here" — honor it); right-click
+   * only selects and lets the board context menu open.
+   */
+  const handleArrangeSelectIndex = useCallback(
+    (index, source = 'click') => {
+      setHomeBoardSelectedSlotIndex(index);
+      if (source !== 'click') return;
+      const slot = Array.isArray(boardSlots) ? boardSlots[index] : null;
+      const emptyTile = isChannelSlotEmpty(slot) && !isChannelSlotHidden(index);
+      setReplaceTargetIndex(null);
+      setArrangePickerOpen(emptyTile);
+    },
+    [setHomeBoardSelectedSlotIndex, boardSlots, isChannelSlotHidden]
+  );
 
   const addTargetIndex = useMemo(() => {
     if (!arrangeModeActive || punchModeActive) return null;
@@ -329,32 +359,77 @@ const PaginatedChannelsInner = React.memo(() => {
     findFirstFreeSlotIndex,
   ]);
 
-  /** Place a registry widget kind at the target slot — M by default when it fits, else S. */
+  /**
+   * Place a registry widget kind — M by default when it fits, else S.
+   * With a replace target set, the pick overwrites that configured channel
+   * behind the shared confirmation dialog.
+   */
   const handleAddWidget = useCallback(
     (kindId) => {
-      if (addTargetIndex == null || !kindId) return;
+      if (!kindId) return;
+      const slots = Array.isArray(boardSlots) ? boardSlots : [];
       const mPreset = getHomeSlotSizePresetById('M');
-      const mFits =
+      const fitsM = (anchorIndex, selfIndex = null) =>
         mPreset &&
         canPlaceSpan({
-          slots: Array.isArray(boardSlots) ? boardSlots : [],
-          anchorIndex: addTargetIndex,
+          slots,
+          anchorIndex,
           colSpan: mPreset.colSpan,
           rowSpan: mPreset.rowSpan,
           columns: gridConfig.columns,
           rows: gridConfig.rows,
+          selfIndex,
         });
-      placeHomeWidgetSlotForSpace(channelSpaceKey, addTargetIndex, kindId, mFits ? 'M' : 'S');
+
+      if (replaceTargetIndex != null) {
+        const targetIndex = replaceTargetIndex;
+        const kindLabel = getHomeSlotKind(kindId)?.label ?? 'widget';
+        const rawTitle = slots[targetIndex]?.channel?.title;
+        const safeTitle = rawTitle
+          ? String(rawTitle).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
+          : '';
+        setUIState({
+          showConfirmationModal: true,
+          confirmationModalData: {
+            title: 'Replace channel',
+            message: `Replace ${safeTitle ? `<strong>${safeTitle}</strong>` : 'this channel'} with a <strong>${kindLabel}</strong> widget? Its channel setup will be removed.`,
+            confirmText: 'Replace',
+            confirmVariant: 'danger-primary',
+            onConfirm: () => {
+              placeHomeWidgetSlotForSpace(
+                channelSpaceKey,
+                targetIndex,
+                kindId,
+                fitsM(targetIndex, targetIndex) ? 'M' : 'S',
+                { replace: true }
+              );
+              setHomeBoardSelectedSlotIndex(targetIndex);
+            },
+          },
+        });
+        setReplaceTargetIndex(null);
+        return;
+      }
+
+      if (addTargetIndex == null) return;
+      placeHomeWidgetSlotForSpace(
+        channelSpaceKey,
+        addTargetIndex,
+        kindId,
+        fitsM(addTargetIndex) ? 'M' : 'S'
+      );
       setHomeBoardSelectedSlotIndex(addTargetIndex);
     },
     [
       addTargetIndex,
+      replaceTargetIndex,
       boardSlots,
       gridConfig.columns,
       gridConfig.rows,
       placeHomeWidgetSlotForSpace,
       channelSpaceKey,
       setHomeBoardSelectedSlotIndex,
+      setUIState,
     ]
   );
 
@@ -414,12 +489,11 @@ const PaginatedChannelsInner = React.memo(() => {
     (channelId) => {
       const match = /^channel-(\d+)$/.exec(channelId || '');
       if (!match) return;
-      setHomeBoardSelectedSlotIndex(Number(match[1]));
+      handleArrangeSelectIndex(Number(match[1]), 'click');
     },
-    [setHomeBoardSelectedSlotIndex]
+    [handleArrangeSelectIndex]
   );
 
-  const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
   const homeArrangeHintSeen = useConsolidatedAppStore((s) => Boolean(s.ui.homeArrangeHintSeen));
 
   /** Unified board context menu — remember which tile (if any) was under the right-click. */
@@ -435,6 +509,11 @@ const PaginatedChannelsInner = React.memo(() => {
   const contextTileIsChannel =
     contextTileIndex != null &&
     (!contextTileSlot || !contextTileSlot.kind || contextTileSlot.kind === 'channel');
+  const contextTileIsEmpty =
+    contextTileIndex != null &&
+    isChannelSlotEmpty(contextTileSlot) &&
+    !isChannelSlotHidden(contextTileIndex);
+  const contextTileIsConfiguredChannel = contextTileIsChannel && !contextTileIsEmpty;
 
   /** Route Configure through the store so the owning Channel opens its own modal. */
   const handleConfigureContextTile = useCallback(() => {
@@ -451,6 +530,22 @@ const PaginatedChannelsInner = React.memo(() => {
     if (contextTileIndex == null) return;
     handleTogglePunchSlot(contextTileIndex);
   }, [contextTileIndex, handleTogglePunchSlot]);
+
+  /** Arrange menu: target this empty tile and open the tray's widget picker. */
+  const handleAddWidgetContextTile = useCallback(() => {
+    if (contextTileIndex == null) return;
+    setReplaceTargetIndex(null);
+    setHomeBoardSelectedSlotIndex(contextTileIndex);
+    setArrangePickerOpen(true);
+  }, [contextTileIndex, setHomeBoardSelectedSlotIndex]);
+
+  /** Arrange menu: the next picker pick replaces this configured channel (confirmed). */
+  const handleReplaceContextTile = useCallback(() => {
+    if (contextTileIndex == null) return;
+    setHomeBoardSelectedSlotIndex(contextTileIndex);
+    setReplaceTargetIndex(contextTileIndex);
+    setArrangePickerOpen(true);
+  }, [contextTileIndex, setHomeBoardSelectedSlotIndex]);
 
   const dismissArrangeHint = useCallback(() => {
     setUIState({ homeArrangeHintSeen: true });
@@ -484,10 +579,18 @@ const PaginatedChannelsInner = React.memo(() => {
     }
   }, [widgetCoachVisible, selectedSlotIsWidget, dismissWidgetCoach]);
 
-  const widgetCoachCopy =
-    homeBoardSelectedSlotIndex != null && selectedSlot && isChannelSlotEmpty(selectedSlot)
-      ? 'Nice — now press Add widget in the toolbar below'
-      : 'Tap an empty tile to choose where a widget goes';
+  /** `addTargetIndex == null` in arrange mode ⇔ no free slot anywhere on the board. */
+  const boardHasFreeSlot = addTargetIndex != null;
+  const widgetCoachCopy = !boardHasFreeSlot
+    ? 'Board is full — tap any tile to resize it, or right-click a channel to replace it with a widget'
+    : homeBoardSelectedSlotIndex != null && selectedSlot && isChannelSlotEmpty(selectedSlot)
+      ? 'Nice — now pick a widget from the tray below'
+      : 'Tap an empty tile to add a widget · drag tiles to reorder';
+
+  /** “Show tips” under More — recalls the coach for this and future sessions. */
+  const handleReopenGuide = useCallback(() => {
+    setUIState({ homeBoardWidgetCoachDismissed: false });
+  }, [setUIState]);
 
   useEffect(() => {
     if (!isHomeSpace && homeBoardArrangeMode) {
@@ -1003,9 +1106,7 @@ const PaginatedChannelsInner = React.memo(() => {
           punchModeActive={punchModeActive}
           onTogglePunch={handleTogglePunchSlot}
           onArrangeSelectIndex={
-            arrangeModeActive && !punchModeActive
-              ? setHomeBoardSelectedSlotIndex
-              : undefined
+            arrangeModeActive && !punchModeActive ? handleArrangeSelectIndex : undefined
           }
         />
       </div>
@@ -1028,7 +1129,7 @@ const PaginatedChannelsInner = React.memo(() => {
     arrangeModeActive,
     punchModeActive,
     handleTogglePunchSlot,
-    setHomeBoardSelectedSlotIndex,
+    handleArrangeSelectIndex,
   ]);
 
   const channelsContent = (
@@ -1076,7 +1177,7 @@ const PaginatedChannelsInner = React.memo(() => {
                 collisionPadding={12}
                 onCloseAutoFocus={(e) => e.preventDefault()}
               >
-                {contextTileIsChannel ? (
+                {!arrangeModeActive && contextTileIsChannel ? (
                   <ContextMenu.Item
                     className={HOME_CONTEXT_ITEM_CLASS}
                     onSelect={handleConfigureContextTile}
@@ -1085,16 +1186,47 @@ const PaginatedChannelsInner = React.memo(() => {
                     Configure channel
                   </ContextMenu.Item>
                 ) : null}
-                <ContextMenu.Item
-                  className={HOME_CONTEXT_ITEM_CLASS}
-                  onSelect={enterHomeBoardArrange}
-                >
-                  <LayoutGrid size={14} strokeWidth={2.5} aria-hidden />
-                  Edit Home
-                  <span className="ml-auto pl-3 font-bold normal-case tracking-normal text-[hsl(var(--text-tertiary))]">
-                    Ctrl+E
-                  </span>
-                </ContextMenu.Item>
+                {arrangeModeActive && contextTileIsEmpty ? (
+                  <ContextMenu.Item
+                    className={HOME_CONTEXT_ITEM_CLASS}
+                    onSelect={handleAddWidgetContextTile}
+                  >
+                    <Plus size={14} strokeWidth={2.5} aria-hidden />
+                    Add widget here
+                  </ContextMenu.Item>
+                ) : null}
+                {arrangeModeActive && contextTileIsConfiguredChannel ? (
+                  <ContextMenu.Item
+                    className={HOME_CONTEXT_ITEM_CLASS}
+                    onSelect={handleReplaceContextTile}
+                  >
+                    <Replace size={14} strokeWidth={2.5} aria-hidden />
+                    Replace with widget…
+                  </ContextMenu.Item>
+                ) : null}
+                {arrangeModeActive ? (
+                  <ContextMenu.Item
+                    className={HOME_CONTEXT_ITEM_CLASS}
+                    onSelect={exitHomeBoardArrange}
+                  >
+                    <Check size={14} strokeWidth={2.5} aria-hidden />
+                    Done editing
+                    <span className="ml-auto pl-3 font-bold normal-case tracking-normal text-[hsl(var(--text-tertiary))]">
+                      Esc
+                    </span>
+                  </ContextMenu.Item>
+                ) : (
+                  <ContextMenu.Item
+                    className={HOME_CONTEXT_ITEM_CLASS}
+                    onSelect={enterHomeBoardArrange}
+                  >
+                    <LayoutGrid size={14} strokeWidth={2.5} aria-hidden />
+                    Edit Home
+                    <span className="ml-auto pl-3 font-bold normal-case tracking-normal text-[hsl(var(--text-tertiary))]">
+                      Ctrl+E
+                    </span>
+                  </ContextMenu.Item>
+                )}
                 {contextTileIndex != null ? (
                   <ContextMenu.Item
                     className={HOME_CONTEXT_ITEM_CLASS}
@@ -1140,6 +1272,9 @@ const PaginatedChannelsInner = React.memo(() => {
             onRemoveWidget={handleRemoveWidget}
             onSetSizePreset={handleSetSizePreset}
             blockedPresetIds={blockedSizePresetIds}
+            pickerOpen={arrangePickerOpen}
+            onPickerOpenChange={setArrangePickerOpen}
+            onReopenGuide={handleReopenGuide}
           />
           <AnimatePresence>
             {widgetCoachVisible ? (
@@ -1179,7 +1314,7 @@ const PaginatedChannelsInner = React.memo(() => {
               >
                 <WeeGlassPill className="pointer-events-auto flex items-center gap-2.5 rounded-full px-4 py-2">
                   <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                    Tip: right-click the board or press Ctrl+E to Edit Home
+                    Tip: Edit Home lives in the spaces rail — or right-click the board / press Ctrl+E
                   </span>
                   <button
                     type="button"

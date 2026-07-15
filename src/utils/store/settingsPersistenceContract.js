@@ -6,6 +6,7 @@ import {
   normalizeSecondaryChannelProfiles,
 } from '../channelSpaces.js';
 import { sanitizeRecentLaunches } from '../recentLaunches.js';
+import { pruneKeyedCacheForPersistence } from './persistedCachePrune.js';
 
 export const SETTINGS_SCHEMA_VERSION = 2;
 
@@ -296,6 +297,19 @@ const selectPersistedChannels = (channels = {}) => {
   return next;
 };
 
+const selectPersistedMediaHub = (mediaHub = {}) => {
+  if (!isPlainObject(mediaHub)) return {};
+  const next = { ...mediaHub };
+  if (isPlainObject(mediaHub.sources)) {
+    next.sources = {
+      ...mediaHub.sources,
+      streamsById: pruneKeyedCacheForPersistence(mediaHub.sources.streamsById),
+      seriesMetaById: pruneKeyedCacheForPersistence(mediaHub.sources.seriesMetaById),
+    };
+  }
+  return next;
+};
+
 export const buildSettingsSnapshotFromStore = (state = {}) => ({
   ui: selectPersistedUi(state.ui || {}),
   ribbon: state.ribbon || {},
@@ -325,7 +339,7 @@ export const buildSettingsSnapshotFromStore = (state = {}) => ({
     gamehub: null,
   },
   gameHub: state.gameHub || {},
-  mediaHub: state.mediaHub || {},
+  mediaHub: selectPersistedMediaHub(state.mediaHub || {}),
 });
 
 export const normalizeUnifiedSettingsSnapshot = (settings = {}) => {

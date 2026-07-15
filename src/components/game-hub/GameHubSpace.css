@@ -1090,6 +1090,32 @@
   outline-offset: 2px;
 }
 
+/* Same chrome family as .aura-hub-sort__select — library manual refresh */
+.aura-hub-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.6rem;
+  border-radius: 0.45rem;
+  border: 1px solid hsl(var(--color-pure-white) / 0.22);
+  background: hsl(var(--color-pure-black) / 0.35);
+  color: hsl(var(--color-pure-white) / 0.95);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.aura-hub-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.aura-hub-refresh-btn:focus-visible {
+  outline: 2px solid hsl(var(--wii-blue) / 0.85);
+  outline-offset: 2px;
+}
+
 .aura-hub-section__reorder {
   flex-shrink: 0;
   padding: 0.35rem 0.65rem;

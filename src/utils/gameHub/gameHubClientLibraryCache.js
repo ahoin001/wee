@@ -20,3 +20,7 @@ export function setCachedSteamClientLibrary(steamId, value) {
     value,
   };
 }
+
+export function clearCachedSteamClientLibrary() {
+  cache = { steamId: null, fetchedAt: 0, value: null };
+}
