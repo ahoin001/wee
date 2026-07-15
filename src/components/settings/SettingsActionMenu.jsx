@@ -301,7 +301,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
 
             <div className="wee-modal-scroll min-h-0 flex-1 space-y-10 overflow-y-auto px-8 py-8 md:px-10">
               <section className="space-y-4">
-                <p className="ml-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
+                <p className="ml-0.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
                   Quick toggles
                 </p>
                 <div className="flex flex-col gap-3">
@@ -335,7 +335,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
               </section>
 
               <section className="space-y-4">
-                <p className="ml-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
+                <p className="ml-0.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
                   Window controls
                 </p>
                 <div className="grid grid-cols-1 gap-3">
@@ -345,7 +345,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
               </section>
 
               <section className="space-y-4">
-                <p className="ml-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
+                <p className="ml-0.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
                   Advanced
                 </p>
                 <div className="grid grid-cols-1 gap-3">
@@ -362,7 +362,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
 
               {IS_DEV ? (
                 <section className="space-y-4">
-                  <p className="ml-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
+                  <p className="ml-0.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
                     Developer
                   </p>
                   <div className="grid grid-cols-1 gap-3">
@@ -372,7 +372,7 @@ const SettingsActionMenu = forwardRef(({ isOpen, onClose }, ref) => {
               ) : null}
 
               <section className="space-y-4">
-                <p className="ml-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
+                <p className="ml-0.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--wee-text-rail-muted))]">
                   App
                 </p>
                 <div className="grid grid-cols-1 gap-3">

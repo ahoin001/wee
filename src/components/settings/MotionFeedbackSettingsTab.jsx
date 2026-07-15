@@ -1,12 +1,17 @@
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
-import { Anchor, AppWindow, Info, LayoutGrid, Layers, Wand2, Zap } from 'lucide-react';
+import { Anchor, AppWindow, Info, LayoutGrid, Layers, Moon, Rocket, Wand2, Zap } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import Slider from '../../ui/Slider';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
+import {
+  IDLE_PERSONALITY_PACKS,
+  matchIdlePersonality,
+  normalizeIdleExperienceSettings,
+} from '../../utils/idleExperience';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
 import {
   WeeModalFieldCard,
@@ -59,13 +64,46 @@ MotionToggleRow.defaultProps = {
 };
 
 const MotionFeedbackSettingsTab = React.memo(() => {
-  const { setUIState } = useConsolidatedAppStore(
+  const { setUIState, setChannelSettings } = useConsolidatedAppStore(
     useShallow((state) => ({
       setUIState: state.actions.setUIState,
+      setChannelSettings: state.actions.setChannelSettings,
     }))
   );
   const raw = useConsolidatedAppStore((s) => s.ui.motionFeedback);
   const mf = useMemo(() => mergeMotionFeedback(raw), [raw]);
+
+  const channelSettings = useConsolidatedAppStore((s) => s.channels.settings);
+  const idle = useMemo(() => normalizeIdleExperienceSettings(channelSettings), [channelSettings]);
+  const idlePersonality = idle.delightsEnabled ? matchIdlePersonality(idle.delightTypes) : 'off';
+
+  const setIdleMode = useCallback(
+    (mode) => setChannelSettings({ idleExperienceMode: mode }),
+    [setChannelSettings]
+  );
+
+  const setIdleDelay = useCallback(
+    (value) => setChannelSettings({ autoFadeTimeout: value }),
+    [setChannelSettings]
+  );
+
+  const setAttractDelay = useCallback(
+    (value) => setChannelSettings({ idleAttractDelaySec: value }),
+    [setChannelSettings]
+  );
+
+  const setIdleIntensity = useCallback(
+    (value) => {
+      if (value === 'off') {
+        setChannelSettings({ idleAnimationEnabled: false });
+        return;
+      }
+      const pack = IDLE_PERSONALITY_PACKS[value];
+      if (!pack) return;
+      setChannelSettings({ idleAnimationEnabled: true, idleAnimationTypes: [...pack] });
+    },
+    [setChannelSettings]
+  );
 
   const master = mf.master;
 
@@ -75,6 +113,18 @@ const MotionFeedbackSettingsTab = React.memo(() => {
         motionFeedback: mergeMotionFeedback({
           ...mergeMotionFeedback(prev.motionFeedback),
           master: checked,
+        }),
+      }));
+    },
+    [setUIState]
+  );
+
+  const setLaunchFeedback = useCallback(
+    (value) => {
+      setUIState((prev) => ({
+        motionFeedback: mergeMotionFeedback({
+          ...mergeMotionFeedback(prev.motionFeedback),
+          launch: value,
         }),
       }));
     },
@@ -218,8 +268,119 @@ const MotionFeedbackSettingsTab = React.memo(() => {
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
 
+      <WeeSettingsCollapsibleSection
+        icon={Moon}
+        title="Idle experience"
+        description="What Home does when you step away — fade, micro-delights, attract."
+        defaultOpen
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6 space-y-5">
+          <div>
+            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
+              Mode
+            </WeeSectionEyebrow>
+            <WeeSegmentedControl
+              ariaLabel="Idle experience mode"
+              value={idle.mode}
+              onChange={setIdleMode}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'subtle', label: 'Subtle' },
+                { value: 'attract', label: 'Attract' },
+              ]}
+            />
+            <Text variant="caption" className="!mt-2 block text-[hsl(var(--text-tertiary))]">
+              Subtle fades the grid toward the wallpaper when idle. Attract additionally spotlights
+              your tiles after a longer wait — it never launches anything and pauses when the app is
+              unfocused or in low power.
+            </Text>
+          </div>
+
+          <WeeRevealWhen when={idle.mode !== 'off'}>
+            <div className="space-y-5">
+              <div className="w-full min-w-0">
+                <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+                  Idle delay: {idle.idleDelaySec}s
+                </Text>
+                <Slider
+                  value={idle.idleDelaySec}
+                  min={1}
+                  max={30}
+                  step={1}
+                  hideValue
+                  aria-label="Idle delay before fade"
+                  onChange={setIdleDelay}
+                />
+              </div>
+
+              <div>
+                <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
+                  Tile micro-delights
+                </WeeSectionEyebrow>
+                <WeeSegmentedControl
+                  ariaLabel="Idle micro-delight intensity"
+                  value={idlePersonality || 'off'}
+                  onChange={setIdleIntensity}
+                  options={[
+                    { value: 'off', label: 'Off' },
+                    { value: 'restrained', label: 'Restrained' },
+                    { value: 'playful', label: 'Playful' },
+                    { value: 'showy', label: 'Showy' },
+                  ]}
+                />
+                <Text variant="caption" className="!mt-2 block text-[hsl(var(--text-tertiary))]">
+                  Fine-grained animation types live under Channels &amp; layout → Idle motion
+                  (advanced).
+                </Text>
+              </div>
+
+              <WeeRevealWhen when={idle.mode === 'attract'}>
+                <div className="w-full min-w-0">
+                  <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+                    Attract after: {Math.round(idle.attractDelaySec / 60)} min idle
+                  </Text>
+                  <Slider
+                    value={idle.attractDelaySec}
+                    min={60}
+                    max={600}
+                    step={30}
+                    hideValue
+                    aria-label="Attract mode delay"
+                    onChange={setAttractDelay}
+                  />
+                </div>
+              </WeeRevealWhen>
+            </div>
+          </WeeRevealWhen>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
       <WeeRevealWhen when={master}>
         <div className="flex flex-col gap-6">
+      <WeeSettingsCollapsibleSection
+        icon={Rocket}
+        title="Launch feedback"
+        description="Shell choreography while an app opens — never delays the launch itself."
+        defaultOpen
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
+          <WeeSegmentedControl
+            ariaLabel="Launch feedback choreography"
+            value={mf.launch}
+            onChange={setLaunchFeedback}
+            options={[
+              { value: 'off', label: 'Off' },
+              { value: 'subtle', label: 'Subtle' },
+              { value: 'cinematic', label: 'Cinematic' },
+            ]}
+          />
+          <Text variant="caption" className="!mt-3 block text-[hsl(var(--text-tertiary))]">
+            Subtle brightens the launched tile. Cinematic also recedes the rest of the board and
+            softens the dock. Reduced motion keeps only the status pill.
+          </Text>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
       <WeeSettingsCollapsibleSection
         icon={LayoutGrid}
         title="Channels & grid"

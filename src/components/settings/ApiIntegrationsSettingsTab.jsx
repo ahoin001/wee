@@ -4,10 +4,11 @@ import { Music, Activity, Settings2 } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
-import { WeeModalFieldCard, WeeSettingsCollapsibleSection } from '../../ui/wee';
+import { WeeModalFieldCard, WeeSegmentedControl, WeeSettingsCollapsibleSection } from '../../ui/wee';
 import { AdminPanel } from '../admin';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { applyAdminPanelPowerActions, normalizeAdminPanelConfig } from '../../utils/adminPanelCommands';
+import { normalizeNowPlayingExperience } from '../../utils/spotifyTakeover';
 import { logError } from '../../utils/logger';
 import ShortcutCaptureControl from './ShortcutCaptureControl';
 import './api-integrations-settings.css';
@@ -15,10 +16,10 @@ import SettingsTabPageHeader from './SettingsTabPageHeader';
 
 const spotifyBtnClass = (active, isGreen = true) =>
   active
-    ? '!bg-red-600 !border-red-600 hover:!bg-red-700 text-white border-solid'
+    ? '!bg-[hsl(var(--state-error))] !border-[hsl(var(--state-error))] hover:!bg-[hsl(var(--state-error-hover))] text-[hsl(var(--text-on-accent))] border-solid'
     : isGreen
-      ? '!bg-[rgb(var(--spotify-green-rgb))] !border-[rgb(var(--spotify-green-rgb))] hover:!brightness-110 text-white border-solid'
-      : '!bg-[hsl(var(--link))] !border-[hsl(var(--link))] hover:!brightness-110 text-white border-solid';
+      ? '!bg-[rgb(var(--spotify-green-rgb))] !border-[rgb(var(--spotify-green-rgb))] hover:!brightness-110 text-[hsl(var(--text-on-accent))] border-solid'
+      : '!bg-[hsl(var(--link))] !border-[hsl(var(--link))] hover:!brightness-110 text-[hsl(var(--text-on-accent))] border-solid';
 
 const ApiIntegrationsSettingsTab = () => {
   const { spotify, floatingWidgets } = useConsolidatedAppStore(
@@ -168,14 +169,16 @@ const ApiIntegrationsSettingsTab = () => {
               </Text>
               <div className="space-y-2">
                 <div
-                  className={`rounded-md px-3 py-2 text-sm text-white ${
-                    spotify.isConnected ? 'bg-green-500' : 'bg-red-500'
+                  className={`rounded-md px-3 py-2 text-sm text-[hsl(var(--text-on-accent))] ${
+                    spotify.isConnected
+                      ? 'bg-[hsl(var(--state-success))]'
+                      : 'bg-[hsl(var(--state-error))]'
                   }`}
                 >
                   {spotify.isConnected ? 'Connected' : 'Disconnected'}
                 </div>
                 {spotify.error && (
-                  <div className="rounded-md bg-red-600 px-3 py-2 text-sm text-white">
+                  <div className="rounded-md bg-[hsl(var(--state-error))] px-3 py-2 text-sm text-[hsl(var(--text-on-accent))]">
                     Error: {spotify.error}
                   </div>
                 )}
@@ -274,6 +277,27 @@ const ApiIntegrationsSettingsTab = () => {
             <Text variant="caption" className="mt-3 text-[11px] text-[hsl(var(--text-tertiary))]">
               Configure how the Spotify widget behaves and displays
             </Text>
+          </div>
+
+          {/* Now Playing takeover experience */}
+          <div className="mt-6">
+            <Text variant="caption" className="mb-1 text-xs font-semibold text-[hsl(var(--text-primary))]">
+              Now Playing experience
+            </Text>
+            <Text variant="caption" className="!mb-3 block text-[11px] text-[hsl(var(--text-tertiary))]">
+              A momentary album-driven immersive overlay. Enter it from the command palette or the
+              Now Playing home tile; Escape (or any interaction, in automatic mode) exits.
+            </Text>
+            <WeeSegmentedControl
+              ariaLabel="Now Playing takeover experience"
+              value={normalizeNowPlayingExperience(spotify.nowPlayingExperience)}
+              onChange={(value) => actions.setSpotifyState({ nowPlayingExperience: value })}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'onDemand', label: 'On demand' },
+                { value: 'autoIdle', label: 'Auto when idle' },
+              ]}
+            />
           </div>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>

@@ -18,6 +18,13 @@
 .text-foreground { color: hsl(var(--text-primary)); }
 .text-muted-foreground { color: hsl(var(--text-secondary)); }
 
+/* Launch cinematic: dock yields while a channel launch settles.
+   Filter only — Framer entrance owns inline transform/opacity on the footer. */
+.interactive-footer.ribbon--launch-yield {
+  filter: brightness(0.92) saturate(0.9);
+  transition: filter var(--wee-launch-duration) var(--wee-launch-ease);
+}
+
 .interactive-footer {
   transform-origin: bottom center;
   transition: transform 0.3s ease-in-out;

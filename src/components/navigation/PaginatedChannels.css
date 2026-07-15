@@ -233,13 +233,11 @@
 }
 
 .wii-strip-channel-cell--punchable .channel {
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.35), var(--shadow-md);
+  box-shadow: var(--shadow-selection-glow-soft), var(--shadow-md);
 }
 
 .wii-mode-grid--arrange .channel.channel--arrange-selected {
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.75), var(--shadow-md);
-  outline: 2px solid hsl(var(--primary) / 0.45);
-  outline-offset: 2px;
+  box-shadow: var(--shadow-selection-glow), var(--shadow-md);
 }
 
 button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable {

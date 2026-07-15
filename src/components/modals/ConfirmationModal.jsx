@@ -51,6 +51,8 @@ const ConfirmationModal = () => {
   const cancelText = modalData.cancelText || 'Cancel';
   const confirmText = modalData.confirmText || 'Confirm';
   const confirmVariant = modalData.confirmVariant || 'primary';
+  /** Notice mode — single acknowledge button (replaces native alert()). */
+  const hideCancel = Boolean(modalData.hideCancel);
 
   const handleConfirm = () => {
     if (modalData.onConfirm) {
@@ -75,9 +77,11 @@ const ConfirmationModal = () => {
       maxWidth="600px"
       footerContent={() => (
         <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={handleCancel}>
-            {cancelText}
-          </Button>
+          {!hideCancel ? (
+            <Button variant="secondary" onClick={handleCancel}>
+              {cancelText}
+            </Button>
+          ) : null}
           <Button 
             variant={confirmVariant} 
             onClick={handleConfirm}

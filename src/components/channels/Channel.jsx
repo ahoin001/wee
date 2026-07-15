@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { m } from 'framer-motion';
 import './Channel.css';
@@ -9,12 +9,19 @@ import { useChannelSpaceKey } from '../../contexts/ChannelSpaceContext';
 import { WeeTapLayer } from '../../ui/wee';
 import { useRendererMediaPowerState } from '../../hooks/useRendererMediaPowerState';
 import { useMotionFeedback } from '../../hooks/useMotionFeedback';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useChannelEffectiveState from './hooks/useChannelEffectiveState';
 import useChannelInteractions from './hooks/useChannelInteractions';
 import ChannelMediaPreview from './ChannelMediaPreview';
 import ChannelModalsHost from './ChannelModalsHost';
 
 const MotionDiv = m.div;
+
+/** Idle animation vocabulary — keep in sync with Channel.css `.channel-anim-*` classes. */
+export const CHANNEL_ANIMATION_STYLES = [
+  'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'flip', 'swing', 'shake', 'pop', 'fade',
+  'slide', 'colorcycle', 'sparkle', 'heartbeat', 'orbit', 'wave', 'jelly', 'zoom', 'rotate', 'glowtrail',
+];
 
 const Channel = React.memo(({ 
   id, 
@@ -48,7 +55,7 @@ const Channel = React.memo(({
   const videoRef = useRef(null);
   const { showLaunchError, beginLaunchFeedback, endLaunchFeedback } = useLaunchFeedback();
   const channelSpaceKey = useChannelSpaceKey();
-  const { gooey, channelTap } = useMotionFeedback();
+  const { gooey, channelTap, launchFeedbackMode } = useMotionFeedback();
   const channelGooeyHover = gooey.channelHover;
   const [isLaunchPressed, setIsLaunchPressed] = useState(false);
   const {
@@ -233,7 +240,7 @@ const Channel = React.memo(({
   const [randomAnim, setRandomAnim] = useState(null);
   useEffect(() => {
     let timer;
-    const anims = ['pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'flip', 'swing', 'shake', 'pop', 'fade', 'slide', 'colorcycle', 'sparkle', 'heartbeat', 'orbit', 'wave', 'jelly', 'zoom', 'rotate', 'glowtrail'];
+    const anims = CHANNEL_ANIMATION_STYLES;
     if (animationStyle === 'random') {
       setRandomAnim(anims[Math.floor(Math.random() * anims.length)]);
     } else if (animationStyle === 'fullrandom') {
@@ -248,6 +255,47 @@ const Channel = React.memo(({
   const animClass = (animationStyle === 'random' || animationStyle === 'fullrandom') ? randomAnim : animationStyle;
 
   const showRecentLaunchHint = Boolean(openHint);
+
+  // Launch cinematic — transient origin state written by LaunchFeedbackContext; changes only
+  // at launch begin/end. Origin tile settles/brightens (subtle + cinematic); in cinematic
+  // mode the rest of the board recedes. Arrange/punch modes suppress choreography.
+  const launchCinematicChannelId = useConsolidatedAppStore(
+    (state) => state.ui.launchCinematic?.channelId ?? null
+  );
+  const launchFxActive =
+    !interactionsLocked && launchFeedbackMode !== 'off' && launchCinematicChannelId !== null;
+  const isLaunchOrigin = launchFxActive && launchCinematicChannelId === id;
+  const isLaunchRecede = launchFxActive && !isLaunchOrigin && launchFeedbackMode === 'cinematic';
+  const launchFxClass = isLaunchOrigin
+    ? ' channel--launch-origin'
+    : isLaunchRecede
+      ? ' channel--launch-recede'
+      : '';
+
+  /** Keyboard parity with click: Enter/Space launches (or configures / selects in arrange). */
+  const handleTileKeyDown = useCallback(
+    (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      if (event.target !== event.currentTarget) return;
+      event.preventDefault();
+      handleTileClick(event);
+    },
+    [handleTileClick]
+  );
+
+  const accessibleLabel = interactionsLocked
+    ? punchMode
+      ? 'Tile — punch mode active'
+      : `Select tile${selected ? ' (selected)' : ''} for arranging`
+    : effectiveIsEmpty
+      ? 'Empty channel — press Enter to set it up'
+      : `Launch ${launchLabel || effectiveConfig?.title || 'channel'}`;
+
+  /**
+   * On the Home board the unified right-click menu (PaginatedChannels) owns context clicks —
+   * let the event bubble so Configure / Arrange / Punch show in one place.
+   */
+  const tileContextMenuHandler = channelSpaceKey === 'home' ? undefined : handleRightClick;
 
   const handleImageSelect = (mediaItem) => {
     const mediaUrl = getStoragePublicObjectUrl('media-library', mediaItem.file_url);
@@ -285,8 +333,8 @@ const Channel = React.memo(({
     <MotionDiv
       className={
         effectiveIsEmpty && !effectiveMedia 
-          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${selected ? ' channel--arrange-selected' : ''}` 
-          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}`
+          ? `channel empty${useAdaptiveEmptyChannels && ribbonAccent?.ribbonColor ? ' adaptive' : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}` 
+          : `channel${animClass && animClass !== 'none' ? ' channel-anim-' + animClass : ''}${wiiMode ? ' wii-mode-tile' : ''}${idleAnimationClass ? ' ' + idleAnimationClass : ''}${showRecentLaunchHint ? ' channel--recent-launch' : ''}${channelGooeyHover.enabled ? ' channel--gooey-motion' : ''}${channelGooeyHover.enabled && channelGooeyHover.includeGlow ? ' channel--gooey-glow' : ''}${isLaunchPressed ? ' channel--launch-press' : ''}${selected ? ' channel--arrange-selected' : ''}${launchFxClass}`
       }
       data-channel-id={id}
       data-gooey-hover-mode={channelGooeyHover.enabled ? channelGooeyHover.mode : undefined}
@@ -295,7 +343,10 @@ const Channel = React.memo(({
       onMouseLeave={e => { handleMouseLeave(e); setIsHovered(false); }}
       tabIndex={0}
       role="button"
-      onContextMenu={handleRightClick}
+      aria-label={accessibleLabel}
+      aria-pressed={interactionsLocked && !punchMode ? selected : undefined}
+      onKeyDown={handleTileKeyDown}
+      onContextMenu={tileContextMenuHandler}
       title={showRecentLaunchHint ? 'Recently used — tap again to open or focus.' : undefined}
       style={adaptiveEmptyStyle}
       whileHover={channelGooeyHover.enabled ? channelGooeyHover.whileHover : undefined}
@@ -326,6 +377,11 @@ const Channel = React.memo(({
           <span className="channel-recent-hint-ring" aria-hidden />
           <span className="channel-recent-hint-pill">Recent</span>
         </>
+      ) : null}
+      {arrangeMode && !punchMode && effectiveIsEmpty && !effectiveMedia ? (
+        <span className="channel-arrange-add-hint" aria-hidden>
+          + Add widget here
+        </span>
       ) : null}
     </MotionDiv>
   );
@@ -380,7 +436,7 @@ Channel.propTypes = {
     volume: PropTypes.number,
   }),
   onHover: PropTypes.func,
-  animationStyle: PropTypes.oneOf(['none', 'pulse', 'bounce', 'wiggle', 'glow', 'parallax', 'random']),
+  animationStyle: PropTypes.oneOf(['none', 'random', 'fullrandom', ...CHANNEL_ANIMATION_STYLES]),
   idleAnimationClass: PropTypes.string,
   wiiMode: PropTypes.bool,
   arrangeMode: PropTypes.bool,

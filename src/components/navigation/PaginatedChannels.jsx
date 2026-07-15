@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { m, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import {
   DndContext,
@@ -11,14 +11,17 @@ import {
   pointerWithin,
   closestCorners,
 } from '@dnd-kit/core';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, PenLine, Settings2, X } from 'lucide-react';
 import { Channel } from '../channels';
 import { HomeSlot, HomeBoardArrangeBar } from '../home-grid';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import { getSlotAt, isChannelSlotEmpty } from '../../utils/homeGridSlots';
 import { canPlaceSpan } from '../../utils/homeGridOccupancy';
-import { getHomeSlotSizePresetById } from '../../utils/homeSlotSizePresets';
+import {
+  getHomeSlotSizePresetById,
+  HOME_SLOT_SIZE_PRESETS,
+} from '../../utils/homeSlotSizePresets';
 import { ChannelSpaceProvider } from '../../contexts/ChannelSpaceContext';
 import useIdleChannelAnimations from '../../utils/useIdleChannelAnimations';
 import { CHANNEL_PAGE_FLIP_MS, isSlotHidden } from '../../utils/channelLayoutSystem';
@@ -32,9 +35,14 @@ import {
   SUPPORTED_IMAGE_VIDEO_HINT,
 } from '../../utils/supportedUploadMedia';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
-import { createHomeChannelEntranceBandVariants, createHubEntranceBandVariants } from '../../design/weeMotion';
+import { WeeGlassPill } from '../../ui/wee';
+import {
+  createHomeChannelEntranceBandVariants,
+  createHubEntranceBandVariants,
+  createWeeTransition,
+} from '../../design/weeMotion';
 import { useHubSpaceEntrance } from '../../hooks/useHubSpaceEntrance';
-import { useAppActivity } from '../../hooks/useAppActivity';
+import { useHomeIdleExperience } from '../../hooks/useHomeIdleExperience';
 import { weeMarkChannelPage } from '../../utils/weePerformanceMarks';
 import { applyChannelSlotReorder, snapshotChannelSlotMaps } from '../../utils/channelReorder';
 import './PaginatedChannels.css';
@@ -44,6 +52,10 @@ const MotionDiv = m.div;
 /** Hold near strip edge before auto-flipping pages (iPhone-style). */
 const PAGE_EDGE_HOLD_MS = 480;
 const PAGE_EDGE_RATIO = 0.11;
+
+/** Shared Radix item look for the Home board context menu. */
+const HOME_CONTEXT_ITEM_CLASS =
+  'flex items-center gap-2 rounded-full px-3.5 py-2.5 text-[length:var(--font-size-caption)] font-black uppercase tracking-wide text-[hsl(var(--text-secondary))] outline-none data-[highlighted]:bg-[hsl(var(--state-hover))] data-[highlighted]:text-[hsl(var(--text-primary))]';
 
 const PaginatedChannelsInner = React.memo(() => {
   // ✅ DATA LAYER: Use the new channel operations hook
@@ -82,8 +94,8 @@ const PaginatedChannelsInner = React.memo(() => {
     setSelectedSlotIndex: setHomeBoardSelectedSlotIndex,
   } = useHomeBoardArrange();
 
-  const placeAdminQuickAccessSlotForSpace = useConsolidatedAppStore(
-    (s) => s.actions.placeAdminQuickAccessSlotForSpace
+  const placeHomeWidgetSlotForSpace = useConsolidatedAppStore(
+    (s) => s.actions.placeHomeWidgetSlotForSpace
   );
   const removeHomeWidgetSlotForSpace = useConsolidatedAppStore(
     (s) => s.actions.removeHomeWidgetSlotForSpace
@@ -91,7 +103,6 @@ const PaginatedChannelsInner = React.memo(() => {
   const setHomeSlotSpanForSpace = useConsolidatedAppStore(
     (s) => s.actions.setHomeSlotSpanForSpace
   );
-  const { isAppActive } = useAppActivity();
   const reducedMotion = useReducedMotion();
   const {
     entranceKey,
@@ -231,22 +242,18 @@ const PaginatedChannelsInner = React.memo(() => {
     adaptiveEmptyChannels: channelSettings.adaptiveEmptyChannels ?? true,
     kenBurnsEnabled: channelSettings.kenBurnsEnabled ?? false,
     kenBurnsMode: channelSettings.kenBurnsMode ?? 'hover',
-    idleAnimationEnabled: channelSettings.idleAnimationEnabled ?? false,
-    idleAnimationTypes: channelSettings.idleAnimationTypes ?? ['pulse', 'bounce', 'glow'],
-    idleAnimationInterval: channelSettings.idleAnimationInterval ?? 8,
-    autoFadeTimeout: channelSettings.autoFadeTimeout ?? 5,
     focusRecedeEnabled: channelSettings.focusRecedeEnabled ?? true,
   }), [channelSettings]);
 
-  // Grid-level auto-fade: fade after `autoFadeTimeout` seconds of *no* pointer activity on the grid
-  // (idle). Restore via bumpGridActivity on pointer move/enter — not CSS :hover (parked cursor
-  // over tiles must still allow fade).
-  const [isGridFaded, setIsGridFaded] = useState(false);
-  const idleFadeTimerRef = useRef(null);
   const lastPointerThrottleRef = useRef(0);
-  const autoFadeTimeout = effectiveSettings.autoFadeTimeout;
   const isHomeSpace = channelSpaceKey === 'home';
   const isHomeActive = isHomeSpace && activeSpaceId === 'home';
+
+  // Shared idle state machine: one clock for grid auto-fade, micro-delights, and attract.
+  // Pointer/keyboard activity on the grid feeds bumpActivity — not CSS :hover (a parked
+  // cursor over tiles must still allow fade).
+  const idleExperience = useHomeIdleExperience({ enabled: isHomeActive });
+  const isGridFaded = isHomeActive && idleExperience.isFaded;
 
   // Live Board Studio only applies to the live Home board.
   const arrangeModeActive = isHomeSpace && homeBoardArrangeMode;
@@ -322,16 +329,34 @@ const PaginatedChannelsInner = React.memo(() => {
     findFirstFreeSlotIndex,
   ]);
 
-  const handleAddQuickAccess = useCallback(() => {
-    if (addTargetIndex == null) return;
-    placeAdminQuickAccessSlotForSpace(channelSpaceKey, addTargetIndex, 'S');
-    setHomeBoardSelectedSlotIndex(addTargetIndex);
-  }, [
-    addTargetIndex,
-    placeAdminQuickAccessSlotForSpace,
-    channelSpaceKey,
-    setHomeBoardSelectedSlotIndex,
-  ]);
+  /** Place a registry widget kind at the target slot — M by default when it fits, else S. */
+  const handleAddWidget = useCallback(
+    (kindId) => {
+      if (addTargetIndex == null || !kindId) return;
+      const mPreset = getHomeSlotSizePresetById('M');
+      const mFits =
+        mPreset &&
+        canPlaceSpan({
+          slots: Array.isArray(boardSlots) ? boardSlots : [],
+          anchorIndex: addTargetIndex,
+          colSpan: mPreset.colSpan,
+          rowSpan: mPreset.rowSpan,
+          columns: gridConfig.columns,
+          rows: gridConfig.rows,
+        });
+      placeHomeWidgetSlotForSpace(channelSpaceKey, addTargetIndex, kindId, mFits ? 'M' : 'S');
+      setHomeBoardSelectedSlotIndex(addTargetIndex);
+    },
+    [
+      addTargetIndex,
+      boardSlots,
+      gridConfig.columns,
+      gridConfig.rows,
+      placeHomeWidgetSlotForSpace,
+      channelSpaceKey,
+      setHomeBoardSelectedSlotIndex,
+    ]
+  );
 
   const handleRemoveWidget = useCallback(() => {
     if (homeBoardSelectedSlotIndex == null) return;
@@ -344,29 +369,32 @@ const PaginatedChannelsInner = React.memo(() => {
     setHomeBoardSelectedSlotIndex,
   ]);
 
-  const [sizeBlockedPresetId, setSizeBlockedPresetId] = useState(null);
+  /** Pre-computed per-preset fit for the selected slot — bar dims blocked sizes before any click. */
+  const blockedSizePresetIds = useMemo(() => {
+    if (homeBoardSelectedSlotIndex == null) return [];
+    const slots = Array.isArray(boardSlots) ? boardSlots : [];
+    return Object.values(HOME_SLOT_SIZE_PRESETS)
+      .filter(
+        (preset) =>
+          !canPlaceSpan({
+            slots,
+            anchorIndex: homeBoardSelectedSlotIndex,
+            colSpan: preset.colSpan,
+            rowSpan: preset.rowSpan,
+            columns: gridConfig.columns,
+            rows: gridConfig.rows,
+            selfIndex: homeBoardSelectedSlotIndex,
+          })
+      )
+      .map((preset) => preset.id);
+  }, [homeBoardSelectedSlotIndex, boardSlots, gridConfig.columns, gridConfig.rows]);
 
   const handleSetSizePreset = useCallback(
     (presetId) => {
       if (homeBoardSelectedSlotIndex == null) return;
       const preset = getHomeSlotSizePresetById(presetId);
       if (!preset) return;
-      const slots = Array.isArray(boardSlots) ? boardSlots : [];
-      const ok = canPlaceSpan({
-        slots,
-        anchorIndex: homeBoardSelectedSlotIndex,
-        colSpan: preset.colSpan,
-        rowSpan: preset.rowSpan,
-        columns: gridConfig.columns,
-        rows: gridConfig.rows,
-        selfIndex: homeBoardSelectedSlotIndex,
-      });
-      if (!ok) {
-        setSizeBlockedPresetId(presetId);
-        window.setTimeout(() => setSizeBlockedPresetId(null), 1600);
-        return;
-      }
-      setSizeBlockedPresetId(null);
+      if (blockedSizePresetIds.includes(presetId)) return;
       setHomeSlotSpanForSpace(
         channelSpaceKey,
         homeBoardSelectedSlotIndex,
@@ -376,9 +404,7 @@ const PaginatedChannelsInner = React.memo(() => {
     },
     [
       homeBoardSelectedSlotIndex,
-      boardSlots,
-      gridConfig.columns,
-      gridConfig.rows,
+      blockedSizePresetIds,
       setHomeSlotSpanForSpace,
       channelSpaceKey,
     ]
@@ -393,34 +419,83 @@ const PaginatedChannelsInner = React.memo(() => {
     [setHomeBoardSelectedSlotIndex]
   );
 
+  const setUIState = useConsolidatedAppStore((s) => s.actions.setUIState);
+  const homeArrangeHintSeen = useConsolidatedAppStore((s) => Boolean(s.ui.homeArrangeHintSeen));
+
+  /** Unified board context menu — remember which tile (if any) was under the right-click. */
+  const [contextTileIndex, setContextTileIndex] = useState(null);
+  const handleBoardContextMenuCapture = useCallback((event) => {
+    const tile = event.target?.closest?.('[data-channel-id]');
+    const match = tile ? /^channel-(\d+)$/.exec(tile.getAttribute('data-channel-id') || '') : null;
+    setContextTileIndex(match ? Number(match[1]) : null);
+  }, []);
+
+  const contextTileSlot =
+    contextTileIndex != null && Array.isArray(boardSlots) ? boardSlots[contextTileIndex] : null;
+  const contextTileIsChannel =
+    contextTileIndex != null &&
+    (!contextTileSlot || !contextTileSlot.kind || contextTileSlot.kind === 'channel');
+
+  /** Route Configure through the store so the owning Channel opens its own modal. */
+  const handleConfigureContextTile = useCallback(() => {
+    if (contextTileIndex == null) return;
+    setUIState({
+      channelConfigureRequest: {
+        spaceKey: channelSpaceKey,
+        channelId: `channel-${contextTileIndex}`,
+      },
+    });
+  }, [contextTileIndex, setUIState, channelSpaceKey]);
+
+  const handlePunchContextTile = useCallback(() => {
+    if (contextTileIndex == null) return;
+    handleTogglePunchSlot(contextTileIndex);
+  }, [contextTileIndex, handleTogglePunchSlot]);
+
+  const dismissArrangeHint = useCallback(() => {
+    setUIState({ homeArrangeHintSeen: true });
+  }, [setUIState]);
+
+  /** Entering Edit Home by any path counts as “learned it”. */
+  useEffect(() => {
+    if (homeBoardArrangeMode && !homeArrangeHintSeen) {
+      dismissArrangeHint();
+    }
+  }, [homeBoardArrangeMode, homeArrangeHintSeen, dismissArrangeHint]);
+
+  // —— One-time Edit Home widget coach (persisted: ui.homeBoardWidgetCoachDismissed) ——
+  const widgetCoachDismissed = useConsolidatedAppStore((s) =>
+    Boolean(s.ui.homeBoardWidgetCoachDismissed)
+  );
+  const dismissWidgetCoach = useCallback(() => {
+    setUIState({ homeBoardWidgetCoachDismissed: true });
+  }, [setUIState]);
+
+  const widgetCoachVisible =
+    arrangeModeActive && !punchModeActive && !widgetCoachDismissed && !channelConfigureModalOpen;
+  const selectedSlotIsWidget = Boolean(
+    selectedSlot && selectedSlot.kind && selectedSlot.kind !== 'channel'
+  );
+
+  /** Placing the first widget completes the coach. */
+  useEffect(() => {
+    if (widgetCoachVisible && selectedSlotIsWidget) {
+      dismissWidgetCoach();
+    }
+  }, [widgetCoachVisible, selectedSlotIsWidget, dismissWidgetCoach]);
+
+  const widgetCoachCopy =
+    homeBoardSelectedSlotIndex != null && selectedSlot && isChannelSlotEmpty(selectedSlot)
+      ? 'Nice — now press Add widget in the toolbar below'
+      : 'Tap an empty tile to choose where a widget goes';
+
   useEffect(() => {
     if (!isHomeSpace && homeBoardArrangeMode) {
       exitHomeBoardArrange();
     }
   }, [isHomeSpace, homeBoardArrangeMode, exitHomeBoardArrange]);
 
-  const clearIdleFadeTimer = useCallback(() => {
-    if (idleFadeTimerRef.current) {
-      clearTimeout(idleFadeTimerRef.current);
-      idleFadeTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleIdleFade = useCallback(() => {
-    clearIdleFadeTimer();
-    if (!isHomeActive) return;
-    if (autoFadeTimeout <= 0) return;
-    idleFadeTimerRef.current = window.setTimeout(() => {
-      idleFadeTimerRef.current = null;
-      setIsGridFaded(true);
-    }, autoFadeTimeout * 1000);
-  }, [autoFadeTimeout, clearIdleFadeTimer, isHomeActive]);
-
-  const bumpGridActivity = useCallback(() => {
-    if (!isHomeActive) return;
-    setIsGridFaded(false);
-    scheduleIdleFade();
-  }, [scheduleIdleFade, isHomeActive]);
+  const bumpGridActivity = idleExperience.bumpActivity;
 
   /** Throttle move so we don’t reset the idle timer every frame. */
   const handleGridPointerMove = useCallback(() => {
@@ -438,12 +513,16 @@ const PaginatedChannelsInner = React.memo(() => {
    *  while the pointer is over dock, ribbon, or nav (fixes fade only after space switch). */
   const handleGridMouseLeave = useCallback(() => {}, []);
 
+  /** Keyboard is grid activity too — page nav / tile focus must not fade mid-use. */
+  useEffect(() => {
+    if (!isHomeActive) return undefined;
+    window.addEventListener('keydown', handleGridPointerMove);
+    return () => window.removeEventListener('keydown', handleGridPointerMove);
+  }, [isHomeActive, handleGridPointerMove]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
-      if (idleFadeTimerRef.current) {
-        clearTimeout(idleFadeTimerRef.current);
-      }
       if (pageEdgeTimerRef.current) {
         clearTimeout(pageEdgeTimerRef.current);
       }
@@ -451,47 +530,6 @@ const PaginatedChannelsInner = React.memo(() => {
       vfxTimersRef.current = [];
     };
   }, []);
-
-  // Home-only auto-fade lifecycle policy:
-  // - Returning to Home always resets to visible and starts a fresh timer
-  // - Inactive app while in Home is allowed to fade
-  // - Regaining app activity in Home resets to visible and restarts timer
-  useEffect(() => {
-    clearIdleFadeTimer();
-
-    if (!isHomeSpace) {
-      setIsGridFaded(false);
-      return undefined;
-    }
-
-    if (!isHomeActive) {
-      setIsGridFaded(false);
-      return undefined;
-    }
-
-    if (autoFadeTimeout <= 0) {
-      clearIdleFadeTimer();
-      setIsGridFaded(false);
-      return undefined;
-    }
-
-    if (isAppActive) {
-      setIsGridFaded(false);
-      scheduleIdleFade();
-      return () => clearIdleFadeTimer();
-    }
-
-    // App inactive while Home is active: fade is allowed from current visual state.
-    scheduleIdleFade();
-    return () => clearIdleFadeTimer();
-  }, [
-    autoFadeTimeout,
-    clearIdleFadeTimer,
-    scheduleIdleFade,
-    isHomeSpace,
-    isHomeActive,
-    isAppActive,
-  ]);
 
   /** Wii strip: drive peek + layout math via inherited custom properties */
   const wiiStripCssVars = useMemo(() => {
@@ -777,12 +815,20 @@ const PaginatedChannelsInner = React.memo(() => {
     finishAnimation();
   }, [finishAnimation]);
 
-  // ✅ DATA LAYER: Use idle animations from consolidated store
+  // Micro-delights run only in the shared idle stages (ambient/attract);
+  // attract raises the cadence so a populated tile gets spotlighted more often.
   const idleAnimationProps = useMemo(() => ({
-    enabled: effectiveSettings.idleAnimationEnabled,
-    types: effectiveSettings.idleAnimationTypes,
-    interval: effectiveSettings.idleAnimationInterval
-  }), [effectiveSettings]);
+    enabled: idleExperience.delightsActive,
+    types: idleExperience.config.delightTypes,
+    interval: idleExperience.attractActive
+      ? Math.max(4, Math.round(idleExperience.config.delightIntervalSec / 2))
+      : idleExperience.config.delightIntervalSec,
+  }), [
+    idleExperience.delightsActive,
+    idleExperience.attractActive,
+    idleExperience.config.delightTypes,
+    idleExperience.config.delightIntervalSec,
+  ]);
 
   // Use idle channel animations hook
   const { getChannelAnimationClass } = useIdleChannelAnimations(
@@ -903,7 +949,7 @@ const PaginatedChannelsInner = React.memo(() => {
           channelConfigureModalOpen ||
           isChannelSlotHidden(channelIndex) ||
           isWidgetSlot ||
-          (arrangeModeActive && !punchModeActive)
+          punchModeActive
         }
         celebrateDrop={celebrateIndex === channelIndex}
         reorderWave={reorderWave}
@@ -925,7 +971,6 @@ const PaginatedChannelsInner = React.memo(() => {
       activeDragIndex,
       hoverDragIndex,
       isChannelSlotHidden,
-      arrangeModeActive,
       punchModeActive,
     ]
   );
@@ -997,6 +1042,7 @@ const PaginatedChannelsInner = React.memo(() => {
       className="channels-content"
       style={wiiStripCssVars}
       data-channel-space={channelSpaceKey}
+      onContextMenuCapture={isHomeSpace ? handleBoardContextMenuCapture : undefined}
     >
       {renderContent}
     </MotionDiv>
@@ -1026,17 +1072,40 @@ const PaginatedChannelsInner = React.memo(() => {
             <ContextMenu.Trigger asChild>{channelsContent}</ContextMenu.Trigger>
             <ContextMenu.Portal>
               <ContextMenu.Content
-                className="z-[2400] min-w-[13rem] rounded-[1.25rem] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] p-1.5 shadow-[var(--wee-pill-shadow)] backdrop-blur-xl"
+                className="z-[var(--z-home-context-menu)] min-w-[13rem] rounded-[1.25rem] border-4 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--wee-pill-glass))] p-1.5 shadow-[var(--wee-pill-shadow)] backdrop-blur-xl"
                 collisionPadding={12}
                 onCloseAutoFocus={(e) => e.preventDefault()}
               >
+                {contextTileIsChannel ? (
+                  <ContextMenu.Item
+                    className={HOME_CONTEXT_ITEM_CLASS}
+                    onSelect={handleConfigureContextTile}
+                  >
+                    <Settings2 size={14} strokeWidth={2.5} aria-hidden />
+                    Configure channel
+                  </ContextMenu.Item>
+                ) : null}
                 <ContextMenu.Item
-                  className="flex items-center gap-2 rounded-full px-3.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-[hsl(var(--text-secondary))] outline-none data-[highlighted]:bg-[hsl(var(--state-hover))] data-[highlighted]:text-[hsl(var(--text-primary))]"
+                  className={HOME_CONTEXT_ITEM_CLASS}
                   onSelect={enterHomeBoardArrange}
                 >
                   <LayoutGrid size={14} strokeWidth={2.5} aria-hidden />
-                  Arrange Home board
+                  Edit Home
+                  <span className="ml-auto pl-3 font-bold normal-case tracking-normal text-[hsl(var(--text-tertiary))]">
+                    Ctrl+E
+                  </span>
                 </ContextMenu.Item>
+                {contextTileIndex != null ? (
+                  <ContextMenu.Item
+                    className={HOME_CONTEXT_ITEM_CLASS}
+                    onSelect={handlePunchContextTile}
+                  >
+                    <PenLine size={14} strokeWidth={2.5} aria-hidden />
+                    {isChannelSlotHidden(contextTileIndex)
+                      ? 'Restore this slot'
+                      : 'Punch wallpaper hole'}
+                  </ContextMenu.Item>
+                ) : null}
               </ContextMenu.Content>
             </ContextMenu.Portal>
           </ContextMenu.Root>
@@ -1066,12 +1135,64 @@ const PaginatedChannelsInner = React.memo(() => {
             onDone={exitHomeBoardArrange}
             selectedSlot={selectedSlot}
             selectedIndex={homeBoardSelectedSlotIndex}
-            canAddQuickAccess={addTargetIndex != null}
-            onAddQuickAccess={handleAddQuickAccess}
+            canAddWidget={addTargetIndex != null}
+            onAddWidget={handleAddWidget}
             onRemoveWidget={handleRemoveWidget}
             onSetSizePreset={handleSetSizePreset}
-            sizeBlockedPresetId={sizeBlockedPresetId}
+            blockedPresetIds={blockedSizePresetIds}
           />
+          <AnimatePresence>
+            {widgetCoachVisible ? (
+              <MotionDiv
+                key="home-widget-coach"
+                className="pointer-events-none fixed inset-x-0 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-[var(--z-home-arrange-bar)] flex justify-center px-4"
+                initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -16 }}
+                transition={createWeeTransition('pillOpen', { reducedMotion })}
+              >
+                <WeeGlassPill className="pointer-events-auto flex items-center gap-2.5 rounded-full px-4 py-2">
+                  <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                    {widgetCoachCopy}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={dismissWidgetCoach}
+                    aria-label="Dismiss widget coach"
+                    className="rounded-full p-1 text-[hsl(var(--text-tertiary))] transition-colors hover:bg-[hsl(var(--state-hover))] hover:text-[hsl(var(--text-primary))]"
+                  >
+                    <X size={13} strokeWidth={2.5} aria-hidden />
+                  </button>
+                </WeeGlassPill>
+              </MotionDiv>
+            ) : null}
+          </AnimatePresence>
+          <AnimatePresence>
+            {isHomeActive && !homeArrangeHintSeen && !arrangeModeActive ? (
+              <MotionDiv
+                key="home-arrange-hint"
+                className="pointer-events-none fixed inset-x-0 bottom-[max(6.75rem,calc(env(safe-area-inset-bottom)+5.75rem))] z-[var(--z-home-arrange-bar)] flex justify-center px-4"
+                initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
+                transition={createWeeTransition('pillOpen', { reducedMotion })}
+              >
+                <WeeGlassPill className="pointer-events-auto flex items-center gap-2.5 rounded-full px-4 py-2">
+                  <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
+                    Tip: right-click the board or press Ctrl+E to Edit Home
+                  </span>
+                  <button
+                    type="button"
+                    onClick={dismissArrangeHint}
+                    aria-label="Dismiss arrange tip"
+                    className="rounded-full p-1 text-[hsl(var(--text-tertiary))] transition-colors hover:bg-[hsl(var(--state-hover))] hover:text-[hsl(var(--text-primary))]"
+                  >
+                    <X size={13} strokeWidth={2.5} aria-hidden />
+                  </button>
+                </WeeGlassPill>
+              </MotionDiv>
+            ) : null}
+          </AnimatePresence>
         </>
       ) : null}
 

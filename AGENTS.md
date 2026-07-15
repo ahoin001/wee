@@ -110,3 +110,12 @@ Timing source: `--wee-collapse-duration`, `--wee-collapse-duration-reduced`, `--
 ## Electron
 
 - Main/preload: `electron.cjs`, `preload.cjs` — follow existing IPC and security patterns when touching them.
+
+## Design Context
+
+Strategic and visual context for design work lives at the repo root:
+
+- [`PRODUCT.md`](PRODUCT.md) — register (**product**), platform (**web**/Electron), users, positioning, brand personality, anti-references, and the five strategic design principles (the feel is the feature; modernize the heart, not the pixels; depth without overwhelm; built for all-day sessions; one vocabulary of whimsy).
+- [`DESIGN.md`](DESIGN.md) — the visual system spec ("The Channel Plaza"): Console Cyan accent, floating-glass elevation, Nunito-only typography, gooey-but-confident components, and Do's/Don'ts that mirror the design-system rules above.
+
+Read both before designing new surfaces; they carry the same contracts as `.cursor/rules/` in strategic form.

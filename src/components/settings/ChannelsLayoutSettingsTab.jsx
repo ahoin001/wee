@@ -34,13 +34,6 @@ import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
 import { createWeeTransition } from '../../design/weeMotion';
 
-/** Idle personality presets — quick-select from the same 6 idle chip types (never all at once). */
-const IDLE_PERSONALITY_PACKS = {
-  restrained: ['pulse'],
-  playful: ['pulse', 'bounce', 'glow', 'wiggle'],
-  showy: ['pulse', 'bounce', 'glow', 'heartbeat', 'shake', 'wiggle'],
-};
-
 /** Board-style toggle titles: bold all-caps (matches Wii engine field cards). */
 const TOGGLE_TITLE =
   '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
@@ -359,16 +352,8 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
     actions.setChannelSettings({ animatedOnHover: checked });
   }, [actions]);
 
-  const handleIdleAnimationEnabledChange = useCallback((checked) => {
-    actions.setChannelSettings({ idleAnimationEnabled: checked });
-  }, [actions]);
-
   const handleKenBurnsEnabledChange = useCallback((checked) => {
     actions.setChannelSettings({ kenBurnsEnabled: checked });
-  }, [actions]);
-
-  const handleChannelAutoFadeTimeoutChange = useCallback((value) => {
-    actions.setChannelSettings({ autoFadeTimeout: value });
   }, [actions]);
 
   const handleAdaptiveEmptyChannelsChange = useCallback((checked) => {
@@ -432,23 +417,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
 
   const idleSelected = settings.idleAnimationTypes || ['pulse', 'bounce', 'glow'];
 
-  const idlePersonality = useMemo(() => {
-    const sortedSelected = [...idleSelected].sort().join(',');
-    const match = Object.entries(IDLE_PERSONALITY_PACKS).find(
-      ([, types]) => [...types].sort().join(',') === sortedSelected
-    );
-    return match ? match[0] : '';
-  }, [idleSelected]);
-
-  const handleIdlePersonalityChange = useCallback(
-    (packId) => {
-      const types = IDLE_PERSONALITY_PACKS[packId];
-      if (!types) return;
-      actions.setChannelSettings({ idleAnimationTypes: [...types] });
-    },
-    [actions]
-  );
-
   return (
     <div className="mx-auto flex max-w-4xl flex-col pb-12 [contain:layout]">
       <SettingsTabPageHeader
@@ -466,7 +434,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
           <WeeGlassPill className="relative overflow-hidden rounded-[2.5rem] p-6 md:p-7">
             <div className="relative z-[1] flex flex-wrap items-end justify-between gap-4">
               <div>
-                <span className="inline-flex rounded-full bg-[hsl(var(--primary))] px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-on-accent))]">
+                <span className="inline-flex rounded-full bg-[hsl(var(--primary))] px-3 py-1 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.2em] text-[hsl(var(--text-on-accent))]">
                   Home board
                 </span>
                 <m.h2
@@ -539,14 +507,14 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 max-w-xl">
                 <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                  Live Board Studio
+                  Edit Home
                 </WeeSectionEyebrow>
                 <Text variant="body" className="!m-0 !font-black !text-[hsl(var(--text-primary))]">
-                  Arrange tiles on Home
+                  Arrange tiles and widgets on Home
                 </Text>
                 <Text variant="desc" className="!mt-2 !mb-0 text-[hsl(var(--text-secondary))]">
-                  Closes settings and opens a toolbar on the Home board. Tap tiles to select them,
-                  punch wallpaper holes, or place a Quick Access widget in an empty slot.
+                  Closes settings and edits the board in place — reorder tiles, add widgets, and
+                  punch wallpaper holes right where they live.
                 </Text>
               </div>
               <WeeButton
@@ -555,7 +523,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                 className="!rounded-full !px-5 !py-3 shrink-0"
                 onClick={handleArrangeOnHome}
               >
-                Arrange on Home
+                Edit Home
               </WeeButton>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
@@ -627,33 +595,6 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
           description="Floating overlays and Home-board widgets — what they are and how to use them."
           defaultOpen
         >
-          <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
-            <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-              Two kinds of widgets
-            </WeeSectionEyebrow>
-            <ul className="m-0 flex list-none flex-col gap-3 p-0">
-              <li className="rounded-[1.25rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.7)] px-4 py-3">
-                <Text variant="body" className="!m-0 !text-sm !font-black !text-[hsl(var(--text-primary))]">
-                  Floating widgets
-                </Text>
-                <Text variant="desc" className="!mt-1 !mb-0 text-[hsl(var(--text-secondary))]">
-                  Drift over every space (Spotify, System Info, Admin panel). Drag them anywhere;
-                  toggle them below. They are not tied to a Home grid slot.
-                </Text>
-              </li>
-              <li className="rounded-[1.25rem] border border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.7)] px-4 py-3">
-                <Text variant="body" className="!m-0 !text-sm !font-black !text-[hsl(var(--text-primary))]">
-                  Home board widgets
-                </Text>
-                <Text variant="desc" className="!mt-1 !mb-0 text-[hsl(var(--text-secondary))]">
-                  Sit in a channel slot (like Quick Access). Use <strong>Arrange on Home</strong>,
-                  tap an empty tile, then <strong>Add Quick Access</strong> on the bottom toolbar.
-                  Resize or remove from that same toolbar.
-                </Text>
-              </li>
-            </ul>
-          </WeeModalFieldCard>
-
           <SettingsToggleFieldCard
             hoverAccent="none"
             titleClassName={TOGGLE_TITLE}
@@ -682,11 +623,10 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.75rem] border-2 border-dashed border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-secondary)/0.4)] p-4">
             <div className="min-w-0 max-w-md">
               <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-                Place on the board
+                Widgets on the board
               </WeeSectionEyebrow>
               <WeeHelpParagraph className="!normal-case !tracking-[0.04em]">
-                Need a Quick Access tile in the grid? Arrange Home, select an empty slot, then Add
-                Quick Access.
+                Board widgets live in grid slots — place, resize, and remove them in Edit Home.
               </WeeHelpParagraph>
             </div>
             <WeeButton
@@ -695,7 +635,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
               className="!rounded-full !px-4 !py-2.5 shrink-0"
               onClick={handleArrangeOnHome}
             >
-              Arrange to place
+              Edit Home
             </WeeButton>
           </div>
 
@@ -715,7 +655,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
         <WeeSettingsCollapsibleSection
           icon={Monitor}
           title="Visibility & playback"
-          description="Empty-slot look, animated art, and grid auto-fade."
+          description="Empty-slot look, animated art, and hover physics."
           defaultOpen={false}
         >
           <div className="flex flex-col gap-3">
@@ -786,88 +726,52 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             </button>
           </WeeModalFieldCard>
 
-          <SettingsToggleFieldCard
-            hoverAccent="none"
-            titleClassName={TOGGLE_TITLE}
-            title="Channel auto-fade"
-            desc="After this many seconds with no pointer movement on the channel grid, tile opacity eases down so the wallpaper can show through. Moving the pointer on the grid or interacting again restores full opacity (a parked cursor alone will not keep tiles bright)."
-            checked={(settings.autoFadeTimeout ?? 5) > 0}
-            onChange={(checked) => {
-              const value = checked ? 5 : 0;
-              actions.setChannelSettings({ autoFadeTimeout: value });
-            }}
-          >
-            <div className="w-full min-w-0">
-              <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-                Delay before fade: {settings.autoFadeTimeout ?? 5}s
-              </Text>
-              <Slider
-                value={settings.autoFadeTimeout ?? 5}
-                min={1}
-                max={30}
-                step={1}
-                onChange={handleChannelAutoFadeTimeoutChange}
-              />
-            </div>
-          </SettingsToggleFieldCard>
         </WeeSettingsCollapsibleSection>
 
         <WeeSettingsCollapsibleSection
           icon={Activity}
-          title="Idle states"
-          description="Subtle motion on tiles when you are not interacting."
+          title="Idle motion (advanced)"
+          description="Fine-grained micro-delight types. Mode, delays & intensity live in Motion."
           defaultOpen={false}
         >
-          <SettingsToggleFieldCard
-            hoverAccent="none"
-            titleClassName={TOGGLE_TITLE}
-            title="Subtle idle motion"
-            desc="Tiles breathe and move when the system is inactive."
-            checked={settings.idleAnimationEnabled ?? false}
-            onChange={handleIdleAnimationEnabledChange}
-          >
-            <div className="space-y-4">
-              <div className="w-full min-w-0">
-                <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                  Personality
-                </WeeSectionEyebrow>
-                <WeeSegmentedControl
-                  ariaLabel="Idle animation personality"
-                  value={idlePersonality}
-                  onChange={handleIdlePersonalityChange}
-                  options={[
-                    { value: 'restrained', label: 'Restrained' },
-                    { value: 'playful', label: 'Playful' },
-                    { value: 'showy', label: 'Showy' },
-                  ]}
-                  size="sm"
-                />
-              </div>
-              <div className="w-full min-w-0">
-                <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
-                  Animation types
-                </WeeSectionEyebrow>
-                <SettingsMultiToggleChips
-                  items={IDLE_TYPE_ITEMS}
-                  selectedValues={idleSelected}
-                  onToggle={handleIdleAnimationTypeToggle}
-                  ariaLabel="Idle animation types"
-                />
-              </div>
-              <div className="w-full min-w-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
-                <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
-                  Animation interval: {settings.idleAnimationInterval ?? 8} seconds
-                </Text>
-                <Slider
-                  value={settings.idleAnimationInterval ?? 8}
-                  min={2}
-                  max={20}
-                  step={1}
-                  onChange={handleIdleAnimationIntervalChange}
-                />
-              </div>
+          <WeeModalFieldCard hoverAccent="none" tone="well" paddingClassName="p-4 md:p-5">
+            <Text variant="caption" className="!m-0 block text-[hsl(var(--text-tertiary))]">
+              Auto-fade, attract mode, and intensity are controlled from one place now.
+            </Text>
+            <button
+              type="button"
+              className="mt-2 text-left text-[0.75rem] font-bold uppercase tracking-wide text-[hsl(var(--primary))] hover:underline"
+              onClick={() => openSettingsToTab(SETTINGS_TAB_ID.MOTION)}
+            >
+              Open Motion → Idle experience
+            </button>
+          </WeeModalFieldCard>
+
+          <div className="mt-3 space-y-4">
+            <div className="w-full min-w-0">
+              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.14em]">
+                Animation types
+              </WeeSectionEyebrow>
+              <SettingsMultiToggleChips
+                items={IDLE_TYPE_ITEMS}
+                selectedValues={idleSelected}
+                onToggle={handleIdleAnimationTypeToggle}
+                ariaLabel="Idle animation types"
+              />
             </div>
-          </SettingsToggleFieldCard>
+            <div className="w-full min-w-0 border-t border-[hsl(var(--border-primary)/0.25)] pt-4">
+              <Text variant="p" className="!mb-2 !mt-0 font-medium text-[hsl(var(--text-primary))]">
+                Animation interval: {settings.idleAnimationInterval ?? 8} seconds
+              </Text>
+              <Slider
+                value={settings.idleAnimationInterval ?? 8}
+                min={2}
+                max={20}
+                step={1}
+                onChange={handleIdleAnimationIntervalChange}
+              />
+            </div>
+          </div>
         </WeeSettingsCollapsibleSection>
 
         <WeeSettingsCollapsibleSection

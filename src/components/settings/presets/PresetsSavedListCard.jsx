@@ -39,6 +39,8 @@ const PresetsSavedListCard = React.memo(
     hasActiveProfile,
     onApplyCommunityUpdate,
     onShare,
+    onExport,
+    onImportFile,
     onFocusSaveSection,
   }) => {
     const filtered = useMemo(
@@ -67,20 +69,34 @@ const PresetsSavedListCard = React.memo(
             <Text variant="caption" className="!mt-2 !mb-4 block text-[hsl(var(--text-tertiary))]">
               Capture your current wallpaper and colors as a named preset.
             </Text>
-            {onFocusSaveSection ? (
-              <Button variant="primary" onClick={onFocusSaveSection}>
-                Save current look
-              </Button>
-            ) : null}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {onFocusSaveSection ? (
+                <Button variant="primary" onClick={onFocusSaveSection}>
+                  Save current look
+                </Button>
+              ) : null}
+              {onImportFile ? (
+                <Button variant="secondary" onClick={onImportFile}>
+                  Import .wee-preset
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
       );
     }
 
     const meter = (
-      <Text variant="caption" className="!mb-3 !mt-0 block text-[hsl(var(--text-tertiary))]">
-        {customPresetCount} / {maxCustomPresets} custom looks saved · Drag ⋮⋮ to reorder
-      </Text>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+          {customPresetCount} / {maxCustomPresets} custom looks saved · Drag ⋮⋮ to reorder
+        </Text>
+        {onImportFile ? (
+          <Button variant="tertiary" size="sm" onClick={onImportFile}>
+            Import .wee-preset
+          </Button>
+        ) : null}
+      </div>
     );
 
     const itemProps = (preset) => {
@@ -112,6 +128,7 @@ const PresetsSavedListCard = React.memo(
         hasCommunityUpdate: Boolean(communityUpdateMap[preset.id || preset.name]?.hasUpdate),
         onApplyCommunityUpdate,
         onShare,
+        onExport,
       };
     };
 

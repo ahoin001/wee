@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 import { getModifierFromKeyboardEvent, handleGlobalShortcut } from './keyboardShortcuts';
 import { openSettingsToTab } from './settingsNavigation';
+import { toggleHomeBoardArrange } from '../hooks/useHomeBoardArrange';
 import { getChannelDataSlice, resolveActiveChannelSpaceKey } from './channelSpaces';
 
 const useKeyboardShortcuts = () => {
@@ -33,7 +34,8 @@ const useKeyboardShortcuts = () => {
         return;
       }
 
-      const key = event.key.toLowerCase();
+      // Normalize space so bindings can use the readable 'space' key name.
+      const key = event.key === ' ' ? 'space' : event.key.toLowerCase();
       const modifier = getModifierFromKeyboardEvent(event);
 
       if (handleGlobalShortcut(key, modifier, keyboardShortcuts)) {
@@ -172,6 +174,15 @@ const useKeyboardShortcuts = () => {
       setUIState?.({ showWorkspaceSwitcher: true });
     };
 
+    window.toggleHomeArrange = () => {
+      toggleHomeBoardArrange();
+    };
+
+    window.toggleCommandPalette = () => {
+      const state = getState();
+      setUIState?.({ commandPaletteOpen: !state.ui.commandPaletteOpen });
+    };
+
     window.openUpdateModal = () => {
       setUIState?.({ showUpdateModal: true });
     };
@@ -191,6 +202,8 @@ const useKeyboardShortcuts = () => {
       delete window.toggleSettingsMenu;
       delete window.toggleSpaceRailPin;
       delete window.openWorkspaceSwitcher;
+      delete window.toggleHomeArrange;
+      delete window.toggleCommandPalette;
       delete window.openUpdateModal;
     };
   }, [keyboardShortcuts, setFloatingWidgetsState, setSpacesState, setUIState]);

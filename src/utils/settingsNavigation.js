@@ -1,7 +1,7 @@
 import useConsolidatedAppStore from './useConsolidatedAppStore';
 
 /**
- * Settings modal tab ids — must match `SETTINGS_TABS[].id` in SettingsModal.jsx.
+ * Settings modal tab ids — must match `SETTINGS_TAB_META[].id` in `settingsRegistry.js`.
  * (The old Layout tab is merged into `channels` — label "Channels & layout".)
  */
 export const SETTINGS_TAB_ID = {

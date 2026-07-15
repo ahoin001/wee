@@ -4,10 +4,13 @@
  */
 
 import { DEFAULT_GOOEY_PHYSICS, mergeGooeyPhysics } from '../design/gooeyPhysics';
+import { DEFAULT_LAUNCH_FEEDBACK_MODE, normalizeLaunchFeedbackMode } from './launchCinematic';
 
 export const DEFAULT_MOTION_FEEDBACK = {
   /** Master switch — when false, all playful motion below is off (OS reduced-motion still applies separately). */
   master: true,
+  /** Launch feedback choreography: 'off' | 'subtle' (origin tile settles) | 'cinematic' (board recedes, dock yields). */
+  launch: DEFAULT_LAUNCH_FEEDBACK_MODE,
   channels: {
     /** Spring “squish” when clicking a channel tile to launch */
     tap: true,
@@ -54,6 +57,7 @@ export function mergeMotionFeedback(patch) {
   const p = patch && typeof patch === 'object' ? patch : {};
   return {
     master: p.master ?? DEFAULT_MOTION_FEEDBACK.master,
+    launch: normalizeLaunchFeedbackMode(p.launch),
     channels: {
       ...DEFAULT_MOTION_FEEDBACK.channels,
       ...(p.channels || {}),

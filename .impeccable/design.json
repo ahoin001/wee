@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-15T16:20:00Z",
+  "title": "Design System: Wee",
+  "extensions": {
+    "colorMeta": {
+      "console-cyan": {
+        "role": "primary",
+        "displayName": "Console Cyan",
+        "canonical": "hsl(195 75% 60%)",
+        "tonalRamp": ["hsl(195 75% 15%)", "hsl(195 75% 26%)", "hsl(195 75% 37%)", "hsl(195 75% 48%)", "hsl(195 75% 60%)", "hsl(195 75% 72%)", "hsl(195 75% 84%)", "hsl(195 75% 95%)"]
+      },
+      "console-tint": {
+        "role": "primary",
+        "displayName": "Console Tint",
+        "canonical": "hsl(195 100% 97%)",
+        "tonalRamp": ["hsl(195 60% 20%)", "hsl(195 60% 35%)", "hsl(195 65% 50%)", "hsl(195 75% 65%)", "hsl(195 85% 78%)", "hsl(195 95% 88%)", "hsl(195 100% 94%)", "hsl(195 100% 97%)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "hsl(220 10% 20%)",
+        "tonalRamp": ["hsl(220 10% 12%)", "hsl(220 10% 20%)", "hsl(220 10% 32%)", "hsl(220 10% 45%)", "hsl(220 10% 60%)", "hsl(220 10% 75%)", "hsl(220 12% 88%)", "hsl(220 15% 96%)"]
+      },
+      "plaza-mist": {
+        "role": "neutral",
+        "displayName": "Plaza Mist",
+        "canonical": "hsl(220 20% 95%)",
+        "tonalRamp": ["hsl(220 15% 16%)", "hsl(220 14% 30%)", "hsl(220 12% 44%)", "hsl(220 12% 58%)", "hsl(220 14% 72%)", "hsl(220 16% 84%)", "hsl(220 20% 92%)", "hsl(220 20% 97%)"]
+      },
+      "midnight": {
+        "role": "neutral",
+        "displayName": "Midnight",
+        "canonical": "hsl(220 15% 8%)",
+        "tonalRamp": ["hsl(220 15% 8%)", "hsl(220 15% 12%)", "hsl(220 15% 16%)", "hsl(220 15% 20%)", "hsl(220 15% 28%)", "hsl(220 15% 42%)", "hsl(220 15% 62%)", "hsl(220 15% 82%)"]
+      },
+      "signal-error": {
+        "role": "semantic",
+        "displayName": "Signal Error",
+        "canonical": "hsl(0 84% 60%)",
+        "tonalRamp": ["hsl(0 70% 18%)", "hsl(0 75% 30%)", "hsl(0 80% 42%)", "hsl(0 84% 52%)", "hsl(0 84% 60%)", "hsl(0 84% 72%)", "hsl(0 84% 85%)", "hsl(0 84% 95%)"]
+      },
+      "signal-success": {
+        "role": "semantic",
+        "displayName": "Signal Success",
+        "canonical": "hsl(142 76% 36%)",
+        "tonalRamp": ["hsl(142 76% 12%)", "hsl(142 76% 20%)", "hsl(142 76% 28%)", "hsl(142 76% 36%)", "hsl(142 66% 50%)", "hsl(142 56% 66%)", "hsl(142 48% 82%)", "hsl(142 45% 94%)"]
+      },
+      "signal-warning": {
+        "role": "semantic",
+        "displayName": "Signal Warning",
+        "canonical": "hsl(38 92% 50%)",
+        "tonalRamp": ["hsl(38 92% 16%)", "hsl(38 92% 26%)", "hsl(38 92% 38%)", "hsl(38 92% 50%)", "hsl(38 92% 62%)", "hsl(38 92% 74%)", "hsl(38 90% 86%)", "hsl(38 90% 94%)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Playful Hero", "purpose": "Hub heroes and space titles; often uppercase italic." },
+      "body": { "displayName": "Body", "purpose": "Control and content text at 15px, weight 500." },
+      "label": { "displayName": "Label", "purpose": "Form labels and helper text." },
+      "kicker": { "displayName": "Kicker / Counter", "purpose": "Micro-labels inside chrome pills: black weight, uppercase, 0.2em tracking." }
+    },
+    "shadows": [
+      { "name": "shadow-soft", "value": "0 8px 22px -8px rgb(15 36 61 / 0.16)", "purpose": "Default lift for cards and chrome at rest." },
+      { "name": "shadow-soft-hover", "value": "0 12px 28px -10px rgb(15 36 61 / 0.22)", "purpose": "Hover lift, usually paired with the hover glow." },
+      { "name": "shadow-hover-glow", "value": "0 10px 28px -8px hsl(195 75% 60% / 0.22), 0 0 36px hsl(195 75% 60% / 0.14)", "purpose": "Diffuse primary halo on interactive hover — never a hard ring." },
+      { "name": "wee-pill-shadow", "value": "0 20px 50px rgb(0 0 0 / 0.15)", "purpose": "Floating-glass signature under WeeGlassPill." },
+      { "name": "playful-shadow-elevated", "value": "0 20px 40px rgb(15 36 61 / 0.2)", "purpose": "Hero cards and primary buttons." },
+      { "name": "wee-shadow-modal", "value": "0 25px 50px -12px rgb(15 23 42 / 0.12)", "purpose": "Dialog shells." }
+    ],
+    "motion": [
+      { "name": "pillOpen", "value": "spring(stiffness 400, damping 20, mass 0.8)", "purpose": "Footprint expand, modal open — stiffer and livelier." },
+      { "name": "pillClose", "value": "spring(stiffness 300, damping 25, mass 1)", "purpose": "Collapse, modal close, floor shadow — heavier settle." },
+      { "name": "press", "value": "spring via createWeeTransition('press'); scale 0.93 press / 1.03 hover, y -1.5", "purpose": "Icon and surface tap feedback." },
+      { "name": "wee-collapse", "value": "420ms cubic-bezier(0.22, 0.61, 0.36, 1) (reduced: 100ms)", "purpose": "Content height morph (grid-template-rows 0fr → 1fr)." },
+      { "name": "space-shell", "value": "780ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Space slide + wallpaper crossfade + dock choreography." },
+      { "name": "nav-standard", "value": "0.2s / 0.3s cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Small state transitions in navigation chrome." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Solid Console Cyan action button — uppercase italic playful voice, thick border, elevated shadow.",
+      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
+      "css": ".ds-btn-primary { background: hsl(195 75% 60%); color: #fff; border: 3px solid hsl(195 75% 60%); border-radius: 1.65rem; padding: 0.52rem 1.18rem; font-family: 'Nunito', 'Segoe UI', sans-serif; font-size: 15px; font-weight: 600; font-style: italic; text-transform: uppercase; letter-spacing: 0.12em; text-shadow: 0 1px 0 rgba(0,0,0,0.18); box-shadow: 0 20px 40px rgb(15 36 61 / 0.2); cursor: pointer; transition: background-color 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s cubic-bezier(0.4,0,0.2,1), transform 0.22s cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: hsl(195 75% 55%); transform: translateY(-1.5px) scale(1.03); box-shadow: 0 12px 28px -10px rgb(15 36 61 / 0.22), 0 0 18px hsl(195 75% 60% / 0.28); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px hsl(195 75% 60%); } .ds-btn-primary:active { transform: scale(0.93); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outlined neutral action; border shifts to Console Cyan on hover.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { background: hsl(220 20% 95%); color: hsl(220 10% 20%); border: 2px solid hsl(220 10% 70%); border-radius: 1.65rem; padding: 0.52rem 1.18rem; font-family: 'Nunito', 'Segoe UI', sans-serif; font-size: 15px; font-weight: 600; font-style: italic; text-transform: uppercase; letter-spacing: 0.12em; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); cursor: pointer; transition: background-color 0.22s, border-color 0.22s, box-shadow 0.22s, transform 0.22s; } .ds-btn-secondary:hover { background: hsl(220 10% 95%); border-color: hsl(195 75% 60%); transform: translateY(-1.5px) scale(1.03); box-shadow: 0 12px 28px -10px rgb(15 36 61 / 0.22); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px hsl(195 75% 60%); } .ds-btn-secondary:active { transform: scale(0.93); }"
+    },
+    {
+      "name": "Glass Pill",
+      "kind": "custom",
+      "refersTo": "glass-pill",
+      "description": "The signature floating-glass chrome: thick translucent ring, frosted fill, heavy blur, soft floor shadow. Idles compact, morphs open on hover.",
+      "html": "<div class=\"ds-glass-pill\"><span class=\"ds-glass-pill-kicker\">Page 2 / 4</span></div>",
+      "css": ".ds-glass-pill { display: inline-flex; align-items: center; justify-content: center; padding: 10px 22px; border: 4px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.82); border-radius: 999px; box-shadow: 0 20px 50px rgb(0 0 0 / 0.15); backdrop-filter: blur(24px); transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s cubic-bezier(0.16,1,0.3,1); } .ds-glass-pill:hover { transform: scale(1.04); box-shadow: 0 24px 56px rgb(0 0 0 / 0.18), 0 0 36px hsl(195 75% 60% / 0.14); } .ds-glass-pill-kicker { font-family: 'Nunito', 'Segoe UI', sans-serif; font-size: 0.69rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: hsl(220 10% 45%); }"
+    },
+    {
+      "name": "Toggle",
+      "kind": "input",
+      "description": "44×24 spring toggle; track fills Console Cyan when on.",
+      "html": "<label class=\"ds-toggle\"><input type=\"checkbox\" checked /><span class=\"ds-toggle-track\"><span class=\"ds-toggle-thumb\"></span></span></label>",
+      "css": ".ds-toggle { display: inline-flex; align-items: center; cursor: pointer; } .ds-toggle input { position: absolute; opacity: 0; width: 0; height: 0; } .ds-toggle-track { width: 44px; height: 24px; border-radius: 12px; background: hsl(220 10% 80%); position: relative; transition: background-color 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-toggle-thumb { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.14); transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1); } .ds-toggle input:checked + .ds-toggle-track { background: hsl(195 75% 60%); } .ds-toggle input:checked + .ds-toggle-track .ds-toggle-thumb { transform: translateX(20px); } .ds-toggle input:focus-visible + .ds-toggle-track { box-shadow: 0 0 0 2px #fff, 0 0 0 4px hsl(195 75% 60%); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "description": "Soft input well with near-flat border; focus shifts border toward the accent.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Channel name\" />",
+      "css": ".ds-input { background: hsl(210 40% 98%); color: hsl(220 10% 20%); border: 1px solid hsl(220 14% 91%); border-radius: 14px; padding: 12px 16px; font-family: 'Nunito', 'Segoe UI', sans-serif; font-size: 15px; box-shadow: 0 1px 2px rgb(15 23 42 / 0.04); transition: border-color 0.2s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s cubic-bezier(0.4,0,0.2,1); } .ds-input::placeholder { color: hsl(220 10% 45%); } .ds-input:hover { border-color: hsl(220 12% 86%); } .ds-input:focus { outline: none; border-color: hsl(195 75% 60%); box-shadow: 0 0 0 3px hsl(195 75% 60% / 0.18); }"
+    },
+    {
+      "name": "Page Dots",
+      "kind": "nav",
+      "description": "Home page indicator inside a glass pill: white-alpha discs, active dot glows in the accent.",
+      "html": "<nav class=\"ds-page-dots\"><button class=\"ds-dot\" aria-label=\"Page 1\"></button><button class=\"ds-dot ds-dot--active\" aria-label=\"Page 2\"></button><button class=\"ds-dot\" aria-label=\"Page 3\"></button></nav>",
+      "css": ".ds-page-dots { display: inline-flex; gap: 6px; align-items: center; padding: 8px 16px; border: 4px solid rgba(255,255,255,0.5); background: rgba(30,35,45,0.45); border-radius: 999px; backdrop-filter: blur(24px); box-shadow: 0 20px 50px rgb(0 0 0 / 0.15); } .ds-dot { width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0; background: rgba(255,255,255,0.5); cursor: pointer; transition: transform 0.2s cubic-bezier(0.4,0,0.2,1), background-color 0.2s; } .ds-dot:hover { background: rgba(255,255,255,0.82); transform: scale(1.12); } .ds-dot--active { background: hsl(195 75% 60%); box-shadow: 0 0 8px rgb(255 255 255 / 0.45); } .ds-dot:focus-visible { outline: none; box-shadow: 0 0 0 2px hsl(195 75% 60%); }"
+    },
+    {
+      "name": "Wee Card",
+      "kind": "card",
+      "description": "Grouped settings/form card: very generous radius, generous padding, soft hover border shift.",
+      "html": "<div class=\"ds-wee-card\"><div class=\"ds-wee-card-title\">Channel behavior</div><p class=\"ds-wee-card-body\">Choose how channel animations play across the grid.</p></div>",
+      "css": ".ds-wee-card { background: #fff; border: 1px solid hsl(214 32% 91%); border-radius: 3rem; padding: 2rem 2.5rem; max-width: 380px; transition: border-color 0.22s cubic-bezier(0.4,0,0.2,1); } .ds-wee-card:hover { border-color: hsl(199 89% 48%); } .ds-wee-card-title { font-family: 'Nunito', 'Segoe UI', sans-serif; font-size: 1rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; color: hsl(222 47% 11%); margin-bottom: 8px; } .ds-wee-card-body { font-family: 'Nunito', 'Segoe UI', sans-serif; font-size: 15px; font-weight: 500; color: hsl(220 10% 45%); margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Channel Plaza",
+    "overview": "Wee's interface is a friendly public square of channels — a wallpaper-backed plaza where glass chrome floats at the edges, calm and compact until touched. Nothing on screen demands attention at rest; everything comes alive on approach. Controls idle as small frosted nubs and discs, then morph their footprint open with a springy, physical reveal when hovered or focused. The personality is playful, polished, and nostalgic: a well-made toy for adults, channeling Wii-era warmth through modern materials rather than pixel-perfect replication. This system explicitly rejects generic SaaS and dashboard chrome and Windows utility clutter, and equally rejects cartoon chaos: springs overshoot softly and settle with weight.",
+    "keyCharacteristics": [
+      "Chrome floats over the wallpaper; the wallpaper is the room, the UI is furniture in it",
+      "Compact → reveal: idle states are small; hover/focus expands footprint, not just opacity",
+      "One motion vocabulary: shared springs (pillOpen / pillClose), one timing clock per domain",
+      "Semantic HSL tokens everywhere; no scattered hex in components",
+      "Accent appears as soft glow, never hard rings"
+    ],
+    "rules": [
+      { "name": "The Ambient Accent Rule", "body": "Components never hardcode the brand color. All accent paint flows through hsl(var(--primary)) / hsl(var(--ambient-secondary)), written only by resolveEffectiveAccent + the ambient helpers. Sampling wallpaper colors inside feature components is prohibited.", "section": "colors" },
+      { "name": "The Soft Glow Rule", "body": "Interactive emphasis is a diffuse primary-hued glow (--shadow-hover-glow, --filter-hover-glow), never a hard accent ring (0 0 0 Npx) or a one-off colored border.", "section": "colors" },
+      { "name": "The One Family Rule", "body": "Nunito is the only typeface. New surfaces express hierarchy through weight (500→900), size, case, and italic — never by importing a second font.", "section": "typography" },
+      { "name": "The Floor Shadow Rule", "body": "Floating chrome casts mass on the floor: WeePillFloorShadow renders a soft blur beneath the pill that stretches when the pill expands. Depth responds to state; it is not static decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do reference every color as hsl(var(--token)); extend design-system.css (light :root + .dark-mode) when a new color is needed.",
+      "Do compose new chrome from WeeGlassPill + WeePillFloorShadow + WeeGooeyIconButton, and new controls from src/ui/ primitives.",
+      "Do drive all springs through createWeeTransition(intent) and amplitudes through PLAYFUL_AMPLITUDE — one clock per transition domain.",
+      "Do animate footprint (width/height morph, 0fr → 1fr grid rows) when space changes; expansion is physical, not a fade.",
+      "Do ship every interactive state: default, hover, focus, active, disabled — disabled as a soft Wii-tint resting chip, not a gray slab.",
+      "Do gate playful and continuous motion behind useMotionFeedback / useAnimationActivity; reduced motion snaps or shortens, never breaks.",
+      "Do run npm run lint (design-system contract) and npm run build after token or Tailwind changes."
+    ],
+    "donts": [
+      "Don't produce generic SaaS or dashboard chrome — sterile grids, corporate grays, admin-panel blandness.",
+      "Don't produce Windows utility clutter — dense settings trees, system-tray-app energy.",
+      "Don't add new #hex or rgba() literals in src/components/**; hex belongs only in src/design/*, src/data/**, and API-required strings.",
+      "Don't use hard accent rings (0 0 0 Npx) or one-off colored borders for emphasis — soft glow only.",
+      "Don't invent parallel timing clocks, ad-hoc spring literals, or Framer height:'auto' collapses.",
+      "Don't unmount animated overlays mid-close (if (!isOpen) return null) — presence owns exit.",
+      "Don't import a second typeface or invent a parallel type scale in feature CSS.",
+      "Don't leave always-on heavy blur, particles, or RAF loops ungated — this app runs all day.",
+      "Don't attempt pixel-perfect Wii cosplay; channel the warmth through modern glass and springs."
+    ]
+  }
+}

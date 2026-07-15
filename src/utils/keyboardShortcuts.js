@@ -223,6 +223,26 @@ export const DEFAULT_SHORTCUTS = [
     icon: '🏠'
   },
   {
+    id: 'toggle-home-arrange',
+    name: 'Edit Home',
+    description: 'Enter or exit Edit Home on the Home grid',
+    defaultKey: 'e',
+    defaultModifier: 'ctrl',
+    action: 'toggleHomeArrange',
+    category: 'Navigation',
+    icon: '🧱'
+  },
+  {
+    id: 'open-command-palette',
+    name: 'Command Palette',
+    description: 'Search and run anything — launch apps, open settings, switch spaces',
+    defaultKey: 'space',
+    defaultModifier: 'ctrl',
+    action: 'toggleCommandPalette',
+    category: 'Navigation',
+    icon: '🚀'
+  },
+  {
     id: 'open-workspace-switcher',
     name: 'Open Workspace Switcher',
     description: 'Open the workspace / home profile switcher',
@@ -615,6 +635,22 @@ export const executeShortcutAction = (action, actionParams = {}) => {
         window.openWorkspaceSwitcher();
       } else {
         logWarn('ShortcutHandler', 'openWorkspaceSwitcher function not available');
+      }
+      break;
+
+    case 'toggleHomeArrange':
+      if (window.toggleHomeArrange) {
+        window.toggleHomeArrange();
+      } else {
+        logWarn('ShortcutHandler', 'toggleHomeArrange function not available');
+      }
+      break;
+
+    case 'toggleCommandPalette':
+      if (window.toggleCommandPalette) {
+        window.toggleCommandPalette();
+      } else {
+        logWarn('ShortcutHandler', 'toggleCommandPalette function not available');
       }
       break;
 

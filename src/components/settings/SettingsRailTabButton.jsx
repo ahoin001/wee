@@ -3,13 +3,16 @@ import PropTypes from 'prop-types';
 
 /**
  * Rail tab for Settings: emoji icon + labels, token accent (matches WeeModalRailItem layout).
+ * `matchHint` shows why a tab matched a search (keyword path, e.g. "Ken Burns").
  */
-function SettingsRailTabButton({ tab, isActive, onClick }) {
+function SettingsRailTabButton({ tab, isActive, onClick, matchHint = null }) {
   const handleClick = useCallback(() => onClick(tab.id), [onClick, tab.id]);
 
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={isActive}
       onClick={handleClick}
       className={`group flex w-full items-center gap-4 rounded-[var(--wee-radius-rail-item)] border-l-[0.25rem] p-4 text-left transition-colors ${
         isActive
@@ -28,9 +31,22 @@ function SettingsRailTabButton({ tab, isActive, onClick }) {
         {tab.icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="mb-1 text-[11px] font-black uppercase italic leading-none tracking-widest">{tab.label}</p>
-        {tab.description ? (
-          <p className="text-[9px] font-bold uppercase opacity-70">{tab.description}</p>
+        <p className="mb-1 flex items-center gap-1.5 text-[length:var(--font-size-caption)] font-black uppercase italic leading-none tracking-widest">
+          <span className="truncate">{tab.label}</span>
+          {tab.beta ? (
+            <span className="shrink-0 rounded-full bg-[hsl(var(--state-warning)/0.18)] px-1.5 py-0.5 text-[length:var(--font-size-micro)] not-italic tracking-[0.14em] text-[hsl(var(--state-warning))]">
+              Beta
+            </span>
+          ) : null}
+        </p>
+        {matchHint ? (
+          <p className="text-[length:var(--font-size-micro)] font-bold uppercase text-[hsl(var(--primary))]">
+            Contains “{matchHint}”
+          </p>
+        ) : tab.description ? (
+          <p className="text-[length:var(--font-size-micro)] font-bold uppercase text-[hsl(var(--wee-text-rail-muted))]">
+            {tab.description}
+          </p>
         ) : null}
       </div>
     </button>
@@ -44,9 +60,11 @@ SettingsRailTabButton.propTypes = {
     icon: PropTypes.node.isRequired,
     color: PropTypes.string.isRequired,
     description: PropTypes.string,
+    beta: PropTypes.bool,
   }).isRequired,
   isActive: PropTypes.bool.isRequired,
   onClick: PropTypes.func.isRequired,
+  matchHint: PropTypes.string,
 };
 
 export default SettingsRailTabButton;

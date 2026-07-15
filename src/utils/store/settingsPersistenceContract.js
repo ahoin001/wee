@@ -5,6 +5,7 @@ import {
   migrateLegacyChannelsToDataBySpace,
   normalizeSecondaryChannelProfiles,
 } from '../channelSpaces.js';
+import { sanitizeRecentLaunches } from '../recentLaunches.js';
 
 export const SETTINGS_SCHEMA_VERSION = 2;
 
@@ -223,6 +224,11 @@ const selectPersistedUi = (ui = {}) => ({
   spaceRailPinned: ui.spaceRailPinned ?? false,
   spaceRailRevealWidth: ui.spaceRailRevealWidth ?? 28,
   updateDismissedVersion: typeof ui.updateDismissedVersion === 'string' ? ui.updateDismissedVersion : '',
+  /* One-time Home coach marks */
+  homeArrangeHintSeen: ui.homeArrangeHintSeen ?? false,
+  homeBoardWidgetCoachDismissed: ui.homeBoardWidgetCoachDismissed ?? false,
+  /* Command palette: open state stays transient; only recents persist */
+  commandPaletteRecent: Array.isArray(ui.commandPaletteRecent) ? ui.commandPaletteRecent.slice(0, 8) : [],
 });
 
 /** Strip modal / loading chrome — prefs only. */
@@ -269,6 +275,7 @@ function selectPersistedChannelSpaceData(spaceData) {
 const selectPersistedChannels = (channels = {}) => {
   if (!isPlainObject(channels)) return {};
   const next = omitKeys(channels, ['operations', 'data']);
+  next.recentLaunches = sanitizeRecentLaunches(channels.recentLaunches);
   if (isPlainObject(channels.dataBySpace)) {
     next.dataBySpace = {
       home: selectPersistedChannelSpaceData(channels.dataBySpace.home),

@@ -13,6 +13,7 @@ import {
 import Text from '../../ui/Text';
 import WButton from '../../ui/WButton';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { useUIState } from '../../utils/useConsolidatedAppHooks';
 import {
   createDefaultKeyboardShortcuts,
   formatShortcut,
@@ -43,11 +44,18 @@ const ShortcutsSettingsTab = React.memo(() => {
       ? keyboardShortcutsFromStore
       : createDefaultKeyboardShortcuts();
 
+  const { confirmAction } = useUIState();
+
   const handleResetShortcuts = useCallback(() => {
-    if (window.confirm('Reset all keyboard shortcuts to defaults?')) {
-      resetKeyboardShortcuts();
-    }
-  }, [resetKeyboardShortcuts]);
+    confirmAction(
+      'Reset keyboard shortcuts?',
+      'All keyboard shortcuts will go back to their defaults. Custom bindings are lost.',
+      resetKeyboardShortcuts,
+      null,
+      'Reset',
+      'danger-primary'
+    );
+  }, [confirmAction, resetKeyboardShortcuts]);
 
   const groupedShortcuts = getShortcutsByCategory(keyboardShortcuts);
   const orderedCategories = [

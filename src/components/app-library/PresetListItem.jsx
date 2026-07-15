@@ -61,6 +61,7 @@ const PresetListItem = React.forwardRef(function PresetListItem(
     hasCommunityUpdate,
     onApplyCommunityUpdate,
     onShare,
+    onExport,
     style,
     dataIndex,
   },
@@ -113,7 +114,7 @@ const PresetListItem = React.forwardRef(function PresetListItem(
 
   const thumb = preset.thumbnailDataUrl;
   const scopeLabel =
-    preset.captureScope === 'visual+homeChannels' ? 'Visual + Home' : 'Visual';
+    preset.captureScope === 'visual+homeChannels' ? 'Look + Home (this PC)' : 'Look · shareable';
 
   const menuItems = (
     <>
@@ -151,6 +152,19 @@ const PresetListItem = React.forwardRef(function PresetListItem(
           }}
         >
           Share…
+        </button>
+      ) : null}
+      {onExport ? (
+        <button
+          type="button"
+          className="block w-full px-3 py-2 text-left text-sm font-medium text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-secondary))]"
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen(false);
+            onExport(preset);
+          }}
+        >
+          Export file…
         </button>
       ) : null}
       <button
@@ -386,6 +400,7 @@ PresetListItem.propTypes = {
   hasCommunityUpdate: PropTypes.bool,
   onApplyCommunityUpdate: PropTypes.func,
   onShare: PropTypes.func,
+  onExport: PropTypes.func,
   style: PropTypes.object,
   dataIndex: PropTypes.number,
 };
@@ -394,6 +409,7 @@ PresetListItem.defaultProps = {
   hasCommunityUpdate: false,
   onApplyCommunityUpdate: null,
   onShare: null,
+  onExport: null,
   justApplied: null,
 };
 

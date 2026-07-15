@@ -2,11 +2,18 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import { AnimatePresence, m } from 'framer-motion';
-import { Search, X } from 'lucide-react';
+import { Search, X, History } from 'lucide-react';
 import { WeeModalShell, WeeModalRail, WeeSectionEyebrow } from '../../ui/wee';
 import WeeButton from '../../ui/wee/WeeButton';
 import { useWeeMotion, WEE_VARIANTS } from '../../design/weeMotion';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import {
+  SETTINGS_TAB_META,
+  normalizeSettingsTabId,
+  searchSettingsTabs,
+  groupSettingsEntries,
+  getSettingsTabMeta,
+} from '../../utils/settingsRegistry';
 import SettingsRailTabButton from './SettingsRailTabButton';
 import DevReactProfiler from '../dev/DevReactProfiler';
 import { weeMarkSettingsTab } from '../../utils/weePerformanceMarks';
@@ -23,7 +30,6 @@ import {
   PresetsSettingsTab,
   MonitorSettingsTab,
   ApiIntegrationsSettingsTab,
-  AdvancedSettingsTab,
   ShortcutsSettingsTab,
   UpdatesSettingsTab,
   NavigationSettingsTab,
@@ -34,173 +40,38 @@ import {
 
 const TabPanel = m.div;
 
-/** Main rail list — everything except beta-only tabs (pinned below). */
-const SETTINGS_TABS_MAIN = [
-  {
-    id: 'api-integrations',
-    label: 'API & Widgets',
-    icon: '🔌',
-    color: 'hsl(var(--settings-tab-api))',
-    description: 'Spotify auth & deep widget options',
-    component: ApiIntegrationsSettingsTab,
-  },
-  {
-    id: 'channels',
-    label: 'Channels & layout',
-    icon: '📺',
-    color: 'hsl(var(--settings-tab-channels))',
-    description: 'Home board, widgets, and tile look',
-    component: ChannelsLayoutSettingsTab,
-  },
-  {
-    id: 'dock',
-    label: 'Dock',
-    icon: '⚓',
-    color: 'hsl(var(--settings-tab-dock))',
-    description: 'Classic & Ribbon dock settings',
-    component: UnifiedDockSettingsTab,
-  },
-  {
-    id: 'colors',
-    label: 'Colors',
-    icon: '🌈',
-    color: 'hsl(var(--settings-tab-colors))',
-    description: 'Discover and route color controls',
-    component: ColorsSettingsTab,
-  },
-  {
-    id: 'gamehub',
-    label: 'Game Hub',
-    icon: '🎮',
-    color: 'hsl(var(--settings-tab-layout))',
-    description: 'SteamID64 and enrichment controls',
-    component: GameHubSettingsTab,
-  },
-  {
-    id: 'general',
-    label: 'General',
-    icon: '⚙️',
-    color: 'hsl(var(--settings-tab-general))',
-    description: 'App behavior & startup',
-    component: GeneralSettingsTab,
-  },
-  {
-    id: 'motion',
-    label: 'Motion',
-    icon: '✨',
-    color: 'hsl(var(--settings-tab-motion))',
-    description: 'Press, drag & reorder feedback',
-    component: MotionFeedbackSettingsTab,
-  },
-  {
-    id: 'navigation-pill',
-    label: 'Navigation Pill',
-    icon: '📍',
-    color: 'hsl(var(--settings-tab-navigation))',
-    description: 'Space rail visibility & pinning',
-    component: NavigationPillSettingsTab,
-  },
-  {
-    id: 'themes',
-    label: 'Presets',
-    icon: '🎨',
-    color: 'hsl(var(--settings-tab-themes))',
-    description: 'Preset themes & customization',
-    component: PresetsSettingsTab,
-  },
-  {
-    id: 'sounds',
-    label: 'Sounds',
-    icon: '🔊',
-    color: 'hsl(var(--settings-tab-sounds))',
-    description: 'Audio feedback & music',
-    component: SoundsSettingsTab,
-  },
-  {
-    id: 'time',
-    label: 'Time',
-    icon: '🕐',
-    color: 'hsl(var(--settings-tab-time))',
-    description: 'Clock & pill display',
-    component: TimeSettingsTab,
-  },
-  {
-    id: 'updates',
-    label: 'Updates',
-    icon: '🔄',
-    color: 'hsl(var(--settings-tab-updates))',
-    description: 'Check for updates & version info',
-    component: UpdatesSettingsTab,
-  },
-  {
-    id: 'wallpaper',
-    label: 'Wallpaper',
-    icon: '🖼️',
-    color: 'hsl(var(--settings-tab-wallpaper))',
-    description: 'Background & cycling',
-    component: WallpaperSettingsTab,
-  },
-  {
-    id: 'workspaces',
-    label: 'Home Profiles',
-    icon: '🧩',
-    color: 'hsl(var(--settings-tab-workspaces))',
-    description: 'Create and switch Home mode setups',
-    component: WorkspacesSettingsTab,
-  },
-];
+/** Registry ids → tab components (kept local so the registry stays pure data). */
+const SETTINGS_TAB_COMPONENTS = {
+  'api-integrations': ApiIntegrationsSettingsTab,
+  channels: ChannelsLayoutSettingsTab,
+  dock: UnifiedDockSettingsTab,
+  colors: ColorsSettingsTab,
+  gamehub: GameHubSettingsTab,
+  general: GeneralSettingsTab,
+  motion: MotionFeedbackSettingsTab,
+  'navigation-pill': NavigationPillSettingsTab,
+  themes: PresetsSettingsTab,
+  sounds: SoundsSettingsTab,
+  time: TimeSettingsTab,
+  updates: UpdatesSettingsTab,
+  wallpaper: WallpaperSettingsTab,
+  workspaces: WorkspacesSettingsTab,
+  monitor: MonitorSettingsTab,
+  navigation: NavigationSettingsTab,
+  shortcuts: ShortcutsSettingsTab,
+};
 
-const SETTINGS_TAB_BETA = [
-  {
-    id: 'monitor',
-    label: 'Monitor',
-    icon: '🖥️',
-    color: 'hsl(var(--settings-tab-monitor))',
-    description: 'Multi-monitor settings',
-    component: MonitorSettingsTab,
-  },
-  {
-    id: 'navigation',
-    label: 'Navigation',
-    icon: '🧭',
-    color: 'hsl(var(--settings-tab-navigation))',
-    description: 'Side navigation buttons',
-    component: NavigationSettingsTab,
-  },
-  {
-    id: 'shortcuts',
-    label: 'Shortcuts',
-    icon: '⌨️',
-    color: 'hsl(var(--settings-tab-shortcuts))',
-    description: 'Keyboard shortcuts & hotkeys',
-    component: ShortcutsSettingsTab,
-  },
-];
+/** Flat registry order for keyboard nav and lookups. */
+const SETTINGS_TAB_IDS = SETTINGS_TAB_META.map((tab) => tab.id);
 
-/** Flat order for keyboard nav and lookups: main first, then beta. */
-const SETTINGS_TABS = [...SETTINGS_TABS_MAIN, ...SETTINGS_TAB_BETA];
-
-function normalizeSettingsTabId(tabId) {
-  if (!tabId) return tabId;
-  if (tabId === 'layout') return 'channels';
-  if (tabId === 'presets') return 'themes';
-  return tabId;
-}
-
-function tabMatchesQuery(tab, query) {
-  const q = query.toLowerCase();
-  return (
-    tab.label.toLowerCase().includes(q) ||
-    (tab.description && tab.description.toLowerCase().includes(q)) ||
-    tab.id.toLowerCase().includes(q)
-  );
-}
+const MAX_RECENT_TABS = 4;
 
 function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
   const tabContentRef = useRef(null);
   const { tabTransition } = useWeeMotion();
 
   const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
+  const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
   const effectiveInitialTab = useMemo(() => {
     const raw = ui.settingsActiveTab || initialActiveTab;
     return normalizeSettingsTabId(raw);
@@ -211,16 +82,20 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { filteredMainTabs, filteredBetaTabs } = useMemo(() => {
-    const q = searchQuery.trim();
-    if (!q) {
-      return { filteredMainTabs: SETTINGS_TABS_MAIN, filteredBetaTabs: SETTINGS_TAB_BETA };
-    }
-    return {
-      filteredMainTabs: SETTINGS_TABS_MAIN.filter((tab) => tabMatchesQuery(tab, q)),
-      filteredBetaTabs: SETTINGS_TAB_BETA.filter((tab) => tabMatchesQuery(tab, q)),
-    };
-  }, [searchQuery]);
+  const recentTabIds = useMemo(() => {
+    const raw = Array.isArray(ui.settingsRecentTabs) ? ui.settingsRecentTabs : [];
+    return raw
+      .map(normalizeSettingsTabId)
+      .filter((id, i, arr) => arr.indexOf(id) === i && getSettingsTabMeta(id))
+      .slice(0, MAX_RECENT_TABS);
+  }, [ui.settingsRecentTabs]);
+
+  const groupedResults = useMemo(
+    () => groupSettingsEntries(searchSettingsTabs(searchQuery)),
+    [searchQuery]
+  );
+  const hasResults = groupedResults.length > 0;
+  const isSearching = searchQuery.trim().length > 0;
 
   useEffect(() => {
     if (isOpen && effectiveInitialTab) {
@@ -241,18 +116,28 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
         }
         return tabId;
       });
+      const prevRecents = Array.isArray(
+        useConsolidatedAppStore.getState().ui.settingsRecentTabs
+      )
+        ? useConsolidatedAppStore.getState().ui.settingsRecentTabs
+        : [];
+      const nextRecents = [tabId, ...prevRecents.filter((id) => id !== tabId)].slice(
+        0,
+        MAX_RECENT_TABS
+      );
+      setUIState({ settingsRecentTabs: nextRecents });
     },
-    [],
+    [setUIState]
   );
 
-  const currentTab = useMemo(() => SETTINGS_TABS.find((tab) => tab.id === activeTab), [activeTab]);
+  const currentTab = useMemo(() => getSettingsTabMeta(activeTab), [activeTab]);
 
   const renderTabContent = useMemo(() => {
-    if (!currentTab) {
+    const TabComponent = currentTab ? SETTINGS_TAB_COMPONENTS[currentTab.id] : null;
+    if (!TabComponent) {
       return <div className="p-8 text-center text-[hsl(var(--text-secondary))]">Tab not found</div>;
     }
 
-    const TabComponent = currentTab.component;
     return (
       <DevReactProfiler id={`settings-tab-${activeTab}`}>
         <div ref={tabContentRef} className="relative flex min-h-0 flex-1 flex-col">
@@ -262,39 +147,55 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
     );
   }, [currentTab, activeTab]);
 
+  /** Ids in the order currently visible in the rail — arrow nav must respect the search filter. */
+  const navigableTabIds = useMemo(() => {
+    const visible = groupedResults.flatMap(({ entries }) => entries.map(({ tab }) => tab.id));
+    return visible.length > 0 ? visible : SETTINGS_TAB_IDS;
+  }, [groupedResults]);
+
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleKeyDown = (e) => {
-      const currentIndex = SETTINGS_TABS.findIndex((tab) => tab.id === activeTab);
+    /** Controls that own arrow keys / caret movement — never hijack from them. */
+    const targetOwnsKeys = (target) => {
+      if (!target || typeof target.closest !== 'function') return false;
+      const tag = target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (target.isContentEditable) return true;
+      return Boolean(
+        target.closest(
+          '[role="slider"], [role="listbox"], [role="menu"], [role="radiogroup"], [contenteditable="true"]'
+        )
+      );
+    };
 
-      switch (e.key) {
-        case 'ArrowRight':
-        case 'ArrowDown': {
-          e.preventDefault();
-          const nextIndex = (currentIndex + 1) % SETTINGS_TABS.length;
-          handleTabChange(SETTINGS_TABS[nextIndex].id);
-          break;
-        }
-        case 'ArrowLeft':
-        case 'ArrowUp': {
-          e.preventDefault();
-          const prevIndex = currentIndex === 0 ? SETTINGS_TABS.length - 1 : currentIndex - 1;
-          handleTabChange(SETTINGS_TABS[prevIndex].id);
-          break;
-        }
-        case 'Escape':
-          e.preventDefault();
-          onClose();
-          break;
-        default:
-          break;
+    const handleKeyDown = (e) => {
+      if (e.defaultPrevented) return;
+
+      if (e.key === 'Escape') {
+        if (targetOwnsKeys(e.target)) return;
+        e.preventDefault();
+        onClose();
+        return;
       }
+
+      if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) return;
+      if (targetOwnsKeys(e.target)) return;
+
+      e.preventDefault();
+      const currentIndex = navigableTabIds.indexOf(activeTab);
+      const forward = e.key === 'ArrowRight' || e.key === 'ArrowDown';
+      const nextIndex = forward
+        ? (currentIndex + 1) % navigableTabIds.length
+        : currentIndex <= 0
+          ? navigableTabIds.length - 1
+          : currentIndex - 1;
+      handleTabChange(navigableTabIds[nextIndex]);
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, activeTab, handleTabChange, onClose]);
+  }, [isOpen, activeTab, handleTabChange, onClose, navigableTabIds]);
 
   useEffect(() => {
     if (isOpen && tabContentRef.current) {
@@ -336,7 +237,7 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
       </div>
 
       <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
-        {filteredMainTabs.length === 0 && filteredBetaTabs.length === 0 ? (
+        {!hasResults ? (
           <div className="wee-modal-scroll flex-1 overflow-y-auto px-2 py-4 text-center text-[hsl(var(--text-secondary))]">
             <div className="mb-2 text-2xl" aria-hidden>
               🔍
@@ -345,37 +246,62 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
             <div className="mt-1 text-xs">Try a different search term</div>
           </div>
         ) : (
-          <>
-            <div className="wee-modal-scroll min-h-0 flex-1 overflow-y-auto pr-1">
-              <div className="flex flex-col gap-2">
-                {filteredMainTabs.map((tab) => (
-                  <SettingsRailTabButton
-                    key={tab.id}
-                    tab={tab}
-                    isActive={activeTab === tab.id}
-                    onClick={handleTabChange}
-                  />
-                ))}
-              </div>
-            </div>
-            {filteredBetaTabs.length > 0 ? (
-              <div className="shrink-0 border-t-2 border-[hsl(var(--wee-border-rail))] pt-4">
-                <WeeSectionEyebrow className="mb-2 px-1" trackingClassName="tracking-[0.14em]">
-                  Beta
+          <div
+            className="wee-modal-scroll min-h-0 flex-1 overflow-y-auto pr-1"
+            role="tablist"
+            aria-label="Settings sections"
+            aria-orientation="vertical"
+          >
+            {!isSearching && recentTabIds.length > 0 ? (
+              <div className="mb-4">
+                <WeeSectionEyebrow className="mb-2 flex items-center gap-1.5 px-1" trackingClassName="tracking-[0.14em]">
+                  <History size={11} strokeWidth={2.5} aria-hidden />
+                  Recent
                 </WeeSectionEyebrow>
-                <div className="flex flex-col gap-2">
-                  {filteredBetaTabs.map((tab) => (
-                    <SettingsRailTabButton
-                      key={tab.id}
-                      tab={tab}
-                      isActive={activeTab === tab.id}
-                      onClick={handleTabChange}
-                    />
-                  ))}
+                <div className="flex flex-wrap gap-1.5 px-1">
+                  {recentTabIds.map((id) => {
+                    const tab = getSettingsTabMeta(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleTabChange(id)}
+                        className={`flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide transition-colors ${
+                          activeTab === id
+                            ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--text-primary))]'
+                            : 'border-[hsl(var(--border-primary)/0.4)] text-[hsl(var(--wee-text-rail-muted))] hover:bg-[hsl(var(--state-hover)/0.65)]'
+                        }`}
+                      >
+                        <span aria-hidden>{tab.icon}</span>
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
-          </>
+
+            <div className="flex flex-col gap-4">
+              {groupedResults.map(({ category, entries }) => (
+                <div key={category.id}>
+                  <WeeSectionEyebrow className="mb-2 px-1" trackingClassName="tracking-[0.14em]">
+                    {category.label}
+                  </WeeSectionEyebrow>
+                  <div className="flex flex-col gap-2">
+                    {entries.map(({ tab, matchedKeyword }) => (
+                      <SettingsRailTabButton
+                        key={tab.id}
+                        tab={tab}
+                        isActive={activeTab === tab.id}
+                        onClick={handleTabChange}
+                        matchHint={matchedKeyword}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </WeeModalRail>
@@ -402,6 +328,8 @@ function SettingsModal({ isOpen, onClose, initialActiveTab = 'channels' }) {
       <AnimatePresence mode="wait">
         <TabPanel
           key={activeTab}
+          role="tabpanel"
+          aria-label={currentTab?.label}
           initial={WEE_VARIANTS.tabBodyInitial}
           animate={WEE_VARIANTS.tabBodyAnimate}
           exit={WEE_VARIANTS.tabBodyExit}

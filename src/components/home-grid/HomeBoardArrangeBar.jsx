@@ -1,19 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
-import { Check, Grip, PenLine, ShieldPlus, Trash2 } from 'lucide-react';
+import { Check, Grip, MoreHorizontal, PenLine, Plus, Trash2 } from 'lucide-react';
 import { createWeeTransition } from '../../design/weeMotion';
-import { WeeGlassPill, WeeButton } from '../../ui/wee';
-import { HOME_SLOT_SIZE_PRESETS } from '../../utils/homeSlotSizePresets';
-import { SLOT_KIND_ADMIN_QUICK_ACCESS } from '../../utils/homeGridSlots';
-import { matchHomeSlotSizePreset } from './slotKindRegistry';
+import { WeeGlassPill, WeeButton, WeeContentCollapse } from '../../ui/wee';
+import { isNonChannelSlot } from '../../utils/homeGridSlots';
+import { getHomeSlotKind, listPlaceableHomeSlotKinds, matchHomeSlotSizePreset } from './slotKindRegistry';
 
 const MotionDiv = m.div;
 
 /**
- * Live Board Studio bottom toolbar — visible only while `homeBoardArrangeMode` is on.
- * Sits above the dock so it stays readable. Punch mode toggles wallpaper holes; widget
- * tools appear when an Admin Quick Access slot is selected (or Add when a free cell exists).
+ * Edit Home contextual tray — visible only while `homeBoardArrangeMode` is on.
+ * Sits above the dock. Primary actions: Add widget (registry picker), size/remove for the
+ * selected widget, Done. Wallpaper holes (punch) live behind More.
  */
 function HomeBoardArrangeBar({
   arrangeMode,
@@ -22,35 +21,68 @@ function HomeBoardArrangeBar({
   onDone,
   selectedSlot = null,
   selectedIndex = null,
-  canAddQuickAccess = false,
-  onAddQuickAccess,
+  canAddWidget = false,
+  onAddWidget,
   onRemoveWidget,
   onSetSizePreset,
-  sizeBlockedPresetId = null,
+  blockedPresetIds = [],
 }) {
   const reducedMotion = useReducedMotion();
   const transition = createWeeTransition('pillOpen', { reducedMotion });
   const press = createWeeTransition('press', { reducedMotion });
 
-  const isAdminWidget = selectedSlot?.kind === SLOT_KIND_ADMIN_QUICK_ACCESS;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => {
+    if (!arrangeMode) {
+      setPickerOpen(false);
+      setMoreOpen(false);
+    }
+  }, [arrangeMode]);
+
+  const placeableKinds = useMemo(() => listPlaceableHomeSlotKinds(), []);
+
+  const selectedKindMeta = isNonChannelSlot(selectedSlot)
+    ? getHomeSlotKind(selectedSlot.kind)
+    : null;
+  const sizePresets = selectedKindMeta?.sizePresets ?? null;
   const activePreset = useMemo(
     () =>
-      isAdminWidget
+      selectedKindMeta
         ? matchHomeSlotSizePreset(
-            SLOT_KIND_ADMIN_QUICK_ACCESS,
+            selectedSlot?.kind,
             selectedSlot?.colSpan,
             selectedSlot?.rowSpan
           )
         : null,
-    [isAdminWidget, selectedSlot?.colSpan, selectedSlot?.rowSpan]
+    [selectedKindMeta, selectedSlot?.kind, selectedSlot?.colSpan, selectedSlot?.rowSpan]
+  );
+
+  const handleToggleQuickPicker = useCallback(() => {
+    setPickerOpen((prev) => !prev);
+    setMoreOpen(false);
+  }, []);
+
+  const handleToggleMore = useCallback(() => {
+    setMoreOpen((prev) => !prev);
+    setPickerOpen(false);
+  }, []);
+
+  const handlePickKind = useCallback(
+    (kindId) => {
+      onAddWidget?.(kindId);
+      setPickerOpen(false);
+    },
+    [onAddWidget]
   );
 
   const hint = punchMode
-    ? 'Tap tiles to punch wallpaper holes'
-    : isAdminWidget
-      ? 'Resize or remove this Quick Access widget'
+    ? 'Tap tiles to punch wallpaper holes · toggle off under More when finished'
+    : selectedKindMeta
+      ? `Resize or remove this ${selectedKindMeta.label} widget`
       : selectedIndex != null
-        ? 'Empty slot selected — add Quick Access, or tap another tile'
+        ? 'Empty slot selected — Add widget places it here'
         : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
 
   return (
@@ -58,7 +90,7 @@ function HomeBoardArrangeBar({
       {arrangeMode ? (
         <MotionDiv
           key="home-board-arrange-bar"
-          className="pointer-events-none fixed inset-x-0 bottom-[max(6.75rem,calc(env(safe-area-inset-bottom)+5.75rem))] z-[2350] flex justify-center px-4"
+          className="pointer-events-none fixed inset-x-0 bottom-[max(6.75rem,calc(env(safe-area-inset-bottom)+5.75rem))] z-[var(--z-home-arrange-bar)] flex justify-center px-4"
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.94 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.94 }}
@@ -66,76 +98,65 @@ function HomeBoardArrangeBar({
         >
           <WeeGlassPill className="pointer-events-auto flex max-w-[min(96vw,52rem)] flex-col items-stretch gap-2 rounded-[2rem] px-3 py-2.5 md:gap-2.5 md:px-5 md:py-3">
             <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-              <span className="flex items-center gap-2 pl-1 pr-1 text-[11px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))] md:pr-2">
+              <span className="flex items-center gap-2 pl-1 pr-1 text-[length:var(--font-size-caption)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))] md:pr-2">
                 <Grip size={14} strokeWidth={2.5} aria-hidden />
-                Arranging Home
+                Edit Home
               </span>
 
-              <m.button
-                type="button"
-                aria-pressed={punchMode}
-                onClick={onTogglePunch}
-                whileHover={reducedMotion ? undefined : { scale: 1.04 }}
-                whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                transition={press}
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[10px] font-black uppercase tracking-wide ${
-                  punchMode
-                    ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
-                    : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
-                }`}
-              >
-                <PenLine size={13} strokeWidth={2.5} aria-hidden />
-                Punch holes
-              </m.button>
-
-              {canAddQuickAccess && typeof onAddQuickAccess === 'function' ? (
+              {canAddWidget && typeof onAddWidget === 'function' ? (
                 <m.button
                   type="button"
-                  onClick={onAddQuickAccess}
+                  onClick={handleToggleQuickPicker}
+                  aria-expanded={pickerOpen}
                   whileHover={reducedMotion ? undefined : { scale: 1.04 }}
                   whileTap={reducedMotion ? undefined : { scale: 0.95 }}
                   transition={press}
-                  className="flex items-center gap-1.5 rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] px-3.5 py-2 text-[10px] font-black uppercase tracking-wide text-[hsl(var(--text-secondary))]"
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide ${
+                    pickerOpen
+                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
+                      : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
+                  }`}
                   title={
                     selectedIndex != null
-                      ? `Add Quick Access at slot ${selectedIndex + 1}`
-                      : 'Add Quick Access on first free slot'
+                      ? `Add a widget at slot ${selectedIndex + 1}`
+                      : 'Add a widget on the first free slot'
                   }
                 >
-                  <ShieldPlus size={13} strokeWidth={2.5} aria-hidden />
-                  Add Quick Access
+                  <Plus size={13} strokeWidth={2.5} aria-hidden />
+                  Add widget
                 </m.button>
               ) : null}
 
-              {isAdminWidget ? (
+              {selectedKindMeta && sizePresets ? (
                 <>
                   <div
                     className="flex items-center gap-1 rounded-full border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.9)] p-1"
                     role="group"
                     aria-label="Widget size"
                   >
-                    {Object.values(HOME_SLOT_SIZE_PRESETS).map((preset) => {
+                    {Object.values(sizePresets).map((preset) => {
                       const active = activePreset?.id === preset.id;
-                      const blocked = sizeBlockedPresetId === preset.id;
+                      const blocked = blockedPresetIds.includes(preset.id);
                       return (
                         <m.button
                           key={preset.id}
                           type="button"
                           onClick={() => onSetSizePreset?.(preset.id)}
-                          whileHover={reducedMotion ? undefined : { scale: 1.06 }}
-                          whileTap={reducedMotion ? undefined : { scale: 0.94 }}
+                          whileHover={reducedMotion || blocked ? undefined : { scale: 1.06 }}
+                          whileTap={reducedMotion || blocked ? undefined : { scale: 0.94 }}
                           transition={press}
                           aria-pressed={active}
+                          aria-disabled={blocked || undefined}
                           title={
                             blocked
                               ? `${preset.label} needs free neighboring slots`
                               : `${preset.label} · ${preset.colSpan}×${preset.rowSpan}`
                           }
-                          className={`min-w-[2rem] rounded-full px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide ${
+                          className={`min-w-[2rem] rounded-full px-2.5 py-1.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide ${
                             active
                               ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
                               : blocked
-                                ? 'text-[hsl(var(--text-tertiary))] opacity-60'
+                                ? 'cursor-not-allowed text-[hsl(var(--text-tertiary))] opacity-45'
                                 : 'text-[hsl(var(--text-secondary))]'
                           }`}
                         >
@@ -150,13 +171,31 @@ function HomeBoardArrangeBar({
                     whileHover={reducedMotion ? undefined : { scale: 1.04 }}
                     whileTap={reducedMotion ? undefined : { scale: 0.95 }}
                     transition={press}
-                    className="flex items-center gap-1.5 rounded-full border-2 border-[hsl(var(--state-error)/0.4)] bg-[hsl(var(--state-error)/0.12)] px-3.5 py-2 text-[10px] font-black uppercase tracking-wide text-[hsl(var(--state-error))]"
+                    className="flex items-center gap-1.5 rounded-full border-2 border-[hsl(var(--state-error)/0.4)] bg-[hsl(var(--state-error)/0.12)] px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--state-error))]"
                   >
                     <Trash2 size={13} strokeWidth={2.5} aria-hidden />
                     Remove
                   </m.button>
                 </>
               ) : null}
+
+              <m.button
+                type="button"
+                onClick={handleToggleMore}
+                aria-expanded={moreOpen}
+                aria-label="More editing tools"
+                whileHover={reducedMotion ? undefined : { scale: 1.04 }}
+                whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                transition={press}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide ${
+                  moreOpen || punchMode
+                    ? 'bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-primary))] border-2 border-[hsl(var(--border-primary)/0.6)]'
+                    : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
+                }`}
+              >
+                <MoreHorizontal size={13} strokeWidth={2.5} aria-hidden />
+                More
+              </m.button>
 
               <WeeButton
                 variant="primary"
@@ -169,7 +208,62 @@ function HomeBoardArrangeBar({
                 </span>
               </WeeButton>
             </div>
-            <p className="m-0 px-1 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
+
+            <WeeContentCollapse open={pickerOpen} keepMounted={false}>
+              <div className="flex flex-wrap items-stretch justify-center gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
+                {placeableKinds.map((kind) => (
+                  <m.button
+                    key={kind.id}
+                    type="button"
+                    onClick={() => handlePickKind(kind.id)}
+                    whileHover={reducedMotion ? undefined : { scale: 1.03 }}
+                    whileTap={reducedMotion ? undefined : { scale: 0.96 }}
+                    transition={press}
+                    className="flex min-w-[11rem] max-w-[15rem] items-center gap-2.5 rounded-2xl border-2 border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated))] px-3 py-2.5 text-left"
+                  >
+                    <span className="text-lg leading-none" aria-hidden>
+                      {kind.icon ?? '🧩'}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
+                        {kind.label}
+                      </span>
+                      {kind.description ? (
+                        <span className="block truncate text-[length:var(--font-size-micro)] font-bold text-[hsl(var(--text-tertiary))]">
+                          {kind.description}
+                        </span>
+                      ) : null}
+                    </span>
+                  </m.button>
+                ))}
+              </div>
+            </WeeContentCollapse>
+
+            <WeeContentCollapse open={moreOpen} keepMounted={false}>
+              <div className="flex flex-wrap items-center justify-center gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
+                <m.button
+                  type="button"
+                  aria-pressed={punchMode}
+                  onClick={onTogglePunch}
+                  whileHover={reducedMotion ? undefined : { scale: 1.04 }}
+                  whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+                  transition={press}
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide ${
+                    punchMode
+                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
+                      : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
+                  }`}
+                >
+                  <PenLine size={13} strokeWidth={2.5} aria-hidden />
+                  Wallpaper holes
+                </m.button>
+                <span className="text-[length:var(--font-size-micro)] font-bold uppercase tracking-[0.1em] text-[hsl(var(--text-tertiary))]">
+                  Punch see-through holes in the grid to show wallpaper
+                </span>
+              </div>
+            </WeeContentCollapse>
+
+            <p className="m-0 px-1 text-center text-[length:var(--font-size-micro)] font-bold uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
               {hint}
             </p>
           </WeeGlassPill>
@@ -186,11 +280,11 @@ HomeBoardArrangeBar.propTypes = {
   onDone: PropTypes.func.isRequired,
   selectedSlot: PropTypes.object,
   selectedIndex: PropTypes.number,
-  canAddQuickAccess: PropTypes.bool,
-  onAddQuickAccess: PropTypes.func,
+  canAddWidget: PropTypes.bool,
+  onAddWidget: PropTypes.func,
   onRemoveWidget: PropTypes.func,
   onSetSizePreset: PropTypes.func,
-  sizeBlockedPresetId: PropTypes.string,
+  blockedPresetIds: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default React.memo(HomeBoardArrangeBar);

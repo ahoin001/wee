@@ -148,6 +148,16 @@ export const WEE_SPRINGS = {
     damping: 19,
     mass: 0.88,
   },
+  /**
+   * Launch cinematic settle — origin tile brightens/settles while the board recedes.
+   * Duration family mirrors LAUNCH_CINEMATIC_MS / --wee-launch-duration (one launch-domain clock).
+   */
+  launchSettle: {
+    type: 'spring',
+    stiffness: 320,
+    damping: 30,
+    mass: 0.9,
+  },
 };
 
 /**
@@ -182,6 +192,7 @@ export const WEE_MOTION_INTENTS = Object.freeze({
   mediaHubShell: 'mediaHubShell',
   mediaHubPress: 'mediaHubPress',
   railNudge: 'railNudge',
+  launch: 'launchSettle',
 });
 
 const REDUCED_MOTION_BY_INTENT = Object.freeze({
@@ -206,6 +217,7 @@ const REDUCED_MOTION_BY_INTENT = Object.freeze({
   mediaHubShell: { duration: 0.16 },
   mediaHubPress: { duration: 0.1 },
   railNudge: { duration: 0.15 },
+  launch: { duration: 0.01 },
 });
 
 /**

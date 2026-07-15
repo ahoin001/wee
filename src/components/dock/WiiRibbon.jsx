@@ -25,6 +25,7 @@ import { parseColorToRgb, tintImageWithOverwrite } from '../../utils/iconTinting
 import isEqual from 'fast-deep-equal';
 import { CSS_COLOR_PURE_WHITE, CSS_WII_BLUE } from '../../design/runtimeColorStrings.js';
 import { useWeeMotion, getWeeDockBarEntrance } from '../../design/weeMotion';
+import { useMotionFeedback } from '../../hooks/useMotionFeedback';
 import { launchWithFeedback } from '../../utils/launchWithFeedback';
 import { toDockParticleProps } from '../../utils/dockParticleSettings';
 import { openSettingsToDockSubtab } from '../../utils/settingsNavigation';
@@ -128,6 +129,13 @@ const WiiRibbonComponent = ({
     () => getWeeDockBarEntrance(reducedMotion, pillOpen),
     [reducedMotion, pillOpen]
   );
+
+  // Launch cinematic: dock yields while a channel launch settles (cinematic mode only).
+  const { launchFeedbackMode } = useMotionFeedback();
+  const launchCinematicActive = useConsolidatedAppStore(
+    (state) => Boolean(state.ui.launchCinematic?.channelId)
+  );
+  const dockLaunchYield = launchFeedbackMode === 'cinematic' && launchCinematicActive;
 
   useLayoutEffect(() => {
     if (showPrimaryActionsModal) setPrimaryActionsModalMounted(true);
@@ -616,7 +624,7 @@ const WiiRibbonComponent = ({
         {...dockBarEntrance}
         className={`interactive-footer ${ribbonHoverAnimationEnabled ? 'ribbon-hover-enabled' : ''}${
           pulseChromeActive ? ' ribbon-fx-pulse-active' : ''
-        }`}
+        }${dockLaunchYield ? ' ribbon--launch-yield' : ''}`}
         style={{
           ['--ribbon-fx-duration']: `${chromeFxDurationSec}s`,
           ['--ribbon-fx-glow']: ribbonGlowHex,

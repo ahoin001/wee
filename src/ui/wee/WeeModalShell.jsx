@@ -74,8 +74,8 @@ function WeeModalShell({
   }
 
   const modalTree = (
-    <Dialog as="div" className="relative z-[99999]" open={true} onClose={handleClose}>
-      <div className="fixed inset-0 z-[99998] pointer-events-auto">
+    <Dialog as="div" className="relative z-[var(--z-modal-top)]" open={true} onClose={handleClose}>
+      <div className="fixed inset-0 z-[calc(var(--z-modal-top)-1)] pointer-events-auto">
         <MotionDiv
           className="fixed inset-0 backdrop-blur-[12px] bg-[hsl(var(--wee-overlay-backdrop))]"
           aria-hidden="true"
@@ -86,10 +86,10 @@ function WeeModalShell({
         />
       </div>
 
-      <div className="fixed inset-0 z-[99999] overflow-y-auto pointer-events-auto">
+      <div className="fixed inset-0 z-[var(--z-modal-top)] overflow-y-auto pointer-events-auto">
         <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
           <Dialog.Panel
-            className="wee-modal-panel relative z-[99999] w-full"
+            className="wee-modal-panel relative z-[var(--z-modal-top)] w-full"
             style={{ maxWidth: effectiveMaxWidth }}
             onClick={(e) => e.stopPropagation()}
           >

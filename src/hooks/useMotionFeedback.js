@@ -44,6 +44,8 @@ export function useMotionFeedback() {
     return {
       osReduced,
       prefs,
+      /** Launch cinematic choreography — 'off' under reduced motion / master off (status pill still shows). */
+      launchFeedbackMode: off ? 'off' : prefs.launch,
       /** Effective “no playful motion” for this surface */
       channelTap: !off && prefs.channels.tap,
       channelDragPreview: !off && prefs.channels.dragPreview,

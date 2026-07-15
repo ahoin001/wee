@@ -3,6 +3,25 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../utils/useConsolidatedAppStore';
 
 /**
+ * Toggle Live Board Studio from outside React (keyboard shortcut registry, admin commands).
+ * Single source of the toggle rules — the hook's `toggleArrange` delegates here.
+ */
+export function toggleHomeBoardArrange() {
+  const { actions } = useConsolidatedAppStore.getState();
+  actions.setUIState((prev) => {
+    if (prev.homeBoardArrangeMode) {
+      return {
+        homeBoardArrangeMode: false,
+        homeBoardPunchMode: false,
+        homeBoardSelectedSlotIndex: null,
+      };
+    }
+    actions.setSpacesState({ activeSpaceId: 'home' });
+    return { homeBoardArrangeMode: true, homeBoardPunchMode: false };
+  });
+}
+
+/**
  * Live Board Studio: transient Home-grid arrange overlay (`ui.homeBoardArrangeMode` /
  * `ui.homeBoardPunchMode` / `ui.homeBoardSelectedSlotIndex`). Not persisted.
  */
@@ -46,18 +65,8 @@ export function useHomeBoardArrange() {
   }, [setUIState]);
 
   const toggleArrange = useCallback(() => {
-    setUIState((prev) => {
-      if (prev.homeBoardArrangeMode) {
-        return {
-          homeBoardArrangeMode: false,
-          homeBoardPunchMode: false,
-          homeBoardSelectedSlotIndex: null,
-        };
-      }
-      setSpacesState({ activeSpaceId: 'home' });
-      return { homeBoardArrangeMode: true, homeBoardPunchMode: false };
-    });
-  }, [setSpacesState, setUIState]);
+    toggleHomeBoardArrange();
+  }, []);
 
   const setPunchMode = useCallback(
     (next) => {

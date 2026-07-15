@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
+import { useChannelSpaceKey } from '../../../contexts/ChannelSpaceContext';
 import {
   playChannelClick,
   playChannelHover,
@@ -36,6 +37,8 @@ export function useChannelInteractions({
 
   const openHint = useConsolidatedAppStore((state) => state.ui.channelOpenHints?.[id]);
   const setUIState = useConsolidatedAppStore((state) => state.actions.setUIState);
+  const channelSpaceKey = useChannelSpaceKey();
+  const configureRequest = useConsolidatedAppStore((state) => state.ui.channelConfigureRequest);
 
   const exitHomeBoardArrangeIfNeeded = useCallback(() => {
     setUIState((prev) => {
@@ -54,6 +57,14 @@ export function useChannelInteractions({
     setShowChannelModal(true);
   }, [exitHomeBoardArrangeIfNeeded]);
 
+  /** Unified board context menu (PaginatedChannels) requests Configure via the store. */
+  useEffect(() => {
+    if (!configureRequest) return;
+    if (configureRequest.channelId !== id || configureRequest.spaceKey !== channelSpaceKey) return;
+    setUIState({ channelConfigureRequest: null });
+    openChannelModal();
+  }, [configureRequest, id, channelSpaceKey, setUIState, openChannelModal]);
+
   const recordRecentLaunchHint = useCallback(() => {
     setUIState((prev) => ({
       ...prev,
@@ -63,6 +74,20 @@ export function useChannelInteractions({
       },
     }));
   }, [id, setUIState]);
+
+  /** Bounded history for the Recently Used tile (separate from transient open hints). */
+  const recordRecentLaunchHistory = useCallback(
+    (launchType) => {
+      if (!effectivePath) return;
+      useConsolidatedAppStore.getState().actions.recordRecentLaunch({
+        label: launchLabel || effectiveConfig?.title || '',
+        path: effectivePath,
+        launchType: launchType || effectiveType || 'app',
+        icon: effectiveConfig?.icon || null,
+      });
+    },
+    [effectivePath, effectiveType, launchLabel, effectiveConfig?.title, effectiveConfig?.icon]
+  );
 
   useEffect(() => {
     const h = openHint;
@@ -183,9 +208,11 @@ export function useChannelInteractions({
           launchType: 'url',
           path: effectivePath,
           source: 'channel',
+          origin: { channelId: id },
         });
         if (!result || result.ok !== false) {
           recordRecentLaunchHint();
+          recordRecentLaunchHistory('url');
           enterSessionAwayIfIntensive({
             type: 'url',
             path: effectivePath,
@@ -206,9 +233,11 @@ export function useChannelInteractions({
       launchType: effectiveType,
       path: effectivePath,
       source: 'channel',
+      origin: { channelId: id },
     });
     if (!result || result.ok !== false) {
       recordRecentLaunchHint();
+      recordRecentLaunchHistory(effectiveType);
       enterSessionAwayIfIntensive({
         type: effectiveType,
         path: effectivePath,
@@ -217,12 +246,14 @@ export function useChannelInteractions({
       });
     }
   }, [
+    id,
     interactionsLocked,
     showLaunchError,
     effectiveType,
     effectivePath,
     effectiveConfig,
     recordRecentLaunchHint,
+    recordRecentLaunchHistory,
     beginLaunchFeedback,
     endLaunchFeedback,
     launchLabel,

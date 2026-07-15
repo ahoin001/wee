@@ -9,7 +9,8 @@ function buildKenBurnsProps(channelSettings, effectiveKenBurnsMode, alt) {
     mode: effectiveKenBurnsMode,
     width: '100%',
     height: '100%',
-    borderRadius: '12px',
+    // Match the tile's own radius (wii tiles are 14px) — a fixed value leaves a visible seam.
+    borderRadius: 'inherit',
     objectFit: 'cover',
     alt,
     hoverDuration: channelSettings?.kenBurnsHoverDuration ?? 8000,

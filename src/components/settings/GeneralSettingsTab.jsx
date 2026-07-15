@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import Button from '../../ui/WButton';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { useUIState } from '../../utils/useConsolidatedAppHooks';
 import WeeModalFieldCard from '../../ui/wee/WeeModalFieldCard';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
@@ -11,6 +12,7 @@ import SettingsWeeSection from './SettingsWeeSection';
 const GeneralSettingsTab = React.memo(() => {
   const ui = useConsolidatedAppStore(useShallow((state) => state.ui));
   const { setUIState } = useConsolidatedAppStore((state) => state.actions);
+  const { confirmAction, openConfirmationModal } = useUIState();
 
   useEffect(() => {
     const loadInitialState = async () => {
@@ -83,39 +85,77 @@ const GeneralSettingsTab = React.memo(() => {
     [setUIState]
   );
 
-  const handleFreshInstall = useCallback(async () => {
-    if (
-      window.confirm(
-        'Are you sure you want to restore to a fresh install? This will backup your current data and give you a clean start. Your old data will be preserved in a backup folder.'
-      )
-    ) {
-      try {
-        if (window.api && window.api.getFreshInstallInfo) {
-          const currentInfo = await window.api.getFreshInstallInfo();
-          const backupLocation = currentInfo.backupLocation;
-          const confirmMessage = backupLocation
-            ? `Your current data will be backed up to:\n${backupLocation}\n\nProceed with fresh install?`
-            : 'Proceed with fresh install?';
+  /** Notice dialog (single OK) — Wee replacement for native alert(). */
+  const notifyDialog = useCallback(
+    (title, message, confirmVariant = 'primary') => {
+      openConfirmationModal({
+        title,
+        message,
+        confirmText: 'OK',
+        confirmVariant,
+        hideCancel: true,
+      });
+    },
+    [openConfirmationModal]
+  );
 
-          if (window.confirm(confirmMessage)) {
-            if (window.api && window.api.triggerFreshInstall) {
-              await window.api.triggerFreshInstall();
-              alert(
-                'Fresh install completed! The app will restart with a clean state. Your old data has been backed up.'
-              );
-              window.location.reload();
-            } else {
-              alert('Fresh install feature not available. Please restart the app manually.');
-            }
-          }
-        } else {
-          alert('Fresh install feature not available. Please restart the app manually.');
-        }
-      } catch (error) {
-        alert(`Error during fresh install: ${error.message}`);
-      }
+  const runFreshInstall = useCallback(async () => {
+    if (!window.api?.triggerFreshInstall) {
+      notifyDialog(
+        'Fresh install unavailable',
+        'Fresh install feature not available. Please restart the app manually.'
+      );
+      return;
     }
-  }, []);
+    try {
+      await window.api.triggerFreshInstall();
+      openConfirmationModal({
+        title: 'Fresh install complete',
+        message:
+          'The app will restart with a clean state. Your old data has been backed up.',
+        confirmText: 'Restart now',
+        hideCancel: true,
+        onConfirm: () => window.location.reload(),
+      });
+    } catch (error) {
+      notifyDialog('Fresh install failed', `Error during fresh install: ${error.message}`);
+    }
+  }, [notifyDialog, openConfirmationModal]);
+
+  const handleFreshInstall = useCallback(() => {
+    confirmAction(
+      'Restore fresh install?',
+      'This backs up your current data and gives you a clean start. Your old data will be preserved in a backup folder.',
+      async () => {
+        try {
+          if (!window.api?.getFreshInstallInfo) {
+            notifyDialog(
+              'Fresh install unavailable',
+              'Fresh install feature not available. Please restart the app manually.'
+            );
+            return;
+          }
+          const currentInfo = await window.api.getFreshInstallInfo();
+          const backupLocation = currentInfo?.backupLocation;
+          confirmAction(
+            'Proceed with fresh install?',
+            backupLocation
+              ? `Your current data will be backed up to:<br /><strong>${backupLocation}</strong>`
+              : 'Your current data will be backed up before the reset.',
+            runFreshInstall,
+            null,
+            'Reset app',
+            'danger-primary'
+          );
+        } catch (error) {
+          notifyDialog('Fresh install failed', `Error during fresh install: ${error.message}`);
+        }
+      },
+      null,
+      'Continue',
+      'danger-primary'
+    );
+  }, [confirmAction, notifyDialog, runFreshInstall]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-10 pb-12">

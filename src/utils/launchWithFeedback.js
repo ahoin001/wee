@@ -7,6 +7,8 @@ export async function launchWithFeedback({
   launchType,
   path,
   source = 'app',
+  /** Launch origin metadata for shell choreography, e.g. { channelId }. Optional; pill-only feedback without it. */
+  origin = null,
 }) {
   const feedbackToken = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   beginLaunchFeedback?.({
@@ -15,6 +17,7 @@ export async function launchWithFeedback({
     launchType: launchType || 'app',
     path: path || '',
     source,
+    origin,
   });
 
   try {

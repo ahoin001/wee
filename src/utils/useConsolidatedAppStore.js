@@ -28,13 +28,14 @@ import {
   normalizeShellSpaceOrder,
 } from './channelSpaces';
 import {
-  placeAdminQuickAccessInSpaceData,
+  placeHomeWidgetInSpaceData,
   removeHomeWidgetFromSpaceData,
   setHomeSlotSpanInSpaceData,
   syncSpaceDataFromLegacyMaps,
 } from './homeGridSlots';
 import { canPlaceSpan, applySlotSpan } from './homeGridOccupancy';
 import { getHomeSlotSizePresetById } from './homeSlotSizePresets';
+import { recordRecentLaunchEntry } from './recentLaunches';
 import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
 import {
@@ -222,6 +223,22 @@ useConsolidatedAppStore = create(
           homeBoardPunchMode: false,
           /** Absolute slot index selected in Live Board Studio for widget size / remove. Transient. */
           homeBoardSelectedSlotIndex: null,
+          /** One-time Home arrange coach (right-click / Ctrl+E hint) — true once dismissed or arrange used. Persisted. */
+          homeArrangeHintSeen: false,
+          /** One-time Edit Home widget coach (tap tile → Add widget) — true once dismissed or first widget placed. Persisted. */
+          homeBoardWidgetCoachDismissed: false,
+          /** Ctrl+Space command palette. Transient — not persisted. */
+          commandPaletteOpen: false,
+          /** Recently run palette command ids. Persisted (bounded). */
+          commandPaletteRecent: [],
+          /** Shared Home idle machine stage mirror (useHomeIdleExperience). Transient. */
+          homeIdleStage: 'active',
+          /** Now Playing takeover visibility: false | 'manual' | 'auto'. Transient — not persisted. */
+          spotifyTakeoverActive: false,
+          /** Launch cinematic origin: { token, channelId, source, startedAt } | null. Written only by LaunchFeedbackContext. Transient. */
+          launchCinematic: null,
+          /** Unified board context menu → Configure request: { spaceKey, channelId }. Transient. */
+          channelConfigureRequest: null,
           /** Full-app scene transition for premium workspace/preset switching UX. Not persisted. */
           sceneTransition: {
             active: false,
@@ -358,6 +375,9 @@ useConsolidatedAppStore = create(
             kenBurnsCrossfadeReturn: true,
             kenBurnsTransitionType: 'cross-dissolve',
             focusRecedeEnabled: true,
+            /** Unified idle experience (see utils/idleExperience.js) */
+            idleExperienceMode: 'subtle',
+            idleAttractDelaySec: 120,
           },
           
           /** Per shell space: `home` + mirror of active secondary profile under `workspaces` */
@@ -374,6 +394,9 @@ useConsolidatedAppStore = create(
             },
           },
           activeSecondaryChannelProfileId: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
+
+          /** Bounded launch history (Recently Used tile) — see utils/recentLaunches.js */
+          recentLaunches: [],
 
           // Channel operations state
           operations: {
@@ -519,6 +542,8 @@ useConsolidatedAppStore = create(
           playerWebApiForbidden: false,
           // Extracted colors from current track's album art
           extractedColors: null,
+          /** Now Playing takeover preference: 'off' | 'onDemand' | 'autoIdle'. Persisted. */
+          nowPlayingExperience: 'onDemand',
           // Immersive experience settings
           immersiveMode: {
             enabled: false,
@@ -853,6 +878,18 @@ useConsolidatedAppStore = create(
               operations: { ...state.channels.operations, ...updates }
             }
           })),
+
+          /** Record a successful launch into bounded history (Recently Used tile). */
+          recordRecentLaunch: (entry) => set((state) => {
+            const next = recordRecentLaunchEntry(state.channels.recentLaunches, entry);
+            if (next === state.channels.recentLaunches) return state;
+            return {
+              channels: {
+                ...state.channels,
+                recentLaunches: next,
+              },
+            };
+          }),
           
           updateChannelForSpace: (spaceKey, channelId, channelData) => set((state) => {
             const key = normalizeChannelSpaceKey(spaceKey);
@@ -1043,14 +1080,14 @@ useConsolidatedAppStore = create(
           }),
 
           /**
-           * Place Admin Quick Access on an empty Home slot. Uses size preset S unless overridden.
+           * Place a registry widget kind on an empty Home slot (Edit Home “Add widget”).
            * Returns no state change when the footprint is blocked.
            */
-          placeAdminQuickAccessSlotForSpace: (spaceKey, channelIndex, sizePresetId = 'S') =>
+          placeHomeWidgetSlotForSpace: (spaceKey, channelIndex, kindId, sizePresetId = 'S') =>
             set((state) => {
               const key = normalizeChannelSpaceKey(spaceKey);
               const index = channelIndex | 0;
-              if (index < 0) return state;
+              if (index < 0 || !kindId) return state;
               const preset =
                 getHomeSlotSizePresetById(sizePresetId) || getHomeSlotSizePresetById('S');
               const apply = (channelsData) => {
@@ -1069,7 +1106,7 @@ useConsolidatedAppStore = create(
                 ) {
                   return channelsData;
                 }
-                return placeAdminQuickAccessInSpaceData(channelsData, index, {
+                return placeHomeWidgetInSpaceData(channelsData, index, kindId, {
                   colSpan: preset.colSpan,
                   rowSpan: preset.rowSpan,
                 });
@@ -1887,6 +1924,11 @@ useConsolidatedAppStore = create(
               homeBoardArrangeMode: false,
               homeBoardPunchMode: false,
               homeBoardSelectedSlotIndex: null,
+              commandPaletteOpen: false,
+              commandPaletteRecent: [],
+              homeIdleStage: 'active',
+              spotifyTakeoverActive: false,
+              launchCinematic: null,
               sceneTransition: {
                 active: false,
                 label: '',
@@ -1990,6 +2032,8 @@ useConsolidatedAppStore = create(
                 kenBurnsAnimationType: 'both',
                 kenBurnsCrossfadeReturn: true,
                 kenBurnsTransitionType: 'cross-dissolve',
+                idleExperienceMode: 'subtle',
+                idleAttractDelaySec: 120,
               },
               dataBySpace: {
                 home: createDefaultChannelSpaceData(),
@@ -2003,6 +2047,7 @@ useConsolidatedAppStore = create(
                 },
               },
               activeSecondaryChannelProfileId: DEFAULT_SECONDARY_CHANNEL_PROFILE_ID,
+              recentLaunches: [],
               operations: {
                 isLoading: false,
                 isSaving: false,

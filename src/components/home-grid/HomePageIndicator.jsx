@@ -58,12 +58,22 @@ function HomePageIndicator() {
       }}
     >
       <div
-        className="pointer-events-auto relative flex items-center justify-center"
+        className="pointer-events-auto relative flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary)/0.75)]"
+        role="group"
+        aria-label={`Home pages — page ${currentPage + 1} of ${totalPages}`}
+        tabIndex={0}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onBlur={(e) => {
+          // Keep expanded while focus moves between the dots inside the pill.
+          if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
+        }}
       >
+        {/* Screen-reader page announcement (dots are hover/focus-revealed) */}
+        <span className="sr-only" aria-live="polite">
+          Page {currentPage + 1} of {totalPages}
+        </span>
         <WeePillFloorShadow expanded={revealed} reducedMotion={reducedMotion} />
         <WeeGlassPill
           motion
@@ -71,8 +81,6 @@ function HomePageIndicator() {
           animate={revealed ? 'open' : 'closed'}
           variants={variants}
           className="relative z-10 flex items-center justify-center gap-2 overflow-hidden rounded-full !shadow-none px-2"
-          role="tablist"
-          aria-label="Home page"
         >
           {revealed ? (
             Array.from({ length: totalPages }, (_, page) => {
@@ -81,11 +89,10 @@ function HomePageIndicator() {
                 <button
                   key={`home-page-dot-${page}`}
                   type="button"
-                  role="tab"
-                  aria-selected={active}
+                  aria-current={active ? 'page' : undefined}
                   aria-label={`Go to Home page ${page + 1}`}
                   onClick={() => goToPage(page)}
-                  className={`h-2.5 w-2.5 shrink-0 rounded-full transition-transform duration-150 ${
+                  className={`h-2.5 w-2.5 shrink-0 rounded-full transition-transform duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary)/0.75)] ${
                     active
                       ? 'scale-125 bg-[hsl(var(--primary))]'
                       : 'bg-[hsl(var(--text-tertiary)/0.45)] hover:bg-[hsl(var(--text-tertiary)/0.7)]'
@@ -95,7 +102,7 @@ function HomePageIndicator() {
             })
           ) : (
             <span
-              className="text-[10px] font-black uppercase tracking-wide text-[hsl(var(--text-secondary))]"
+              className="text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--text-secondary))]"
               aria-hidden
             >
               {currentPage + 1}/{totalPages}

@@ -21,12 +21,40 @@ export const HOME_SLOT_KINDS = {
   },
   adminQuickAccess: {
     id: 'adminQuickAccess',
-    label: 'Admin Quick Access',
+    label: 'Quick Access',
+    description: 'Pin admin & system actions to a tile',
+    icon: '🛡️',
     colSpan: HOME_SLOT_SIZE_PRESETS.S.colSpan,
     rowSpan: HOME_SLOT_SIZE_PRESETS.S.rowSpan,
-    defaultSizePreset: 'S',
+    defaultSizePreset: 'M',
     sizePresets: HOME_SLOT_SIZE_PRESETS,
     render: 'AdminQuickAccessSlot',
+    /** Shown in the Edit Home “Add widget” picker. */
+    placeable: true,
+  },
+  nowPlaying: {
+    id: 'nowPlaying',
+    label: 'Now Playing',
+    description: 'Live Spotify track on a tile',
+    icon: '🎵',
+    colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
+    rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: HOME_SLOT_SIZE_PRESETS,
+    render: 'NowPlayingSlot',
+    placeable: true,
+  },
+  recentlyUsed: {
+    id: 'recentlyUsed',
+    label: 'Recently Used',
+    description: 'Relaunch your last apps fast',
+    icon: '🕘',
+    colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
+    rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: HOME_SLOT_SIZE_PRESETS,
+    render: 'RecentlyUsedSlot',
+    placeable: true,
   },
 };
 
@@ -44,6 +72,14 @@ export function getHomeSlotKind(id) {
  */
 export function listHomeSlotKinds() {
   return Object.values(HOME_SLOT_KINDS);
+}
+
+/**
+ * Widget kinds users can place from the Edit Home picker.
+ * @returns {Array<typeof HOME_SLOT_KINDS[keyof typeof HOME_SLOT_KINDS]>}
+ */
+export function listPlaceableHomeSlotKinds() {
+  return Object.values(HOME_SLOT_KINDS).filter((kind) => kind.placeable);
 }
 
 /**

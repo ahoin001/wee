@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { LayoutTemplate } from 'lucide-react';
 import { WeeButton, WeeSectionEyebrow } from '../../ui/wee';
+import WSelect from '../../ui/WSelect';
 import Text from '../../ui/Text';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
@@ -50,17 +51,14 @@ function HomeBoardSwitcher() {
         Copy a saved second-space channel layout onto Home. Home stays what you edit afterward.
       </Text>
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={effectiveId}
-          onChange={(e) => setSelectedId(e.target.value)}
-          className="min-w-[10rem] flex-1 rounded-xl border-2 border-[hsl(var(--wee-border-field))] bg-[hsl(var(--wee-surface-input))] px-3 py-2 text-[12px] font-bold text-[hsl(var(--text-primary))] shadow-[var(--wee-shadow-field)]"
-        >
-          {profilesList.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <div className="min-w-[10rem] flex-1">
+          <WSelect
+            options={profilesList.map((p) => ({ value: p.id, label: p.name || 'Untitled layout' }))}
+            value={effectiveId}
+            onChange={(id) => setSelectedId(id)}
+            placeholder="Pick a saved layout…"
+          />
+        </div>
         <WeeButton variant="primary" className="!px-4 !py-2" onClick={handleApply}>
           Use as Home board
         </WeeButton>

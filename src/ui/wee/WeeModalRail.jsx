@@ -58,7 +58,7 @@ export function WeeModalRailItem({ icon: Icon, title, subtitle, active, onClick,
       <div className="min-w-0">
         <p className="mb-1 text-[11px] font-black uppercase italic leading-none tracking-widest">{title}</p>
         {subtitle ? (
-          <p className="text-[9px] font-bold uppercase opacity-70">{subtitle}</p>
+          <p className="text-[length:var(--font-size-micro)] font-bold uppercase text-[hsl(var(--wee-text-rail-muted))]">{subtitle}</p>
         ) : null}
       </div>
     </button>

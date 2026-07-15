@@ -18,6 +18,7 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { buildPresetDataFromStore } from '../../utils/presets/buildPresetSnapshot';
 import { applyPresetData } from '../../utils/presets/applyPresetData';
 import { normalizePresetRecord, sanitizePresetCollection, toVisualOnlyPreset } from '../../utils/presets/presetThemeData';
+import { exportPresetToFile, parsePresetFile, WEE_PRESET_FILE_EXTENSION } from '../../utils/presets/presetFileTransfer';
 import { createDefaultSpotifyMatchPreset, SPOTIFY_MATCH_PRESET_NAME } from '../../utils/presets/spotifyMatchPreset';
 import { importCommunityPresetFlow } from '../../utils/presets/importCommunityPresetFlow';
 import { runSceneTransition } from '../../utils/workspaces/runSceneTransition';
@@ -57,14 +58,14 @@ const normalizePresetName = (value) => value.trim().toLowerCase();
 const PRESET_UPDATE_SCOPE_OPTIONS = [
   {
     value: PRESET_SCOPE_VISUAL,
-    title: 'Visual only',
-    subtitle: 'Colors, wallpaper, dock & chrome. Shareable.',
+    title: 'Look only',
+    subtitle: 'Colors, wallpaper, dock & chrome. Shareable and exportable.',
     Icon: Palette,
   },
   {
     value: PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS,
-    title: 'Visuals + Home channels',
-    subtitle: 'Also overwrite this preset’s Home channel layout.',
+    title: 'Look + Home channels',
+    subtitle: 'Also overwrite this preset’s Home channel layout. Stays on this PC.',
     Icon: Home,
   },
 ];
@@ -118,6 +119,9 @@ const PresetsSettingsTab = React.memo(() => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [spotifyNameModalOpen, setSpotifyNameModalOpen] = useState(false);
   const [spotifyNameInput, setSpotifyNameInput] = useState('');
+  const [importPreview, setImportPreview] = useState(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const importFileInputRef = useRef(null);
   const saveSectionRef = useRef(null);
   const mf = useMotionFeedback();
   const noticeTransition = createWeeTransition('pillOpen', {
@@ -669,6 +673,75 @@ const PresetsSettingsTab = React.memo(() => {
     }
   };
 
+  const handleExportPresetFile = useCallback((preset) => {
+    const result = exportPresetToFile(preset);
+    if (result.ok) {
+      setCaptureNotice({
+        type: 'success',
+        text: `Exported “${preset?.name || 'look'}” as a visual-only ${WEE_PRESET_FILE_EXTENSION} file.`,
+      });
+    } else {
+      setCaptureNotice({ type: 'warning', text: result.error || 'Export failed.' });
+    }
+    setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2600);
+  }, []);
+
+  const handleImportFilePick = useCallback(() => {
+    importFileInputRef.current?.click();
+  }, []);
+
+  const handleImportFileChange = useCallback(async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const result = parsePresetFile(text);
+      if (!result.ok) {
+        setCaptureNotice({ type: 'warning', text: result.error });
+        setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3600);
+        return;
+      }
+      setImportPreview({ preset: result.preset, meta: result.meta, fileName: file.name });
+      setImportModalOpen(true);
+    } catch (e) {
+      console.error('[PresetsSettingsTab] Import file read failed:', e);
+      setCaptureNotice({ type: 'warning', text: 'Could not read that file.' });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3200);
+    }
+  }, []);
+
+  const handleConfirmImportFile = useCallback(async () => {
+    const incoming = importPreview?.preset;
+    if (!incoming) return;
+
+    const currentPresets = useConsolidatedAppStore.getState().presets || [];
+    const currentCustomCount = currentPresets.filter((p) => p.name !== SPOTIFY_MATCH_PRESET_NAME).length;
+    if (currentCustomCount >= MAX_CUSTOM_PRESETS) {
+      setCaptureNotice({
+        type: 'warning',
+        text: `You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one before importing.`,
+      });
+      setTimeout(() => setCaptureNotice({ type: '', text: '' }), 3600);
+      setImportModalOpen(false);
+      return;
+    }
+
+    let nextName = incoming.name;
+    let suffix = 2;
+    while (hasPresetName(nextName)) {
+      nextName = `${incoming.name} ${suffix}`;
+      suffix += 1;
+    }
+
+    const updatedPresets = [...currentPresets, { ...incoming, name: nextName }];
+    setPresets(updatedPresets);
+    await savePresetsToBackend(updatedPresets);
+    setImportModalOpen(false);
+    setCaptureNotice({ type: 'success', text: `Imported “${nextName}”. Apply it from Saved looks.` });
+    setTimeout(() => setCaptureNotice({ type: '', text: '' }), 2600);
+  }, [importPreview, hasPresetName, setPresets, savePresetsToBackend]);
+
   const handleSharePreset = (preset) => {
     setUploadFormData({
       name: preset.name || '',
@@ -976,7 +1049,18 @@ const PresetsSettingsTab = React.memo(() => {
           hasActiveProfile={hasActiveProfile}
           onApplyCommunityUpdate={handleApplyCommunityUpdate}
           onShare={handleSharePreset}
+          onExport={handleExportPresetFile}
+          onImportFile={handleImportFilePick}
           onFocusSaveSection={() => saveSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        />
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept={`${WEE_PRESET_FILE_EXTENSION},application/json`}
+          className="hidden"
+          onChange={handleImportFileChange}
+          aria-hidden
+          tabIndex={-1}
         />
       </WeeSettingsCollapsibleSection>
 
@@ -1096,7 +1180,7 @@ const PresetsSettingsTab = React.memo(() => {
                         {subtitle}
                       </p>
                       {isCurrent ? (
-                        <p className="m-0 mt-3 inline-flex rounded-full bg-[hsl(var(--surface-secondary))] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
+                        <p className="m-0 mt-3 inline-flex rounded-full bg-[hsl(var(--surface-secondary))] px-2.5 py-1 text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
                           Current scope
                         </p>
                       ) : null}
@@ -1142,6 +1226,53 @@ const PresetsSettingsTab = React.memo(() => {
         <p className="m-0 text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
           Delete “{deleteDialog?.name}”? This cannot be undone.
         </p>
+      </WeeModalShell>
+
+      <WeeModalShell
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        headerTitle="Import look"
+        showRail={false}
+        maxWidth="min(520px, 94vw)"
+        onExitAnimationComplete={() => setImportPreview(null)}
+        footerContent={() => (
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <WeeButton variant="secondary" onClick={() => setImportModalOpen(false)}>
+              Cancel
+            </WeeButton>
+            <WeeButton variant="primary" onClick={handleConfirmImportFile}>
+              Add to my looks
+            </WeeButton>
+          </div>
+        )}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            {importPreview?.preset?.thumbnailDataUrl ? (
+              <img
+                src={importPreview.preset.thumbnailDataUrl}
+                alt=""
+                className="h-16 w-28 shrink-0 rounded-xl border border-[hsl(var(--border-primary))] object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-xl border border-dashed border-[hsl(var(--border-primary))] text-[hsl(var(--text-tertiary))]">
+                <Palette size={20} aria-hidden />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="m-0 truncate text-base font-black text-[hsl(var(--wee-text-header))]">
+                {importPreview?.preset?.name || 'Imported look'}
+              </p>
+              <p className="m-0 mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[hsl(var(--text-tertiary))]">
+                Look · shareable scope · file v{importPreview?.meta?.formatVersion ?? '?'}
+              </p>
+            </div>
+          </div>
+          <p className="m-0 text-sm font-medium leading-relaxed text-[hsl(var(--text-secondary))]">
+            Adds this look to your saved presets without applying it. Only visual settings
+            (wallpaper, colors, dock, chrome) are imported — never Home channels or app paths.
+          </p>
+        </div>
       </WeeModalShell>
 
       <WeeModalShell

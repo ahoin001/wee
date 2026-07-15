@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Switch } from '@headlessui/react';
+import { Field, Label, Switch } from '@headlessui/react';
 import { useMotionFeedback } from '../hooks/useMotionFeedback';
 
 const WToggle = React.memo(
@@ -17,16 +17,13 @@ const WToggle = React.memo(
     ...props
   }) => {
   const { iconTilt } = useMotionFeedback();
-  const handleLabelClick = () => {
-    if (!disabled && !disableLabelClick && onChange) {
-      onChange(!checked);
-    }
-  };
 
   const tooltip = disabled && disabledHint ? disabledHint : title;
 
   return (
-    <div
+    <Field
+      as="div"
+      disabled={disabled}
       className={`flex items-center gap-2.5 ${containerClassName}`.trim()}
       style={style}
       title={tooltip || undefined}
@@ -59,8 +56,8 @@ const WToggle = React.memo(
         />
       </Switch>
       {label && (
-        <label 
-          onClick={handleLabelClick}
+        <Label
+          passive={disableLabelClick}
           className={`
             text-[15px] font-medium
             ${disabled 
@@ -72,9 +69,9 @@ const WToggle = React.memo(
           `}
         >
           {label}
-        </label>
+        </Label>
       )}
-    </div>
+    </Field>
   );
   },
 );

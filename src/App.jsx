@@ -47,6 +47,7 @@ import { useSessionPowerSync } from './hooks/useSessionPowerSync';
 import { useSystemPowerSync } from './hooks/useSystemPowerSync';
 import { useWeeMotion } from './design/weeMotion';
 import { weeMeasureAsync, weeMarkSettingsModalVisible } from './utils/weePerformanceMarks';
+import SpotifyTakeoverController from './components/overlays/SpotifyTakeoverController';
 
 // Lazy load components to reduce initial bundle size
 const lazyNamedExport = (importer, exportName) =>
@@ -57,10 +58,27 @@ const lazyNamedExport = (importer, exportName) =>
 const LazyPaginatedChannels = lazyNamedExport(() => import('./components/navigation'), 'PaginatedChannels');
 const LazyPageNavigation = lazyNamedExport(() => import('./components/navigation'), 'PageNavigation');
 const LazyHomePageIndicator = lazyNamedExport(() => import('./components/home-grid'), 'HomePageIndicator');
+const LazyHomeEditPill = lazyNamedExport(() => import('./components/home-grid'), 'HomeEditPill');
 const LazyWiiRibbon = lazyNamedExport(() => import('./components/dock'), 'WiiRibbon');
 const LazyClassicWiiDock = lazyNamedExport(() => import('./components/dock'), 'ClassicWiiDock');
 const LazyWiiSideNavigation = lazyNamedExport(() => import('./components/navigation'), 'WiiSideNavigation');
 const LazySettingsModal = lazyNamedExport(() => import('./components/settings'), 'SettingsModal');
+const LazyCommandPalette = React.lazy(() => import('./components/palette/CommandPalette'));
+
+/** Defers the palette chunk until first open, then keeps it mounted for instant reopen. */
+function CommandPaletteMount() {
+  const open = useConsolidatedAppStore((s) => Boolean(s.ui.commandPaletteOpen));
+  const [everOpened, setEverOpened] = useState(false);
+  useEffect(() => {
+    if (open) setEverOpened(true);
+  }, [open]);
+  if (!everOpened) return null;
+  return (
+    <Suspense fallback={null}>
+      <LazyCommandPalette />
+    </Suspense>
+  );
+}
 const LazySettingsActionMenu = lazyNamedExport(() => import('./components/settings'), 'SettingsActionMenu');
 const LazyUpdateModal = React.lazy(() => import('./components/modals/UpdateModal'));
 const LazyFloatingSpotifyWidget = lazyNamedExport(() => import('./components/widgets'), 'FloatingSpotifyWidget');
@@ -347,7 +365,8 @@ function App() {
         Boolean(sp.isConnected) ||
         Boolean(sp.accessToken || sp.refreshToken) ||
         sp.immersiveMode?.enabled === true ||
-        sp.immersiveMode?.liveGradientWallpaper === true
+        sp.immersiveMode?.liveGradientWallpaper === true ||
+        Boolean(s.ui.spotifyTakeoverActive)
       );
     })
   );
@@ -665,6 +684,7 @@ function App() {
           >
             <LazyPageNavigation position="bottom" showPageIndicator />
             <LazyHomePageIndicator />
+            <LazyHomeEditPill />
             <LazyWiiSideNavigation />
           </div>
         </Suspense>
@@ -838,6 +858,8 @@ function App() {
           <LazyUpdateModal isOpen={Boolean(showUpdateModal)} onClose={closeUpdateModal} />
         </Suspense>
 
+        <CommandPaletteMount />
+
         {/* Settings Action Menu - Keep mounted once visited so close animation always runs. */}
         <Suspense
           fallback={
@@ -861,6 +883,7 @@ function App() {
             <LazySpotifyLiveGradientWallpaper />
             <LazySpotifyImmersiveOverlay />
             <LazySpotifyGradientOverlay />
+            <SpotifyTakeoverController />
           </Suspense>
         ) : null}
 

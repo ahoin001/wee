@@ -27,18 +27,29 @@ export function createEmptyChannelSlot() {
 }
 
 /**
+ * Generic widget slot for any registered non-channel kind
+ * (see `slotKindRegistry.js` for labels/render ids/size presets).
+ * @param {string} kindId
  * @param {{ colSpan?: number, rowSpan?: number }} [span]
  * @returns {import('./homeGridSlots').HomeGridSlot}
  */
-export function createAdminQuickAccessSlot(span = {}) {
+export function createHomeWidgetSlot(kindId, span = {}) {
   return {
-    kind: SLOT_KIND_ADMIN_QUICK_ACCESS,
+    kind: kindId,
     hidden: false,
     colSpan: span.colSpan ?? 1,
     rowSpan: span.rowSpan ?? 1,
     channel: null,
-    widget: { widgetId: SLOT_KIND_ADMIN_QUICK_ACCESS },
+    widget: { widgetId: kindId },
   };
+}
+
+/**
+ * @param {{ colSpan?: number, rowSpan?: number }} [span]
+ * @returns {import('./homeGridSlots').HomeGridSlot}
+ */
+export function createAdminQuickAccessSlot(span = {}) {
+  return createHomeWidgetSlot(SLOT_KIND_ADMIN_QUICK_ACCESS, span);
 }
 
 /**
@@ -373,25 +384,34 @@ export function syncSpaceDataSlotsAfterReorder(spaceData) {
 }
 
 /**
- * Replace an empty channel slot with Admin Quick Access (S by default).
+ * Replace an empty channel slot with a widget kind (registry-driven).
  * Caller should verify `canPlaceSpan` first for multi-cell presets.
  * @param {Record<string, unknown>} spaceData
  * @param {number} channelIndex
+ * @param {string} kindId — non-channel kind id from `slotKindRegistry.js`
  * @param {{ colSpan?: number, rowSpan?: number }} [span]
  */
-export function placeAdminQuickAccessInSpaceData(spaceData, channelIndex, span = {}) {
+export function placeHomeWidgetInSpaceData(spaceData, channelIndex, kindId, span = {}) {
   const input = spaceData && typeof spaceData === 'object' ? spaceData : {};
   const slots = Array.isArray(input.slots) ? [...input.slots] : [];
   const index = channelIndex | 0;
   if (index < 0 || index >= slots.length) return input;
+  if (!kindId || kindId === SLOT_KIND_CHANNEL) return input;
 
-  slots[index] = createAdminQuickAccessSlot({
+  slots[index] = createHomeWidgetSlot(kindId, {
     colSpan: span.colSpan ?? 1,
     rowSpan: span.rowSpan ?? 1,
   });
 
   const legacy = projectSlotsToLegacyMaps(slots);
   return { ...input, slots, ...legacy };
+}
+
+/**
+ * @deprecated Use `placeHomeWidgetInSpaceData(spaceData, index, SLOT_KIND_ADMIN_QUICK_ACCESS, span)`.
+ */
+export function placeAdminQuickAccessInSpaceData(spaceData, channelIndex, span = {}) {
+  return placeHomeWidgetInSpaceData(spaceData, channelIndex, SLOT_KIND_ADMIN_QUICK_ACCESS, span);
 }
 
 /**

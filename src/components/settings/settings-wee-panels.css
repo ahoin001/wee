@@ -368,7 +368,7 @@
   z-index: 2;
   border-radius: 999px;
   padding: 0.12rem 0.45rem;
-  font-size: 0.5625rem;
+  font-size: var(--font-size-micro);
   font-weight: 900;
   letter-spacing: 0.14em;
   text-transform: uppercase;

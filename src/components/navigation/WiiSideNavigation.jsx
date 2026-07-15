@@ -84,9 +84,9 @@ const WiiSideNavigation = () => {
     (glassSettings) => {
       if (!glassSettings.enabled) return undefined;
 
-      let background = `rgba(255, 255, 255, ${glassSettings.opacity})`;
-      let border = `rgba(255, 255, 255, ${glassSettings.borderOpacity})`;
-      let glow = `rgba(31, 38, 135, 0.37)`;
+      let background = `hsl(var(--color-pure-white) / ${glassSettings.opacity})`;
+      let border = `hsl(var(--color-pure-white) / ${glassSettings.borderOpacity})`;
+      let glow = 'hsl(var(--side-nav-glass-glow) / 0.37)';
 
       if (shouldUseDynamicNavColors && navigationSpotifyIntegration && spotifyColors) {
         const { primary, secondary, accent } = spotifyColors;

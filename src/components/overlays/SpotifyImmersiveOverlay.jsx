@@ -3,13 +3,16 @@ import { useShallow } from 'zustand/react/shallow';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 import { useSpotifyPlaybackSample } from '../../hooks/useSpotifyPlaybackSample';
+import { selectSpotifyImmersiveActive } from '../../utils/spotifyTakeover';
 
 const SpotifyImmersiveOverlay = () => {
-  const { extractedColors, immersiveMode, isPlaying } = useConsolidatedAppStore(
+  const { extractedColors, immersiveMode, isPlaying, stackActive } = useConsolidatedAppStore(
     useShallow((state) => ({
       extractedColors: state.spotify.extractedColors,
       immersiveMode: state.spotify.immersiveMode,
       isPlaying: state.spotify.isPlaying,
+      /** Immersive config enabled OR momentary Now Playing takeover. */
+      stackActive: selectSpotifyImmersiveActive(state),
     }))
   );
   const { progress, duration } = useSpotifyPlaybackSample(200);
@@ -54,7 +57,7 @@ const SpotifyImmersiveOverlay = () => {
 
   // Generate immersive overlay styles
   const overlayStyles = useMemo(() => {
-    if (!immersiveMode.enabled || !extractedColors) {
+    if (!stackActive || !extractedColors) {
       return {
         wallpaperOverlay: null,
         ambientLighting: null,
@@ -99,11 +102,11 @@ const SpotifyImmersiveOverlay = () => {
       ambientLighting,
       pulseEffect
     };
-  }, [immersiveMode, extractedColors, beatProgress]);
+  }, [immersiveMode, extractedColors, beatProgress, stackActive]);
 
   // Particle system for ambient effects
   useEffect(() => {
-    if (!immersiveMode.enabled || !extractedColors || !canvasRef.current || !shouldAnimate) {
+    if (!stackActive || !extractedColors || !canvasRef.current || !shouldAnimate) {
       return;
     }
 
@@ -206,10 +209,10 @@ const SpotifyImmersiveOverlay = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [immersiveMode.enabled, extractedColors, isPlaying, shouldAnimate, isLowPowerMode]);
+  }, [stackActive, extractedColors, isPlaying, shouldAnimate, isLowPowerMode]);
 
-  // Don't render if immersive mode is disabled
-  if (!immersiveMode.enabled || !extractedColors) {
+  // Don't render if neither immersive config nor a takeover is active
+  if (!stackActive || !extractedColors) {
     return null;
   }
 

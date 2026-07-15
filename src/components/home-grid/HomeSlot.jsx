@@ -8,6 +8,15 @@ import {
 } from '../../utils/homeGridSlots';
 import { getHomeSlotKind } from './slotKindRegistry';
 import AdminQuickAccessSlot from './AdminQuickAccessSlot';
+import NowPlayingSlot from './NowPlayingSlot';
+import RecentlyUsedSlot from './RecentlyUsedSlot';
+
+/** Non-channel widget renderers, keyed by registry `render` ids. */
+const WIDGET_SLOT_COMPONENTS = {
+  AdminQuickAccessSlot,
+  NowPlayingSlot,
+  RecentlyUsedSlot,
+};
 
 /**
  * @param {import('../../utils/homeGridSlots').HomeChannelPayload | null | undefined} channel
@@ -52,9 +61,10 @@ function HomeSlot({ slot, channelId, arrangeMode = false, punchMode = false, sel
     };
   }, [slot?.channel, channelId]);
 
-  if (renderId === 'AdminQuickAccessSlot') {
+  const WidgetComponent = WIDGET_SLOT_COMPONENTS[renderId];
+  if (WidgetComponent) {
     return (
-      <AdminQuickAccessSlot
+      <WidgetComponent
         slot={slot}
         channelId={channelId}
         arrangeMode={arrangeMode}
