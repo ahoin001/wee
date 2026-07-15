@@ -181,9 +181,15 @@
   "179": "jszip",
   "180": "@types/react",
   "181": "uuid",
+  "182": "SpotifyBrowseView.jsx",
+  "183": "cors",
+  "184": "prop-types",
   "185": "wait-on",
+  "186": "@radix-ui/react-context-menu",
+  "187": "SoundsSettingsTab.jsx",
   "188": "6. Styling advice by UI type",
-  "190": "4. Motion system",
+  "189": "WeeContentCollapse.jsx",
+  "190": "1. THE THREE DIALS (Core Configuration)",
   "194": "spotify-web-api-js",
   "195": "@tanstack/react-virtual"
 }

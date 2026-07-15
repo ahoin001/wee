@@ -14,7 +14,12 @@ import {
 } from '@dnd-kit/core';
 import { Check, LayoutGrid, PenLine, Plus, Replace, Settings2, X } from 'lucide-react';
 import { Channel } from '../channels';
-import { HomeSlot, HomeBoardArrangeBar, getHomeSlotKind } from '../home-grid';
+import {
+  HomeSlot,
+  HomeBoardArrangeBar,
+  getHomeSlotKind,
+  getHomeSlotSizePreset,
+} from '../home-grid';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import { getSlotAt, isChannelSlotEmpty } from '../../utils/homeGridSlots';
@@ -468,7 +473,9 @@ const PaginatedChannelsInner = React.memo(() => {
   const handleSetSizePreset = useCallback(
     (presetId) => {
       if (homeBoardSelectedSlotIndex == null) return;
-      const preset = getHomeSlotSizePresetById(presetId);
+      // Kind-aware lookup so kinds with restricted preset sets (e.g. Now Playing
+      // has no XL) reject sizes their registry entry does not offer.
+      const preset = getHomeSlotSizePreset(selectedSlot?.kind ?? 'channel', presetId);
       if (!preset) return;
       if (blockedSizePresetIds.includes(presetId)) return;
       setHomeSlotSpanForSpace(
@@ -480,6 +487,7 @@ const PaginatedChannelsInner = React.memo(() => {
     },
     [
       homeBoardSelectedSlotIndex,
+      selectedSlot?.kind,
       blockedSizePresetIds,
       setHomeSlotSpanForSpace,
       channelSpaceKey,

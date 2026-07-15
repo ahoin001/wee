@@ -3,7 +3,13 @@ import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { Check, Grip, HelpCircle, MoreHorizontal, PenLine, Plus, Trash2 } from 'lucide-react';
 import { createWeeTransition } from '../../design/weeMotion';
-import { WeeGlassPill, WeeButton, WeeContentCollapse } from '../../ui/wee';
+import {
+  WeeGlassPill,
+  WeeButton,
+  WeeContentCollapse,
+  WeeGooeyTileButton,
+  WeeSegmentedControl,
+} from '../../ui/wee';
 import { isChannelSlotEmpty, isNonChannelSlot } from '../../utils/homeGridSlots';
 import { getHomeSlotKind, listPlaceableHomeSlotKinds, matchHomeSlotSizePreset } from './slotKindRegistry';
 
@@ -32,7 +38,6 @@ function HomeBoardArrangeBar({
 }) {
   const reducedMotion = useReducedMotion();
   const transition = createWeeTransition('pillOpen', { reducedMotion });
-  const press = createWeeTransition('press', { reducedMotion });
 
   const setPickerOpen = useCallback(
     (next) => {
@@ -116,106 +121,69 @@ function HomeBoardArrangeBar({
               </span>
 
               {canAddWidget && typeof onAddWidget === 'function' ? (
-                <m.button
-                  type="button"
+                <WeeButton
+                  variant={pickerOpen ? 'primary' : 'secondary'}
+                  size="sm"
                   onClick={handleToggleQuickPicker}
                   aria-expanded={pickerOpen}
-                  whileHover={reducedMotion ? undefined : { scale: 1.04 }}
-                  whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                  transition={press}
-                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide ${
-                    pickerOpen
-                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
-                      : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
-                  }`}
                   title={
                     selectedIndex != null
                       ? `Add a widget at slot ${selectedIndex + 1}`
                       : 'Add a widget on the first free slot'
                   }
                 >
-                  <Plus size={13} strokeWidth={2.5} aria-hidden />
-                  Add widget
-                </m.button>
+                  <span className="flex items-center gap-1.5">
+                    <Plus size={13} strokeWidth={2.5} aria-hidden />
+                    Add widget
+                  </span>
+                </WeeButton>
               ) : null}
 
               {selectedKindMeta && sizePresets ? (
                 <>
-                  <div
-                    className="flex items-center gap-1 rounded-full border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.9)] p-1"
-                    role="group"
-                    aria-label="Tile size"
-                  >
-                    {Object.values(sizePresets).map((preset) => {
-                      const active = activePreset?.id === preset.id;
+                  <WeeSegmentedControl
+                    size="sm"
+                    ariaLabel="Tile size"
+                    layoutId="homeArrangeTileSize"
+                    value={activePreset?.id ?? ''}
+                    onChange={(presetId) => onSetSizePreset?.(presetId)}
+                    options={Object.values(sizePresets).map((preset) => {
                       const blocked = blockedPresetIds.includes(preset.id);
-                      return (
-                        <m.button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => onSetSizePreset?.(preset.id)}
-                          whileHover={reducedMotion || blocked ? undefined : { scale: 1.06 }}
-                          whileTap={reducedMotion || blocked ? undefined : { scale: 0.94 }}
-                          transition={press}
-                          aria-pressed={active}
-                          aria-disabled={blocked || undefined}
-                          title={
-                            blocked
-                              ? `${preset.label} needs free neighboring slots`
-                              : `${preset.label} · ${preset.colSpan}×${preset.rowSpan}`
-                          }
-                          className={`min-w-[2rem] rounded-full px-2.5 py-1.5 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide ${
-                            active
-                              ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                              : blocked
-                                ? 'cursor-not-allowed text-[hsl(var(--text-tertiary))] opacity-45'
-                                : 'text-[hsl(var(--text-secondary))]'
-                          }`}
-                        >
-                          {preset.label}
-                        </m.button>
-                      );
+                      return {
+                        value: preset.id,
+                        label: preset.label,
+                        disabled: blocked,
+                        title: blocked
+                          ? `${preset.label} needs free neighboring slots`
+                          : `${preset.label} · ${preset.colSpan}×${preset.rowSpan}`,
+                      };
                     })}
-                  </div>
+                  />
                   {selectedIsWidget ? (
-                    <m.button
-                      type="button"
-                      onClick={onRemoveWidget}
-                      whileHover={reducedMotion ? undefined : { scale: 1.04 }}
-                      whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                      transition={press}
-                      className="flex items-center gap-1.5 rounded-full border-2 border-[hsl(var(--state-error)/0.4)] bg-[hsl(var(--state-error)/0.12)] px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--state-error))]"
-                    >
-                      <Trash2 size={13} strokeWidth={2.5} aria-hidden />
-                      Remove
-                    </m.button>
+                    <WeeButton variant="danger" size="sm" onClick={onRemoveWidget}>
+                      <span className="flex items-center gap-1.5">
+                        <Trash2 size={13} strokeWidth={2.5} aria-hidden />
+                        Remove
+                      </span>
+                    </WeeButton>
                   ) : null}
                 </>
               ) : null}
 
-              <m.button
-                type="button"
+              <WeeButton
+                variant="secondary"
+                size="sm"
                 onClick={handleToggleMore}
                 aria-expanded={moreOpen}
                 aria-label="More editing tools"
-                whileHover={reducedMotion ? undefined : { scale: 1.04 }}
-                whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                transition={press}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide ${
-                  moreOpen || punchMode
-                    ? 'bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-primary))] border-2 border-[hsl(var(--border-primary)/0.6)]'
-                    : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
-                }`}
               >
-                <MoreHorizontal size={13} strokeWidth={2.5} aria-hidden />
-                More
-              </m.button>
+                <span className="flex items-center gap-1.5">
+                  <MoreHorizontal size={13} strokeWidth={2.5} aria-hidden />
+                  More
+                </span>
+              </WeeButton>
 
-              <WeeButton
-                variant="primary"
-                className="!rounded-full !px-4 !py-2"
-                onClick={onDone}
-              >
+              <WeeButton variant="primary" size="sm" onClick={onDone}>
                 <span className="flex items-center gap-1.5">
                   <Check size={13} strokeWidth={3} aria-hidden />
                   Done
@@ -226,70 +194,51 @@ function HomeBoardArrangeBar({
             <WeeContentCollapse open={pickerOpen} keepMounted={false}>
               <div className="flex flex-wrap items-stretch justify-center gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
                 {placeableKinds.map((kind) => (
-                  <m.button
+                  <WeeGooeyTileButton
                     key={kind.id}
-                    type="button"
+                    orientation="row"
+                    icon={kind.icon ?? '🧩'}
+                    label={kind.label}
+                    description={kind.description}
+                    reducedMotion={reducedMotion}
                     onClick={() => handlePickKind(kind.id)}
-                    whileHover={reducedMotion ? undefined : { scale: 1.03 }}
-                    whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-                    transition={press}
-                    className="flex min-w-[11rem] max-w-[15rem] items-center gap-2.5 rounded-2xl border-2 border-[hsl(var(--border-primary)/0.4)] bg-[hsl(var(--surface-elevated))] px-3 py-2.5 text-left"
-                  >
-                    <span className="text-lg leading-none" aria-hidden>
-                      {kind.icon ?? '🧩'}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--text-primary))]">
-                        {kind.label}
-                      </span>
-                      {kind.description ? (
-                        <span className="block truncate text-[length:var(--font-size-micro)] font-bold text-[hsl(var(--text-tertiary))]">
-                          {kind.description}
-                        </span>
-                      ) : null}
-                    </span>
-                  </m.button>
+                    className="min-w-[11rem] max-w-[15rem]"
+                  />
                 ))}
               </div>
             </WeeContentCollapse>
 
             <WeeContentCollapse open={moreOpen} keepMounted={false}>
               <div className="flex flex-wrap items-center justify-center gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
-                <m.button
-                  type="button"
+                <WeeButton
+                  variant={punchMode ? 'primary' : 'secondary'}
+                  size="sm"
                   aria-pressed={punchMode}
                   onClick={onTogglePunch}
-                  whileHover={reducedMotion ? undefined : { scale: 1.04 }}
-                  whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                  transition={press}
-                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide ${
-                    punchMode
-                      ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))] shadow-[var(--shadow-sm)]'
-                      : 'border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] text-[hsl(var(--text-secondary))]'
-                  }`}
                 >
-                  <PenLine size={13} strokeWidth={2.5} aria-hidden />
-                  Wallpaper holes
-                </m.button>
+                  <span className="flex items-center gap-1.5">
+                    <PenLine size={13} strokeWidth={2.5} aria-hidden />
+                    Wallpaper holes
+                  </span>
+                </WeeButton>
                 <span className="text-[length:var(--font-size-micro)] font-bold uppercase tracking-[0.1em] text-[hsl(var(--text-tertiary))]">
                   Punch see-through holes in the grid to show wallpaper
                 </span>
                 {typeof onReopenGuide === 'function' ? (
-                  <m.button
-                    type="button"
+                  <WeeButton
+                    variant="secondary"
+                    size="sm"
                     onClick={() => {
                       onReopenGuide();
                       setMoreOpen(false);
                     }}
-                    whileHover={reducedMotion ? undefined : { scale: 1.04 }}
-                    whileTap={reducedMotion ? undefined : { scale: 0.95 }}
-                    transition={press}
-                    className="flex items-center gap-1.5 rounded-full border-2 border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-elevated))] px-3.5 py-2 text-[length:var(--font-size-micro)] font-black uppercase tracking-wide text-[hsl(var(--text-secondary))]"
                     title="Show the Edit Home tips again"
                   >
-                    <HelpCircle size={13} strokeWidth={2.5} aria-hidden />
-                    Show tips
-                  </m.button>
+                    <span className="flex items-center gap-1.5">
+                      <HelpCircle size={13} strokeWidth={2.5} aria-hidden />
+                      Show tips
+                    </span>
+                  </WeeButton>
                 ) : null}
               </div>
             </WeeContentCollapse>

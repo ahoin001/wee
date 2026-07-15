@@ -48,6 +48,7 @@ function NowPlayingSlot({
     [slot?.colSpan, slot?.rowSpan]
   );
   const isCompact = sizePreset?.id === 'S';
+  const isTall = (sizePreset?.rowSpan ?? 1) > 1;
   const interactionsLocked = arrangeMode || punchMode;
   const hasTrack = Boolean(trackName);
 
@@ -110,7 +111,11 @@ function NowPlayingSlot({
           </>
         ) : null}
 
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-0.5 p-2.5">
+        <div
+          className={`relative z-10 flex min-h-0 flex-1 flex-col justify-end gap-0.5 ${
+            isTall ? 'p-3.5' : 'p-2.5'
+          }`}
+        >
           {hasTrack ? (
             <>
               <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
@@ -119,11 +124,19 @@ function NowPlayingSlot({
               </span>
               {!isCompact ? (
                 <>
-                  <span className="truncate text-sm font-black text-[hsl(var(--text-primary))]">
+                  <span
+                    className={`truncate font-black text-[hsl(var(--text-primary))] ${
+                      isTall ? 'text-base' : 'text-sm'
+                    }`}
+                  >
                     {trackName}
                   </span>
                   {artistLine ? (
-                    <span className="truncate text-[11px] font-semibold text-[hsl(var(--text-secondary))]">
+                    <span
+                      className={`truncate font-semibold text-[hsl(var(--text-secondary))] ${
+                        isTall ? 'text-xs' : 'text-[11px]'
+                      }`}
+                    >
                       {artistLine}
                     </span>
                   ) : null}

@@ -39,6 +39,7 @@ function WeeSegmentedControl({
       >
         {options.map((opt) => {
           const selected = opt.value === value;
+          const optionDisabled = disabled || opt.disabled;
           const id = `${baseId}-${opt.value}`;
           return (
             <button
@@ -46,12 +47,15 @@ function WeeSegmentedControl({
               id={id}
               type="button"
               aria-pressed={selected}
-              disabled={disabled}
+              disabled={optionDisabled}
+              title={opt.title}
               onClick={() => onChange(opt.value)}
               className={`relative rounded-xl font-black uppercase italic transition-colors ${pad} ${
                 selected
                   ? 'text-[hsl(var(--wee-text-header))]'
-                  : 'text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-secondary))]'
+                  : optionDisabled
+                    ? 'cursor-not-allowed text-[hsl(var(--text-tertiary))] opacity-45'
+                    : 'text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-secondary))]'
               }`}
             >
               {selected ? (
@@ -77,6 +81,8 @@ WeeSegmentedControl.propTypes = {
     PropTypes.shape({
       value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number]).isRequired,
       label: PropTypes.string.isRequired,
+      disabled: PropTypes.bool,
+      title: PropTypes.string,
     })
   ).isRequired,
   ariaLabel: PropTypes.string,

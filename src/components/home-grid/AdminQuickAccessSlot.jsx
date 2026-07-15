@@ -2,8 +2,12 @@ import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { MoreHorizontal, Settings2, Shield } from 'lucide-react';
-import { createWeeTransition } from '../../design/weeMotion';
-import { WeeGlassPill } from '../../ui/wee';
+import {
+  createWeeShellRailItemVariants,
+  createWeeTransition,
+  useWeeMotion,
+} from '../../design/weeMotion';
+import { WeeGlassPill, WeeGooeyIconButton, WeeGooeyTileButton } from '../../ui/wee';
 import {
   applyAdminPanelPowerActions,
   executeAdminCommand,
@@ -38,33 +42,36 @@ function splitActionsByCapacity(actions, capacity) {
   };
 }
 
-function ActionIconButton({ action, onClick, compact = false }) {
+/** Icon-only disc for the M (single-row) footprint — space-rail press physics. */
+function ActionIconDisc({ action, onClick, reducedMotion = false }) {
   return (
-    <button
-      type="button"
+    <WeeGooeyIconButton
+      variant="outline"
+      size="sm"
+      reducedMotion={reducedMotion}
       title={action.name}
       aria-label={action.name}
       onClick={(event) => {
         event.stopPropagation();
         onClick(action);
       }}
-      className={`flex items-center justify-center rounded-2xl border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] text-[hsl(var(--text-primary))] shadow-[var(--shadow-sm)] transition-transform hover:scale-105 active:scale-95 ${
-        compact ? 'h-9 w-9 text-base' : 'h-11 w-11 text-lg'
-      }`}
+      className="!rounded-2xl"
     >
-      <span aria-hidden>{action.icon || '⚡'}</span>
-    </button>
+      <span className="text-base leading-none" aria-hidden>
+        {action.icon || '⚡'}
+      </span>
+    </WeeGooeyIconButton>
   );
 }
 
-ActionIconButton.propTypes = {
+ActionIconDisc.propTypes = {
   action: PropTypes.shape({
     id: PropTypes.string,
     name: PropTypes.string,
     icon: PropTypes.string,
   }).isRequired,
   onClick: PropTypes.func.isRequired,
-  compact: PropTypes.bool,
+  reducedMotion: PropTypes.bool,
 };
 
 /**
@@ -81,6 +88,12 @@ function AdminQuickAccessSlot({
 }) {
   const reducedMotion = useReducedMotion();
   const pillTransition = createWeeTransition('pillOpen', { reducedMotion });
+  const pressTransition = createWeeTransition('press', { reducedMotion });
+  const { pillOpen } = useWeeMotion();
+  const tileVariants = useMemo(
+    () => createWeeShellRailItemVariants(pillOpen, reducedMotion),
+    [pillOpen, reducedMotion]
+  );
 
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
   const { confirmAction } = useUIState();
@@ -99,6 +112,8 @@ function AdminQuickAccessSlot({
   );
   const capacity = sizePreset?.capacity ?? 0;
   const isCompact = capacity === 0;
+  /** M (2×1) has only one row of height — icon discs; L/XL get labeled tiles. */
+  const isSingleRow = (sizePreset?.rowSpan ?? 1) <= 1;
 
   const { visible, overflow, showMore } = useMemo(
     () => splitActionsByCapacity(adminConfig.powerActions, capacity),
@@ -198,7 +213,9 @@ function AdminQuickAccessSlot({
     <>
       <WeeGlassPill
         as="div"
-        className={`relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem] p-2 ${
+        className={`relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem] ${
+          isCompact || isSingleRow ? 'p-2' : 'p-2.5'
+        } ${
           selected
             ? 'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--surface-primary)/0)]'
             : ''
@@ -214,11 +231,14 @@ function AdminQuickAccessSlot({
         ) : null}
 
         {emptyInvite ? (
-          <button
+          <m.button
             type="button"
             className="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-[1rem] text-center"
             onClick={openConfigure}
             disabled={interactionsLocked}
+            whileHover={reducedMotion ? undefined : { scale: 1.03 }}
+            whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+            transition={pressTransition}
           >
             <Shield
               size={isCompact ? 22 : 28}
@@ -229,67 +249,132 @@ function AdminQuickAccessSlot({
             <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
               Add actions
             </span>
-          </button>
+          </m.button>
         ) : isCompact ? (
-          <button
+          <m.button
             type="button"
-            className="flex h-full w-full flex-col items-center justify-center gap-1 transition-transform hover:scale-[1.03] active:scale-95"
+            className="flex h-full w-full flex-col items-center justify-center gap-1"
             onClick={handleTileActivate}
             aria-label="Open Quick Access"
             disabled={interactionsLocked && !arrangeMode}
+            whileHover={reducedMotion ? undefined : { scale: 1.03 }}
+            whileTap={reducedMotion ? undefined : { scale: 0.95 }}
+            transition={pressTransition}
           >
             <Shield size={26} strokeWidth={2.25} className="text-[hsl(var(--primary))]" aria-hidden />
             <span className="text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
               Quick
             </span>
-          </button>
+          </m.button>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-1.5">
             <div className="flex items-center justify-between gap-1 px-0.5">
               <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
                 Quick Access
               </span>
-              <button
+              <m.button
                 type="button"
                 className="rounded-full p-1 text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface-tertiary)/0.6)] hover:text-[hsl(var(--text-primary))]"
                 onClick={openConfigure}
                 disabled={interactionsLocked}
                 aria-label="Configure Quick Access"
                 title="Configure"
+                whileHover={reducedMotion ? undefined : { scale: 1.12, rotate: 12 }}
+                whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+                transition={pressTransition}
               >
                 <Settings2 size={14} strokeWidth={2.5} aria-hidden />
-              </button>
+              </m.button>
             </div>
-            <div
-              className={`grid min-h-0 flex-1 content-start gap-1.5 ${
-                sizePreset?.id === 'XL' ? 'grid-cols-5' : 'grid-cols-3'
-              }`}
-            >
-              {visible.map((action) => (
-                <ActionIconButton
-                  key={action.id}
-                  action={action}
-                  onClick={handleActionClick}
-                  compact={sizePreset?.id === 'M'}
-                />
-              ))}
-              {showMore ? (
-                <button
-                  type="button"
-                  className={`flex items-center justify-center rounded-2xl border-2 border-dashed border-[hsl(var(--border-primary)/0.45)] bg-[hsl(var(--surface-tertiary)/0.55)] text-[hsl(var(--text-secondary))] transition-transform hover:scale-105 active:scale-95 ${
-                    sizePreset?.id === 'M' ? 'h-9 w-9' : 'h-11 w-11'
-                  }`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (!interactionsLocked) setMoreOpen(true);
-                  }}
-                  aria-label="More actions"
-                  title="More"
-                >
-                  <MoreHorizontal size={16} strokeWidth={2.5} aria-hidden />
-                </button>
-              ) : null}
-            </div>
+            {isSingleRow ? (
+              <div className="flex min-h-0 flex-1 flex-wrap content-center items-center gap-1.5 px-0.5">
+                {visible.map((action) => (
+                  <ActionIconDisc
+                    key={action.id}
+                    action={action}
+                    onClick={handleActionClick}
+                    reducedMotion={reducedMotion}
+                  />
+                ))}
+                {showMore ? (
+                  <WeeGooeyIconButton
+                    variant="outline"
+                    size="sm"
+                    reducedMotion={reducedMotion}
+                    aria-label="More actions"
+                    title="More"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (!interactionsLocked) setMoreOpen(true);
+                    }}
+                    className="!rounded-2xl !border-dashed !border-[hsl(var(--border-primary)/0.45)] !bg-[hsl(var(--surface-tertiary)/0.55)] !text-[hsl(var(--text-secondary))] !shadow-none"
+                  >
+                    <MoreHorizontal size={16} strokeWidth={2.5} aria-hidden />
+                  </WeeGooeyIconButton>
+                ) : null}
+              </div>
+            ) : (
+              <div
+                className={`grid min-h-0 flex-1 auto-rows-fr gap-1.5 ${
+                  sizePreset?.id === 'XL' ? 'grid-cols-5' : 'grid-cols-3'
+                }`}
+              >
+                {visible.map((action, index) => (
+                  <MotionDiv
+                    key={action.id}
+                    className="min-h-0 min-w-0"
+                    variants={tileVariants}
+                    initial="closed"
+                    animate="open"
+                    custom={index}
+                  >
+                    <WeeGooeyTileButton
+                      orientation="stack"
+                      icon={action.icon || '⚡'}
+                      label={action.name}
+                      title={action.name}
+                      reducedMotion={reducedMotion}
+                      className="h-full w-full"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleActionClick(action);
+                      }}
+                    />
+                  </MotionDiv>
+                ))}
+                {showMore ? (
+                  <MotionDiv
+                    className="min-h-0 min-w-0"
+                    variants={tileVariants}
+                    initial="closed"
+                    animate="open"
+                    custom={visible.length}
+                  >
+                    <WeeGooeyTileButton
+                      orientation="stack"
+                      dashed
+                      icon={
+                        <MoreHorizontal
+                          size={18}
+                          strokeWidth={2.5}
+                          className="text-[hsl(var(--text-secondary))]"
+                          aria-hidden
+                        />
+                      }
+                      label="More"
+                      title="More actions"
+                      aria-label="More actions"
+                      reducedMotion={reducedMotion}
+                      className="h-full w-full"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (!interactionsLocked) setMoreOpen(true);
+                      }}
+                    />
+                  </MotionDiv>
+                ) : null}
+              </div>
+            )}
           </div>
         )}
 
@@ -327,17 +412,20 @@ function AdminQuickAccessSlot({
               </div>
               <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
                 {(isCompact ? adminConfig.powerActions : moreActions).map((action) => (
-                  <button
+                  <m.button
                     key={action.id}
                     type="button"
                     className="flex w-full items-center gap-2 rounded-xl border border-[hsl(var(--border-primary)/0.3)] bg-[hsl(var(--surface-primary)/0.65)] px-2.5 py-2 text-left text-xs font-semibold text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-tertiary)/0.8)]"
                     onClick={() => handleActionClick(action)}
+                    whileHover={reducedMotion ? undefined : { scale: 1.02 }}
+                    whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+                    transition={pressTransition}
                   >
                     <span className="text-base" aria-hidden>
                       {action.icon || '⚡'}
                     </span>
                     <span className="truncate">{action.name}</span>
-                  </button>
+                  </m.button>
                 ))}
               </div>
             </MotionDiv>

@@ -11,6 +11,13 @@ import {
 
 export { HOME_SLOT_SIZE_PRESETS };
 
+/** Now Playing reads best as art + track text — 3×2 (XL) is all dead space. */
+const NOW_PLAYING_SIZE_PRESETS = Object.freeze({
+  S: HOME_SLOT_SIZE_PRESETS.S,
+  M: HOME_SLOT_SIZE_PRESETS.M,
+  L: HOME_SLOT_SIZE_PRESETS.L,
+});
+
 export const HOME_SLOT_KINDS = {
   channel: {
     id: 'channel',
@@ -43,7 +50,7 @@ export const HOME_SLOT_KINDS = {
     colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
     rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
     defaultSizePreset: 'M',
-    sizePresets: HOME_SLOT_SIZE_PRESETS,
+    sizePresets: NOW_PLAYING_SIZE_PRESETS,
     render: 'NowPlayingSlot',
     placeable: true,
   },
@@ -105,5 +112,9 @@ export function getHomeSlotSizePreset(kindId, presetId) {
 export function matchHomeSlotSizePreset(kindId, colSpan, rowSpan) {
   const kind = getHomeSlotKind(kindId);
   if (!kind?.sizePresets) return matchSizePresetBySpan(colSpan, rowSpan);
-  return matchSizePresetBySpan(colSpan, rowSpan);
+  const cs = Number(colSpan) || 1;
+  const rs = Number(rowSpan) || 1;
+  return (
+    Object.values(kind.sizePresets).find((p) => p.colSpan === cs && p.rowSpan === rs) ?? null
+  );
 }

@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784145806.9488294,
-    "ast_hash": "a4dd4f9772432cdc90ce9358c350241f",
+    "mtime": 1784153236.9628973,
+    "ast_hash": "4ea754de9c7debbd97b5a1af97c96ae8",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -555,8 +555,8 @@
     "semantic_hash": "4712658c9a46d9a3ab533eb3776acafe"
   },
   "src/components/navigation/PaginatedChannels.jsx": {
-    "mtime": 1784150264.0915594,
-    "ast_hash": "d7b8e0062a597a2227d3b593621c3168",
+    "mtime": 1784154751.812456,
+    "ast_hash": "dbd4282f0d510f5136b33e04ca98d481",
     "semantic_hash": ""
   },
   "src/components/navigation/SlideNavigation.jsx": {
@@ -1260,9 +1260,9 @@
     "semantic_hash": "3e5fb0a2750a09efc950fd882f66a9e4"
   },
   "src/ui/wee/WeeSegmentedControl.jsx": {
-    "mtime": 1783871529.3771732,
-    "ast_hash": "b1f0521a510b1a18eeae88369d901951",
-    "semantic_hash": "b1f0521a510b1a18eeae88369d901951"
+    "mtime": 1784154794.386644,
+    "ast_hash": "466c64d491202caede2f9afea659a301",
+    "semantic_hash": ""
   },
   "src/ui/wee/WeeSettingsCollapsibleSection.jsx": {
     "mtime": 1783951375.3473125,
@@ -1295,8 +1295,8 @@
     "semantic_hash": "6682d42d377aafaf0bbd79d797f21358"
   },
   "src/ui/wee/index.js": {
-    "mtime": 1783954121.75653,
-    "ast_hash": "fcbe97b93cb30c1a41c5eb19dce2a54b",
+    "mtime": 1784154194.88207,
+    "ast_hash": "c21b5f9064a7ae12ea0d35f6dbf41b59",
     "semantic_hash": ""
   },
   "src/utils/AudioManager.js": {
@@ -2010,8 +2010,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/slotKindRegistry.js": {
-    "mtime": 1784141913.05282,
-    "ast_hash": "d6c489e49dd2df53809c5539286a2957",
+    "mtime": 1784154706.6101263,
+    "ast_hash": "d88e67692e8cc8a079d398c70444f383",
     "semantic_hash": ""
   },
   "src/hooks/useWallpaperAmbientColor.js": {
@@ -2090,13 +2090,13 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/AdminQuickAccessSlot.jsx": {
-    "mtime": 1783959463.0267797,
-    "ast_hash": "7cd2088a6aa892cb8062875a11e042f4",
+    "mtime": 1784154341.2953122,
+    "ast_hash": "e40cf9a4d847a633fa8f7c395dcf8cc2",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardArrangeBar.jsx": {
-    "mtime": 1784144783.458084,
-    "ast_hash": "69183d11c6c5194615d30d67b6edfab9",
+    "mtime": 1784154893.294794,
+    "ast_hash": "1dc74df61cd3286bce4ac91f53e4c7cf",
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeBoardSwitcher.jsx": {
@@ -2205,8 +2205,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/NowPlayingSlot.jsx": {
-    "mtime": 1784139451.883068,
-    "ast_hash": "69818dfaad3657132a343b0f847728a9",
+    "mtime": 1784154787.5510075,
+    "ast_hash": "a1aeabc2e25ea079f847c5fc2c09e594",
     "semantic_hash": ""
   },
   "src/components/home-grid/RecentlyUsedSlot.jsx": {
@@ -2307,6 +2307,11 @@
   "src/components/dock/ribbon/RibbonMiniature.jsx": {
     "mtime": 1784150485.115294,
     "ast_hash": "757bcbcebfffb579560d85967f16a01a",
+    "semantic_hash": ""
+  },
+  "src/ui/wee/WeeGooeyTileButton.jsx": {
+    "mtime": 1784154181.6019318,
+    "ast_hash": "1699cfbf1c4be5800ce5fed2d3110955",
     "semantic_hash": ""
   }
 }
