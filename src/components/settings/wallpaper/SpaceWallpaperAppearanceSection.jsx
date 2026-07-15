@@ -6,6 +6,7 @@ import Slider from '../../../ui/Slider';
 import SettingsWeeSection from '../SettingsWeeSection';
 import { WeeButton, WeeModalFieldCard, WeeRevealWhen, WeeSpaceRailPillButton } from '../../../ui/wee';
 import { SPACE_WALLPAPER_OPTIONS } from './wallpaperSettingsConstants';
+import WallpaperScenePreview from './WallpaperScenePreview';
 
 function SpaceWallpaperAppearanceSection({
   wallpaperOpacity,
@@ -21,6 +22,7 @@ function SpaceWallpaperAppearanceSection({
   handleSelectedSpaceWallpaperOverride,
   selectedSpaceWallpaperEntry,
   selectedSpaceWallpaperUrl,
+  effectiveActiveWallpaperUrl,
   selectedSpaceBlur,
   handleSelectedSpaceBlurChange,
   selectedSpaceBrightness,
@@ -33,9 +35,24 @@ function SpaceWallpaperAppearanceSection({
   /** Home uses the global active wallpaper only; hide per-space image override controls. */
   showWallpaperSourceSection = true,
 }) {
+  const sceneUrl =
+    (typeof selectedWallpaper?.url === 'string' && selectedWallpaper.url) ||
+    (typeof effectiveActiveWallpaperUrl === 'string' && effectiveActiveWallpaperUrl) ||
+    (typeof selectedSpaceWallpaperUrl === 'string' && selectedSpaceWallpaperUrl) ||
+    null;
+
   return (
     <SettingsWeeSection eyebrow="Wallpaper layer">
       <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">
+        <WallpaperScenePreview
+          wallpaperUrl={sceneUrl}
+          opacity={wallpaperOpacity}
+          blur={selectedSpaceBlur}
+          brightness={selectedSpaceBrightness}
+          saturate={selectedSpaceSaturate}
+          sticky
+        />
+
         <Text variant="h3" className="mb-1 playful-hero-text">
           3. Tune controls
         </Text>

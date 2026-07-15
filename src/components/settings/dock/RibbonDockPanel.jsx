@@ -12,6 +12,7 @@ import {
   WeeSettingsCollapsibleSection,
 } from '../../../ui/wee';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
+import RibbonLivePreview from './RibbonLivePreview';
 import {
   DEFAULT_RIBBON_GLOW_HEX,
   DEFAULT_RIBBON_SURFACE_HEX,
@@ -204,6 +205,8 @@ function RibbonDockPanel({
 
   return (
     <div className="flex flex-col gap-5">
+      <RibbonLivePreview ribbon={ribbon} sticky />
+
       <WeeSettingsCollapsibleSection
         icon={SlidersHorizontal}
         title="Style & behavior"

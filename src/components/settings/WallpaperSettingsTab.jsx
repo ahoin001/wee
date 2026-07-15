@@ -753,6 +753,7 @@ const WallpaperSettingsTab = React.memo(() => {
         handleSelectedSpaceWallpaperOverride={handleSelectedSpaceWallpaperOverride}
         selectedSpaceWallpaperEntry={selectedSpaceWallpaperEntry}
         selectedSpaceWallpaperUrl={selectedSpaceWallpaperUrl}
+        effectiveActiveWallpaperUrl={effectiveActiveWallpaperUrl}
         selectedSpaceBlur={selectedSpaceBlur}
         handleSelectedSpaceBlurChange={handleSelectedSpaceBlurChange}
         selectedSpaceBrightness={selectedSpaceBrightness}

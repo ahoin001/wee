@@ -6,6 +6,7 @@ import Slider from '../../../ui/Slider';
 import { WeeModalFieldCard, WeeRevealWhen, WeeSectionEyebrow, WeeSettingsCollapsibleSection } from '../../../ui/wee';
 import SettingsToggleFieldCard from '../SettingsToggleFieldCard';
 import DockSettingsColorRow from './DockSettingsColorRow';
+import ClassicDockLivePreview from './ClassicDockLivePreview';
 
 const TOGGLE_TITLE =
   '!text-[0.8125rem] !font-black !uppercase !tracking-[0.06em] !leading-snug !text-[hsl(var(--text-primary))]';
@@ -25,6 +26,8 @@ function ClassicDockPanel({
 }) {
   return (
     <div className="flex flex-col gap-6">
+      <ClassicDockLivePreview dock={dock} sticky />
+
       <WeeSettingsCollapsibleSection
         icon={Gamepad2}
         title="Preset themes"

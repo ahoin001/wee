@@ -19,6 +19,7 @@ import {
 import SettingsTabPageHeader from './SettingsTabPageHeader';
 import SettingsToggleFieldCard from './SettingsToggleFieldCard';
 import SettingsMultiToggleChips from './SettingsMultiToggleChips';
+import SettingsLivePreviewFrame from './SettingsLivePreviewFrame';
 import { HomeBoardSwitcher } from '../home-grid';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
@@ -29,6 +30,7 @@ import {
   WII_LAYOUT_PRESET,
 } from '../../utils/channelLayoutSystem';
 import { getChannelDataSlice } from '../../utils/channelSpaces';
+import { wallpaperEntryUrlKey } from '../../utils/wallpaperShape';
 import { openSettingsToTab, SETTINGS_TAB_ID } from '../../utils/settingsNavigation';
 import { mergeMotionFeedback } from '../../utils/motionFeedbackDefaults';
 import { GOOEY_HOVER_MODES } from '../../design/gooeyPhysics';
@@ -129,109 +131,121 @@ function BoardLivePreview({
   totalPages,
   onPreviewPage,
   currentPage,
+  wallpaperUrl,
 }) {
   const reduceMotion = useReducedMotion();
   const press = createWeeTransition('press', { reducedMotion: reduceMotion });
   const hiddenCount = pageSlotIndices.filter((i) => isSlotHidden(slotMeta, i)).length;
 
-  return (
-    <WeeGlassPill className="overflow-hidden rounded-[2.5rem] p-5 md:p-6">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.14em]">
-            Live board
-          </WeeSectionEyebrow>
-          <Text variant="desc" className="!m-0 text-[hsl(var(--text-secondary))]">
-            {punchHoleMode
-              ? 'Tap a tile to punch a wallpaper hole — holes stay put when you reorder.'
-              : 'Preview updates as you change size. Turn on Punch holes to edit.'}
-          </Text>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
-          <span className="rounded-full bg-[hsl(var(--surface-secondary))] px-3 py-1">
-            Home page {String(currentPage + 1).padStart(2, '0')}
-          </span>
-          {hiddenCount > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--surface-wii-tint))] px-3 py-1 text-[hsl(var(--primary))]">
-              <EyeOff size={12} aria-hidden /> {hiddenCount} hole{hiddenCount === 1 ? '' : 's'}
-            </span>
-          ) : null}
-        </div>
-      </div>
+  const canvasStyle = wallpaperUrl
+    ? {
+        backgroundImage: [
+          'linear-gradient(hsl(var(--surface-tertiary) / 0.72), hsl(var(--surface-tertiary) / 0.72))',
+          `url("${String(wallpaperUrl).replace(/\\/g, '/').replace(/"/g, '')}")`,
+        ].join(', '),
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : undefined;
 
-      {totalPages > 1 ? (
-        <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Preview page">
-          {Array.from({ length: totalPages }, (_, page) => {
-            const selected = safePreviewPage === page;
-            return (
-              <m.button
-                key={`preview-page-${page}`}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => onPreviewPage(page)}
-                whileHover={reduceMotion ? undefined : { scale: 1.06 }}
-                whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-                transition={press}
-                className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ${
-                  selected
-                    ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
-                    : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
-                }`}
-              >
-                Page {page + 1}
-              </m.button>
-            );
-          })}
-        </div>
+  const headerAside = (
+    <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
+      <span className="rounded-full bg-[hsl(var(--surface-secondary))] px-3 py-1">
+        Home page {String(currentPage + 1).padStart(2, '0')}
+      </span>
+      {hiddenCount > 0 ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--surface-wii-tint))] px-3 py-1 text-[hsl(var(--primary))]">
+          <EyeOff size={12} aria-hidden /> {hiddenCount} hole{hiddenCount === 1 ? '' : 's'}
+        </span>
       ) : null}
+    </div>
+  );
 
-      {/* Fixed frame height so grid geometry changes don’t jitter the scroll parent */}
-      <div className="relative min-h-[11.5rem] rounded-[1.75rem] border-2 border-dashed border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-tertiary)/0.55)] p-3 md:min-h-[13rem] md:p-4">
-        <div
-          className="mx-auto grid h-full w-full max-w-xl gap-2"
-          style={{
-            gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-            gridTemplateRows: `repeat(${layout.rows}, minmax(2.4rem, 1fr))`,
-          }}
-          role="group"
-          aria-label="Channel board preview"
-        >
-          {pageSlotIndices.map((slotIndex) => {
-            const hidden = isSlotHidden(slotMeta, slotIndex);
-            return (
-              <m.button
-                key={`preview-slot-${slotIndex}`}
-                type="button"
-                disabled={!punchHoleMode}
-                onClick={() => onToggleSlot(slotIndex)}
-                whileHover={
-                  reduceMotion || !punchHoleMode
-                    ? undefined
-                    : { scale: 1.05, y: -1 }
-                }
-                whileTap={reduceMotion || !punchHoleMode ? undefined : { scale: 0.92 }}
-                transition={press}
-                title={
-                  punchHoleMode
-                    ? hidden
-                      ? 'Show this slot'
-                      : 'Hide this slot'
-                    : `Slot ${slotIndex + 1}`
-                }
-                className={`relative flex min-h-[2.4rem] items-center justify-center rounded-xl border-2 text-[10px] font-bold uppercase tracking-wide ${
-                  hidden
-                    ? 'border-dashed border-[hsl(var(--border-secondary))] bg-transparent text-[hsl(var(--text-tertiary))]'
-                    : 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)]'
-                } ${punchHoleMode ? 'cursor-pointer' : 'cursor-default'}`}
-              >
-                {hidden ? <EyeOff size={14} aria-hidden /> : slotIndex + 1}
-              </m.button>
-            );
-          })}
-        </div>
+  const beforeCanvas =
+    totalPages > 1 ? (
+      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Preview page">
+        {Array.from({ length: totalPages }, (_, page) => {
+          const selected = safePreviewPage === page;
+          return (
+            <m.button
+              key={`preview-page-${page}`}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => onPreviewPage(page)}
+              whileHover={reduceMotion ? undefined : { scale: 1.06 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+              transition={press}
+              className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ${
+                selected
+                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--text-on-accent))]'
+                  : 'bg-[hsl(var(--surface-secondary))] text-[hsl(var(--text-secondary))]'
+              }`}
+            >
+              Page {page + 1}
+            </m.button>
+          );
+        })}
       </div>
-    </WeeGlassPill>
+    ) : null;
+
+  return (
+    <SettingsLivePreviewFrame
+      eyebrow="Live board"
+      caption={
+        punchHoleMode
+          ? 'Tap a tile to punch a wallpaper hole — holes stay put when you reorder.'
+          : 'Preview updates as you change size. Turn on Punch holes to edit.'
+      }
+      headerAside={headerAside}
+      beforeCanvas={beforeCanvas}
+      sticky
+      minHeightClassName="min-h-[11.5rem] md:min-h-[13rem]"
+      canvasStyle={canvasStyle}
+    >
+      <div
+        className="relative z-[1] mx-auto grid h-full w-full max-w-xl gap-2"
+        style={{
+          gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${layout.rows}, minmax(2.4rem, 1fr))`,
+        }}
+        role="group"
+        aria-label="Channel board preview"
+      >
+        {pageSlotIndices.map((slotIndex) => {
+          const hidden = isSlotHidden(slotMeta, slotIndex);
+          return (
+            <m.button
+              key={`preview-slot-${slotIndex}`}
+              type="button"
+              disabled={!punchHoleMode}
+              onClick={() => onToggleSlot(slotIndex)}
+              whileHover={
+                reduceMotion || !punchHoleMode
+                  ? undefined
+                  : { scale: 1.05, y: -1 }
+              }
+              whileTap={reduceMotion || !punchHoleMode ? undefined : { scale: 0.92 }}
+              transition={press}
+              title={
+                punchHoleMode
+                  ? hidden
+                    ? 'Show this slot'
+                    : 'Hide this slot'
+                  : `Slot ${slotIndex + 1}`
+              }
+              className={`relative flex min-h-[2.4rem] items-center justify-center rounded-xl border-2 text-[10px] font-bold uppercase tracking-wide ${
+                hidden
+                  ? 'border-dashed border-[hsl(var(--border-secondary))] bg-transparent text-[hsl(var(--text-tertiary))]'
+                  : 'border-[hsl(var(--border-primary)/0.55)] bg-[hsl(var(--surface-primary))] text-[hsl(var(--text-secondary))] shadow-[var(--shadow-sm)]'
+              } ${punchHoleMode ? 'cursor-pointer' : 'cursor-default'}`}
+            >
+              {hidden ? <EyeOff size={14} aria-hidden /> : slotIndex + 1}
+            </m.button>
+          );
+        })}
+      </div>
+    </SettingsLivePreviewFrame>
   );
 }
 
@@ -242,6 +256,9 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
       ribbonColor: state.ribbon?.ribbonColor,
       ribbonGlowColor: state.ribbon?.ribbonGlowColor,
     }))
+  );
+  const wallpaperPreviewUrl = useConsolidatedAppStore((state) =>
+    wallpaperEntryUrlKey(state.wallpaper?.current)
   );
   const activeSpaceId = useConsolidatedAppStore((state) => state.spaces.activeSpaceId);
   const actions = useConsolidatedAppStore(
@@ -563,6 +580,7 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
             totalPages={layout.totalPages}
             onPreviewPage={setPreviewPage}
             currentPage={currentPage}
+            wallpaperUrl={wallpaperPreviewUrl || null}
           />
 
           <HomeBoardSwitcher />

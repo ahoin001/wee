@@ -5,6 +5,7 @@ import WToggle from '../../ui/WToggle';
 import Text from '../../ui/Text';
 import SettingsWeeSection from './SettingsWeeSection';
 import SettingsTabPageHeader from './SettingsTabPageHeader';
+import RibbonLivePreview from './dock/RibbonLivePreview';
 import { WeeHelpLinkButton, WeeModalFieldCard, WeeRevealWhen, WeeSectionEyebrow } from '../../ui/wee';
 import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
@@ -188,6 +189,10 @@ const ColorsSettingsTab = React.memo(() => {
         title="Colors"
         subtitle="Match your wallpaper, follow Spotify, or pick ribbon accents"
       />
+
+      <div className="mb-6">
+        <RibbonLivePreview ribbon={ribbon} sticky compact />
+      </div>
 
       <SettingsWeeSection eyebrow="Match wallpaper">
         <WeeModalFieldCard hoverAccent="primary" paddingClassName="p-5 md:p-6">

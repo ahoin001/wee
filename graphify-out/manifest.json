@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784142966.1845908,
-    "ast_hash": "0849da63b9f4d0b1784d0b83f0ffd546",
+    "mtime": 1784145077.588987,
+    "ast_hash": "c1f0107bf26f80d29a3a8ca3f59920ff",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -620,13 +620,13 @@
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
-    "mtime": 1784139451.8846004,
-    "ast_hash": "b11991dd64b0ca91ec03529891119a3b",
+    "mtime": 1784145515.8514853,
+    "ast_hash": "1fb01786b28e12d10b55879f49b9247c",
     "semantic_hash": ""
   },
   "src/components/settings/ColorsSettingsTab.jsx": {
-    "mtime": 1784144749.1602857,
-    "ast_hash": "13b5c7ee385cfdd1050a3d310990aee0",
+    "mtime": 1784145454.5884025,
+    "ast_hash": "8e9756fc3ceb3f6c5ba85a255c8286bb",
     "semantic_hash": ""
   },
   "src/components/settings/GameHubSettingsTab.jsx": {
@@ -740,8 +740,8 @@
     "semantic_hash": "b1a6e91d7c75996af3f642acf23a518a"
   },
   "src/components/settings/WallpaperSettingsTab.jsx": {
-    "mtime": 1783954605.561952,
-    "ast_hash": "2fabafb81cf59be2e028d491db365d25",
+    "mtime": 1784145473.686628,
+    "ast_hash": "82e8c1f34c3ff9727e8a8941a0551526",
     "semantic_hash": ""
   },
   "src/components/settings/WorkspacesSettingsTab.jsx": {
@@ -755,8 +755,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/dock/ClassicDockPanel.jsx": {
-    "mtime": 1783954640.1613493,
-    "ast_hash": "ab14b8a34a7886006b5d334fdb1823c5",
+    "mtime": 1784145453.3405411,
+    "ast_hash": "56410a3fe558059d2de1db09990e8a2e",
     "semantic_hash": ""
   },
   "src/components/settings/dock/DockSettingsColorRow.jsx": {
@@ -770,8 +770,8 @@
     "semantic_hash": "bc56fd97e8acbbfd62f61a7de3601fcc"
   },
   "src/components/settings/dock/RibbonDockPanel.jsx": {
-    "mtime": 1783970842.8995972,
-    "ast_hash": "97114b08598a4bb1022076b59901f760",
+    "mtime": 1784145451.132793,
+    "ast_hash": "f9ad6245c7e57a5814a3b38048155443",
     "semantic_hash": ""
   },
   "src/components/settings/index.js": {
@@ -800,8 +800,8 @@
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/SpaceWallpaperAppearanceSection.jsx": {
-    "mtime": 1783954600.7250972,
-    "ast_hash": "5253b5fc3f7ac8cf4b17f7e64d6bf45c",
+    "mtime": 1784145473.5913284,
+    "ast_hash": "afbf462097263621f01587030eec0226",
     "semantic_hash": ""
   },
   "src/components/settings/wallpaper/WallpaperCyclingSection.jsx": {
@@ -2282,6 +2282,26 @@
   "src/utils/store/persistedCachePrune.js": {
     "mtime": 1784141883.6621625,
     "ast_hash": "2711f588b3f538dd5d9de85d0354a789",
+    "semantic_hash": ""
+  },
+  "src/components/settings/SettingsLivePreviewFrame.jsx": {
+    "mtime": 1784145493.2181962,
+    "ast_hash": "c541a6afd1729ad0cfdc81afe6c7c098",
+    "semantic_hash": ""
+  },
+  "src/components/settings/dock/ClassicDockLivePreview.jsx": {
+    "mtime": 1784145519.8739448,
+    "ast_hash": "e3bfbcdd60fe2f007c44f69b0872a38d",
+    "semantic_hash": ""
+  },
+  "src/components/settings/dock/RibbonLivePreview.jsx": {
+    "mtime": 1784145416.0149462,
+    "ast_hash": "ba08441448516da8e7ea9d2eb5b468cc",
+    "semantic_hash": ""
+  },
+  "src/components/settings/wallpaper/WallpaperScenePreview.jsx": {
+    "mtime": 1784145480.613932,
+    "ast_hash": "158541392d4ab6efcdfc6ed409966aac",
     "semantic_hash": ""
   }
 }
