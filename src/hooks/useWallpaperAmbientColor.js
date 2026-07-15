@@ -7,6 +7,7 @@ import {
   extractImagePalette,
 } from '../utils/theme/extractImagePalette';
 import { resolveDisplayWallpaperUrl } from '../utils/theme/resolveEffectiveAccent';
+import { syncActiveSpaceAppearanceCapture } from '../utils/appearance/spaceAppearance';
 
 const EXTRACT_DEBOUNCE_MS = 400;
 
@@ -129,6 +130,11 @@ export function useWallpaperAmbientColor() {
           ribbonGlowColor: result.palette.accent || result.palette.primary,
           ribbonColor: result.palette.surfaceHint || result.palette.secondary,
           dynamicRibbonColorEnabled: true,
+        });
+        syncActiveSpaceAppearanceCapture({
+          getState: () => useConsolidatedAppStore.getState(),
+          setAppearanceBySpaceState:
+            useConsolidatedAppStore.getState().actions.setAppearanceBySpaceState,
         });
         applyAmbientRoleTokens(result.palette);
       });

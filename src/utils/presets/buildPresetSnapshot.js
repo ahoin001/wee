@@ -1,4 +1,5 @@
 import useConsolidatedAppStore from '../useConsolidatedAppStore';
+import { captureSpaceAppearanceFromState } from '../appearance/spaceAppearance';
 import { PRESET_SCOPE_VISUAL, PRESET_SCOPE_VISUAL_WITH_HOME_CHANNELS } from './presetScopes';
 
 function cloneSafe(value, fallback = null) {
@@ -19,8 +20,10 @@ export function buildPresetDataFromStore({
   captureScope = PRESET_SCOPE_VISUAL,
   includeSpotifyPalette = false,
 } = {}) {
-  const { wallpaper, ribbon, time, overlay, ui, channels, spotify, dock, appearanceBySpace } =
-    useConsolidatedAppStore.getState();
+  const state = useConsolidatedAppStore.getState();
+  const { wallpaper, ribbon, time, overlay, ui, channels, spotify, dock } = state;
+  // Fresh capture — never bake a stale appearanceBySpace.home from the last space switch.
+  const liveHomeAppearance = captureSpaceAppearanceFromState(state);
 
   const presetData = {
     wallpaper: {
@@ -79,7 +82,7 @@ export function buildPresetDataFromStore({
     },
     dock: cloneSafe(dock, {}),
     appearanceBySpace: {
-      home: cloneSafe(appearanceBySpace?.home, null),
+      home: cloneSafe(liveHomeAppearance, null),
     },
   };
 

@@ -1014,6 +1014,14 @@ const PaginatedChannelsInner = React.memo(() => {
           empty={isEmpty}
           media={channelConfig?.media || null}
           channelConfig={channelConfig || { empty: true }}
+          arrangeMode={arrangeModeActive}
+          punchMode={punchModeActive}
+          selected={
+            arrangeModeActive &&
+            homeBoardSelectedSlotIndex != null &&
+            homeBoardSelectedSlotIndex === channelIndex
+          }
+          onArrangeSelect={handleArrangeSelectChannelId}
           {...sharedProps}
         />
       );

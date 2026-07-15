@@ -2,6 +2,7 @@ import { saveUnifiedSettingsSnapshot, saveUnifiedSoundSettings } from '../electr
 import { normalizePresetSoundsSnapshot } from '../presetSoundSettings';
 import useConsolidatedAppStore from '../useConsolidatedAppStore';
 import { normalizeWallpaperCurrentShape } from '../presetSharing';
+import { syncActiveSpaceAppearanceCapture } from '../appearance/spaceAppearance';
 import {
   PRESET_SCOPE_VISUAL,
   isPresetScopeWithHomeChannels,
@@ -107,8 +108,15 @@ export async function applyPresetData(preset) {
 
   if (settingsToApply.ribbon) {
     const wallpaperMatchEnabled = useConsolidatedAppStore.getState().ui?.wallpaperMatchEnabled;
-    if (wallpaperMatchEnabled) {
-      // Ambient owns ribbon surface/glow while match is on; apply on visual commit instead.
+    const hasExplicitRibbonColor =
+      Boolean(settingsToApply.ribbon.ribbonColor) || Boolean(settingsToApply.ribbon.ribbonGlowColor);
+    // Explicit Look ribbon colors win: turn off wallpaper match so ambient cannot
+    // re-extract and overwrite the preset on the next wallpaper commit / restart.
+    if (wallpaperMatchEnabled && hasExplicitRibbonColor) {
+      setUIState({ wallpaperMatchEnabled: false });
+      setRibbonState(settingsToApply.ribbon);
+    } else if (wallpaperMatchEnabled) {
+      // Match stays on and the preset has no ribbon colors — leave ambient ownership.
       const ribbonRest = { ...settingsToApply.ribbon };
       delete ribbonRest.ribbonColor;
       delete ribbonRest.ribbonGlowColor;
@@ -200,9 +208,34 @@ export async function applyPresetData(preset) {
     setUIState({ spotifyMatchEnabled: false });
   }
 
+  // Re-capture the active space so boot hydration cannot clobber the look we just applied
+  // with a stale appearanceBySpace snapshot (wallpaper.current survives; ribbon does not).
+  const synced = syncActiveSpaceAppearanceCapture({
+    getState: () => useConsolidatedAppStore.getState(),
+    setAppearanceBySpaceState,
+  });
+  const appearanceBySpaceForPersist = synced
+    ? {
+        ...(settingsToApply.appearanceBySpace || {}),
+        [synced.spaceId]: synced.appearance,
+        // Presets historically only ship `home`; keep that key in sync when active is home.
+        ...(synced.spaceId === 'home' ? { home: synced.appearance } : {}),
+      }
+    : settingsToApply.appearanceBySpace
+      ? { home: settingsToApply.appearanceBySpace.home ?? null }
+      : null;
+
   try {
+    const matchOffForRibbon =
+      Boolean(settingsToApply.ribbon?.ribbonColor || settingsToApply.ribbon?.ribbonGlowColor) &&
+      useConsolidatedAppStore.getState().ui?.wallpaperMatchEnabled === false;
+    const uiForPersist = {
+      ...(settingsToApply.ui || {}),
+      ...(matchOffForRibbon ? { wallpaperMatchEnabled: false } : {}),
+    };
+
     await saveUnifiedSettingsSnapshot({
-      ...(settingsToApply.ui ? { ui: settingsToApply.ui } : {}),
+      ...(Object.keys(uiForPersist).length > 0 ? { ui: uiForPersist } : {}),
       ...(settingsToApply.ribbon ? { ribbon: settingsToApply.ribbon } : {}),
       ...(settingsToApply.time ? { time: settingsToApply.time } : {}),
       ...(isPresetScopeWithHomeChannels(captureScope) && channelsPatchForPersist
@@ -211,8 +244,8 @@ export async function applyPresetData(preset) {
       ...(settingsToApply.wallpaper ? { wallpaper: settingsToApply.wallpaper } : {}),
       ...(settingsToApply.overlay ? { overlay: settingsToApply.overlay } : {}),
       ...(settingsToApply.dock ? { dock: settingsToApply.dock } : {}),
-      ...(settingsToApply.appearanceBySpace
-        ? { appearanceBySpace: { home: settingsToApply.appearanceBySpace.home ?? null } }
+      ...(appearanceBySpaceForPersist
+        ? { appearanceBySpace: appearanceBySpaceForPersist }
         : {}),
       ...(normalizedSounds ? { sounds: normalizedSounds } : {}),
     });

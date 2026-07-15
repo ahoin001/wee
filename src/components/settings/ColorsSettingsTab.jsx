@@ -13,6 +13,7 @@ import { DEFAULT_RIBBON_GLOW_HEX, DEFAULT_RIBBON_SURFACE_HEX } from '../../desig
 import { createWeeTransition } from '../../design/weeMotion';
 import { DEFAULT_AMBIENT_COLOR } from '../../utils/theme/extractImagePalette';
 import { resolveEffectiveAccent } from '../../utils/theme/resolveEffectiveAccent';
+import { syncActiveSpaceAppearanceCapture } from '../../utils/appearance/spaceAppearance';
 import './settings-wee-panels.css';
 
 const QUICK_LINKS = [
@@ -123,6 +124,11 @@ const ColorsSettingsTab = React.memo(() => {
       ambientColor: { ...DEFAULT_AMBIENT_COLOR },
     });
 
+    const synced = syncActiveSpaceAppearanceCapture({
+      getState: () => useConsolidatedAppStore.getState(),
+      setAppearanceBySpaceState: useConsolidatedAppStore.getState().actions.setAppearanceBySpaceState,
+    });
+
     await saveUnifiedSettingsSnapshot({
       ui: { wallpaperMatchEnabled: false },
       ribbon: {
@@ -130,6 +136,7 @@ const ColorsSettingsTab = React.memo(() => {
         ribbonGlowColor: glow,
         dynamicRibbonColorEnabled: true,
       },
+      ...(synced ? { appearanceBySpace: { [synced.spaceId]: synced.appearance } } : {}),
     });
   }, [
     ambient.seedHex,

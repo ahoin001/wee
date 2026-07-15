@@ -95,17 +95,19 @@ const WiiChannelStrip = ({
   const canPunch = arrangeModeActive && punchModeActive && typeof onTogglePunch === 'function';
   const canSelect =
     arrangeModeActive && !punchModeActive && typeof onArrangeSelectIndex === 'function';
+  /** Arrange mode (even outside punch): punched holes stay visible so they can be restored. */
+  const canRestoreHole = arrangeModeActive && typeof onTogglePunch === 'function';
 
   const handlePunchCapture = useCallback(
     (index) => (event) => {
-      if (!canPunch) return;
+      if (!canPunch && !canRestoreHole) return;
       event.preventDefault();
       event.stopPropagation();
       const occ = occupancy[index];
       const punchIndex = occ?.anchorIndex ?? index;
       onTogglePunch(punchIndex);
     },
-    [canPunch, onTogglePunch, occupancy]
+    [canPunch, canRestoreHole, onTogglePunch, occupancy]
   );
 
   const handleArrangeSelectCapture = useCallback(
@@ -192,12 +194,16 @@ const WiiChannelStrip = ({
             const hidden = isSlotHidden(slotMeta, i);
 
             if (hidden) {
-              if (canPunch) {
+              if (canPunch || canRestoreHole) {
                 return (
                   <button
                     key={`tile-hole-${hubEntranceKey}-${i}`}
                     type="button"
-                    className="wii-strip-channel-cell wii-strip-channel-cell--hidden wii-strip-channel-cell--punchable"
+                    className={`wii-strip-channel-cell wii-strip-channel-cell--hidden${
+                      canPunch
+                        ? ' wii-strip-channel-cell--punchable'
+                        : ' wii-strip-channel-cell--restorable'
+                    }`}
                     style={gridStyle}
                     onClick={handlePunchCapture(i)}
                     aria-label={`Restore slot ${i + 1}`}

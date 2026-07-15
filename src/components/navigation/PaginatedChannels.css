@@ -228,6 +228,10 @@
   border-radius: var(--radius-lg);
 }
 
+.wii-mode-grid--arrange .channel {
+  cursor: pointer;
+}
+
 .wii-strip-channel-cell--punchable {
   cursor: pointer;
 }
@@ -238,6 +242,22 @@
 
 .wii-mode-grid--arrange .channel.channel--arrange-selected {
   box-shadow: var(--shadow-selection-glow), var(--shadow-md);
+  animation: wee-arrange-select-pulse var(--wee-collapse-duration-reduced, 100ms) var(--wee-collapse-ease, ease-out);
+}
+
+@keyframes wee-arrange-select-pulse {
+  0% {
+    filter: brightness(1.12);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wii-mode-grid--arrange .channel.channel--arrange-selected {
+    animation: none;
+  }
 }
 
 button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable {
@@ -251,6 +271,27 @@ button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable {
   background: hsl(var(--surface-secondary) / 0.4);
   color: hsl(var(--text-tertiary));
   transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+/* Fainter restore outline when editing Home but not in punch mode */
+button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--restorable {
+  visibility: visible;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed hsl(var(--border-primary) / 0.45);
+  border-radius: 14px;
+  background: hsl(var(--surface-secondary) / 0.22);
+  color: hsl(var(--text-tertiary) / 0.75);
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--restorable:hover {
+  background: hsl(var(--primary) / 0.1);
+  border-color: hsl(var(--primary) / 0.45);
+  color: hsl(var(--primary));
 }
 
 button.wii-strip-channel-cell--hidden.wii-strip-channel-cell--punchable:hover {

@@ -190,6 +190,19 @@
   cursor: default;
 }
 
+/* Edit Home selection must beat empty !important shadows — otherwise empty tiles
+   look inert even though the strip already selected them and opened the tray picker. */
+.channel.empty.channel--arrange-selected {
+  border-color: hsl(var(--primary) / 0.65) !important;
+  box-shadow: var(--shadow-selection-glow), var(--shadow-md) !important;
+  cursor: pointer;
+}
+
+.channel.empty.wii-mode-tile.channel--arrange-selected {
+  border-color: hsl(var(--primary) / 0.7) !important;
+  box-shadow: var(--shadow-selection-glow), 0 5px 12px hsl(var(--color-pure-black) / 0.16) !important;
+}
+
 /* Subtle empty-slot invitation — present on adaptive tiles too so empties stay discoverable. */
 .channel.empty::after {
   content: '+';
@@ -572,7 +585,13 @@
 .channel:hover .channel-arrange-add-hint,
 .channel.channel--arrange-selected .channel-arrange-add-hint {
   opacity: 1;
-  color: hsl(var(--text-primary));
+  color: hsl(var(--primary));
+  text-shadow: 0 1px 0 hsl(var(--color-pure-white) / 0.35);
+}
+
+.channel.channel--arrange-selected .channel-arrange-add-hint {
+  font-size: 11px;
+  letter-spacing: 0.08em;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -9,6 +9,7 @@ import { CLASSIC_DOCK_THEME_GROUPS as THEME_GROUPS } from '../../data/dock/class
 import { CLASSIC_DOCK_DEFAULT_COLORS as DOCK_DEFAULT } from '../../design/classicDockThemeDefaults.js';
 import { useWeeMotion } from '../../design/weeMotion';
 import { saveUnifiedSettingsSnapshot } from '../../utils/electronApi';
+import { syncActiveSpaceAppearanceCapture } from '../../utils/appearance/spaceAppearance';
 import { WeeDockSettingsSubtabs } from '../../ui/wee';
 import DockTypePanel from './dock/DockTypePanel';
 import ClassicDockPanel from './dock/ClassicDockPanel';
@@ -72,12 +73,20 @@ const UnifiedDockSettingsTab = React.memo(() => {
 
         // Persist explicit settings edits immediately (writer remains debounced/merged),
         // so close/reopen reloads the latest chosen value.
-        if (value !== undefined) {
-          await saveUnifiedSettingsSnapshot({
-            [category]: {
-              [key]: value,
-            },
+        const patch = value !== undefined ? { [category]: { [key]: value } } : null;
+        if (category === 'ribbon' && value !== undefined) {
+          // Keep appearanceBySpace in sync so restart / space switch cannot revert ribbon look.
+          const synced = syncActiveSpaceAppearanceCapture({
+            getState: () => useConsolidatedAppStore.getState(),
+            setAppearanceBySpaceState:
+              useConsolidatedAppStore.getState().actions.setAppearanceBySpaceState,
           });
+          if (synced && patch) {
+            patch.appearanceBySpace = { [synced.spaceId]: synced.appearance };
+          }
+        }
+        if (patch) {
+          await saveUnifiedSettingsSnapshot(patch);
         }
       } catch (error) {
         console.error(`[UnifiedDockSettingsTab] Failed to save ${category}.${key}:`, error);

@@ -90,4 +90,26 @@ export function mergeLiveStateFromSpaceAppearance(currentState, incoming) {
   return out;
 }
 
+/**
+ * Refresh `appearanceBySpace[activeSpaceId]` from live slices.
+ * Boot hydration re-applies this snapshot over ribbon/time/overlay; without a
+ * re-capture after preset apply or ribbon edits while staying on a space, restart
+ * clobbers the live look (wallpaper identity survives via WALLPAPER_TRANSIENT_KEYS).
+ *
+ * @param {{ getState: () => object, setAppearanceBySpaceState: (patch: object) => void }} storeApi
+ * @returns {{ spaceId: string, appearance: object } | null}
+ */
+export function syncActiveSpaceAppearanceCapture(storeApi) {
+  if (!storeApi || typeof storeApi.getState !== 'function') return null;
+  const state = storeApi.getState();
+  const spaceId = state?.spaces?.activeSpaceId || 'home';
+  const appearance = captureSpaceAppearanceFromState(state);
+  if (typeof storeApi.setAppearanceBySpaceState === 'function') {
+    storeApi.setAppearanceBySpaceState({ [spaceId]: appearance });
+  } else if (typeof state?.actions?.setAppearanceBySpaceState === 'function') {
+    state.actions.setAppearanceBySpaceState({ [spaceId]: appearance });
+  }
+  return { spaceId, appearance };
+}
+
 export { SPACE_IDS };

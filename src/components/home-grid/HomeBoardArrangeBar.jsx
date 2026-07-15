@@ -4,7 +4,7 @@ import { AnimatePresence, m, useReducedMotion } from 'framer-motion';
 import { Check, Grip, HelpCircle, MoreHorizontal, PenLine, Plus, Trash2 } from 'lucide-react';
 import { createWeeTransition } from '../../design/weeMotion';
 import { WeeGlassPill, WeeButton, WeeContentCollapse } from '../../ui/wee';
-import { isNonChannelSlot } from '../../utils/homeGridSlots';
+import { isChannelSlotEmpty, isNonChannelSlot } from '../../utils/homeGridSlots';
 import { getHomeSlotKind, listPlaceableHomeSlotKinds, matchHomeSlotSizePreset } from './slotKindRegistry';
 
 const MotionDiv = m.div;
@@ -51,6 +51,8 @@ function HomeBoardArrangeBar({
   const placeableKinds = useMemo(() => listPlaceableHomeSlotKinds(), []);
 
   const selectedIsWidget = isNonChannelSlot(selectedSlot);
+  const selectedIsEmptyChannel =
+    selectedSlot != null && !selectedIsWidget && isChannelSlotEmpty(selectedSlot);
   const selectedKindMeta = selectedSlot
     ? getHomeSlotKind(selectedSlot.kind ?? 'channel')
     : null;
@@ -89,10 +91,10 @@ function HomeBoardArrangeBar({
     ? 'Tap tiles to punch wallpaper holes · toggle off under More when finished'
     : selectedIsWidget
       ? `Resize or remove this ${selectedKindMeta?.label ?? ''} widget`.replace('  ', ' ')
-      : selectedKindMeta
-        ? 'Pick a size for this tile · drag tiles to reorder'
-        : selectedIndex != null
-          ? 'Empty slot selected — Add widget places it here'
+      : selectedIsEmptyChannel
+        ? 'Empty slot — pick a widget below to place it here'
+        : selectedKindMeta
+          ? 'Pick a size for this tile · drag tiles to reorder'
           : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
 
   return (

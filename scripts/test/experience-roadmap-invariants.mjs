@@ -55,6 +55,10 @@ import {
   refreshCacheDomain,
   registerCacheDomain,
 } from '../../src/utils/cacheRegistry.js';
+import {
+  captureSpaceAppearanceFromState,
+  syncActiveSpaceAppearanceCapture,
+} from '../../src/utils/appearance/spaceAppearance.js';
 
 function test(name, fn) {
   try {
@@ -308,6 +312,41 @@ await testAsync('cache registry clear-all clears every registered domain', async
     disposeB();
   }
   assert.ok(!listCacheDomains().some((d) => d.id === 'test-a'));
+});
+
+// —— Space appearance capture (preset ribbon survives restart) ——
+
+test('captureSpaceAppearanceFromState keeps live ribbon and strips wallpaper.current', () => {
+  const captured = captureSpaceAppearanceFromState({
+    wallpaper: { current: { url: 'https://example.com/w.jpg' }, opacity: 0.8, next: 'x' },
+    ribbon: { ribbonColor: '#112233', ribbonGlowColor: '#445566' },
+    time: { color: '#fff' },
+    overlay: { enabled: false },
+    ui: { isDarkMode: true, useCustomCursor: false, classicMode: false, spotifyMatchEnabled: true },
+  });
+  assert.equal(captured.ribbon.ribbonColor, '#112233');
+  assert.equal(captured.ribbon.ribbonGlowColor, '#445566');
+  assert.equal(captured.wallpaper.opacity, 0.8);
+  assert.equal(captured.wallpaper.current, undefined);
+  assert.equal(captured.wallpaper.next, undefined);
+  assert.equal(captured.ui.isDarkMode, true);
+});
+
+test('syncActiveSpaceAppearanceCapture writes appearance for the active space', () => {
+  const written = {};
+  const result = syncActiveSpaceAppearanceCapture({
+    getState: () => ({
+      spaces: { activeSpaceId: 'home' },
+      wallpaper: { opacity: 1 },
+      ribbon: { ribbonColor: '#abcdef' },
+      time: {},
+      overlay: {},
+      ui: { isDarkMode: false, useCustomCursor: false, classicMode: false },
+    }),
+    setAppearanceBySpaceState: (patch) => Object.assign(written, patch),
+  });
+  assert.equal(result.spaceId, 'home');
+  assert.equal(written.home.ribbon.ribbonColor, '#abcdef');
 });
 
 console.log('Experience roadmap invariant suite complete.');
