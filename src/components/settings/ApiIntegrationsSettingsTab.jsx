@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Music, Activity, Settings2 } from 'lucide-react';
+import { Music, Activity, Settings2, Radio } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
@@ -22,12 +22,16 @@ const spotifyBtnClass = (active, isGreen = true) =>
       : '!bg-[hsl(var(--link))] !border-[hsl(var(--link))] hover:!brightness-110 text-[hsl(var(--text-on-accent))] border-solid';
 
 const ApiIntegrationsSettingsTab = () => {
-  const { spotify, floatingWidgets } = useConsolidatedAppStore(
-    useShallow((state) => ({
-      spotify: state.spotify,
-      floatingWidgets: state.floatingWidgets,
-    }))
-  );
+  const { spotify, floatingWidgets, systemMedia, nowPlayingSourcePreference, systemMediaEnabled } =
+    useConsolidatedAppStore(
+      useShallow((state) => ({
+        spotify: state.spotify,
+        floatingWidgets: state.floatingWidgets,
+        systemMedia: state.systemMedia,
+        nowPlayingSourcePreference: state.ui.nowPlayingSourcePreference || 'auto',
+        systemMediaEnabled: state.ui.systemMediaEnabled !== false,
+      }))
+    );
   const actions = useConsolidatedAppStore(useShallow((state) => state.actions));
 
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -103,6 +107,27 @@ const ApiIntegrationsSettingsTab = () => {
     },
     [actions, floatingWidgets.adminPanel]
   );
+
+  const handleSystemMediaToggle = useCallback(
+    (checked) => {
+      actions.setUIState({ systemMediaEnabled: Boolean(checked) });
+    },
+    [actions]
+  );
+
+  const handleNowPlayingSourceChange = useCallback(
+    (value) => {
+      actions.setUIState({ nowPlayingSourcePreference: value });
+    },
+    [actions]
+  );
+
+  const systemMediaStatusLabel = useMemo(() => {
+    if (!systemMediaEnabled) return 'Off';
+    if (systemMedia?.error) return systemMedia.error;
+    if (systemMedia?.available) return 'Available on this PC';
+    return 'Checking…';
+  }, [systemMediaEnabled, systemMedia]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col space-y-6 pb-12">
@@ -299,6 +324,45 @@ const ApiIntegrationsSettingsTab = () => {
               ]}
             />
           </div>
+        </WeeModalFieldCard>
+      </WeeSettingsCollapsibleSection>
+
+      <WeeSettingsCollapsibleSection
+        icon={Radio}
+        title="System media & Now Playing"
+        description="Apple Music, browsers, and other Windows players via SMTC"
+        defaultOpen={false}
+      >
+        <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6" className="mb-6 api-integ-glass-card">
+          <div className="mb-6 flex items-center justify-between gap-4 rounded-lg bg-[hsl(var(--surface-tertiary))] p-4">
+            <div className="min-w-0">
+              <Text variant="body" className="text-sm font-semibold text-[hsl(var(--text-primary))]">
+                Listen to Windows media sessions
+              </Text>
+              <Text variant="caption" className="text-xs text-[hsl(var(--text-tertiary))]">
+                Feeds the Home Now Playing tile and floating widget when another app is playing.
+                Status: {systemMediaStatusLabel}
+              </Text>
+            </div>
+            <WToggle checked={systemMediaEnabled} onChange={handleSystemMediaToggle} />
+          </div>
+
+          <Text variant="body" className="mb-3 text-sm font-semibold text-[hsl(var(--text-primary))]">
+            Preferred source
+          </Text>
+          <WeeSegmentedControl
+            value={nowPlayingSourcePreference}
+            onChange={handleNowPlayingSourceChange}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'spotify', label: 'Spotify' },
+              { value: 'system', label: 'System' },
+            ]}
+          />
+          <Text variant="caption" className="mt-3 text-xs text-[hsl(var(--text-tertiary))]">
+            Auto picks whichever session is currently playing. Ribbon chrome “Music band” reacts only
+            while music is playing.
+          </Text>
         </WeeModalFieldCard>
       </WeeSettingsCollapsibleSection>
 

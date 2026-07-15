@@ -231,6 +231,18 @@ contextBridge.exposeInMainWorld('api', {
   openAdminPanel: () => ipcRenderer.invoke('open-admin-panel'),
   onShowAdminPanel: (cb) => ipcRenderer.on('show-admin-panel', cb),
   offShowAdminPanel: (cb) => ipcRenderer.removeListener('show-admin-panel', cb),
+  // Windows system media (SMTC) — soft-fails off Windows
+  systemMedia: {
+    getStatus: () => ipcRenderer.invoke('system-media:get-status'),
+    start: () => ipcRenderer.invoke('system-media:start'),
+    stop: () => ipcRenderer.invoke('system-media:stop'),
+    transport: (action) => ipcRenderer.invoke('system-media:transport', action),
+    onUpdate: (cb) => {
+      const handler = (_event, payload) => cb(payload);
+      ipcRenderer.on('system-media:update', handler);
+      return () => ipcRenderer.removeListener('system-media:update', handler);
+    },
+  },
   // Developer tools
   openDevTools: () => (IS_DEV ? ipcRenderer.invoke('open-dev-tools') : Promise.resolve({ success: false, message: 'Disabled in production' })),
   forceDevTools: () => (IS_DEV ? ipcRenderer.invoke('force-dev-tools') : Promise.resolve({ success: false, message: 'Disabled in production' })),

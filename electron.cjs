@@ -36,6 +36,7 @@ const { registerInstallerHandlers } = require('./main/ipc/register-installer-han
 const { createGameSourceService } = require('./main/services/game-source-service.cjs');
 const { createAppScanService } = require('./main/services/app-scan-service.cjs');
 const { createMediaIndexService } = require('./main/services/media-index-service.cjs');
+const { createSystemMediaService } = require('./main/services/system-media-service.cjs');
 const { createSoundLibraryService } = require('./main/services/sound-library-service.cjs');
 const { createAppDataStores } = require('./main/data/create-app-data-stores.cjs');
 const { createJsonStorageUtils } = require('./main/utils/json-storage-utils.cjs');
@@ -223,6 +224,12 @@ const {
   sendWindowState,
   createWindow,
 } = windowLifecycle;
+
+const systemMediaService = createSystemMediaService({
+  getMainWindow,
+  execFile,
+  platform: process.platform,
+});
 
 const soundLibraryService = createSoundLibraryService({
   process,
@@ -495,6 +502,14 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+app.on('will-quit', () => {
+  try {
+    systemMediaService?.stop?.();
+  } catch {
+    /* ignore */
+  }
+});
+
 registerAllIpcHandlers({
   core: {
     ipcMain,
@@ -542,6 +557,7 @@ registerAllIpcHandlers({
       appScanService,
       launchChannelApp,
     },
+    systemMediaService,
   },
   wallpaper: {
     createWallpaperThumbnail,

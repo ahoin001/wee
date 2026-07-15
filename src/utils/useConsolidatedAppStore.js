@@ -227,6 +227,13 @@ useConsolidatedAppStore = create(
           homeArrangeHintSeen: false,
           /** One-time Edit Home widget coach (tap tile → Add widget) — true once dismissed or first widget placed. Persisted. */
           homeBoardWidgetCoachDismissed: false,
+          /**
+           * Now Playing source preference: 'auto' | 'spotify' | 'system'. Persisted.
+           * Auto prefers the currently playing session.
+           */
+          nowPlayingSourcePreference: 'auto',
+          /** When true, Windows SMTC sessions may feed the shared nowPlaying slice. Persisted. */
+          systemMediaEnabled: true,
           /** Ctrl+Space command palette. Transient — not persisted. */
           commandPaletteOpen: false,
           /** Recently run palette command ids. Persisted (bounded). */
@@ -524,6 +531,33 @@ useConsolidatedAppStore = create(
           storeError: null,
         },
 
+        /**
+         * Active now-playing projection (Spotify and/or Windows system media).
+         * Adapters write candidates; reconcileNowPlaying publishes this SSOT for UI.
+         */
+        nowPlaying: {
+          source: null,
+          trackName: '',
+          artistLine: '',
+          albumArtUrl: '',
+          isPlaying: false,
+          progressMs: 0,
+          durationMs: 0,
+          canPlay: false,
+          canPause: false,
+          canSkipNext: false,
+          canSkipPrevious: false,
+          appName: '',
+          updatedAt: 0,
+        },
+
+        /** Windows SMTC candidate + capability (transient session payload; enabled lives on ui). */
+        systemMedia: {
+          available: false,
+          error: null,
+          session: null,
+        },
+
         // Spotify state
         spotify: {
           isConnected: false,
@@ -803,15 +837,31 @@ useConsolidatedAppStore = create(
           })),
 
           // UI actions
-          setUIState: (updates) => set((state) => {
-            const resolvedUpdates = typeof updates === 'function'
-              ? updates(state.ui)
-              : updates;
-
-            return {
-              ui: { ...state.ui, ...resolvedUpdates }
-            };
-          }),
+          setUIState: (updates) => {
+            let touchedNowPlayingPrefs = false;
+            set((state) => {
+              const resolvedUpdates = typeof updates === 'function'
+                ? updates(state.ui)
+                : updates;
+              if (
+                resolvedUpdates &&
+                (Object.prototype.hasOwnProperty.call(resolvedUpdates, 'nowPlayingSourcePreference') ||
+                  Object.prototype.hasOwnProperty.call(resolvedUpdates, 'systemMediaEnabled'))
+              ) {
+                touchedNowPlayingPrefs = true;
+              }
+              return {
+                ui: { ...state.ui, ...resolvedUpdates },
+              };
+            });
+            if (touchedNowPlayingPrefs) {
+              queueMicrotask(() => {
+                import('./reconcileNowPlaying')
+                  .then((m) => m.reconcileNowPlaying())
+                  .catch(() => {});
+              });
+            }
+          },
 
           // Ribbon actions
           setRibbonState: (updates) => set((state) => ({
@@ -1302,10 +1352,34 @@ useConsolidatedAppStore = create(
           })),
 
           // Spotify actions
-          setSpotifyState: (updates) => set((state) => ({
-            spotify: { ...state.spotify, ...updates }
-          })),
-          
+          setSpotifyState: (updates) => {
+            set((state) => ({
+              spotify: { ...state.spotify, ...updates },
+            }));
+            // Defer reconcile so callers can batch; dynamic import avoids circular init.
+            queueMicrotask(() => {
+              import('./reconcileNowPlaying')
+                .then((m) => m.reconcileNowPlaying())
+                .catch(() => {});
+            });
+          },
+
+          setNowPlayingState: (updates) =>
+            set((state) => ({
+              nowPlaying: { ...state.nowPlaying, ...updates },
+            })),
+
+          setSystemMediaState: (updates) => {
+            set((state) => ({
+              systemMedia: { ...state.systemMedia, ...updates },
+            }));
+            queueMicrotask(() => {
+              import('./reconcileNowPlaying')
+                .then((m) => m.reconcileNowPlaying())
+                .catch(() => {});
+            });
+          },
+
           // Spotify manager
           spotifyManager,
           

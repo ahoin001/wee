@@ -17,13 +17,14 @@ import { Channel } from '../channels';
 import {
   HomeSlot,
   HomeBoardArrangeBar,
+  HomeSlotResizeHandle,
   getHomeSlotKind,
   getHomeSlotSizePreset,
 } from '../home-grid';
 import useChannelOperations from '../../utils/useChannelOperations';
 import { useHomeBoardArrange } from '../../hooks/useHomeBoardArrange';
 import { getSlotAt, isChannelSlotEmpty } from '../../utils/homeGridSlots';
-import { canPlaceSpan } from '../../utils/homeGridOccupancy';
+import { canPlaceSpan, getSlotSpan } from '../../utils/homeGridOccupancy';
 import {
   getHomeSlotSizePresetById,
   HOME_SLOT_SIZE_PRESETS,
@@ -493,6 +494,24 @@ const PaginatedChannelsInner = React.memo(() => {
       channelSpaceKey,
     ]
   );
+
+  /** Free-form span commit from the corner resize grabber. */
+  const handleSetSlotSpan = useCallback(
+    (channelIndex, colSpan, rowSpan) => {
+      if (channelIndex == null || channelIndex < 0) return;
+      setHomeSlotSpanForSpace(channelSpaceKey, channelIndex, colSpan, rowSpan);
+    },
+    [setHomeSlotSpanForSpace, channelSpaceKey]
+  );
+
+  /** Index currently being corner-resized — suppresses dnd-kit on that slot. */
+  const [resizeActiveIndex, setResizeActiveIndex] = useState(null);
+
+  useEffect(() => {
+    if (!arrangeModeActive || punchModeActive) {
+      setResizeActiveIndex(null);
+    }
+  }, [arrangeModeActive, punchModeActive]);
 
   const handleArrangeSelectChannelId = useCallback(
     (channelId) => {
@@ -1058,6 +1077,19 @@ const PaginatedChannelsInner = React.memo(() => {
         ? channelData.slots[channelIndex]
         : null;
       const isWidgetSlot = Boolean(slotAt && slotAt.kind && slotAt.kind !== 'channel');
+      const selected =
+        arrangeModeActive &&
+        homeBoardSelectedSlotIndex != null &&
+        homeBoardSelectedSlotIndex === channelIndex;
+      const kindMeta = getHomeSlotKind(slotAt?.kind ?? 'channel');
+      const canCornerResize =
+        selected &&
+        !punchModeActive &&
+        !isChannelSlotHidden(channelIndex) &&
+        Boolean(kindMeta?.sizePresets) &&
+        (isWidgetSlot || !isChannelSlotEmpty(slotAt));
+      const { colSpan, rowSpan } = getSlotSpan(slotAt);
+
       return (
       <ChannelSlotDnd
         key={`channel-slot-${channelSpaceKey}-${channelIndex}`}
@@ -1071,11 +1103,27 @@ const PaginatedChannelsInner = React.memo(() => {
           isWidgetSlot ||
           punchModeActive
         }
+        resizeActive={resizeActiveIndex === channelIndex}
         celebrateDrop={celebrateIndex === channelIndex}
         reorderWave={reorderWave}
         isPlaceholder={activeDragIndex !== null && hoverDragIndex === channelIndex}
       >
         {renderChannelInner(channelIndex, true)}
+        {canCornerResize ? (
+          <HomeSlotResizeHandle
+            enabled
+            anchorIndex={channelIndex}
+            colSpan={colSpan}
+            rowSpan={rowSpan}
+            slots={Array.isArray(channelData?.slots) ? channelData.slots : []}
+            columns={gridConfig.columns}
+            rows={gridConfig.rows}
+            onCommit={(nextCol, nextRow) => handleSetSlotSpan(channelIndex, nextCol, nextRow)}
+            onResizeActiveChange={(active) => {
+              setResizeActiveIndex(active ? channelIndex : null);
+            }}
+          />
+        ) : null}
       </ChannelSlotDnd>
       );
     },
@@ -1092,6 +1140,12 @@ const PaginatedChannelsInner = React.memo(() => {
       hoverDragIndex,
       isChannelSlotHidden,
       punchModeActive,
+      arrangeModeActive,
+      homeBoardSelectedSlotIndex,
+      resizeActiveIndex,
+      gridConfig.columns,
+      gridConfig.rows,
+      handleSetSlotSpan,
     ]
   );
 

@@ -15,6 +15,7 @@ export const RIBBON_CHROME_EFFECTS = [
   'sparkle',
   'frost',
   'spectrum',
+  'musicBand',
 ];
 
 /** Soft atmospheric modes that need a glass intensity boost to stay readable. */
@@ -25,6 +26,7 @@ export const RIBBON_CHROME_GLASS_SOFT_MODES = [
   'ripple',
   'scanline',
   'frost',
+  'musicBand',
 ];
 
 /**
@@ -128,6 +130,14 @@ const META_BY_ID = {
     description: 'Slow hue shift across the ribbon fill and edge.',
     defaultIntensity: 0.5,
     defaultSpeed: 0.6,
+  },
+  musicBand: {
+    id: 'musicBand',
+    label: 'Music band',
+    description: 'Soft reactive bars while music is playing — idle when paused.',
+    defaultIntensity: 0.55,
+    defaultSpeed: 1,
+    defaultIntensityGlass: 0.72,
   },
 };
 

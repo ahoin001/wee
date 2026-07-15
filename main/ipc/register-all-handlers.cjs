@@ -18,6 +18,7 @@ const { registerIconsHandlers } = require('./register-icons-handlers.cjs');
 const { registerResetHandlers } = require('./register-reset-handlers.cjs');
 const { registerLaunchHandlers } = require('./register-launch-handlers.cjs');
 const { registerSystemPowerHandlers } = require('./register-system-power-handlers.cjs');
+const { registerSystemMediaHandlers } = require('./register-system-media-handlers.cjs');
 
 function registerAllIpcHandlers({
   core,
@@ -233,6 +234,12 @@ function registerAllIpcHandlers({
 
   registerSystemPowerHandlers({
     ipcMain,
+    getMainWindow,
+  });
+
+  registerSystemMediaHandlers({
+    ipcMain,
+    systemMediaService: services.systemMediaService,
     getMainWindow,
   });
 }

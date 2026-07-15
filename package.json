@@ -117,6 +117,7 @@
     "systeminformation": "^5.27.7",
     "uuid": "^11.1.0",
     "vdf": "^0.0.2",
+    "windows-media-sessions": "^1.0.3",
     "windows-shortcuts": "^0.1.6",
     "zustand": "^5.0.6"
   },

@@ -1,8 +1,11 @@
 import React, { useId, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { useShallow } from 'zustand/react/shallow';
 import { useMotionFeedback } from '../../../hooks/useMotionFeedback';
 import { useAnimationActivity } from '../../../hooks/useAnimationActivity';
 import { useRibbonChromeIdleGate } from '../../../hooks/useRibbonChromeIdleGate';
+import { useMusicReactiveLevels } from '../../../hooks/useMusicReactiveLevels';
+import useConsolidatedAppStore from '../../../utils/useConsolidatedAppStore';
 import {
   CSS_WII_BLUE,
   DEFAULT_RIBBON_GLOW_HEX,
@@ -182,6 +185,22 @@ function RibbonChromeEffects({
   const idlePaused = idleOnly && !idleReady;
   const animate =
     active && shouldAnimate && !isLowPowerMode && !idlePaused;
+
+  const nowPlaying = useConsolidatedAppStore(
+    useShallow((s) => ({
+      isPlaying: Boolean(s.nowPlaying?.isPlaying),
+      progressMs: s.nowPlaying?.progressMs || 0,
+      durationMs: s.nowPlaying?.durationMs || 0,
+    }))
+  );
+
+  const musicLevels = useMusicReactiveLevels({
+    isPlaying: nowPlaying.isPlaying,
+    progressMs: nowPlaying.progressMs,
+    durationMs: nowPlaying.durationMs,
+    enabled: mode === 'musicBand' && animate,
+    bandCount: 16,
+  });
 
   const baseIntensity = Math.min(1, Math.max(0, intensity ?? 0.55));
   const glassBoost = glassSoft ? RIBBON_CHROME_GLASS_INTENSITY_MULT : 1;
@@ -668,6 +687,29 @@ function RibbonChromeEffects({
               filter={`url(#${glowFilterId})`}
               opacity={0.45 + clampedIntensity * 0.4}
             />
+          </g>
+        ) : null}
+
+        {mode === 'musicBand' ? (
+          <g mask={`url(#${maskId})`}>
+            {musicLevels.map((level, i) => {
+              const n = musicLevels.length || 1;
+              const x = 80 + (i / Math.max(1, n - 1)) * 1280;
+              const barH = 12 + level * (48 + clampedIntensity * 36);
+              const y = 168 - barH;
+              return (
+                <rect
+                  key={`mb-${i}`}
+                  x={x - 8}
+                  y={y}
+                  width={14}
+                  height={barH}
+                  rx={5}
+                  fill={resolvedGlow}
+                  opacity={0.1 + clampedIntensity * 0.28 + level * 0.2}
+                />
+              );
+            })}
           </g>
         ) : null}
       </svg>

@@ -5,7 +5,6 @@ import { useSpotifyState, useFloatingWidgetsState, useIsDarkMode } from '../../u
 import useAnimationActivity from '../../hooks/useAnimationActivity';
 import { useFloatingWidgetFrame } from '../../hooks/useFloatingWidgetFrame';
 import { usePlaybackSeek } from '../../hooks/usePlaybackSeek';
-import { useActivityInterval } from '../../hooks/useActivityInterval';
 import { useWeeMotion } from '../../design/weeMotion';
 import { buildSpotifyGooeyStyleVars, getSpotifyGooeyShellBackground } from '../../design/spotifyGooeyTokens';
 import './FloatingSpotifyWidget.css';
@@ -33,25 +32,66 @@ import {
   SPOTIFY_PREMIUM_URL,
   SPOTIFY_WEB_API_PLAYER_DOCS_URL,
 } from '../../utils/spotifyTier';
+import { useShallow } from 'zustand/react/shallow';
+import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
+import { useMusicReactiveLevels } from '../../hooks/useMusicReactiveLevels';
+import MusicReactiveBars from './MusicReactiveBars';
 
 const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
   const isDarkMode = useIsDarkMode();
   const { spotify, spotifyManager, setSpotifyState } = useSpotifyState();
   const { floatingWidgets, setFloatingWidgetsState } = useFloatingWidgetsState();
-  const { isAppActive, isLowPowerMode, pollIntervalMultiplier } = useAnimationActivity({
+  const { isAppActive, isLowPowerMode } = useAnimationActivity({
     activeFps: 60,
     lowPowerFps: 24,
   });
 
   const {
-    currentTrack,
+    currentTrack: spotifyTrack,
     currentUser,
-    isPlaying,
+    isPlaying: spotifyIsPlaying,
     isConnected,
     loading: spotifyLoading,
     error: spotifyError,
     playerWebApiForbidden,
   } = spotify;
+
+  const nowPlaying = useConsolidatedAppStore(
+    useShallow((s) => ({
+      source: s.nowPlaying?.source,
+      trackName: s.nowPlaying?.trackName || '',
+      artistLine: s.nowPlaying?.artistLine || '',
+      albumArtUrl: s.nowPlaying?.albumArtUrl || '',
+      isPlaying: Boolean(s.nowPlaying?.isPlaying),
+      progressMs: s.nowPlaying?.progressMs || 0,
+      durationMs: s.nowPlaying?.durationMs || 0,
+      appName: s.nowPlaying?.appName || '',
+    }))
+  );
+
+  const isSystemSource = nowPlaying.source === 'system';
+  const currentTrack = isSystemSource
+    ? nowPlaying.trackName
+      ? {
+          name: nowPlaying.trackName,
+          artists: [{ name: nowPlaying.artistLine }],
+          album: { images: nowPlaying.albumArtUrl ? [{ url: nowPlaying.albumArtUrl }] : [] },
+        }
+      : null
+    : spotifyTrack;
+  const isPlaying = isSystemSource ? nowPlaying.isPlaying : spotifyIsPlaying;
+  const displayArtistLine = isSystemSource
+    ? nowPlaying.artistLine
+    : currentTrack?.artists?.map((a) => a.name).join(', ') ?? '';
+  const progressMs = isSystemSource ? nowPlaying.progressMs : spotify.progress || 0;
+  const durationMs = isSystemSource ? nowPlaying.durationMs : spotify.duration || 0;
+
+  const musicLevels = useMusicReactiveLevels({
+    isPlaying,
+    progressMs,
+    durationMs,
+    enabled: isVisible && Boolean(currentTrack),
+  });
 
   const isPremium = isSpotifyPremiumUser(currentUser);
   const isFreeTierConnected = Boolean(isConnected && currentUser && !isPremium);
@@ -145,10 +185,42 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
     handleSeekHandlePointerDown,
     handleProgressBarPointerDown,
   } = usePlaybackSeek({
-    durationMs: spotify.duration || 0,
+    durationMs,
     onCommitSeek: handleSeekCommit,
-    disabled: isFreeTierConnected,
+    disabled: isFreeTierConnected || isSystemSource,
   });
+
+  const runSystemTransport = useCallback(async (action) => {
+    try {
+      await window.api?.systemMedia?.transport?.(action);
+    } catch {
+      /* soft-fail */
+    }
+  }, []);
+
+  const handlePrevious = useCallback(() => {
+    if (isSystemSource) {
+      void runSystemTransport('previous');
+      return;
+    }
+    spotifyManager?.skipToPrevious?.();
+  }, [isSystemSource, runSystemTransport, spotifyManager]);
+
+  const handleTogglePlay = useCallback(() => {
+    if (isSystemSource) {
+      void runSystemTransport('playPause');
+      return;
+    }
+    spotifyManager?.togglePlayback?.();
+  }, [isSystemSource, runSystemTransport, spotifyManager]);
+
+  const handleNext = useCallback(() => {
+    if (isSystemSource) {
+      void runSystemTransport('next');
+      return;
+    }
+    spotifyManager?.skipToNext?.();
+  }, [isSystemSource, runSystemTransport, spotifyManager]);
 
   const handleOpenSpotifyIntegrationSettings = useCallback(() => {
     openSettingsToTab(SETTINGS_TAB_ID.API_INTEGRATIONS);
@@ -195,19 +267,6 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
       });
     }
   }, [albumArtUrl, spotifySettings.dynamicColors, currentPage, setSpotifyState]);
-
-  const basePlaybackPollIntervalMs = playerWebApiForbidden
-    ? 120000
-    : isLowPowerMode
-      ? 6000
-      : 2000;
-  const playbackPollIntervalMs = Math.round(basePlaybackPollIntervalMs * pollIntervalMultiplier);
-  const refreshPlaybackState = useCallback(() => {
-    spotifyManager?.refreshPlaybackState?.();
-  }, [spotifyManager]);
-  useActivityInterval(refreshPlaybackState, playbackPollIntervalMs, {
-    enabled: isVisible && isAppActive,
-  });
 
   useEffect(() => {
     if (isVisible && currentPage === 'browse') {
@@ -353,9 +412,10 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
     spotifySettings.dynamicColors && currentTrack?.album?.images?.[0]?.url
   );
 
-  const artistLine = currentTrack?.artists?.map((a) => a.name).join(', ') ?? '';
+  const artistLine = displayArtistLine;
 
   const tierLabel = isPremium ? 'premium' : isConnected && currentUser ? 'free' : null;
+  const showPlayerChrome = isConnected || isSystemSource;
 
   return (
     <FloatingWidgetPresence
@@ -412,32 +472,32 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
           )}
 
         <div className="floating-spotify-widget__column flex min-h-0 flex-1 flex-col">
-          {isConnected && (
+          {showPlayerChrome && (
             <div
               className="floating-spotify-widget__chrome-drag flex shrink-0 cursor-grab touch-none p-6 pb-4 pt-4 active:cursor-grabbing sm:p-8 sm:pb-4"
               onPointerDown={handleDragPointerDown}
             >
               <SpotifyWidgetChrome
-                currentPage={currentPage}
+                currentPage={isConnected ? currentPage : 'player'}
                 onNavigatePlayer={() => setCurrentPage('player')}
-                onNavigateBrowse={() => setCurrentPage('browse')}
-                onNavigateSettings={() => setCurrentPage('settings')}
+                onNavigateBrowse={() => isConnected && setCurrentPage('browse')}
+                onNavigateSettings={() => isConnected && setCurrentPage('settings')}
                 searchQuery={searchQuery}
                 onSearchChange={(v) => setSearchQuery(v)}
                 onSearchSubmit={handleSearch}
                 onSearchFocus={() => {
-                  if (currentPage === 'player') setCurrentPage('browse');
+                  if (isConnected && currentPage === 'player') setCurrentPage('browse');
                 }}
                 reducedMotion={reducedMotion}
                 searchExpanded={searchExpanded}
                 onSearchExpandedChange={setSearchExpanded}
-                tierLabel={tierLabel || undefined}
+                tierLabel={isSystemSource ? nowPlaying.appName || 'System' : tierLabel || undefined}
               />
             </div>
           )}
 
           <div className="widget-content wee-spotify-widget__body flex min-h-0 min-w-0 flex-1 flex-col px-6 sm:px-10">
-            {(!isConnected || spotifyError) && (
+            {(!isConnected || spotifyError) && !isSystemSource && (
               <div
                 className="floating-widget-status-banner floating-widget-status-banner--with-actions"
                 role="status"
@@ -489,13 +549,13 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
                 </div>
               </div>
             )}
-            {isConnected && spotifyLoading && !currentTrack && (
+            {isConnected && spotifyLoading && !currentTrack && !isSystemSource && (
               <div className="floating-widget-status-banner floating-widget-status-banner--subtle" role="status">
                 Syncing playback…
               </div>
             )}
 
-            {isConnected && playerWebApiForbidden && (
+            {isConnected && playerWebApiForbidden && !isSystemSource && (
               <div className="floating-spotify-widget__player-api-banner" role="status">
                 <p className="floating-spotify-widget__player-api-banner__text">
                   Now playing in this widget requires Spotify Premium.
@@ -510,7 +570,7 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
               </div>
             )}
 
-            {isFreeTierConnected && !playerWebApiForbidden && (
+            {isFreeTierConnected && !playerWebApiForbidden && !isSystemSource && (
               <div className="floating-spotify-widget__tier-banner" role="status">
                 <p className="floating-spotify-widget__tier-banner-title">Spotify Free</p>
                 <p className="floating-spotify-widget__tier-banner-copy">
@@ -536,11 +596,21 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
               </div>
             )}
 
-            {isConnected && (
+            {showPlayerChrome && (
               <div className="relative flex min-h-0 w-full flex-1 flex-col gap-1">
+                {currentPage === 'player' && currentTrack ? (
+                  <div className="flex shrink-0 justify-center pb-1 pt-0.5">
+                    <MusicReactiveBars
+                      levels={musicLevels}
+                      maxHeightPx={22}
+                      minHeightPx={3}
+                      opacity={isPlaying ? 0.9 : 0.25}
+                    />
+                  </div>
+                ) : null}
                 <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
                   <AnimatePresence mode="wait" initial={false}>
-                    {currentPage === 'player' && (
+                    {(currentPage === 'player' || (!isConnected && Boolean(isSystemSource))) && (
                       <m.div
                         key="player"
                         initial={reducedMotion ? false : { opacity: 0, scale: 0.98 }}
@@ -554,23 +624,23 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
                           artistLine={artistLine}
                           size={size}
                           isPlaying={isPlaying}
-                          isFreeTierConnected={isFreeTierConnected}
-                          spotifyProgress={spotify.progress || 0}
-                          spotifyDuration={spotify.duration || 0}
+                          isFreeTierConnected={isSystemSource ? false : isFreeTierConnected}
+                          spotifyProgress={progressMs}
+                          spotifyDuration={durationMs}
                           isSeeking={isSeeking}
                           seekPosition={seekPosition}
                           progressBarRef={progressBarRef}
                           onProgressBarPointerDown={handleProgressBarPointerDown}
                           onSeekHandlePointerDown={handleSeekHandlePointerDown}
                           formatTime={formatTime}
-                          onPrevious={() => spotifyManager.skipToPrevious()}
-                          onTogglePlay={() => spotifyManager.togglePlayback()}
-                          onNext={() => spotifyManager.skipToNext()}
+                          onPrevious={handlePrevious}
+                          onTogglePlay={handleTogglePlay}
+                          onNext={handleNext}
                           reducedMotion={reducedMotion}
                         />
                       </m.div>
                     )}
-                    {currentPage === 'browse' && (
+                    {isConnected && currentPage === 'browse' && (
                       <m.div
                         key="browse"
                         initial={reducedMotion ? false : { opacity: 0, y: 20 }}
@@ -598,7 +668,7 @@ const FloatingSpotifyWidget = ({ isVisible, onExitAnimationComplete }) => {
                         />
                       </m.div>
                     )}
-                    {currentPage === 'settings' && (
+                    {isConnected && currentPage === 'settings' && (
                       <m.div
                         key="settings"
                         initial={reducedMotion ? false : { opacity: 0, x: 20 }}

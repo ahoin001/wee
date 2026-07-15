@@ -18,6 +18,7 @@ import {
 } from './hooks/useAppShellEffects';
 import { useWallpaperAmbientColor } from './hooks/useWallpaperAmbientColor';
 import { useAppInitialization } from './hooks/useAppInitialization';
+import { useNowPlayingSources } from './hooks/useNowPlayingSources';
 import { useAppUpdater } from './hooks/useAppUpdater';
 import { useUnifiedSettingsPersistence } from './hooks/useUnifiedSettingsPersistence';
 import { useWallpaperDataFileSync } from './hooks/useWallpaperDataFileSync';
@@ -490,6 +491,7 @@ function App() {
   }, [openDevTools, wallpaper, isCycling, cycleToNextWallpaper]);
 
   useAppInitialization();
+  useNowPlayingSources();
   const { closeUpdateModal } = useAppUpdater({ enableStartupPopup: true });
 
   useFullscreenEffect({ appReady, startInFullscreen });

@@ -230,6 +230,11 @@ const selectPersistedUi = (ui = {}) => ({
   homeBoardWidgetCoachDismissed: ui.homeBoardWidgetCoachDismissed ?? false,
   /* Command palette: open state stays transient; only recents persist */
   commandPaletteRecent: Array.isArray(ui.commandPaletteRecent) ? ui.commandPaletteRecent.slice(0, 8) : [],
+  nowPlayingSourcePreference:
+    ui.nowPlayingSourcePreference === 'spotify' || ui.nowPlayingSourcePreference === 'system'
+      ? ui.nowPlayingSourcePreference
+      : 'auto',
+  systemMediaEnabled: ui.systemMediaEnabled !== false,
 });
 
 /** Strip modal / loading chrome — prefs only. */

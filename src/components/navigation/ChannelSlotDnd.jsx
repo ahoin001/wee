@@ -53,6 +53,7 @@ function ChannelSlotDnd({
   channelSpaceKey,
   channelIndex,
   disabled,
+  resizeActive = false,
   celebrateDrop,
   reorderWave,
   isPlaceholder,
@@ -63,10 +64,12 @@ function ChannelSlotDnd({
   const reduceMotion = osReduced || !channelReorderSlotMotion;
   const slotId = channelSlotId(channelSpaceKey, channelIndex);
   const dragId = channelDragId(channelSpaceKey, channelIndex);
+  /** Corner-resize owns the pointer — suppress reorder sensors while active. */
+  const dndDisabled = Boolean(disabled || resizeActive);
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: slotId,
-    disabled,
+    disabled: dndDisabled,
     data: { channelIndex },
   });
 
@@ -77,7 +80,7 @@ function ChannelSlotDnd({
     isDragging,
   } = useDraggable({
     id: dragId,
-    disabled,
+    disabled: dndDisabled,
     data: { channelIndex },
   });
 
@@ -99,8 +102,8 @@ function ChannelSlotDnd({
       className={`channel-slot-dnd relative h-full w-full min-h-0 min-w-0${
         isDragging || showHole ? ' channel-slot-dnd--dragging' : ''
       }${showHole ? ' channel-slot-dnd--placeholder' : ''}`}
-      {...listeners}
-      {...attributes}
+      {...(dndDisabled ? {} : listeners)}
+      {...(dndDisabled ? {} : attributes)}
     >
       <m.div
         className="channel-slot-dnd__shift h-full w-full min-h-0 min-w-0"
@@ -139,6 +142,7 @@ ChannelSlotDnd.propTypes = {
   channelSpaceKey: PropTypes.oneOf(['home', 'workspaces']).isRequired,
   channelIndex: PropTypes.number.isRequired,
   disabled: PropTypes.bool,
+  resizeActive: PropTypes.bool,
   celebrateDrop: PropTypes.bool,
   isPlaceholder: PropTypes.bool,
   reorderWave: PropTypes.shape({
@@ -152,6 +156,7 @@ ChannelSlotDnd.propTypes = {
 
 ChannelSlotDnd.defaultProps = {
   disabled: false,
+  resizeActive: false,
   celebrateDrop: false,
   isPlaceholder: false,
   reorderWave: null,

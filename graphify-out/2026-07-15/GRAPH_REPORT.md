@@ -1,11 +1,11 @@
 # Graph Report - wee  (2026-07-15)
 
 ## Corpus Check
-- 445 files · ~299,011 words
+- 445 files · ~298,797 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2497 nodes · 5583 edges · 190 communities (136 shown, 54 thin omitted)
+- 2497 nodes · 5583 edges · 193 communities (138 shown, 55 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 74 edges (avg confidence: 0.54)
 - Token cost: 0 input · 0 output
 
@@ -193,7 +193,10 @@
 - prop-types
 - wait-on
 - @radix-ui/react-context-menu
+- SoundsSettingsTab.jsx
 - 6. Styling advice by UI type
+- WeeContentCollapse.jsx
+- 1. THE THREE DIALS (Core Configuration)
 - spotify-web-api-js
 - @tanstack/react-virtual
 
@@ -224,7 +227,7 @@
 ## Import Cycles
 - 4-file cycle: `src/components/app-library/CommunityPresets.jsx -> src/components/modals/index.js -> src/components/modals/PrimaryActionsModal.jsx -> src/components/app-library/index.js -> src/components/app-library/CommunityPresets.jsx`
 
-## Communities (190 total, 54 thin omitted)
+## Communities (193 total, 55 thin omitted)
 
 ### Community 0 - "PresetsSettingsTab.jsx"
 Cohesion: 0.06
@@ -287,20 +290,20 @@ Cohesion: 0.14
 Nodes (18): applyMediaSearchFilters(), createSession(), ensureSession(), generatePresetThumbnail(), getCachedReadResult(), getCommunityPresetUpdates(), getFeaturedPresets(), getPopularMedia() (+10 more)
 
 ### Community 17 - "index.js"
-Cohesion: 0.07
-Nodes (16): PresetListItem, WeeChannelModal(), DOCK_SUB_TABS, WeeChoiceTileGrid(), readCollapseDurationMs(), WeeContentCollapse(), sizeClasses, WeeEmphasisText() (+8 more)
+Cohesion: 0.28
+Nodes (4): DOCK_SUB_TABS, WeeChoiceTileGrid(), findDockThemePath(), getDockThemeByPath()
 
 ### Community 18 - "MediaHubSpace.jsx"
 Cohesion: 0.11
 Nodes (22): MediaHubDiscoverGrid(), EMPTY_OBJECT, episodesForSeason(), formatImdbRating(), getPosterUrl(), GRID_LIST_PARENT_VARIANTS, MediaHubItemDetail(), MediaHubSpace() (+14 more)
 
 ### Community 19 - "WeeModalFieldCard"
-Cohesion: 0.09
-Nodes (20): UnifiedAppPathCard, UnifiedAppPathSearch(), ChannelPathSmartSuggestions(), MediaLibraryBrowser(), PrimaryActionsModal, IDLE_TYPE_ITEMS, KEN_BURNS_EASING_OPTIONS, KEN_BURNS_MODE_OPTIONS (+12 more)
+Cohesion: 0.08
+Nodes (20): PresetListItem, UnifiedAppPathCard, UnifiedAppPathSearch(), ChannelPathSmartSuggestions(), WeeChannelModal(), MediaLibraryBrowser(), PrimaryActionsModal, WeeButton() (+12 more)
 
 ### Community 20 - "managers.js"
-Cohesion: 0.17
-Nodes (19): ChannelDragOverlayFrame(), ChannelDropTargetMotion(), buildDropMicroSparks(), buildDropParticles(), buildLiftParticles(), ChannelReorderVfxPortal(), DropBurstLayer(), LiftBurstLayer() (+11 more)
+Cohesion: 0.18
+Nodes (18): ChannelDragOverlayFrame(), ChannelDropTargetMotion(), buildDropMicroSparks(), buildDropParticles(), buildLiftParticles(), ChannelReorderVfxPortal(), DropBurstLayer(), LiftBurstLayer() (+10 more)
 
 ### Community 22 - "WButton.jsx"
 Cohesion: 0.33
@@ -343,8 +346,8 @@ Cohesion: 0.19
 Nodes (22): channelIdAtIndex(), buildChannelPayload(), channelToConfiguredEntry(), channelToKenBurnsEntry(), createAdminQuickAccessSlot(), createChannelSlotFromLegacy(), createEmptyChannelSlot(), createHomeWidgetSlot() (+14 more)
 
 ### Community 33 - "Text.jsx"
-Cohesion: 0.20
-Nodes (13): SpaceWallpaperAppearanceSection(), WallpaperCyclingSection(), WallpaperLibrarySection(), WallpaperOverlaySection(), EASING_OPTIONS, OVERLAY_EFFECT_OPTIONS, SLIDE_DIRECTION_MODE_OPTIONS, SLIDE_DIRECTION_OPTIONS (+5 more)
+Cohesion: 0.16
+Nodes (14): SpaceWallpaperAppearanceSection(), WallpaperCyclingSection(), WallpaperLibrarySection(), WallpaperOverlaySection(), EASING_OPTIONS, OVERLAY_EFFECT_OPTIONS, SLIDE_DIRECTION_MODE_OPTIONS, SLIDE_DIRECTION_OPTIONS (+6 more)
 
 ### Community 34 - "custom-installer.js"
 Cohesion: 0.17
@@ -359,8 +362,8 @@ Cohesion: 0.20
 Nodes (9): Anti-Patterns Verdict, Critique: Wee Home Channel Grid (`src/components/home-grid` + channel strip), Design Health Score, Minor Observations, Overall Impression, Persona Red Flags, Priority Issues, Questions to Consider (+1 more)
 
 ### Community 37 - "dependencies"
-Cohesion: 0.17
-Nodes (14): AuraHubModalFrame(), HomePageIndicator(), FloatingWidgetPresence, createWeeSideNavPeekVariants(), MEDIA_HUB_STAGGER, REDUCED_MOTION_BY_INTENT, useWeeMotion(), WEE_EASING (+6 more)
+Cohesion: 0.16
+Nodes (15): AuraHubModalFrame(), HomePageIndicator(), FloatingWidgetPresence, createHomeChannelEntranceBandVariants(), createWeeSideNavPeekVariants(), MEDIA_HUB_STAGGER, REDUCED_MOTION_BY_INTENT, useWeeMotion() (+7 more)
 
 ### Community 38 - "build"
 Cohesion: 0.18
@@ -403,8 +406,8 @@ Cohesion: 0.62
 Nodes (6): folderGroupSubtitle(), folderGroupTitle(), getParentDirNormalized(), groupLocalFilesByFolder(), normalizePathSlashes(), relativeParentKeyFromRoot()
 
 ### Community 49 - "MediaLibraryBrowser.jsx"
-Cohesion: 0.16
-Nodes (11): AdvancedSettingsTab, QUICK_LINKS, DEFAULT_GLASS, SIDE_NAV_STYLE_OPTIONS, SettingsActionMenu, SettingsTabPageHeader(), SettingsWeeSection(), SOUND_CATEGORY_DESCRIPTIONS (+3 more)
+Cohesion: 0.21
+Nodes (7): AdvancedSettingsTab, QUICK_LINKS, DEFAULT_GLASS, SIDE_NAV_STYLE_OPTIONS, SettingsTabPageHeader(), SettingsWeeSection(), WeeModalFieldCard()
 
 ### Community 50 - "applyPrimaryAccentFromHex.js"
 Cohesion: 0.06
@@ -467,8 +470,8 @@ Cohesion: 0.33
 Nodes (6): 5. Materials & color, Dynamic runtime colors, Glass chrome tokens, Interactive glow, Semantic color (always), Wee surface radii (settings / modals / cards)
 
 ### Community 83 - "lucide-react"
-Cohesion: 0.36
-Nodes (5): WiiDock(), CLASSIC_DOCK_THEME_GROUPS, CLASSIC_DOCK_DEFAULT_COLORS, getWeeDockBarEntrance(), toDockParticleProps()
+Cohesion: 0.21
+Nodes (8): WiiDock(), LazyPrimaryActionsModal, WiiRibbon, WiiStyleButton(), CLASSIC_DOCK_THEME_GROUPS, CLASSIC_DOCK_DEFAULT_COLORS, getWeeDockBarEntrance(), toDockParticleProps()
 
 ### Community 86 - "prop-types"
 Cohesion: 0.31
@@ -555,8 +558,8 @@ Cohesion: 0.43
 Nodes (6): LaunchErrorToast(), LaunchFeedbackContext, LaunchFeedbackProvider(), setLaunchCinematic(), buildLaunchErrorReport(), getLaunchErrorPresentation()
 
 ### Community 128 - "SystemInfoWidget.jsx"
-Cohesion: 0.11
-Nodes (9): DIRECTION_OPTIONS, EFFECT_TYPE_OPTIONS, CHROME_EFFECT_OPTIONS, SettingsToggleFieldCard(), ResourceUsageIndicator(), GooeySettingsRow(), GLASS_TEST_BTN_STYLE, Slider() (+1 more)
+Cohesion: 0.10
+Nodes (12): IDLE_TYPE_ITEMS, KEN_BURNS_EASING_OPTIONS, KEN_BURNS_MODE_OPTIONS, DIRECTION_OPTIONS, EFFECT_TYPE_OPTIONS, CHROME_EFFECT_OPTIONS, SettingsLivePreviewFrame(), SettingsToggleFieldCard() (+4 more)
 
 ### Community 129 - "UnifiedDockSettingsTab.jsx"
 Cohesion: 0.29
@@ -579,8 +582,8 @@ Cohesion: 0.25
 Nodes (8): Anti-Patterns To Avoid, Core Rule, Dynamic Runtime Styling Pattern, Feature Surfaces (Tokenized), Navigation Surfaces, Shared UI Primitives, Style Architecture Map, Token Layers
 
 ### Community 134 - "ChannelReorderVfx.jsx"
-Cohesion: 0.17
-Nodes (10): DEFAULT_BUTTON_CONFIGS, formatDate(), formatTime(), RibbonMiniature(), useHostWidth(), LazyPrimaryActionsModal, WiiRibbon, WiiStyleButton() (+2 more)
+Cohesion: 0.24
+Nodes (7): DEFAULT_BUTTON_CONFIGS, formatDate(), formatTime(), RibbonMiniature(), useHostWidth(), DEFAULT_TIME_COLOR_HEX, hexAlpha()
 
 ### Community 136 - "Primary accent (Wii blue) — theme audit"
 Cohesion: 0.29
@@ -599,8 +602,8 @@ Cohesion: 0.17
 Nodes (12): 4.10 Quotes & Testimonials, 4.11 Page Theme Lock (Light / Dark Mode Consistency), 4.1 Typography, 4.2 Color Calibration, 4.3 Layout Diversification, 4.4 Materiality, Shadows, Cards, 4.5 Interactive UI States, 4.6 Data & Form Patterns (+4 more)
 
 ### Community 141 - "How to Set Up Supabase"
-Cohesion: 0.13
-Nodes (15): 0.A Read these signals first, 0.B Output a one-line "Design Read" before generating, 0. BRIEF INFERENCE (Read the Room Before Anything Else), 0.C If the brief is ambiguous, ask one question, do not guess, 0.D Anti-Default Discipline, 13. OUT OF SCOPE, 14. FINAL PRE-FLIGHT CHECK, 1.A Dial Inference (design read → dial values) (+7 more)
+Cohesion: 0.18
+Nodes (11): 0.A Read these signals first, 0.B Output a one-line "Design Read" before generating, 0. BRIEF INFERENCE (Read the Room Before Anything Else), 0.C If the brief is ambiguous, ask one question, do not guess, 0.D Anti-Default Discipline, 13. OUT OF SCOPE, 14. FINAL PRE-FLIGHT CHECK, 2.A When to reach for a real design system (use official packages) (+3 more)
 
 ### Community 142 - "Components Organization"
 Cohesion: 0.50
@@ -707,8 +710,8 @@ Cohesion: 0.53
 Nodes (5): applyChannelSlotReorder(), collectSlots(), moveParallelArrays(), scatterSlots(), snapshotChannelSlotMaps()
 
 ### Community 171 - "ChannelModalImageSection.jsx"
-Cohesion: 0.12
-Nodes (12): CommunityPresets(), ImageModal(), Text(), variantMap, buttonVariants, variantSecondarySurface, WButton, VARIANT_MAP (+4 more)
+Cohesion: 0.11
+Nodes (13): CommunityPresets(), ImageModal(), GLASS_TEST_BTN_STYLE, Text(), variantMap, buttonVariants, variantSecondarySurface, WButton (+5 more)
 
 ### Community 172 - "SpotifyBrowseView.jsx"
 Cohesion: 0.22
@@ -730,14 +733,22 @@ Nodes (4): react, react, lazyNamedExport(), createOptimizedComponent()
 Cohesion: 0.18
 Nodes (5): Channel, VirtualizedChannelList, performanceChecklist, performanceUtils, usePerformanceMonitor()
 
+### Community 187 - "SoundsSettingsTab.jsx"
+Cohesion: 0.15
+Nodes (9): SettingsActionMenu, SOUND_CATEGORY_DESCRIPTIONS, SOUND_CATEGORY_ICONS, GooeySettingsRow(), WeeDescriptionToggleRow(), WeeIconHeadingRow(), WeePressSurface, WeeToggle() (+1 more)
+
 ### Community 188 - "6. Styling advice by UI type"
 Cohesion: 0.25
 Nodes (8): 6. Styling advice by UI type, Animations (decision tree), Containers / surfaces, Heroes / hub spaces, Icons, Inputs & controls, Layouts, Text
 
+### Community 190 - "1. THE THREE DIALS (Core Configuration)"
+Cohesion: 0.50
+Nodes (4): 1.A Dial Inference (design read → dial values), 1.B Use-Case Presets, 1.C How the Dials Drive Output, 1. THE THREE DIALS (Core Configuration)
+
 ## Knowledge Gaps
 - **799 isolated node(s):** `PLAYLISTS`, `SONGS`, `name`, `version`, `main` (+794 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **55 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_

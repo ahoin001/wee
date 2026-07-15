@@ -1,3 +1,7 @@
+/**
+ * Home-grid Now Playing tile — reads the shared nowPlaying projection
+ * (Spotify and/or Windows system media).
+ */
 import React, { useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { Maximize2, Music } from 'lucide-react';
@@ -11,11 +15,6 @@ import {
   toggleSpotifyTakeover,
 } from '../../utils/spotifyTakeover';
 
-/**
- * Home-grid Now Playing tile — narrow subscription to existing Spotify state
- * (no polling of its own; playback sampling stays owned by the Spotify manager).
- * Degrades to a connect prompt (not connected) or a play prompt (idle player).
- */
 function NowPlayingSlot({
   slot,
   channelId,
@@ -24,24 +23,36 @@ function NowPlayingSlot({
   selected = false,
   onArrangeSelect,
 }) {
-  // Primitive-only selection: progress/volume updates must not re-render this tile.
-  const { isConnected, isPlaying, trackName, artistLine, albumArtUrl, takeoverAvailable } =
-    useConsolidatedAppStore(
-      useShallow((state) => {
-        const track = state.spotify.currentTrack;
-        return {
-          isConnected: Boolean(state.spotify.isConnected),
-          isPlaying: Boolean(state.spotify.isPlaying),
-          trackName: track?.name || '',
-          artistLine: Array.isArray(track?.artists)
-            ? track.artists.map((a) => a?.name).filter(Boolean).join(', ')
-            : '',
-          albumArtUrl: track?.album?.images?.[0]?.url || '',
-          takeoverAvailable:
-            normalizeNowPlayingExperience(state.spotify.nowPlayingExperience) !== 'off',
-        };
-      })
-    );
+  const {
+    trackName,
+    artistLine,
+    albumArtUrl,
+    isPlaying,
+    source,
+    appName,
+    spotifyConnected,
+    systemEnabled,
+    systemAvailable,
+    takeoverAvailable,
+  } = useConsolidatedAppStore(
+    useShallow((state) => {
+      const np = state.nowPlaying || {};
+      return {
+        trackName: np.trackName || '',
+        artistLine: np.artistLine || '',
+        albumArtUrl: np.albumArtUrl || '',
+        isPlaying: Boolean(np.isPlaying),
+        source: np.source,
+        appName: np.appName || '',
+        spotifyConnected: Boolean(state.spotify.isConnected),
+        systemEnabled: state.ui.systemMediaEnabled !== false,
+        systemAvailable: Boolean(state.systemMedia?.available),
+        takeoverAvailable:
+          np.source === 'spotify' &&
+          normalizeNowPlayingExperience(state.spotify.nowPlayingExperience) !== 'off',
+      };
+    })
+  );
 
   const sizePreset = useMemo(
     () => matchSizePresetBySpan(slot?.colSpan ?? 1, slot?.rowSpan ?? 1) || matchSizePresetBySpan(1, 1),
@@ -52,7 +63,7 @@ function NowPlayingSlot({
   const interactionsLocked = arrangeMode || punchMode;
   const hasTrack = Boolean(trackName);
 
-  const openSpotifyWidget = useCallback(() => {
+  const openMediaWidget = useCallback(() => {
     if (window.api?.ui?.showSpotifyWidget) {
       window.api.ui.showSpotifyWidget();
       return;
@@ -63,6 +74,13 @@ function NowPlayingSlot({
     });
   }, []);
 
+  const emptyLabel = useMemo(() => {
+    if (hasTrack) return '';
+    if (spotifyConnected || (systemEnabled && systemAvailable)) return 'Play something';
+    if (systemEnabled) return 'Start a player';
+    return 'Connect Spotify';
+  }, [hasTrack, spotifyConnected, systemEnabled, systemAvailable]);
+
   const handleActivate = useCallback(
     (event) => {
       if (arrangeMode && !punchMode) {
@@ -71,14 +89,33 @@ function NowPlayingSlot({
         return;
       }
       if (interactionsLocked) return;
-      if (!isConnected) {
+      if (!hasTrack && !spotifyConnected && !(systemEnabled && systemAvailable)) {
         openSettingsToTab('api-integrations');
         return;
       }
-      openSpotifyWidget();
+      openMediaWidget();
     },
-    [arrangeMode, punchMode, interactionsLocked, isConnected, onArrangeSelect, channelId, openSpotifyWidget]
+    [
+      arrangeMode,
+      punchMode,
+      interactionsLocked,
+      hasTrack,
+      spotifyConnected,
+      systemEnabled,
+      systemAvailable,
+      onArrangeSelect,
+      channelId,
+      openMediaWidget,
+    ]
   );
+
+  const statusLabel = isPlaying
+    ? appName
+      ? `${appName}`
+      : 'Now Playing'
+    : hasTrack
+      ? 'Paused'
+      : '';
 
   return (
     <WeeGlassPill
@@ -120,7 +157,10 @@ function NowPlayingSlot({
             <>
               <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[hsl(var(--text-secondary))]">
                 <Music size={11} strokeWidth={2.5} className="text-[hsl(var(--primary))]" aria-hidden />
-                {isPlaying ? 'Now Playing' : 'Paused'}
+                {statusLabel}
+                {source === 'system' && !isCompact ? (
+                  <span className="truncate opacity-70">· System</span>
+                ) : null}
               </span>
               {!isCompact ? (
                 <>
@@ -152,7 +192,7 @@ function NowPlayingSlot({
                 aria-hidden
               />
               <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-                {isConnected ? 'Play something' : 'Connect Spotify'}
+                {emptyLabel}
               </span>
             </div>
           )}

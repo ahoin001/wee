@@ -95,11 +95,14 @@ function HomeBoardArrangeBar({
   const hint = punchMode
     ? 'Tap tiles to punch wallpaper holes · toggle off under More when finished'
     : selectedIsWidget
-      ? `Resize or remove this ${selectedKindMeta?.label ?? ''} widget`.replace('  ', ' ')
+      ? `Drag the corner to resize · or pick S–XL · remove this ${selectedKindMeta?.label ?? ''} widget`.replace(
+          '  ',
+          ' '
+        )
       : selectedIsEmptyChannel
         ? 'Empty slot — pick a widget below to place it here'
         : selectedKindMeta
-          ? 'Pick a size for this tile · drag tiles to reorder'
+          ? 'Drag the corner to resize · or pick S–XL · drag tiles to reorder'
           : 'Tap a tile to select · drag tiles to reorder · Esc to exit';
 
   return (
