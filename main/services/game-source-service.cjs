@@ -147,7 +147,7 @@ function createGameSourceService({ fs, path, vdf, os, scanCacheFile = null }) {
         status: 'error',
         statusCode: 'missing-api-key',
         statusReason:
-          'Steam Web API key is not configured. Add STEAM_WEB_API_KEY to your local .env (get a key at steamcommunity.com/dev/apikey), then restart Wee.',
+          'Steam Web API key is not configured. Paste your key under Settings → API & Widgets → Steam connection (or set STEAM_WEB_API_KEY in .env).',
         error: 'Steam Web API key is not configured.',
       };
     }

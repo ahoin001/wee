@@ -27,7 +27,7 @@ function RecentLaunchButton({ entry, onLaunch, compact = false }) {
         event.stopPropagation();
         onLaunch(entry);
       }}
-      className={`flex items-center justify-center overflow-hidden rounded-2xl border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] text-[hsl(var(--text-primary))] shadow-[var(--shadow-sm)] transition-transform hover:scale-105 active:scale-95 ${
+      className={`home-widget-float-tile flex items-center justify-center overflow-hidden rounded-2xl border-2 border-[hsl(var(--border-primary)/0.35)] bg-[hsl(var(--surface-elevated)/0.85)] text-[hsl(var(--text-primary))] shadow-[var(--shadow-sm)] transition-transform hover:scale-105 active:scale-95 ${
         compact ? 'h-9 w-9 text-base' : 'h-11 w-11 text-lg'
       }`}
     >

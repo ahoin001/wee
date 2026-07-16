@@ -178,23 +178,23 @@ function HomeBoardArrangeBar({
                       size="sm"
                       ariaLabel="Widget surface"
                       layoutId="homeArrangeWidgetSurface"
-                      value={activeSurface || 'basic'}
+                      value={activeSurface || 'clear'}
                       onChange={(surface) => onSetSurface?.(surface)}
                       options={[
                         {
-                          value: 'basic',
-                          label: 'Basic',
-                          title: 'Solid frosted pill chrome',
+                          value: 'clear',
+                          label: 'Clear',
+                          title: 'Float on wallpaper — no plate (default)',
                         },
                         {
                           value: 'glass',
                           label: 'Glass',
-                          title: 'Liquid glass — wallpaper shows through (shared look)',
+                          title: 'Light frost / tint over wallpaper (shared look)',
                         },
                         {
-                          value: 'clear',
-                          label: 'Clear',
-                          title: 'No fill — wallpaper shows through',
+                          value: 'basic',
+                          label: 'Basic',
+                          title: 'Solid frosted pill card',
                         },
                       ]}
                     />

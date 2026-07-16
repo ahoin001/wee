@@ -13,6 +13,7 @@ import RecentlyUsedSlot from './RecentlyUsedSlot';
 import ClockSlot from './ClockSlot';
 import WeatherSlot from './WeatherSlot';
 import SteamRecentSlot from './SteamRecentSlot';
+import SteamMostPlayedSlot from './SteamMostPlayedSlot';
 
 /** Non-channel widget renderers, keyed by registry `render` ids. */
 const WIDGET_SLOT_COMPONENTS = {
@@ -22,6 +23,7 @@ const WIDGET_SLOT_COMPONENTS = {
   ClockSlot,
   WeatherSlot,
   SteamRecentSlot,
+  SteamMostPlayedSlot,
 };
 
 /**

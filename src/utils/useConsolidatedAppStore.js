@@ -40,7 +40,7 @@ import {
   migrateChannelsLegacyGlassSurfaces,
   normalizeHomeWidgetSurface,
 } from './homeWidgetSurface';
-import { normalizeHomeWidgetGlass } from './homeWidgetGlass';
+import { normalizeHomeWidgetGlass, DEFAULT_HOME_WIDGET_GLASS } from './homeWidgetGlass';
 import { recordRecentLaunchEntry } from './recentLaunches';
 import { MAX_SAVED_WORKSPACES } from './workspaces/workspaceConstants.js';
 import { mergeChannelsSlice } from './store/settingsPersistenceContract';
@@ -211,14 +211,7 @@ useConsolidatedAppStore = create(
            * Shared liquid-glass look for Home widgets with surface: 'glass'.
            * All glass tiles read this so they stay visually harmonious.
            */
-          homeWidgetGlass: {
-            blur: 14,
-            tint: 0.16,
-            saturation: 155,
-            refraction: 0.42,
-            shine: 0.55,
-            surfacesMigrated: false,
-          },
+          homeWidgetGlass: { ...DEFAULT_HOME_WIDGET_GLASS, surfacesMigrated: false },
           // Modal states
           showSettingsModal: false,
           showSettingsActionMenu: false, // Settings action menu state
@@ -779,6 +772,8 @@ useConsolidatedAppStore = create(
         gameHub: {
           profile: {
             steamId: '',
+            /** Steam Web API key from settings UI; main falls back to STEAM_WEB_API_KEY env. */
+            steamWebApiKey: '',
             useSteamWebApi: true,
             onboardingDismissed: false,
           },
@@ -2091,14 +2086,7 @@ useConsolidatedAppStore = create(
               ambientColor: { ...DEFAULT_AMBIENT_COLOR },
               channelOpacity: 1,
               lastChannelHoverTime: Date.now(),
-              homeWidgetGlass: {
-                blur: 14,
-                tint: 0.16,
-                saturation: 155,
-                refraction: 0.42,
-                shine: 0.55,
-                surfacesMigrated: true,
-              },
+              homeWidgetGlass: { ...DEFAULT_HOME_WIDGET_GLASS, surfacesMigrated: true },
               showUpdateModal: false,
               updateDismissedVersion: '',
               isAuthModalOpen: false,
@@ -2320,6 +2308,7 @@ useConsolidatedAppStore = create(
             gameHub: {
               profile: {
                 steamId: '',
+                steamWebApiKey: '',
                 useSteamWebApi: true,
                 onboardingDismissed: false,
               },

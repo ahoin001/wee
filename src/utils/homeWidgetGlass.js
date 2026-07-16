@@ -5,16 +5,16 @@
  */
 
 export const DEFAULT_HOME_WIDGET_GLASS = Object.freeze({
-  /** Backdrop blur in px (higher = frostier). */
-  blur: 14,
+  /** Backdrop blur in px (higher = frostier). Time-pill–subtle by default. */
+  blur: 8,
   /** Fill opacity 0–1 — lower lets more wallpaper show through. */
-  tint: 0.16,
+  tint: 0.06,
   /** Color saturation % for backdrop-filter. */
-  saturation: 155,
+  saturation: 140,
   /** Edge refraction / bend strength 0–1. */
-  refraction: 0.42,
+  refraction: 0.28,
   /** Specular highlight strength 0–1. */
-  shine: 0.55,
+  shine: 0.35,
   /**
    * One-shot: legacy per-slot `surface: 'glass'` meant WeeGlassPill chrome → migrated to `basic`.
    */

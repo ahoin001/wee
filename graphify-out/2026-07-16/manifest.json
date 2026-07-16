@@ -615,8 +615,8 @@
     "semantic_hash": "94cd73e45d240ce6e7199f2651f265b2"
   },
   "src/components/settings/ApiIntegrationsSettingsTab.jsx": {
-    "mtime": 1784207329.3137589,
-    "ast_hash": "5224143f433dface1c6f9b6dec54b258",
+    "mtime": 1784207704.2166376,
+    "ast_hash": "fbaeca28b26ebac6badd52ae158f9913",
     "semantic_hash": ""
   },
   "src/components/settings/ChannelsLayoutSettingsTab.jsx": {
@@ -1610,8 +1610,8 @@
     "semantic_hash": "541dd4bec18629467fdcb48e0506fb0f"
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784171178.9761803,
-    "ast_hash": "61d41e1b90f54616390ae1990b3c6e15",
+    "mtime": 1784207691.3281412,
+    "ast_hash": "139783acb05ae5b4a8477fefcba011d8",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -2335,8 +2335,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useNowPlayingSources.js": {
-    "mtime": 1784170851.5302572,
-    "ast_hash": "059e097551d97e6cbbabc6c57b7046d0",
+    "mtime": 1784207704.1831548,
+    "ast_hash": "b8cc8044e1904d19734a2bec18f01f4d",
     "semantic_hash": ""
   },
   "src/hooks/useSharedSpotifyPlaybackSampler.js": {

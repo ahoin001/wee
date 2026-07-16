@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
-import { Cloud, User } from 'lucide-react';
+import { Cloud, KeyRound, User } from 'lucide-react';
 import Text from '../../ui/Text';
 import WToggle from '../../ui/WToggle';
 import WButton from '../../ui/WButton';
@@ -87,12 +87,12 @@ StatusKV.propTypes = {
 function formatSteamSyncFailure(refresh, steamId) {
   if (refresh?.reason === 'unavailable') {
     if (refresh.unavailableCause === 'api-disabled') {
-      return `Saved SteamID64 ${steamId}, but Steam Web API enrichment is turned off. Enable “Use Steam Web API” below to sync your library.`;
+      return `Saved connection for ${steamId}, but Steam Web API enrichment is turned off. Enable “Use Steam Web API” below to sync.`;
     }
     if (refresh.unavailableCause === 'api-bridge-missing') {
-      return `Saved SteamID64 ${steamId}, but Steam enrichment isn’t available in this session (desktop API bridge missing). Restart Wee as the desktop app.`;
+      return `Saved connection for ${steamId}, but Steam enrichment isn’t available in this session. Restart Wee as the desktop app.`;
     }
-    return `Saved SteamID64 ${steamId}, but library sync isn’t available yet.`;
+    return `Saved connection for ${steamId}, but library sync isn’t available yet.`;
   }
 
   const detail =
@@ -101,10 +101,10 @@ function formatSteamSyncFailure(refresh, steamId) {
     'Library sync failed. Check Enrichment status below.';
 
   if (refresh?.statusCode === 'missing-api-key' || /api key is not configured/i.test(detail)) {
-    return `Saved SteamID64 ${steamId}, but the Steam Web API key isn’t configured. Add STEAM_WEB_API_KEY to your local .env (get a key at steamcommunity.com/dev/apikey), then restart Wee.`;
+    return `SteamID64 is saved, but a Steam Web API key is still required. Paste your key above (from steamcommunity.com/dev/apikey), then save again.`;
   }
   if (refresh?.statusCode === 'invalid-api-key') {
-    return `Saved SteamID64 ${steamId}, but the Steam Web API key appears invalid. Check STEAM_WEB_API_KEY in your .env and restart Wee.`;
+    return `Saved SteamID64 ${steamId}, but the Steam Web API key appears invalid. Double-check the key and save again.`;
   }
   if (refresh?.statusCode === 'private-profile' || refresh?.statusCode === 'private-or-empty') {
     return `Saved SteamID64 ${steamId}, but Steam returned no library data. Make sure the profile’s game details are public.`;
@@ -133,6 +133,7 @@ const SteamIntegrationSettings = React.memo(() => {
   const setGameHubState = useConsolidatedAppStore((state) => state.actions.setGameHubState);
 
   const [steamIdInput, setSteamIdInput] = useState(profile.steamId || '');
+  const [apiKeyInput, setApiKeyInput] = useState(profile.steamWebApiKey || '');
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -141,6 +142,10 @@ const SteamIntegrationSettings = React.memo(() => {
   useEffect(() => {
     setSteamIdInput(profile.steamId || '');
   }, [profile.steamId]);
+
+  useEffect(() => {
+    setApiKeyInput(profile.steamWebApiKey || '');
+  }, [profile.steamWebApiKey]);
 
   useEffect(
     () => () => {
@@ -164,7 +169,12 @@ const SteamIntegrationSettings = React.memo(() => {
     }, 4000);
   }, []);
 
-  const handleSaveSteamId = useCallback(async () => {
+  const clearFeedback = useCallback(() => {
+    if (saveError) setSaveError('');
+    if (saveSuccess) setSaveSuccess('');
+  }, [saveError, saveSuccess]);
+
+  const handleSaveConnection = useCallback(async () => {
     const result = validateSteamId64Input(steamIdInput);
     if (!result.ok) {
       setSaveSuccess('');
@@ -172,8 +182,18 @@ const SteamIntegrationSettings = React.memo(() => {
       return;
     }
 
+    const apiKey = String(apiKeyInput || '').trim();
+    if (!apiKey) {
+      setSaveSuccess('');
+      setSaveError(
+        'A Steam Web API key is required. Get one at steamcommunity.com/dev/apikey (free with any Steam account), then paste it here.'
+      );
+      return;
+    }
+
     const { steamId } = result;
     setSteamIdInput(steamId);
+    setApiKeyInput(apiKey);
     setIsSaving(true);
     setSaveError('');
     setSaveSuccess('');
@@ -182,24 +202,25 @@ const SteamIntegrationSettings = React.memo(() => {
       setGameHubState({
         profile: {
           steamId,
+          steamWebApiKey: apiKey,
           onboardingDismissed: false,
         },
         library: {
           syncStatus: 'pending',
-          statusReason: 'SteamID64 saved. Syncing library…',
+          statusReason: 'Steam connection saved. Syncing library…',
           lastError: null,
         },
       });
 
-      const stored = useConsolidatedAppStore.getState().gameHub?.profile?.steamId;
-      if (stored !== steamId) {
-        setSaveError('Couldn’t save SteamID64 to app settings. Try again.');
+      const stored = useConsolidatedAppStore.getState().gameHub?.profile;
+      if (stored?.steamId !== steamId || stored?.steamWebApiKey !== apiKey) {
+        setSaveError('Couldn’t save Steam connection to app settings. Try again.');
         return;
       }
 
       const refresh = await refreshSteamEnrichmentNow();
       if (refresh?.ok) {
-        flashSuccess(`Saved SteamID64 ${steamId}. Library sync complete.`);
+        flashSuccess(`Connected ${steamId}. Library sync complete — Home Steam widgets and Game Hub are ready.`);
       } else {
         setSaveSuccess('');
         setSaveError(formatSteamSyncFailure(refresh, steamId));
@@ -207,26 +228,28 @@ const SteamIntegrationSettings = React.memo(() => {
     } finally {
       setIsSaving(false);
     }
-  }, [setGameHubState, steamIdInput, flashSuccess]);
+  }, [setGameHubState, steamIdInput, apiKeyInput, flashSuccess]);
 
-  const handleClearSteamId = useCallback(() => {
+  const handleClearConnection = useCallback(() => {
     setSaveError('');
     setSaveSuccess('');
     setSteamIdInput('');
+    setApiKeyInput('');
     setGameHubState({
       profile: {
         steamId: '',
+        steamWebApiKey: '',
         onboardingDismissed: false,
       },
       library: {
         enrichedGames: [],
         lastEnrichedSteamId: '',
         syncStatus: 'local-only',
-        statusReason: 'SteamID64 cleared. Running local-only mode.',
+        statusReason: 'Steam connection cleared. Running local-only mode.',
         lastError: null,
       },
     });
-    flashSuccess('SteamID64 cleared.');
+    flashSuccess('Steam connection cleared.');
   }, [setGameHubState, flashSuccess]);
 
   const handleUseSteamWebApiChange = useCallback(
@@ -256,27 +279,42 @@ const SteamIntegrationSettings = React.memo(() => {
   }, []);
 
   const helperIsError = Boolean(saveError);
+  const keyConfigured = Boolean(String(profile.steamWebApiKey || '').trim());
 
   return (
     <>
       <WeeSettingsCollapsibleSection
         icon={User}
-        title="Steam profile"
-        description="SteamID64 is stored locally and used for Game Hub library enrichment."
+        title="Steam connection"
+        description="Paste your SteamID64 and Web API key — both are free and unlock library enrichment."
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
-          <div className="space-y-4">
-            <div>
-              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
-                SteamID64
+          <div className="space-y-5">
+            <div className={`${WEE_FIELD_CARD} space-y-2`}>
+              <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.12em]">
+                What you unlock
               </WeeSectionEyebrow>
               <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                17-digit ID from your Steam community XML — saved in unified app settings.
+                Together, SteamID64 + API key let Wee read your public library stats from Steam’s servers.
+                That powers Game Hub playtime shelves, and Home widgets for{' '}
+                <span className="font-bold text-[hsl(var(--text-secondary))]">Steam Recent</span> and{' '}
+                <span className="font-bold text-[hsl(var(--text-secondary))]">Steam Most Played</span>
+                {' '}(place them via Edit Home).
               </Text>
-              <Text variant="caption" className="!m-0 mt-1 text-[hsl(var(--text-tertiary))]">
-                Tip: sign in on Steam, open your profile, then use “Where to find SteamID64” for the
-                XML page — or paste a /profiles/&lt;17-digit&gt; URL. Custom /id/ names are not resolved.
+              <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                Your ID picks whose library to load. Your API key authorizes the request (Steam requires
+                it for every Web API call). Game details on the profile must be public.
+              </Text>
+            </div>
+
+            <div>
+              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
+                1 · SteamID64
+              </WeeSectionEyebrow>
+              <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                Your 17-digit Steam account ID. Use “Where to find SteamID64” for the community XML page,
+                or paste a /profiles/&lt;17-digit&gt; URL. Custom /id/ names are not resolved.
               </Text>
               {profile.steamId ? (
                 <Text variant="caption" className="!m-0 mt-2 font-bold text-[hsl(var(--text-secondary))]">
@@ -287,27 +325,65 @@ const SteamIntegrationSettings = React.memo(() => {
                   No SteamID64 saved yet.
                 </Text>
               )}
+              <div className="mt-2">
+                <WInput
+                  variant="wee"
+                  type="text"
+                  value={steamIdInput}
+                  onChange={(event) => {
+                    setSteamIdInput(event.target.value);
+                    clearFeedback();
+                  }}
+                  placeholder="17-digit SteamID64"
+                />
+              </div>
+              <div className="mt-2">
+                <WButton size="sm" variant="tertiary" onClick={handleOpenSteamIdHelp}>
+                  Where to find SteamID64
+                </WButton>
+              </div>
             </div>
-            <WInput
-              variant="wee"
-              type="text"
-              value={steamIdInput}
-              onChange={(event) => {
-                setSteamIdInput(event.target.value);
-                if (saveError) setSaveError('');
-                if (saveSuccess) setSaveSuccess('');
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  void handleSaveSteamId();
-                }
-              }}
-              placeholder="17-digit SteamID64"
-              error={helperIsError}
-              helperText={helperIsError ? saveError : undefined}
-              aria-invalid={helperIsError}
-            />
+
+            <div>
+              <WeeSectionEyebrow className="mb-2 block" trackingClassName="tracking-[0.12em]">
+                2 · Steam Web API key
+              </WeeSectionEyebrow>
+              <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                Free key from Steam for any account. Stored locally in Wee settings (not uploaded). Optional
+                fallback: <code className="font-bold">STEAM_WEB_API_KEY</code> in .env.
+              </Text>
+              <Text variant="caption" className="!m-0 mt-1 font-bold text-[hsl(var(--text-secondary))]">
+                {keyConfigured ? 'API key saved on this PC.' : 'No API key saved yet.'}
+              </Text>
+              <div className="mt-2">
+                <WInput
+                  variant="wee"
+                  type="password"
+                  autoComplete="off"
+                  value={apiKeyInput}
+                  onChange={(event) => {
+                    setApiKeyInput(event.target.value);
+                    clearFeedback();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleSaveConnection();
+                    }
+                  }}
+                  placeholder="Paste Steam Web API key"
+                  error={helperIsError}
+                  helperText={helperIsError ? saveError : undefined}
+                  aria-invalid={helperIsError}
+                />
+              </div>
+              <div className="mt-2">
+                <WButton size="sm" variant="tertiary" onClick={handleOpenApiKeyHelp}>
+                  Get a Steam Web API key
+                </WButton>
+              </div>
+            </div>
+
             {saveSuccess ? (
               <p
                 className="!m-0 text-sm font-bold text-[hsl(var(--state-success))]"
@@ -317,20 +393,18 @@ const SteamIntegrationSettings = React.memo(() => {
                 {saveSuccess}
               </p>
             ) : null}
+
             <div className="flex flex-wrap items-center gap-2">
               <WButton
                 size="sm"
                 variant="primary"
-                onClick={() => void handleSaveSteamId()}
+                onClick={() => void handleSaveConnection()}
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving…' : 'Save SteamID64'}
+                {isSaving ? 'Saving…' : 'Save & sync library'}
               </WButton>
-              <WButton size="sm" variant="secondary" onClick={handleClearSteamId} disabled={isSaving}>
+              <WButton size="sm" variant="secondary" onClick={handleClearConnection} disabled={isSaving}>
                 Clear
-              </WButton>
-              <WButton size="sm" variant="tertiary" onClick={handleOpenSteamIdHelp}>
-                Where to find SteamID64
               </WButton>
             </div>
           </div>
@@ -340,14 +414,14 @@ const SteamIntegrationSettings = React.memo(() => {
       <WeeSettingsCollapsibleSection
         icon={Cloud}
         title="Enrichment"
-        description="Local-only mode or Steam Web API when enabled and the .env key is set."
+        description="Toggle remote Steam sync and review last library status."
         defaultOpen
       >
         <WeeModalFieldCard hoverAccent="none" paddingClassName="p-4 md:p-6">
           <div className="space-y-5">
             <HubToggleRow
               title="Use Steam Web API"
-              description="When off, Game Hub stays local-only and skips remote enrichment."
+              description="When off, Game Hub stays local-only and Home Steam widgets stay empty."
             >
               <WToggle
                 checked={profile.useSteamWebApi ?? true}
@@ -356,30 +430,31 @@ const SteamIntegrationSettings = React.memo(() => {
               />
             </HubToggleRow>
 
-            <div className={`${WEE_FIELD_CARD} space-y-2`}>
-              <WeeSectionEyebrow className="mb-1 block" trackingClassName="tracking-[0.12em]">
-                API key
-              </WeeSectionEyebrow>
-              <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
-                The Web API key stays in your local <code className="font-bold">.env</code> as{' '}
-                <code className="font-bold">STEAM_WEB_API_KEY</code> (never stored in app settings).
-                Restart Wee after changing it.
-              </Text>
-              <WButton size="sm" variant="tertiary" onClick={handleOpenApiKeyHelp}>
-                Get a Steam Web API key
-              </WButton>
-            </div>
-
             <div className={`${WEE_FIELD_CARD} space-y-0`}>
               <WeeSectionEyebrow className="mb-3 block" trackingClassName="tracking-[0.12em]">
                 Sync telemetry
               </WeeSectionEyebrow>
               <StatusKV label="Status" value={library.syncStatus || 'unknown'} />
               <StatusKV label="Last sync" value={syncLabel} />
+              <StatusKV
+                label="API key"
+                value={keyConfigured ? 'Saved in settings' : 'Not set (env fallback still works)'}
+              />
               {library.statusReason ? (
                 <StatusKV label="Status detail" value={library.statusReason} />
               ) : null}
               {library.lastError ? <StatusKV label="Last error" value={library.lastError} /> : null}
+            </div>
+
+            <div className={`${WEE_FIELD_CARD} space-y-2`}>
+              <WeeSectionEyebrow className="mb-1 flex items-center gap-2" trackingClassName="tracking-[0.12em]">
+                <KeyRound size={12} aria-hidden />
+                More Steam can do later
+              </WeeSectionEyebrow>
+              <Text variant="caption" className="!m-0 text-[hsl(var(--text-tertiary))]">
+                Same connection can later power friend activity, store tags, news, and live player counts.
+                Today it feeds library playtime, Game Hub shelves, and the two Home Steam widgets.
+              </Text>
             </div>
           </div>
         </WeeModalFieldCard>

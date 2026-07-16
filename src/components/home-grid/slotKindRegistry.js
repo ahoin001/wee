@@ -109,6 +109,18 @@ export const HOME_SLOT_KINDS = {
     render: 'SteamRecentSlot',
     placeable: true,
   },
+  steamMostPlayed: {
+    id: 'steamMostPlayed',
+    label: 'Steam Most Played',
+    description: 'Your highest lifetime playtime titles',
+    icon: '🏆',
+    colSpan: HOME_SLOT_SIZE_PRESETS.M.colSpan,
+    rowSpan: HOME_SLOT_SIZE_PRESETS.M.rowSpan,
+    defaultSizePreset: 'M',
+    sizePresets: GLANCE_TILE_SIZE_PRESETS,
+    render: 'SteamMostPlayedSlot',
+    placeable: true,
+  },
 };
 
 /**

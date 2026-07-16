@@ -112,8 +112,7 @@ export default function AuraHero({
       ) : null}
       {showSteamApiKeyHint ? (
         <p className="aura-hub-hero__subline">
-          Add STEAM_WEB_API_KEY to your local .env (steamcommunity.com/dev/apikey), then restart Wee.
-          Steam profile and enrichment live under API &amp; Widgets.
+          Paste your Steam Web API key under Settings → API &amp; Widgets (free at steamcommunity.com/dev/apikey).
         </p>
       ) : null}
       <div className="aura-hub-hero__headline-wrap">

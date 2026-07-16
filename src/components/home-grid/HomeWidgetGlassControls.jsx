@@ -48,7 +48,7 @@ function HomeWidgetGlassControls() {
     <div className="flex w-full flex-col gap-2 border-t-2 border-[hsl(var(--border-primary)/0.25)] px-1 pb-1 pt-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
         <span className="text-[length:var(--font-size-micro)] font-black uppercase tracking-[0.12em] text-[hsl(var(--text-secondary))]">
-          Shared glass · all liquid tiles
+          Shared frost · all glass tiles
         </span>
         <WButton size="sm" variant="secondary" onClick={handleReset}>
           Reset look

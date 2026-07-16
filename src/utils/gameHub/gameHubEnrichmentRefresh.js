@@ -1,4 +1,5 @@
 import useConsolidatedAppStore from '../useConsolidatedAppStore';
+import { steamEnrichmentIpcArgs } from '../steamGamesGlance';
 
 /**
  * Force-refresh Steam library enrichment now — the one manual-refresh path shared by
@@ -18,11 +19,13 @@ export async function refreshSteamEnrichmentNow() {
   const store = useConsolidatedAppStore.getState();
   const gameHub = store.gameHub || {};
   const setGameHubState = store.actions.setGameHubState;
-  const steamId = gameHub.profile?.steamId;
-  const useSteamWebApi = gameHub.profile?.useSteamWebApi !== false;
+  const profile = gameHub.profile || {};
+  const steamId = profile.steamId;
+  const useSteamWebApi = profile.useSteamWebApi !== false;
   const hasBridge = Boolean(window.api?.steam?.getEnrichedGames);
+  const ipcArgs = steamEnrichmentIpcArgs(profile);
 
-  if (!steamId || !useSteamWebApi || !hasBridge) {
+  if (!steamId || !useSteamWebApi || !hasBridge || !ipcArgs) {
     // Nothing to fetch — invalidate so the next eligible hub visit refetches.
     setGameHubState({ library: { lastSyncedAt: 0 } });
     let unavailableCause = 'api-bridge-missing';
@@ -40,7 +43,7 @@ export async function refreshSteamEnrichmentNow() {
   });
 
   try {
-    const enriched = await window.api.steam.getEnrichedGames({ steamId });
+    const enriched = await window.api.steam.getEnrichedGames(ipcArgs);
     const enrichedGames = Array.isArray(enriched?.games) ? enriched.games : [];
     const hasError = Boolean(enriched?.error);
     const statusReason = enriched?.statusReason || enriched?.error || '';

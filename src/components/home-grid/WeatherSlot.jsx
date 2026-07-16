@@ -108,7 +108,7 @@ function WeatherSlot({
                 {current.emoji}
               </span>
               <div className="min-w-0 text-left">
-                <div className={`font-black tabular-nums text-[hsl(var(--text-primary))] ${isTall ? 'text-4xl' : 'text-2xl'}`}>
+                <div className={`font-black tabular-nums text-[hsl(var(--text-primary))] home-widget-float-type ${isTall ? 'text-4xl' : 'text-2xl'}`}>
                   {formatTemp(current.temperature)}
                 </div>
                 <div className="truncate text-[10px] font-bold text-[hsl(var(--text-secondary))]">
@@ -124,7 +124,7 @@ function WeatherSlot({
                 {daily.slice(1, 3).map((day) => (
                   <div
                     key={day.date}
-                    className="flex items-center gap-1.5 rounded-xl border border-[hsl(var(--border-primary)/0.25)] bg-[hsl(var(--surface-elevated)/0.55)] px-2 py-1.5"
+                    className="home-widget-float-chip flex items-center gap-1.5 rounded-xl border border-[hsl(var(--border-primary)/0.25)] bg-[hsl(var(--surface-elevated)/0.55)] px-2 py-1.5"
                   >
                     <span aria-hidden>{day.emoji}</span>
                     <div className="min-w-0">

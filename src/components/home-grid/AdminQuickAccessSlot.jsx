@@ -396,7 +396,7 @@ function AdminQuickAccessSlot({
           {moreOpen && !interactionsLocked ? (
             <MotionDiv
               key="aqa-more"
-              className="absolute inset-1 z-20 flex flex-col overflow-hidden rounded-[1.1rem] border-2 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--surface-elevated)/0.96)] p-2 shadow-[var(--wee-pill-shadow)] backdrop-blur-xl"
+              className="home-widget-float-panel absolute inset-1 z-20 flex flex-col overflow-hidden rounded-[1.1rem] border-2 border-[hsl(var(--wee-pill-border))] bg-[hsl(var(--surface-elevated)/0.96)] p-2 shadow-[var(--wee-pill-shadow)] backdrop-blur-xl"
               initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94 }}
@@ -429,7 +429,7 @@ function AdminQuickAccessSlot({
                   <m.button
                     key={action.id}
                     type="button"
-                    className="flex w-full items-center gap-2 rounded-xl border border-[hsl(var(--border-primary)/0.3)] bg-[hsl(var(--surface-primary)/0.65)] px-2.5 py-2 text-left text-xs font-semibold text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-tertiary)/0.8)]"
+                    className="home-widget-float-chip flex w-full items-center gap-2 rounded-xl border border-[hsl(var(--border-primary)/0.3)] bg-[hsl(var(--surface-primary)/0.65)] px-2.5 py-2 text-left text-xs font-semibold text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-tertiary)/0.8)]"
                     onClick={() => handleActionClick(action)}
                     whileHover={reducedMotion ? undefined : { scale: 1.02 }}
                     whileTap={reducedMotion ? undefined : { scale: 0.97 }}

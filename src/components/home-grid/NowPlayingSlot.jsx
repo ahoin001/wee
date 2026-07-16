@@ -213,7 +213,7 @@ function NowPlayingSlot({
             {!isCompact ? (
               <>
                 <span
-                  className={`truncate font-black text-[hsl(var(--text-primary))] ${
+                  className={`truncate font-black text-[hsl(var(--text-primary))] home-widget-float-type ${
                     isTall ? 'text-base leading-snug' : 'text-sm'
                   }`}
                 >
@@ -254,7 +254,7 @@ function NowPlayingSlot({
         >
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40 home-widget-float-chip"
             title="Previous"
             aria-label="Previous track"
             disabled={!canSkipPrevious && source !== 'spotify'}
@@ -278,7 +278,7 @@ function NowPlayingSlot({
           </button>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.72)] text-[hsl(var(--text-primary))] backdrop-blur-sm transition-transform hover:scale-110 disabled:opacity-40 home-widget-float-chip"
             title="Next"
             aria-label="Next track"
             disabled={!canSkipNext && source !== 'spotify'}
@@ -292,7 +292,7 @@ function NowPlayingSlot({
       {hasTrack && takeoverAvailable && !isCompact && !interactionsLocked ? (
         <button
           type="button"
-          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.75)] text-[hsl(var(--text-secondary))] backdrop-blur-sm transition-transform hover:scale-110 hover:text-[hsl(var(--text-primary))]"
+          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(var(--surface-elevated)/0.75)] text-[hsl(var(--text-secondary))] backdrop-blur-sm transition-transform hover:scale-110 hover:text-[hsl(var(--text-primary))] home-widget-float-chip"
           title="Now Playing takeover"
           aria-label="Toggle Now Playing takeover"
           onClick={(event) => {

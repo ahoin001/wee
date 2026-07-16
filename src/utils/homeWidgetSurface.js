@@ -2,14 +2,14 @@
  * Per-widget board surface mode.
  * Persisted on `slots[].surface` (Home grid SSOT).
  *
- * - `basic` — solid WeeGlassPill chrome (legacy “glass”)
- * - `glass` — shared liquid glass (wallpaper-forward; global `ui.homeWidgetGlass`)
- * - `clear` — no fill; wallpaper shows through
+ * - `clear` — floating default: no plate; wallpaper shows through (lock-screen / low-blur time-pill)
+ * - `glass` — same floating content + shared light frost/tint (`ui.homeWidgetGlass`)
+ * - `basic` — solid WeeGlassPill card chrome
  */
 
-export const HOME_WIDGET_SURFACES = Object.freeze(['basic', 'glass', 'clear']);
+export const HOME_WIDGET_SURFACES = Object.freeze(['clear', 'glass', 'basic']);
 
-export const DEFAULT_HOME_WIDGET_SURFACE = 'basic';
+export const DEFAULT_HOME_WIDGET_SURFACE = 'clear';
 
 /**
  * @param {unknown} value

@@ -2,7 +2,10 @@ import React, { forwardRef, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useShallow } from 'zustand/react/shallow';
 import { WeeGlassPill } from '../../ui/wee';
-import { normalizeHomeWidgetSurface } from '../../utils/homeWidgetSurface';
+import {
+  DEFAULT_HOME_WIDGET_SURFACE,
+  normalizeHomeWidgetSurface,
+} from '../../utils/homeWidgetSurface';
 import {
   homeWidgetGlassCssVars,
   normalizeHomeWidgetGlass,
@@ -11,13 +14,13 @@ import useConsolidatedAppStore from '../../utils/useConsolidatedAppStore';
 
 /**
  * Shared home-widget outer shell.
- * - basic: WeeGlassPill chrome
- * - glass: liquid see-through (global `ui.homeWidgetGlass` — all glass tiles stay in harmony)
- * - clear: no fill
+ * - clear: floating default — no plate; wallpaper shows through
+ * - glass: light frost/tint (global `ui.homeWidgetGlass`)
+ * - basic: solid WeeGlassPill card chrome
  */
 const HomeWidgetShell = forwardRef(function HomeWidgetShell(
   {
-    surface = 'basic',
+    surface = DEFAULT_HOME_WIDGET_SURFACE,
     selected = false,
     className = '',
     children,
@@ -49,6 +52,12 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
     ? 'ring-2 ring-[hsl(var(--primary))] ring-offset-2 ring-offset-[hsl(var(--surface-primary)/0)]'
     : '';
 
+  const content = (
+    <div className="home-widget-shell__content relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col">
+      {children}
+    </div>
+  );
+
   if (mode === 'clear') {
     return (
       <div
@@ -56,9 +65,12 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
         role={role}
         aria-label={ariaLabel}
         onClick={onClick}
+        data-home-widget-surface="clear"
         className={[
+          'home-widget-shell',
+          'home-widget-shell--clear',
           'relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem]',
-          'border border-[hsl(var(--border-primary)/0.18)] bg-transparent',
+          'border-0 bg-transparent shadow-none',
           selectedRing,
           className,
         ]
@@ -66,7 +78,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
           .join(' ')}
         {...rest}
       >
-        {children}
+        {content}
       </div>
     );
   }
@@ -79,7 +91,10 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
         aria-label={ariaLabel}
         onClick={onClick}
         style={glassVars}
+        data-home-widget-surface="glass"
         className={[
+          'home-widget-shell',
+          'home-widget-shell--glass',
           'home-widget-liquid-glass',
           'relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem]',
           selectedRing,
@@ -91,7 +106,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
       >
         <span className="home-widget-liquid-glass__shine pointer-events-none absolute inset-0" aria-hidden />
         <span className="home-widget-liquid-glass__edge pointer-events-none absolute inset-0" aria-hidden />
-        <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+        {content}
       </div>
     );
   }
@@ -103,7 +118,10 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
       role={role}
       aria-label={ariaLabel}
       onClick={onClick}
+      data-home-widget-surface="basic"
       className={[
+        'home-widget-shell',
+        'home-widget-shell--basic',
         'relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.35rem]',
         selectedRing,
         className,
@@ -112,7 +130,7 @@ const HomeWidgetShell = forwardRef(function HomeWidgetShell(
         .join(' ')}
       {...rest}
     >
-      {children}
+      {content}
     </WeeGlassPill>
   );
 });

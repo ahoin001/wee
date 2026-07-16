@@ -644,7 +644,8 @@ const ChannelsLayoutSettingsTab = React.memo(() => {
                 Widgets on the board
               </WeeSectionEyebrow>
               <WeeHelpParagraph className="!normal-case !tracking-[0.04em]">
-                Board widgets live in grid slots — place, resize, and remove them in Edit Home.
+                Board widgets float on wallpaper by default (Clear). Use Glass for a light frost,
+                or Basic for a solid card — place and restyle them in Edit Home.
               </WeeHelpParagraph>
             </div>
             <WeeButton

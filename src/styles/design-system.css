@@ -781,50 +781,89 @@
 }
 
 /**
- * Home-widget liquid glass — wallpaper-forward shell.
+ * Home-widget liquid glass — wallpaper-forward shell (time-pill–subtle by default).
  * Vars set by HomeWidgetShell from ui.homeWidgetGlass (shared across all glass tiles).
  * Inspired by Apple liquid glass / liquid-glass-react (blur, tint, sat, edge bend, shine).
  */
+.home-widget-shell--clear {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
 .home-widget-liquid-glass {
   isolation: isolate;
-  border: 1px solid hsl(var(--color-pure-white) / calc(0.22 + (var(--hwg-refract, 0.42) * 0.35)));
-  background: hsl(var(--color-pure-white) / var(--hwg-tint, 0.16));
+  border: 1px solid hsl(var(--color-pure-white) / calc(0.14 + (var(--hwg-refract, 0.28) * 0.28)));
+  background: hsl(var(--color-pure-white) / var(--hwg-tint, 0.06));
   box-shadow:
-    0 10px 28px hsl(var(--color-pure-black) / 0.14),
-    inset 0 1px 0 hsl(var(--color-pure-white) / calc(0.35 + (var(--hwg-shine, 0.55) * 0.4))),
-    inset 0 -10px 24px hsl(var(--color-pure-black) / calc(0.06 + (var(--hwg-refract, 0.42) * 0.12)));
-  backdrop-filter: blur(var(--hwg-blur, 14px)) saturate(var(--hwg-sat, 155%));
-  -webkit-backdrop-filter: blur(var(--hwg-blur, 14px)) saturate(var(--hwg-sat, 155%));
+    0 6px 18px hsl(var(--color-pure-black) / calc(0.06 + (var(--hwg-tint, 0.06) * 0.55))),
+    inset 0 1px 0 hsl(var(--color-pure-white) / calc(0.22 + (var(--hwg-shine, 0.35) * 0.35))),
+    inset 0 -8px 18px hsl(var(--color-pure-black) / calc(0.03 + (var(--hwg-refract, 0.28) * 0.1)));
+  backdrop-filter: blur(var(--hwg-blur, 8px)) saturate(var(--hwg-sat, 140%));
+  -webkit-backdrop-filter: blur(var(--hwg-blur, 8px)) saturate(var(--hwg-sat, 140%));
 }
 
 .home-widget-liquid-glass__shine {
   border-radius: inherit;
   background: linear-gradient(
     155deg,
-    hsl(var(--color-pure-white) / calc(0.28 * var(--hwg-shine, 0.55))) 0%,
-    hsl(var(--color-pure-white) / 0.06) 38%,
+    hsl(var(--color-pure-white) / calc(0.22 * var(--hwg-shine, 0.35))) 0%,
+    hsl(var(--color-pure-white) / 0.04) 38%,
     transparent 58%
   );
   mix-blend-mode: soft-light;
-  opacity: calc(0.55 + (var(--hwg-shine, 0.55) * 0.45));
+  opacity: calc(0.4 + (var(--hwg-shine, 0.35) * 0.45));
 }
 
 .home-widget-liquid-glass__edge {
   border-radius: inherit;
   box-shadow:
-    inset 0 0 0 1px hsl(var(--color-pure-white) / calc(0.12 + (var(--hwg-refract, 0.42) * 0.25))),
-    inset 0 0 calc(10px + (var(--hwg-refract, 0.42) * 18px))
-      hsl(var(--primary) / calc(0.04 + (var(--hwg-refract, 0.42) * 0.1)));
-  opacity: calc(0.4 + (var(--hwg-refract, 0.42) * 0.6));
+    inset 0 0 0 1px hsl(var(--color-pure-white) / calc(0.08 + (var(--hwg-refract, 0.28) * 0.2))),
+    inset 0 0 calc(8px + (var(--hwg-refract, 0.28) * 14px))
+      hsl(var(--primary) / calc(0.03 + (var(--hwg-refract, 0.28) * 0.08)));
+  opacity: calc(0.35 + (var(--hwg-refract, 0.28) * 0.55));
 }
 
 .dark-mode .home-widget-liquid-glass {
-  border-color: hsl(var(--color-pure-white) / calc(0.12 + (var(--hwg-refract, 0.42) * 0.2)));
-  background: hsl(var(--color-pure-white) / calc(var(--hwg-tint, 0.16) * 0.55));
+  background: hsl(var(--color-pure-white) / calc(var(--hwg-tint, 0.06) * 0.55));
   box-shadow:
-    0 12px 32px hsl(var(--color-pure-black) / 0.35),
-    inset 0 1px 0 hsl(var(--color-pure-white) / calc(0.18 + (var(--hwg-shine, 0.55) * 0.25))),
-    inset 0 -12px 28px hsl(var(--color-pure-black) / calc(0.18 + (var(--hwg-refract, 0.42) * 0.2)));
+    0 8px 22px hsl(var(--color-pure-black) / 0.28),
+    inset 0 1px 0 hsl(var(--color-pure-white) / calc(0.12 + (var(--hwg-shine, 0.35) * 0.25)));
+}
+
+/**
+ * Floating widget content — lock-screen / Game Hub Backdrop Off legibility.
+ * Applied under Clear/Glass shells so type & chips float without nested card plates.
+ */
+.home-widget-float-type {
+  text-shadow:
+    0 1px 2px hsl(var(--color-pure-black) / 0.45),
+    0 2px 12px hsl(var(--color-pure-black) / 0.28);
+}
+
+.home-widget-shell--clear .home-widget-float-chip,
+.home-widget-shell--glass .home-widget-float-chip {
+  background: hsl(var(--color-pure-black) / 0.38) !important;
+  border-color: hsl(var(--color-pure-white) / 0.16) !important;
+  box-shadow: 0 4px 14px hsl(var(--color-pure-black) / 0.22) !important;
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+}
+
+.home-widget-shell--clear .home-widget-float-tile,
+.home-widget-shell--glass .home-widget-float-tile {
+  background: transparent !important;
+  border-color: hsl(var(--color-pure-white) / 0.14) !important;
+  box-shadow: 0 4px 16px hsl(var(--color-pure-black) / 0.22) !important;
+}
+
+.home-widget-shell--clear .home-widget-float-panel,
+.home-widget-shell--glass .home-widget-float-panel {
+  background: hsl(var(--color-pure-black) / 0.4) !important;
+  border-color: hsl(var(--color-pure-white) / 0.14) !important;
+  box-shadow: 0 8px 24px hsl(var(--color-pure-black) / 0.28) !important;
+  backdrop-filter: blur(10px) saturate(1.15);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
 }
 
 /* State Utilities */

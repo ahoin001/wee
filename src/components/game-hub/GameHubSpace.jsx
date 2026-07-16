@@ -12,6 +12,7 @@ import AuraLibrarySection from './AuraLibrarySection';
 import { isAppLibraryBackgroundPrefetchScheduled } from '../../utils/appLibraryStartupCoordinator';
 import { shouldUseWarmEnrichmentCache } from '../../utils/gameHub/gameHubEnrichmentCache';
 import { getCachedSteamClientLibrary, setCachedSteamClientLibrary } from '../../utils/gameHub/gameHubClientLibraryCache';
+import { steamEnrichmentIpcArgs } from '../../utils/steamGamesGlance';
 import { refreshCacheDomain } from '../../utils/cacheRegistry';
 import { useHeroMediaCrossfade } from './useHeroMediaCrossfade';
 import { HUB_MORPH } from '../../design/playfulMotion';
@@ -406,7 +407,9 @@ export default function GameHubSpace() {
       }
 
       try {
-        const enriched = await window.api.steam.getEnrichedGames({ steamId });
+        const enriched = await window.api.steam.getEnrichedGames(
+          steamEnrichmentIpcArgs(profile) || { steamId }
+        );
         if (cancelled) return;
         applyFromApiResponse(enriched);
       } catch (error) {
@@ -431,6 +434,7 @@ export default function GameHubSpace() {
     appLibraryManager,
     gameHub.profile?.steamId,
     gameHub.profile?.useSteamWebApi,
+    gameHub.profile?.steamWebApiKey,
     isSpaceTransitioning,
     setGameHubState,
   ]);

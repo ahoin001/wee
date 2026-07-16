@@ -15,8 +15,8 @@
     "semantic_hash": "0c8e0181cda9048a3d8eb934a687567b"
   },
   "package.json": {
-    "mtime": 1784176489.2137215,
-    "ast_hash": "c41ce5cdc1504705b4bb518346177310",
+    "mtime": 1784208509.5160227,
+    "ast_hash": "238520d89c7f694582a3d179c4f17aa6",
     "semantic_hash": ""
   },
   "postcss.config.js": {
@@ -355,8 +355,8 @@
     "semantic_hash": "c31f295bd4b7aa852f993a0ed4553a31"
   },
   "src/components/game-hub/AuraHero.jsx": {
-    "mtime": 1784207333.7806008,
-    "ast_hash": "1829f2e6d12b3992a35fb0186296df98",
+    "mtime": 1784208758.2021754,
+    "ast_hash": "570b7151820b1aa02d9f5ce7421b400c",
     "semantic_hash": ""
   },
   "src/components/game-hub/AuraHubModalFrame.jsx": {
@@ -410,8 +410,8 @@
     "semantic_hash": "c21f7566834f5fb136784a4dc3fb65b3"
   },
   "src/components/game-hub/GameHubSpace.jsx": {
-    "mtime": 1784207371.0703316,
-    "ast_hash": "27b17a34de291057415582143b965e4e",
+    "mtime": 1784208754.4267316,
+    "ast_hash": "a41eacc4bfb8e9aeaf06dc374bcc9261",
     "semantic_hash": ""
   },
   "src/components/game-hub/GameHubTileDialogsProvider.jsx": {
@@ -1610,8 +1610,8 @@
     "semantic_hash": "541dd4bec18629467fdcb48e0506fb0f"
   },
   "src/utils/useConsolidatedAppStore.js": {
-    "mtime": 1784207691.3281412,
-    "ast_hash": "139783acb05ae5b4a8477fefcba011d8",
+    "mtime": 1784208716.273928,
+    "ast_hash": "b5d070d086d17f02bd25cfd621ae0352",
     "semantic_hash": ""
   },
   "src/utils/useIdleChannelAnimations.js": {
@@ -2000,8 +2000,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/HomeSlot.jsx": {
-    "mtime": 1784168772.0786169,
-    "ast_hash": "ecf6e958691fce09ce6475809397d32a",
+    "mtime": 1784208709.5048008,
+    "ast_hash": "1056aa9381cb0f5d952bf53d8b85a3c3",
     "semantic_hash": ""
   },
   "src/components/home-grid/index.js": {
@@ -2010,8 +2010,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/slotKindRegistry.js": {
-    "mtime": 1784168784.095446,
-    "ast_hash": "d51cb06c7837c37d2b569dfb64300c5e",
+    "mtime": 1784208709.5048008,
+    "ast_hash": "197202994bbf6fb2a29faa1ca9b01425",
     "semantic_hash": ""
   },
   "src/hooks/useWallpaperAmbientColor.js": {
@@ -2270,8 +2270,8 @@
     "semantic_hash": ""
   },
   "src/utils/gameHub/gameHubEnrichmentRefresh.js": {
-    "mtime": 1784207301.7675138,
-    "ast_hash": "fa11538ae7bdb2c45a282c8bfddf7a3e",
+    "mtime": 1784208717.0222583,
+    "ast_hash": "fd97d62c5633a54034bb83956036f09c",
     "semantic_hash": ""
   },
   "src/utils/mediaHub/mediaCatalogCache.js": {
@@ -2365,8 +2365,8 @@
     "semantic_hash": ""
   },
   "src/components/home-grid/SteamRecentSlot.jsx": {
-    "mtime": 1784207374.0086286,
-    "ast_hash": "5229dc7976e9247014f950f20534bc54",
+    "mtime": 1784208705.8399446,
+    "ast_hash": "9a41c71cd2e261aa31f4ba6ba19d35ab",
     "semantic_hash": ""
   },
   "src/components/home-grid/WeatherSlot.jsx": {
@@ -2405,8 +2405,23 @@
     "semantic_hash": ""
   },
   "src/components/settings/SteamIntegrationSettings.jsx": {
-    "mtime": 1784207301.7013733,
-    "ast_hash": "cc46b048374a5067afae8e8f6934419f",
+    "mtime": 1784208764.2528152,
+    "ast_hash": "fc8deed9ba46153feb57934dd221bc6e",
+    "semantic_hash": ""
+  },
+  "src/components/home-grid/SteamGamesGlanceSlot.jsx": {
+    "mtime": 1784208702.695844,
+    "ast_hash": "789bb64a90ee6ca7d4ce953222f79e25",
+    "semantic_hash": ""
+  },
+  "src/components/home-grid/SteamMostPlayedSlot.jsx": {
+    "mtime": 1784208708.2109413,
+    "ast_hash": "a0eef4731af6266cf5ae9f84cfe33e39",
+    "semantic_hash": ""
+  },
+  "src/utils/steamGamesGlance.js": {
+    "mtime": 1784208702.6582718,
+    "ast_hash": "f187effec62688c7a4782ac4759bfa0e",
     "semantic_hash": ""
   }
 }

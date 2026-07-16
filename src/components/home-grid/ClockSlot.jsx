@@ -91,7 +91,7 @@ function ClockSlot({
           </div>
         ) : null}
         <div
-          className={`leading-none tabular-nums ${
+          className={`home-widget-float-type leading-none tabular-nums ${
             isCompact ? 'text-2xl' : isTall ? 'text-5xl' : 'text-3xl'
           }`}
           style={{ fontFamily: fontStack, color }}
@@ -100,7 +100,7 @@ function ClockSlot({
         </div>
         {showDate ? (
           <div
-            className={`font-black uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))] ${
+            className={`home-widget-float-type font-black uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))] ${
               isTall ? 'text-xs' : 'text-[10px]'
             }`}
           >
